@@ -268,6 +268,26 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Quiz Results: Users can read their own, admins/instructors can read all
+    match /quizResults/{resultId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin() ||
+        request.auth.token.instructor == true
+      );
+      allow create: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin() ||
+        request.auth.token.instructor == true
+      );
+      allow update: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin() ||
+        request.auth.token.instructor == true
+      );
+      allow delete: if isAdmin();
+    }
+
     // Quiz Folders: Creator and admins can manage
     match /quizFolders/{folderId} {
       allow read: if isSignedIn();

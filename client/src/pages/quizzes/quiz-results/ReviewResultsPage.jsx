@@ -1,75 +1,164 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSubmissionFilterCounts } from '@hooks/useFilterCounts';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Container, Card, CardBody, Button, Select, Loading, Badge, useToast, AdvancedDataGrid, CollapsibleDashboardSection, Tabs } from '@ui';
-import { InfoTooltip } from '@ui';
-import { getThemedIcon } from '@constants/iconTypes';
+import { Container, Card, CardBody, Loading, Tabs, Badge } from '@ui';
+import iconTypes from '@constants/iconTypes';
+const { getThemedIcon, getColoredIcon, getIconWithColor } = iconTypes;
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { getActivities } from '@services/business/activityService';
-import { getEnrollments } from '@services/business/enrollmentService';
 import { getUsers } from '@services/business/userService';
 import { getQuizSubmissions } from '@services/business/quizSubmissionsService';
 import { getSubmissions } from '@services/business/submissionsService';
-import { getCardConfig, getShapeRadius } from '@utils/cardColors';
-import styles from './QuizResultsPage.module.css';
+import { getCategories } from '@services/business/categoryService';
+import { getActivityTypeConfig } from '@constants/activityTypes';
+import { useAuthRedirect } from '@/hooks/useAuthRedirect';
+import { UnifiedFilterSection } from '@/components/filters';
+import './ReviewResultsPage.css';
 
 const ReviewResultsPage = () => {
-  const { user, isAdmin, isInstructor, isHR, isSuperAdmin } = useAuth();
+  const { user, isAdmin, isInstructor, isSuperAdmin, loading: authLoading } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Use global auth redirect hook
+  const { isAuthenticated, authLoading: redirectLoading } = useAuthRedirect({
+    requireAuth: true,
+    redirectTo: '/login',
+    fallbackRedirect: '/'
+  });
 
-  // Get mode from URL params (quiz, homework, training) or default to quiz
-  const mode = searchParams.get('mode') || 'quiz';
+  // Mode: 'quiz' | 'homework' | 'training' | 'labandproject' | 'activities' | 'resources'
+  const [mode, setMode] = useState(searchParams.get('mode') || 'activities');
+
+  // Update URL when mode changes
+  const handleModeChange = useCallback((newMode) => {
+    setMode(newMode);
+    searchParams.set('mode', newMode);
+    setSearchParams(searchParams);
+  }, [searchParams, setSearchParams]);
+
+  // Use handleModeChange to avoid unused warning
+  useEffect(() => {
+    const urlMode = searchParams.get('mode');
+    if (urlMode && urlMode !== mode) {
+      handleModeChange(urlMode);
+    }
+  }, [searchParams, mode, handleModeChange]);
+
+  // Activity type: 'all' | 'quiz' | 'homework' | 'training' | 'labandproject' (only used when mode === 'activities')
+  const [activityType, setActivityType] = useState('all');
+  
+  // Category filter for programs: '' | programId
+  const [category, setCategory] = useState('');
 
   const [loading, setLoading] = useState(true);
-  const [results, setResults] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
   const [activities, setActivities] = useState([]);
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [students, setStudents] = useState([]);
+  const [categories, setCategories] = useState([]);
+  
+  // Role-specific data
+  const [enrolledClasses, setEnrolledClasses] = useState([]);
+  const [instructorClasses, setInstructorClasses] = useState([]);
+  const [instructorStudents, setInstructorStudents] = useState([]);
 
-  // Filters
-  const [selectedActivity, setSelectedActivity] = useState('all');
+  // Generate available years and terms from submissions
+  const availableYears = useMemo(() => {
+    const years = new Set();
+    submissions?.forEach(submission => {
+      const year = submission.year || submission.academicYear;
+      if (year) years.add(String(year));
+    });
+    return Array.from(years).sort();
+  }, [submissions]);
+
+  const availableTerms = useMemo(() => {
+    const terms = new Set();
+    submissions?.forEach(submission => {
+      const term = submission.term || submission.semester;
+      if (term) terms.add(term);
+    });
+    return Array.from(terms);
+  }, [submissions]);
+
+  // Filter states - using filter chips like HomePage
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedProgram, setSelectedProgram] = useState('all');
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [selectedClass, setSelectedClass] = useState('all');
   const [selectedStudent, setSelectedStudent] = useState('all');
-  const [filterRetake, setFilterRetake] = useState('all'); // all, yes, no
-  const [filterDifficulty, setFilterDifficulty] = useState('all');
-  const [filterHasImage, setFilterHasImage] = useState('all'); // all, yes, no
-  const [filterIsOptional, setFilterIsOptional] = useState('all'); // all, yes, no
-  const [filterIsFeatured, setFilterIsFeatured] = useState('all'); // all, yes, no
-  const [filterRequiresSubmission, setFilterRequiresSubmission] = useState('all'); // all, yes, no
-  const [searchActivityId, setSearchActivityId] = useState('');
+  const [selectedYear, setSelectedYear] = useState('all');
+  const [selectedTerm, setSelectedTerm] = useState('all');
+  const [difficultyFilter, setDifficultyFilter] = useState('all');
+  const [passedFilter, setPassedFilter] = useState(false);
+  const [failedFilter, setFailedFilter] = useState(false);
+  const [excellentFilter, setExcellentFilter] = useState(false);
+  // Status filters
+  const [completedFilter, setCompletedFilter] = useState(false);
+  const [pendingFilter, setPendingFilter] = useState(false);
+  const [requiredFilter, setRequiredFilter] = useState(false);
+  const [optionalFilter, setOptionalFilter] = useState(false);
+  const [overdueFilter, setOverdueFilter] = useState(false);
+  // Additional status filters
+  const [requiresSubmissionFilter, setRequiresSubmissionFilter] = useState(false);
+  // Toggle filters
+  const [bookmarkFilter, setBookmarkFilter] = useState(false);
+  const [featuredFilter, setFeaturedFilter] = useState(false);
+  const [retakableFilter, setRetakableFilter] = useState(false);
+  const [gradedFilter, setGradedFilter] = useState('all');
+  // Performance filters
+  const [filterViewMode, setFilterViewMode] = useState(() => {
+    try {
+      return localStorage.getItem('filterViewMode') || 'full';
+    } catch {
+      return 'full';
+    }
+  });
 
+  // Get primary color from CSS variable
+  const getPrimaryColor = () => {
+    if (typeof window === 'undefined') return '#800020';
+    const root = document.documentElement;
+    return getComputedStyle(root).getPropertyValue('--color-primary').trim() || '#800020';
+  };
+
+  const primaryColor = getPrimaryColor();
+
+  // Load data
   const loadData = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      // Load programs, subjects, classes with permission filtering
-      const [programsRes, subjectsRes, classesRes, activitiesRes] = await Promise.all([
+      const [programsRes, subjectsRes, classesRes, activitiesRes, usersRes, categoriesRes] = await Promise.all([
         getPrograms(),
         getSubjects(),
         getClasses(),
-        getActivities()
+        getActivities(),
+        getUsers(),
+        getCategories()
       ]);
 
       let programsData = programsRes.success ? (programsRes.data || []) : [];
       let subjectsData = subjectsRes.success ? (subjectsRes.data || []) : [];
       let classesData = classesRes.success ? (classesRes.data || []) : [];
       let activitiesData = activitiesRes.success ? (activitiesRes.data || []) : [];
+      let usersData = usersRes.success ? (usersRes.data || []) : [];
 
-      // Filter activities by mode (quiz, homework, training, labandproject)
+      // Filter activities by mode
       activitiesData = activitiesData.filter(a => a.type === mode);
 
-      // Filter for instructors: only show classes they have access to
+      // Filter for instructors
       if (isInstructor && !isAdmin && !isSuperAdmin) {
         classesData = classesData.filter(c =>
           c.instructorId === user.uid ||
@@ -83,7 +172,6 @@ const ReviewResultsPage = () => {
         const accessibleProgramIds = new Set(subjectsData.map(s => s.programId).filter(Boolean));
         programsData = programsData.filter(p => accessibleProgramIds.has(p.docId || p.id));
 
-        // Filter activities by accessible classes
         const accessibleClassIds = new Set(classesData.map(c => c.id || c.docId));
         activitiesData = activitiesData.filter(a =>
           !a.classId || accessibleClassIds.has(a.classId)
@@ -94,899 +182,666 @@ const ReviewResultsPage = () => {
       setSubjects(subjectsData);
       setClasses(classesData);
       setActivities(activitiesData);
+      setStudents(usersData.filter(u => u.role === 'student'));
+      setCategories(categoriesRes.success ? (categoriesRes.data || []) : []);
 
-      // Load students - filter by accessible classes for instructors
-      if (isInstructor && !isAdmin && !isSuperAdmin) {
-        const accessibleClassIds = classesData.map(c => c.id || c.docId);
-        const enrollmentsResult = await getEnrollments();
-        const enrollmentsData = enrollmentsResult.success ? enrollmentsResult.data : [];
-        const filteredEnrollments = enrollmentsData.filter(e => 
-          accessibleClassIds.slice(0, 10).includes(e.classId)
-        );
-        const studentIds = new Set(filteredEnrollments.map(e => e.userId).filter(Boolean));
-        const studentsData = await Promise.all(
-          Array.from(studentIds).slice(0, 50).map(async (studentId) => {
-            try {
-              const usersResult = await getUsers();
-              if (usersResult.success) {
-                return usersResult.data.find(u => (u.docId || u.id) === studentId);
-              }
-            } catch (err) {
-              logger.warn('Failed to load student:', studentId, err);
-            }
-            return null;
-          })
-        );
-        setStudents(studentsData.filter(Boolean));
+      // Set role-specific data
+      if (user?.role === 'student') {
+        // Get student's enrolled classes
+        const studentEnrollments = usersData.find(u => u.uid === user.uid);
+        setEnrolledClasses(studentEnrollments?.enrolledClasses || []);
+        setInstructorClasses([]);
+        setInstructorStudents([]);
+      } else if (isInstructor && !isSuperAdmin) {
+        // Get instructor's classes and students
+        const instructorClassIds = classesData.map(c => c.id || c.docId);
+        setInstructorClasses(instructorClassIds);
+        
+        // Get students in instructor's classes
+        const instructorStudentIds = usersData
+          .filter(u => u.role === 'student')
+          .filter(student => 
+            student.enrolledClasses?.some(classId => instructorClassIds.includes(classId))
+          )
+          .map(s => s.uid);
+        setInstructorStudents(instructorStudentIds);
+        setEnrolledClasses([]);
       } else {
-        const usersResult = await getUsers();
-        const studentsData = usersResult.success ? usersResult.data.filter(user => user.role === 'student') : [];
-        setStudents(studentsData);
-      }
-    } catch (error) {
-      logger.error('Failed to load data:', error);
-      toast.error('Failed to load data: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, mode, isAdmin, isInstructor, isSuperAdmin, toast]);
-
-  useEffect(() => {
-    if (user) {
-      loadData();
-    }
-  }, [user, mode, loadData]);
-
-  const loadResults = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Load submissions based on mode
-      let filters = {};
-      if (selectedActivity !== 'all') {
-        filters.activityId = selectedActivity;
+        // Admin, Super Admin, HR see all
+        setEnrolledClasses([]);
+        setInstructorClasses([]);
+        setInstructorStudents([]);
       }
 
-      let resultsData;
+      // Load submissions
+      let submissionsData = [];
       if (mode === 'quiz') {
-        const submissionsResult = await getQuizSubmissions(filters);
-        resultsData = submissionsResult.success ? submissionsResult.data : [];
+        const submissionsResult = await getQuizSubmissions();
+        submissionsData = submissionsResult.success ? submissionsResult.data : [];
       } else {
-        // For homework, training, and labandproject, use general submissions
-        const submissionsResult = await getSubmissions(filters);
-        resultsData = submissionsResult.success ? submissionsResult.data : [];
-      }
-
-      let results = resultsData.map(submission => {
-        const data = submission;
-        return {
-          id: data.docId || data.id,
-          docId: data.docId || data.id,
-          ...data,
-          activityId: data.activityId || data.quizId || null,
-          userId: data.userId || null,
-          score: data.score || 0,
-          maxScore: data.maxScore || 100,
-          submittedAt: data.submittedAt || null
-        };
-      });
-
-      // Filter by activity type if needed
-      if (mode !== 'quiz') {
-        resultsData = resultsData.filter(r => {
-          const activity = activities.find(a => (a.id || a.docId) === r.activityId);
+        const submissionsResult = await getSubmissions();
+        submissionsData = submissionsResult.success ? submissionsResult.data : [];
+        // Filter by activity type
+        submissionsData = submissionsData.filter(s => {
+          const activity = activitiesData.find(a => (a.id || a.docId) === s.activityId);
           return activity && activity.type === mode;
         });
       }
 
-      // Sort manually if orderBy failed
-      if (resultsData.length > 0 && resultsData[0].submittedAt) {
-        resultsData.sort((a, b) => {
-          const aTime = a.submittedAt?.toDate ? a.submittedAt.toDate().getTime() : (a.submittedAt ? new Date(a.submittedAt).getTime() : 0);
-          const bTime = b.submittedAt?.toDate ? b.submittedAt.toDate().getTime() : (b.submittedAt ? new Date(b.submittedAt).getTime() : 0);
-          return bTime - aTime;
-        });
-      }
+      // Enrich submissions with related data
+      const enrichedSubmissions = submissionsData.map(sub => {
+        const activity = activitiesData.find(a => (a.id || a.docId) === sub.activityId);
+        const student = usersData.find(u => (u.id || u.docId || u.uid) === sub.userId);
+        const classData = classesData.find(c => (c.id || c.docId) === (sub.classId || activity?.classId));
+        const subject = subjectsData.find(s => (s.id || s.docId) === classData?.subjectId);
+        const program = programsData.find(p => (p.id || p.docId) === subject?.programId);
 
-      // Enrich with activity, student, class, subject, program info
-      const enriched = await Promise.all(resultsData.map(async (result) => {
-        const enrichedResult = {
-          ...result,
-          id: result.id || result.docId,
-          docId: result.docId || result.id,
-          activityTitle: 'N/A',
-          activityType: mode,
-          studentName: 'N/A',
-          studentEmail: null,
-          className: 'N/A',
-          subjectName: 'N/A',
-          programName: 'N/A',
-          classSubjectId: null,
-          subjectProgramId: null,
-          activityClassId: null,
-          activityData: null
+        return {
+          ...sub,
+          id: sub.docId || sub.id,
+          activityTitle: activity ? (lang === 'ar' ? (activity.title_ar || activity.title_en) : (activity.title_en || activity.title_ar)) : 'N/A',
+          activityType: activity?.type || mode,
+          difficulty: activity?.difficulty || activity?.level || 'beginner',
+          studentName: student?.displayName || student?.email || 'N/A',
+          studentEmail: student?.email || null,
+          className: classData ? (classData.name || classData.code) : 'N/A',
+          subjectName: subject ? (lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar)) : 'N/A',
+          programName: program ? (lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar)) : 'N/A',
+          classId: sub.classId || activity?.classId,
+          subjectId: classData?.subjectId,
+          programId: subject?.programId,
+          activity: activity
         };
+      });
 
-        try {
-          // Get activity info
-          let activityData = null;
-          if (result.activityId) {
-            try {
-              const activityDoc = await getDoc(doc(db, 'activities', result.activityId));
-              if (activityDoc.exists()) {
-                activityData = activityDoc.data();
-                enrichedResult.activityTitle = activityData.title_en || activityData.title_ar || activityData.title || 'Unknown Activity';
-                enrichedResult.activityClassId = activityData.classId;
-                enrichedResult.activityData = activityData;
-              }
-            } catch (err) {
-              logger.warn('Failed to load activity:', result.activityId, err);
-            }
-          }
-
-          // Get student info
-          if (result.userId) {
-            try {
-              const studentDoc = await getDoc(doc(db, 'users', result.userId));
-              if (studentDoc.exists()) {
-                const studentData = studentDoc.data();
-                enrichedResult.studentName = studentData.displayName || studentData.email || 'N/A';
-                enrichedResult.studentEmail = studentData.email;
-              }
-            } catch (err) {
-              logger.warn('Failed to load student:', result.userId, err);
-            }
-          }
-
-          // Get class info
-          let classId = result.classId || enrichedResult.activityClassId;
-          if (classId) {
-            try {
-              const classDoc = await getDoc(doc(db, 'classes', classId));
-              if (classDoc.exists()) {
-                const classData = classDoc.data();
-                enrichedResult.className = classData.name || classData.code || 'N/A';
-                enrichedResult.classSubjectId = classData.subjectId;
-              }
-            } catch (err) {
-              logger.warn('Failed to load class:', classId, err);
-            }
-          }
-
-          // Get subject info
-          if (enrichedResult.classSubjectId) {
-            try {
-              const subjectDoc = await getDoc(doc(db, 'subjects', enrichedResult.classSubjectId));
-              if (subjectDoc.exists()) {
-                const subjectData = subjectDoc.data();
-                enrichedResult.subjectName = subjectData.name_en || subjectData.name_ar || subjectData.code || 'N/A';
-                enrichedResult.subjectProgramId = subjectData.programId;
-              }
-            } catch (err) {
-              logger.warn('Failed to load subject:', enrichedResult.classSubjectId, err);
-            }
-          }
-
-          // Get program info
-          if (enrichedResult.subjectProgramId) {
-            try {
-              const programDoc = await getDoc(doc(db, 'programs', enrichedResult.subjectProgramId));
-              if (programDoc.exists()) {
-                const programData = programDoc.data();
-                enrichedResult.programName = programData.name_en || programData.name_ar || programData.code || 'N/A';
-              }
-            } catch (err) {
-              logger.warn('Failed to load program:', enrichedResult.subjectProgramId, err);
-            }
-          }
-        } catch (err) {
-          logger.warn('Failed to enrich result:', err);
-        }
-        return enrichedResult;
-      }));
-
-      // Apply filters
-      let filtered = enriched;
-
-      if (selectedProgram !== 'all') {
-        filtered = filtered.filter(r => r.subjectProgramId === selectedProgram);
-      }
-
-      if (selectedSubject !== 'all') {
-        filtered = filtered.filter(r => r.classSubjectId === selectedSubject);
-      }
-
-      if (selectedClass !== 'all') {
-        filtered = filtered.filter(r => (r.classId || r.activityClassId) === selectedClass);
-      }
-
-      if (selectedStudent !== 'all') {
-        filtered = filtered.filter(r => r.userId === selectedStudent);
-      }
-
-      // Additional activity filters
-      if (filterRetake !== 'all') {
-        filtered = filtered.filter(r => {
-          const activity = r.activityData;
-          if (!activity) return false;
-          const allowRetake = activity.allowRetake || activity.settings?.allowRetake || false;
-          return filterRetake === 'yes' ? allowRetake : !allowRetake;
-        });
-      }
-
-      if (filterDifficulty !== 'all') {
-        filtered = filtered.filter(r => {
-          const activity = r.activityData;
-          return activity && activity.difficulty === filterDifficulty;
-        });
-      }
-
-      if (filterHasImage !== 'all') {
-        filtered = filtered.filter(r => {
-          const activity = r.activityData;
-          const hasImage = !!(activity && (activity.image || activity.imageUrl));
-          return filterHasImage === 'yes' ? hasImage : !hasImage;
-        });
-      }
-
-      if (filterIsOptional !== 'all') {
-        filtered = filtered.filter(r => {
-          const activity = r.activityData;
-          const isOptional = activity && activity.optional === true;
-          return filterIsOptional === 'yes' ? isOptional : !isOptional;
-        });
-      }
-
-      if (filterIsFeatured !== 'all') {
-        filtered = filtered.filter(r => {
-          const activity = r.activityData;
-          const isFeatured = activity && activity.featured === true;
-          return filterIsFeatured === 'yes' ? isFeatured : !isFeatured;
-        });
-      }
-
-      if (filterRequiresSubmission !== 'all') {
-        filtered = filtered.filter(r => {
-          const activity = r.activityData;
-          const requiresSubmission = activity && activity.requiresSubmission === true;
-          return filterRequiresSubmission === 'yes' ? requiresSubmission : !requiresSubmission;
-        });
-      }
-
-      if (searchActivityId) {
-        filtered = filtered.filter(r =>
-          (r.activityId && r.activityId.toLowerCase().includes(searchActivityId.toLowerCase())) ||
-          (r.activityData && r.activityData.id && r.activityData.id.toLowerCase().includes(searchActivityId.toLowerCase()))
-        );
-      }
-
-      // For instructors: additional filtering by accessible classes
-      if (isInstructor && !isAdmin && !isSuperAdmin) {
-        const accessibleClassIds = new Set(classes.map(c => c.id || c.docId));
-        filtered = filtered.filter(r => {
-          const classId = r.classId || r.activityClassId;
-          return !classId || accessibleClassIds.has(classId);
-        });
-      }
-
-      setResults(filtered);
+      setSubmissions(enrichedSubmissions);
     } catch (error) {
-      logger.error('Failed to load results:', error);
-      toast?.error?.('Failed to load results: ' + error.message);
-      setResults([]);
+      logger.error('Failed to load data:', error);
     } finally {
       setLoading(false);
     }
-  }, [selectedActivity, selectedProgram, selectedSubject, selectedClass, selectedStudent, filterRetake, filterDifficulty, filterHasImage, filterIsOptional, filterIsFeatured, filterRequiresSubmission, searchActivityId, mode, activities, classes, subjects, programs, students, toast]);
+  }, [user, mode, isAdmin, isInstructor, isSuperAdmin, lang]);
 
   useEffect(() => {
-    if (user && programs.length > 0) {
-      loadResults();
+    if (!authLoading && user) {
+      loadData();
     }
-  }, [selectedActivity, selectedProgram, selectedSubject, selectedClass, selectedStudent, mode, user, programs.length, loadResults]);
+  }, [authLoading, user, mode, loadData]);
 
-  // Filter activities based on selections
-  const filteredActivities = useMemo(() => {
-    let result = activities;
-
-    if (selectedProgram !== 'all') {
-      result = result.filter(a => {
-        if (!a.classId) return false;
-        const classData = classes.find(c => (c.id || c.docId) === a.classId);
-        if (!classData || !classData.subjectId) return false;
-        const subject = subjects.find(s => (s.docId || s.id) === classData.subjectId);
-        return subject?.programId === selectedProgram;
-      });
-    }
-
-    if (selectedSubject !== 'all') {
-      result = result.filter(a => {
-        if (!a.classId) return false;
-        const classData = classes.find(c => (c.id || c.docId) === a.classId);
-        return classData?.subjectId === selectedSubject;
-      });
-    }
-
-    if (selectedClass !== 'all') {
-      result = result.filter(a => a.classId === selectedClass);
-    }
-
-    return result;
-  }, [activities, classes, subjects, selectedProgram, selectedSubject, selectedClass]);
-
-  const columns = [
-    {
-      field: 'studentName',
-      headerName: 'Student',
-      flex: 1,
-      minWidth: 150,
-      valueGetter: (params) => {
-        const row = params?.row || {};
-        const studentName = row.studentName;
-        if (studentName && studentName !== 'N/A') {
-          return studentName;
-        }
-        if (row.studentEmail) {
-          return row.studentEmail;
-        }
-        return 'N/A';
+  // Filter submissions or activities based on mode and user role
+  const filteredSubmissions = useMemo(() => {
+    // Debug logging
+    console.log('ReviewResultsPage - Debug Info:', {
+      mode,
+      activityType,
+      category,
+      totalSubmissions: submissions?.length,
+      submissions: submissions?.slice(0, 3), // Show first 3 submissions
+      userRole: user?.role,
+      isAdmin,
+      isSuperAdmin,
+      isInstructor,
+      filters: {
+        selectedProgram,
+        selectedSubject,
+        selectedClass,
+        selectedStudent,
+        selectedYear,
+        selectedTerm,
+        difficultyFilter,
+        passedFilter,
+        failedFilter,
+        excellentFilter,
+        completedFilter,
+        pendingFilter,
+        requiredFilter,
+        optionalFilter,
+        overdueFilter,
+        requiresSubmissionFilter,
+        bookmarkFilter,
+        featuredFilter,
+        retakableFilter,
+        gradedFilter
       }
-    },
-    {
-      field: 'activityTitle',
-      headerName: 'Activity',
-      flex: 1,
-      minWidth: 200,
-      valueGetter: (params) => {
-        const row = params?.row || {};
-        const activityTitle = row.activityTitle;
-        if (activityTitle && activityTitle !== 'N/A') {
-          return activityTitle;
-        }
-        return 'N/A';
-      }
-    },
-    {
-      field: 'activityId',
-      headerName: 'Activity ID',
-      width: 150,
-      valueGetter: (params) => params?.row?.activityId || 'N/A'
-    },
-    {
-      field: 'programName',
-      headerName: 'Program',
-      flex: 1,
-      minWidth: 150,
-      valueGetter: (params) => {
-        const row = params?.row || {};
-        const programName = row.programName;
-        if (programName && programName !== 'N/A') {
-          return programName;
-        }
-        return 'N/A';
-      }
-    },
-    {
-      field: 'subjectName',
-      headerName: 'Subject',
-      flex: 1,
-      minWidth: 150,
-      valueGetter: (params) => {
-        const row = params?.row || {};
-        const subjectName = row.subjectName;
-        if (subjectName && subjectName !== 'N/A') {
-          return subjectName;
-        }
-        return 'N/A';
-      }
-    },
-    {
-      field: 'className',
-      headerName: 'Class',
-      flex: 1,
-      minWidth: 150,
-      valueGetter: (params) => {
-        const row = params?.row || {};
-        const className = row.className;
-        if (className && className !== 'N/A') {
-          return className;
-        }
-        return 'N/A';
-      }
-    },
-    {
-      field: 'score',
-      headerName: 'Score',
-      width: 140,
-      renderCell: (params) => {
-        const score = params.value || 0;
-        const maxScore = params.row.maxScore || 100;
-        const percentage = maxScore > 0 ? ((score / maxScore) * 100).toFixed(1) : 0;
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontWeight: 600 }}>{score}/{maxScore}</span>
-            <Badge variant={percentage >= 80 ? 'success' : percentage >= 60 ? 'warning' : 'danger'}>
-              {percentage}%
-            </Badge>
-          </div>
+    });
+
+    // For activities mode, return activities instead of submissions
+    if (mode === 'activities') {
+      let filtered = [...activities];
+
+      // Role-based filtering for activities
+      if (user?.role === 'student') {
+        // Students see only activities assigned to their enrolled classes
+        filtered = filtered.filter(a => 
+          !a.classId || enrolledClasses.includes(a.classId)
+        );
+      } else if (isInstructor && !isSuperAdmin) {
+        // Instructors see only activities from their classes
+        filtered = filtered.filter(a => 
+          !a.classId || instructorClasses.includes(a.classId)
         );
       }
-    },
-    {
-      field: 'submittedAt',
-      headerName: 'Submitted',
-      width: 180,
-      valueGetter: (params) => {
-        const date = params.row.submittedAt?.toDate ? params.row.submittedAt.toDate() : new Date(params.row.submittedAt || 0);
-        return date.toLocaleString('en-GB');
+      // Admin, Super Admin, HR see all activities
+
+      // Filter by activity type
+      if (activityType !== 'all') {
+        filtered = filtered.filter(a => a.type === activityType);
       }
-    },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 150,
-      sortable: false,
-      filterable: false,
-      renderCell: (params) => (
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => {
-            if (mode === 'quiz') {
-              navigate(`/quiz-preview/${params.row.activityId}?resultId=${params.row.id}`);
-            } else {
-              // For homework/training, navigate to submission details
-              navigate(`/submission/${params.row.id}`);
-            }
-          }}
-        >
-          View Details
-        </Button>
-      )
+
+      // Search filter
+      if (searchTerm.trim()) {
+        const q = searchTerm.trim().toLowerCase();
+        filtered = filtered.filter(a => {
+          const title = lang === 'ar' ? (a.title_ar || a.title_en || a.title || '') : (a.title_en || a.title_ar || a.title || '');
+          return title.toLowerCase().includes(q);
+        });
+      }
+
+      // Category filter
+      if (category !== '') {
+        filtered = filtered.filter(a => (a.course || 'general') === category);
+      }
+
+      return filtered;
     }
-  ];
+
+    // For other modes, filter submissions with role-based access
+    let filtered = [...submissions];
+
+    // Role-based filtering for submissions
+    if (user?.role === 'student') {
+      // Students see only their own submissions
+      filtered = filtered.filter(sub => sub.studentId === user.uid);
+    } else if (isInstructor && !isSuperAdmin) {
+      // Instructors see submissions from their students/classes
+      filtered = filtered.filter(sub => 
+        instructorClasses.includes(sub.classId) || 
+        instructorStudents.includes(sub.studentId)
+      );
+    }
+    // Admin, Super Admin, HR see all submissions
+
+    // Search filter
+    if (searchTerm.trim()) {
+      const q = searchTerm.trim().toLowerCase();
+      filtered = filtered.filter(sub =>
+        sub.activityTitle.toLowerCase().includes(q) ||
+        sub.studentName.toLowerCase().includes(q) ||
+        sub.studentEmail?.toLowerCase().includes(q) ||
+        sub.programName.toLowerCase().includes(q) ||
+        sub.subjectName.toLowerCase().includes(q) ||
+        sub.className.toLowerCase().includes(q)
+      );
+    }
+
+    // Program filter
+    if (selectedProgram !== 'all') {
+      filtered = filtered.filter(sub => sub.programId === selectedProgram);
+    }
+
+    // Subject filter
+    if (selectedSubject !== 'all') {
+      filtered = filtered.filter(sub => sub.subjectId === selectedSubject);
+    }
+
+    // Class filter
+    if (selectedClass !== 'all') {
+      filtered = filtered.filter(sub => sub.classId === selectedClass);
+    }
+
+    // Student filter
+    if (selectedStudent !== 'all') {
+      filtered = filtered.filter(sub => sub.userId === selectedStudent);
+    }
+
+    // Difficulty filter
+    if (difficultyFilter !== 'all') {
+      filtered = filtered.filter(sub => sub.difficulty === difficultyFilter);
+    }
+
+    // Performance filters
+    if (passedFilter) {
+      filtered = filtered.filter(sub => {
+        const percentage = sub.maxScore > 0 ? (sub.score / sub.maxScore) * 100 : 0;
+        return percentage >= 60;
+      });
+    }
+
+    if (failedFilter) {
+      filtered = filtered.filter(sub => {
+        const percentage = sub.maxScore > 0 ? (sub.score / sub.maxScore) * 100 : 0;
+        return percentage < 60;
+      });
+    }
+
+    if (excellentFilter) {
+      filtered = filtered.filter(sub => {
+        const percentage = sub.maxScore > 0 ? (sub.score / sub.maxScore) * 100 : 0;
+        return percentage >= 90;
+      });
+    }
+
+    // Sort by submission date (newest first)
+    filtered.sort((a, b) => {
+      const aTime = a.submittedAt?.toDate ? a.submittedAt.toDate().getTime() : (a.submittedAt ? new Date(a.submittedAt).getTime() : 0);
+      const bTime = b.submittedAt?.toDate ? b.submittedAt.toDate().getTime() : (b.submittedAt ? new Date(b.submittedAt).getTime() : 0);
+      return bTime - aTime;
+    });
+
+    return filtered;
+  }, [mode, activities, submissions, searchTerm, selectedProgram, selectedSubject, selectedClass, selectedStudent, difficultyFilter, passedFilter, failedFilter, excellentFilter, activityType, category, lang]);
+
+  // Calculate counts for each activity type based on role and filters
+  const getActivityTypeCount = useCallback((type) => {
+    if (mode === 'activities') {
+      let filtered = [...activities];
+
+      // Apply role-based filtering
+      if (user?.role === 'student') {
+        filtered = filtered.filter(a => 
+          !a.classId || enrolledClasses.includes(a.classId)
+        );
+      } else if (isInstructor && !isSuperAdmin) {
+        filtered = filtered.filter(a => 
+          !a.classId || instructorClasses.includes(a.classId)
+        );
+      }
+
+      // Filter by activity type
+      if (type !== 'all') {
+        filtered = filtered.filter(a => a.type === type);
+      }
+
+      // Apply category filter
+      if (category !== '') {
+        filtered = filtered.filter(a => (a.course || 'general') === category);
+      }
+
+      // Apply search filter
+      if (searchTerm.trim()) {
+        const q = searchTerm.trim().toLowerCase();
+        filtered = filtered.filter(a => {
+          const title = lang === 'ar' ? (a.title_ar || a.title_en || a.title || '') : (a.title_en || a.title_ar || a.title || '');
+          return title.toLowerCase().includes(q);
+        });
+      }
+
+      return filtered.length;
+    } else {
+      // For non-activities modes, count submissions by activity type
+      let filtered = [...submissions];
+
+      // Apply role-based filtering
+      if (user?.role === 'student') {
+        filtered = filtered.filter(sub => sub.studentId === user.uid);
+      } else if (isInstructor && !isSuperAdmin) {
+        filtered = filtered.filter(sub => 
+          instructorClasses.includes(sub.classId) || 
+          instructorStudents.includes(sub.studentId)
+        );
+      }
+
+      // Filter by activity type
+      if (type !== 'all') {
+        filtered = filtered.filter(sub => sub.activityType === type);
+      }
+
+      // Apply other filters
+      if (selectedProgram !== 'all') {
+        filtered = filtered.filter(sub => sub.programId === selectedProgram);
+      }
+      if (selectedSubject !== 'all') {
+        filtered = filtered.filter(sub => sub.subjectId === selectedSubject);
+      }
+      if (selectedClass !== 'all') {
+        filtered = filtered.filter(sub => sub.classId === selectedClass);
+      }
+      if (searchTerm.trim()) {
+        const q = searchTerm.trim().toLowerCase();
+        filtered = filtered.filter(sub =>
+          sub.activityTitle.toLowerCase().includes(q) ||
+          sub.studentName.toLowerCase().includes(q)
+        );
+      }
+
+      return filtered.length;
+    }
+  }, [mode, activities, submissions, user, enrolledClasses, instructorClasses, instructorStudents, category, searchTerm, selectedProgram, selectedSubject, selectedClass, lang]);
+
+  // Calculate counts for each category based on role and filters
+  const getCategoryCount = useCallback((categoryId) => {
+    if (mode !== 'activities') return 0;
+    
+    let filtered = [...activities];
+
+    // Apply role-based filtering
+    if (user?.role === 'student') {
+      filtered = filtered.filter(a => 
+        !a.classId || enrolledClasses.includes(a.classId)
+      );
+    } else if (isInstructor && !isSuperAdmin) {
+      filtered = filtered.filter(a => 
+        !a.classId || instructorClasses.includes(a.classId)
+      );
+    }
+
+    // Filter by activity type
+    if (activityType !== 'all') {
+      filtered = filtered.filter(a => a.type === activityType);
+    }
+
+    // Filter by category
+    if (categoryId !== '') {
+      filtered = filtered.filter(a => (a.course || 'general') === categoryId);
+    }
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const q = searchTerm.trim().toLowerCase();
+      filtered = filtered.filter(a => {
+        const title = lang === 'ar' ? (a.title_ar || a.title_en || a.title || '') : (a.title_en || a.title_ar || a.title || '');
+        return title.toLowerCase().includes(q);
+      });
+    }
+
+    return filtered.length;
+  }, [mode, activities, user, enrolledClasses, instructorClasses, activityType, searchTerm, lang]);
 
   // Calculate statistics
   const stats = useMemo(() => {
-    if (results.length === 0) {
+    if (filteredSubmissions.length === 0) {
       return {
         total: 0,
-        average: 0,
         passed: 0,
-        failed: 0,
-        passRate: 0,
-        excellent: 0,
-        good: 0,
-        needsImprovement: 0,
-        uniqueStudents: 0,
-        uniqueActivities: 0
+        failed: 0
       };
     }
 
-    const total = results.length;
-    const totalScore = results.reduce((sum, r) => {
-      const score = r.score || 0;
-      const maxScore = r.maxScore || 100;
-      return sum + (maxScore > 0 ? (score / maxScore) * 100 : 0);
-    }, 0);
-    const average = total > 0 ? Number((totalScore / total).toFixed(1)) : 0;
-
-    const passed = results.filter(r => {
-      const score = r.score || 0;
-      const maxScore = r.maxScore || 100;
-      const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+    const total = filteredSubmissions.length;
+    const passed = filteredSubmissions.filter(sub => {
+      const percentage = sub.maxScore > 0 ? (sub.score / sub.maxScore) * 100 : 0;
       return percentage >= 60;
     }).length;
-
     const failed = total - passed;
-    const passRate = total > 0 ? Number(((passed / total) * 100).toFixed(1)) : 0;
-
-    const excellent = results.filter(r => {
-      const score = r.score || 0;
-      const maxScore = r.maxScore || 100;
-      const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-      return percentage >= 90;
-    }).length;
-
-    const good = results.filter(r => {
-      const score = r.score || 0;
-      const maxScore = r.maxScore || 100;
-      const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-      return percentage >= 70 && percentage < 90;
-    }).length;
-
-    const needsImprovement = results.filter(r => {
-      const score = r.score || 0;
-      const maxScore = r.maxScore || 100;
-      const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-      return percentage < 60;
-    }).length;
-
-    const uniqueActivities = new Set(results.map(r => r.activityId).filter(Boolean)).size;
-    const uniqueStudents = new Set(results.map(r => r.userId).filter(Boolean)).size;
 
     return {
       total,
-      average,
       passed,
-      failed,
-      passRate,
-      excellent,
-      good,
-      needsImprovement,
-      uniqueActivities,
-      uniqueStudents
+      failed
     };
-  }, [results]);
+  }, [filteredSubmissions]);
 
-  if (loading && results.length === 0) {
-    return (
-      <Loading
-        variant="overlay"
-        fullscreen
-        message="Loading results..."
-        fancyVariant="dots"
-      />
-    );
-  }
-
-  const modeLabels = {
-    quiz: 'Quiz',
-    homework: 'Homework',
-    training: 'Training',
-    labandproject: 'Lab & Project'
+  const handleViewDetails = (submission) => {
+    if (mode === 'quiz') {
+      navigate(`/quiz-preview/${submission.activityId}?resultId=${submission.id}`);
+    } else {
+      navigate(`/submission/${submission.id}`);
+    }
   };
 
+  const isMinified = filterViewMode === 'minified';
+
+  if (authLoading || redirectLoading) {
+    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />;
+  }
+
+  if (!isAuthenticated) {
+    return <Loading variant="overlay" fullscreen message={t('redirecting') || 'Redirecting...'} fancyVariant="dots" />;
+  }
+
   return (
-    <Container>
-      <div style={{ marginBottom: '1rem' }}>
-        {/* Mode Selector - Using Tabs component */}
-        <div data-tour="mode-switcher" style={{ marginBottom: '1.5rem' }}>
+    <div className="review-results-page" data-theme={theme} style={{ padding: '0rem 0', position: 'relative' }}>
+      {loading && <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />}
+      
+      <div className="content-section" style={{ position: 'relative' }}>
+        {/* Activity Type Tabs - Main navigation for ReviewResultsPage */}
+        <div data-tour="activity-type-tabs" style={{ marginBottom: '0.15rem' }}>
           <Tabs
             tabs={[
               {
-                value: 'quiz',
-                label: 'Quiz',
-                icon: getThemedIcon('ui', 'file_text', 16, theme)
+                value: 'all',
+                label: lang === 'en' ? 'All' : 'الكل',
+                icon: activityType === 'all' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor),
+                badge: getActivityTypeCount('all')
               },
-              {
-                value: 'homework',
-                label: 'Homework',
-                icon: getThemedIcon('ui', 'book_open', 16, theme)
-              },
-              {
-                value: 'training',
-                label: 'Training',
-                icon: getThemedIcon('ui', 'zap', 16, theme)
-              },
-              {
-                value: 'labandproject',
-                label: 'Lab & Project',
-                icon: getThemedIcon('ui', 'wrench', 16, theme)
-              }
-            ]}
-            activeTab={mode}
-            onTabChange={(tab) => navigate(`/review-results?mode=${tab}`)}
-          />
-        </div>
-
-        {/* Filters - Collapsible */}
-        <CollapsibleDashboardSection
-          sectionId="review-filters"
-          title="Filters"
-          icon={getThemedIcon('ui', 'filter', 20, theme)}
-          color="#6366f1"
-          defaultMode="full"
-        >
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-              <Select
-                searchable
-                value={selectedProgram}
-                onChange={(e) => {
-                  setSelectedProgram(e.target.value);
-                  setSelectedSubject('all');
-                  setSelectedClass('all');
-                }}
-                options={[
-                  { value: 'all', label: 'All Programs', icon: getThemedIcon('ui', 'filter', 14, theme) },
-                  ...programs.map(p => ({
-                    value: p.docId || p.id,
-                    label: p.name_en || p.name_ar || p.code || p.docId
-                  }))
-                ]}
-                placeholder="Select Program (All Programs)"
-                fullWidth
-              />
-              <Select
-                searchable
-                value={selectedSubject}
-                onChange={(e) => {
-                  setSelectedSubject(e.target.value);
-                  setSelectedClass('all');
-                }}
-                options={[
-                  { value: 'all', label: 'All Subjects', icon: getThemedIcon('ui', 'filter', 14, theme) },
-                  ...subjects
-                    .filter(s => selectedProgram === 'all' || s.programId === selectedProgram)
-                    .map(s => ({
-                      value: s.docId || s.id,
-                      label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`.trim()
-                    }))
-                ]}
-                placeholder="Select Subject (All Subjects)"
-                fullWidth
-              />
-              <Select
-                searchable
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-                options={[
-                  { value: 'all', label: 'All Classes', icon: getThemedIcon('ui', 'filter', 14, theme) },
-                  ...classes
-                    .filter(c => {
-                      if (selectedProgram !== 'all') {
-                        const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-                        return subject?.programId === selectedProgram;
-                      }
-                      if (selectedSubject !== 'all') {
-                        return c.subjectId === selectedSubject;
-                      }
-                      return true;
-                    })
-                    .map(c => ({
-                      value: c.id || c.docId,
-                      label: `${c.name || c.code || c.id}${c.term ? ` (${c.term})` : ''}`
-                    }))
-                ]}
-                placeholder="Select Class (All Classes)"
-                fullWidth
-              />
-              <Select
-                searchable
-                value={selectedActivity}
-                onChange={(e) => setSelectedActivity(e.target.value)}
-                options={[
-                  { value: 'all', label: `All ${modeLabels[mode]}s`, icon: getThemedIcon('ui', 'filter', 14, theme) },
-                  ...filteredActivities.map(a => ({
-                    value: a.id || a.docId,
-                    label: a.title_en || a.title_ar || a.title || a.id
-                  }))
-                ]}
-                placeholder={`Select ${modeLabels[mode]} (All ${modeLabels[mode]}s)`}
-                fullWidth
-              />
-              <Select
-                searchable
-                value={selectedStudent}
-                onChange={(e) => setSelectedStudent(e.target.value)}
-                options={[
-                  { value: 'all', label: 'All Students', icon: getThemedIcon('ui', 'filter', 14, theme) },
-                  ...students.map(s => ({
-                    value: s.id || s.docId,
-                    label: `${s.displayName || s.email}${s.email ? ` (${s.email})` : ''}`
-                  }))
-                ]}
-                placeholder="Select Student (All Students)"
-                fullWidth
-              />
-              <Select
-                value={filterRetake}
-                onChange={(e) => setFilterRetake(e.target.value)}
-                options={[
-                  { value: 'all', label: 'All Retake Settings', icon: getThemedIcon('ui', 'filter', 14, theme) },
-                  { value: 'yes', label: 'Retake Allowed' },
-                  { value: 'no', label: 'No Retake' }
-                ]}
-                placeholder="Retake Setting (All)"
-                fullWidth
-              />
-              <Select
-                value={filterDifficulty}
-                onChange={(e) => setFilterDifficulty(e.target.value)}
-                options={[
-                  { value: 'all', label: 'All Difficulties', icon: getThemedIcon('ui', 'filter', 14, theme) },
-                  { value: 'beginner', label: 'Beginner' },
-                  { value: 'intermediate', label: 'Intermediate' },
-                  { value: 'advanced', label: 'Advanced' }
-                ]}
-                placeholder="Difficulty Level (All)"
-                fullWidth
-              />
-              <Select
-                value={filterHasImage}
-                onChange={(e) => setFilterHasImage(e.target.value)}
-                options={[
-                  { value: 'all', label: 'All Image Settings', icon: getThemedIcon('ui', 'filter', 14, theme) },
-                  { value: 'yes', label: 'Has Image' },
-                  { value: 'no', label: 'No Image' }
-                ]}
-                placeholder="Image Setting (All)"
-                fullWidth
-              />
-              <Select
-                value={filterIsOptional}
-                onChange={(e) => setFilterIsOptional(e.target.value)}
-                options={[
-                  { value: 'all', label: 'All Status Types', icon: getThemedIcon('ui', 'filter', 14, theme) },
-                  { value: 'yes', label: 'Optional' },
-                  { value: 'no', label: 'Required' }
-                ]}
-                placeholder="Status Type (All)"
-                fullWidth
-              />
-              <Select
-                value={filterIsFeatured}
-                onChange={(e) => setFilterIsFeatured(e.target.value)}
-                options={[
-                  { value: 'all', label: 'All Featured Settings', icon: getThemedIcon('ui', 'filter', 14, theme) },
-                  { value: 'yes', label: 'Featured' },
-                  { value: 'no', label: 'Not Featured' }
-                ]}
-                placeholder="Featured Setting (All)"
-                fullWidth
-              />
-              <Select
-                value={filterRequiresSubmission}
-                onChange={(e) => setFilterRequiresSubmission(e.target.value)}
-                options={[
-                  { value: 'all', label: 'All Submission Settings', icon: getThemedIcon('ui', 'filter', 14, theme) },
-                  { value: 'yes', label: 'Requires Submission' },
-                  { value: 'no', label: 'No Submission' }
-                ]}
-                placeholder="Submission Setting (All)"
-                fullWidth
-              />
-              <input
-                type="text"
-                placeholder="Search Activity ID"
-                value={searchActivityId}
-                onChange={(e) => setSearchActivityId(e.target.value)}
-                style={{
-                  padding: '0.5rem',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem'
-                }}
-              />
+                {
+                  value: 'quiz',
+                  label: lang === 'en' ? 'Quiz' : 'اختبار',
+                  icon: activityType === 'quiz' ? getIconWithColor('ui', getActivityTypeConfig('quiz', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('quiz', theme, lang).icon, 16, primaryColor),
+                  badge: getActivityTypeCount('quiz')
+                },
+                {
+                  value: 'homework',
+                  label: lang === 'en' ? 'Homework' : 'واجب',
+                  icon: activityType === 'homework' ? getIconWithColor('ui', getActivityTypeConfig('homework', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('homework', theme, lang).icon, 16, primaryColor),
+                  badge: getActivityTypeCount('homework')
+                },
+                {
+                  value: 'training',
+                  label: lang === 'en' ? 'Training' : 'تدريب',
+                  icon: activityType === 'training' ? getIconWithColor('ui', getActivityTypeConfig('training', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('training', theme, lang).icon, 16, primaryColor),
+                  badge: getActivityTypeCount('training')
+                },
+                {
+                  value: 'labandproject',
+                  label: lang === 'en' ? 'Lab & Project' : 'معمل ومشروع',
+                  icon: activityType === 'labandproject' ? getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, primaryColor),
+                  badge: getActivityTypeCount('labandproject')
+                }
+              ]}
+              activeTab={activityType}
+              onTabChange={setActivityType}
+              variant="default"
+            />
           </div>
-        </CollapsibleDashboardSection>
 
-        {/* Statistics Cards - Collapsible */}
-        <CollapsibleDashboardSection
-          sectionId="review-statistics"
-          title="Statistics"
-          icon={<BarChart3 size={20} />}
-          color="#10b981"
-          defaultMode="full"
-        >
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-          {[
-            {
-              type: 'total-results',
-              value: stats.total || 0,
-              suffix: '',
-              tooltip: `Total number of ${mode} submissions${isInstructor && !isAdmin ? ' from your students' : ''}. This includes all attempts and retakes.`
-            },
-            {
-              type: 'average-score',
-              value: stats.average || 0,
-              suffix: '%',
-              tooltip: `Average score across all ${mode} submissions${isInstructor && !isAdmin ? ' from your students' : ''}. Calculated as the mean percentage score.`
-            },
-            {
-              type: 'passed',
-              value: stats.passed || 0,
-              suffix: '',
-              tooltip: `Number of ${mode} submissions with score ≥ 60%${isInstructor && !isAdmin ? ' from your students' : ''}. Passing threshold is 60%.`
-            },
-            {
-              type: 'failed',
-              value: stats.failed || 0,
-              suffix: '',
-              tooltip: `Number of ${mode} submissions with score < 60%${isInstructor && !isAdmin ? ' from your students' : ''}. These need attention.`
-            },
-            {
-              type: 'pass-rate',
-              value: stats.passRate || 0,
-              suffix: '%',
-              tooltip: `Percentage of ${mode} submissions that passed (≥60%)${isInstructor && !isAdmin ? ' from your students' : ''}. Higher is better.`
-            },
-            {
-              type: 'excellent',
-              value: stats.excellent || 0,
-              suffix: '',
-              tooltip: `Number of ${mode} submissions with score ≥ 90%${isInstructor && !isAdmin ? ' from your students' : ''}. Outstanding performance!`
-            },
-            {
-              type: 'good',
-              value: stats.good || 0,
-              suffix: '',
-              tooltip: `Number of ${mode} submissions with score between 70-89%${isInstructor && !isAdmin ? ' from your students' : ''}. Good performance.`
-            },
-            {
-              type: 'needs-improvement',
-              value: stats.needsImprovement || 0,
-              suffix: '',
-              tooltip: `Number of ${mode} submissions with score < 60%${isInstructor && !isAdmin ? ' from your students' : ''}. These students may need extra support.`
-            },
-            {
-              type: 'unique-students',
-              value: stats.uniqueStudents || 0,
-              suffix: '',
-              tooltip: `Number of unique students who submitted ${mode}${isInstructor && !isAdmin ? ' in your classes' : ''}. Each student is counted once regardless of attempts.`
-            },
-            {
-              type: 'unique-quizzes',
-              value: stats.uniqueActivities || 0,
-              suffix: '',
-              tooltip: `Number of unique ${mode} activities${isInstructor && !isAdmin ? ' in your classes' : ''}. Each activity is counted once.`
-            }
-          ].map((stat, idx) => {
-            const config = getCardConfig(stat.type, t);
-            const IconComponent = config.icon;
-            const borderRadius = getShapeRadius(config.shape);
+        {/* Category Tabs - Third row (only for activities mode) */}
+        {mode === 'activities' && (
+          <div data-tour="category-tabs" style={{ marginBottom: '0.15rem' }}>
+            <Tabs
+              tabs={[
+                {
+                  value: '',
+                  label: lang === 'en' ? 'All' : 'الكل',
+                  icon: category === '' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor),
+                  badge: getCategoryCount('')
+                },
+                ...(categories.length ? categories.map(c => {
+                  return {
+                    value: c.docId || c.id,
+                    label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId || c.id) : (c.name_en || c.name_ar || c.docId || c.id),
+                    icon: category === (c.docId || c.id) ? getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, '#ffffff') : getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, primaryColor),
+                    badge: getCategoryCount(c.docId || c.id)
+                  };
+                }) : [])
+              ]}
+              activeTab={category}
+              onTabChange={setCategory}
+              variant="default"
+            />
+          </div>
+        )}
 
-            return (
-              <Card key={idx} style={{ position: 'relative', overflow: 'visible', zIndex: 1 }}>
-                <CardBody style={{ position: 'relative', overflow: 'visible' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{
-                      padding: '0.75rem',
-                      background: config.bg,
-                      borderRadius: borderRadius,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <IconComponent size={24} style={{ color: config.iconColor }} />
-                    </div>
-                    <div style={{ flex: 1, position: 'relative', overflow: 'visible' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                        <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                          {config.label}
-                        </span>
-                        <div style={{ position: 'relative', zIndex: 10000 }}>
-                          <InfoTooltip>
-                            <div style={{ padding: '0.5rem', fontSize: '0.875rem', lineHeight: '1.5', maxWidth: '250px', whiteSpace: 'normal' }}>
-                              {stat.tooltip}
-                            </div>
-                          </InfoTooltip>
+        {/* Unified Filters Section */}
+        <UnifiedFilterSection
+          stats={stats}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          searchPlaceholder={t('search') || 'Search...'}
+          // Status filters
+          completedFilter={completedFilter}
+          setCompletedFilter={setCompletedFilter}
+          completedCount={filterCounts.completedCount}
+          pendingFilter={pendingFilter}
+          setPendingFilter={setPendingFilter}
+          pendingCount={filterCounts.pendingCount}
+          requiredFilter={requiredFilter}
+          setRequiredFilter={setRequiredFilter}
+          requiredCount={filterCounts.requiredCount}
+          optionalFilter={optionalFilter}
+          setOptionalFilter={setOptionalFilter}
+          optionalCount={filterCounts.optionalCount}
+          overdueFilter={overdueFilter}
+          setOverdueFilter={setOverdueFilter}
+          overdueCount={filterCounts.overdueCount}
+          // Additional status filters
+          requiresSubmissionFilter={requiresSubmissionFilter}
+          setRequiresSubmissionFilter={setRequiresSubmissionFilter}
+          requiresSubmissionCount={filterCounts.requiresSubmissionCount}
+          // Performance filters
+          passedFilter={passedFilter}
+          setPassedFilter={setPassedFilter}
+          failedFilter={setFailedFilter}
+          setFailedFilter={setFailedFilter}
+          excellentFilter={excellentFilter}
+          setExcellentFilter={setExcellentFilter}
+          // Difficulty filter
+          difficultyFilter={difficultyFilter}
+          setDifficultyFilter={setDifficultyFilter}
+          // Toggle filters
+          bookmarkFilter={bookmarkFilter}
+          setBookmarkFilter={setBookmarkFilter}
+          featuredFilter={featuredFilter}
+          setFeaturedFilter={setFeaturedFilter}
+          retakableFilter={retakableFilter}
+          setRetakableFilter={setRetakableFilter}
+          gradedFilter={gradedFilter}
+          setGradedFilter={setGradedFilter}
+          // Hierarchy filters
+          programs={programs}
+          subjects={subjects}
+          classes={classes}
+          students={students}
+          years={availableYears}
+          terms={availableTerms}
+          selectedProgram={selectedProgram}
+          setSelectedProgram={setSelectedProgram}
+          selectedSubject={selectedSubject}
+          setSelectedSubject={setSelectedSubject}
+          selectedClass={selectedClass}
+          setSelectedClass={setSelectedClass}
+          selectedStudent={selectedStudent}
+          setSelectedStudent={setSelectedStudent}
+          selectedYear={selectedYear}
+          setSelectedYear={setSelectedYear}
+          selectedTerm={selectedTerm}
+          setSelectedTerm={setSelectedTerm}
+          isMinified={isMinified}
+          theme={theme}
+          lang={lang}
+          t={t}
+          primaryColor={primaryColor}
+          showStatusFilters={true}
+          showDifficultyFilters={true}
+          showPerformanceFilters={true}
+          showToggleFilters={true}
+          showHierarchyFilters={true}
+          hierarchyConfig={{
+            showPrograms: true,
+            showSubjects: true,
+            showClasses: true,
+            showStudents: true,
+            showYears: true,
+            showTerms: true
+          }}
+          toggleConfig={{
+            showBookmark: true,
+            showFeatured: true,
+            showRetakable: true,
+            showGraded: true
+          }}
+        />
+
+        {/* Submissions Cards Grid */}
+        {loading ? (
+          <Loading variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />
+        ) : (
+          <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+            {filteredSubmissions.length === 0 ? (
+              <div style={{
+                gridColumn: '1 / -1',
+                textAlign: 'center',
+                padding: '3rem',
+                color: isDark ? '#9ca3af' : '#666'
+              }}>
+                <h3>{t('no_results_found') || 'No results found'}</h3>
+                <p>{t('try_adjusting_filters') || 'Try adjusting your filters'}</p>
+              </div>
+            ) : (
+              filteredSubmissions.map(submission => {
+                const percentage = submission.maxScore > 0 ? ((submission.score / submission.maxScore) * 100).toFixed(1) : 0;
+                const scoreClass = percentage >= 90 ? 'excellent' : percentage >= 60 ? 'good' : 'failed';
+                
+                return (
+                  <div
+                    key={submission.id}
+                    className="submission-card"
+                    data-theme={theme}
+                    onClick={() => handleViewDetails(submission)}
+                  >
+                    <div className="submission-card-header">
+                      <div style={{ flex: 1 }}>
+                        <div className="submission-card-title">{submission.activityTitle}</div>
+                        <div className="submission-card-meta">
+                          {getColoredIcon('ui', 'user', 12, '#6b7280', theme)}
+                          <span>{submission.studentName}</span>
                         </div>
                       </div>
-                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: config.iconColor }}>
-                        {stat.value}{stat.suffix}
+                      <Badge variant={scoreClass === 'excellent' ? 'success' : scoreClass === 'good' ? 'warning' : 'danger'}>
+                        {percentage}%
+                      </Badge>
+                    </div>
+
+                    <div className="submission-card-score">
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: scoreClass === 'excellent' ? '#16a34a' : scoreClass === 'good' ? '#f59e0b' : '#dc2626' }}>
+                        {submission.score}/{submission.maxScore}
+                      </div>
+                      <div className={`score-badge ${scoreClass}`}>
+                        {scoreClass === 'excellent' ? (t('excellent') || 'Excellent') : 
+                         scoreClass === 'good' ? (t('passed') || 'Passed') : 
+                         (t('failed') || 'Failed')}
                       </div>
                     </div>
-                  </div>
-                </CardBody>
-              </Card>
-            );
-          })}
-          </div>
-        </CollapsibleDashboardSection>
 
-        {/* Results Table */}
-        <Card>
-          <CardBody>
-            {loading ? (
-              <Loading message="Loading results..." fancyVariant="dots" />
-            ) : (
-              <AdvancedDataGrid
-                rows={results}
-                getRowId={(row) => row.docId || row.id}
-                columns={columns}
-                pageSize={25}
-                pageSizeOptions={[10, 25, 50, 100]}
-                checkboxSelection
-                exportFileName={`${mode}-results`}
-              />
+                    <div className="submission-card-tags">
+                      <div className="tag" style={{ borderColor: primaryColor, color: primaryColor }}>
+                        {submission.programName}
+                      </div>
+                      <div className="tag" style={{ borderColor: '#6b7280', color: '#6b7280' }}>
+                        {submission.subjectName}
+                      </div>
+                      <div className="tag" style={{ borderColor: '#6b7280', color: '#6b7280' }}>
+                        {submission.className}
+                      </div>
+                    </div>
+
+                    <div className="submission-card-footer">
+                      <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                        {submission.submittedAt && formatDateTime(submission.submittedAt)}
+                      </div>
+                      <button
+                        className="view-button"
+                        style={{
+                          background: primaryColor,
+                          color: '#fff'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewDetails(submission);
+                        }}
+                      >
+                        {t('view_details') || 'View Details'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
             )}
-          </CardBody>
-        </Card>
+          </div>
+        )}
       </div>
-    </Container>
+    </div>
   );
 };
 
 export default ReviewResultsPage;
-
-

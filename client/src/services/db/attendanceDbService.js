@@ -53,6 +53,7 @@ import {
   orderBy 
 } from 'firebase/firestore';
 import { db } from '../other/config.js';
+import logger from '@utils/logger';
 
 /**
  * Get attendance records with filters

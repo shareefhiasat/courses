@@ -1,8 +1,9 @@
-﻿import React from 'react';
+import React from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { FILTER_CONFIGS } from '@constants/filterConfig.js';
+import logger from '@utils/logger';
 import Select from '../Select/Select';
 
 /**

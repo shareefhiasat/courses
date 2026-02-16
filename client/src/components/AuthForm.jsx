@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { signIn, signUp, resetPassword } from '@services/business/authService';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import logger from '../utils/logger';
 import { getAllowlist } from '@services/business/configService';
 import { useLang } from '../contexts/LangContext';
@@ -76,6 +76,7 @@ const AuthForm = () => {
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, lang, toggleLang } = useLang?.() || {};
   const { theme, toggleTheme } = useTheme();
   const { primaryColor } = useColorTheme();
@@ -90,6 +91,30 @@ const AuthForm = () => {
     }
     if (lang === 'ar' && fallbackAr) return fallbackAr;
     return fallbackEn;
+  };
+
+  // Handle post-login redirect with backUrl
+  const handlePostLoginRedirect = () => {
+    const urlParams = new URLSearchParams(location.search);
+    const backUrl = urlParams.get('backUrl');
+    
+    if (backUrl) {
+      // Validate the backUrl to prevent open redirects
+      try {
+        const url = new URL(backUrl, window.location.origin);
+        // Only allow same-origin redirects
+        if (url.origin === window.location.origin) {
+          navigate(backUrl, { replace: true });
+          return true;
+        }
+      } catch (error) {
+        console.warn('Invalid backUrl:', backUrl);
+      }
+    }
+    
+    // Fallback to default redirect
+    navigate('/', { replace: true });
+    return false;
   };
 
   const handleKeyDown = (e) => {
@@ -292,7 +317,7 @@ const AuthForm = () => {
             }
           } catch {}
           setMessage(tr('signup_success', '✅ Account created successfully! Redirecting...', '✅ تم إنشاء الحساب بنجاح! سيتم التحويل...'));
-          setTimeout(() => navigate('/'), 1500);
+          setTimeout(() => handlePostLoginRedirect(), 1500);
         } else {
           logger.log('🔍 PostHog - Sign up failed:', {
             email: email.substring(0, 5) + '...',
@@ -347,7 +372,7 @@ const AuthForm = () => {
           } else {
             setMessage(tr('login_success', 'Login successful! Redirecting...', ' تم تسجيل الدخول بنجاح! سيتم التحويل...'));
           }
-          setTimeout(() => navigate('/'), 1000);
+          setTimeout(() => handlePostLoginRedirect(), 1000);
         } else {
           logger.log('🔍 PostHog - Login failed:', {
             email: email.substring(0, 5) + '...',

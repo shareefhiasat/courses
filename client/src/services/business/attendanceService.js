@@ -179,7 +179,7 @@ export const markAttendance = async (attendanceData) => {
  */
 export const getAttendanceByClass = async (classId, date) => {
   try {
-    return await getAttendanceRecords({ classId, date });
+    return await getAttendanceRecordsFromDb({ classId, date });
   } catch (error) {
     logger.error('Error fetching class attendance:', error);
     return { success: false, error: error.message };
@@ -191,7 +191,7 @@ export const getAttendanceByClass = async (classId, date) => {
  */
 export const getAttendanceByStudent = async (studentId, startDate = null, endDate = null) => {
   try {
-    return await getAttendanceRecords({ studentId, startDate, endDate });
+    return await getAttendanceRecordsFromDb({ studentId, startDate, endDate });
   } catch (error) {
     logger.error('Error fetching student attendance:', error);
     return { success: false, error: error.message };

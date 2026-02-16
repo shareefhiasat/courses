@@ -29,6 +29,7 @@ const UnifiedCard = memo(({
   onDetails,
   onComplete,
   onBookmark,
+  onFeatured,
   isCompleted = false,
   completedAt = null,
   isBookmarked = false,
@@ -51,6 +52,11 @@ const UnifiedCard = memo(({
           ? (item.title_ar || item.title_en || item.title || item.id)
           : (item.title_en || item.title_ar || item.title || item.id);
     }
+    if (flavor === 'announcements') {
+      return lang === 'ar'
+          ? (item.title_ar || item.title_en || item.title || item.message || 'Untitled Announcement')
+          : (item.title_en || item.title_ar || item.title || item.message || 'Untitled Announcement');
+    }
     return lang === 'ar'
         ? (item.title_ar || item.title_en || item.id)
         : (item.title_en || item.title_ar || item.id);
@@ -67,6 +73,11 @@ const UnifiedCard = memo(({
           ? (item.description_ar || item.description_en || item.description || '—')
           : (item.description_en || item.description_ar || item.description || '—');
     }
+    if (flavor === 'announcements') {
+      return lang === 'ar'
+          ? (item.message_ar || item.message_en || item.message || item.description || '—')
+          : (item.message_en || item.message_ar || item.message || item.description || '—');
+    }
     return lang === 'ar'
         ? (item.description_ar || item.description_en || '—')
         : (item.description_en || item.description_ar || '—');
@@ -80,6 +91,9 @@ const UnifiedCard = memo(({
       if (item.type === 'video') return getColoredIcon('ui', 'video', 14, primaryColor, theme);
       if (item.type === 'link') return getColoredIcon('ui', 'link', 14, primaryColor, theme);
       return getColoredIcon('ui', 'file', 14, primaryColor, theme);
+    }
+    if (flavor === 'announcements') {
+      return getColoredIcon('ui', 'megaphone', 14, '#dc2626', theme);
     }
     const type = item.type || 'training';
     if (type === 'quiz') return getColoredIcon('ui', 'help', 14, '#7c3aed', theme);
@@ -96,6 +110,9 @@ const UnifiedCard = memo(({
       const type = item.type || 'document';
       return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
     }
+    if (flavor === 'announcements') {
+      return t('announcement') || 'Announcement';
+    }
     const type = item.type || 'training';
     return t(type) || type;
   };
@@ -107,6 +124,9 @@ const UnifiedCard = memo(({
     if (flavor === 'resource') {
       // Use primary color for all resource types to unify look
       return { bg: `${primaryColor}15`, fg: primaryColor, border: `${primaryColor}40` };
+    }
+    if (flavor === 'announcements') {
+      return { bg: '#fee2e2', fg: '#dc2626', border: '#fecaca' };
     }
     const type = item.type || 'training';
     if (type === 'quiz') return { bg: '#eef2ff', fg: '#4f46e5', border: '#e0e7ff' };
@@ -200,6 +220,52 @@ const UnifiedCard = memo(({
               ) : (
                   getThemedIcon('ui', 'star_off', 18, theme)
               )}
+            </button>
+        )}
+
+        {/* Featured Toggle Button - Below Bookmark */}
+        {onFeatured && flavor === 'announcements' && (
+            <button
+                onClick={onFeatured}
+                aria-label={item.featured ? t('remove_featured') || 'Remove featured' : t('add_featured') || 'Add featured'}
+                style={{
+                  position: 'absolute',
+                  top: 48,
+                  [lang === 'ar' ? 'left' : 'right']: 10,
+                  background: item.featured ? '#f59e0b' : (isDark ? '#374151' : 'white'),
+                  border: item.featured ? '1px solid #f59e0b' : (isDark ? '1px solid #4b5563' : '1px solid #e5e7eb'),
+                  borderRadius: 20,
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  zIndex: 10,
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                  color: item.featured ? '#ffffff' : (isDark ? '#9ca3af' : '#6b7280')
+                }}
+                onMouseEnter={(e) => {
+                  if (item.featured) {
+                    e.currentTarget.style.background = '#d97706';
+                    e.currentTarget.style.borderColor = '#d97706';
+                  } else {
+                    e.currentTarget.style.background = isDark ? '#4b5563' : '#f9fafb';
+                    e.currentTarget.style.borderColor = isDark ? '#6b7280' : '#d1d5db';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (item.featured) {
+                    e.currentTarget.style.background = '#f59e0b';
+                    e.currentTarget.style.borderColor = '#f59e0b';
+                  } else {
+                    e.currentTarget.style.background = isDark ? '#374151' : 'white';
+                    e.currentTarget.style.borderColor = isDark ? '#4b5563' : '#e5e7eb';
+                  }
+                }}
+            >
+                {getIconWithColor('ui', 'star', 16, item.featured ? '#ffffff' : (isDark ? '#9ca3af' : '#6b7280'))}
             </button>
         )}
 
@@ -464,7 +530,35 @@ const UnifiedCard = memo(({
         {/* Action Buttons - Icon only */}
         <div style={{ display: 'flex', gap: '0.375rem', marginTop: 'auto', alignItems: 'center' }}>
           {onStart && (
-              <Button
+              flavor === 'announcements' ? (
+                <button
+                  style={{
+                    width: 28,
+                    height: 28,
+                    padding: 0,
+                    borderRadius: 6,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: isDark ? '#374151' : '#ffffff',
+                    border: isDark ? '1px solid #4b5563' : '1px solid #e5e7eb',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={onStart}
+                  aria-label={t('view') || 'View'}
+                  title={t('view') || 'View'}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = isDark ? '#4b5563' : '#f9fafb';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = isDark ? '#374151' : '#ffffff';
+                  }}
+                >
+                  {getThemedIcon('ui', 'eye', 14, theme)}
+                </button>
+              ) : (
+                <Button
                   variant="success"
                   size="small"
                   style={{
@@ -479,9 +573,10 @@ const UnifiedCard = memo(({
                   onClick={onStart}
                   aria-label={t('start') || 'Start'}
                   title={t('start') || 'Start'}
-              >
-                {getWhiteIcon('ui', 'play', 14)}
-              </Button>
+                >
+                  {getWhiteIcon('ui', 'play', 14)}
+                </Button>
+              )
           )}
 
           {onComplete && flavor === 'resource' && (

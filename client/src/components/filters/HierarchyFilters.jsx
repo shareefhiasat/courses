@@ -1,0 +1,158 @@
+import React, { useMemo } from 'react';
+import { Select, YearSelect, FilterSelect } from '@ui';
+
+/**
+ * Reusable hierarchy filters component for Program/Subject/Class/Student dropdowns
+ * Used in HomePage, StudentDashboard, and ReviewResultsPage
+ */
+const HierarchyFilters = ({
+  programs = [],
+  subjects = [],
+  classes = [],
+  students = [],
+  years = [],
+  terms = [],
+  selectedProgram,
+  setSelectedProgram,
+  selectedSubject,
+  setSelectedSubject,
+  selectedClass,
+  setSelectedClass,
+  selectedStudent,
+  setSelectedStudent,
+  selectedYear,
+  setSelectedYear,
+  selectedTerm,
+  setSelectedTerm,
+  theme = 'light',
+  lang = 'en',
+  t = (key) => key,
+  showPrograms = true,
+  showSubjects = true,
+  showClasses = true,
+  showStudents = false,
+  showYears = false,
+  showTerms = false
+}) => {
+  const programOptions = useMemo(() => [
+    { value: 'all', label: t('all_programs') || 'All Programs' },
+    ...programs.map(p => ({
+      value: p.docId || p.id,
+      label: lang === 'ar' ? (p.name_ar || p.name_en || p.code) : (p.name_en || p.name_ar || p.code)
+    }))
+  ], [programs, lang, t]);
+
+  const subjectOptions = useMemo(() => [
+    { value: 'all', label: t('all_subjects') || 'All Subjects' },
+    ...subjects
+      .filter(s => selectedProgram === 'all' || s.programId === selectedProgram)
+      .map(s => ({
+        value: s.docId || s.id,
+        label: lang === 'ar' ? (s.name_ar || s.name_en || s.code) : (s.name_en || s.name_ar || s.code)
+      }))
+  ], [subjects, selectedProgram, lang, t]);
+
+  const classOptions = useMemo(() => [
+    { value: 'all', label: t('all_classes') || 'All Classes' },
+    ...classes
+      .filter(c => {
+        if (selectedSubject !== 'all') return c.subjectId === selectedSubject;
+        if (selectedProgram !== 'all') {
+          const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
+          return subject?.programId === selectedProgram;
+        }
+        return true;
+      })
+      .map(c => ({
+        value: c.id || c.docId,
+        label: c.name || c.code
+      }))
+  ], [classes, selectedSubject, selectedProgram, subjects]);
+
+  const studentOptions = useMemo(() => [
+    { value: 'all', label: t('all_students') || 'All Students' },
+    ...students.map(s => ({
+      value: s.id || s.docId || s.uid,
+      label: s.displayName || s.email
+    }))
+  ], [students, t]);
+
+  return (
+    <div style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap', marginLeft: 'auto' }}>
+      {showPrograms && programs.length > 0 && (
+        <Select
+          value={selectedProgram}
+          onChange={(value) => {
+            setSelectedProgram(value);
+            if (setSelectedSubject) setSelectedSubject('all');
+            if (setSelectedClass) setSelectedClass('all');
+          }}
+          options={programOptions}
+          size="sm"
+          compact
+        />
+      )}
+      
+      {showSubjects && subjects.length > 0 && (
+        <Select
+          value={selectedSubject}
+          onChange={(value) => {
+            setSelectedSubject(value);
+            if (setSelectedClass) setSelectedClass('all');
+          }}
+          options={subjectOptions}
+          size="sm"
+          compact
+        />
+      )}
+      
+      {showClasses && classes.length > 0 && (
+        <Select
+          value={selectedClass}
+          onChange={setSelectedClass}
+          options={classOptions}
+          size="sm"
+          compact
+        />
+      )}
+
+      {showStudents && students.length > 0 && (
+        <Select
+          value={selectedStudent}
+          onChange={setSelectedStudent}
+          options={studentOptions}
+          size="sm"
+          compact
+        />
+      )}
+
+      {showYears && years.length > 0 && (
+        <YearSelect
+          value={selectedYear}
+          onChange={setSelectedYear}
+          includeAll
+          allValue="all"
+          allLabel={t('all_years') || 'All Years'}
+          startYear={Number(years[0]) || 2024}
+          yearsAhead={6}
+          size="sm"
+          compact
+        />
+      )}
+
+      {showTerms && terms.length > 0 && (
+        <FilterSelect
+          filterKey="terms"
+          value={selectedTerm}
+          onChange={setSelectedTerm}
+          data={terms}
+          allLabel={t('all_terms') || 'All Terms'}
+          size="sm"
+          compact
+        />
+      )}
+    </div>
+  );
+};
+
+export default HierarchyFilters;

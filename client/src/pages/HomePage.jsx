@@ -18,11 +18,13 @@ import { db } from '@services/other/config';
 import { useLang } from '@contexts/LangContext';
 import { formatDateTime } from '@utils/date';
 import { SUBMISSION_STATUS, TASK_STATUS, getStatusLabel } from '@utils/sharedTypes';
+import { useFilterCounts } from '@hooks/useFilterCounts';
 import { getActivityTypeConfig } from '@constants/activityTypes';
 import { getDifficultyConfig } from '@constants/difficultyTypes';
-import { Loading, Card, CardBody } from '@ui';
+import { Loading, Card, CardBody, Modal } from '@ui';
 import UnifiedCard from '@/components/UnifiedCard';
 import AuthForm from '@/components/AuthForm';
+import { UnifiedFilterSection } from '@/components/filters';
 import './HomePage.css';
 
 const HomePage = memo(() => {
@@ -67,9 +69,15 @@ const HomePage = memo(() => {
 
   // Help tour state
   const [runTour, setRunTour] = useState(false);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const filtersRef = useRef(null);
   const gridRef = useRef(null);
   const tourSeenKey = `homePageHelpSeen_${mode}_${activityType}_${category}`;
+
+  // Close announcement modal when switching modes
+  useEffect(() => {
+    setSelectedAnnouncement(null);
+  }, [mode]);
 
   // Navbar toggle function
   const toggleNavbar = () => {
@@ -96,7 +104,7 @@ const HomePage = memo(() => {
   const [enrolledClasses, setEnrolledClasses] = useState([]);
   const [userData, setUserData] = useState(null);
   const [submissions, setSubmissions] = useState({});
-  const [bookmarks, setBookmarks] = useState({ activities: {}, resources: {}, quizzes: {} });
+  const [bookmarks, setBookmarks] = useState({ activities: {}, resources: {}, quizzes: {}, announcements: {} });
   const [userProgress, setUserProgress] = useState({});
   
   // Common filters (visible for all modes)
@@ -119,6 +127,8 @@ const HomePage = memo(() => {
   const [optionalFilter, setOptionalFilter] = useState(false);
   const [overdueFilter, setOverdueFilter] = useState(false);
   const [pendingFilter, setPendingFilter] = useState(false);
+  // Additional status filters
+  const [requiresSubmissionFilter, setRequiresSubmissionFilter] = useState(false);
   const [retakableFilter, setRetakableFilter] = useState(false);
   const [featuredFilter, setFeaturedFilter] = useState(false);
   const [gradedFilter, setGradedFilter] = useState('all'); // 'all' | 'graded' | 'not_graded'
@@ -199,7 +209,8 @@ const HomePage = memo(() => {
         setBookmarks({
           activities: (data.bookmarks && data.bookmarks.activities) || {},
           resources: (data.bookmarks && data.bookmarks.resources) || {},
-          quizzes: (data.bookmarks && data.bookmarks.quizzes) || {}
+          quizzes: (data.bookmarks && data.bookmarks.quizzes) || {},
+          announcements: (data.bookmarks && data.bookmarks.announcements) || {}
         });
         setUserProgress(data.resourceProgress || {});
         
@@ -259,6 +270,11 @@ const HomePage = memo(() => {
       );
     }
     
+    // Handle announcements mode
+    if (mode === 'announcements') {
+      return announcements;
+    }
+    
     // Handle activities mode with activity type and category filtering
     if (mode === 'activities') {
       let filtered = [];
@@ -313,6 +329,13 @@ const HomePage = memo(() => {
           const titleAr = (item.title_ar || '').toLowerCase();
           const descEn = (item.description_en || item.description || '').toLowerCase();
           const descAr = (item.description_ar || '').toLowerCase();
+          return titleEn.includes(q) || titleAr.includes(q) || descEn.includes(q) || descAr.includes(q);
+        }
+        if (mode === 'announcements') {
+          const titleEn = (item.title_en || item.title || '').toLowerCase();
+          const titleAr = (item.title_ar || '').toLowerCase();
+          const descEn = (item.message_en || item.message || item.description_en || item.description || '').toLowerCase();
+          const descAr = (item.message_ar || item.message || item.description_ar || item.description || '').toLowerCase();
           return titleEn.includes(q) || titleAr.includes(q) || descEn.includes(q) || descAr.includes(q);
         }
         // Activities
@@ -556,6 +579,14 @@ const HomePage = memo(() => {
     return null;
   }, [mode, activityType, category, activities, resources, quizzes, userProgress, submissions, enrolledClasses]);
 
+  // Calculate filter counts using the hook
+  const filterCounts = useFilterCounts(getCurrentItems(), {
+    mode,
+    activityType,
+    userProgress,
+    submissions
+  });
+
   const handleModeChange = (newMode) => {
     setSearchParams({ mode: newMode });
   };
@@ -575,7 +606,8 @@ const HomePage = memo(() => {
         bookmarks: {
           activities: next.activities,
           resources: next.resources,
-          quizzes: next.quizzes
+          quizzes: next.quizzes,
+          announcements: next.announcements
         }
       }, { merge: true });
     } catch (e) {
@@ -646,6 +678,12 @@ const HomePage = memo(() => {
                 label: t('resources') || 'Resources',
                 icon: mode === 'resources' ? getIconWithColor('ui', 'book_open', 16, '#ffffff') : getIconWithColor('ui', 'book_open', 16, primaryColor),
                 badge: mode === 'resources' ? filteredItems.length : undefined
+              },
+              {
+                value: 'announcements',
+                label: t('announcements') || 'Announcements',
+                icon: mode === 'announcements' ? getIconWithColor('ui', 'megaphone', 16, '#ffffff') : getIconWithColor('ui', 'megaphone', 16, primaryColor),
+                badge: mode === 'announcements' ? announcements.length : undefined
               }
             ]}
             activeTab={mode}
@@ -756,678 +794,73 @@ const HomePage = memo(() => {
         )}
 
         {/* Unified Filters Section */}
-        <div 
-          ref={filtersRef}
-          data-tour="filters"
-          className="filters-section" 
-          style={{
-            background: isDark ? '#1a1a1a' : 'white',
-            padding: '0.75rem 1rem',
-            borderRadius: '12px',
-            marginBottom: '1.5rem',
-            boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
-            position: 'relative',
-            border: isDark ? '1px solid #333' : 'none'
-          }}>
-          {/* Row 1: Search + Stats (compact) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-            {/* Comprehensive Stats for all modes */}
-            {stats && (
-              <div 
-                data-tour="stats"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.375rem 0.625rem',
-                  background: isDark ? '#0f172a' : '#f9fafb',
-                  borderRadius: 8,
-                  border: isDark ? '1px solid #333' : '1px solid #e5e7eb',
-                  fontSize: '0.8125rem',
-                  flexWrap: 'wrap',
-                  color: isDark ? '#f8fafc' : '#111'
-                }}>
-                {stats.completed !== undefined && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {getColoredIcon('ui', 'check_circle', 14, '#16a34a', theme)}
-                    <span style={{ fontWeight: 700, color: '#16a34a' }}>{stats.completed}</span>
-                  </div>
-                )}
-                {stats.pending !== undefined && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {getColoredIcon('ui', 'hourglass', 14, '#f59e0b', theme)}
-                    <span style={{ fontWeight: 700, color: '#f59e0b' }}>{stats.pending}</span>
-                  </div>
-                )}
-                {stats.overdue !== undefined && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {getColoredIcon('ui', 'clock', 14, '#dc2626', theme)}
-                    <span style={{ fontWeight: 700, color: '#dc2626' }}>{stats.overdue}</span>
-                  </div>
-                )}
-                {stats.required !== undefined && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {getColoredIcon('ui', 'alert_circle', 14, '#b91c1c', theme)}
-                    <span style={{ fontWeight: 700, color: '#b91c1c' }}>{stats.required}</span>
-                  </div>
-                )}
-                {stats.optional !== undefined && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {getColoredIcon('ui', 'book_open', 14, '#f57c00', theme)}
-                    <span style={{ fontWeight: 700, color: '#f57c00' }}>{stats.optional}</span>
-                  </div>
-                )}
-                {stats.featured !== undefined && stats.featured > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={t('featured') || 'Featured'}>
-                    {getColoredIcon('ui', 'pin', 14, '#4f46e5', theme)}
-                    <span style={{ fontWeight: 700, color: '#4f46e5' }}>{stats.featured}</span>
-                  </div>
-                )}
-                {stats.bookmarked !== undefined && stats.bookmarked > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={t('bookmarked') || 'Bookmarked'}>
-                    {getColoredIcon('ui', 'star', 14, '#f5c518', theme)}
-                    <span style={{ fontWeight: 700, color: '#f5c518' }}>{stats.bookmarked}</span>
-                  </div>
-                )}
-                {stats.retakable !== undefined && stats.retakable > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={t('retake_allowed') || 'Retake Allowed'}>
-                    {getColoredIcon('ui', 'repeat', 14, '#0ea5e9', theme)}
-                    <span style={{ fontWeight: 700, color: '#0ea5e9' }}>{stats.retakable}</span>
-                  </div>
-                )}
-                {stats.total !== undefined && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={t('total') || 'Total'}>
-                    {getThemedIcon('ui', 'help_circle', 14, theme)}
-                    <span style={{ fontWeight: 700, color: primaryColor }}>{stats.total}</span>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            <div style={{ position: 'relative', flex: 1, minWidth: 200 }} data-tour="search">
-                    <input
-                      type="search"
-                placeholder={
-                  mode === 'resources' ? (t('search_resources') || 'Search resources...') :
-                  (mode === 'activities' && activityType === 'quiz') ? (t('search_quizzes') || 'Search quizzes...') :
-                  (t('search_activities') || 'Search activities...')
-                }
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ 
-                  width: '100%', 
-                  padding: '8px 12px', 
-                  border: isDark ? '1px solid #333' : '1px solid #e5e7eb',
-                  background: isDark ? '#0f172a' : '#fff',
-                  color: isDark ? '#f8fafc' : '#111',
-                  borderRadius: 8,
-                  fontSize: '0.875rem'
-                }}
-                title={t('search') || 'Search'}
-                    />
-                  </div>
-                </div>
-
-          {/* Row 2: Common Filter Chips - Show word+icon or icon-only based on view mode */}
-          <div data-tour="status-filters" className="filter-container filter-row" style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-            {/* Status chips - word+icon (full) or icon-only (minified) */}
-            {isMinified ? (
-              <>
-                <button
-                  className="filter-button"
-                  onClick={() => setCompletedFilter(v => !v)}
-                  title={getStatusLabel(TASK_STATUS.COMPLETED, lang)}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 999,
-                    border: '1px solid #bbf7d0',
-                    background: completedFilter ? '#16a34a' : '#ecfdf5',
-                    color: completedFilter ? '#fff' : '#16a34a',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    padding: 0
-                  }}
-                >
-                  {getColoredIcon('ui', 'check_circle', 14, completedFilter ? '#fff' : '#16a34a', theme)}
-                </button>
-                
-                <button
-                  className={`filter-button ${isMinified ? 'minified' : ''}`}
-                  onClick={() => setPendingFilter(v => !v)}
-                  title={getStatusLabel(TASK_STATUS.NOT_STARTED, lang)}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 999,
-                    border: '1px solid #fde68a',
-                    background: pendingFilter ? '#f59e0b' : '#fffbeb',
-                    color: pendingFilter ? '#fff' : '#b45309',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    padding: 0
-                  }}
-                >
-                  {getColoredIcon('ui', 'hourglass', 14, pendingFilter ? '#fff' : '#f59e0b', theme)}
-                </button>
-
-                <button
-                  onClick={() => setRequiredFilter(v => !v)}
-                  title={t('required') || 'Required'}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 999,
-                    border: '1px solid #fecaca',
-                    background: requiredFilter ? '#b91c1c' : '#fee2e2',
-                    color: requiredFilter ? '#fff' : '#b91c1c',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    padding: 0
-                  }}
-                >
-                  {getColoredIcon('ui', 'alert_circle', 14, requiredFilter ? '#fff' : '#b91c1c', theme)}
-                </button>
-
-                <button
-                  className="filter-button"
-                  onClick={() => setOptionalFilter(v => !v)}
-                  title={t('optional') || 'Optional'}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 999,
-                    border: '1px solid #fed7aa',
-                    background: optionalFilter ? '#f57c00' : '#fff3e0',
-                    color: optionalFilter ? '#fff' : '#b45309',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    padding: 0
-                  }}
-                >
-                  {getColoredIcon('ui', 'book_open', 14, optionalFilter ? '#fff' : '#f57c00', theme)}
-                </button>
-
-                <button
-                  className="filter-button"
-                  onClick={() => setOverdueFilter(v => !v)}
-                  title={t('overdue') || 'Overdue'}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 999,
-                    border: '1px solid #fecaca',
-                    background: overdueFilter ? '#dc2626' : '#fee2e2',
-                    color: overdueFilter ? '#fff' : '#dc2626',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    padding: 0
-                  }}
-                >
-                  {getColoredIcon('ui', 'clock', 14, overdueFilter ? '#fff' : '#dc2626', theme)}
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  className="filter-button"
-                  onClick={() => setCompletedFilter(v => !v)}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: 999,
-                    border: '1px solid #bbf7d0',
-                    background: completedFilter ? '#16a34a' : '#ecfdf5',
-                    color: completedFilter ? '#fff' : '#16a34a',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {getColoredIcon('ui', 'check_circle', 12, completedFilter ? '#fff' : '#16a34a', theme)}
-                  {getStatusLabel(TASK_STATUS.COMPLETED, lang)}
-                </button>
-                
-                <button
-                  className="filter-button"
-                  onClick={() => setPendingFilter(v => !v)}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: 999,
-                    border: '1px solid #fde68a',
-                    background: pendingFilter ? '#f59e0b' : '#fffbeb',
-                    color: pendingFilter ? '#fff' : '#b45309',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {getColoredIcon('ui', 'hourglass', 12, pendingFilter ? '#fff' : '#f59e0b', theme)}
-                  {getStatusLabel(TASK_STATUS.NOT_STARTED, lang)}
-                </button>
-
-                <button
-                  className="filter-button"
-                  onClick={() => setRequiredFilter(v => !v)}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: 999,
-                    border: '1px solid #fecaca',
-                    background: requiredFilter ? '#b91c1c' : '#fee2e2',
-                    color: requiredFilter ? '#fff' : '#b91c1c',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {getColoredIcon('ui', 'alert_circle', 12, requiredFilter ? '#fff' : '#b91c1c', theme)}
-                  {t('required') || 'Required'}
-                </button>
-
-                <button
-                  className="filter-button"
-                  onClick={() => setOptionalFilter(v => !v)}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: 999,
-                    border: '1px solid #fed7aa',
-                    background: optionalFilter ? '#f57c00' : '#fff3e0',
-                    color: optionalFilter ? '#fff' : '#b45309',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {getColoredIcon('ui', 'book_open', 12, optionalFilter ? '#fff' : '#f57c00', theme)}
-                  {t('optional') || 'Optional'}
-                </button>
-
-                <button
-                  className="filter-button"
-                  onClick={() => setOverdueFilter(v => !v)}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: 999,
-                    border: '1px solid #fecaca',
-                    background: overdueFilter ? '#dc2626' : '#fee2e2',
-                    color: overdueFilter ? '#fff' : '#dc2626',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {getColoredIcon('ui', 'clock', 12, overdueFilter ? '#fff' : '#dc2626', theme)}
-                  {t('overdue') || 'Overdue'}
-                </button>
-              </>
-            )}
-              </div>
-
-          {/* Row 3: Difficulty + Mode-specific + Icon toggles */}
-          <div className="filter-container filter-row" style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            {/* Difficulty chips - Show first */}
-            <div data-tour="difficulty-filters" style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-              <button
-                className="filter-button"
-                onClick={() => setDifficultyFilter('all')}
-                title={t('all_levels') || 'All Levels'}
-                style={{
-                  padding: isMinified ? '4px 8px' : '4px 10px',
-                  borderRadius: 999,
-                  border: '1px solid rgba(0,0,0,0.06)',
-                  background: difficultyFilter === 'all' ? primaryColor : '#fff',
-                  color: difficultyFilter === 'all' ? '#fff' : primaryColor,
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: isMinified ? 0 : 4
-                }}
-              >
-                {difficultyFilter === 'all' ? getColoredIcon('ui', 'globe2', 12, '#fff', theme) : getThemedIcon('ui', 'globe2', 12, theme)}
-                <span>{t('all_levels') || 'All Levels'}</span>
-              </button>
-                  {[
-                    { id: 'beginner', label: t('beginner') || 'Beginner', bg: '#dcfce7', fg: '#166534' },
-                    { id: 'intermediate', label: t('intermediate') || 'Intermediate', bg: '#fed7aa', fg: '#c2410c' },
-                    { id: 'advanced', label: t('advanced') || 'Advanced', bg: '#fecaca', fg: '#dc2626' }
-                  ].map(lv => {
-                    const active = difficultyFilter === lv.id;
-                    return (
-                  <button
-                    key={lv.id}
-                    onClick={() => setDifficultyFilter(active ? 'all' : lv.id)}
-                    style={{
-                      padding: isMinified ? '4px 8px' : '4px 10px',
-                      borderRadius: 999,
-                      border: '1px solid transparent',
-                      background: active ? lv.fg : lv.bg,
-                      color: active ? '#fff' : lv.fg,
-                      fontSize: '0.75rem',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: isMinified ? 0 : 4,
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                    title={lv.label}
-                    aria-label={lv.label}
-                  >
-                    {getColoredIcon('ui', getDifficultyConfig(lv.id, theme, lang).icon, 12, active ? '#fff' : deriveIconColor(lv.fg), theme)}
-                    {!isMinified && <span>{lv.label}</span>}
-                  </button>
-                    );
-                  })}
-                </div>
-
-            {/* Mode-specific type filters (only for resources now) */}
-            {mode === 'resources' && (
-              <div data-tour="resource-type-filters" style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => setResourceTypeFilter('all')}
-                  title={t('all_types') || 'All Types'}
-                  style={{
-                    padding: isMinified ? '4px 8px' : '4px 10px',
-                    borderRadius: 999,
-                    border: '1px solid rgba(0,0,0,0.06)',
-                    background: resourceTypeFilter === 'all' ? primaryColor : '#fff',
-                    color: resourceTypeFilter === 'all' ? '#fff' : primaryColor,
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: isMinified ? 0 : 4
-                  }}
-                >
-                  {getColoredIcon('ui', 'globe2', 12, resourceTypeFilter === 'all' ? '#fff' : primaryColor, theme)}
-                  {!isMinified && <span>{t('all_types') || 'All Types'}</span>}
-                </button>
-                <button
-                  onClick={() => setResourceTypeFilter('video')}
-                  style={{
-                    padding: isMinified ? '4px 8px' : '4px 10px',
-                    borderRadius: 999,
-                    border: `1px solid ${primaryColor}40`,
-                    background: resourceTypeFilter === 'video' ? primaryColor : `${primaryColor}15`,
-                    color: resourceTypeFilter === 'video' ? '#fff' : primaryColor,
-                    fontSize: '0.75rem',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: isMinified ? 0 : 4
-                  }}
-                  title={t('video') || 'Video'}
-                >
-                  {getColoredIcon('ui', 'video', 12, resourceTypeFilter === 'video' ? '#fff' : primaryColor, theme)}
-                  {!isMinified && <span>{t('video') || 'Video'}</span>}
-                </button>
-                <button
-                  onClick={() => setResourceTypeFilter('link')}
-                  style={{
-                    padding: isMinified ? '4px 8px' : '4px 10px',
-                    borderRadius: 999,
-                    border: `1px solid ${primaryColor}40`,
-                    background: resourceTypeFilter === 'link' ? primaryColor : `${primaryColor}15`,
-                    color: resourceTypeFilter === 'link' ? '#fff' : primaryColor,
-                    fontSize: '0.75rem',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: isMinified ? 0 : 4
-                  }}
-                  title={t('link') || 'Link'}
-                >
-                  {getColoredIcon('ui', 'link2', 12, resourceTypeFilter === 'link' ? '#fff' : primaryColor, theme)}
-                  {!isMinified && <span>{t('link') || 'Link'}</span>}
-                </button>
-                <button
-                  onClick={() => setResourceTypeFilter('document')}
-                  style={{
-                    padding: isMinified ? '4px 8px' : '4px 10px',
-                    borderRadius: 999,
-                    border: `1px solid ${primaryColor}40`,
-                    background: resourceTypeFilter === 'document' ? primaryColor : `${primaryColor}15`,
-                    color: resourceTypeFilter === 'document' ? '#fff' : primaryColor,
-                    fontSize: '0.75rem',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: isMinified ? 0 : 4
-                  }}
-                  title={t('document') || 'Document'}
-                >
-                  {getColoredIcon('ui', 'file_text', 12, resourceTypeFilter === 'document' ? '#fff' : primaryColor, theme)}
-                  {!isMinified && <span>{t('document') || 'Document'}</span>}
-                </button>
-              </div>
-            )}
-
-            {/* Class filter for quizzes */}
-            {mode === 'activities' && activityType === 'quiz' && availableClasses.length > 0 && (
-              <div data-tour="class-filter" style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => setClassFilter('all')}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: 999,
-                    border: '1px solid rgba(0,0,0,0.06)',
-                    background: classFilter === 'all' ? primaryColor : '#fff',
-                    color: classFilter === 'all' ? '#fff' : primaryColor,
-                    fontSize: '0.75rem',
-                    fontWeight: 700
-                  }}
-                >
-                  {t('all_classes') || 'All Classes'}
-                </button>
-                {availableClasses.map(cls => {
-                  const active = classFilter === cls;
-                  return (
-                    <button
-                      key={cls}
-                      onClick={() => setClassFilter(active ? 'all' : cls)}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: 999,
-                        border: '1px solid #cbd5e1',
-                        background: active ? '#475569' : '#f1f5f9',
-                        color: active ? '#fff' : '#475569',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {cls}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Icon toggles - Always icon-only, but show word+icon in full mode for bookmark/featured */}
-            <div style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap', marginLeft: 'auto' }}>
-              {isMinified ? (
-                <>
-                  <button
-                    onClick={() => setBookmarkFilter(v => !v)}
-                    title={t('bookmarked') || 'Bookmarked'}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 999,
-                      border: '1px solid #f5c518',
-                      background: bookmarkFilter ? '#f5c518' : '#fff',
-                      color: bookmarkFilter ? '#1f2937' : '#b45309',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      padding: 0
-                    }}
-                  >
-                    {bookmarkFilter ? getThemedIcon('ui', 'star', 14, theme) : getThemedIcon('ui', 'star_off', 14, theme)}
-                  </button>
-                  <button
-                    onClick={() => setFeaturedFilter(v => !v)}
-                    title={t('featured') || 'Featured'}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 999,
-                      border: '1px solid #c7d2fe',
-                      background: featuredFilter ? '#4f46e5' : '#eef2ff',
-                      color: featuredFilter ? '#fff' : '#4f46e5',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      padding: 0
-                    }}
-                  >
-                    {getColoredIcon('ui', 'pin', 14, deriveIconColor('#4f46e5'), theme)}
-                  </button>
-                  <button
-                    onClick={() => setRetakableFilter(v => !v)}
-                    title={t('retake_allowed') || 'Retake'}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 999,
-                      border: '1px solid #bae6fd',
-                      background: retakableFilter ? '#0ea5e9' : '#ecfeff',
-                      color: retakableFilter ? '#fff' : '#0ea5e9',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      padding: 0
-                    }}
-                  >
-                    {getColoredIcon('ui', 'repeat', 14, '#0ea5e9', theme)}
-                  </button>
-                  <button
-                    onClick={() => setGradedFilter(p => p === 'graded' ? 'all' : 'graded')}
-                    title={getStatusLabel(SUBMISSION_STATUS.GRADED, lang)}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 999,
-                      border: '1px solid #bbf7d0',
-                      background: gradedFilter === 'graded' ? '#16a34a' : '#ecfdf5',
-                      color: gradedFilter === 'graded' ? '#fff' : '#16a34a',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      padding: 0
-                    }}
-                  >
-                    {getColoredIcon('ui', 'check_circle', 14, deriveIconColor('#16a34a'), theme)}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setBookmarkFilter(v => !v)}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 999,
-                      border: '1px solid #f5c518',
-                      background: bookmarkFilter ? '#f5c518' : '#fff',
-                      color: bookmarkFilter ? '#1f2937' : '#b45309',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {bookmarkFilter ? getColoredIcon('ui', 'star', 12, '#fff', theme) : getColoredIcon('ui', 'star_off', 12, '#f5c518', theme)}
-                    {t('bookmarked') || 'Bookmarked'}
-                  </button>
-                  <button
-                    onClick={() => setFeaturedFilter(v => !v)}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 999,
-                      border: '1px solid #c7d2fe',
-                      background: featuredFilter ? '#4f46e5' : '#eef2ff',
-                      color: featuredFilter ? '#fff' : '#4f46e5',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {featuredFilter ? getColoredIcon('ui', 'pin', 12, '#fff', theme) : getColoredIcon('ui', 'pin', 12, '#4f46e5', theme)}
-                    {t('featured') || 'Featured'}
-                  </button>
-                  <button
-                    onClick={() => setRetakableFilter(v => !v)}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 999,
-                      border: '1px solid #bae6fd',
-                      background: retakableFilter ? '#0ea5e9' : '#ecfeff',
-                      color: retakableFilter ? '#fff' : '#0ea5e9',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {retakableFilter ? getColoredIcon('ui', 'repeat', 12, '#fff', theme) : getColoredIcon('ui', 'repeat', 12, '#0ea5e9', theme)}
-                    {t('retake_allowed') || 'Retake'}
-                  </button>
-                  <button
-                    onClick={() => setGradedFilter(p => p === 'graded' ? 'all' : 'graded')}
-                    title={getStatusLabel(SUBMISSION_STATUS.GRADED, lang)}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 999,
-                      border: '1px solid #bbf7d0',
-                      background: gradedFilter === 'graded' ? '#16a34a' : '#ecfdf5',
-                      color: gradedFilter === 'graded' ? '#fff' : '#16a34a',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {gradedFilter === 'graded' ? getColoredIcon('ui', 'check_circle', 12, '#fff', theme) : getColoredIcon('ui', 'check_circle', 12, '#16a34a', theme)}
-                    {getStatusLabel(SUBMISSION_STATUS.GRADED, lang)}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
+        <div ref={filtersRef} data-tour="filters">
+          <UnifiedFilterSection
+            stats={stats}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            searchPlaceholder={
+              mode === 'resources' ? (t('search_resources') || 'Search resources...') :
+              (mode === 'activities' && activityType === 'quiz') ? (t('search_quizzes') || 'Search quizzes...') :
+              (t('search_activities') || 'Search activities...')
+            }
+            completedFilter={completedFilter}
+            setCompletedFilter={setCompletedFilter}
+            completedCount={filterCounts.completedCount}
+            pendingFilter={pendingFilter}
+            setPendingFilter={setPendingFilter}
+            pendingCount={filterCounts.pendingCount}
+            requiredFilter={requiredFilter}
+            setRequiredFilter={setRequiredFilter}
+            requiredCount={filterCounts.requiredCount}
+            optionalFilter={optionalFilter}
+            setOptionalFilter={setOptionalFilter}
+            optionalCount={filterCounts.optionalCount}
+            overdueFilter={overdueFilter}
+            setOverdueFilter={setOverdueFilter}
+            overdueCount={filterCounts.overdueCount}
+            // Additional status filters
+            requiresSubmissionFilter={requiresSubmissionFilter}
+            setRequiresSubmissionFilter={setRequiresSubmissionFilter}
+            requiresSubmissionCount={filterCounts.requiresSubmissionCount}
+            difficultyFilter={difficultyFilter}
+            setDifficultyFilter={setDifficultyFilter}
+            bookmarkFilter={bookmarkFilter}
+            setBookmarkFilter={setBookmarkFilter}
+            featuredFilter={featuredFilter}
+            setFeaturedFilter={setFeaturedFilter}
+            retakableFilter={retakableFilter}
+            setRetakableFilter={setRetakableFilter}
+            gradedFilter={gradedFilter}
+            setGradedFilter={setGradedFilter}
+            programs={[]}
+            subjects={[]}
+            classes={mode === 'activities' && activityType === 'quiz' ? availableClasses.map(cls => ({ name: cls, id: cls })) : []}
+            selectedClass={classFilter}
+            setSelectedClass={setClassFilter}
+            isMinified={isMinified}
+            theme={theme}
+            lang={lang}
+            t={t}
+            primaryColor={primaryColor}
+            showStatusFilters={mode !== 'announcements'}
+            showDifficultyFilters={mode !== 'announcements'}
+            showPerformanceFilters={false}
+            showToggleFilters={true}
+            showHierarchyFilters={mode === 'activities' && activityType === 'quiz'}
+            hierarchyConfig={{
+              showPrograms: false,
+              showSubjects: false,
+              showClasses: mode === 'activities' && activityType === 'quiz',
+              showStudents: false
+            }}
+            toggleConfig={{
+              showBookmark: true,
+              showFeatured: true,
+              showRetakable: mode !== 'announcements',
+              showGraded: false
+            }}
+          />
         </div>
 
 
@@ -1470,12 +903,14 @@ const HomePage = memo(() => {
                     isBookmarked = !!bookmarks.activities[itemId];
                     dueDate = item.dueDate;
                   }
+                } else if (mode === "announcements") {
+                  isBookmarked = !!bookmarks.announcements[itemId];
                 }
 
                     return (
                       <UnifiedCard
                         key={itemId}
-                        flavor={mode === 'activities' && activityType === 'quiz' ? 'quizzes' : mode}
+                        flavor={mode === 'activities' && activityType === 'quiz' ? 'quiz' : mode}
                         item={item}
                         isCompleted={isCompleted}
                         completedAt={completedAt}
@@ -1499,6 +934,11 @@ const HomePage = memo(() => {
                               // Handle other resource types
                               logger.log('Start resource:', item);
                             }
+                          } else if (mode === 'announcements') {
+                            // Show extended announcement view
+                            const title = lang === 'ar' ? (item.title_ar || item.title_en || item.title || 'Announcement') : (item.title_en || item.title_ar || item.title || 'Announcement');
+                            const message = lang === 'ar' ? (item.message_ar || item.message_en || item.message || item.description || '') : (item.message_en || item.message_ar || item.message || item.description || '');
+                            setSelectedAnnouncement(item);
                           }
                         }}
                         onDetails={(item) => {
@@ -1510,8 +950,16 @@ const HomePage = memo(() => {
                           handleResourceComplete(itemId);
                         }}
                         onBookmark={() => {
-                          const bookmarkMode = (mode === 'activities' && activityType === 'quiz') ? 'quizzes' : mode;
+                          const bookmarkMode = (mode === 'activities' && activityType === 'quiz') ? 'quizzes' : (mode === 'announcements' ? 'announcements' : mode);
                           handleBookmark(itemId, bookmarkMode);
+                        }}
+                        onFeatured={() => {
+                          // Handle featured toggle for announcements
+                          if (mode === 'announcements') {
+                            // This would typically update the announcement in Firestore
+                            // For now, we'll just log it (you can implement the actual Firestore update later)
+                            logger.log('Toggle featured for announcement:', itemId);
+                          }
                         }}
                       />
                     );
@@ -1532,8 +980,48 @@ const HomePage = memo(() => {
           setRunTour(false);
         }}
       />
+
+      {/* Announcement Modal */}
+      <Modal
+        isOpen={!!selectedAnnouncement}
+        onClose={() => setSelectedAnnouncement(null)}
+        size="small"
+        showCloseButton={true}
+        title=""
+      >
+        {selectedAnnouncement && (
+          <div style={{
+            fontSize: '1rem',
+            lineHeight: '1.6',
+            whiteSpace: 'pre-wrap'
+          }}>
+            {lang === 'ar'
+              ? (selectedAnnouncement.message_ar || selectedAnnouncement.message_en || selectedAnnouncement.message || selectedAnnouncement.description || '')
+              : (selectedAnnouncement.message_en || selectedAnnouncement.message_ar || selectedAnnouncement.message || selectedAnnouncement.description || '')}
+          </div>
+        )}
+        
+        {selectedAnnouncement?.createdAt && (
+          <div style={{
+            marginTop: '1rem',
+            paddingTop: '1rem',
+            borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+            fontSize: '0.875rem',
+            color: isDark ? '#9ca3af' : '#6b7280'
+          }}>
+            Posted: {selectedAnnouncement.createdAt?.seconds 
+              ? new Date(selectedAnnouncement.createdAt.seconds * 1000).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')
+              : new Date(selectedAnnouncement.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')
+            }
+          </div>
+        )}
+      </Modal>
     </div>
   );
 });
 
+
 export default HomePage;
+
+
+

@@ -1,186 +1,149 @@
-/* World-Class Student Dashboard - Modern, Clean Design */
-
 .dashboard {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  padding: 2rem 0;
+  padding-block: 2rem;
+  background: var(--bg-primary, #f8fafc);
 }
 
-/* Header */
 .header {
-  margin-bottom: 2rem;
+  margin-block-end: 2rem;
 }
 
-.headerContent {
+.headerTop {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 2rem;
+  margin-block-end: 1.5rem;
   flex-wrap: wrap;
 }
 
-.headerLeft {
-  flex: 1;
-}
-
-.welcomeSection {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.welcomeTitle {
-  font-size: 2.5rem;
+.headerTitle h1 {
+  font-size: 2rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #800020 0%, #600018 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-primary, #1f2937);
+  margin: 0 0 0.5rem 0;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary, #6b7280);
+  margin: 0;
+}
+
+.headerActions {
   display: flex;
-  align-items: center;
   gap: 0.75rem;
-  margin: 0;
+  flex-wrap: wrap;
 }
 
-.sparkleIcon {
-  color: #fbbf24;
-  animation: sparkle 2s ease-in-out infinite;
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--card-bg, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-@keyframes sparkle {
-  0%,
-  100% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.2) rotate(180deg);
-    opacity: 0.8;
-  }
+.semesterContent {
+  margin-block: 2rem;
 }
 
-.welcomeSubtitle {
-  font-size: 1.125rem;
-  color: #64748b;
-  margin: 0;
-}
-
-.headerRight {
+.semesterHeader {
   display: flex;
+  justify-content: space-between;
   align-items: center;
+  margin-block-end: 1.5rem;
+  padding-block-end: 1rem;
+  border-block-end: 2px solid var(--border-color, #e5e7eb);
+  flex-wrap: wrap;
   gap: 1rem;
 }
 
-.studentSelector {
-  min-width: 280px;
+.semesterHeader h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  margin: 0;
 }
 
-/* Stats Grid */
-.statsGrid {
+.semesterStats {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.coursesGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1.5rem;
-  margin-bottom: 2rem;
+  margin-block-end: 2rem;
 }
 
-.statCard {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  border: none;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+.activitySection {
+  margin-block: 2rem;
 }
 
-.statCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-.statCardContent {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.statIcon {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  flex-shrink: 0;
-}
-
-.statInfo {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.statValue {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #1e293b;
-  line-height: 1;
-}
-
-.statLabel {
-  font-size: 0.875rem;
-  color: #64748b;
-  font-weight: 500;
-}
-
-.statSubtext {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  margin-top: 0.25rem;
-}
-
-.statProgress {
-  margin-top: 0.5rem;
-}
-
-/* View Mode Tabs */
-.viewModeTabs {
-  margin-bottom: 2rem;
-  background: white;
+.detailsSection {
+  margin-block-start: 3rem;
+  background: var(--card-bg, #ffffff);
   border-radius: 12px;
-  padding: 0.5rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.detailContent {
+  margin-block-start: 1.5rem;
+}
+
+.marksGrid,
+.recordsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+/* Details Section with Tabs */
+.detailsSection {
+  margin-block-start: 2rem;
+  background: var(--card-bg, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.detailContent {
+  padding: 1.5rem;
+  min-height: 400px;
 }
 
 /* Overview Grid */
 .overviewGrid {
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.urgentTasksCard {
+  grid-column: span 2;
 }
 
 .cardHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
 }
 
 .cardTitle {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 1.125rem;
+  gap: 0.5rem;
   font-weight: 600;
-  color: #1e293b;
-}
-
-.cardTitle h3 {
-  margin: 0;
-  font-size: 1.125rem;
-}
-
-/* Urgent Tasks Card */
-.urgentTasksCard {
-  border-left: 4px solid #ef4444;
+  color: var(--text-primary, #1f2937);
 }
 
 .urgentIcon {
@@ -190,19 +153,17 @@
 .urgentTasksList {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
 }
 
 .urgentTaskItem {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: #fef2f2;
+  padding: 0.75rem;
+  background: var(--bg-secondary, #f9fafb);
   border-radius: 8px;
-  border: 1px solid #fee2e2;
+  border: 1px solid var(--border-color, #e5e7eb);
 }
 
 .urgentTaskInfo {
@@ -210,482 +171,132 @@
 }
 
 .urgentTaskTitle {
-  font-weight: 600;
-  color: #1e293b;
+  font-weight: 500;
+  color: var(--text-primary, #1f2937);
   margin-bottom: 0.25rem;
 }
 
 .urgentTaskMeta {
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--text-secondary, #6b7280);
 }
 
 .viewAllButton {
-  width: 100%;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-/* Attendance Card */
-.attendanceCard {
-  border-left: 4px solid #10b981;
-}
-
-.attendanceOverview {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.attendanceStats {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.attendanceStat {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.875rem;
-  color: #475569;
-}
-
-.presentIcon {
-  color: #10b981;
-}
-
-.absentIcon {
-  color: #ef4444;
-}
-
-.lateIcon {
-  color: #f59e0b;
-}
-
-.attendanceList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.attendanceItem {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  background: #f8fafc;
-  border-radius: 6px;
-}
-
-.attendanceDate {
-  font-size: 0.875rem;
-  color: #475569;
-}
-
-/* Achievements Card */
-.achievementsCard {
-  border-left: 4px solid #f59e0b;
-}
-
-.badgesList {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.badgeItem {
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border-radius: 12px;
-  font-size: 2rem;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.badgeItem:hover {
-  transform: scale(1.1);
-}
-
-.badgeIcon {
-  font-size: 2rem;
-}
-
-/* Tasks View */
-.tasksView {
-  margin-top: 1.5rem;
-}
-
-.tasksHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.tasksHeader h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.tasksFilters {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.tasksList {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1.5rem;
-}
-
-/* Task Card */
-.taskCard {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.taskCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-
-.taskCardHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.taskType {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #64748b;
-}
-
-.taskTitle {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0;
-  line-height: 1.4;
-}
-
-.taskMeta {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  font-size: 0.875rem;
-  color: #64748b;
-}
-
-.className {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.deadline {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.taskScore {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background: #f8fafc;
-  border-radius: 8px;
-}
-
-.score {
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.taskActions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: auto;
-}
-
-/* Attendance View */
-.attendanceView {
-  margin-top: 1.5rem;
-}
-
-.attendanceSummaryGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-.attendanceSummaryCard {
-  padding: 1.5rem;
-  border-radius: 12px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.summaryIcon {
-  color: rgba(0, 0, 0, 0.6);
-}
-
-.summaryValue {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.summaryLabel {
-  font-size: 0.875rem;
-  color: #475569;
-  font-weight: 500;
-}
-
-.attendanceRateDisplay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2rem;
-  padding: 2rem 0;
-}
-
-.rateCircle {
-  width: 160px;
-  height: 160px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #800020 0%, #600018 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
-}
-
-.rateValue {
-  font-size: 3rem;
-  font-weight: 700;
-  color: white;
-}
-
-.rateProgress {
+  margin-top: 1rem;
   width: 100%;
 }
 
-.attendanceHistoryCard {
-  margin-top: 1.5rem;
-}
-
-.attendanceHistory {
+.markItem,
+.recordItem {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  margin-top: 1.5rem;
 }
 
-.attendanceHistoryItem {
+.markHeader {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 8px;
-  transition: background 0.2s ease;
-}
-
-.attendanceHistoryItem:hover {
-  background: #f1f5f9;
-}
-
-.historyDate {
-  display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #475569;
-  font-weight: 500;
+  gap: 1rem;
 }
 
-.historyClass {
-  flex: 1;
-  text-align: center;
-  font-size: 0.875rem;
-  color: #64748b;
-}
-
-/* Performance View */
-.performanceView {
-  margin-top: 1.5rem;
-}
-
-.performanceCard {
-  border-left: 4px solid #800020;
-}
-
-.performanceTitle {
+.markHeader h4 {
+  margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 1rem 0;
+  color: var(--text-primary, #1f2937);
 }
 
-.performanceStats {
+.markDetails {
   display: flex;
-  justify-content: space-around;
-  margin-bottom: 1rem;
+  gap: 1.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6b7280);
 }
 
-.performanceStat {
-  text-align: center;
+.recordItem p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-primary, #1f2937);
+  line-height: 1.5;
 }
 
-.performanceValue {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.performanceLabel {
+.recordDate {
   font-size: 0.75rem;
-  color: #64748b;
-  margin-top: 0.25rem;
+  color: var(--text-secondary, #6b7280);
 }
 
-.badgesSection {
-  margin-top: 1.5rem;
-}
-
-.badgesGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1.5rem;
-  margin-top: 1.5rem;
-}
-
-.badgeCard {
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border-radius: 12px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  transition: transform 0.2s ease;
-}
-
-.badgeCard:hover {
-  transform: translateY(-4px);
-}
-
-.badgeIconLarge {
-  font-size: 3rem;
-}
-
-.badgeName {
-  font-weight: 600;
-  color: #1e293b;
-  font-size: 1rem;
-}
-
-.badgeDescription {
-  font-size: 0.875rem;
-  color: #64748b;
-}
-
-/* Responsive Design */
 @media (max-width: 1024px) {
-  .welcomeTitle {
-    font-size: 2rem;
+  .coursesGrid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
-
-  .statsGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
+  
   .overviewGrid {
     grid-template-columns: 1fr;
   }
-
-  .tasksList {
-    grid-template-columns: 1fr;
+  
+  .urgentTasksCard {
+    grid-column: span 1;
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .dashboard {
-    padding: 1rem 0;
+    padding-block: 1rem;
   }
-
-  .welcomeTitle {
+  
+  .headerTop {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .headerTitle h1 {
     font-size: 1.5rem;
   }
-
-  .welcomeSubtitle {
-    font-size: 1rem;
-  }
-
-  .statsGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .headerContent {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .headerRight {
-    flex-direction: column;
-  }
-
-  .studentSelector {
+  
+  .headerActions {
     width: 100%;
   }
-
-  .tasksHeader {
+  
+  .headerActions button {
+    flex: 1;
+  }
+  
+  .filters {
+    grid-template-columns: 1fr;
+  }
+  
+  .semesterHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .coursesGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .marksGrid,
+  .recordsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .urgentTaskItem {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.75rem;
   }
+  
+  .urgentTaskInfo {
+    flex: none;
+  }
+}
 
-  .tasksFilters {
-    flex-direction: column;
-  }
+[dir="rtl"] .dashboard {
+  direction: rtl;
+}
 
-  .badgesList {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .attendanceSummaryGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .performanceStats {
-    flex-direction: column;
-    gap: 1rem;
-  }
+[dir="rtl"] .headerTop,
+[dir="rtl"] .semesterHeader,
+[dir="rtl"] .markHeader {
+  direction: rtl;
 }

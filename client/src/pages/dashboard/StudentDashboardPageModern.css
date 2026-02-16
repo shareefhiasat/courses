@@ -1,0 +1,98 @@
+/* StudentDashboardPageModern.css - Matching HomePage patterns */
+
+.student-dashboard-page-modern {
+  min-height: 100vh;
+  background: var(--app-bg, #f8fafc);
+}
+
+.student-dashboard-page-modern[data-theme="dark"] {
+  background: #0f172a;
+}
+
+.content-section {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .content-section {
+    padding: 0 0.5rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .content-section {
+    max-width: 1400px;
+  }
+}
+
+/* Content area styling */
+.student-dashboard-page-modern .bg-white {
+  background: var(--panel, #ffffff);
+}
+
+.student-dashboard-page-modern[data-theme="dark"] .bg-white {
+  background: var(--panel, #1e293b);
+}
+
+.student-dashboard-page-modern .border-slate-200 {
+  border-color: var(--border, #e5e7eb);
+}
+
+.student-dashboard-page-modern[data-theme="dark"] .border-slate-200 {
+  border-color: var(--border, #374151);
+}
+
+.student-dashboard-page-modern .text-slate-900 {
+  color: var(--text, #0f172a);
+}
+
+.student-dashboard-page-modern[data-theme="dark"] .text-slate-900 {
+  color: var(--text, #f8fafc);
+}
+
+.student-dashboard-page-modern .text-slate-600 {
+  color: var(--muted, #64748b);
+}
+
+.student-dashboard-page-modern[data-theme="dark"] .text-slate-600 {
+  color: var(--muted, #94a3b8);
+}
+
+.student-dashboard-page-modern .text-slate-400 {
+  color: var(--muted-foreground, #94a3b8);
+}
+
+.student-dashboard-page-modern[data-theme="dark"] .text-slate-400 {
+  color: var(--muted-foreground, #64748b);
+}
+
+.student-dashboard-page-modern .text-slate-100 {
+  color: var(--text, #f8fafc);
+}
+
+.student-dashboard-page-modern[data-theme="dark"] .text-slate-100 {
+  color: var(--text, #0f172a);
+}
+
+/* Dark theme background adjustments */
+.student-dashboard-page-modern[data-theme="dark"] .dark\:bg-slate-900 {
+  background: var(--panel, #1e293b) !important;
+}
+
+.student-dashboard-page-modern[data-theme="dark"] .dark\:bg-slate-800 {
+  background: var(--panel, #334155) !important;
+}
+
+.student-dashboard-page-modern[data-theme="dark"] .dark\:border-slate-700 {
+  border-color: var(--border, #374151) !important;
+}
+
+.student-dashboard-page-modern[data-theme="dark"] .dark\:text-slate-100 {
+  color: var(--text, #f8fafc) !important;
+}
+
+.student-dashboard-page-modern[data-theme="dark"] .dark\:text-slate-400 {
+  color: var(--muted-foreground, #94a3b8) !important;
+}

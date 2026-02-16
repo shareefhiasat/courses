@@ -29,7 +29,7 @@ import AnalyticsPage from './pages/feedback/analytics/AnalyticsPage';
 import analytics from './utils/analytics.js';
 import RoleAccessPro from './pages/system/RoleAccessPro';
 import StudentProfilePage from './pages/users/StudentProfilePage';
-import StudentDashboardPage from './pages/dashboard/StudentDashboardPage';
+import StudentDashboardPage from './pages/dashboard/StudentDashboardPageModern';
 import QuizzesPage from './pages/quizzes/QuizzesPage';
 import QuizPreviewPage from './pages/quizzes/QuizPreviewPage';
 import StudentQuizPage from './pages/quizzes/StudentQuizPage';
@@ -41,6 +41,10 @@ import SubjectsManagementPage from './pages/academic/subjects/SubjectsManagement
 import ScheduledReportsPage from './pages/feedback/reports/ScheduledReportsPage';
 import AdvancedAnalytics from './components/AdvancedAnalytics';
 import FancyLoading from './components/ui/FancyLoading/FancyLoading';
+
+// 🚀 ADD THESE IMPORTS FOR AUTHENTICATION GUARDS
+import ProtectedRoute from './components/ProtectedRoute';
+import UnauthorizedPage from './pages/system/UnauthorizedPage';
 
 // Handle MobX State Tree errors globally
 if (typeof window !== 'undefined') {
@@ -155,55 +159,294 @@ const AppContent = () => {
         <main className="main-content">
         <Suspense fallback={<FancyLoading fullscreen={true} />}>
         <Routes>
-          {/* Public routes - no authentication required */}
+          {/* ============================================ */}
+          {/* PUBLIC ROUTES (No authentication required) */}
+          {/* ============================================ */}
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/qrcode/:studentId" element={<QRCodeDisplayPage />} />
           
-          {/* Authenticated routes */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          {/* ActivitiesPage, ResourcesPage, QuizResultsPage routes removed - unified in HomePage with ?mode= */}
+          {/* ============================================ */}
+          {/* SYSTEM ROUTES */}
+          {/* ============================================ */}
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+          
+          {/* ============================================ */}
+          {/* MAIN ROUTES (Auth + Role Guard) */}
+          {/* ============================================ */}
+          <Route 
+            path="/" 
+            element={
+              <ProtectedRoute screenId="home" screenName="Home">
+                <HomePage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute screenId="dashboard" screenName="Dashboard">
+                <DashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/student-dashboard" 
+            element={
+              <ProtectedRoute screenId="studentDashboard" screenName="Student Dashboard">
+                <StudentDashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/student-profile" 
+            element={
+              <ProtectedRoute screenId="studentProfile" screenName="Student Profile">
+                <StudentProfilePage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/activity/:activityId" 
+            element={
+              <ProtectedRoute screenId="activities" screenName="Activity Details">
+                <ActivityDetailPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* ============================================ */}
+          {/* QUIZ ROUTES (Auth + Role Guard) */}
+          {/* ============================================ */}
+          <Route 
+            path="/quizzes" 
+            element={
+              <ProtectedRoute screenId="quizzes" screenName="Quizzes">
+                <QuizzesPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/quiz-preview/:quizId" 
+            element={
+              <ProtectedRoute screenId="quizzes" screenName="Quiz Preview">
+                <QuizPreviewPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/quiz/:quizId" 
+            element={
+              <ProtectedRoute screenId="quizzes" screenName="Take Quiz">
+                <StudentQuizPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/review-results" 
+            element={
+              <ProtectedRoute screenId="reviewResults" screenName="Review Results">
+                <ReviewResultsPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* ============================================ */}
+          {/* ATTENDANCE ROUTES (Auth + Role Guard) */}
+          {/* ============================================ */}
+          <Route 
+            path="/attendance" 
+            element={
+              <ProtectedRoute screenId="attendance" screenName="Attendance">
+                <AttendancePage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/hr-attendance" 
+            element={
+              <ProtectedRoute screenId="hrAttendance" screenName="HR Attendance">
+                <HRAttendancePage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/hr-penalties" 
+            element={
+              <ProtectedRoute screenId="hrPenalties" screenName="HR Penalties">
+                <PenaltiesPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/instructor-participation" 
+            element={
+              <ProtectedRoute screenId="instructorParticipation" screenName="Instructor Participation">
+                <ParticipationPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/instructor-behavior" 
+            element={
+              <ProtectedRoute screenId="instructorBehavior" screenName="Instructor Behavior">
+                <BehaviorPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/qr-scanner" 
+            element={
+              <ProtectedRoute screenId="attendance" screenName="QR Scanner">
+                <InstructorQRScannerPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* ============================================ */}
+          {/* ENROLLMENT & CLASS ROUTES (Auth + Role Guard) */}
+          {/* ============================================ */}
+          <Route 
+            path="/enrollments" 
+            element={
+              <ProtectedRoute screenId="enrollments" screenName="Enrollments">
+                <EnrollmentsPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/manage-enrollments" 
+            element={
+              <ProtectedRoute screenId="manageEnrollments" screenName="Manage Enrollments">
+                <EnrollmentsPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/programs" 
+            element={
+              <ProtectedRoute screenId="programs" screenName="Programs">
+                <ProgramsManagementPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/subjects" 
+            element={
+              <ProtectedRoute screenId="subjects" screenName="Subjects">
+                <SubjectsManagementPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/marks-entry" 
+            element={
+              <ProtectedRoute screenId="marksEntry" screenName="Marks Entry">
+                <EnrollmentsMarksPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/schedule-overview" 
+            element={
+              <ProtectedRoute screenId="classSchedules" screenName="Schedule Overview">
+                <ScheduleOverviewPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* ============================================ */}
+          {/* ANALYTICS ROUTES (Auth + Role Guard) */}
+          {/* ============================================ */}
+          <Route 
+            path="/analytics" 
+            element={
+              <ProtectedRoute screenId="analytics" screenName="Analytics">
+                <AnalyticsPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/advanced-analytics" 
+            element={
+              <ProtectedRoute screenId="advancedAnalytics" screenName="Advanced Analytics">
+                <AdvancedAnalytics />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* ============================================ */}
+          {/* COMMUNICATION ROUTES (Auth + Role Guard) */}
+          {/* ============================================ */}
+          <Route 
+            path="/chat" 
+            element={
+              <ProtectedRoute screenId="chat" screenName="Chat">
+                <ChatPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/notifications" 
+            element={
+              <ProtectedRoute screenId="notifications" screenName="Notifications">
+                <NotificationsPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/scheduled-reports" 
+            element={
+              <ProtectedRoute screenId="scheduledReports" screenName="Scheduled Reports">
+                <ScheduledReportsPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* ============================================ */}
+          {/* SETTINGS ROUTES (Auth + Role Guard) */}
+          {/* ============================================ */}
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute screenId="profile" screenName="Profile Settings">
+                <ProfileSettingsPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* ============================================ */}
+          {/* REDIRECTS */}
+          {/* ============================================ */}
           <Route path="/activities" element={<Navigate to="/?mode=activities" replace />} />
           <Route path="/resources" element={<Navigate to="/?mode=resources" replace />} />
-          <Route path="/quiz-results" element={<Navigate to="/review-results?mode=quiz" replace />} />
-          <Route path="/review-results" element={<ReviewResultsPage />} />
-          <Route path="/activity/:activityId" element={<ActivityDetailPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/progress" element={<Navigate to="/student-dashboard" replace />} />
-          <Route path="/chat" element={<ChatPage />} />
-          <Route path="/enrollments" element={<EnrollmentsPage />} />
-          {/* AwardMedalsPage route removed - DEPRECATED */}
-          <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/profile" element={<ProfileSettingsPage />} />
-          <Route path="/attendance" element={<AttendancePage />} />
-          <Route path="/my-attendance" element={<StudentAttendancePage />} />
-          <Route path="/hr-attendance" element={<HRAttendancePage />} />
-          <Route path="/hr-penalties" element={<PenaltiesPage />} />
-          <Route path="/instructor-participation" element={<ParticipationPage />} />
-          <Route path="/instructor-behavior" element={<BehaviorPage />} />
-          <Route path="/qr-scanner" element={<InstructorQRScannerPage />} />
-          <Route path="/class-schedules" element={<ClassSchedulePage />} />
-          <Route path="/schedule-overview" element={<ScheduleOverviewPage />} />
-          <Route path="/manage-enrollments" element={<EnrollmentsPage />} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/advanced-analytics" element={<AdvancedAnalytics />} />
-          <Route path="/role-access-pro" element={<RoleAccessPro />} />
-          {/* Redirect old student-profile to new unified dashboard */}
-          <Route path="/student-profile" element={<StudentProfilePage />} />
-          <Route path="/student-dashboard" element={<StudentDashboardPage />} />
-          <Route path="/my-enrollments" element={<EnrollmentsPage />} />
-          <Route path="/course-progress/:courseId" element={<StudentDashboardPage />} />
-          <Route path="/quizzes" element={<QuizzesPage />} />
+          <Route path="/my-attendance" element={<Navigate to="/student-dashboard" replace />} />
+          <Route path="/class-schedules" element={<Navigate to="/student-dashboard" replace />} />
+          <Route path="/my-enrollments" element={<Navigate to="/student-dashboard" replace />} />
+          <Route path="/my-progress" element={<Navigate to="/student-dashboard" replace />} />
           <Route path="/quiz-management" element={<Navigate to="/quizzes" replace />} />
           <Route path="/quiz-builder" element={<Navigate to="/quizzes?mode=add" replace />} />
-          <Route path="/quiz-preview/:quizId" element={<QuizPreviewPage />} />
-          <Route path="/quiz/:quizId" element={<StudentQuizPage />} />
-          {/* QuizResultsPage route removed - unified in HomePage with ?mode=quizzes */}
-          {/* Programs & Subjects Management */}
-          <Route path="/programs" element={<ProgramsManagementPage />} />
-          <Route path="/subjects" element={<SubjectsManagementPage />} />
-          <Route path="/marks-entry" element={<EnrollmentsMarksPage />} />
-          <Route path="/scheduled-reports" element={<ScheduledReportsPage />} />
-          {/* Class Story removed */}
+          <Route path="/course-progress/:courseId" element={<Navigate to="/student-dashboard" replace />} />
         </Routes>
         </Suspense>
         </main>
