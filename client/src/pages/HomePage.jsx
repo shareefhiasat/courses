@@ -919,6 +919,12 @@ const HomePage = memo(() => {
                         lang={lang}
                         t={t}
                         primaryColor={primaryColor}
+                        showStartButton={
+                          (mode === 'activities' && activityType === 'quiz') ||
+                          (mode === 'activities') ||
+                          (mode === 'resources' && (item.type === 'link' || item.type === 'video') && item.url) ||
+                          (mode === 'announcements')
+                        }
                         onStart={(item) => {
                           if ((mode === 'activities' && activityType === 'quiz')) {
                             window.location.href = `/quiz/${itemId}`;

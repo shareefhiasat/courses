@@ -23,6 +23,7 @@ import logger from '@utils/logger';
  * @param {Date|Object} props.dueDate - Due date for the item
  * @param {string} props.lang - Language ('en' | 'ar')
  * @param {Object} props.t - Translation function
+ * @param {boolean} props.showStartButton - Whether to show the start button
  */
 const UnifiedCard = memo(({
   flavor = 'activity',
@@ -39,7 +40,8 @@ const UnifiedCard = memo(({
   lang = 'en',
   t = (key) => key,
   isMinified = false,
-  primaryColor = '#800020'
+  primaryColor = '#800020',
+  showStartButton = true
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -188,10 +190,10 @@ const UnifiedCard = memo(({
         gap: '0.75rem',
         background: cardBg,
         borderRadius: 12,
-        padding: '0.75rem',
+        padding: '1rem',
         border: cardBorder,
         boxShadow: cardShadow,
-        minHeight: '200px',
+        minHeight: '340px', // Made taller from 200px
         transition: 'all 0.2s',
         color: cardText
       }}>
@@ -236,7 +238,7 @@ const UnifiedCard = memo(({
         )}
 
         {/* Featured Toggle Button - Below Bookmark */}
-        {onFeatured && flavor === 'announcements' && (
+        {onFeatured && flavor === RECORD_TYPES.ANNOUNCEMENT && (
             <button
                 onClick={onFeatured}
                 aria-label={item.featured ? t('remove_featured') || 'Remove featured' : t('add_featured') || 'Add featured'}
@@ -282,9 +284,9 @@ const UnifiedCard = memo(({
         )}
 
         {/* Title */}
-        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', paddingRight: onBookmark ? '2.5rem' : 0, color: cardText }}>
+        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', paddingRight: onBookmark ? '2.5rem' : 0, color: cardText, fontSize: '1.15rem', fontWeight: '600' }}>
           <span>{getTitle()}</span>
-          {item.featured && (
+          {item.featured && flavor === RECORD_TYPES.ANNOUNCEMENT && (
               <button
                   type="button"
                   title={t('featured') || 'Featured'}
@@ -303,27 +305,6 @@ const UnifiedCard = memo(({
                   }}
               >
                 {getWhiteIcon('ui', 'pin', 14)}
-              </button>
-          )}
-          {(item.allowRetake || item.retakeAllowed) && (
-              <button
-                  type="button"
-                  title={t('retake_allowed') || 'Retake Allowed'}
-                  style={{
-                    width: 28,
-                    height: 28,
-                    padding: 0,
-                    borderRadius: 999,
-                    border: '1px solid #bae6fd',
-                    background: '#ecfeff',
-                    color: '#0ea5e9',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'default'
-                  }}
-              >
-                {getThemedIcon('ui', 'refresh', 14, theme)}
               </button>
           )}
         </h3>
@@ -500,8 +481,8 @@ const UnifiedCard = memo(({
             )}
           </div>
 
-          {/* Dates - Anchored at bottom, aligned with button height */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', marginTop: '0.5rem' }}>
+          {/* Dates - Side by side with buttons */}
+          <div style={{ display: 'flex', flexDirection: 'row', gap: '0.5rem', fontSize: '0.75rem', justifyContent: 'space-between', alignItems: 'flex-end' }}>
             {/* Created Date */}
             {item.createdAt && (
                 <div style={{
@@ -510,7 +491,7 @@ const UnifiedCard = memo(({
                   gap: 6,
                   color: isDark ? '#94a3b8' : '#16a34a'
                 }} title={t('created_at') || 'Created at'}>
-                  {getThemedIcon('ui', 'add', 12, theme)}
+                  {getColoredIcon('ui', 'add', 12, '#16a34a', theme)}
                   <span>{formatDate(item.createdAt)}</span>
                 </div>
             )}
@@ -533,92 +514,92 @@ const UnifiedCard = memo(({
                   color: '#dc2626'
                 }} title={t('due_date') || 'Due date'}>
                   {getColoredIcon('ui', 'calendar', 14, '#dc2626', theme)}
-                  <span><strong>{t('due') || 'Due'}:</strong> {formatDate(dueDate)}</span>
+                  <span>{formatDate(dueDate)}</span>
                 </div>
             )}
+
+            {/* Action Buttons on the right */}
+            <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+              {onStart && showStartButton && (
+                  flavor === RECORD_TYPES.ANNOUNCEMENT ? (
+                    <button
+                      style={{
+                        width: 28,
+                        height: 28,
+                        padding: 0,
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: isDark ? '#374151' : '#ffffff',
+                        border: isDark ? '1px solid #4b5563' : '1px solid #e5e7eb',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onClick={onStart}
+                      aria-label={t('view') || 'View'}
+                      title={t('view') || 'View'}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = isDark ? '#4b5563' : '#f9fafb';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = isDark ? '#374151' : '#ffffff';
+                      }}
+                    >
+                      {getThemedIcon('ui', 'eye', 14, theme)}
+                    </button>
+                  ) : (
+                    <Button
+                      variant="success"
+                      size="small"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        padding: 0,
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      onClick={onStart}
+                      aria-label={t('start') || 'Start'}
+                      title={t('start') || 'Start'}
+                    >
+                      {getWhiteIcon('ui', 'play', 14)}
+                    </Button>
+                  )
+              )}
+
+              {/* Complete button for activities, resources, homework, labels (except announcements) */}
+              {onComplete && flavor !== RECORD_TYPES.ANNOUNCEMENT && (
+                  <Button
+                      variant={isCompleted ? 'success' : 'outline'}
+                      size="small"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        padding: 0,
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      onClick={onComplete}
+                      aria-label={isCompleted ? t('mark_incomplete') || 'Mark incomplete' : t('mark_complete') || 'Mark complete'}
+                      title={isCompleted ? t('completed') || 'Completed' : t('mark_complete') || 'Mark complete'}
+                  >
+                    {isCompleted ? (
+                        getColoredIcon('ui', 'check', 14, '#16a34a', theme)
+                    ) : (
+                        getColoredIcon('ui', 'check', 14, '#16a34a', theme)
+                    )}
+                  </Button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Action Buttons - Icon only */}
-        <div style={{ display: 'flex', gap: '0.375rem', marginTop: 'auto', alignItems: 'center' }}>
-          {onStart && (
-              flavor === 'announcements' ? (
-                <button
-                  style={{
-                    width: 28,
-                    height: 28,
-                    padding: 0,
-                    borderRadius: 6,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: isDark ? '#374151' : '#ffffff',
-                    border: isDark ? '1px solid #4b5563' : '1px solid #e5e7eb',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onClick={onStart}
-                  aria-label={t('view') || 'View'}
-                  title={t('view') || 'View'}
-                  onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = isDark ? '#4b5563' : '#f9fafb';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = isDark ? '#374151' : '#ffffff';
-                  }}
-                >
-                  {getThemedIcon('ui', 'eye', 14, theme)}
-                </button>
-              ) : (
-                <Button
-                  variant="success"
-                  size="small"
-                  style={{
-                    width: 28,
-                    height: 28,
-                    padding: 0,
-                    borderRadius: 6,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                  onClick={onStart}
-                  aria-label={t('start') || 'Start'}
-                  title={t('start') || 'Start'}
-                >
-                  {getWhiteIcon('ui', 'play', 14)}
-                </Button>
-              )
-          )}
-
-          {onComplete && flavor === 'resource' && (
-              <Button
-                  variant={isCompleted ? 'success' : 'outline'}
-                  size="small"
-                  style={{
-                    width: 28,
-                    height: 28,
-                    padding: 0,
-                    borderRadius: 6,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                  onClick={onComplete}
-                  aria-label={isCompleted ? t('mark_incomplete') || 'Mark incomplete' : t('mark_complete') || 'Mark complete'}
-                  title={isCompleted ? t('completed') || 'Completed' : t('mark_complete') || 'Mark complete'}
-              >
-                {isCompleted ? (
-                    getColoredIcon('ui', 'check', 14, '#16a34a', theme)
-                ) : (
-                    getColoredIcon('ui', 'check', 14, '#16a34a', theme)
-                )}
-              </Button>
-          )}
-
-          {/* Details button removed - not needed in main screens */}
         </div>
-      </div>
   );
 });
 
