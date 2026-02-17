@@ -1,14 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { signOutUser } from '@services/business/authService';
 import { NotificationBell } from '@ui';
 import { useLang } from '@contexts/LangContext';
-import { getUsers } from '@services/business/userService';
-import { updateUser } from '@services/business/userService';
-import { getUserDisplayName } from '@services/business/userService';
-import { getUserById } from '@services/business/userService';
+import { getUsers, updateUser, getUserDisplayName, getUserById } from '@services/business/userService';
 import { db } from '@services/other/config';
+import { doc, setDoc } from 'firebase/firestore';
+import { getAuth, updateProfile } from 'firebase/auth';
 import './Navbar.css';
 import { getThemedIcon, getWhiteIcon, getIconWithColor } from '@constants/iconTypes';
 import { LanguageSwitcher } from '../index';
@@ -50,6 +49,13 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
     try { return localStorage.getItem('navbarCollapsed') === 'true'; } catch { return false; }
   });
   const menuRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   // theme is managed by ThemeProvider
 
@@ -79,26 +85,25 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
     return () => { document.removeEventListener('mousedown', onDocClick); document.removeEventListener('keydown', onKey); };
   }, [showDropdown]);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     try {
       await signOutUser(user);
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
     }
-  };
+  }, [user, navigate]);
 
-  const toggleNavbar = () => {
-    const newCollapsed = !isNavbarCollapsed;
-    setIsNavbarCollapsed(newCollapsed);
-    localStorage.setItem('navbarCollapsed', newCollapsed.toString());
-    // Dispatch event to notify other components
-    window.dispatchEvent(new CustomEvent('navbar:toggle', { 
-      detail: { collapsed: newCollapsed } 
-    }));
-  };
-
-  const isMobile = window.innerWidth < 768;
+  const toggleNavbar = useCallback(() => {
+    setIsNavbarCollapsed((prev) => {
+      const newCollapsed = !prev;
+      localStorage.setItem('navbarCollapsed', newCollapsed.toString());
+      window.dispatchEvent(new CustomEvent('navbar:toggle', {
+        detail: { collapsed: newCollapsed }
+      }));
+      return newCollapsed;
+    });
+  }, []);
 
   const getUserProfile = async (user) => {
     if (!user) return null;
@@ -132,41 +137,32 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
     } catch (e) { /* noop */ }
   };
 
-  const saveProfile = async () => {
+  const saveProfile = useCallback(async () => {
     try {
       if (!user) return;
-      // Write directly to users/{uid}
-      const { doc, setDoc } = await import('firebase/firestore');
       const dataToSave = {
         displayName: displayName || null,
         phoneNumber: phoneNumber || null,
-        messageColor: (() => {
-          const color = normalizeHexColor(primaryColor, ACCENT_FALLBACK);
-          return color;
-        })(),
+        messageColor: normalizeHexColor(primaryColor, ACCENT_FALLBACK),
         realName: realName || null,
         studentNumber: studentNumber || null,
         email: user.email,
         notifLang: notifLang || 'auto',
       };
       await setDoc(doc(db, 'users', user.uid), dataToSave, { merge: true });
-      // Update Firebase Auth profile
       try {
-        const { getAuth, updateProfile } = await import('firebase/auth');
         const auth = getAuth();
         if (auth.currentUser) {
           await updateProfile(auth.currentUser, { displayName });
         }
       } catch {}
-      // Save UI-only preferences
       setTimeFormatPreference(timeFormat);
-      // Close dialog on successful save
       setShowProfile(false);
     } catch (err) {
       console.error('Failed to save profile:', err);
       alert('Failed to save profile');
     }
-  };
+  }, [user, displayName, phoneNumber, primaryColor, realName, studentNumber, notifLang, timeFormat]);
 
   return (
     <>

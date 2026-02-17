@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import styles from './LoadingProgress.module.css';
 
 const LoadingProgress = () => {
   const [visible, setVisible] = useState(false);
@@ -6,17 +7,19 @@ const LoadingProgress = () => {
   const isLoadingRef = useRef(false);
   const timerRef = useRef(null);
 
-  const startProgress = () => {
+  const endTimerRef = useRef(null);
+
+  const startProgress = useCallback(() => {
     isLoadingRef.current = true;
     setProgress(0);
     setVisible(true);
-  };
+  }, []);
 
-  const endProgress = () => {
+  const endProgress = useCallback(() => {
     isLoadingRef.current = false;
     setProgress(100);
-    setTimeout(() => setVisible(false), 400);
-  };
+    endTimerRef.current = setTimeout(() => setVisible(false), 400);
+  }, []);
 
   useEffect(() => {
     window.addEventListener('loading-start', startProgress);
@@ -24,8 +27,9 @@ const LoadingProgress = () => {
     return () => {
       window.removeEventListener('loading-start', startProgress);
       window.removeEventListener('loading-end', endProgress);
+      if (endTimerRef.current) clearTimeout(endTimerRef.current);
     };
-  }, []);
+  }, [startProgress, endProgress]);
 
   // Simulate incremental progress while loading
   useEffect(() => {
@@ -39,41 +43,11 @@ const LoadingProgress = () => {
 
   return (
     <>
-      {/* DEBUG: Always visible dot to confirm component is mounted */}
-      <div style={{
-        position: 'fixed',
-        bottom: 10,
-        right: 10,
-        width: 12,
-        height: 12,
-        borderRadius: '50%',
-        background: visible ? '#d4af37' : '#ccc',
-        zIndex: 2147483647,
-        pointerEvents: 'none',
-        boxShadow: visible ? '0 0 8px #d4af37' : 'none',
-      }} />
-
       {visible && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '6px',
-            backgroundColor: 'rgba(0,0,0,0.15)',
-            zIndex: 2147483647,
-            pointerEvents: 'none',
-          }}
-        >
+        <div className={styles.progressContainer}>
           <div
-            style={{
-              height: '100%',
-              width: `${progress}%`,
-              background: 'linear-gradient(90deg, #d4af37, #f4e4a6, #d4af37)',
-              transition: 'width 0.2s ease',
-              boxShadow: '0 0 10px #d4af37, 0 0 20px #f4e4a6',
-            }}
+            className={styles.progressBar}
+            style={{ width: `${progress}%` }}
           />
         </div>
       )}

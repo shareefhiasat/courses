@@ -14,9 +14,7 @@ export const GlobalLoadingProvider = ({ children }) => {
   const showTimerRef = useRef(null);
   const hideTimerRef = useRef(null);
 
-  // Debug function to clear stuck loading
   const clearLoading = useCallback(() => {
-    console.warn('[GlobalLoading] Manual clear triggered');
     setActiveCount(0);
     setIsVisible(false);
     setMessage('');
@@ -27,7 +25,6 @@ export const GlobalLoadingProvider = ({ children }) => {
   }, []);
 
   const startLoading = useCallback((options = {}) => {
-    console.log('[GlobalLoading] Start loading, count:', activeCount + 1, 'message:', options.message);
     setActiveCount((count) => count + 1);
     if (options.message) {
       setMessage(options.message);
@@ -37,10 +34,8 @@ export const GlobalLoadingProvider = ({ children }) => {
     return () => {
       if (stopped) return;
       stopped = true;
-      console.log('[GlobalLoading] Stop loading called');
       setActiveCount((prevCount) => {
         const newCount = Math.max(0, prevCount - 1);
-        console.log('[GlobalLoading] New count:', newCount);
         if (newCount === 0) {
           setMessage('');
         }
@@ -51,65 +46,44 @@ export const GlobalLoadingProvider = ({ children }) => {
 
   useEffect(() => {
     if (activeCount > 0) {
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current);
-      }
+      clearTimeout(hideTimerRef.current);
       if (!isVisible) {
         showTimerRef.current = setTimeout(() => {
           setIsVisible(true);
-          // Trigger loading progress when global loading starts
           window.dispatchEvent(new CustomEvent('loading-start'));
         }, 0);
       }
     } else {
-      if (showTimerRef.current) {
-        clearTimeout(showTimerRef.current);
-      }
+      clearTimeout(showTimerRef.current);
       if (isVisible) {
         hideTimerRef.current = setTimeout(() => {
           setIsVisible(false);
-          setMessage(''); // Clear message when hiding
-          // End loading progress when global loading ends
+          setMessage('');
           window.dispatchEvent(new CustomEvent('loading-end'));
         }, 350);
       }
     }
 
     return () => {
-      if (showTimerRef.current) {
-        clearTimeout(showTimerRef.current);
-      }
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current);
-      }
+      clearTimeout(showTimerRef.current);
+      clearTimeout(hideTimerRef.current);
     };
   }, [activeCount, isVisible]);
 
-  // Safety mechanism: force hide after 10 seconds
   useEffect(() => {
-    if (isVisible) {
-      const safetyTimer = setTimeout(() => {
-        console.warn('[GlobalLoading] Force hiding loading after 10 seconds');
-        setIsVisible(false);
-        setMessage('');
-        setActiveCount(0);
-        // End loading progress when safety mechanism triggers
-        window.dispatchEvent(new CustomEvent('loading-end'));
-      }, 10000);
-
-      return () => clearTimeout(safetyTimer);
-    }
+    if (!isVisible) return;
+    const safetyTimer = setTimeout(() => {
+      setIsVisible(false);
+      setMessage('');
+      setActiveCount(0);
+      window.dispatchEvent(new CustomEvent('loading-end'));
+    }, 10000);
+    return () => clearTimeout(safetyTimer);
   }, [isVisible]);
 
-  // Listen for manual clear events
   useEffect(() => {
-    const handleClear = () => {
-      console.warn('[GlobalLoading] Manual clear event received');
-      clearLoading();
-    };
-
-    window.addEventListener('clearGlobalLoading', handleClear);
-    return () => window.removeEventListener('clearGlobalLoading', handleClear);
+    window.addEventListener('clearGlobalLoading', clearLoading);
+    return () => window.removeEventListener('clearGlobalLoading', clearLoading);
   }, [clearLoading]);
 
   const value = useMemo(
@@ -131,11 +105,8 @@ export const GlobalLoadingProvider = ({ children }) => {
 
 export const useGlobalLoading = () => useContext(GlobalLoadingContext);
 
-// Add global debug function
 if (typeof window !== 'undefined') {
   window.clearGlobalLoading = () => {
-    console.warn('[GlobalLoading] Manual clear from console - this will work on next render');
-    // Force a state reset by dispatching a custom event
     window.dispatchEvent(new CustomEvent('clearGlobalLoading'));
   };
 }

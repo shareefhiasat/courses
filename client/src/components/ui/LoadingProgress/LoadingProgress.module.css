@@ -1,15 +1,14 @@
 /* Modern Loading Progress Bar */
 .progressContainer {
   position: fixed;
-  bottom: 0; /* Changed from top: 0 to bottom: 0 */
+  top: 0;
   left: 0;
   right: 0;
-  height: 8px; /* Increased height for better visibility */
-  background: rgba(255, 215, 0, 0.3); /* More visible gold background */
-  z-index: 99999; /* Increased z-index to be above everything */
+  height: 6px;
+  background-color: rgba(0, 0, 0, 0.15);
+  z-index: 2147483647;
+  pointer-events: none;
   overflow: hidden;
-  box-shadow: 0 -4px 8px rgba(255, 215, 0, 0.4); /* Shadow pointing up */
-  border-top: 2px solid #FFD700; /* Changed to top border */
 }
 
 .progressBar {
