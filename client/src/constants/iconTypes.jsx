@@ -14,7 +14,7 @@ import {
   // Communication Icons
   MessageSquare, Bell, BellOff, Send, Phone, Mailbox, Megaphone, MailOpen, MousePointerClick, CornerDownLeft, Flag, ListFilter,
   // Navigation Icons
-  Home, Search, Filter, ChevronDown, ChevronUp, Link, Video, List, ExternalLink,
+  Home, Search, Filter, ChevronDown, ChevronUp, Link, Video, List, ExternalLink, Maximize, Square,
   // Time Icons
   Clock, Calendar,
   // UI Icons
@@ -180,6 +180,9 @@ export const ICON_TYPES = {
     expand: <ChevronDown size={16} />,
     collapse: <ChevronDown size={16} />,
     link: <Link size={16} />,
+    external_link: <ExternalLink size={16} />,
+    maximize: <Maximize size={16} />,
+    square: <Square size={16} />,
     video: <Video size={16} />,
     qr_code: <QrCode size={16} />,
     code: <Code size={16} />,

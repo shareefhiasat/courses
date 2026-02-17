@@ -164,7 +164,7 @@
   border: 1px solid var(--border, #e5e7eb);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 9999 !important; /* High z-index to appear above all containers */
+  z-index: 99999 !important; /* Higher z-index to appear above all containers */
   max-height: 300px;
   overflow: hidden;
   animation: slideDown 0.2s ease;

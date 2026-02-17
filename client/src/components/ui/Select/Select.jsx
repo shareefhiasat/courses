@@ -365,11 +365,11 @@ const Select = forwardRef(({
             ref={dropdownRef}
             className={styles.dropdown}
             style={{
-              position: 'absolute',
+              position: 'fixed',
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
-              width: `${dropdownPosition.width}px`,
-              zIndex: 9999,
+              width: `${Math.max(dropdownPosition.width, 200)}px`,
+              zIndex: 99999,
               maxHeight: '300px',
               overflowY: 'auto'
             }}

@@ -570,13 +570,13 @@ const ClassSchedulePage = () => {
           </Tooltip>
         </div>
 
-        {/* Filter Row - Using grid layout like Marks page */}
+        {/* Filter Row - ProgramsSelect spans full row */}
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', 
-          gap: 8 
+          gridTemplateColumns: '1fr', 
+          gap: 8,
+          marginBottom: '0.5rem'
         }}>
-
           <ProgramsSelect
             programs={programs}
             subjects={subjects}
@@ -597,6 +597,14 @@ const ClassSchedulePage = () => {
             showLabels={false}
             fullWidth
           />
+        </div>
+
+        {/* Second Filter Row - Year and Term */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', 
+          gap: 8 
+        }}>
           <Select
             searchable
             placeholder={t('all_years') || 'All years'}

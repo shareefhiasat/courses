@@ -60,7 +60,7 @@ export const ThemeProvider = ({ children }) => {
       {children}
       {isThemeChanging && (
         <div className="theme-transition-overlay active">
-          <SimpleLoading type="brand" />
+          <SimpleLoading type="spinner" size="sm" />
         </div>
       )}
     </ThemeContext.Provider>

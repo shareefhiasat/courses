@@ -398,7 +398,7 @@ const DashboardPage = () => {
     />
   </div>
         {/* Summary Cards with Filters */}
-        <Suspense fallback={<SimpleLoading loading={true} type="spinner" size="md" />}>
+        <Suspense fallback={null}>
            <AnalyticsDashboardPage />
          </Suspense>
 
@@ -412,7 +412,7 @@ const DashboardPage = () => {
                <InfoTooltip contentKey={`help.${activeTab}`} />
              </div>
            </div>
-        <Suspense fallback={<SimpleLoading loading={true} type="spinner" size="md" />}>
+        <Suspense fallback={null}>
           {activeTab === MODE_TYPES.ACTIVITIES && (
             <ActivitiesPage />
           )}
@@ -436,7 +436,7 @@ const DashboardPage = () => {
           )}
         </Suspense>
         
-        <Suspense fallback={<SimpleLoading loading={true} type="spinner" size="md" />}>
+        <Suspense fallback={null}>
           {activeTab === 'penalty' && (isSuperAdmin || isAdmin || isInstructor) && (
             <PenaltiesPage />
           )}
