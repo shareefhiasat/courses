@@ -89,7 +89,7 @@
 
 .fullSection:hover .headerIcon {
   transform: scale(1.1);
-  box-shadow: 0 2px 8px #6366f1;
+  box-shadow: 0 2px 8px var(--color, #6366f1);
 }
 
 .headerInfo {
@@ -151,7 +151,7 @@
 }
 
 .modeToggle:hover {
-  background: #6366f1;
+  background: var(--color, #6366f1);
   color: white;
   transform: scale(1.05);
 }
@@ -190,12 +190,12 @@
 }
 
 .modeMenu button:hover {
-  background: #6366f1;
+  background: var(--color, #6366f1);
   color: white;
 }
 
 .modeMenu button.active {
-  background: #6366f1;
+  background: var(--color, #6366f1);
   color: white;
 }
 
@@ -216,7 +216,7 @@
 
 .compactSection:hover {
   box-shadow: var(--section-hover-shadow);
-  border-color: #6366f1;
+  border-color: var(--color, #6366f1);
 }
 
 .compactHeader {
@@ -241,7 +241,7 @@
 }
 
 .compactButton:hover {
-  background: #6366f1;
+  background: var(--color, #6366f1);
   color: white;
 }
 
@@ -256,7 +256,7 @@
   width: 32px;
   height: 32px;
   border-radius: 6px;
-  background: var(--section-color);
+  background: var(--color, #6366f1);
   color: white;
   font-size: 14px;
 }
@@ -358,14 +358,14 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--section-color);
+  background: var(--color, #6366f1);
   color: white;
   font-size: 10px;
 }
 
 .minimalCount {
   font-weight: 700;
-  color: var(--section-color);
+  color: var(--color, #6366f1);
 }
 
 .minimalLabel {
@@ -413,7 +413,7 @@
 }
 
 .minimalModeMenu button:hover {
-  background: var(--section-color);
+  background: var(--color, #6366f1);
   color: white;
 }
 
@@ -430,7 +430,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: var(--section-color);
+  background: var(--color, #6366f1);
   color: white;
   border: none;
   border-radius: 25px;

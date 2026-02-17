@@ -181,7 +181,7 @@ const AnalyticsDashboardPage = memo(() => {
       sectionId="summary-cards"
       title={t('dashboard_statistics') || 'Dashboard Statistics'}
       icon={getThemedIcon('ui', 'bar_chart', 20, theme)}
-      color={theme === 'dark' ? '#818cf8' : '#6366f1'}
+      color="var(--color-primary, var(--primary-maroon, #800020))"
       defaultMode="full"
       data-tour="stats"
       inlineFilters={

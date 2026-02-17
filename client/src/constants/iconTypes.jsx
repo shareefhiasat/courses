@@ -274,8 +274,6 @@ export const ICON_TYPES = {
     user: <User size={16} />,
     api: <Globe size={16} />,
     mail: <MessageSquare size={16} />,
-    // Email-specific icons needed by emailTypes.jsx
-    external_link: <ExternalLink size={16} />,
     // Notification settings icons
     volume: <Volume2 size={16} />,
     vibrate: <Vibrate size={16} />,
@@ -478,39 +476,58 @@ export const getUserRoleIcon = (role) => {
 
 // Color-aware icon functions
 export const getThemedIcon = (category, type, size = 16, theme = 'light') => {
-  const colorMap = {
-    light: {
-      primary: '#3b82f6',
-      success: '#22c55e',
-      warning: '#f59e0b',
-      error: '#ef4444',
-      neutral: '#6b7280'
-    },
-    dark: {
-      primary: '#60a5fa',
-      success: '#4ade80',
-      warning: '#fbbf24',
-      error: '#f87171',
-      neutral: '#9ca3af'
+  // Check if theme is an explicit color (like 'white') - if so, use it directly
+  if (typeof theme === 'string' && (theme === 'white' || theme.startsWith('#') || theme === 'currentColor')) {
+    return getIconWithColor(category, type, size, theme);
+  }
+  
+  // Use dynamic theme colors from CSS variables
+  const getThemeBasedColor = () => {
+    // Try to get the color from CSS variables (for dynamic theming)
+    if (typeof window !== 'undefined') {
+      const rootStyle = getComputedStyle(document.documentElement);
+      const primaryColor = rootStyle.getPropertyValue('--color-primary')?.trim();
+      if (primaryColor) {
+        return primaryColor;
+      }
     }
+    
+    // Fallback to hardcoded colors if CSS variables aren't available
+    const colorMap = {
+      light: {
+        primary: '#3b82f6',
+        success: '#22c55e',
+        warning: '#f59e0b',
+        error: '#ef4444',
+        neutral: '#6b7280'
+      },
+      dark: {
+        primary: '#60a5fa',
+        success: '#4ade80',
+        warning: '#fbbf24',
+        error: '#f87171',
+        neutral: '#9ca3af'
+      }
+    };
+    
+    // Default color based on category
+    const defaultColors = {
+      user_status: 'neutral',
+      user_role: 'primary',
+      attendance_status: 'success',
+      behavior_type: 'warning',
+      penalty_type: 'error',
+      participation_type: 'primary',
+      activity_type: 'neutral',
+      notification_type: 'primary',
+      ui: 'neutral'
+    };
+    
+    const colorCategory = defaultColors[category] || 'neutral';
+    return colorMap[theme]?.[colorCategory] || 'currentColor';
   };
   
-  // Default color based on category
-  const defaultColors = {
-    user_status: 'neutral',
-    user_role: 'primary',
-    attendance_status: 'success',
-    behavior_type: 'warning',
-    penalty_type: 'error',
-    participation_type: 'primary',
-    activity_type: 'neutral',
-    notification_type: 'primary',
-    ui: 'neutral'
-  };
-  
-  const colorCategory = defaultColors[category] || 'neutral';
-  const color = colorMap[theme]?.[colorCategory] || 'currentColor';
-  
+  const color = getThemeBasedColor();
   return getIconWithColor(category, type, size, color);
 };
 
