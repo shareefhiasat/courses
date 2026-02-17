@@ -87,7 +87,7 @@
 
 .EmojiPickerReact .epr-body {
   scrollbar-width: thin !important;
-  scrollbar-color: #e9ecef transparent !important;
+  scrollbar-color: var(--scrollbar-thumb, var(--color-primary, var(--primary-maroon, #800020))) transparent !important;
 }
 
 .EmojiPickerReact .epr-body::-webkit-scrollbar {
@@ -99,7 +99,7 @@
 }
 
 .EmojiPickerReact .epr-body::-webkit-scrollbar-thumb {
-  background-color: #e9ecef !important;
+  background-color: var(--scrollbar-thumb, var(--color-primary, var(--primary-maroon, #800020))) !important;
   border-radius: 3px !important;
 }
 

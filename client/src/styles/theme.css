@@ -79,3 +79,258 @@ input[type="radio"]:focus-visible {
   --primary-700: var(--color-primary-dark, #942a44);
   --primary-500-rgb: var(--color-primary-rgb, 128, 0, 32);
 }
+
+/* ============================================ */
+/* GLOBAL THEMED SCROLLBAR STYLING */
+/* ============================================ */
+
+/* Base scrollbar variables */
+:root {
+  --scrollbar-width: 8px;
+  --scrollbar-track: var(--panel, #ffffff);
+  --scrollbar-thumb: var(--color-primary, var(--primary-maroon, #800020));
+  --scrollbar-thumb-hover: var(--color-primary-light, var(--primary-maroon-light, #A0002F));
+  --scrollbar-thumb-active: var(--color-primary-dark, var(--primary-maroon-dark, #600018));
+  --scrollbar-border-radius: 4px;
+}
+
+/* Global scrollbar styling for webkit browsers */
+::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: var(--scrollbar-border-radius);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--scrollbar-border-radius);
+  border: 1px solid var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+}
+
+/* Firefox scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Dark theme scrollbar adjustments */
+[data-theme="dark"] {
+  --scrollbar-track: #2d3748;
+  --scrollbar-thumb: #4a5568;
+  --scrollbar-thumb-hover: #718096;
+  --scrollbar-thumb-active: #a0aec0;
+}
+
+/* Ensure all scrollable elements use themed scrollbars */
+.app,
+.main-content,
+.messages-container,
+.optionsList,
+.tabsContainer,
+.modal,
+.drawer,
+.dropdown,
+select,
+textarea,
+.overflow-auto,
+.overflow-y-auto,
+.overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.app::-webkit-scrollbar,
+.main-content::-webkit-scrollbar,
+.messages-container::-webkit-scrollbar,
+.optionsList::-webkit-scrollbar,
+.tabsContainer::-webkit-scrollbar,
+.modal::-webkit-scrollbar,
+.drawer::-webkit-scrollbar,
+.dropdown::-webkit-scrollbar,
+select::-webkit-scrollbar,
+textarea::-webkit-scrollbar,
+.overflow-auto::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+
+.app::-webkit-scrollbar-track,
+.main-content::-webkit-scrollbar-track,
+.messages-container::-webkit-scrollbar-track,
+.optionsList::-webkit-scrollbar-track,
+.tabsContainer::-webkit-scrollbar-track,
+.modal::-webkit-scrollbar-track,
+.drawer::-webkit-scrollbar-track,
+.dropdown::-webkit-scrollbar-track,
+select::-webkit-scrollbar-track,
+textarea::-webkit-scrollbar-track,
+.overflow-auto::-webkit-scrollbar-track,
+.overflow-y-auto::-webkit-scrollbar-track,
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: var(--scrollbar-border-radius);
+}
+
+.app::-webkit-scrollbar-thumb,
+.main-content::-webkit-scrollbar-thumb,
+.messages-container::-webkit-scrollbar-thumb,
+.optionsList::-webkit-scrollbar-thumb,
+.tabsContainer::-webkit-scrollbar-thumb,
+.modal::-webkit-scrollbar-thumb,
+.drawer::-webkit-scrollbar-thumb,
+.dropdown::-webkit-scrollbar-thumb,
+.select::-webkit-scrollbar-thumb,
+textarea::-webkit-scrollbar-thumb,
+.overflow-auto::-webkit-scrollbar-thumb,
+.overflow-y-auto::-webkit-scrollbar-thumb,
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--scrollbar-border-radius);
+  border: 1px solid var(--scrollbar-track);
+}
+
+.app::-webkit-scrollbar-thumb:hover,
+.main-content::-webkit-scrollbar-thumb:hover,
+.messages-container::-webkit-scrollbar-thumb:hover,
+.optionsList::-webkit-scrollbar-thumb:hover,
+.tabsContainer::-webkit-scrollbar-thumb:hover,
+.modal::-webkit-scrollbar-thumb:hover,
+.drawer::-webkit-scrollbar-thumb:hover,
+.dropdown::-webkit-scrollbar-thumb:hover,
+.select::-webkit-scrollbar-thumb:hover,
+textarea::-webkit-scrollbar-thumb:hover,
+.overflow-auto::-webkit-scrollbar-thumb:hover,
+.overflow-y-auto::-webkit-scrollbar-thumb:hover,
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.app::-webkit-scrollbar-thumb:active,
+.main-content::-webkit-scrollbar-thumb:active,
+.messages-container::-webkit-scrollbar-thumb:active,
+.optionsList::-webkit-scrollbar-thumb:active,
+.tabsContainer::-webkit-scrollbar-thumb:active,
+.modal::-webkit-scrollbar-thumb:active,
+.drawer::-webkit-scrollbar-thumb:active,
+.dropdown::-webkit-scrollbar-thumb:active,
+.select::-webkit-scrollbar-thumb:active,
+textarea::-webkit-scrollbar-thumb:active,
+.overflow-auto::-webkit-scrollbar-thumb:active,
+.overflow-y-auto::-webkit-scrollbar-thumb:active,
+.overflow-x-auto::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+}
+
+/* Special case for hidden scrollbars (like tabs) */
+.tabsContainer::-webkit-scrollbar {
+  display: none;
+}
+
+.tabsContainer {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Utility class for scrollable containers */
+.themed-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.themed-scrollbar::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+
+.themed-scrollbar::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: var(--scrollbar-border-radius);
+}
+
+.themed-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--scrollbar-border-radius);
+  border: 1px solid var(--scrollbar-track);
+}
+
+.themed-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.themed-scrollbar::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+}
+
+/* Ensure all common Tailwind overflow classes use themed scrollbars */
+.overflow-auto,
+.overflow-y-auto,
+.overflow-x-auto,
+.overflow-scroll,
+.overflow-y-scroll,
+.overflow-x-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.overflow-auto::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar,
+.overflow-scroll::-webkit-scrollbar,
+.overflow-y-scroll::-webkit-scrollbar,
+.overflow-x-scroll::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+
+.overflow-auto::-webkit-scrollbar-track,
+.overflow-y-auto::-webkit-scrollbar-track,
+.overflow-x-auto::-webkit-scrollbar-track,
+.overflow-scroll::-webkit-scrollbar-track,
+.overflow-y-scroll::-webkit-scrollbar-track,
+.overflow-x-scroll::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: var(--scrollbar-border-radius);
+}
+
+.overflow-auto::-webkit-scrollbar-thumb,
+.overflow-y-auto::-webkit-scrollbar-thumb,
+.overflow-x-auto::-webkit-scrollbar-thumb,
+.overflow-scroll::-webkit-scrollbar-thumb,
+.overflow-y-scroll::-webkit-scrollbar-thumb,
+.overflow-x-scroll::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--scrollbar-border-radius);
+  border: 1px solid var(--scrollbar-track);
+}
+
+.overflow-auto::-webkit-scrollbar-thumb:hover,
+.overflow-y-auto::-webkit-scrollbar-thumb:hover,
+.overflow-x-auto::-webkit-scrollbar-thumb:hover,
+.overflow-scroll::-webkit-scrollbar-thumb:hover,
+.overflow-y-scroll::-webkit-scrollbar-thumb:hover,
+.overflow-x-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.overflow-auto::-webkit-scrollbar-thumb:active,
+.overflow-y-auto::-webkit-scrollbar-thumb:active,
+.overflow-x-auto::-webkit-scrollbar-thumb:active,
+.overflow-scroll::-webkit-scrollbar-thumb:active,
+.overflow-y-scroll::-webkit-scrollbar-thumb:active,
+.overflow-x-scroll::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+}

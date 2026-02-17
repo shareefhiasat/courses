@@ -243,25 +243,6 @@
   padding: 4px;
 }
 
-/* Custom scrollbar */
-.optionsList::-webkit-scrollbar {
-  width: 6px;
-}
-
-.optionsList::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.optionsList::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-.optionsList::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
 .option {
   padding: 10px 12px;
   cursor: pointer;
