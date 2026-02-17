@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DayPicker } from 'react-day-picker';
 import { format, parseISO, isValid } from 'date-fns';
-import { useTheme } from '../../../contexts/ThemeContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import Button from '../Button/Button';
+import { Button } from '@ui';
 import styles from './DateRangePicker.module.css';
 
 /**

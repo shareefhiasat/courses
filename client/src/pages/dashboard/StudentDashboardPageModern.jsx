@@ -29,7 +29,7 @@ export default function StudentDashboardPageModern() {
   const [searchTerm, setSearchTerm] = useState('');
   
   const displayUserId = selectedStudent === 'all' ? user?.uid : selectedStudent;
-  const { enrollments, loading } = useDashboardData(displayUserId);
+  const { enrollments, loading, reload } = useDashboardData(displayUserId);
   const { students, programs, subjects, classes, loading: filtersLoading } = useStudentDashboardFilters({ 
     enableStudentList: isAdmin || isInstructor || isHR 
   });
@@ -130,11 +130,6 @@ export default function StudentDashboardPageModern() {
       safeStop();
     };
   }, [authLoading, user, reload, startLoading]);
-
-  // For inline loading states (like filters), keep SimpleLoading
-  if (filtersLoading) {
-    return <SimpleLoading loading fullscreen type="brand" size="lg" />;
-  }
 
   return (
     <div className="student-dashboard-page-modern" data-theme={theme} style={{ padding: '0rem 0', position: 'relative' }}>

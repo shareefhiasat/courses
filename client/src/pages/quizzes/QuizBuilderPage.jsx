@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import logger from '../utils/logger';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { useLang } from '../contexts/LangContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { useAuth } from '@contexts/AuthContext';
 import { DIFFICULTY_TYPES, DIFFICULTY_LABELS } from '@constants/difficultyTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import {
@@ -15,10 +15,10 @@ import { getQuiz, createQuiz, updateQuiz } from '@services/business/quizService'
 import { notifyQuizAvailable } from '@services/business/notificationService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getUsers } from '@services/business/userService';
-import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor } from '../components/ui';
-import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
-import { ToggleSwitch } from '../components/shared';
-import { LanguageToggle } from '../components/shared';
+import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@contexts/GlobalLoadingContext';
+import { ToggleSwitch } from '@ui';
+import { LanguageToggle } from '@ui';
 import styles from './QuizBuilderPage.module.css';
 
 // Simplified question types

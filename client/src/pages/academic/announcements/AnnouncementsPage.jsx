@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { useToast } from '@ui';
 import logger from '@utils/logger';
 import { AdvancedDataGrid } from '@ui';
@@ -13,10 +14,10 @@ import { getUsers, getUserById } from '@services/business/userService';
 import { notificationGateway } from '@services/business/notificationGateway';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
-import { Button, ToggleSwitch, Select, Input } from '@ui';
-import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
+import { Button, ToggleSwitch, Select, Input, SimpleLoading } from '@ui';
+import { DeleteModal, useDeleteModal } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import ProgramsSelect from '@ui/Select/ProgramsSelect';
+import { ProgramsSelect } from '@ui';
 
 /**
  * AnnouncementsPage - Announcements management page
@@ -63,6 +64,7 @@ const AnnouncementsPage = () => {
     emailLang: 'en'
   });
   const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+  const { startLoading } = useGlobalLoading();
   
   // Refs for text inputs — avoids re-rendering the whole page on every keystroke
   const titleRef = useRef(null);
@@ -70,8 +72,8 @@ const AnnouncementsPage = () => {
   const contentArRef = useRef(null);
 
   // Data loading function
-  const loadData = useCallback(async () => {
-    setDataLoading(true);
+  const loadData = useCallback(async (isInitial = false) => {
+    if (!isInitial) setDataLoading(true);
     try {
       const [
         programsResult,
@@ -96,14 +98,27 @@ const AnnouncementsPage = () => {
       logger.error('Error loading data:', error);
       toast?.showError('Failed to load data');
     } finally {
-      setDataLoading(false);
+      if (!isInitial) setDataLoading(false);
     }
   }, [toast]);
 
-  // Load data on component mount
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  // Load data on component mount with Global Loading
+  useLayoutEffect(() => {
+    let stopLoading = null;
+
+    const initialLoad = async () => {
+      stopLoading = startLoading({ message: t('loading_announcements') || 'Loading announcements...' });
+      await loadData(true);
+      if (stopLoading) stopLoading();
+      setDataLoading(false);
+    };
+
+    initialLoad();
+
+    return () => {
+      if (stopLoading) stopLoading();
+    };
+  }, []);
 
   // Handler functions
   const handleDropdownChange = useCallback((setter, field, resetFields = []) => {
@@ -405,14 +420,6 @@ const AnnouncementsPage = () => {
       )
     }
   ], [programs, subjects, classes, theme, lang, t, handleEditAnnouncement, toast, loadData, deleteEntity, announcements]);
-
-  if (dataLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
 
   const filteredAnnouncements = announcements.filter(announcement => {
     if (announcementProgramFilter && announcement.programId !== announcementProgramFilter) return false;

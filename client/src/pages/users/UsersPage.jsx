@@ -11,9 +11,9 @@ import { USER_ROLES } from '@constants/userRoles';
 import { ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Card, CardBody, ConfirmModal } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
-import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
-import QREmailModal, { useQREmailModal } from '@ui/QREmailModal/QREmailModal';
-import ProgramsSelect from '@ui/Select/ProgramsSelect';
+import { DeleteModal, useDeleteModal } from '@ui';
+import { QREmailModal, useQREmailModal } from '@ui';
+import { ProgramsSelect } from '@ui';
 import { getUsers, addUser, updateUser, deleteUser as deleteUserFromService, isUserDisabledAtUserLevel, isStudent, isAdmin as isAdminUser } from '@services/business/userService';
 import { getPrograms } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
@@ -92,57 +92,17 @@ const UsersPage = ({ isDashboardTab = false }) => {
     return <GlobalLoadingFallback />;
   }
 
-  // Use GlobalLoading for initial data load
-  useLayoutEffect(() => {
-    if (authLoading) return;
-    if (!user) return;
-    if (!isAdmin && !isSuperAdmin) return;
-
-    let stopped = false;
-    const stopGlobalLoading = startLoading();
-    const safeStop = () => {
-      if (stopped) return;
-      stopped = true;
-      stopGlobalLoading();
-    };
-
-    const loadData = async () => {
-      try {
-        await Promise.all([
-          getUsers(),
-          getPrograms(),
-          getClasses(),
-          getSubjects(),
-          getEnrollments()
-        ]).then(([usersResult, programsResult, classesResult, subjectsResult, enrollmentsResult]) => {
-          // Set data logic here
-        });
-      } catch (error) {
-        console.error('Error loading users data:', error);
-      } finally {
-        safeStop();
-      }
-    };
-
-    loadData();
-
-    return () => {
-      safeStop();
-    };
-  }, [authLoading, user, isAdmin, isSuperAdmin, startLoading]);
-
-  // Load data function - must be defined before useEffect
-  const loadData = useCallback(async () => {
+  // Load data function - must be defined before useLayoutEffect
+  const loadData = useCallback(async (isInitial = false) => {
     if (!isAdmin && !isSuperAdmin) {
       setPageState(PAGE_STATES.ERROR);
       return;
     }
     
-    setPageState(PAGE_STATES.LOADING);
+    if (!isInitial) setPageState(PAGE_STATES.LOADING);
     try {
       logger.info('USER_PAGE: Loading users and reference data', { 
-        timestamp: new Date().toISOString(),
-        stackTrace: new Error().stack 
+        timestamp: new Date().toISOString()
       });
       
       const [usersResult, programsResult, classesResult, subjectsResult, enrollmentsResult] = await Promise.all([
@@ -182,12 +142,28 @@ const UsersPage = ({ isDashboardTab = false }) => {
       toast?.showError('Failed to load data: ' + error.message);
       setPageState(PAGE_STATES.ERROR);
     }
-  }, [isAdmin, isSuperAdmin]);
+  }, [isAdmin, isSuperAdmin, toast]);
 
-  // Load data on mount
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    if (!isAdmin && !isSuperAdmin) return;
+
+    let stopLoading = null;
+
+    const initialLoad = async () => {
+      stopLoading = startLoading({ message: t('loading_users') || 'Loading users...' });
+      await loadData(true);
+      if (stopLoading) stopLoading();
+    };
+
+    initialLoad();
+
+    return () => {
+      if (stopLoading) stopLoading();
+    };
+  }, [authLoading, user, isAdmin, isSuperAdmin, startLoading, loadData, t]);
 
   // Handler functions - must be defined before gridColumns
   const handleEditUser = useCallback((user) => {

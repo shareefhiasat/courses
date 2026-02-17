@@ -1,10 +1,11 @@
-﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Button, Select, UserSelect, AdvancedDataGrid } from '@ui';
-import ProgramsSelect from '@ui/Select/ProgramsSelect';
+import { Button, Select, UserSelect, AdvancedDataGrid, SimpleLoading } from '@ui';
+import { ProgramsSelect } from '@ui';
 import { USER_ROLES } from '@constants';
 import { ACTIVITY_LOG_TYPES, logActivity } from '@services/other/activityLogger';
 import { getPrograms, getSubjects } from '@services/business/programService';
@@ -15,7 +16,7 @@ import { getBehaviors } from '@services/business/behaviorService';
 import { getParticipations } from '@services/business/participationService';
 import { toggleStudentAccess as toggleStudentAccessService } from '@services/business/enrollmentService';
 import logger from '@utils/logger';
-import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
+import { DeleteModal, useDeleteModal } from '@ui';
 
 const EnrollmentsManagementPage = () => {
   const { t } = useLang();
@@ -31,6 +32,9 @@ const EnrollmentsManagementPage = () => {
   const [users, setUsers] = useState([]);
   const [activities, setActivities] = useState([]);
   const [submissions, setSubmissions] = useState([]);
+  const [localPrograms, setLocalPrograms] = useState([]);
+  const [localSubjects, setLocalSubjects] = useState([]);
+  const [localClasses, setLocalClasses] = useState([]);
   const [enrollmentForm, setEnrollmentForm] = useState({ 
     userId: '', 
     classId: '', 
@@ -47,9 +51,11 @@ const EnrollmentsManagementPage = () => {
   const [classFilter, setClassFilter] = useState('');
   const [studentFilter, setStudentFilter] = useState('');
 
+  const { startLoading } = useGlobalLoading();
+
   // Load all data
-  const loadData = useCallback(async () => {
-    setDataLoading(true);
+  const loadData = useCallback(async (isInitial = false) => {
+    if (!isInitial) setDataLoading(true);
     try {
       const [
         enrollmentsResult,
@@ -71,29 +77,9 @@ const EnrollmentsManagementPage = () => {
       logger.error('[EnrollmentManagementPage] Error loading data:', error);
       toast?.showError(t('failed_to_load_data') || 'Failed to load data');
     } finally {
-      setDataLoading(false);
+      if (!isInitial) setDataLoading(false);
     }
   }, [t, toast]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  // Helper function for date formatting
-  const formatQatarDateOnly = (date) => {
-    if (!date) return 'Unknown';
-    const dateObj = date?.toDate ? date.toDate() : (date?.seconds ? new Date(date.seconds * 1000) : new Date(date));
-    return dateObj.toLocaleDateString('en-QA');
-  };
-
-  const ensureString = (value) => {
-    return value ? String(value) : '';
-  };
-
-  // Local state for programs, subjects, and classes (NotificationDrawer pattern)
-  const [localPrograms, setLocalPrograms] = useState([]);
-  const [localSubjects, setLocalSubjects] = useState([]);
-  const [localClasses, setLocalClasses] = useState([]);
 
   // Load programs, subjects, and classes (NotificationDrawer pattern)
   const loadFilters = useCallback(async () => {
@@ -112,9 +98,23 @@ const EnrollmentsManagementPage = () => {
     }
   }, [t, toast]);
 
-  useEffect(() => {
-    loadFilters();
-  }, [loadFilters]);
+  // Initial load with Global Loading
+  useLayoutEffect(() => {
+    let stopLoading = null;
+
+    const initialLoad = async () => {
+      stopLoading = startLoading({ message: t('loading_enrollments') || 'Loading enrollments...' });
+      await Promise.all([loadFilters(), loadData(true)]);
+      if (stopLoading) stopLoading();
+      setDataLoading(false);
+    };
+
+    initialLoad();
+
+    return () => {
+      if (stopLoading) stopLoading();
+    };
+  }, []);
 
   // Memoized handler functions for dropdown changes
   const handleEnrollmentProgramChange = useCallback((programId) => {
@@ -271,24 +271,7 @@ const EnrollmentsManagementPage = () => {
 
   return (
     <div className="enrollments-section" style={{ marginTop: '2rem' }}>
-      {dataLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              width: '40px', 
-              height: '40px', 
-              border: '4px solid #f3f3f3', 
-              borderTop: '4px solid #3498db', 
-              borderRadius: '50%', 
-              animation: 'spin 1s linear infinite',
-              margin: '0 auto 1rem'
-            }}></div>
-            <div>{t('loading') || 'Loading...'}</div>
-          </div>
-        </div>
-      ) : (
-        <>
-          <form onSubmit={handleEnrollmentSubmit} className="dashboard-form">
+      <form onSubmit={handleEnrollmentSubmit} className="dashboard-form">
         <div className="form-row wide-cols">
           <UserSelect
             ref={userSelectRef}
@@ -769,8 +752,6 @@ const EnrollmentsManagementPage = () => {
         loading={loading}
         t={t}
       />
-        </>
-      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, RotateCcw } from 'lucide-react';
-import { useLang } from '../../contexts/LangContext';
+import { useLang } from '@contexts/LangContext';
 
 export default function CategorizeGame({ data, settings, onComplete }) {
   const { t, lang } = useLang();

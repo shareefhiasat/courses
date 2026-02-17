@@ -83,9 +83,6 @@ export const useRoleAccess = () => {
   const [roleScreens, setRoleScreens] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Debug: Log current auth state immediately - using console.log for guaranteed visibility
-  console.log(`[useRoleAccess] Auth state - user: ${user?.uid}, role: ${role}, isSuperAdmin: ${isSuperAdmin}, authLoading: ${authLoading}`);
 
   // Load role screens from Firestore
   const loadRoleScreens = useCallback(async () => {
@@ -98,14 +95,11 @@ export const useRoleAccess = () => {
       setLoading(true);
       setError(null);
       
-      console.log(`[useRoleAccess] Loading role screens for user: ${user.uid}, role: ${role}`);
-      
       const docRef = doc(db, 'config', 'roleScreens');
       const snap = await getDoc(docRef);
       
       if (snap.exists()) {
         const data = snap.data();
-        console.log('[useRoleAccess] Loaded role screens from Firestore:', Object.keys(data));
         setRoleScreens(data);
       } else {
         console.log('[useRoleAccess] No role screens found in Firestore, using defaults');
@@ -136,25 +130,18 @@ export const useRoleAccess = () => {
    * @returns {boolean} - True if user has access
    */
   const hasAccess = useCallback((screenId) => {
-    // Debug: Use console.log for guaranteed visibility
-    console.log(`[useRoleAccess] hasAccess called for screen: ${screenId}`);
-    console.log(`[useRoleAccess] User state:`, { user: user?.uid, role, isSuperAdmin });
-    
     // Not authenticated
     if (!user || !role) {
-      console.log(`[useRoleAccess] No user or role provided for screen: ${screenId}`);
       return false;
     }
 
     // Super admins bypass all restrictions
     if (isSuperAdmin) {
-      console.log(`[useRoleAccess] Super admin bypass for screen: ${screenId}`);
       return true;
     }
 
     // Simplified logic: Always grant access to 'home' for authenticated users to prevent infinite loops
     if (screenId === 'home') {
-      console.log(`[useRoleAccess] Granting home access to authenticated user: ${role}`);
       return true;
     }
 
@@ -162,23 +149,16 @@ export const useRoleAccess = () => {
     const userRole = role.toLowerCase();
     const screenPermissions = roleScreens[userRole];
     
-    console.log(`[useRoleAccess] Checking access for role: ${userRole}, screen: ${screenId}`);
-    console.log(`[useRoleAccess] Available permissions for ${userRole}:`, Object.keys(screenPermissions || {}));
-    
     if (!screenPermissions) {
-      console.log(`[useRoleAccess] No permissions found for role: ${userRole}, using defaults`);
       // Fallback to default permissions
       const defaultPermissions = defaultRoleScreens[userRole];
       if (defaultPermissions) {
-        console.log(`[useRoleAccess] Using default permissions for ${userRole}`);
         return !!defaultPermissions[screenId];
       }
       return false;
     }
 
     const hasPermission = !!screenPermissions[screenId];
-    
-    console.log(`[useRoleAccess] Access ${hasPermission ? 'granted' : 'denied'} for ${userRole} to screen: ${screenId}`);
     
     return hasPermission;
   }, [user?.uid, role, isSuperAdmin, roleScreens]); // Only depend on user.uid, not entire user object

@@ -210,12 +210,22 @@ export const getActivities = async (filters = {}) => {
     if (type) conditions.push(where('type', '==', type));
     if (status) conditions.push(where('status', '==', status));
     
-    const q = query(
-      collection(db, RECORD_TYPES.ACTIVITY),
-      ...conditions,
-      orderBy(orderByField, orderDirection),
-      limit(limitCount)
-    );
+    // If no conditions provided, create a simple query without where clauses
+    let q;
+    if (conditions.length === 0) {
+      q = query(
+        collection(db, RECORD_TYPES.ACTIVITY),
+        orderBy(orderByField, orderDirection),
+        limit(limitCount)
+      );
+    } else {
+      q = query(
+        collection(db, RECORD_TYPES.ACTIVITY),
+        ...conditions,
+        orderBy(orderByField, orderDirection),
+        limit(limitCount)
+      );
+    }
     
     const querySnapshot = await getDocs(q);
     const activities = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));

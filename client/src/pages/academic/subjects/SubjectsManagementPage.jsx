@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -9,7 +9,8 @@ import { getClasses } from '@services/business/classService';
 import { getPrograms } from '@services/business/programService';
 import { getSubjects, createSubject, updateSubject, deleteSubject } from '@services/business/subjectService';
 import { SimpleLoading, Button, Input, Select, useToast, AdvancedDataGrid } from '@ui';
-import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import { DeleteModal, useDeleteModal } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import { ACTIVITY_TYPES } from '@constants';
@@ -20,6 +21,8 @@ const SubjectsManagementPage = () => {
   const { lang, t } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
+  
+  const { startLoading } = useGlobalLoading();
   
   const [subjects, setSubjects] = useState([]);
   const [programs, setPrograms] = useState([]);
@@ -63,8 +66,8 @@ const SubjectsManagementPage = () => {
     };
   }, [formData]);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (isInitial = false) => {
+    if (!isInitial) setLoading(true);
     try {
       const [subjectsResult, programsResult] = await Promise.all([
         getSubjects(),
@@ -80,9 +83,31 @@ const SubjectsManagementPage = () => {
     } catch (error) {
       toast.error(error.message);
     } finally {
-      setLoading(false);
+      if (!isInitial) setLoading(false);
     }
   }, [toast]);
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!isAdmin && !isSuperAdmin && !isInstructor) return;
+
+    let stopLoading = null;
+
+    const initialLoad = async () => {
+      stopLoading = startLoading({ message: t('loading_subjects') || 'Loading subjects...' });
+      await loadData(true);
+      if (stopLoading) stopLoading();
+      setLoading(false);
+      logActivity(ACTIVITY_LOG_TYPES.SUBJECT_VIEWED, {});
+    };
+
+    initialLoad();
+
+    return () => {
+      if (stopLoading) stopLoading();
+    };
+  }, [authLoading, isAdmin, isSuperAdmin, isInstructor, startLoading, loadData, t]);
 
   // Sync refs when editing an existing subject
   useEffect(() => {
@@ -95,13 +120,6 @@ const SubjectsManagementPage = () => {
     if (totalHoursRef.current) totalHoursRef.current.value = formData.totalHours?.toString() || '36';
     if (hoursPerWeekRef.current) hoursPerWeekRef.current.value = formData.hoursPerWeek?.toString() || '3';
   }, [editingSubject]); // only when we load a subject for editing
-
-  useEffect(() => {
-    if (!authLoading && (isAdmin || isSuperAdmin || isInstructor)) {
-      loadData();
-      logActivity(ACTIVITY_LOG_TYPES.SUBJECT_VIEWED, {});
-    }
-  }, [authLoading, isAdmin, isSuperAdmin, isInstructor, loadData]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();

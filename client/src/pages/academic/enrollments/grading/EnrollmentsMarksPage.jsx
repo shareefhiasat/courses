@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -18,7 +18,8 @@ import { MARK_TYPES } from '@constants/activityTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { USER_ROLES } from '@constants/userRoles';
 import { SimpleLoading, Modal, Button, Input, Select, useToast, AdvancedDataGrid, Card, CardBody, Container } from '@ui';
-import ProgramsSelect from '@ui/Select/ProgramsSelect';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import { ProgramsSelect } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { CollapsibleSideWindow } from '@ui';
@@ -32,6 +33,7 @@ const EnrollmentsMarksPage = () => {
   const { lang, t } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
+  const { startLoading } = useGlobalLoading();
   
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -87,8 +89,8 @@ const EnrollmentsMarksPage = () => {
     return eventOrValue ?? '';
   }, []);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (isInitial = false) => {
+    if (!isInitial) setLoading(true);
     try {
       const [programsRes, subjectsRes, classesRes, enrollmentsRes] = await Promise.all([
         getPrograms(),
@@ -116,9 +118,31 @@ const EnrollmentsMarksPage = () => {
     } catch (error) {
       toast.error(error.message);
     } finally {
-      setLoading(false);
+      if (!isInitial) setLoading(false);
     }
   }, [toast, isInstructor, isAdmin, isSuperAdmin, user]);
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!isAdmin && !isSuperAdmin && !isInstructor) return;
+
+    let stopLoading = null;
+
+    const initialLoad = async () => {
+      stopLoading = startLoading({ message: t('loading_marks_data') || 'Loading marks data...' });
+      await loadData(true);
+      if (stopLoading) stopLoading();
+      setLoading(false);
+      logActivity(ACTIVITY_LOG_TYPES.MARK_ENTRY_VIEWED);
+    };
+
+    initialLoad();
+
+    return () => {
+      if (stopLoading) stopLoading();
+    };
+  }, [authLoading, isAdmin, isSuperAdmin, isInstructor, startLoading, loadData, t]);
 
   const loadMarksData = useCallback(async () => {
     if (!selectedSubject) return;
@@ -154,13 +178,6 @@ const EnrollmentsMarksPage = () => {
       setLoading(false);
     }
   }, [selectedSubject, classFilter, toast]);
-
-  useEffect(() => {
-    if (!authLoading && (isAdmin || isSuperAdmin || isInstructor)) {
-      loadData();
-      logActivity(ACTIVITY_LOG_TYPES.MARK_ENTRY_VIEWED);
-    }
-  }, [authLoading, isAdmin, isSuperAdmin, isInstructor, loadData]);
 
   useEffect(() => {
     if (subjectFilter !== '' && classFilter !== '') {

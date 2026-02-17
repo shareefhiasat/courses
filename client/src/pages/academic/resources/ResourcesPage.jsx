@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { AdvancedDataGrid } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatQatarStandard, formatQatarForInput, parseQatarFromInput, getQatarNow } from '@utils/qatarDate';
@@ -13,10 +14,10 @@ import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger.
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { getUserById } from '@services/business/userService';
 import { Button, Input, Textarea, Select, ToggleSwitch, DatePicker } from '@ui';
-import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
+import { DeleteModal, useDeleteModal } from '@ui';
 import { getResourceTypeConfig, getResourceTypeOptions, RESOURCE_TYPES } from '@constants/dashboardTypes.jsx';
 import { getCategories } from '@services/business/categoryService';
-import ProgramsSelect from '@ui/Select/ProgramsSelect';
+import { ProgramsSelect } from '@ui';
 import logger from '@utils/logger';
 
 // Import all services at top level to prevent duplicate calls
@@ -47,6 +48,8 @@ const ResourcesPage = () => {
   const [users, setUsers] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  const { startLoading } = useGlobalLoading();
   
   // Filter state
   const [resourceProgramFilter, setResourceProgramFilter] = useState('');
@@ -98,13 +101,8 @@ const ResourcesPage = () => {
     if (urlRef.current) urlRef.current.value = resourceForm.url || '';
   }, [editingResource]);
 
-  // Load data on component mount
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (isInitial = false) => {
+    if (!isInitial) setLoading(true);
     try {
       const [
         programsResult,
@@ -139,9 +137,27 @@ const ResourcesPage = () => {
       logger.error('Error loading data:', error);
       toast?.showError(t('error_loading_data') || 'Error loading data');
     } finally {
-      setLoading(false);
+      if (!isInitial) setLoading(false);
     }
   }, [toast, t]);
+
+  // Load data on component mount with Global Loading
+  useLayoutEffect(() => {
+    let stopLoading = null;
+
+    const initialLoad = async () => {
+      stopLoading = startLoading({ message: t('loading_resources') || 'Loading resources...' });
+      await loadData(true);
+      if (stopLoading) stopLoading();
+      setLoading(false);
+    };
+
+    initialLoad();
+
+    return () => {
+      if (stopLoading) stopLoading();
+    };
+  }, []);
 
   const handleDropdownChange = useCallback((setter, field, resetFields = []) => {
     return (value) => {

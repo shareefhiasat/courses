@@ -1,7 +1,7 @@
 import React from 'react';
 import HelpDrawer from './HelpDrawer';
-import { HelpProvider } from '../contexts/HelpContext';
-import { LangProvider } from '../contexts/LangContext';
+import { HelpProvider } from '@contexts/HelpContext';
+import { LangProvider } from '@contexts/LangContext';
 
 export default {
   title: 'Components/HelpDrawer',

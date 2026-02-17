@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo, useLayoutEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { CollapsibleDashboardSection } from '@ui';
-import FilterSelect from '@ui/FilterSelect/FilterSelect';
+import { FilterSelect } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
 import { getResourceCount } from '@services/business/activityService';
@@ -35,6 +36,7 @@ const AnalyticsDashboardPage = () => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const { user, isAdmin, isSuperAdmin, isInstructor } = useAuth();
+  const { startLoading } = useGlobalLoading();
   
   // Local state for all data
   const [programs, setPrograms] = useState([]);
@@ -49,7 +51,6 @@ const AnalyticsDashboardPage = () => {
   const [behaviors, setBehaviors] = useState([]);
   const [participations, setParticipations] = useState([]);
   const [resourceCount, setResourceCount] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [loadingResourceCount, setLoadingResourceCount] = useState(false);
   
   // Filter states
@@ -58,9 +59,13 @@ const AnalyticsDashboardPage = () => {
   const [enrollmentClassFilter, setEnrollmentClassFilter] = useState('all');
   
   // Load all data on component mount
-  useEffect(() => {
+  useLayoutEffect(() => {
+    let stopLoading = null;
+    
     const loadAllData = async () => {
-      setLoading(true);
+      // Start global loading immediately
+      stopLoading = startLoading({ message: t('loading_statistics') || 'Loading statistics...' });
+      
       try {
         const [
           programsRes,
@@ -103,11 +108,16 @@ const AnalyticsDashboardPage = () => {
       } catch (error) {
         logger.error('🔍 [AnalyticsDashboardPage] Error loading data:', error);
       } finally {
-        setLoading(false);
+        if (stopLoading) stopLoading();
       }
     };
     
     loadAllData();
+    
+    // Cleanup function to ensure loading stops if component unmounts
+    return () => {
+      if (stopLoading) stopLoading();
+    };
   }, []);
 
   // Fetch resource count from server based on current filters
@@ -147,25 +157,6 @@ const AnalyticsDashboardPage = () => {
 
   // Safety check: ensure programs is an array
   const safePrograms = Array.isArray(programs) ? programs : [];
-  
-  if (loading) {
-    return (
-      <CollapsibleDashboardSection
-        sectionId="summary-cards"
-        title={t('dashboard_statistics') || 'Dashboard Statistics'}
-        icon={getThemedIcon('ui', 'bar_chart', 20, theme)}
-        color={theme === 'dark' ? '#818cf8' : '#6366f1'}
-        defaultMode="full"
-      >
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          {getThemedIcon('ui', 'loader', 24, theme)}
-          <p style={{ marginTop: '1rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-            {t('loading_statistics') || 'Loading statistics...'}
-          </p>
-        </div>
-      </CollapsibleDashboardSection>
-    );
-  }
 
   return (
     <CollapsibleDashboardSection
@@ -511,5 +502,5 @@ const AnalyticsDashboardPage = () => {
   );
 };
 
-export default AnalyticsDashboardPage;
+export default memo(AnalyticsDashboardPage);
 

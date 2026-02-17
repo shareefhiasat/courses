@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { useToast, Spinner } from '@ui';
+import { useToast } from '@ui';
+import { SimpleLoading } from '@ui';
 import { useLang } from '@contexts/LangContext';
-import { useTheme } from '../../../contexts/ThemeContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { ToggleSwitch } from '@ui';
 import { formatDateTime } from '@utils/date';

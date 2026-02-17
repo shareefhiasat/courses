@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
 import { Input } from '@ui';
 import { Button } from '@ui';
@@ -23,11 +23,9 @@ import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getFavoriteStudents } from '@services/business/userPreferenceService';
 import { getUserProfile } from '@services/business/userService';
-import StudentHistory from '@ui/history';
-import StudentRosterHistory from '@ui/history/StudentRosterHistory';
-import DeleteModal from '@ui/history/DeleteModal';
-import StudentCard from '@ui/history/StudentCard';
-import StudentTableRow from '@ui/history/StudentTableRow';
+import { StudentHistory, StudentRosterHistory } from '@ui/history';
+import { DeleteModal } from '@ui';
+import { StudentCard, StudentTableRow } from '@ui/history';
 
 const StudentRoster = React.memo(function StudentRoster({
   students,

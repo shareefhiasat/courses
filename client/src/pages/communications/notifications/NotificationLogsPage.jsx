@@ -1,18 +1,20 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getNotificationLogs } from '@services/business/notificationService';
 import { formatQatarStandard } from '@utils/qatarDate';
 import { SimpleLoading, Modal, Select, Button, Card, CardBody, Badge, AdvancedDataGrid, DatePicker, useToast } from '@ui';
 import { getNotificationTriggerOptions, getNotificationChannelOptions, NOTIFICATION_TRIGGERS, NOTIFICATION_CHANNELS } from '@constants/notificationTypes';
 import { getThemedIcon } from '@constants/iconTypes';
-import InfoTooltip from '@ui/InfoTooltip/InfoTooltip';
+import { InfoTooltip } from '@ui';
 import './NotificationLogsPage.css';
 
 const NotificationLogsPage = () => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
+  const { startLoading } = useGlobalLoading();
   
   const [loading, setLoading] = useState(false);
   const [notificationLogs, setNotificationLogs] = useState([]);
@@ -41,8 +43,8 @@ const NotificationLogsPage = () => {
     return options;
   }, [t]);
   
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = useCallback(async (isInitial = false) => {
+    if (!isInitial) setLoading(true);
     try {
       const result = await getNotificationLogs(notificationLogFilters);
       if (result?.success) {
@@ -53,10 +55,29 @@ const NotificationLogsPage = () => {
     } catch (error) {
       toast?.showError('Error loading notification logs: ' + error.message);
     } finally {
-      setLoading(false);
+      if (!isInitial) setLoading(false);
     }
-  };
+  }, [notificationLogFilters, toast]);
   
+  // Initial load with Global Loading
+  useLayoutEffect(() => {
+    let stopLoading = null;
+
+    const initialLoad = async () => {
+      stopLoading = startLoading({ message: t('loading_notifications') || 'Loading notifications...' });
+      await loadData(true);
+      if (stopLoading) stopLoading();
+      setLoading(false);
+    };
+
+    initialLoad();
+
+    return () => {
+      if (stopLoading) stopLoading();
+    };
+  }, []);
+  
+  // Reload when filters change (after initial load)
   useEffect(() => {
     loadData();
   }, [notificationLogFilters]);

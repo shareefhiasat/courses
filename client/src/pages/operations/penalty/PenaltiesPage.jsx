@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Button, Select, useToast, AdvancedDataGrid, ProgramsSelect } from '@ui';
-import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import { DeleteModal, useDeleteModal } from '@ui';
 import { createPenalty, updatePenalty, deletePenalty, getPenalties } from '@services/business/penaltyService';
 import { PENALTY_TYPES, PENALTY_TYPE_ICONS } from '@constants/penaltyTypes';
 import { getPrograms, getSubjects, getSubject, fetchProgram } from '@services/business/programService';
@@ -192,58 +193,10 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [subjectFilter, setSubjectFilter] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [studentFilter, setStudentFilter] = useState('');
+  const { startLoading } = useGlobalLoading();
 
-  useEffect(() => {
-    if (!isHR && !isAdmin && !isSuperAdmin && !isInstructor) return;
-    loadData();
-    // Log page view
-    try {
-      logger.debug('🔍 PENALTY VIEWING LOG - About to log activity:', {
-        timestamp: new Date(),
-        timestampUTC: new Date().toISOString(),
-        userTime: new Date().toLocaleString(),
-        qatarTime: new Date().toLocaleString('en-US', { timeZone: 'Asia/Qatar' }),
-        userId: user?.uid,
-        userEmail: user?.email,
-        activityType: ACTIVITY_LOG_TYPES.PENALTY_VIEWED
-      });
-      
-            
-      logger.debug('✅ PENALTY VIEWING LOG - Activity logged successfully');
-    } catch (e) {
-      logger.error('❌ PENALTY VIEWING LOG - Error logging activity:', e);
-    }
-  }, [isHR, isAdmin, isSuperAdmin, isInstructor]);
-
-  useEffect(() => {
-    if (!isHR && !isAdmin && !isSuperAdmin && !isInstructor) return;
-    loadPenalties();
-  }, [isHR, isAdmin, isSuperAdmin, isInstructor]);
-
-  // Load students when class changes
-  useEffect(() => {
-    if (!formData.classId) {
-      setStudents([]);
-      return;
-    }
-    (async () => {
-      try {
-        const result = await getStudentsByClass(formData.classId);
-        if (result.success) {
-          setStudents(result.data);
-        } else {
-          logger.error('Failed to load students:', result.error);
-          setStudents([]);
-        }
-      } catch (error) {
-        logger.error('Failed to load students:', error);
-        setStudents([]);
-      }
-    })();
-  }, [formData.classId]);
-
-  const loadData = async () => {
+  // Load data - classes, programs, subjects, enrollments
+  const loadData = useCallback(async () => {
     try {
       const [classesRes, programsRes, subjectsRes, enrollmentsRes] = await Promise.all([
         getClasses(),
@@ -258,10 +211,10 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     } catch (error) {
       logger.error('Failed to load data:', error);
     }
-  };
+  }, []);
 
-  const loadPenalties = async () => {
-    setLoading(true);
+  const loadPenalties = useCallback(async (isInitial = false) => {
+    if (!isInitial) setLoading(true);
     try {
       const result = await getPenalties();
       if (!result.success) {
@@ -352,9 +305,45 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       logger.error('Failed to load penalties:', error);
       toast.error(t('failed_to_save_penalty') + ': ' + error.message);
     } finally {
-      setLoading(false);
+      if (!isInitial) setLoading(false);
     }
-  };
+  }, [toast, t, fetchUser, fetchClass, fetchSubjectData, lang]);
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (!isHR && !isAdmin && !isSuperAdmin && !isInstructor) return;
+
+    let stopLoading = null;
+
+    const initialLoad = async () => {
+      stopLoading = startLoading({ message: t('loading_penalties') || 'Loading penalties...' });
+      await Promise.all([loadData(), loadPenalties(true)]);
+      if (stopLoading) stopLoading();
+      setLoading(false);
+      
+      // Log page view after load
+      try {
+        logger.debug('🔍 PENALTY VIEWING LOG - About to log activity:', {
+          timestamp: new Date(),
+          timestampUTC: new Date().toISOString(),
+          userTime: new Date().toLocaleString(),
+          qatarTime: new Date().toLocaleString('en-US', { timeZone: 'Asia/Qatar' }),
+          userId: user?.uid,
+          userEmail: user?.email,
+          activityType: ACTIVITY_LOG_TYPES.PENALTY_VIEWED
+        });
+        logger.debug('✅ PENALTY VIEWING LOG - Activity logged successfully');
+      } catch (e) {
+        logger.error('❌ PENALTY VIEWING LOG - Error logging activity:', e);
+      }
+    };
+
+    initialLoad();
+
+    return () => {
+      if (stopLoading) stopLoading();
+    };
+  }, [isHR, isAdmin, isSuperAdmin, isInstructor, startLoading, loadData, loadPenalties, t, user]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();

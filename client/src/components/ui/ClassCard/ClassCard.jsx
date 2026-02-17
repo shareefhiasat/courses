@@ -3,7 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import Tooltip from '@ui/Tooltip/Tooltip';
+import { Tooltip } from '@ui';
 
 const ClassCard = ({ 
   cls, 

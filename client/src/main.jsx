@@ -5,7 +5,7 @@ import './styles/tokens.css';
 import './index.css';
 import './styles/military-theme.css';
 import App from './App.jsx';
-import { ToastProvider } from './components/ui';
+import { ToastProvider } from '@ui';
 import { PostHogProvider } from 'posthog-js/react';
 import { initSentry } from './config/sentry.js';
 import logger from './utils/logger';

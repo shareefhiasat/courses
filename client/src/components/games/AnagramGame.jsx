@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useLang } from '../../contexts/LangContext';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 
 export default function AnagramGame({ questions, settings, onComplete }) {

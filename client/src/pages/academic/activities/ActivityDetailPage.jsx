@@ -5,7 +5,7 @@ import { db } from '@services/other/config';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import { Container, Card, CardBody, Button, Badge, Spinner, Modal } from '@ui';
+import { Container, Card, CardBody, Button, Badge, Modal, SimpleLoading } from '@ui';
 import { QRCodeGenerator } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatDateTime } from '@utils/date';
@@ -35,11 +35,7 @@ export default function ActivityDetailPage() {
   }, [activityId]);
 
   if (loading) {
-    return (
-      <div className={styles.loadingWrapper}>
-        <Spinner size="lg" />
-      </div>
-    );
+    return <SimpleLoading loading type="spinner" size="lg" />;
   }
   
   if (!activity) {

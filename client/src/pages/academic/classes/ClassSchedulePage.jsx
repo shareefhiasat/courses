@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -16,10 +16,11 @@ import { getActivities } from '@services/business/activityService';
 import { getAnnouncements } from '@services/business/announcementService';
 import { getResources } from '@services/business/resourceService';
 import { FilterSelect, useToast, SimpleLoading } from '@ui';
-import ProgramsSelect from '@ui/Select/ProgramsSelect';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import { ProgramsSelect } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
-import Tooltip from '@ui/Tooltip/Tooltip';
-import ClassCard from '@ui/ClassCard/ClassCard';
+import { Tooltip } from '@ui';
+import { ClassCard } from '@ui';
 
 const ClassSchedulePage = () => {
   const { user, isAdmin, isInstructor } = useAuth();
@@ -64,6 +65,7 @@ const ClassSchedulePage = () => {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [classSearchTerm, setClassSearchTerm] = useState('');
+  const { startLoading } = useGlobalLoading();
 
   // Get localized day names using date utility
   const dayNames = getDayNames(t, getCurrentLanguage(t));
@@ -219,12 +221,6 @@ const ClassSchedulePage = () => {
     return grouped;
   }, [filteredClasses]);
 
-  useEffect(() => {
-    if (!user) return;
-    if (!isAdmin && !isInstructor) return;
-    loadClasses();
-  }, [user, isAdmin, isInstructor]);
-
   // Fetch class statistics for semester view
   const fetchClassStats = useCallback(async (classList) => {
     const stats = {};
@@ -293,8 +289,8 @@ const ClassSchedulePage = () => {
     }
   }, [viewMode, classes, fetchClassStats]);
 
-  const loadClasses = async () => {
-    setLoading(true);
+  const loadClasses = useCallback(async (isInitial = false) => {
+    if (!isInitial) setLoading(true);
     try {
       const [classesRes, programsRes, subjectsRes] = await Promise.all([
         getAllClasses(),
@@ -347,9 +343,30 @@ const ClassSchedulePage = () => {
       if (e?.code === 'permission-denied') return;
       logger.error('[Schedule] Error loading classes:', e);
     } finally {
-      setLoading(false);
+      if (!isInitial) setLoading(false);
     }
-  };
+  }, [fetchClassStats, selectedClass]);
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (!user) return;
+    if (!isAdmin && !isInstructor) return;
+
+    let stopLoading = null;
+
+    const initialLoad = async () => {
+      stopLoading = startLoading({ message: t('loading_schedule') || 'Loading schedule...' });
+      await loadClasses(true);
+      if (stopLoading) stopLoading();
+      setLoading(false);
+    };
+
+    initialLoad();
+
+    return () => {
+      if (stopLoading) stopLoading();
+    };
+  }, [user, isAdmin, isInstructor, startLoading, loadClasses, t]);
 
   const loadSchedule = (classData, options = {}) => {
     const safeClass = classData ? { ...classData, docId: classData.docId || classData.id, id: classData.id || classData.docId } : null;

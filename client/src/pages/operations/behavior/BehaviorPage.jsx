@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -6,7 +6,8 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Button, Select, SimpleLoading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect } from '@ui';
-import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import { DeleteModal, useDeleteModal } from '@ui';
 import { getPrograms, getSubjects, fetchSubject, fetchProgram } from '@services/business/programService';
 import { getClasses, fetchClass } from '@services/business/classService';
 import { getEnrollments, getStudentsByClass } from '@services/business/enrollmentService';
@@ -123,7 +124,8 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     loadSelectStudents();
   }, [enrollments, isSuperAdmin, isAdmin, isHR, isInstructor]);
 
-  
+  const { startLoading } = useGlobalLoading();
+
   // Filters
   const [programFilter, setProgramFilter] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
@@ -131,17 +133,66 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [typeFilter, setTypeFilter] = useState('all');
   const [studentFilter, setStudentFilter] = useState('');
 
-  useEffect(() => {
+  // Initial Data Loading
+  useLayoutEffect(() => {
     if (!isInstructor && !isAdmin && !isSuperAdmin && !isHR) return;
-    loadData();
-    // Log page view
-    try {
-          } catch (e) { }
-  }, [isInstructor, isAdmin, isSuperAdmin, isHR]);
 
-  useEffect(() => {
-    loadBehaviorsData();
-  }, [classes, programs, subjects, toast, t]);
+    let stopLoading = null;
+
+    const loadAll = async () => {
+      stopLoading = startLoading({ message: t('loading_behavior') || 'Loading behavior...' });
+      
+      try {
+        // 1. Load Reference Data
+        const [classesRes, programsRes, subjectsRes, enrollmentsRes] = await Promise.all([
+          getClasses(),
+          getPrograms(),
+          getSubjects(),
+          getEnrollments()
+        ]);
+
+        const classesData = classesRes.success ? classesRes.data || [] : [];
+        const programsData = programsRes.success ? programsRes.data || [] : [];
+        const subjectsData = subjectsRes.success ? subjectsRes.data || [] : [];
+        const enrollmentsData = enrollmentsRes.success ? enrollmentsRes.data || [] : [];
+
+        setClasses(classesData);
+        setPrograms(programsData);
+        setSubjects(subjectsData);
+        setEnrollments(enrollmentsData);
+
+        // 2. Load Behaviors using the fetched data
+        await loadBehaviors({
+          setBehaviors: setBehaviorsRaw,
+          setPageState: () => {}, // We handle page state via global loading mostly
+          toast,
+          t,
+          classes: classesData,
+          programs: programsData,
+          subjects: subjectsData,
+          filters: {},
+          getUserById,
+          fetchClass,
+          fetchSubject,
+          fetchProgram
+        });
+        
+        setPageState(PAGE_STATES.SUCCESS);
+      } catch (error) {
+        logger.error('Failed to load data:', error);
+        toast.error(t('error_loading_data'));
+        setPageState(PAGE_STATES.ERROR);
+      } finally {
+        if (stopLoading) stopLoading();
+      }
+    };
+
+    loadAll();
+
+    return () => {
+      if (stopLoading) stopLoading();
+    };
+  }, [isInstructor, isAdmin, isSuperAdmin, isHR, startLoading, t]);
 
   // Load students when class changes
   useEffect(() => {

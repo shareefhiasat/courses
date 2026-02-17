@@ -5,7 +5,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, CATEGORY_ICONS } from '@constants';
 import { Button, Select, SimpleLoading, Textarea, useToast, AdvancedDataGrid, Card, CardBody, Input } from '@ui';
-import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
+import { DeleteModal, useDeleteModal } from '@ui';
 import { getCategories, addCategory, updateCategory, deleteCategory } from '@services/business/categoryService';
 import { 
   PAGE_STATES, 

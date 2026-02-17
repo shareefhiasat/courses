@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { CheckCircle, XCircle, Clock, Award, TrendingUp, Target, RefreshCw } from 'lucide-react';
-import { Card, CardBody, Badge, Button, Chart } from '../ui';
+import { Card, CardBody, Badge, Button, Chart } from '@ui';
 import styles from './DetailedResults.module.css';
 
 const DetailedResults = ({ 

@@ -39,13 +39,14 @@ const Input = forwardRef(({
   prefix,
   suffix,
   icon,
+  prefixIcon,
   size = 'medium',
   fullWidth = false,
   className = '',
   theme = 'light',
   ...rest
 }, ref) => {
-  const computedPrefix = prefix || icon;
+  const computedPrefix = prefix || icon || prefixIcon;
   
   // Get theme-aware styles
   const inputVariant = error ? 'error' : 'default';

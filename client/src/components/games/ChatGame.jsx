@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, CheckCircle, XCircle } from 'lucide-react';
-import { useLang } from '../../contexts/LangContext';
+import { useLang } from '@contexts/LangContext';
 
 const ChatGame = ({ questions, settings, onComplete }) => {
     const { t, lang } = useLang();

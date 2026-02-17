@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme } from '../../../contexts/ThemeContext';
+import { useTheme } from '@contexts/ThemeContext';
 import styles from './Card.module.css';
 import { getComponentStyles, generateCSSVariables } from '@constants/uiTheme';
 

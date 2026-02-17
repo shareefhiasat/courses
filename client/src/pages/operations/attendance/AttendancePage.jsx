@@ -10,7 +10,7 @@ import { doc, getDoc, setDoc, collection, getDocs, query, where, onSnapshot } fr
 import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Select, YearSelect } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
-import { getPrograms, getSubjects } from '@services/business/programService';
+import { getPrograms, getSubjects, getClasses } from '@services/business/programService';
 import styles from './AttendancePage.module.css';
 
 const AttendancePageEnhanced = () => {
@@ -294,29 +294,19 @@ const AttendancePageEnhanced = () => {
       stopGlobalLoading();
     };
 
-    const loadData = async () => {
-      try {
-        // Wait for initial data to load
-        if (!initialLoading) {
-          safeStop();
-        }
-      } catch (error) {
-        console.error('Error loading attendance data:', error);
+    // Wait for initialLoading to complete (set by the useEffect that loads classes/programs/subjects)
+    const checkInterval = setInterval(() => {
+      if (!initialLoading) {
+        clearInterval(checkInterval);
         safeStop();
       }
-    };
-
-    loadData();
+    }, 100);
 
     return () => {
+      clearInterval(checkInterval);
       safeStop();
     };
   }, [authLoading, user, isAdmin, isInstructor, isHR, initialLoading, startLoading]);
-
-  // For inline loading states (like creating session), keep SimpleLoading
-  if (loading && !sessionId) {
-    return <SimpleLoading loading fullscreen type="brand" size="lg" />;
-  }
 
   return (
     <div className="content-section" style={{ maxWidth: 1400, margin: '0 auto', padding: '1rem 1.25rem' }}>

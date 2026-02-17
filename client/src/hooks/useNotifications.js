@@ -1,5 +1,5 @@
-﻿import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useAuth } from '@contexts/AuthContext';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import notificationManager from '../utils/notifications';

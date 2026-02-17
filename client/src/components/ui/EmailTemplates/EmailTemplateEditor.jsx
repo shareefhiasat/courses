@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Select } from '@ui';
 import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
-import { useTheme } from '../../../contexts/ThemeContext';
+import { useTheme } from '@contexts/ThemeContext';
 import logger from '../../../utils/logger';
 import { getThemedIcon } from '@constants/iconTypes';
 import { VariableHelper } from '@ui';

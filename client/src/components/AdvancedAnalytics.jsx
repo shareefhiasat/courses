@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { collection, getDocs, query, where, orderBy, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
 import logger from '../utils/logger';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
 import { getPrograms, getSubjects } from '@services/business/programService';
@@ -14,7 +14,7 @@ import LineChart from './charts/LineChart';
 import PieChart from './charts/PieChart';
 import AreaChart from './charts/AreaChart';
 // Removed direct Lucide imports - using getThemedIcon instead
-import { Select, YearSelect, SimpleLoading, DateRangeSlider } from './ui';
+import { Select, YearSelect, SimpleLoading, DateRangeSlider } from '@ui';
 import GridLayout, { WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 

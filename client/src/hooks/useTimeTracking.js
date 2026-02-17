@@ -1,5 +1,5 @@
-﻿import { useEffect, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useEffect, useRef } from 'react';
+import { useAuth } from '@contexts/AuthContext';
 import { logLearningTime } from '@services/business/studentProgressService';
 
 /**

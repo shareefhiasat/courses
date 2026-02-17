@@ -212,6 +212,7 @@ export const ICON_TYPES = {
     success: <CheckCircle size={16} />,
     moon: <Moon size={16} />,
     layout_grid: <LayoutGrid size={16} />,
+    grid: <LayoutGrid size={16} />,
     zoom_in: <ZoomIn size={16} />,
     star_off: <StarOff size={16} />,
     menu: <Menu size={16} />,

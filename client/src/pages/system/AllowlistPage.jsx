@@ -14,28 +14,6 @@ const AllowlistPage = () => {
   const [allowlist, setAllowlist] = useState({ allowedEmails: [], adminEmails: [] });
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const loadAllowlist = async () => {
-      setLoading(true);
-      try {
-        const result = await getAllowlist();
-        if (result.success) {
-          setAllowlist(result.data || { allowedEmails: [], adminEmails: [] });
-        } else {
-          logger.error('Failed to load allowlist:', result.error);
-          toast?.showError('Failed to load allowlist: ' + result.error);
-        }
-      } catch (error) {
-        logger.error('Error loading allowlist:', error);
-        toast?.showError('Error loading allowlist: ' + error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadAllowlist();
-  }, []);
-
   const handleAllowlistSave = async () => {
     setSaving(true);
     try {

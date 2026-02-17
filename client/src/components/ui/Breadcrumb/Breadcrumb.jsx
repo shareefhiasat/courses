@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme } from '../../../contexts/ThemeContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Breadcrumb.module.css';
 

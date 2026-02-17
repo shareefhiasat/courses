@@ -1,6 +1,6 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import DeleteModal from './DeleteModal';
-import Button from '../Button';
+import { Button } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 
 // Mock translation function

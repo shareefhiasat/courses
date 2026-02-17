@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { getPrograms, createProgram, updateProgram, deleteProgram } from '@services/business/programService';
 import { SimpleLoading, Button, Input, Textarea, useToast, AdvancedDataGrid } from '@ui';
-import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import { DeleteModal, useDeleteModal } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
@@ -16,6 +17,7 @@ const ProgramsManagementPage = () => {
   const { t } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
+  const { startLoading } = useGlobalLoading();
   
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,8 +57,8 @@ const ProgramsManagementPage = () => {
     };
   }, [formData]);
 
-  const loadPrograms = useCallback(async () => {
-    setLoading(true);
+  const loadPrograms = useCallback(async (isInitial = false) => {
+    if (!isInitial) setLoading(true);
     try {
       const result = await getPrograms();
       if (result.success) {
@@ -67,9 +69,30 @@ const ProgramsManagementPage = () => {
     } catch (error) {
       toast.error(error.message);
     } finally {
-      setLoading(false);
+      if (!isInitial) setLoading(false);
     }
   }, [toast, t]);
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!isAdmin && !isSuperAdmin) return;
+
+    let stopLoading = null;
+
+    const initialLoad = async () => {
+      stopLoading = startLoading({ message: t('loading_programs') || 'Loading programs...' });
+      await loadPrograms(true);
+      if (stopLoading) stopLoading();
+      setLoading(false);
+    };
+
+    initialLoad();
+
+    return () => {
+      if (stopLoading) stopLoading();
+    };
+  }, [authLoading, isAdmin, isSuperAdmin, startLoading, loadPrograms, t]);
 
   // Sync refs when editing an existing program
   useEffect(() => {
@@ -82,12 +105,6 @@ const ProgramsManagementPage = () => {
     if (minGPARef.current) minGPARef.current.value = formData.minGPA?.toString() || '1.5';
     if (creditHoursRef.current) creditHoursRef.current.value = formData.totalCreditHours?.toString() || '70';
   }, [editingProgram]); // only when we load a program for editing
-
-  useEffect(() => {
-    if (!authLoading && (isAdmin || isSuperAdmin)) {
-      loadPrograms();
-    }
-  }, [authLoading, isAdmin, isSuperAdmin, loadPrograms]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

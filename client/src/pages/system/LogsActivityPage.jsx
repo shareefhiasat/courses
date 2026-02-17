@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
@@ -8,6 +8,7 @@ import { Button, Input, Select, UserSelect, DateRangeSlider, AdvancedDataGrid, M
 import { getLoginLogs, deleteAllLoginLogs, deleteLoginLogsByType } from '@services/business/activityService';
 import { getUsers } from '@services/business/userService';
 import { getEnrollments } from '@services/business/enrollmentService';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { 
   LogIn, 
   LogOut, 
@@ -69,11 +70,11 @@ const LogsActivityPage = () => {
   const [users, setUsers] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [deleteModal, setDeleteModal] = useState({ open: false });
-  const [loading, setLoading] = useState(false);
+  const { startLoading } = useGlobalLoading();
 
   // Load data function
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (isInitial = false) => {
+    if (!isInitial) setLoading(true);
     try {
       const [loginLogsRes, usersRes, enrollmentsRes] = await Promise.all([
         getLoginLogs(),
@@ -94,13 +95,26 @@ const LogsActivityPage = () => {
       logger.error('Error loading logs data:', error);
       toast?.showError('Failed to load activity logs');
     } finally {
-      setLoading(false);
+      if (!isInitial) setLoading(false);
     }
   };
 
-  // Load data on component mount
-  useEffect(() => {
-    loadData();
+  // Load data on component mount with Global Loading
+  useLayoutEffect(() => {
+    let stopLoading = null;
+
+    const initialLoad = async () => {
+      stopLoading = startLoading({ message: t('loading_logs') || 'Loading logs...' });
+      await loadData(true);
+      if (stopLoading) stopLoading();
+      setLoading(false);
+    };
+
+    initialLoad();
+
+    return () => {
+      if (stopLoading) stopLoading();
+    };
   }, []);
 
   // Auto-refresh for Activity tab

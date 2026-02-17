@@ -6,9 +6,9 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MODE_TYPES } from '@utils/sharedTypes';
 import Joyride from 'react-joyride';
-import { Modal, Button } from '@ui';
+import { Modal, Button, SimpleLoading } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
-import InfoTooltip from '@ui/InfoTooltip/InfoTooltip';
+import { InfoTooltip } from '@ui';
 import { RibbonTabs } from '@ui';
 import './DashboardPage.css';
 

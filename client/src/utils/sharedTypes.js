@@ -32,7 +32,7 @@ export const RECORD_TYPES = {
   PENALTY: 'penalty',
   PARTICIPATION: 'participation',
   BEHAVIOR: 'behavior',
-  ACTIVITY: 'activity',
+  ACTIVITY: 'activities',
   RESOURCE: 'resource',
 
   // User & catalog entities (used by delete modals and history views)

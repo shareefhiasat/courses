@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import logger from '@utils/logger';
 import { addClass, updateClass, deleteClass, getClasses } from '@services/business/classService';
@@ -20,8 +21,8 @@ import {
   YearSelect,
   UserSelect
 } from '@ui';
-import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
-import ProgramsSelect from '@ui/Select/ProgramsSelect';
+import { DeleteModal, useDeleteModal } from '@ui';
+import { ProgramsSelect } from '@ui';
 
 const ClassesPage = () => {
   const { t, lang } = useLang();
@@ -57,10 +58,11 @@ const ClassesPage = () => {
   
   // UI state
   const [loading, setLoading] = useState(false);
+  const { startLoading } = useGlobalLoading();
 
   // Load all data
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (isInitial = false) => {
+    if (!isInitial) setLoading(true);
     try {
       const [classesRes, programsRes, subjectsRes, usersRes, enrollmentsRes, activitiesRes] = await Promise.all([
         getClasses(),
@@ -90,13 +92,26 @@ const ClassesPage = () => {
       logger.error('🔍 [ClassesPage] Error loading data:', error);
       toast?.showError('Error loading data');
     } finally {
-      setLoading(false);
+      if (!isInitial) setLoading(false);
     }
   };
 
-  // Load data on mount
-  useEffect(() => {
-    loadData();
+  // Load data on mount with Global Loading
+  useLayoutEffect(() => {
+    let stopLoading = null;
+
+    const initialLoad = async () => {
+      stopLoading = startLoading({ message: t('loading_classes') || 'Loading classes...' });
+      await loadData(true);
+      if (stopLoading) stopLoading();
+      setLoading(false);
+    };
+
+    initialLoad();
+
+    return () => {
+      if (stopLoading) stopLoading();
+    };
   }, []);
   
   // Utility functions

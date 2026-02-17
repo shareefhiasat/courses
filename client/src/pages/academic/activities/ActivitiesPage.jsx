@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { useToast } from '@ui';
 import { AdvancedDataGrid } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -14,9 +15,9 @@ import { getCategories } from '@services/business/categoryService';
 import { getActivities, addActivity, updateActivity, deleteActivity as deleteActivityService } from '@services/business/activityService';
 import { getAllQuizzes } from '@services/business/quizService';
 import { Select, DatePicker, Button, ToggleSwitch, UrlInput, Input } from '@ui';
-import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
+import { DeleteModal, useDeleteModal } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import ProgramsSelect from '@ui/Select/ProgramsSelect';
+import { ProgramsSelect } from '@ui';
 
 
 /**
@@ -78,10 +79,11 @@ const ActivitiesPage = () => {
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const { startLoading } = useGlobalLoading();
 
   // Data loading function
-  const loadData = useCallback(async () => {
-    setDataLoading(true);
+  const loadData = useCallback(async (isInitial = false) => {
+    if (!isInitial) setDataLoading(true);
     try {
       const [
         programsResult, 
@@ -110,14 +112,27 @@ const ActivitiesPage = () => {
       logger.error('Error loading data:', error);
       toast?.showError('Failed to load data');
     } finally {
-      setDataLoading(false);
+      if (!isInitial) setDataLoading(false);
     }
   }, [toast]);
 
-  // Load data on component mount
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  // Load data on component mount with Global Loading
+  useLayoutEffect(() => {
+    let stopLoading = null;
+
+    const initialLoad = async () => {
+      stopLoading = startLoading({ message: t('loading_activities') || 'Loading activities...' });
+      await loadData(true);
+      if (stopLoading) stopLoading();
+      setDataLoading(false);
+    };
+
+    initialLoad();
+
+    return () => {
+      if (stopLoading) stopLoading();
+    };
+  }, []);
 
   // Handler functions
   const handleDropdownChange = useCallback((setter, field, resetFields = []) => {

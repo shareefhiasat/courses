@@ -1,7 +1,7 @@
 import React from 'react';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getDeleteMessage, getDeleteTitle } from '@utils/deleteMessages';
-import ConfirmModal from '@ui/Modal/ConfirmModal';
+import { ConfirmModal } from '@ui';
 
 /**
  * Generic Delete Modal Component

@@ -530,9 +530,9 @@ const ScheduledReportsPage = () => {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 600, overflowY: 'auto' }}>
-                {filteredReports.map(report => (
+                {filteredReports.map((report, idx) => (
                   <div
-                    key={report.docId}
+                    key={report.docId || idx}
                     onClick={() => setSelectedReport(report)}
                     style={{
                       padding: '1rem',
