@@ -73,7 +73,7 @@ const ChatPage = memo(() => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [classes, setClasses] = useState([]);
-  const [selectedClass, setSelectedClass] = useState('global');
+  const [selectedClass, setSelectedClass] = useState(t('chat_global').toLowerCase());
   const [classMembers, setClassMembers] = useState([]);
   const [showMembers, setShowMembers] = useState(false);
   const [directRooms, setDirectRooms] = useState([]);
@@ -243,14 +243,14 @@ const ChatPage = memo(() => {
           filteredLength: filteredContent.length,
           userId: user?.uid
         });
-        toast?.showWarning?.(t('message_filtered_inappropriate_content') || 'Your message has been filtered for inappropriate content.');
+        toast?.showWarning?.(t('chat_message_filtered_inappropriate_content'));
       }
 
       setEditingMsg(null);
-      toast?.showSuccess(t('saved') || 'Saved');
+      toast?.showSuccess(t('chat_saved'));
     } catch (e) {
       logger.error('Edit failed', e);
-      toast?.showError(t('failed_to_save') || 'Failed to save');
+      toast?.showError(t('chat_failed_to_save'));
     }
   };
 

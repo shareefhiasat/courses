@@ -26,27 +26,6 @@ const QUESTION_TYPES = {
   TRUE_FALSE: 'true_false'
 };
 
-const QUESTION_TYPE_INFO = {
-  [QUESTION_TYPES.MULTIPLE_CHOICE]: {
-    name: 'Multiple Choice',
-    icon: () => getThemedIcon('ui', 'list_checks', 20, theme),
-    description: 'Select one or more correct answers',
-    color: 'var(--color-primary, #6366f1)'
-  },
-  [QUESTION_TYPES.SINGLE_CHOICE]: {
-    name: 'Single Choice',
-    icon: () => getThemedIcon('ui', 'check_circle', 20, theme),
-    description: 'Select only one correct answer',
-    color: '#0ea5e9'
-  },
-  [QUESTION_TYPES.TRUE_FALSE]: {
-    name: 'True/False',
-    icon: () => getThemedIcon('ui', 'help_circle', 20, theme),
-    description: 'Simple true or false question',
-    color: '#f59e0b'
-  }
-};
-
 function getDefaultOptions(type = QUESTION_TYPES.MULTIPLE_CHOICE) {
   switch (type) {
     case QUESTION_TYPES.TRUE_FALSE:
@@ -82,6 +61,28 @@ export default function QuizzesPage() {
   const quizId = searchParams.get('id');
   const mode = searchParams.get('mode'); // 'add' or 'edit'
   const toast = useToast();
+
+  // Localized question type info
+  const QUESTION_TYPE_INFO = useMemo(() => ({
+    [QUESTION_TYPES.MULTIPLE_CHOICE]: {
+      name: t('quiz_question_multiple_choice'),
+      icon: () => getThemedIcon('ui', 'list_checks', 20, theme),
+      description: t('quiz_question_multiple_choice_desc'),
+      color: 'var(--color-primary, #6366f1)'
+    },
+    [QUESTION_TYPES.SINGLE_CHOICE]: {
+      name: t('quiz_question_single_choice'),
+      icon: () => getThemedIcon('ui', 'check_circle', 20, theme),
+      description: t('quiz_question_single_choice_desc'),
+      color: '#0ea5e9'
+    },
+    [QUESTION_TYPES.TRUE_FALSE]: {
+      name: t('quiz_question_true_false'),
+      icon: () => getThemedIcon('ui', 'help_circle', 20, theme),
+      description: t('quiz_question_true_false_desc'),
+      color: '#f59e0b'
+    }
+  }), [t, theme]);
 
   // Mode: 'list', 'add', 'edit', 'build', 'preview'
   const [viewMode, setViewMode] = useState(() => {
@@ -249,14 +250,14 @@ export default function QuizzesPage() {
     const settings = quiz.settings || {};
     const questionsArray = Array.isArray(quiz.questions) ? quiz.questions : [];
 
-    let creatorName = 'Unknown';
+    let creatorName = t('quiz_unknown_creator');
     if (quiz.createdBy) {
       try {
         const userResult = await getUser(quiz.createdBy);
         if (userResult.success && userResult.data) {
           const { displayName, name, email } = userResult.data;
           const emailName = email ? email.split('@')[0] : '';
-          creatorName = displayName || name || emailName || 'Unknown';
+          creatorName = displayName || name || emailName || t('quiz_unknown_creator');
         }
       } catch (err) {
         logger.warn('Failed to load creator name:', err);
@@ -265,7 +266,7 @@ export default function QuizzesPage() {
 
     return {
       id: quiz.id,
-      title: lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || 'Untitled Quiz') : (quiz.title_en || quiz.title_ar || quiz.title || 'Untitled Quiz'),
+      title: lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || t('quiz_untitled')) : (quiz.title_en || quiz.title_ar || quiz.title || t('quiz_untitled')),
       description: lang === 'ar' ? (quiz.description_ar || quiz.description_en || quiz.description || '') : (quiz.description_en || quiz.description_ar || quiz.description || ''),
       type: quiz.type || 'multiple_choice',
       difficulty: (quiz.difficulty || settings.difficulty || 'general').toLowerCase(),
@@ -296,7 +297,7 @@ export default function QuizzesPage() {
       }
 
       if (!response?.success) {
-        throw new Error(response?.error || 'Failed to load quizzes');
+        throw new Error(response?.error || t('quiz_failed_to_load'));
       }
 
       const quizzesWithCreators = await Promise.all(
@@ -315,8 +316,8 @@ export default function QuizzesPage() {
     } catch (error) {
       console.error('Error loading quizzes:', error);
       const message = String(error?.message || '').toLowerCase().includes('permission')
-        ? 'You do not have permission to view quizzes yet.'
-        : (error?.message || 'Failed to load quizzes');
+        ? t('quiz_no_permission')
+        : (error?.message || t('quiz_failed_to_load'));
       setError(message);
     } finally {
       setLoading(false);
@@ -347,11 +348,11 @@ export default function QuizzesPage() {
     const titleEn = (quizData.title_en || quizData.title || '').trim();
     const titleAr = (quizData.title_ar || quizData.title || '').trim();
     if (!titleEn || !titleAr) {
-      toast?.showError?.('Please enter quiz title in both English and Arabic');
+      toast?.showError?.(t('quiz_title_required_both'));
       return;
     }
     if (quizData.questions.length === 0) {
-      toast?.showError?.('Please add at least one question');
+      toast?.showError?.(t('quiz_add_question_required'));
       return;
     }
 
@@ -490,7 +491,7 @@ export default function QuizzesPage() {
 
     } catch (error) {
       logger.error('Error saving quiz:', error);
-      toast?.showError?.('Failed to save quiz: ' + error.message);
+      toast?.showError?.(t('quiz_error_saving') + ': ' + error.message);
     } finally {
       setSaving(false);
     }
@@ -515,7 +516,7 @@ export default function QuizzesPage() {
       const submissionsData = submissionsResult.success ? submissionsResult.data : [];
       const quizSubmissions = submissionsData;
 
-      const itemName = lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || quiz.name || 'Untitled Quiz') : (quiz.title_en || quiz.title_ar || quiz.title || quiz.name || 'Untitled Quiz');
+      const itemName = lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || quiz.name || t('quiz_untitled')) : (quiz.title_en || quiz.title_ar || quiz.title || quiz.name || t('quiz_untitled'));
 
       setDeleteModal({
         open: true,
@@ -525,13 +526,13 @@ export default function QuizzesPage() {
           try {
             const result = await deleteQuiz(quizIdToDelete);
             if (!result.success) {
-              throw new Error(result.error || 'Failed to delete quiz');
+              throw new Error(result.error || t('quiz_failed_to_delete'));
             }
 
             try {
               await logActivity(ACTIVITY_LOG_TYPES.QUIZ_DELETED, {
                 quizId: quizIdToDelete,
-                quizTitle: quiz?.title || quiz?.name || 'Unknown'
+                quizTitle: quiz?.title || quiz?.name || t('quiz_unknown_title')
               });
             } catch (e) { console.warn('Failed to log activity:', e); }
 
@@ -542,15 +543,15 @@ export default function QuizzesPage() {
             setQuizzes(prev => prev.filter(q => q.id !== quizIdToDelete));
             setDeleteModal({ open: false, item: null, onConfirm: null, relatedData: null, warningMessage: null });
           } catch (error) {
-            alert('Failed to delete quiz: ' + error.message);
+            alert(t('quiz_failed_to_delete') + ': ' + error.message);
           } finally {
             setDeleting(null);
           }
         },
         relatedData: {
-          'Quiz Submissions': quizSubmissions.map(s => ({
+          [t('quiz_submission_label')]: quizSubmissions.map(s => ({
             ...s,
-            _label: `Quiz Submission`
+            _label: t('quiz_submission_label')
           }))
         },
         warningMessage: quizSubmissions.length > 0 
@@ -561,18 +562,18 @@ export default function QuizzesPage() {
       console.error('Failed to check related data:', error);
       setDeleteModal({
         open: true,
-        item: { ...quiz, _displayName: lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || quiz.name || 'Untitled Quiz') : (quiz.title_en || quiz.title_ar || quiz.title || quiz.name || 'Untitled Quiz') },
+        item: { ...quiz, _displayName: lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || quiz.name || t('quiz_untitled')) : (quiz.title_en || quiz.title_ar || quiz.title || quiz.name || t('quiz_untitled')) },
         onConfirm: async () => {
           setDeleting(quizIdToDelete);
           try {
             const result = await deleteQuiz(quizIdToDelete);
             if (!result.success) {
-              throw new Error(result.error || 'Failed to delete quiz');
+              throw new Error(result.error || t('quiz_failed_to_delete'));
             }
             setQuizzes(prev => prev.filter(q => q.id !== quizIdToDelete));
             setDeleteModal({ open: false, item: null, onConfirm: null, relatedData: null, warningMessage: null });
           } catch (error) {
-            alert('Failed to delete quiz: ' + error.message);
+            alert(t('quiz_failed_to_delete') + ': ' + error.message);
           } finally {
             setDeleting(null);
           }

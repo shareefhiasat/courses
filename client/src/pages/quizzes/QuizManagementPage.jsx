@@ -36,7 +36,7 @@ export default function QuizManagementPage() {
       loadQuizzes();
     } else if (!authLoading && !user) {
       setLoading(false);
-      setError(t('please_log_in_to_view_quizzes') || 'Please log in to view quizzes');
+      setError(t('quiz_please_log_in'));
     }
   }, [authLoading, user, loadQuizzes]);
 
@@ -54,14 +54,14 @@ export default function QuizManagementPage() {
     const questionsArray = Array.isArray(quiz.questions) ? quiz.questions : [];
 
     // Load creator name (display only a clean name, never raw email)
-    let creatorName = t('unknown') || 'Unknown';
+    let creatorName = t('quiz_unknown_creator');
     if (quiz.createdBy) {
       try {
         const userResult = await getUser(quiz.createdBy);
         if (userResult.success && userResult.data) {
           const { displayName, name, email } = userResult.data;
           const emailName = email ? email.split('@')[0] : '';
-          creatorName = displayName || name || emailName || (t('unknown') || 'Unknown');
+          creatorName = displayName || name || emailName || t('quiz_unknown_creator');
         }
       } catch (err) {
         logger.warn('Failed to load creator name:', err);
@@ -70,7 +70,7 @@ export default function QuizManagementPage() {
 
     return {
       id: quiz.id,
-      title: lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || (t('untitled_quiz') || 'Untitled Quiz')) : (quiz.title_en || quiz.title_ar || quiz.title || (t('untitled_quiz') || 'Untitled Quiz')),
+      title: lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || t('quiz_untitled')) : (quiz.title_en || quiz.title_ar || quiz.title || t('quiz_untitled')),
       description: lang === 'ar' ? (quiz.description_ar || quiz.description_en || quiz.description || '') : (quiz.description_en || quiz.description_ar || quiz.description || ''),
       type: quiz.type || 'multiple_choice',
       difficulty: (quiz.difficulty || settings.difficulty || 'general').toLowerCase(),
@@ -101,7 +101,7 @@ export default function QuizManagementPage() {
       }
 
       if (!response?.success) {
-        throw new Error(response?.error || (t('failed_to_load_quizzes') || 'Failed to load quizzes'));
+        throw new Error(response?.error || t('quiz_failed_to_load'));
       }
 
       const quizzesWithCreators = await Promise.all(
@@ -120,8 +120,8 @@ export default function QuizManagementPage() {
     } catch (error) {
       logger.error('Error loading quizzes:', error);
       const message = String(error?.message || '').toLowerCase().includes('permission')
-        ? (t('no_permission_quizzes') || 'You do not have permission to view quizzes yet.')
-        : (error?.message || (t('failed_to_load_quizzes') || 'Failed to load quizzes'));
+        ? t('quiz_no_permission')
+        : (error?.message || t('quiz_failed_to_load'));
       setError(message);
     } finally {
       setLoading(false);
@@ -145,7 +145,7 @@ export default function QuizManagementPage() {
       const quizSubmissions = submissionsData;
 
       // Create readable item name
-      const itemName = lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || quiz.name || 'Untitled Quiz') : (quiz.title_en || quiz.title_ar || quiz.title || quiz.name || 'Untitled Quiz');
+      const itemName = lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || quiz.name || t('quiz_untitled')) : (quiz.title_en || quiz.title_ar || quiz.title || quiz.name || t('quiz_untitled'));
 
       setDeleteModal({
         open: true,
@@ -155,14 +155,14 @@ export default function QuizManagementPage() {
           try {
             const result = await deleteQuiz(quizId);
             if (!result.success) {
-              throw new Error(result.error || 'Failed to delete quiz');
+              throw new Error(result.error || t('quiz_failed_to_delete'));
             }
 
             // Log activity
             try {
               await logActivity(ACTIVITY_LOG_TYPES.QUIZ_DELETED, {
                 quizId,
-                quizTitle: quiz?.title || quiz?.name || 'Unknown'
+                quizTitle: quiz?.title || quiz?.name || t('quiz_unknown_title')
               });
             } catch (e) { logger.warn('Failed to log activity:', e); }
 
@@ -176,15 +176,15 @@ export default function QuizManagementPage() {
             setQuizzes(prev => prev.filter(q => q.id !== quizId));
             setDeleteModal({ open: false, item: null, onConfirm: null, relatedData: null, warningMessage: null });
           } catch (error) {
-            alert('Failed to delete quiz: ' + error.message);
+            alert(t('quiz_failed_to_delete') + ': ' + error.message);
           } finally {
             setDeleting(null);
           }
         },
         relatedData: {
-          'Quiz Submissions': quizSubmissions.map(s => ({
+          [t('quiz_submission_label')]: quizSubmissions.map(s => ({
             ...s,
-            _label: `Quiz Submission`
+            _label: t('quiz_submission_label')
           }))
         },
         warningMessage: quizSubmissions.length > 0 
@@ -202,12 +202,12 @@ export default function QuizManagementPage() {
           try {
             const result = await deleteQuiz(quizId);
             if (!result.success) {
-              throw new Error(result.error || 'Failed to delete quiz');
+              throw new Error(result.error || t('quiz_failed_to_delete'));
             }
             setQuizzes(prev => prev.filter(q => q.id !== quizId));
             setDeleteModal({ open: false, item: null, onConfirm: null, relatedData: null, warningMessage: null });
           } catch (error) {
-            alert('Failed to delete quiz: ' + error.message);
+            alert(t('quiz_failed_to_delete') + ': ' + error.message);
           } finally {
             setDeleting(null);
           }
@@ -238,13 +238,13 @@ export default function QuizManagementPage() {
   const getQuizTypeLabel = (type) => {
     switch (type) {
       case 'multiple_choice':
-        return t('multiple_choice') || 'Multiple Choice';
+        return t('quiz_multiple_choice');
       case 'single_choice':
-        return t('single_choice') || 'Single Choice';
+        return t('quiz_single_choice');
       case 'true_false':
-        return t('true_false') || 'True/False';
+        return t('quiz_true_false');
       default:
-        return t('quiz') || 'Quiz';
+        return t('quiz_type_quiz');
     }
   };
 

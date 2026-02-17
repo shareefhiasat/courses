@@ -380,6 +380,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 >
                   {theme==='light'?getThemedIcon('ui', 'moon', 16, 'var(--text-primary)'):getThemedIcon('ui', 'sun', 16, theme)}
                 </button>
+                {/* Temporarily hidden - Minified filter toggle button
                 <button
                   className="nav-icon-btn"
                   onClick={() => {
@@ -408,6 +409,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     }
                   })()}
                 </button>
+                */}
               </div>
 
               {/* Profile Avatar with Super Admin badge and dropdown */}

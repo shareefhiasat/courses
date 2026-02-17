@@ -28,27 +28,6 @@ const QUESTION_TYPES = {
   TRUE_FALSE: 'true_false'
 };
 
-const QUESTION_TYPE_INFO = {
-  [QUESTION_TYPES.MULTIPLE_CHOICE]: {
-    name: 'Multiple Choice',
-    icon: <ListChecks size={20} />,
-    description: 'Select one or more correct answers',
-    color: 'var(--color-primary, #6366f1)'
-  },
-  [QUESTION_TYPES.SINGLE_CHOICE]: {
-    name: 'Single Choice',
-    icon: <CheckCircle size={20} />,
-    description: 'Select only one correct answer',
-    color: '#0ea5e9'
-  },
-  [QUESTION_TYPES.TRUE_FALSE]: {
-    name: 'True/False',
-    icon: <HelpCircle size={20} />,
-    description: 'Simple true or false question',
-    color: '#f59e0b'
-  }
-};
-
 function getDefaultOptions(type = QUESTION_TYPES.MULTIPLE_CHOICE) {
   switch (type) {
     case QUESTION_TYPES.TRUE_FALSE:
@@ -83,6 +62,28 @@ export default function QuizBuilderPage() {
   const quizId = searchParams.get('id');
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
+
+  // Localized question type info
+  const QUESTION_TYPE_INFO = useMemo(() => ({
+    [QUESTION_TYPES.MULTIPLE_CHOICE]: {
+      name: t('quiz_question_multiple_choice'),
+      icon: <ListChecks size={20} />,
+      description: t('quiz_question_multiple_choice_desc'),
+      color: 'var(--color-primary, #6366f1)'
+    },
+    [QUESTION_TYPES.SINGLE_CHOICE]: {
+      name: t('quiz_question_single_choice'),
+      icon: <CheckCircle size={20} />,
+      description: t('quiz_question_single_choice_desc'),
+      color: '#0ea5e9'
+    },
+    [QUESTION_TYPES.TRUE_FALSE]: {
+      name: t('quiz_question_true_false'),
+      icon: <HelpCircle size={20} />,
+      description: t('quiz_question_true_false_desc'),
+      color: '#f59e0b'
+    }
+  }), [t]);
 
   // If navigated from QuizManagementPage with mock/loaded quiz data
   const initialQuizFromState = location.state?.quiz || null;
@@ -205,12 +206,12 @@ export default function QuizBuilderPage() {
 
   const getDifficultyLabel = (difficulty) => {
     const key = (difficulty || '').toLowerCase();
-    return DIFFICULTY_LABELS[key] || (difficulty ? difficulty : 'General');
+    return DIFFICULTY_LABELS[key] || (difficulty ? difficulty : t('quiz_general_difficulty'));
   };
 
   const renderMetaChips = () => {
     const chips = [];
-    const typeLabel = QUESTION_TYPE_INFO[quizData.type]?.name || 'Quiz';
+    const typeLabel = QUESTION_TYPE_INFO[quizData.type]?.name || t('quiz_general_difficulty');
 
     chips.push(
       <span key="type" className={`${styles.metaChip} ${styles.typeChip}`}>
@@ -222,14 +223,14 @@ export default function QuizBuilderPage() {
     chips.push(
       <span key="questions" className={`${styles.metaChip} ${styles.infoChip}`}>
         <span className={styles.metaChipIcon}><ListChecks size={14} /></span>
-        <span>{questionCount} {questionCount === 1 ? (t('question') || 'question') : (t('questions') || 'questions')}</span>
+        <span>{questionCount} {questionCount === 1 ? t('quiz_question') : t('quiz_questions')}</span>
       </span>
     );
 
     chips.push(
       <span key="time" className={`${styles.metaChip} ${styles.infoChip}`}>
         <span className={styles.metaChipIcon}><Clock size={14} /></span>
-        <span>{estimatedTime} min</span>
+        <span>{estimatedTime} {t('quiz_minutes_abbrev')}</span>
       </span>
     );
 
@@ -244,7 +245,7 @@ export default function QuizBuilderPage() {
       chips.push(
         <span key="retake" className={`${styles.metaChip} ${styles.retakeChip}`}>
           <span className={styles.metaChipIcon}><Repeat size={14} /></span>
-          <span>{t('retake_allowed') || 'Retake allowed'}</span>
+          <span>{t('quiz_retake_allowed')}</span>
         </span>
       );
     }
@@ -293,7 +294,7 @@ export default function QuizBuilderPage() {
     const titleEn = (quizData.title_en || quizData.title || '').trim();
     const titleAr = (quizData.title_ar || quizData.title || '').trim();
     if (!titleEn || !titleAr) {
-      toast?.showError?.('Please enter quiz title in both English and Arabic');
+      toast?.showError?.(t('quiz_title_required_both'));
       return;
     }
     if (quizData.questions.length === 0) {

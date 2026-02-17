@@ -110,7 +110,7 @@ const ActivitiesPage = () => {
       if (quizzesResult.success) setQuizzes(quizzesResult.data || []);
     } catch (error) {
       logger.error('Error loading data:', error);
-      toast?.showError('Failed to load data');
+      toast?.showError(t('activities_failed_to_load_data'));
     } finally {
       if (!isInitial) setDataLoading(false);
     }
@@ -209,7 +209,7 @@ const ActivitiesPage = () => {
       logger.log('[FORM] Text values from refs:', textValues);
 
       if (!textValues.title_en || textValues.title_en.trim() === '') {
-        throw new Error('Activity title is required');
+        throw new Error(t('activities_title_required'));
       }
       
       // Clean the activity data
@@ -225,7 +225,7 @@ const ActivitiesPage = () => {
         maxScore: activityForm.maxScore || 100,
         dueDate: activityForm.dueDate ? parseQatarFromInput(activityForm.dueDate) : undefined,
         updatedAt: getQatarNow(),
-        updatedBy: user?.id || 'unknown'
+        updatedBy: user?.id || t('activities_unknown_user')
       };
       
       // Remove undefined values before saving to prevent Firebase errors
@@ -235,7 +235,7 @@ const ActivitiesPage = () => {
 
       if (editingActivity && editingActivity.docId && editingActivity.docId !== 'new') {
         await updateActivity(editingActivity.docId, activityData, emailOptions);
-        toast?.showSuccess('Activity updated successfully');
+        toast?.showSuccess(t('activities_updated_successfully'));
         
         // Update local activities array instead of reloading
         setActivities(prev => prev.map(a => 
@@ -246,15 +246,15 @@ const ActivitiesPage = () => {
       } else {
         activityData.createdAt = getQatarNow(); // Qatar timestamp
         activityData.updatedAt = getQatarNow(); // Qatar timestamp
-        activityData.createdBy = user?.id || 'unknown';
+        activityData.createdBy = user?.id || t('activities_unknown_user');
         
         const result = await addActivity(activityData);
         
         if (result.success) {
           logger.log('🔍 [SAVE] Activity created successfully with ID:', result.id);
-          toast?.showSuccess('Activity created successfully');
+          toast?.showSuccess(t('activities_created_successfully'));
         } else {
-          throw new Error(result.error || 'Failed to create activity');
+          throw new Error(result.error || t('activities_failed_to_create'));
         }
       }
 
@@ -270,7 +270,7 @@ const ActivitiesPage = () => {
       setActiveActivityFormTab('basic');
     } catch (error) {
       logger.error('Error saving activity:', error);
-      toast?.showError(error.message || 'Error saving activity');
+      toast?.showError(error.message || t('activities_error_saving'));
     } finally {
       setLoading(false);
       logger.timeEnd('[PERF] handleActivitySubmit');
@@ -293,12 +293,12 @@ const ActivitiesPage = () => {
       title_ar: activityForForm.title_ar || '',
       description_en: activityForForm.description_en || '',
       description_ar: activityForForm.description_ar || '',
-      type: activityForForm.type || 'homework',
+      type: activityForForm.type || t('activities_homework_type'),
       programId: activityForForm.programId || '',
       subjectId: activityForForm.subjectId || '',
       classId: activityForForm.classId || '',
       categoryId: activityForForm.categoryId || null,
-      difficulty: activityForForm.difficulty || 'beginner',
+      difficulty: activityForForm.difficulty || t('activities_beginner_difficulty'),
       maxScore: activityForForm.maxScore || 100,
       allowRetake: activityForForm.allowRetake || false,
       dueDate: activityForForm.dueDate || undefined, // Ensure undefined instead of null

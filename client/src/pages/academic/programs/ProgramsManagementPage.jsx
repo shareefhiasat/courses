@@ -67,7 +67,7 @@ const ProgramsManagementPage = () => {
         toast.error(result.error || t('failed_to_load_programs') || 'Failed to load programs');
       }
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.message || t('programs_error_message', { error: error.message }));
     } finally {
       if (!isInitial) setLoading(false);
     }
@@ -151,7 +151,7 @@ const ProgramsManagementPage = () => {
       }
     } catch (error) {
       logger.error('Error saving program:', error);
-      toast.error(error.message);
+      toast.error(error.message || t('programs_error_message', { error: error.message }));
     } finally {
       setLoading(false);
       console.timeEnd('[PERF] handleProgramSubmit');
@@ -204,7 +204,7 @@ const ProgramsManagementPage = () => {
         // Rollback on error
         setPrograms(prev => [...prev, program]);
         logger.error('Error deleting program:', error);
-        toast.error(error.message);
+        toast.error(error.message || t('programs_error_message', { error: error.message }));
       }
     });
   }, [deleteProgramModal, toast, t, loadPrograms]);
@@ -254,10 +254,10 @@ const ProgramsManagementPage = () => {
       valueGetter: (params) => {
         const row = params?.row || {};
         const value = row.minGPA ?? params?.value;
-        if (value === null || value === undefined) return 'N/A';
+        if (value === null || value === undefined) return t('programs_na_value');
         if (typeof value === 'number') return value.toFixed(2);
         const numValue = Number.parseFloat(value);
-        if (isNaN(numValue)) return 'N/A';
+        if (isNaN(numValue)) return t('programs_na_value');
         return numValue.toFixed(2);
       }
     },
@@ -314,7 +314,7 @@ const ProgramsManagementPage = () => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_program', { programName: editingProgram.name_en, programCode: editingProgram.code || t('no_code') || 'No code' }) || `Editing Program: ${editingProgram.name_en} (${editingProgram.code || 'No code'})`}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_program', { programName: editingProgram.name_en, programCode: editingProgram.code || t('programs_no_code') })}
         </div>
       )}
 

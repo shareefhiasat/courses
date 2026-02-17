@@ -60,7 +60,7 @@ const StudentProfilePage = () => {
   // Filter options for cascading dropdowns
   const programOptions = useMemo(() => {
     const opts = [
-      { value: '', label: 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) }
+      { value: '', label: t('student_profile_all_programs'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validPrograms = programs
       .filter(prog => prog.docId || prog.id)
@@ -74,7 +74,7 @@ const StudentProfilePage = () => {
 
   const subjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: 'All Subjects', icon: getThemedIcon('ui', 'filter', 16, theme) }
+      { value: '', label: t('student_profile_all_subjects'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validSubjects = subjects
       .filter(sub => {
@@ -93,7 +93,7 @@ const StudentProfilePage = () => {
 
   const classOptions = useMemo(() => {
     const opts = [
-      { value: '', label: 'All Classes', icon: getThemedIcon('ui', 'filter', 16, theme) }
+      { value: '', label: t('student_profile_all_classes'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validClasses = allClasses
       .filter(cls => {
@@ -117,7 +117,7 @@ const StudentProfilePage = () => {
 
   const yearOptions = useMemo(() => {
     const opts = [
-      { value: '', label: 'All Years', icon: getThemedIcon('ui', 'filter', 16, theme) }
+      { value: '', label: t('student_profile_all_years'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validYears = [...new Set(allClasses.map(c => c.year || c.academicYear).filter(Boolean))]
       .map(year => ({
@@ -130,7 +130,7 @@ const StudentProfilePage = () => {
 
   const termOptions = useMemo(() => {
     const opts = [
-      { value: '', label: 'All Terms', icon: getThemedIcon('ui', 'filter', 16, theme) }
+      { value: '', label: t('student_profile_all_terms'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validTerms = [...new Set(allClasses.map(c => c.term || c.sessionTerm).filter(Boolean))]
       .map(term => ({
@@ -143,7 +143,7 @@ const StudentProfilePage = () => {
 
   const semesterOptions = useMemo(() => {
     const opts = [
-      { value: '', label: 'All Semesters', icon: getThemedIcon('ui', 'filter', 16, theme) }
+      { value: '', label: t('student_profile_all_semesters'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validSemesters = [...new Set(allClasses.map(c => c.semester).filter(Boolean))]
       .map(semester => ({
@@ -239,7 +239,7 @@ const StudentProfilePage = () => {
         if (student) {
           setStudentData(student);
         } else {
-          logger.warn('Student not found:', targetUserId);
+          logger.warn(t('student_profile_student_not_found') + ':', targetUserId);
         }
       }
 

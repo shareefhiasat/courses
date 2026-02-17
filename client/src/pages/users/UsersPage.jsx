@@ -78,7 +78,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
     title: '',
     message: '',
     onConfirm: () => {},
-    confirmText: 'Confirm',
+    confirmText: t('users_confirm_text'),
     variant: 'primary'
   });
   
@@ -115,7 +115,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         setUsers(usersResult.data || []);
         logger.info('USER_PAGE: Successfully loaded users', { count: usersResult.data?.length || 0 });
       } else {
-        toast?.showError('Failed to load users: ' + usersResult.error);
+        toast?.showError(t('users_failed_to_load_users') + ': ' + usersResult.error);
       }
       
       if (programsResult.success) {
@@ -137,7 +137,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
       setPageState(PAGE_STATES.SUCCESS);
     } catch (error) {
       logger.error('USER_PAGE: Failed to load data', { error: error.message });
-      toast?.showError('Failed to load data: ' + error.message);
+      toast?.showError(t('users_failed_to_load_data') + ': ' + error.message);
       setPageState(PAGE_STATES.ERROR);
     }
   }, [isAdmin, isSuperAdmin]);
@@ -242,14 +242,14 @@ const UsersPage = ({ isDashboardTab = false }) => {
                 action: 'soft_deleted'
               });
             } catch (e) { }
-            toast?.showSuccess(t('user_soft_deleted_success') || 'User disabled (soft-deleted) successfully');
+            toast?.showSuccess(t('users_soft_deleted_success'));
             await loadData();
           } else {
-            toast?.showError(result.error || 'Failed to disable user');
+            toast?.showError(result.error || t('users_failed_to_disable_user'));
           }
         } catch (error) {
           logger.error('USER_PAGE: Failed to soft delete user:', error);
-          toast?.showError('Error: ' + error.message);
+          toast?.showError(t('users_error', { error: error.message }));
         }
       }, relatedRecords);
     } else {
@@ -257,13 +257,13 @@ const UsersPage = ({ isDashboardTab = false }) => {
         try {
           const result = await deleteUserFromService(userId);
           if (result.success) {
-            toast?.showSuccess('User deleted successfully');
+            toast?.showSuccess(t('users_deleted_successfully'));
             await loadData();
           } else {
-            toast?.showError('Error: ' + result.error);
+            toast?.showError(t('users_error', { error: result.error }));
           }
         } catch (error) {
-          toast?.showError('Error: ' + error.message);
+          toast?.showError(t('users_error', { error: error.message }));
         }
       }, relatedRecords);
     }
@@ -272,7 +272,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
   const handleToggleUserStatus = useCallback(async (user) => {
     // Prevent disabling super admin
     if (isAdminUser(user) && !isUserDisabledAtUserLevel(user)) {
-      toast?.showError('Cannot disable a Super Admin user');
+      toast?.showError(t('users_cannot_disable_super_admin'));
       return;
     }
 
@@ -282,8 +282,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
     // Show confirmation modal
     setConfirmModal({
       isOpen: true,
-      title: `${action.charAt(0).toUpperCase() + action.slice(1)} User`,
-      message: `Are you sure you want to ${action} this user?\n\nUser: ${user.displayName || user.email}\nRole: ${user.role || 'student'}`,
+      title: isCurrentlyDisabled ? t('users_enable_user') : t('users_disable_user'),
+      message: t('users_enable_disable_confirmation', { action, userName: user.displayName || user.email, userRole: user.role || 'student' }),
       confirmText: `${action.charAt(0).toUpperCase() + action.slice(1)}`,
       variant: isCurrentlyDisabled ? 'primary' : 'danger',
       onConfirm: async () => {
@@ -303,14 +303,14 @@ const UsersPage = ({ isDashboardTab = false }) => {
             action: isCurrentlyDisabled ? 'enabled' : 'disabled'
           });
         } catch (e) { }
-        toast?.showSuccess(`User ${isCurrentlyDisabled ? 'enabled' : 'disabled'} successfully!`);
+        toast?.showSuccess(isCurrentlyDisabled ? t('users_enabled_successfully') : t('users_disabled_successfully'));
         await loadData();
       } else {
-        toast?.showError(result.error || 'Failed to update user');
+        toast?.showError(result.error || t('users_failed_to_update_user'));
       }
     } catch (error) {
           logger.error('Error:', error);
-          toast?.showError('Failed: ' + error.message);
+          toast?.showError(t('users_action_failed', { error: error.message }));
         }
       }
     });
@@ -320,19 +320,19 @@ const UsersPage = ({ isDashboardTab = false }) => {
     // Show confirmation modal
     setConfirmModal({
       isOpen: true,
-      title: 'Reset Password',
-      message: `Are you sure you want to reset the password for this user?\n\nAn email will be sent to: ${email}`,
-      confirmText: 'Reset Password',
+      title: t('users_reset_password'),
+      message: t('users_reset_password_confirmation', { email }),
+      confirmText: t('users_reset_password'),
       variant: 'danger',
       onConfirm: async () => {
         try {
       const { sendPasswordResetEmail } = await import('firebase/auth');
       const { auth } = await import('@services/other/config');
       await sendPasswordResetEmail(auth, email);
-      toast?.showSuccess(`Password reset email sent to ${email}`);
+      toast?.showSuccess(t('users_password_reset_email_sent', { email }));
     } catch (error) {
           logger.error('Error:', error);
-          toast?.showError('Failed: ' + error.message);
+          toast?.showError(t('users_action_failed', { error: error.message }));
         }
       }
     });

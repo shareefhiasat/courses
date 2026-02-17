@@ -90,7 +90,7 @@ const ClassesPage = () => {
       if (activitiesRes?.success) setActivities(activitiesRes.data || []);
     } catch (error) {
       logger.error('🔍 [ClassesPage] Error loading data:', error);
-      toast?.showError('Error loading data');
+      toast?.showError(t('classes_failed_to_load_data'));
     } finally {
       if (!isInitial) setLoading(false);
     }
@@ -148,7 +148,7 @@ const ClassesPage = () => {
     const textValues = syncRefsToState();
     
     if (!textValues.name.trim()) {
-      toast?.showError(t('class_name') + ' is required');
+      toast?.showError(t('classes_name_required'));
       return;
     }
 
@@ -180,13 +180,13 @@ const ClassesPage = () => {
         if (nameRef.current) nameRef.current.value = '';
         if (nameArRef.current) nameArRef.current.value = '';
         if (codeRef.current) codeRef.current.value = '';
-        toast?.showSuccess(editingClass ? 'Class updated successfully!' : 'Class created successfully!');
+        toast?.showSuccess(editingClass ? t('classes_updated_successfully') : t('classes_created_successfully'));
       } else {
-        toast?.showError('Error: ' + result.error);
+        toast?.showError(t('classes_error_saving', { error: result.error }));
       }
     } catch (error) {
       logger.error('Error saving class:', error);
-      toast?.showError('Error: ' + error.message);
+      toast?.showError(t('classes_error_saving', { error: error.message }));
     } finally {
       setLoading(false);
       console.timeEnd('[PERF] handleClassSubmit');
@@ -228,18 +228,18 @@ const ClassesPage = () => {
               classCode: classItem.code
             });
           } catch (e) { logger.warn('Failed to log activity:', e); }
-          toast?.showSuccess('Class deleted successfully!');
+          toast?.showSuccess(t('classes_deleted_successfully'));
           await loadData();
         } else {
           // Rollback
           setClasses(prev => [...prev, classItem]);
-          toast?.showError('Error: ' + result.error);
+          toast?.showError(t('classes_error_deleting', { error: result.error }));
         }
       } catch (error) {
         // Rollback
         setClasses(prev => [...prev, classItem]);
         logger.error('Error deleting class:', error);
-        toast?.showError('Error: ' + error.message);
+        toast?.showError(t('classes_error_deleting', { error: error.message }));
       }
     });
   }, [deleteClassModal, enrollments, activities, toast, loadData]);

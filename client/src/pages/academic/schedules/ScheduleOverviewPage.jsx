@@ -194,7 +194,7 @@ const ScheduleOverviewPage = () => {
   const instructorOptions = useMemo(() => {
     const instructors = users.filter(u => u.isInstructor === true || u.role === 'INSTRUCTOR');
     return [
-      { value: 'all', label: t('all_instructors') || 'All Instructors' },
+      { value: 'all', label: t('schedules_all_instructors') },
       ...instructors.map(instructor => ({
         value: instructor.email,
         label: instructor.displayName || instructor.name || instructor.email
@@ -204,7 +204,7 @@ const ScheduleOverviewPage = () => {
 
   const programOptions = useMemo(() => {
     return [
-      { value: 'all', label: t('all_programs') || 'All Programs' },
+      { value: 'all', label: t('schedules_all_programs') },
       ...programs.map(program => ({
         value: program.docId || program.id,
         label: lang === 'ar' ? (program.name_ar || program.name_en) : program.name_en
@@ -220,7 +220,7 @@ const ScheduleOverviewPage = () => {
     }
 
     return [
-      { value: 'all', label: t('all_subjects') || 'All Subjects' },
+      { value: 'all', label: t('schedules_all_subjects') },
       ...filteredSubjects.map(subject => ({
         value: subject.docId || subject.id,
         label: lang === 'ar' ? (subject.name_ar || subject.name_en) : subject.name_en
@@ -232,7 +232,7 @@ const ScheduleOverviewPage = () => {
     return (
       <div className="schedule-overview-access-denied">
         <h2>{t('access_denied') || 'Access Denied'}</h2>
-        <p>{t('instructor_admin_only') || 'This page is only accessible to instructors and admins.'}</p>
+        <p>{t('schedules_instructor_admin_only')}</p>
       </div>
     );
   }
@@ -245,8 +245,8 @@ const ScheduleOverviewPage = () => {
             {getThemedIcon('ui', 'calendar', 32, theme)}
           </div>
           <div className="header-text">
-            <h1>{t('schedule_overview') || 'Schedule Overview'}</h1>
-            <p>{t('schedule_overview_description') || 'View and manage class schedules for the semester'}</p>
+            <h1>{t('schedules_schedule_overview')}</h1>
+            <p>{t('schedules_schedule_overview_description')}</p>
           </div>
         </div>
       </div>

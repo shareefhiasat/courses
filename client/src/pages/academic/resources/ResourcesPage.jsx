@@ -192,7 +192,7 @@ const ResourcesPage = () => {
       const textValues = syncRefsToState();
       
       if (!textValues.title_en?.trim() || !textValues.url?.trim()) {
-        toast?.showError(t('title_and_url_required') || 'Title and URL are required');
+        toast?.showError(t('resources_title_and_url_required'));
         setLoading(false);
         return;
       }
@@ -214,11 +214,11 @@ const ResourcesPage = () => {
         courseId: resourceForm.courseId || null,
         dueDate: resourceForm.dueDate ? parseQatarFromInput(resourceForm.dueDate) : null,
         updatedAt: getQatarNow(),
-        updatedBy: user?.id || 'unknown'
+        updatedBy: user?.id || t('resources_unknown_user')
       };
       if (!editingResource) {
         resourceData.createdAt = getQatarNow();
-        resourceData.createdBy = user?.id || 'unknown';
+        resourceData.createdBy = user?.id || t('resources_unknown_user');
       }
       
       const result = editingResource && editingResource.docId ?
@@ -253,9 +253,9 @@ const ResourcesPage = () => {
                   email: student.email,
                   lang: student.preferredLanguage || 'en',
                   variables: {
-                    studentName: student.displayName || student.name || 'Student',
+                    studentName: student.displayName || student.name || t('resources_student_name'),
                     resourceTitle: resourceForm.title,
-                    resourceType: resourceForm.type || 'document',
+                    resourceType: resourceForm.type || t('resources_default_type'),
                     resourceUrl: resourceForm.url
                   }
                 });
@@ -276,11 +276,11 @@ const ResourcesPage = () => {
         setEditingResource(null);
         toast?.showSuccess(editingResource ? (t('resource_updated_successfully') || 'Resource updated successfully!') : (t('resource_created_successfully') || 'Resource created successfully!'));
       } else {
-        toast?.showError(`Error ${editingResource ? 'updating' : 'creating'} resource: ` + result.error);
+        toast?.showError(t('resources_error_updating_creating', { action: editingResource ? 'updating' : 'creating', error: result.error }));
       }
     } catch (error) {
       logger.error('Error saving resource:', error);
-      toast?.showError(`Error ${editingResource ? 'updating' : 'creating'} resource: ` + error.message);
+      toast?.showError(t('resources_error_updating_creating', { action: editingResource ? 'updating' : 'creating', error: error.message }));
     } finally {
       setLoading(false);
       console.timeEnd('[PERF] handleResourceSubmit');
@@ -325,18 +325,18 @@ const ResourcesPage = () => {
               resourceType: resource.type
             });
           } catch (e) { logger.warn('Failed to log activity:', e); }
-          toast?.showSuccess('Resource deleted successfully!');
+          toast?.showSuccess(t('resources_deleted_successfully'));
           await loadData();
         } else {
           // Rollback on error
           setResources(prev => [...prev, resource]);
-          toast?.showError('Error deleting resource: ' + result.error);
+          toast?.showError(t('resources_error_deleting', { error: result.error }));
         }
       } catch (error) {
         // Rollback on error
         setResources(prev => [...prev, resource]);
         logger.error('Error deleting resource:', error);
-        toast?.showError('Error deleting resource: ' + error.message);
+        toast?.showError(t('resources_error_deleting', { error: error.message }));
       }
     });
   }, [deleteResourceModal, toast, loadData]);

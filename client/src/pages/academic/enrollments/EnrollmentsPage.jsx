@@ -157,7 +157,7 @@ const EnrollmentsPage = () => {
     try {
       const result = await getEnrolledStudents(classId);
       if (!result.success) {
-        throw new Error(result.error || 'Failed to load students');
+        throw new Error(result.error || t('enrollments_failed_to_load_students'));
       }
 
       setStudents(result.data || []);
@@ -199,7 +199,7 @@ const EnrollmentsPage = () => {
         const action = currentlyDisabled ? 'enabled' : 'disabled';
         toast?.showSuccess(
           t(`student_access_${action}_success`) || 
-          `Student access ${action} successfully${result.data.notificationSent ? ' and notification sent' : ''}`
+          t('enrollments_student_access_action_success', { action, notificationSent: result.data.notificationSent ? ' and notification sent' : '' })
         );
         // Reload students to reflect the change
         await loadStudents(selectedClass.id);
@@ -290,7 +290,7 @@ const EnrollmentsPage = () => {
                   setTimeout(() => setFilterLoading(false), 800);
                 }}
                 options={[
-                  { value: 'all', label: t('all_programs_filter') || 'All Programs' },
+                  { value: 'all', label: t('enrollments_all_programs_filter') },
                   ...programs.map(p => ({
                     value: p.docId || p.id,
                     label: p.name_en || p.name_ar || p.code || p.docId
@@ -307,7 +307,7 @@ const EnrollmentsPage = () => {
                   setTimeout(() => setFilterLoading(false), 800);
                 }}
                 options={[
-                  { value: 'all', label: t('all_subjects_filter') || 'All Subjects' },
+                  { value: 'all', label: t('enrollments_all_subjects_filter') },
                   ...subjects
                     .filter(s => programFilter === 'all' || s.programId === programFilter)
                     .map(s => ({
@@ -322,7 +322,7 @@ const EnrollmentsPage = () => {
                 value={classFilter}
                 onChange={(e) => setClassFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_classes_filter') || 'All Classes' },
+                  { value: 'all', label: t('enrollments_all_classes_filter') },
                   ...classes
                     .filter(c => {
                       if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
@@ -344,7 +344,7 @@ const EnrollmentsPage = () => {
                 value={yearFilter}
                 onChange={(e) => setYearFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_years') || 'All Years' },
+                  { value: 'all', label: t('enrollments_all_years_filter') },
                   ...availableYears.map(year => ({ value: year, label: year }))
                 ]}
                 fullWidth
@@ -354,7 +354,7 @@ const EnrollmentsPage = () => {
                 value={termFilter}
                 onChange={(e) => setTermFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_terms') || 'All Terms' },
+                  { value: 'all', label: t('enrollments_all_terms_filter') },
                   ...availableTerms.map(term => ({ value: term, label: term }))
                 ]}
                 fullWidth

@@ -96,7 +96,7 @@ const AnnouncementsPage = () => {
       if (announcementsResult.success) setAnnouncements(announcementsResult.data || []);
     } catch (error) {
       logger.error('Error loading data:', error);
-      toast?.showError('Failed to load data');
+      toast?.showError(t('announcements_failed_to_load_data'));
     } finally {
       if (!isInitial) setDataLoading(false);
     }
@@ -171,7 +171,7 @@ const AnnouncementsPage = () => {
       logger.log('[FORM] Text values from refs:', textValues);
 
       if (!textValues.title || textValues.title.trim() === '') {
-        throw new Error('Announcement title is required');
+        throw new Error(t('announcements_title_required'));
       }
       
       // Clean the announcement data
@@ -182,12 +182,12 @@ const AnnouncementsPage = () => {
         content: textValues.content?.trim() || '',
         content_ar: textValues.content_ar?.trim() || '',
         updatedAt: getQatarNow(),
-        updatedBy: user?.id || 'unknown'
+        updatedBy: user?.id || t('announcements_unknown_user')
       };
 
       if (editingAnnouncement && editingAnnouncement.docId && editingAnnouncement.docId !== 'new') {
         await updateAnnouncement(editingAnnouncement.docId, announcementData, emailOptions);
-        toast?.showSuccess('Announcement updated successfully');
+        toast?.showSuccess(t('announcements_updated_successfully'));
         
         // Update local announcements array instead of reloading
         setAnnouncements(prev => prev.map(a => 
@@ -198,13 +198,13 @@ const AnnouncementsPage = () => {
       } else {
         announcementData.createdAt = getQatarNow();
         announcementData.updatedAt = getQatarNow();
-        announcementData.createdBy = user?.id || 'unknown';
+        announcementData.createdBy = user?.id || t('announcements_unknown_user');
         
         const result = await addAnnouncement(announcementData);
         
         if (result.success) {
           logger.log('🔍 [SAVE] Announcement created successfully with ID:', result.id);
-          toast?.showSuccess('Announcement created successfully');
+          toast?.showSuccess(t('announcements_created_successfully'));
           
           // Send notifications using notification gateway (only for new announcements)
           const { programId, subjectId, classId } = announcementData;
@@ -224,7 +224,7 @@ const AnnouncementsPage = () => {
                     email: student.email,
                     lang: student.preferredLanguage || 'en',
                     variables: {
-                      studentName: student.displayName || student.name || 'Student',
+                      studentName: student.displayName || student.name || t('announcements_student_name'),
                       announcementTitle: announcementData.title,
                       announcementContent: announcementData.content
                     }
@@ -238,7 +238,7 @@ const AnnouncementsPage = () => {
 
           // Optional email blast removed - handled by notification gateway
         } else {
-          throw new Error(result.error || 'Failed to create announcement');
+          throw new Error(result.error || t('announcements_failed_to_create'));
         }
       }
 
@@ -252,7 +252,7 @@ const AnnouncementsPage = () => {
       await loadData();
     } catch (error) {
       logger.error('Error saving announcement:', error);
-      toast?.showError(error.message || 'Error saving announcement');
+      toast?.showError(error.message || t('announcements_error_saving'));
     } finally {
       setLoading(false);
       console.timeEnd('[PERF] handleAnnouncementSubmit');
@@ -287,7 +287,7 @@ const AnnouncementsPage = () => {
   const gridColumns = useMemo(() => [
     { 
       field: 'title_en', 
-      headerName: 'Title (EN)', 
+      headerName: t('announcements_title_en_header'), 
       flex: 1, 
       minWidth: 200,
       renderCell: (params) => {
@@ -297,7 +297,7 @@ const AnnouncementsPage = () => {
     },
     { 
       field: 'title_ar', 
-      headerName: 'Title (AR)', 
+      headerName: t('announcements_title_ar_header'), 
       flex: 1, 
       minWidth: 200,
       renderCell: (params) => {
@@ -306,8 +306,8 @@ const AnnouncementsPage = () => {
       }
     },
     {
-      field: 'content', headerName: 'Content', flex: 2, minWidth: 250,
-      renderCell: (params) => params.value ? (params.value.length > 100 ? params.value.substring(0, 100) + '...' : params.value) : 'No content'
+      field: 'content', headerName: t('announcements_content_header'), flex: 2, minWidth: 250,
+      renderCell: (params) => params.value ? (params.value.length > 100 ? params.value.substring(0, 100) + '...' : params.value) : t('announcements_no_content')
     },
     {
       field: 'programId',

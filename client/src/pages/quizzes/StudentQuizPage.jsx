@@ -215,7 +215,7 @@ export default function StudentQuizPage() {
         // Log quiz view
         if (user) {
           try {
-            await ActivityLogger.quizViewed(quizId, getQuizText(result.data, 'title') || 'Untitled Quiz');
+            await ActivityLogger.quizViewed(quizId, getQuizText(result.data, 'title') || t('student_quiz_untitled_quiz'));
           } catch (e) { console.warn('Failed to log quiz view:', e); }
         }
       } else {
@@ -326,7 +326,7 @@ export default function StudentQuizPage() {
       }
 
       setShowResumeModal(false);
-      toast?.showSuccess?.('Quiz resumed successfully');
+      toast?.showSuccess?.(t('student_quiz_resumed_successfully'));
     }
   };
 
@@ -349,10 +349,10 @@ export default function StudentQuizPage() {
         savedAt: new Date().toISOString()
       };
       localStorage.setItem(progressKey, JSON.stringify(progress));
-      toast?.showSuccess?.('Progress saved successfully');
+      toast?.showSuccess?.(t('student_quiz_progress_saved'));
     } catch (err) {
       console.error('Error saving progress:', err);
-      toast?.showError?.('Failed to save progress');
+      toast?.showError?.(t('student_quiz_failed_to_save_progress'));
     }
   };
 
@@ -497,11 +497,11 @@ export default function StudentQuizPage() {
         return response.length === 0;
       }
       return response === undefined || response === null || response === '';
-    }, 'All questions are answered');
+    }, t('student_quiz_all_answered'));
   };
 
   const goToNextMarked = () => {
-    goToNextMatchingQuestion((question) => markedForReview.has(question.id), 'No questions marked for review');
+    goToNextMatchingQuestion((question) => markedForReview.has(question.id), t('student_quiz_no_marked_for_review'));
   };
 
   const handleSubmit = async () => {
@@ -567,7 +567,7 @@ export default function StudentQuizPage() {
       const submission = {
         quizId,
         userId: user?.uid || null,
-        userName: user?.displayName || user?.email || 'Anonymous',
+        userName: user?.displayName || user?.email || t('student_quiz_anonymous_user'),
         userEmail: user?.email || null,
         answers: detailedAnswers,
         score: score.correct,
@@ -583,7 +583,7 @@ export default function StudentQuizPage() {
       };
 
       logger.log('[Submit] Submitting quiz:', { quizId, userId: user?.uid, answersCount: Object.keys(detailedAnswers).length, score });
-      toast?.showInfo?.('Submitting quiz...');
+      toast?.showInfo?.(t('student_quiz_submitting'));
       const result = await submitQuiz(submission);
       logger.log('[Submit] Result:', result);
       
@@ -618,21 +618,21 @@ export default function StudentQuizPage() {
         // Log quiz submission
         if (user) {
           try {
-            await ActivityLogger.quizSubmitted(quizId, getQuizText(quiz, 'title') || 'Untitled Quiz', score.percentage);
+            await ActivityLogger.quizSubmitted(quizId, getQuizText(quiz, 'title') || t('student_quiz_untitled_quiz'), score.percentage);
           } catch (e) { 
             console.warn('[Submit] Failed to log quiz submission:', e); 
           }
         }
         
-        toast?.showSuccess?.('Quiz submitted successfully!');
+        toast?.showSuccess?.(t('student_quiz_submitted_successfully'));
       } else {
-        const errorMsg = result.error || 'Failed to submit quiz';
+        const errorMsg = result.error || t('student_quiz_failed_to_submit');
         setError(errorMsg);
         console.error('[Submit] Error:', errorMsg, result);
         toast?.showError?.(errorMsg);
       }
     } catch (err) {
-      const errorMsg = err?.message || 'Failed to submit quiz';
+      const errorMsg = err?.message || t('student_quiz_failed_to_submit');
       setError(errorMsg);
       console.error('[Submit] Exception:', err);
       toast?.showError?.(errorMsg);

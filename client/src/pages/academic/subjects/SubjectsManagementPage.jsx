@@ -167,7 +167,7 @@ const SubjectsManagementPage = () => {
       }
     } catch (error) {
       logger.error('Error saving subject:', error);
-      toast.error(error.message);
+      toast.error(error.message || t('subjects_error_message', { error: error.message }));
     } finally {
       setLoading(false);
       console.timeEnd('[PERF] handleSubjectSubmit');
@@ -223,7 +223,7 @@ const SubjectsManagementPage = () => {
         // Rollback
         setSubjects(prev => [...prev, subject]);
         logger.error('Error deleting subject:', error);
-        toast.error(error.message);
+        toast.error(error.message || t('subjects_error_message', { error: error.message }));
       }
     });
   }, [deleteSubjectModal, toast, t, loadData]);
@@ -328,7 +328,7 @@ const gridColumns = useMemo(() => [
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_subject', { subjectName: editingSubject.name_en, subjectCode: editingSubject.code || t('no_code') || 'No code' }) || `Editing Subject: ${editingSubject.name_en} (${editingSubject.code || 'No code'})`}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_subject', { subjectName: editingSubject.name_en, subjectCode: editingSubject.code || t('subjects_no_code') })}
         </div>
       )}
 
