@@ -228,7 +228,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   };
 
   if (!isInstructor && !isAdmin && !isSuperAdmin) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Access Denied</div>;
+    return <div style={{ padding: '2rem', textAlign: 'center' }}>{t('access_denied') || 'Access Denied'}</div>;
   }
 
   const columns = useMemo(() => [

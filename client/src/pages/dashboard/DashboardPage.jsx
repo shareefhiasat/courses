@@ -171,7 +171,7 @@ const DashboardPage = () => {
       return result;
     } catch (error) {
       console.error('❌ Upload function error:', error);
-      alert('Error uploading templates: ' + error.message);
+      alert((t('error_uploading_templates') || 'Error uploading templates: ') + error.message);
       return { success: false, error: error.message };
     }
   }, []);
@@ -180,7 +180,7 @@ const DashboardPage = () => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.uploadDefaultEmailTemplates = uploadDefaultEmailTemplates;
-      console.log('🔧 Upload function available: window.uploadDefaultEmailTemplates()');
+      console.log((t('upload_function_available') || '🔧 Upload function available: ') + 'window.uploadDefaultEmailTemplates()');
     }
   }, [uploadDefaultEmailTemplates]);
 
@@ -372,11 +372,11 @@ const DashboardPage = () => {
           steps={tourSteps}
           callback={handleJoyrideCallback}
           locale={{
-            back: lang === 'ar' ? 'السابق' : 'Back',
-            close: lang === 'ar' ? 'إغلاق' : 'Close',
-            last: lang === 'ar' ? 'إنهاء' : 'Finish',
-            next: lang === 'ar' ? 'التالي' : 'Next',
-            skip: lang === 'ar' ? 'تخطي' : 'Skip'
+            back: t('tour_back') || (lang === 'ar' ? 'السابق' : 'Back'),
+            close: t('tour_close') || (lang === 'ar' ? 'إغلاق' : 'Close'),
+            last: t('tour_finish') || (lang === 'ar' ? 'إنهاء' : 'Finish'),
+            next: t('tour_next') || (lang === 'ar' ? 'التالي' : 'Next'),
+            skip: t('tour_skip') || (lang === 'ar' ? 'تخطي' : 'Skip')
           }}
           styles={{
             // Use the app's primary color so the Joyride buttons (Back/Next) match other UI buttons

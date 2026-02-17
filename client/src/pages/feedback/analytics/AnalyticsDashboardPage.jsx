@@ -29,8 +29,9 @@ import logger from '@utils/logger';
  * - Filtering by program, subject, and class
  * - Role-based access control
  * - Theme-aware styling with centralized icons
+ * - Optimized data loading to prevent excessive re-renders
  */
-const AnalyticsDashboardPage = () => {
+const AnalyticsDashboardPage = memo(() => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const { user, isAdmin, isSuperAdmin, isInstructor } = useAuth();
@@ -49,17 +50,19 @@ const AnalyticsDashboardPage = () => {
   const [participations, setParticipations] = useState([]);
   const [resourceCount, setResourceCount] = useState(0);
   const [loadingResourceCount, setLoadingResourceCount] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   
   // Filter states
   const [enrollmentProgramFilter, setEnrollmentProgramFilter] = useState('all');
   const [enrollmentSubjectFilter, setEnrollmentSubjectFilter] = useState('all');
   const [enrollmentClassFilter, setEnrollmentClassFilter] = useState('all');
   
-  // Load all data on component mount
+  // Load all data only once on component mount
   useLayoutEffect(() => {
+    // Only load data if not already loaded and user is authenticated
+    if (dataLoaded || !user) return;
+    
     const loadAllData = async () => {
-      if (!user) return; // Don't load data if user is not authenticated
-      
       logger.log('🚀 [AnalyticsDashboardPage] Starting data load...');
       
       try {
@@ -108,13 +111,17 @@ const AnalyticsDashboardPage = () => {
         if (behaviorsRes.success) setBehaviors(behaviorsRes.data || []);
         if (participationsRes.success) setParticipations(participationsRes.data || []);
         
+        // Mark data as loaded to prevent re-loading
+        setDataLoaded(true);
+        logger.log('✅ [AnalyticsDashboardPage] Data loading completed');
+        
       } catch (error) {
         logger.error('🔍 [AnalyticsDashboardPage] Error loading data:', error);
       }
     };
     
     loadAllData();
-  }, [user]); // Add user dependency
+  }, [user, dataLoaded]); // Add dataLoaded dependency to prevent re-runs
 
   // Fetch resource count from server based on current filters
   useEffect(() => {
@@ -219,8 +226,9 @@ const AnalyticsDashboardPage = () => {
             setEnrollmentClassFilter(value);
           }}
           showLabels={false}
+          fullWidth
           className="flex-nowrap"
-          style={{ gap: '0.5rem' }}
+          style={{ gap: '0.5rem', width: '100%' }}
         />
       }
     >
@@ -507,7 +515,7 @@ const AnalyticsDashboardPage = () => {
       </div>
     </CollapsibleDashboardSection>
   );
-};
+});
 
-export default memo(AnalyticsDashboardPage);
+export default memo(AnalyticsDashboardPage, () => true); // Prevent re-renders unless props change
 

@@ -1169,7 +1169,7 @@ const HomePage = memo(() => {
             fontSize: '0.875rem',
             color: isDark ? '#9ca3af' : '#6b7280'
           }}>
-            Posted: {selectedAnnouncement.createdAt?.seconds 
+            {(t('posted') || 'Posted:')} {selectedAnnouncement.createdAt?.seconds 
               ? new Date(selectedAnnouncement.createdAt.seconds * 1000).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')
               : new Date(selectedAnnouncement.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')
             }

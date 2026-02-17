@@ -186,7 +186,9 @@ const AppContent = () => {
             path="/dashboard" 
             element={
               <ProtectedRoute screenId="dashboard" screenName="Dashboard">
-                <DashboardPage />
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <DashboardPage />
+                </Suspense>
               </ProtectedRoute>
             } 
           />
@@ -195,7 +197,9 @@ const AppContent = () => {
             path="/student-dashboard" 
             element={
               <ProtectedRoute screenId="studentDashboard" screenName="Student Dashboard">
-                <StudentDashboardPage />
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <StudentDashboardPage />
+                </Suspense>
               </ProtectedRoute>
             } 
           />

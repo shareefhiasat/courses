@@ -48,8 +48,8 @@ export default function StudentDashboardPage() {
 
   const displayUserId = selectedStudent || user?.uid;
   const displayName = selectedStudent 
-    ? studentsList.find(s => s.id === selectedStudent)?.displayName || 'Student'
-    : userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || 'Student';
+    ? studentsList.find(s => s.id === selectedStudent)?.displayName || t('student') || 'Student'
+    : userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || t('student') || 'Student';
 
   const {
     semesters,
@@ -89,7 +89,7 @@ export default function StudentDashboardPage() {
         setStudentsList(students);
       }
     } catch (error) {
-      logger.error('Failed to load students list', error);
+      logger.error((t('failed_to_load_students_list') || 'Failed to load students list'), error);
     }
   };
 
@@ -104,7 +104,7 @@ export default function StudentDashboardPage() {
         setSubjects(subjectsResult.data || []);
       }
     } catch (error) {
-      logger.error('Failed to load programs/subjects', error);
+      logger.error((t('failed_to_load_programs_subjects') || 'Failed to load programs/subjects'), error);
     }
   };
 
@@ -117,11 +117,11 @@ export default function StudentDashboardPage() {
     
     let courses = activeSemesterData.courses || [];
     
-    if (selectedProgram !== 'all') {
+    if (selectedProgram !== (t('all') || 'all')) {
       courses = courses.filter(c => c.programId === selectedProgram);
     }
     
-    if (selectedSubject !== 'all') {
+    if (selectedSubject !== (t('all') || 'all')) {
       courses = courses.filter(c => c.subjectId === selectedSubject);
     }
     
@@ -130,10 +130,10 @@ export default function StudentDashboardPage() {
 
   const statsData = useMemo(() => {
     const totalEnrollments = enrollments.length;
-    const activeEnrollments = enrollments.filter(e => e.status === 'active').length;
+    const activeEnrollments = enrollments.filter(e => e.status === (t('active') || 'active')).length;
     
     const totalAttendance = attendance.length;
-    const presentCount = attendance.filter(a => a.status === 'present').length;
+    const presentCount = attendance.filter(a => a.status === (t('present') || 'present')).length;
     const attendanceRate = totalAttendance > 0 ? (presentCount / totalAttendance) * 100 : 0;
     
     const totalPenalties = penalties.length;
@@ -145,8 +145,8 @@ export default function StudentDashboardPage() {
     const totalCredits = gradesWithPoints.reduce((sum, m) => sum + (m.credits || 3), 0);
     const gpa = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : '0.00';
     
-    const pendingTasks = submissions.filter(s => s.status === 'pending' || !s.status).length;
-    const completedTasks = submissions.filter(s => s.status === 'graded' || s.status === 'completed').length;
+    const pendingTasks = submissions.filter(s => s.status === (t('pending') || 'pending') || !s.status).length;
+    const completedTasks = submissions.filter(s => s.status === (t('graded') || 'graded') || s.status === (t('completed') || 'completed')).length;
     
     const netScore = totalParticipations - totalPenalties - totalBehaviors;
     

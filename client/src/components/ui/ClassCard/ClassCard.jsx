@@ -36,15 +36,90 @@ const getIconColor = (defaultColor, theme) => {
   const getLocalizedInstructorName = (instructor) => {
     if (!instructor) return t('instructor') || 'Instructor';
     
+    // Add comprehensive debug logging
+    console.log('🔍 [ClassCard] Instructor data:', {
+      instructor,
+      firstName: instructor?.firstName,
+      lastName: instructor?.lastName,
+      displayName: instructor?.displayName,
+      realName: instructor?.realName,
+      email: instructor?.email,
+      messageColor: instructor?.messageColor
+    });
+    
+    // Arabic support
     if (lang === 'ar' && instructor.firstNameAr && instructor.lastNameAr) {
       return `${instructor.firstNameAr} ${instructor.lastNameAr}`;
     }
     
+    // Try multiple name fields in order of preference
     if (instructor.firstName && instructor.lastName) {
       return `${instructor.firstName} ${instructor.lastName}`;
     }
     
-    return instructor.displayName || t('instructor') || 'Instructor';
+    if (instructor.realName) {
+      return instructor.realName;
+    }
+    
+    if (instructor.displayName && instructor.displayName.trim()) {
+      return instructor.displayName;
+    }
+    
+    // Extract name from email as last resort
+    if (instructor.email) {
+      const emailName = instructor.email.split('@')[0];
+      // Format email name (e.g., "john.doe" -> "John Doe")
+      const formattedName = emailName
+        .replace(/[._-]/g, ' ')
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+      
+      if (formattedName && formattedName !== emailName) {
+        console.log('📧 [ClassCard] Extracted name from email:', formattedName);
+        return formattedName;
+      }
+    }
+    
+    return t('instructor') || 'Instructor';
+  };
+  
+  // Helper function to get instructor initials
+  const getInstructorInitials = (instructor) => {
+    if (!instructor) return 'I';
+    
+    // Try to get initials from multiple sources
+    if (instructor.firstName && instructor.lastName) {
+      return `${instructor.firstName.charAt(0).toUpperCase()}${instructor.lastName.charAt(0).toUpperCase()}`;
+    }
+    
+    if (instructor.realName) {
+      const names = instructor.realName.split(' ');
+      if (names.length >= 2) {
+        return `${names[0].charAt(0).toUpperCase()}${names[names.length - 1].charAt(0).toUpperCase()}`;
+      }
+      return instructor.realName.charAt(0).toUpperCase();
+    }
+    
+    if (instructor.displayName && instructor.displayName.trim()) {
+      const names = instructor.displayName.split(' ');
+      if (names.length >= 2) {
+        return `${names[0].charAt(0).toUpperCase()}${names[names.length - 1].charAt(0).toUpperCase()}`;
+      }
+      return instructor.displayName.charAt(0).toUpperCase();
+    }
+    
+    // Extract initials from email as last resort
+    if (instructor.email) {
+      const emailName = instructor.email.split('@')[0];
+      const names = emailName.replace(/[._-]/g, ' ').split(' ');
+      if (names.length >= 2) {
+        return `${names[0].charAt(0).toUpperCase()}${names[1].charAt(0).toUpperCase()}`;
+      }
+      return emailName.charAt(0).toUpperCase();
+    }
+    
+    return 'I';
   };
 
   return (
@@ -73,7 +148,7 @@ const getIconColor = (defaultColor, theme) => {
       <div style={{ marginBottom: '0.75rem' }}>
         <h4 style={{ 
           margin: 0, 
-          fontSize: '0.875rem', 
+          fontSize: '1rem', 
           fontWeight: 600,
           color: theme === 'dark' ? '#f9fafb' : '#111827',
           lineHeight: '1.25'
@@ -82,29 +157,10 @@ const getIconColor = (defaultColor, theme) => {
         </h4>
         {showInstructorInfo && instructor && (
           <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.5rem',
             marginTop: '0.25rem'
           }}>
-            <div
-              style={{
-                width: 16,
-                height: 16,
-                borderRadius: '50%',
-                background: instructor.messageColor || primaryColor,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '8px',
-                fontWeight: 'bold'
-              }}
-            >
-              {(instructor?.firstName || instructor?.displayName)?.charAt(0)?.toUpperCase() || 'I'}
-            </div>
             <span style={{ 
-              fontSize: '0.75rem', 
+              fontSize: '0.8rem', 
               color: theme === 'dark' ? '#9ca3af' : '#6b7280' 
             }}>
               {getLocalizedInstructorName(instructor)}
@@ -120,7 +176,7 @@ const getIconColor = (defaultColor, theme) => {
           flexWrap: 'wrap', 
           gap: '0.25rem', 
           marginBottom: '0.5rem',
-          fontSize: 9,
+          fontSize: 11,
           color: 'var(--muted)'
         }}>
           {classStats[clsId].students > 0 && (

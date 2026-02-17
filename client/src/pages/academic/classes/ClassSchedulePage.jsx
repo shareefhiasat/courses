@@ -227,33 +227,47 @@ const ClassSchedulePage = () => {
     return grouped;
   }, [filteredClasses]);
 
-  // Fetch class statistics for semester view
+  // Fetch class statistics for semester view (OPTIMIZED but functional)
   const fetchClassStats = useCallback(async (classList) => {
     const stats = {};
     
-    for (const cls of classList) {
-      const classId = cls.docId || cls.id;
-      try {
-        // Fetch all data in parallel for better performance
-        const [
-          enrollmentsRes,
-          penaltiesRes,
-          behaviorsRes,
-          quizzesRes,
-          activitiesRes,
-          announcementsRes,
-          resourcesRes
-        ] = await Promise.all([
-          getEnrollments().catch(() => ({ success: false, data: [] })),
-          getPenalties().catch(() => ({ success: false, data: [] })),
-          getBehaviors().catch(() => ({ success: false, data: [] })),
-          getAllQuizzes().catch(() => ({ success: false, data: [] })),
-          getActivities().catch(() => ({ success: false, data: [] })),
-          getAnnouncements().catch(() => ({ success: false, data: [] })),
-          getResources().catch(() => ({ success: false, data: [] }))
-        ]);
+    // Only fetch stats if we're in semester view and have classes
+    if (viewMode !== 'semester' || !classList || classList.length === 0) {
+      return;
+    }
+    
+    console.log('📊 [ClassSchedule] Fetching stats for', classList.length, 'classes');
+    
+    // Get all class IDs
+    const classIds = classList.map(cls => cls.docId || cls.id).filter(Boolean);
+    
+    if (classIds.length === 0) {
+      console.warn('📊 [ClassSchedule] No valid class IDs found');
+      return;
+    }
+    
+    try {
+      // Fetch data for statistics (needed for ClassCard display)
+      const [
+        enrollmentsRes,
+        penaltiesRes,
+        behaviorsRes,
+        quizzesRes,
+        activitiesRes,
+        announcementsRes,
+        resourcesRes
+      ] = await Promise.all([
+        getEnrollments().catch(() => ({ success: false, data: [] })),
+        getPenalties().catch(() => ({ success: false, data: [] })),
+        getBehaviors().catch(() => ({ success: false, data: [] })),
+        getAllQuizzes().catch(() => ({ success: false, data: [] })),
+        getActivities().catch(() => ({ success: false, data: [] })),
+        getAnnouncements().catch(() => ({ success: false, data: [] })),
+        getResources().catch(() => ({ success: false, data: [] }))
+      ]);
 
-        // Filter data for this specific class
+      // Filter data for each class
+      for (const classId of classIds) {
         const classEnrollments = enrollmentsRes.success ? enrollmentsRes.data.filter(e => e.classId === classId) : [];
         const classPenalties = penaltiesRes.success ? penaltiesRes.data.filter(p => p.classId === classId) : [];
         const classBehaviors = behaviorsRes.success ? behaviorsRes.data.filter(b => b.classId === classId) : [];
@@ -271,9 +285,16 @@ const ClassSchedulePage = () => {
           announcements: classAnnouncements.length,
           resources: classResources.length
         };
-      } catch (error) {
-        console.warn(`Failed to fetch stats for class ${classId}:`, error);
-        stats[classId] = {
+      }
+      
+      console.log('✅ [ClassSchedule] Stats fetched successfully');
+      setClassStats(stats);
+    } catch (error) {
+      console.error('❌ [ClassSchedule] Failed to fetch stats:', error);
+      // Set empty stats on error
+      const emptyStats = {};
+      classIds.forEach(classId => {
+        emptyStats[classId] = {
           students: 0,
           penalties: 0,
           behaviors: 0,
@@ -282,18 +303,19 @@ const ClassSchedulePage = () => {
           announcements: 0,
           resources: 0
         };
-      }
+      });
+      setClassStats(emptyStats);
     }
-    
-    setClassStats(stats);
-  }, []);
+  }, [viewMode]); // Keep viewMode dependency
 
-  // Refetch stats when classes change for semester view
+  // Refetch stats when classes change for semester view (BALANCED)
   useEffect(() => {
+    // Fetch stats when in semester view and classes are available
     if (viewMode === 'semester' && classes.length > 0) {
+      console.log('🔄 [ClassSchedule] Triggering stats fetch for semester view');
       fetchClassStats(classes);
     }
-  }, [viewMode, classes]);
+  }, [viewMode, classes, fetchClassStats]);
 
   const loadClasses = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoading(true);
@@ -312,10 +334,15 @@ const ClassSchedulePage = () => {
         
         // Fetch instructor data for all classes
         const instructorEmails = [...new Set(classesRes.data.map(cls => cls.ownerEmail).filter(Boolean))];
+        console.log('👨‍🏫 [ClassSchedule] Found instructor emails:', instructorEmails);
+        
         const instructorPromises = instructorEmails.map(async (email) => {
           try {
+            console.log(`🔍 [ClassSchedule] Fetching instructor data for: ${email}`);
             const userRes = await getUserByEmail(email);
-            return { email, data: userRes.success ? userRes.data : null };
+            const instructorData = userRes.success ? userRes.data : null;
+            console.log(`📋 [ClassSchedule] Instructor data for ${email}:`, instructorData);
+            return { email, data: instructorData };
           } catch (error) {
             console.warn(`Failed to fetch instructor for email: ${email}`, error);
             return { email, data: null };
@@ -326,9 +353,18 @@ const ClassSchedulePage = () => {
         const instructorMap = {};
         instructorResults.forEach(({ email, data }) => {
           if (data) {
-            instructorMap[email] = data;
+            // Ensure we have the full user object with all fields
+            instructorMap[email] = {
+              ...data,
+              email: email // Ensure email is included
+            };
+            console.log(`✅ [ClassSchedule] Mapped instructor: ${email} ->`, data.displayName || data.realName || 'No name');
+          } else {
+            console.warn(`❌ [ClassSchedule] No data found for instructor: ${email}`);
           }
         });
+        
+        console.log('🎯 [ClassSchedule] Final instructor map:', instructorMap);
         setInstructors(instructorMap);
       } else {
         throw new Error(classesRes.error);
@@ -515,7 +551,7 @@ const ClassSchedulePage = () => {
                   cursor: 'pointer'
                 }}
               >
-                {getThemedIcon('ui', 'list', 16, theme)}
+                {getThemedIcon('ui', 'list', 16, viewMode === 'detailed' ? 'white' : theme)}
               </button>
               <button
                 onClick={() => setViewMode('semester')}
@@ -530,7 +566,7 @@ const ClassSchedulePage = () => {
                   cursor: 'pointer'
                 }}
               >
-                {getThemedIcon('ui', 'calendar', 16, theme)}
+                {getThemedIcon('ui', 'calendar', 16, viewMode === 'semester' ? 'white' : theme)}
               </button>
             </div>
 
@@ -553,21 +589,6 @@ const ClassSchedulePage = () => {
               }}
             />
           </div>
-
-          {/* Right side - External Page Icon */}
-          <Tooltip content={t('open_in_separate_page') || 'Open in separate page for focused view'}>
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={getThemedIcon('ui', 'maximize', 14, theme)}
-              onClick={() => window.open('/class-schedules', '_blank')}
-              style={{ 
-                padding: '0.5rem',
-                minWidth: 'auto',
-                height: '32px'
-              }}
-            />
-          </Tooltip>
         </div>
 
         {/* Filter Row - ProgramsSelect spans full row */}
@@ -650,6 +671,8 @@ const ClassSchedulePage = () => {
                   firstName: instructors[cls.ownerEmail].firstName,
                   lastName: instructors[cls.ownerEmail].lastName,
                   displayName: instructors[cls.ownerEmail].displayName,
+                  realName: instructors[cls.ownerEmail].realName,
+                  email: instructors[cls.ownerEmail].email,
                   messageColor: instructors[cls.ownerEmail].messageColor
                 } : null
               };
@@ -846,17 +869,17 @@ const ClassSchedulePage = () => {
         {/* Schedule Editor */}
         <div style={{ padding: '1.5rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
           {!selectedClass ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>
               {getThemedIcon('ui', 'calendar', 48, theme)}
-              <div>{t('select_class') || 'Select a class to configure schedule'}</div>
+              <div>{t('select_class_to_configure_schedule') || 'Select a class to configure schedule'}</div>
             </div>
           ) : (
             <>
               <div style={{ marginBottom: 24 }}>
-                <h2 style={{ margin: 0, fontSize: 20 }}>{selectedClass.name || selectedClass.code}</h2>
+                <h2 style={{ margin: 0, fontSize: 20 }}>{getLocalizedClassName(selectedClass)}</h2>
                 <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                  {selectedClass.term && `Term: ${selectedClass.term}`}
-                  {selectedClass.year && ` • Year: ${selectedClass.year}`}
+                  {selectedClass.term && `${t('term') || 'Term'}: ${selectedClass.term}`}
+                  {selectedClass.year && ` • ${t('year') || 'Year'}: ${selectedClass.year}`}
                 </div>
               </div>
 
@@ -899,6 +922,7 @@ const ClassSchedulePage = () => {
                     const maxDays = frequencyOptions.find(f => f.value === schedule.frequency)?.days || 1;
                     const canSelect = isSelected || schedule.days.length < maxDays;
                     return (
+                      <Tooltip content={t(`day_${dayOption.value.toLowerCase()}`) || dayOption.label}>
                       <button
                         key={dayOption.value}
                         onClick={() => canSelect && toggleDay(dayOption.value)}
@@ -913,13 +937,19 @@ const ClassSchedulePage = () => {
                           fontSize: 12,
                           cursor: canSelect ? 'pointer' : 'not-allowed',
                           opacity: canSelect ? 1 : 0.5,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
                           '&:hover': {
                             background: isSelected ? primaryColor : (theme === 'dark' ? '#374151' : '#f9fafb')
                           }
                         }}
                       >
+                        {isSelected && getThemedIcon('ui', 'check', 12, 'white')}
                         {dayOption.label}
                       </button>
+                      </Tooltip>
                     );
                   })}
                 </div>
@@ -941,12 +971,16 @@ const ClassSchedulePage = () => {
                 </div>
                 <div>
                   <label style={{ display: 'none' }}>{t('duration') || 'Duration (minutes)'}</label>
-                  <FilterSelect
-                    filterKey="duration"
+                  <Select
+                    searchable
+                    placeholder={t('select_duration') || 'Select Duration'}
                     value={schedule.duration}
-                    onChange={(value) => setSchedule({ ...schedule, duration: parseInt(value) })}
-                    data={durationOptions}
-                    additionalPlaceholderText={t('select_duration') || 'Select Duration'}
+                    onChange={(e) => setSchedule({ ...schedule, duration: parseInt(e.target.value) })}
+                    options={durationOptions.map(duration => ({ 
+                      value: duration, 
+                      label: `${duration} minutes` 
+                    }))}
+                    fullWidth
                   />
                 </div>
               </div>
@@ -962,7 +996,7 @@ const ClassSchedulePage = () => {
                     style={{ flex: 1, padding: '0.5rem', border: '1px solid #f59e0b', borderRadius: 6, fontSize: 13, background: theme === 'dark' ? '#1f2937' : '#fff', color: theme === 'dark' ? '#f9fafb' : 'inherit' }}
                   />
                   <button onClick={addHoliday} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: 6, background: '#f59e0b', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {getThemedIcon('ui', 'add', 16, theme)} Add
+                    {getThemedIcon('ui', 'add', 16, theme)} {t('add') || 'Add'}
                   </button>
                 </div>
                 <div style={{ display: 'grid', gap: 6 }}>
@@ -974,7 +1008,7 @@ const ClassSchedulePage = () => {
                       </button>
                     </div>
                   ))}
-                  {schedule.holidays.length === 0 && <div style={{ fontSize: 12, color: '#92400e', fontStyle: 'italic' }}>No holidays marked</div>}
+                  {schedule.holidays.length === 0 && <div style={{ fontSize: 12, color: '#92400e', fontStyle: 'italic' }}>{t('no_holidays_marked') || 'No holidays marked'}</div>}
                 </div>
               </div>
 
@@ -989,7 +1023,7 @@ const ClassSchedulePage = () => {
                     style={{ flex: 1, padding: '0.5rem', border: '1px solid #ef4444', borderRadius: 6, fontSize: 13, background: theme === 'dark' ? '#1f2937' : '#fff', color: theme === 'dark' ? '#f9fafb' : 'inherit' }}
                   />
                   <button onClick={addAbsent} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: 6, background: '#ef4444', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {getThemedIcon('ui', 'add', 16, theme)} Add
+                    {getThemedIcon('ui', 'add', 16, theme)} {t('add') || 'Add'}
                   </button>
                 </div>
                 <div style={{ display: 'grid', gap: 6 }}>
@@ -1001,7 +1035,7 @@ const ClassSchedulePage = () => {
                       </button>
                     </div>
                   ))}
-                  {schedule.instructorAbsent.length === 0 && <div style={{ fontSize: 12, color: '#991b1b', fontStyle: 'italic' }}>No absent days marked</div>}
+                  {schedule.instructorAbsent.length === 0 && <div style={{ fontSize: 12, color: '#991b1b', fontStyle: 'italic' }}>{t('no_absent_days_marked') || 'No absent days marked'}</div>}
                 </div>
               </div>
 
@@ -1026,7 +1060,7 @@ const ClassSchedulePage = () => {
                 }}
               >
                 {getThemedIcon('ui', 'save', 20, theme)}
-                {saving ? 'Saving...' : 'Save Schedule'}
+                {saving ? (t('saving') || 'Saving...') : (t('save_schedule') || 'Save Schedule')}
               </button>
             </>
           )}
@@ -1095,6 +1129,7 @@ const ClassSchedulePage = () => {
                 }}>
                   {semesterClasses.map((cls, index) => {
                     const clsId = cls.docId || cls.id;
+                    
                     // Add instructor data to the class object for the ClassCard
                     const clsWithInstructor = {
                       ...cls,
@@ -1102,6 +1137,8 @@ const ClassSchedulePage = () => {
                         firstName: instructors[cls.ownerEmail].firstName,
                         lastName: instructors[cls.ownerEmail].lastName,
                         displayName: instructors[cls.ownerEmail].displayName,
+                        realName: instructors[cls.ownerEmail].realName,
+                        email: instructors[cls.ownerEmail].email,
                         messageColor: instructors[cls.ownerEmail].messageColor
                       } : null
                     };
