@@ -76,8 +76,20 @@ const SimpleLoading = ({
 };
 
 // Brand-only fullscreen (no message) - Used by GlobalLoadingContext
-SimpleLoading.BrandFullscreen = (props) => (
-  <SimpleLoading fullscreen loading type="brand" size="lg" {...props} />
+SimpleLoading.BrandFullscreen = ({ message = '', ...props }) => (
+  <SimpleLoading fullscreen loading type="brand" size="lg" {...props}>
+    {message && (
+      <div style={{
+        marginTop: '1rem',
+        fontSize: '1rem',
+        fontWeight: '500',
+        color: 'var(--text-primary, #374151)',
+        textAlign: 'center'
+      }}>
+        {message}
+      </div>
+    )}
+  </SimpleLoading>
 );
 
 // Brand-only overlay (no message) - Used by legacy or specific overlay needs

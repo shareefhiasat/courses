@@ -115,21 +115,21 @@ export const ROUTE_TO_SCREEN_MAP = {
     category: 'attendance',
     icon: 'user_check'
   },
-  '/hr-penalties': {
-    screenId: 'hrPenalties',
-    path: '/hr-penalties',
+  '/penalty': {
+    screenId: 'penalty',
+    path: '/penalty',
     category: 'attendance',
     icon: 'alert_triangle'
   },
-  '/instructor-participation': {
-    screenId: 'instructorParticipation',
-    path: '/instructor-participation',
+  '/participation': {
+    screenId: 'participation',
+    path: '/participation',
     category: 'attendance',
     icon: 'user_plus'
   },
-  '/instructor-behavior': {
-    screenId: 'instructorBehavior',
-    path: '/instructor-behavior',
+  '/behavior': {
+    screenId: 'behavior',
+    path: '/behavior',
     category: 'attendance',
     icon: 'smile'
   },

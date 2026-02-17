@@ -169,23 +169,23 @@ export const SCREEN_DEFINITIONS = {
     group: SCREEN_GROUPS.ATTENDANCE,
     descriptionKey: 'my_attendance_student_description'
   },
-  hrPenalties: {
-    id: 'hrPenalties',
-    nameKey: 'hr_penalties',
+  penalty: {
+    id: 'penalty',
+    nameKey: 'penalty',
     group: SCREEN_GROUPS.ATTENDANCE,
-    descriptionKey: 'hr_penalties_description'
+    descriptionKey: 'penalty_description'
   },
-  instructorParticipation: {
-    id: 'instructorParticipation',
-    nameKey: 'instructor_participation',
+  participation: {
+    id: 'participation',
+    nameKey: 'participation',
     group: SCREEN_GROUPS.ATTENDANCE,
-    descriptionKey: 'instructor_participation_description'
+    descriptionKey: 'participation_description'
   },
-  instructorBehavior: {
-    id: 'instructorBehavior',
-    nameKey: 'instructor_behavior',
+  behavior: {
+    id: 'behavior',
+    nameKey: 'behavior',
     group: SCREEN_GROUPS.ATTENDANCE,
-    descriptionKey: 'instructor_behavior_description'
+    descriptionKey: 'behavior_description'
   },
   
   // ANALYTICS

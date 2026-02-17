@@ -45,13 +45,14 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   z-index: 99999;
 }
 
 [data-theme="dark"] .simple-loading--fullscreen {
-  background: rgba(11, 18, 32, 0.95);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 /* Content wrapper */

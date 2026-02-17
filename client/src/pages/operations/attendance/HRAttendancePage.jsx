@@ -2,23 +2,24 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { Button, Select, SimpleLoading, DatePicker } from '@ui';
+import { Button, Select, DatePicker } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { getAttendanceStats, getAttendanceMarksForExport } from '@services/business/attendanceService';
-import { getUsers } from '@services/business/userService';
+import { getUsers, getUserById } from '@services/business/userService';
 
 const HRAttendancePage = () => {
   const { user, isHR, isAdmin, loading: authLoading } = useAuth();
   const { t } = useLang();
   const { theme } = useTheme();
+  const { startLoading } = useGlobalLoading();
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [marks, setMarks] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   const [programFilter, setProgramFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
@@ -54,7 +55,7 @@ const HRAttendancePage = () => {
   }, []);
 
   const loadSessions = useCallback(async () => {
-    setLoading(true);
+    const stopLoading = startLoading({ message: t('loading_attendance_sessions') || 'Loading attendance sessions...' });
     try {
       // Use attendance service to get attendance data
       const attendanceResult = await getAttendanceStats();
@@ -224,7 +225,7 @@ const HRAttendancePage = () => {
     } catch (e) {
       logger.error('[HR] Error loading sessions:', e);
     } finally {
-      setLoading(false);
+      stopLoading();
     }
   }, [programFilter, subjectFilter, classFilter, yearFilter, termFilter, dateFrom, dateTo, classes, subjects]);
 
@@ -234,7 +235,7 @@ const HRAttendancePage = () => {
   }, [loadSessions]);
 
   const loadMarks = async (sessionId) => {
-    setLoading(true);
+    const stopLoading = startLoading({ message: t('loading_attendance_marks') || 'Loading attendance marks...' });
     try {
       const result = await getAttendanceMarksForExport(sessionId);
       let data = result.success ? result.data : [];
@@ -269,7 +270,7 @@ const HRAttendancePage = () => {
     } catch (e) {
       logger.error('[HR] Error loading marks:', e);
     } finally {
-      setLoading(false);
+      stopLoading();
     }
   };
 
@@ -635,9 +636,8 @@ const HRAttendancePage = () => {
 
               {/* Marks Table */}
               <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-                {loading && <SimpleLoading loading type="spinner" size="md" />}
-                {!loading && marks.length === 0 && <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--muted)' }}>{t('no_marks') || 'No attendance records'}</div>}
-                {!loading && (
+                {marks.length === 0 && <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--muted)' }}>{t('no_marks') || 'No attendance records'}</div>}
+                {marks.length > 0 && (
                 <div style={{ display: 'grid', gap: 6 }}>
                   {marks.map((mark, idx) => {
                     const isEditing = editingMark?.uid === mark.uid;

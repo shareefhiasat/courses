@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -18,10 +18,26 @@ const UnauthorizedPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { user, role } = useAuth();
+  const { user, role, isSuperAdmin, loading } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+
+  // Debug logging
+  console.log('🔍 [UnauthorizedPage] Current auth state:', {
+    user: user ? { email: user.email, uid: user.uid } : null,
+    role,
+    isSuperAdmin,
+    loading
+  });
+
+  // If user is super admin and auth is loaded, redirect to dashboard
+  useEffect(() => {
+    if (!loading && user && isSuperAdmin) {
+      console.log('🔍 [UnauthorizedPage] Super admin detected, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [loading, user, isSuperAdmin, navigate]);
 
   // Get the page they tried to access
   const backUrl = searchParams.get('backUrl') || location.state?.from || '/';

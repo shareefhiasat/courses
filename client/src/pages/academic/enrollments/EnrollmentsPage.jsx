@@ -267,7 +267,14 @@ const EnrollmentsPage = () => {
                   alignItems: 'center', 
                   justifyContent: 'center' 
                 }}>
-                  <SimpleLoading />
+                  <div className="simple-loading__spinner" style={{ width: '32px', height: '32px' }}>
+                    <div className="simple-loading__spinner-circle" style={{ 
+                      width: '32px', 
+                      height: '32px', 
+                      borderWidth: '3px',
+                      borderTopColor: 'var(--primary, #800020)'
+                    }}></div>
+                  </div>
                 </div>
               </div>
             )}
@@ -490,7 +497,14 @@ const EnrollmentsPage = () => {
                     justifyContent: 'center',
                     margin: '0 auto'
                   }}>
-                    <SimpleLoading />
+                    <div className="simple-loading__spinner" style={{ width: '32px', height: '32px' }}>
+                      <div className="simple-loading__spinner-circle" style={{ 
+                        width: '32px', 
+                        height: '32px', 
+                        borderWidth: '3px',
+                        borderTopColor: 'var(--primary, #800020)'
+                      }}></div>
+                    </div>
                   </div>
                 </div>
               ) : filteredStudents.length === 0 ? (
@@ -534,7 +548,14 @@ const EnrollmentsPage = () => {
                             alignItems: 'center', 
                             justifyContent: 'center' 
                           }}>
-                            <SimpleLoading />
+                            <div className="simple-loading__spinner" style={{ width: '16px', height: '16px' }}>
+                              <div className="simple-loading__spinner-circle" style={{ 
+                                width: '16px', 
+                                height: '16px', 
+                                borderWidth: '2px',
+                                borderTopColor: 'currentColor'
+                              }}></div>
+                            </div>
                           </div>
                         ) : (
                           student.isDisabled ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)

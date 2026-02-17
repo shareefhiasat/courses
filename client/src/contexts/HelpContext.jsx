@@ -385,8 +385,8 @@ export const HelpProvider = ({ children }) => {
       ]
     };
     
-    // HR Penalties help content
-    content['/hr-penalties'] = {
+    // Penalty help content
+    content['/penalty'] = {
       title: '', // No title
       content: [
         {
@@ -444,8 +444,8 @@ export const HelpProvider = ({ children }) => {
       ]
     };
     
-    // Instructor Behavior help content
-    content['/instructor-behavior'] = {
+    // Behavior help content
+    content['/behavior'] = {
       title: t('behavior_help_title') || 'Behavior Management',
       content: [
         {
@@ -464,8 +464,8 @@ export const HelpProvider = ({ children }) => {
       ]
     };
     
-    // Instructor Participation help content
-    content['/instructor-participation'] = {
+    // Participation help content
+    content['/participation'] = {
       title: t('participation_help_title') || 'Participation Management',
       content: [
         {
@@ -1047,9 +1047,9 @@ export const HelpProvider = ({ children }) => {
       ]
     };
 
-    // HR Penalties Dashboard Tab Help
-    content['/dashboard?tab=hr-penalties'] = {
-      title: t('hr_penalties_help_title') || 'HR Penalties Help',
+    // Penalty Dashboard Tab Help
+    content['/dashboard?tab=penalty'] = {
+      title: t('penalty_help_title') || 'Penalty Help',
       content: [
         {
           title: t('penalty_rules') || 'Penalty Rules',
@@ -1074,9 +1074,9 @@ export const HelpProvider = ({ children }) => {
       ]
     };
 
-    // Instructor Participation Dashboard Tab Help
-    content['/dashboard?tab=instructor-participation'] = {
-      title: t('participation_help_title') || 'Instructor Participation Help',
+    // Participation Dashboard Tab Help
+    content['/dashboard?tab=participation'] = {
+      title: t('participation_help_title') || 'Participation Help',
       content: [
         {
           title: t('participation_rules') || 'Participation Types',
@@ -1089,9 +1089,9 @@ export const HelpProvider = ({ children }) => {
       ]
     };
 
-    // Instructor Behavior Dashboard Tab Help
-    content['/dashboard?tab=instructor-behavior'] = {
-      title: t('behavior_help_title') || 'Instructor Behavior Help',
+    // Behavior Dashboard Tab Help
+    content['/dashboard?tab=behavior'] = {
+      title: t('behavior_help_title') || 'Behavior Help',
       content: [
         {
           title: t('behavior_rules') || 'Behavior Types',
@@ -1153,12 +1153,12 @@ export const HelpProvider = ({ children }) => {
       if (!help) {
         logger.warn(`[HelpContext] No specific help content found for dashboard tab: ${tab}`);
         // Try to find help for similar tabs
-        if (tab === 'hr-penalties') {
-          help = helpContent['/dashboard?tab=hr-penalties'] || helpContent['/hr-penalties'];
-        } else if (tab === 'instructor-participation') {
-          help = helpContent['/dashboard?tab=instructor-participation'] || helpContent['/instructor-participation'];
-        } else if (tab === 'instructor-behavior') {
-          help = helpContent['/dashboard?tab=instructor-behavior'] || helpContent['/instructor-behavior'];
+        if (tab === 'penalty') {
+          help = helpContent['/dashboard?tab=penalty'] || helpContent['/penalty'];
+        } else if (tab === 'participation') {
+          help = helpContent['/dashboard?tab=participation'] || helpContent['/participation'];
+        } else if (tab === 'behavior') {
+          help = helpContent['/dashboard?tab=behavior'] || helpContent['/behavior'];
         }
       }
     } else if (pathname === '/dashboard') {
@@ -1168,9 +1168,9 @@ export const HelpProvider = ({ children }) => {
     } else {
       // Case 3: Other specific routes
       help = helpContent[pathname];
-      // Additional logic for parent routes like /hr-penalties if needed
-      if (!help && pathname.includes('/hr-')) {
-        help = helpContent['/hr-penalties'];
+      // Additional logic for parent routes like /penalty if needed
+      if (!help && pathname.includes('/penalty')) {
+        help = helpContent['/penalty'];
       }
     }
     // console.log(`[HelpContext] getHelpForRoute - Before final fallback: help =`, help);

@@ -70,6 +70,7 @@ const LogsActivityPage = () => {
   const [users, setUsers] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [deleteModal, setDeleteModal] = useState({ open: false });
+  const [loading, setLoading] = useState(false);
   const { startLoading } = useGlobalLoading();
 
   // Load data function

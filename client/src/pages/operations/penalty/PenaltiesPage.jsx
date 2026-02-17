@@ -193,6 +193,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [subjectFilter, setSubjectFilter] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [studentFilter, setStudentFilter] = useState('');
   const { startLoading } = useGlobalLoading();
 
   // Load data - classes, programs, subjects, enrollments

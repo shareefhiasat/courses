@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useLayoutEffect } from 'react';
+import React, { useEffect, useMemo, useState, useLayoutEffect, useCallback } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -16,6 +16,9 @@ import { useSearchParams } from 'react-router-dom';
 import { Container, Select } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { StudentQRCodeDisplay } from '@ui';
+import { getDoc, doc } from 'firebase/firestore';
+import { db } from '@services/other/config';
+import { FileText, Trophy, Flame, Clock } from 'lucide-react';
 import styles from './StudentProfilePage.module.css';
 
 const StudentProfilePage = () => {
@@ -455,7 +458,7 @@ const StudentProfilePage = () => {
 
     const loadData = async () => {
       try {
-        await loadStudentData();
+        await loadStudentProfile();
       } catch (error) {
         console.error('Error loading student data:', error);
       } finally {
@@ -468,7 +471,7 @@ const StudentProfilePage = () => {
     return () => {
       safeStop();
     };
-  }, [authLoading, user, loadStudentData, startLoading]);
+  }, [authLoading, user, startLoading]);
 
   if (!studentData) {
     return (

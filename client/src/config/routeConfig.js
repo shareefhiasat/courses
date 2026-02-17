@@ -190,23 +190,23 @@ export const ROUTE_CONFIG = {
       screenId: 'myAttendance',
       screenName: 'My Attendance'
     },
-    hrPenalties: {
-      path: '/hr-penalties',
+    penalty: {
+      path: '/penalty',
       requireAuth: true,
-      screenId: 'hrPenalties',
-      screenName: 'HR Penalties'
+      screenId: 'penalty',
+      screenName: 'Penalty'
     },
-    instructorParticipation: {
-      path: '/instructor-participation',
+    participation: {
+      path: '/participation',
       requireAuth: true,
-      screenId: 'instructorParticipation',
-      screenName: 'Instructor Participation'
+      screenId: 'participation',
+      screenName: 'Participation'
     },
-    instructorBehavior: {
-      path: '/instructor-behavior',
+    behavior: {
+      path: '/behavior',
       requireAuth: true,
-      screenId: 'instructorBehavior',
-      screenName: 'Instructor Behavior'
+      screenId: 'behavior',
+      screenName: 'Behavior'
     },
     qrScanner: {
       path: '/qr-scanner',

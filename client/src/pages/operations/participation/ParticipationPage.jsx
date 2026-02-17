@@ -8,7 +8,7 @@ import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Button, Select, SimpleLoading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect } from '@ui';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { DeleteModal, useDeleteModal } from '@ui';
-import { getPrograms, getSubjects, getSubject } from '@services/business/programService';
+import { getPrograms, getSubjects, getSubject, fetchProgram, fetchSubject } from '@services/business/programService';
 import { getClassById } from '@services/business/classService';
 import { getClasses } from '@services/business/classService';
 import { getEnrollments, getEnrollmentsByClass } from '@services/business/enrollmentService';
@@ -195,7 +195,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           subjects: subjectsData,
           filters: {},
           getUserById,
-          fetchClass,
+          getClassById,
           fetchSubject,
           fetchProgram,
           lang

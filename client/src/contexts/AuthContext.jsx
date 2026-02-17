@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { onAuthChange, signOutUser } from '@services/business/authService';
 import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@services/other/config';
@@ -330,6 +330,18 @@ export const AuthProvider = ({ children }) => {
         setIsSuperAdmin(!!superAdminFromDoc);
         setIsHR(hr);
         setIsInstructor(instructor);
+        
+        console.log('🔍 [AuthContext] Role detection results:', {
+          admin,
+          superAdminFromDoc,
+          hr,
+          instructor,
+          userProfileRole: profile?.role,
+          isSuperAdminField: profile?.isSuperAdmin,
+          isAdminField: profile?.isAdmin,
+          isHRField: profile?.isHR,
+          isInstructorField: profile?.isInstructor
+        });
         
         if (superAdminFromDoc) userRole = USER_ROLES.SUPER_ADMIN;
         else if (admin) userRole = USER_ROLES.ADMIN;

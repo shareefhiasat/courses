@@ -395,9 +395,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { path: '/review-results?mode=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: t('homework_results') || 'Homework Results' },
         { path: '/review-results?mode=training', icon: getThemedIcon('ui', 'activity', 18, theme), label: t('training_results') || 'Training Results' },
         { path: '/review-results?mode=labandproject', icon: getThemedIcon('ui', 'clipboard_list', 18, theme), label: t('lab_results') || 'Lab Results' },
-        { path: '/hr-penalties', icon: getThemedIcon('ui', 'alert_triangle', 18, theme), label: t('hr_penalties') || 'HR Penalties' },
-        { path: '/instructor-participation', icon: getThemedIcon('ui', 'award', 18, theme), label: t('participation') || 'Participation' },
-        { path: '/instructor-behavior', icon: getThemedIcon('ui', 'alert_circle', 18, theme), label: t('behavior') || 'Behavior' },
+        { path: '/penalty', icon: getThemedIcon('ui', 'alert_triangle', 18, theme), label: t('penalty') || 'Penalty' },
+        { path: '/participation', icon: getThemedIcon('ui', 'award', 18, theme), label: t('participation') || 'Participation' },
+        { path: '/behavior', icon: getThemedIcon('ui', 'alert_circle', 18, theme), label: t('behavior') || 'Behavior' },
       ]
     } : null,
     classes: {

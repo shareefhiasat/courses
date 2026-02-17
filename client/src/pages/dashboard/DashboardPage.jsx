@@ -24,7 +24,7 @@ const ActivitiesPage = lazy(() => import('../academic/activities/ActivitiesPage'
 const ScheduledReportsPage = lazy(() => import('../feedback/reports/ScheduledReportsPage'));
 const ProgramsManagementPage = lazy(() => import('../academic/programs/ProgramsManagementPage'));
 const SubjectsManagementPage = lazy(() => import('../academic/subjects/SubjectsManagementPage'));
-const EnrollmentsMarksPage = lazy(() => import('../academic/enrollments/grading/EnrollmentsMarksPage'));
+const MarksPage = lazy(() => import('../academic/enrollments/grading/MarksPage'));
 const ClassSchedulePage = lazy(() => import('../academic/classes/ClassSchedulePage'));
 const PenaltiesPage = lazy(() => import('../operations/penalty/PenaltiesPage'));
 const ParticipationPage = lazy(() => import('../operations/participation/ParticipationPage'));
@@ -87,19 +87,31 @@ const DashboardPage = () => {
     if (!tab) {
       return;
     }
-    // Check if this tab has a path (external navigation)
+    
+    // Start global loading for any tab change
     const tabItem = ribbonCategories
       .flatMap(cat => cat.items)
       .find(item => item.key === tab);
+    const tabLabel = tabItem?.label || t('loading') || 'Loading';
+    
+    const stopLoading = startLoading({ 
+      message: t('loading_tab') ? `${t('loading_tab')} ${tabLabel}` : `Loading ${tabLabel}...` 
+    });
+    
+    // Check if this tab has a path (external navigation)
     if (tabItem?.path) {
       navigate(tabItem.path);
+      stopLoading();
       return;
     }
     setActiveTab(tab);
     localStorage.setItem('dashboardActiveTab', tab);
     setHashProcessed(false); // Reset hash processed flag when tab changes manually
+    
+    // Stop loading after a short delay to allow lazy components to load
+    setTimeout(() => stopLoading(), 500);
     // Tabs that should update the URL with query parameters
-    const queryParamTabs = [MODE_TYPES.ACTIVITIES, MODE_TYPES.ANNOUNCEMENTS, MODE_TYPES.RESOURCES, 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'classschedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'notificationLogs', 'scheduled-reports', 'categories', 'logging'];
+    const queryParamTabs = [MODE_TYPES.ACTIVITIES, MODE_TYPES.ANNOUNCEMENTS, MODE_TYPES.RESOURCES, 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'classschedule', 'penalty', 'participation', 'behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'notificationLogs', 'scheduled-reports', 'categories', 'logging'];
     if (queryParamTabs.includes(tab)) {
       const searchParams = new URLSearchParams(location.search);
       searchParams.set('tab', tab);
@@ -139,7 +151,7 @@ const DashboardPage = () => {
         source
       });
     }
-  }, [navigate, location, t]);
+  }, [navigate, location, t, startLoading]);
 
   // Upload default email templates to Firestore (smart upload - only missing templates)
   const uploadDefaultEmailTemplates = useCallback(async () => {
@@ -235,9 +247,9 @@ const DashboardPage = () => {
         { key: 'marks', label: t('mark_entry') },
         { key: 'classschedule', label: t('class_schedules') },
         // { key: 'submissions', label: t('submissions') },
-        { key: 'hr-penalties', label: t('hr_penalties') },
-        { key: 'instructor-participation', label: t('participation') },
-        { key: 'instructor-behavior', label: t('behavior') }
+        { key: 'penalty', label: t('penalty') },
+        { key: 'participation', label: t('participation') },
+        { key: 'behavior', label: t('behavior') }
       ]
     },
     {
@@ -386,7 +398,7 @@ const DashboardPage = () => {
     />
   </div>
         {/* Summary Cards with Filters */}
-        <Suspense fallback={<SimpleLoading loading type="spinner" size="md" />}>
+        <Suspense fallback={<SimpleLoading loading={true} type="spinner" size="md" />}>
            <AnalyticsDashboardPage />
          </Suspense>
 
@@ -400,7 +412,7 @@ const DashboardPage = () => {
                <InfoTooltip contentKey={`help.${activeTab}`} />
              </div>
            </div>
-        <Suspense fallback={<SimpleLoading loading type="spinner" size="md" />}>
+        <Suspense fallback={<SimpleLoading loading={true} type="spinner" size="md" />}>
           {activeTab === MODE_TYPES.ACTIVITIES && (
             <ActivitiesPage />
           )}
@@ -414,7 +426,7 @@ const DashboardPage = () => {
             <SubjectsManagementPage />
           )}
           {activeTab === 'marks' && (isSuperAdmin || isAdmin || isInstructor) && (
-            <EnrollmentsMarksPage />
+            <MarksPage />
           )}
           {activeTab === 'classschedule' && (isSuperAdmin || isAdmin || isInstructor) && (
             <ClassSchedulePage />
@@ -424,14 +436,14 @@ const DashboardPage = () => {
           )}
         </Suspense>
         
-        <Suspense fallback={<SimpleLoading loading type="spinner" size="md" />}>
-          {activeTab === 'hr-penalties' && (isSuperAdmin || isAdmin || isInstructor) && (
+        <Suspense fallback={<SimpleLoading loading={true} type="spinner" size="md" />}>
+          {activeTab === 'penalty' && (isSuperAdmin || isAdmin || isInstructor) && (
             <PenaltiesPage />
           )}
-          {activeTab === 'instructor-participation' && (isSuperAdmin || isAdmin || isInstructor) && (
+          {activeTab === 'participation' && (isSuperAdmin || isAdmin || isInstructor) && (
             <ParticipationPage />
           )}
-          {activeTab === 'instructor-behavior' && (isSuperAdmin || isAdmin || isInstructor) && (
+          {activeTab === 'behavior' && (isSuperAdmin || isAdmin || isInstructor) && (
             <BehaviorPage />
           )}
           {activeTab === 'scheduled-reports' && (isSuperAdmin || isAdmin) && (

@@ -132,11 +132,13 @@ export const useRoleAccess = () => {
   const hasAccess = useCallback((screenId) => {
     // Not authenticated
     if (!user || !role) {
+      console.log('🔍 [useRoleAccess] No user or role:', { user: !!user, role });
       return false;
     }
 
     // Super admins bypass all restrictions
     if (isSuperAdmin) {
+      console.log('🔍 [useRoleAccess] Super admin bypass for screen:', screenId);
       return true;
     }
 
@@ -159,6 +161,13 @@ export const useRoleAccess = () => {
     }
 
     const hasPermission = !!screenPermissions[screenId];
+    
+    console.log('🔍 [useRoleAccess] Final check:', {
+      screenId,
+      userRole,
+      hasPermission,
+      screenPermissions: screenPermissions
+    });
     
     return hasPermission;
   }, [user?.uid, role, isSuperAdmin, roleScreens]); // Only depend on user.uid, not entire user object

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, useLayoutEffect } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useLayoutEffect, useRef } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -15,7 +15,7 @@ import { getAllQuizzes } from '@services/business/quizService';
 import { getActivities } from '@services/business/activityService';
 import { getAnnouncements } from '@services/business/announcementService';
 import { getResources } from '@services/business/resourceService';
-import { FilterSelect, useToast, SimpleLoading } from '@ui';
+import { FilterSelect, useToast, SimpleLoading, Button, Select } from '@ui';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { ProgramsSelect } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -66,6 +66,12 @@ const ClassSchedulePage = () => {
   const [loading, setLoading] = useState(true);
   const [classSearchTerm, setClassSearchTerm] = useState('');
   const { startLoading } = useGlobalLoading();
+  const selectedClassRef = useRef(selectedClass);
+  
+  // Update ref when selectedClass changes
+  useEffect(() => {
+    selectedClassRef.current = selectedClass;
+  }, [selectedClass]);
 
   // Get localized day names using date utility
   const dayNames = getDayNames(t, getCurrentLanguage(t));
@@ -287,7 +293,7 @@ const ClassSchedulePage = () => {
     if (viewMode === 'semester' && classes.length > 0) {
       fetchClassStats(classes);
     }
-  }, [viewMode, classes, fetchClassStats]);
+  }, [viewMode, classes]);
 
   const loadClasses = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoading(true);
@@ -331,7 +337,7 @@ const ClassSchedulePage = () => {
       if (programsRes.success) setPrograms(programsRes.data || []);
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
 
-      const previouslySelectedId = selectedClass?.docId || selectedClass?.id;
+      const previouslySelectedId = selectedClassRef.current?.docId || selectedClassRef.current?.id;
       if (previouslySelectedId && classesRes.success) {
         const matching = classesRes.data.find(cls => (cls.docId || cls.id) === previouslySelectedId);
         if (matching) {
@@ -345,7 +351,7 @@ const ClassSchedulePage = () => {
     } finally {
       if (!isInitial) setLoading(false);
     }
-  }, [fetchClassStats, selectedClass]);
+  }, [fetchClassStats]);
 
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {
@@ -366,7 +372,7 @@ const ClassSchedulePage = () => {
     return () => {
       if (stopLoading) stopLoading();
     };
-  }, [user, isAdmin, isInstructor, startLoading, loadClasses, t]);
+  }, [user, isAdmin, isInstructor, startLoading, t]);
 
   const loadSchedule = (classData, options = {}) => {
     const safeClass = classData ? { ...classData, docId: classData.docId || classData.id, id: classData.id || classData.docId } : null;
@@ -481,63 +487,95 @@ const ClassSchedulePage = () => {
         borderRadius: 12 
       }}>
         <div style={{ 
-          display: 'flex', 
-          flexWrap: 'wrap', 
-          gap: 12, 
-          alignItems: 'center' 
+          marginBottom: '1rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 16
         }}>
-          {/* View Toggle */}
-          <div style={{ display: 'flex', gap: 4, background: theme === 'dark' ? '#1f2937' : '#f3f4f6', padding: 4, borderRadius: 8 }}>
-            <button
-              onClick={() => setViewMode('detailed')}
+          {/* Left side - View Toggle and Search */}
+          <div style={{ 
+            display: 'flex', 
+            gap: 12, 
+            alignItems: 'center',
+            flex: 1
+          }}>
+            {/* View Toggle */}
+            <div style={{ display: 'flex', gap: 4, background: theme === 'dark' ? '#1f2937' : '#f3f4f6', padding: 4, borderRadius: 8 }}>
+              <button
+                onClick={() => setViewMode('detailed')}
+                style={{
+                  padding: '0.5rem',
+                  border: 'none',
+                  borderRadius: 6,
+                  background: viewMode === 'detailed' ? primaryColor : 'transparent',
+                  color: viewMode === 'detailed' ? 'white' : (theme === 'dark' ? '#f9fafb' : '#111827'),
+                  fontWeight: 500,
+                  fontSize: '0.875rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {getThemedIcon('ui', 'list', 16, theme)}
+              </button>
+              <button
+                onClick={() => setViewMode('semester')}
+                style={{
+                  padding: '0.5rem',
+                  border: 'none',
+                  borderRadius: 6,
+                  background: viewMode === 'semester' ? primaryColor : 'transparent',
+                  color: viewMode === 'semester' ? 'white' : (theme === 'dark' ? '#f9fafb' : '#111827'),
+                  fontWeight: 500,
+                  fontSize: '0.875rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {getThemedIcon('ui', 'calendar', 16, theme)}
+              </button>
+            </div>
+
+            {/* Quick Search */}
+            <input
+              type="text"
+              placeholder={t('quick_search_class_instructor') || 'Quick search class or instructor...'}
+              value={quickSearch}
+              onChange={(e) => setQuickSearch(e.target.value)}
               style={{
-                padding: '0.5rem',
-                border: 'none',
-                borderRadius: 6,
-                background: viewMode === 'detailed' ? primaryColor : 'transparent',
-                color: viewMode === 'detailed' ? 'white' : (theme === 'dark' ? '#f9fafb' : '#111827'),
-                fontWeight: 500,
+                flex: 1,
+                minWidth: 200,
+                maxWidth: 300,
+                padding: '0.5rem 0.75rem',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
                 fontSize: '0.875rem',
-                cursor: 'pointer'
+                background: theme === 'dark' ? '#1f2937' : '#fff',
+                color: theme === 'dark' ? '#f9fafb' : '#111827'
               }}
-            >
-              {getThemedIcon('ui', 'list', 16, theme)}
-            </button>
-            <button
-              onClick={() => setViewMode('semester')}
-              style={{
-                padding: '0.5rem',
-                border: 'none',
-                borderRadius: 6,
-                background: viewMode === 'semester' ? primaryColor : 'transparent',
-                color: viewMode === 'semester' ? 'white' : (theme === 'dark' ? '#f9fafb' : '#111827'),
-                fontWeight: 500,
-                fontSize: '0.875rem',
-                cursor: 'pointer'
-              }}
-            >
-              {getThemedIcon('ui', 'calendar', 16, theme)}
-            </button>
+            />
           </div>
 
-          {/* Quick Search */}
-          <input
-            type="text"
-            placeholder={t('quick_search_class_instructor') || 'Quick search class or instructor...'}
-            value={quickSearch}
-            onChange={(e) => setQuickSearch(e.target.value)}
-            style={{
-              flex: 1,
-              minWidth: 200,
-              maxWidth: 300,
-              padding: '0.5rem 0.75rem',
-              border: '1px solid var(--border)',
-              borderRadius: 8,
-              fontSize: '0.875rem',
-              background: theme === 'dark' ? '#1f2937' : '#fff',
-              color: theme === 'dark' ? '#f9fafb' : '#111827'
-            }}
-          />
+          {/* Right side - External Page Icon */}
+          <Tooltip content={t('open_in_separate_page') || 'Open in separate page for focused view'}>
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={getThemedIcon('ui', 'maximize', 14, theme)}
+              onClick={() => window.open('/class-schedules', '_blank')}
+              style={{ 
+                padding: '0.5rem',
+                minWidth: 'auto',
+                height: '32px'
+              }}
+            />
+          </Tooltip>
+        </div>
+
+        {/* Filter Row - Using grid layout like Marks page */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', 
+          gap: 8 
+        }}>
 
           <ProgramsSelect
             programs={programs}
@@ -557,21 +595,29 @@ const ClassSchedulePage = () => {
             }}
             onClassChange={setClassFilter}
             showLabels={false}
-            style={{ minWidth: '300px', flex: 1 }}
+            fullWidth
           />
-          <FilterSelect
-            filterKey="years"
+          <Select
+            searchable
+            placeholder={t('all_years') || 'All years'}
             value={yearFilter}
-            onChange={setYearFilter}
-            data={availableYears}
-            additionalPlaceholderText={t('all_years') || 'All years'}
+            onChange={(e) => setYearFilter(e.target.value)}
+            options={[
+              { value: 'all', label: t('all_years') || 'All years' },
+              ...availableYears.map(year => ({ value: year, label: year }))
+            ]}
+            fullWidth
           />
-          <FilterSelect
-            filterKey="terms"
+          <Select
+            searchable
+            placeholder={t('all_terms') || 'All terms'}
             value={termFilter}
-            onChange={setTermFilter}
-            data={availableTerms}
-            additionalPlaceholderText={t('all_terms') || 'All terms'}
+            onChange={(e) => setTermFilter(e.target.value)}
+            options={[
+              { value: 'all', label: t('all_terms') || 'All terms' },
+              ...availableTerms.map(term => ({ value: term, label: term }))
+            ]}
+            fullWidth
           />
         </div>
       </div>

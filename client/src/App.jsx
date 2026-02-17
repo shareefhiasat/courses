@@ -79,7 +79,7 @@ if (typeof window !== 'undefined') {
 
 // Lazy loaded heavy components
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
-const EnrollmentsMarksPage = lazy(() => import('./pages/academic/enrollments/grading/EnrollmentsMarksPage'));
+const MarksPage = lazy(() => import('./pages/academic/enrollments/grading/MarksPage'));
 import './App.css';
 import './styles/colors.css';
 import './styles/theme.css';
@@ -279,27 +279,27 @@ const AppContent = () => {
           />
           
           <Route 
-            path="/hr-penalties" 
+            path="/penalty" 
             element={
-              <ProtectedRoute screenId="hrPenalties" screenName="HR Penalties">
+              <ProtectedRoute screenId="penalty" screenName="Penalty">
                 <PenaltiesPage />
               </ProtectedRoute>
             } 
           />
           
           <Route 
-            path="/instructor-participation" 
+            path="/participation" 
             element={
-              <ProtectedRoute screenId="instructorParticipation" screenName="Instructor Participation">
+              <ProtectedRoute screenId="participation" screenName="Participation">
                 <ParticipationPage />
               </ProtectedRoute>
             } 
           />
           
           <Route 
-            path="/instructor-behavior" 
+            path="/behavior" 
             element={
-              <ProtectedRoute screenId="instructorBehavior" screenName="Instructor Behavior">
+              <ProtectedRoute screenId="behavior" screenName="Behavior">
                 <BehaviorPage />
               </ProtectedRoute>
             } 
@@ -357,7 +357,7 @@ const AppContent = () => {
             path="/marks-entry" 
             element={
               <ProtectedRoute screenId="marksEntry" screenName="Marks Entry">
-                <EnrollmentsMarksPage />
+                <MarksPage />
               </ProtectedRoute>
             } 
           />
@@ -367,6 +367,15 @@ const AppContent = () => {
             element={
               <ProtectedRoute screenId="classSchedules" screenName="Schedule Overview">
                 <ScheduleOverviewPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/class-schedules" 
+            element={
+              <ProtectedRoute screenId="classSchedules" screenName="Class Schedules">
+                <ClassSchedulePage />
               </ProtectedRoute>
             } 
           />

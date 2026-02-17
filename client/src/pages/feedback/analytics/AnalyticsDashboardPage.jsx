@@ -2,9 +2,7 @@ import React, { useState, useEffect, memo, useLayoutEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
-import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
-import { CollapsibleDashboardSection } from '@ui';
-import { FilterSelect } from '@ui';
+import { CollapsibleDashboardSection, ProgramsSelect } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
 import { getResourceCount } from '@services/business/activityService';
@@ -36,7 +34,6 @@ const AnalyticsDashboardPage = () => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const { user, isAdmin, isSuperAdmin, isInstructor } = useAuth();
-  const { startLoading } = useGlobalLoading();
   
   // Local state for all data
   const [programs, setPrograms] = useState([]);
@@ -60,11 +57,10 @@ const AnalyticsDashboardPage = () => {
   
   // Load all data on component mount
   useLayoutEffect(() => {
-    let stopLoading = null;
-    
     const loadAllData = async () => {
-      // Start global loading immediately
-      stopLoading = startLoading({ message: t('loading_statistics') || 'Loading statistics...' });
+      if (!user) return; // Don't load data if user is not authenticated
+      
+      logger.log('🚀 [AnalyticsDashboardPage] Starting data load...');
       
       try {
         const [
@@ -93,6 +89,13 @@ const AnalyticsDashboardPage = () => {
           getParticipations()
         ]);
         
+        logger.log('📊 [AnalyticsDashboardPage] Data loaded:', {
+          programs: programsRes.success ? (programsRes.data || []).length : 'failed',
+          subjects: subjectsRes.success ? (subjectsRes.data || []).length : 'failed',
+          classes: classesRes.success ? (classesRes.data || []).length : 'failed',
+          enrollments: enrollmentsRes.success ? (enrollmentsRes.data || []).length : 'failed'
+        });
+        
         if (programsRes.success) setPrograms(programsRes.data || []);
         if (subjectsRes.success) setSubjects(subjectsRes.data || []);
         if (classesRes.success) setClasses(classesRes.data || []);
@@ -107,18 +110,11 @@ const AnalyticsDashboardPage = () => {
         
       } catch (error) {
         logger.error('🔍 [AnalyticsDashboardPage] Error loading data:', error);
-      } finally {
-        if (stopLoading) stopLoading();
       }
     };
     
     loadAllData();
-    
-    // Cleanup function to ensure loading stops if component unmounts
-    return () => {
-      if (stopLoading) stopLoading();
-    };
-  }, []);
+  }, [user]); // Add user dependency
 
   // Fetch resource count from server based on current filters
   useEffect(() => {
@@ -157,6 +153,21 @@ const AnalyticsDashboardPage = () => {
 
   // Safety check: ensure programs is an array
   const safePrograms = Array.isArray(programs) ? programs : [];
+  
+  // Log current state for debugging (only if auth is available)
+  if (user) {
+    logger.log('🔍 [AnalyticsDashboardPage] Current state:', {
+      programsCount: safePrograms.length,
+      subjectsCount: subjects.length,
+      classesCount: classes.length,
+      programFilter: enrollmentProgramFilter,
+      subjectFilter: enrollmentSubjectFilter,
+      classFilter: enrollmentClassFilter,
+      sampleProgram: safePrograms[0],
+      sampleSubject: subjects[0],
+      sampleClass: classes[0]
+    });
+  }
 
   return (
     <CollapsibleDashboardSection
@@ -167,54 +178,50 @@ const AnalyticsDashboardPage = () => {
       defaultMode="full"
       data-tour="stats"
       inlineFilters={
-        <div style={{ display: 'flex', gap: '0.15rem', alignItems: 'center' }}>
-          <FilterSelect
-            filterKey="programs"
-            value={enrollmentProgramFilter}
-            onChange={(value) => {
-              setEnrollmentProgramFilter(value);
-              setEnrollmentSubjectFilter('all');
-              setEnrollmentClassFilter('all');
-            }}
-            data={safePrograms}
-            style={{ minWidth: 80, maxWidth: 110 }}
-            size="small"
-          />
-          <FilterSelect
-            filterKey="subjects"
-            value={enrollmentSubjectFilter}
-            onChange={(value) => {
-              setEnrollmentSubjectFilter(value);
-              setEnrollmentClassFilter('all');
-            }}
-            data={subjects.filter(s => enrollmentProgramFilter === 'all' || s.programId === enrollmentProgramFilter)}
-            style={{ minWidth: 80, maxWidth: 110 }}
-            size="small"
-          />
-          <FilterSelect
-            filterKey="classes"
-            value={enrollmentClassFilter}
-            onChange={setEnrollmentClassFilter}
-            data={classes.filter(c => {
-              if (enrollmentProgramFilter !== 'all') {
-                const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-                return subject?.programId === enrollmentProgramFilter;
-              }
-              if (enrollmentSubjectFilter !== 'all') {
-                return c.subjectId === enrollmentSubjectFilter;
-              }
-              if (enrollmentClassFilter !== 'all') {
-                return (c.id || c.docId) === enrollmentClassFilter;
-              }
-              if (isInstructor && !isAdmin && !isSuperAdmin) {
-                return c.instructorId === user.uid || c.ownerEmail === user.email || c.instructor === user.email;
-              }
-              return true;
-            })}
-            style={{ minWidth: 80, maxWidth: 110 }}
-            size="small"
-          />
-        </div>
+        <ProgramsSelect
+          programs={safePrograms}
+          subjects={subjects}
+          classes={classes}
+          selectedProgram={enrollmentProgramFilter}
+          selectedSubject={enrollmentSubjectFilter}
+          selectedClass={enrollmentClassFilter}
+          onProgramChange={(value) => {
+            if (user) {
+              logger.log('🔄 [AnalyticsDashboardPage] Program filter changed:', {
+                oldValue: enrollmentProgramFilter,
+                newValue: value
+              });
+            }
+            setEnrollmentProgramFilter(value);
+            setEnrollmentSubjectFilter('all');
+            setEnrollmentClassFilter('all');
+          }}
+          onSubjectChange={(value) => {
+            if (user) {
+              logger.log('🔄 [AnalyticsDashboardPage] Subject filter changed:', {
+                oldValue: enrollmentSubjectFilter,
+                newValue: value,
+                programFilter: enrollmentProgramFilter
+              });
+            }
+            setEnrollmentSubjectFilter(value);
+            setEnrollmentClassFilter('all');
+          }}
+          onClassChange={(value) => {
+            if (user) {
+              logger.log('🔄 [AnalyticsDashboardPage] Class filter changed:', {
+                oldValue: enrollmentClassFilter,
+                newValue: value,
+                programFilter: enrollmentProgramFilter,
+                subjectFilter: enrollmentSubjectFilter
+              });
+            }
+            setEnrollmentClassFilter(value);
+          }}
+          showLabels={false}
+          className="flex-nowrap"
+          style={{ gap: '0.5rem' }}
+        />
       }
     >
       <div style={{ marginBottom: '1rem' }}>

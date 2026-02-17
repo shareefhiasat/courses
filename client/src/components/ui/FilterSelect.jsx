@@ -1,7 +1,8 @@
-﻿import React from 'react';
+import React from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getFilterConfig, generateFilterOptions, getFilterPlaceholder } from '@constants/filterConfig';
+import logger from '@utils/logger';
 
 /**
  * Reusable FilterSelect component with centralized configuration
@@ -21,23 +22,48 @@ const FilterSelect = ({
   const { t } = useLang();
   const { theme } = useTheme();
   
+  logger.log('🔍 [FilterSelect] Component render:', {
+    filterKey,
+    value,
+    dataLength: data?.length || 0,
+    fullWidth,
+    disabled,
+    className
+  });
+  
   const config = getFilterConfig(filterKey);
   
   if (!config) {
-    logger.warn(`Filter config not found for key: ${filterKey}`);
+    logger.error(`❌ [FilterSelect] Filter config not found for key: ${filterKey}`);
     return null;
   }
 
+  logger.log('🔍 [FilterSelect] Config found:', config);
+
   const options = generateFilterOptions(config, data, theme, t);
   const placeholder = getFilterPlaceholder(config, t, additionalPlaceholderText);
+
+  logger.log('🔍 [FilterSelect] Generated options:', {
+    optionsCount: options?.length || 0,
+    placeholder,
+    firstOption: options?.[0],
+    theme
+  });
 
   return (
     <div className={className}>
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          logger.log('🔄 [FilterSelect] onChange triggered:', {
+            oldValue: value,
+            newValue: e.target.value,
+            filterKey
+          });
+          onChange(e.target.value);
+        }}
         disabled={disabled}
-        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${fullWidth ? '' : 'inline-block'}`}
+        className={`px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${fullWidth ? 'w-full' : 'min-w-[100px] max-w-[150px]'}`}
         {...props}
       >
         <option value="">{placeholder}</option>

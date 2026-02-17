@@ -10,7 +10,6 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { USER_ROLES } from '@constants/userRoles';
 import { ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Card, CardBody, ConfirmModal } from '@ui';
-import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { QREmailModal, useQREmailModal } from '@ui';
 import { ProgramsSelect } from '@ui';
@@ -32,7 +31,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
   const { theme } = useTheme();
   const { user, isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
   const toast = useToast();
-  const { startLoading } = useGlobalLoading();
   
   // Page state
   const [pageState, setPageState] = useState(PAGE_STATES.LOADING);
@@ -142,28 +140,16 @@ const UsersPage = ({ isDashboardTab = false }) => {
       toast?.showError('Failed to load data: ' + error.message);
       setPageState(PAGE_STATES.ERROR);
     }
-  }, [isAdmin, isSuperAdmin, toast]);
+  }, [isAdmin, isSuperAdmin]);
 
-  // Use GlobalLoading for initial data load
+  // Simple initial load without global loading (dashboard tabs handle it)
   useLayoutEffect(() => {
     if (authLoading) return;
     if (!user) return;
     if (!isAdmin && !isSuperAdmin) return;
 
-    let stopLoading = null;
-
-    const initialLoad = async () => {
-      stopLoading = startLoading({ message: t('loading_users') || 'Loading users...' });
-      await loadData(true);
-      if (stopLoading) stopLoading();
-    };
-
-    initialLoad();
-
-    return () => {
-      if (stopLoading) stopLoading();
-    };
-  }, [authLoading, user, isAdmin, isSuperAdmin, startLoading, loadData, t]);
+    loadData(true);
+  }, [authLoading, user?.uid, isAdmin, isSuperAdmin, loadData]);
 
   // Handler functions - must be defined before gridColumns
   const handleEditUser = useCallback((user) => {
