@@ -290,7 +290,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 <NotificationBell />
 
                 <button
-                  className="nav-icon-btn"
+                  className="nav-icon-btn nav-help"
                   onClick={toggleLang}
                   title={lang === 'en' ? 'العربية' : 'English'}
                   aria-label={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}
@@ -304,12 +304,10 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
-                    color: theme === 'light' ? 'var(--text-primary)' : '#fff',
-                    fontSize: '0.75rem',
-                    fontWeight: 600
+                    color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
                 >
-                  {lang === 'en' ? 'EN' : 'AR'}
+                  {lang === 'en' ? getThemedIcon('ui', 'globe', 16, theme === 'light' ? 'var(--text-primary)' : theme) : getThemedIcon('ui', 'globe2', 16, theme === 'light' ? 'var(--text-primary)' : theme)}
                 </button>
 
                 <button

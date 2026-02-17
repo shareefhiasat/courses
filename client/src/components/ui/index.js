@@ -119,4 +119,5 @@ export { default as StreakWidget } from './StreakWidget';
 
 // Special Components
 export { default as DraggableClock } from './DraggableClock';
+export { default as LoadingProgress } from './LoadingProgress/LoadingProgress';
 

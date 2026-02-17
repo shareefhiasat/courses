@@ -1,0 +1,117 @@
+/* Modern Loading Progress Bar */
+.progressContainer {
+  position: fixed;
+  bottom: 0; /* Changed from top: 0 to bottom: 0 */
+  left: 0;
+  right: 0;
+  height: 8px; /* Increased height for better visibility */
+  background: rgba(255, 215, 0, 0.3); /* More visible gold background */
+  z-index: 99999; /* Increased z-index to be above everything */
+  overflow: hidden;
+  box-shadow: 0 -4px 8px rgba(255, 215, 0, 0.4); /* Shadow pointing up */
+  border-top: 2px solid #FFD700; /* Changed to top border */
+}
+
+.progressBar {
+  height: 100%;
+  width: 0%;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(90deg, 
+    #FFD700 0%, /* Bright gold for testing */
+    #FFA500 50%, /* Orange gold */
+    #FFD700 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.progressGlow {
+  position: absolute;
+  top: 0;
+  width: 30px; /* Increased size */
+  height: 100%;
+  background: #FFD700; /* Bright gold for testing */
+  border-radius: 50%;
+  filter: blur(12px); /* Increased blur for more glow */
+  opacity: 1; /* Full opacity for testing */
+  transform: translateX(-50%);
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: pulse 1.5s infinite;
+  box-shadow: 0 0 20px #FFD700; /* Add extra glow shadow */
+}
+
+/* Shimmer animation for the progress bar */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Pulse animation for the glow effect */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.8;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.2);
+  }
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .progressContainer {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Smooth fade out when loading completes */
+.progressContainer.fade-out {
+  animation: fadeOut 0.3s ease-out forwards;
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .progressContainer {
+    height: 2px;
+  }
+  
+  .progressGlow {
+    width: 15px;
+    filter: blur(6px);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .progressContainer {
+    height: 4px;
+    background: rgba(0, 0, 0, 0.3);
+  }
+  
+  .progressBar {
+    background: var(--color-primary, var(--primary-maroon, #800020));
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .progressBar {
+    animation: none;
+  }
+  
+  .progressGlow {
+    animation: none;
+  }
+}

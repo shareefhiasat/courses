@@ -1,7 +1,7 @@
 /* CollapsibleDashboardSection.module.css */
 
 :root {
-  --section-color: #6366f1;
+  --section-color: var(--color-primary, var(--primary-maroon, #800020));
   --section-bg: #ffffff;
   --section-border: #e5e7eb;
   --section-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -55,7 +55,7 @@
 
 .fullSection:hover {
   box-shadow: var(--section-hover-shadow);
-  border-color: var(--section-color, #6366f1);
+  border-color: var(--section-color);
 }
 
 .fullHeader {
@@ -89,7 +89,7 @@
 
 .fullSection:hover .headerIcon {
   transform: scale(1.1);
-  box-shadow: 0 2px 8px var(--color, #6366f1);
+  box-shadow: 0 2px 8px var(--section-color);
 }
 
 .headerInfo {
@@ -151,7 +151,7 @@
 }
 
 .modeToggle:hover {
-  background: var(--color, #6366f1);
+  background: var(--section-color);
   color: white;
   transform: scale(1.05);
 }
@@ -190,12 +190,12 @@
 }
 
 .modeMenu button:hover {
-  background: var(--color, #6366f1);
+  background: var(--section-color);
   color: white;
 }
 
 .modeMenu button.active {
-  background: var(--color, #6366f1);
+  background: var(--section-color);
   color: white;
 }
 
@@ -216,7 +216,7 @@
 
 .compactSection:hover {
   box-shadow: var(--section-hover-shadow);
-  border-color: var(--color, #6366f1);
+  border-color: var(--section-color);
 }
 
 .compactHeader {
@@ -241,7 +241,7 @@
 }
 
 .compactButton:hover {
-  background: var(--color, #6366f1);
+  background: var(--section-color);
   color: white;
 }
 
@@ -256,7 +256,7 @@
   width: 32px;
   height: 32px;
   border-radius: 6px;
-  background: var(--color, #6366f1);
+  background: var(--section-color);
   color: white;
   font-size: 14px;
 }
@@ -358,14 +358,14 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--color, #6366f1);
+  background: var(--section-color);
   color: white;
   font-size: 10px;
 }
 
 .minimalCount {
   font-weight: 700;
-  color: var(--color, #6366f1);
+  color: var(--section-color);
 }
 
 .minimalLabel {
@@ -413,7 +413,7 @@
 }
 
 .minimalModeMenu button:hover {
-  background: var(--color, #6366f1);
+  background: var(--section-color);
   color: white;
 }
 
@@ -430,7 +430,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: var(--color, #6366f1);
+  background: var(--section-color);
   color: white;
   border: none;
   border-radius: 25px;

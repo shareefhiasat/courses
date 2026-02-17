@@ -20,6 +20,8 @@ export const GlobalLoadingProvider = ({ children }) => {
     setActiveCount(0);
     setIsVisible(false);
     setMessage('');
+    // End loading progress when manually cleared
+    window.dispatchEvent(new CustomEvent('loading-end'));
     if (showTimerRef.current) clearTimeout(showTimerRef.current);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
   }, []);
@@ -55,6 +57,8 @@ export const GlobalLoadingProvider = ({ children }) => {
       if (!isVisible) {
         showTimerRef.current = setTimeout(() => {
           setIsVisible(true);
+          // Trigger loading progress when global loading starts
+          window.dispatchEvent(new CustomEvent('loading-start'));
         }, 0);
       }
     } else {
@@ -65,6 +69,8 @@ export const GlobalLoadingProvider = ({ children }) => {
         hideTimerRef.current = setTimeout(() => {
           setIsVisible(false);
           setMessage(''); // Clear message when hiding
+          // End loading progress when global loading ends
+          window.dispatchEvent(new CustomEvent('loading-end'));
         }, 350);
       }
     }
@@ -87,6 +93,8 @@ export const GlobalLoadingProvider = ({ children }) => {
         setIsVisible(false);
         setMessage('');
         setActiveCount(0);
+        // End loading progress when safety mechanism triggers
+        window.dispatchEvent(new CustomEvent('loading-end'));
       }, 10000);
 
       return () => clearTimeout(safetyTimer);
