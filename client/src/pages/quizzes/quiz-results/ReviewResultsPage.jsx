@@ -5,6 +5,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { MODE_TYPES } from '@utils/sharedTypes';
 import { Container, Card, CardBody, Tabs, Badge } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import iconTypes from '@constants/iconTypes';
@@ -17,6 +18,7 @@ import { getQuizSubmissions } from '@services/business/quizSubmissionsService';
 import { getSubmissions } from '@services/business/submissionsService';
 import { getCategories } from '@services/business/categoryService';
 import { getActivityTypeConfig } from '@constants/activityTypes';
+import { formatDateTime } from '@utils/date';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { UnifiedFilterSection } from '@/components/filters';
 import './ReviewResultsPage.css';
@@ -38,7 +40,7 @@ const ReviewResultsPage = () => {
   });
 
   // Mode: 'quiz' | 'homework' | 'training' | 'labandproject' | 'activities' | 'resources'
-  const [mode, setMode] = useState(searchParams.get('mode') || 'activities');
+  const [mode, setMode] = useState(searchParams.get('mode') || MODE_TYPES.ACTIVITIES);
 
   // Update URL when mode changes
   const handleModeChange = useCallback((newMode) => {
@@ -55,7 +57,7 @@ const ReviewResultsPage = () => {
     }
   }, [searchParams, mode, handleModeChange]);
 
-  // Activity type: 'all' | 'quiz' | 'homework' | 'training' | 'labandproject' (only used when mode === 'activities')
+  // Activity type: 'all' | 'quiz' | 'homework' | 'training' | 'labandproject' (only used when mode === MODE_TYPES.ACTIVITIES)
   const [activityType, setActivityType] = useState('all');
   
   // Category filter for programs: '' | programId
@@ -308,7 +310,7 @@ const ReviewResultsPage = () => {
     });
 
     // For activities mode, return activities instead of submissions
-    if (mode === 'activities') {
+    if (mode === MODE_TYPES.ACTIVITIES) {
       let filtered = [...activities];
 
       // Role-based filtering for activities
@@ -435,7 +437,7 @@ const ReviewResultsPage = () => {
 
   // Calculate counts for each activity type based on role and filters
   const getActivityTypeCount = useCallback((type) => {
-    if (mode === 'activities') {
+    if (mode === MODE_TYPES.ACTIVITIES) {
       let filtered = [...activities];
 
       // Apply role-based filtering
@@ -678,7 +680,7 @@ const ReviewResultsPage = () => {
           </div>
 
         {/* Category Tabs - Third row (only for activities mode) */}
-        {mode === 'activities' && (
+        {mode === MODE_TYPES.ACTIVITIES && (
           <div data-tour="category-tabs" style={{ marginBottom: '0.15rem' }}>
             <Tabs
               tabs={[
@@ -875,8 +877,6 @@ const ReviewResultsPage = () => {
                 );
               })
             )}
-          </div>
-        )}
       </div>
     </div>
   );

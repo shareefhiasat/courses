@@ -6,6 +6,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { DIFFICULTY_TYPES, DIFFICULTY_LABELS } from '@constants/difficultyTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { sendQuizAvailable } from '@services/business/notificationService';
@@ -438,7 +439,7 @@ export default function QuizzesPage() {
           activityData.createdAt = serverTimestamp();
         }
 
-        await setDoc(doc(db, 'activities', targetQuizId), activityData, { merge: true });
+        await setDoc(doc(db, RECORD_TYPES.ACTIVITY, targetQuizId), activityData, { merge: true });
 
         // Send notifications for new quizzes
         if (!quizId && targetQuizId) {
@@ -535,7 +536,7 @@ export default function QuizzesPage() {
             } catch (e) { console.warn('Failed to log activity:', e); }
 
             try {
-              await deleteDoc(doc(db, 'activities', quizIdToDelete));
+              await deleteDoc(doc(db, RECORD_TYPES.ACTIVITY, quizIdToDelete));
             } catch {}
 
             setQuizzes(prev => prev.filter(q => q.id !== quizIdToDelete));

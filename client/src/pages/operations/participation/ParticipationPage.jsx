@@ -4,6 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Button, Select, SimpleLoading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { getPrograms, getSubjects, getSubject } from '@services/business/programService';
@@ -395,7 +396,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   });
 
   const handleDelete = useCallback((participation) => {
-    deleteEntity('participation', participation, async () => {
+    deleteEntity(RECORD_TYPES.PARTICIPATION, participation, async () => {
       setParticipationsRaw(prev => prev.filter(p => p.docId !== participation.docId));
       try {
         const result = await deleteParticipation(participation.id, participation);

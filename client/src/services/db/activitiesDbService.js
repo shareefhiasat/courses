@@ -5,7 +5,7 @@
  * Direct Firestore operations for activity records. This is the database layer
  * and should NOT contain business logic.
  * 
- * COLLECTION: 'activities'
+ * COLLECTION: RECORD_TYPES.ACTIVITY
  * 
  * @typedef {import('@types/index').Activity} Activity
  * @typedef {import('@types/index').ServiceResponse} ServiceResponse
@@ -26,6 +26,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../other/config';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import logger from '@utils/logger';
 
 /**
@@ -39,7 +40,7 @@ export const getActivitiesByClass = async (classId, options = {}) => {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, 'activities'),
+      collection(db, RECORD_TYPES.ACTIVITY),
       where('classId', '==', classId),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -68,7 +69,7 @@ export const getActivitiesByClasses = async (classIds, options = {}) => {
     const limitedClassIds = classIds.slice(0, 10);
     
     const q = query(
-      collection(db, 'activities'),
+      collection(db, RECORD_TYPES.ACTIVITY),
       where('classId', 'in', limitedClassIds),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -94,7 +95,7 @@ export const getActivitiesByUser = async (userId, options = {}) => {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, 'activities'),
+      collection(db, RECORD_TYPES.ACTIVITY),
       where('userId', '==', userId),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -116,7 +117,7 @@ export const getActivitiesByUser = async (userId, options = {}) => {
  */
 export const getActivity = async (activityId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'activities', activityId));
+    const docSnap = await getDoc(doc(db, RECORD_TYPES.ACTIVITY, activityId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -134,7 +135,7 @@ export const getActivity = async (activityId) => {
  */
 export const createActivity = async (activityData) => {
   try {
-    const docRef = doc(collection(db, 'activities'));
+    const docRef = doc(collection(db, RECORD_TYPES.ACTIVITY));
     await setDoc(docRef, {
       ...activityData,
       createdAt: serverTimestamp(),
@@ -155,7 +156,7 @@ export const createActivity = async (activityData) => {
  */
 export const updateActivity = async (activityId, activityData) => {
   try {
-    await updateDoc(doc(db, 'activities', activityId), {
+    await updateDoc(doc(db, RECORD_TYPES.ACTIVITY, activityId), {
       ...activityData,
       updatedAt: serverTimestamp()
     });
@@ -173,7 +174,7 @@ export const updateActivity = async (activityId, activityData) => {
  */
 export const deleteActivity = async (activityId) => {
   try {
-    await deleteDoc(doc(db, 'activities', activityId));
+    await deleteDoc(doc(db, RECORD_TYPES.ACTIVITY, activityId));
     return { success: true };
   } catch (error) {
     logger.error('[ActivitiesDbService] Error deleting activity:', error);
@@ -210,7 +211,7 @@ export const getActivities = async (filters = {}) => {
     if (status) conditions.push(where('status', '==', status));
     
     const q = query(
-      collection(db, 'activities'),
+      collection(db, RECORD_TYPES.ACTIVITY),
       ...conditions,
       orderBy(orderByField, orderDirection),
       limit(limitCount)

@@ -865,13 +865,13 @@ const InstructorQRScannerPage = () => {
             createdBy: user.uid,
             ...performedByFields
           });
-        } else if (action.category === RECORD_TYPES.BEHAVIOR || action.category === 'participation') {
+        } else if (action.category === RECORD_TYPES.BEHAVIOR || action.category === RECORD_TYPES.PARTICIPATION) {
           if (action.category === RECORD_TYPES.BEHAVIOR) {
             await createBehavior({
               classId: selectedClassId,
               studentId,
               subjectId: selectedSubjectId,
-              type: action.type || action.id || 'behavior',
+              type: action.type || action.id || RECORD_TYPES.BEHAVIOR,
               points: points,
               description: note,
               createdBy: user.uid,
@@ -885,7 +885,7 @@ const InstructorQRScannerPage = () => {
               classId: selectedClassId,
               studentId,
               subjectId: selectedSubjectId,
-              type: action.type || action.id || 'participation',
+              type: action.type || action.id || RECORD_TYPES.PARTICIPATION,
               points: points,
               description: note,
               createdBy: user.uid,
@@ -959,15 +959,15 @@ const InstructorQRScannerPage = () => {
             let title = '';
 
             if (points < 0) {
-              type = 'penalty';
+              type = RECORD_TYPES.PENALTY;
               templateId = 'penalty_assigned_default';
               title = t('delete_penalty_title');
             } else if (PARTICIPATION_TYPES.some(pt => pt.id === action.type)) {
-              type = 'participation';
+              type = RECORD_TYPES.PARTICIPATION;
               templateId = 'participation_added_default';
               title = t('participation_recorded');
             } else {
-              type = 'behavior';
+              type = RECORD_TYPES.BEHAVIOR;
               templateId = 'behavior_logged_default';
               title = t('behavior_recorded');
             }

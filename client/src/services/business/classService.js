@@ -1,4 +1,5 @@
 import logger from '@utils/logger';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { 
   collection, 
@@ -103,10 +104,10 @@ export const deleteClass = async (id) => {
     });
 
     // Delete activities for this class
-    const activityQuery = query(collection(db, "activities"), where("classId", "==", id));
+    const activityQuery = query(collection(db, RECORD_TYPES.ACTIVITY), where("classId", "==", id));
     const activitySnap = await getDocs(activityQuery);
     activitySnap.docs.forEach((d) => {
-      deletions.push(deleteDoc(doc(db, "activities", d.id)));
+      deletions.push(deleteDoc(doc(db, RECORD_TYPES.ACTIVITY, d.id)));
       deletedCount++;
     });
 

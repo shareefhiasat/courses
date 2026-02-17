@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useLang } from '../contexts/LangContext';
 import { useAuth } from '../contexts/AuthContext';
 import { DIFFICULTY_TYPES, DIFFICULTY_LABELS } from '@constants/difficultyTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import {
   Plus, Save, Eye, Trash2, GripVertical, Clock, Copy, Play,
   CheckCircle, XCircle, HelpCircle, ListChecks, Repeat, Award
@@ -346,7 +347,7 @@ export default function QuizBuilderPage() {
           activityData.createdAt = serverTimestamp();
         }
 
-        await setDoc(doc(db, 'activities', targetQuizId), activityData, { merge: true });
+        await setDoc(doc(db, RECORD_TYPES.ACTIVITY, targetQuizId), activityData, { merge: true });
 
         // Send notifications for new quizzes
         if (!quizId && targetQuizId) {

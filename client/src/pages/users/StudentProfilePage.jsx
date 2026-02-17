@@ -4,6 +4,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import logger from '@utils/logger';
 import { getThemedIcon } from '@constants/iconTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getUserBadges, getUserStats, getBadgeDefinitions } from '@services/business/badgeService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
@@ -397,7 +398,7 @@ const StudentProfilePage = () => {
         
         // Get activity type
         try {
-          const activityDoc = await getDoc(doc(db, 'activities', subData.activityId));
+          const activityDoc = await getDoc(doc(db, RECORD_TYPES.ACTIVITY, subData.activityId));
           if (activityDoc.exists()) {
             const activityData = activityDoc.data();
             const type = activityData.type || 'training';

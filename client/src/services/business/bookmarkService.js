@@ -7,6 +7,7 @@ import {
   getUserBookmarkMetadata,
   deleteAllUserBookmarks
 } from '@services/database/bookmarkDb';
+import { MODE_TYPES } from '@utils/sharedTypes';
 import logger from '@utils/logger';
 
 /**
@@ -212,9 +213,9 @@ export const calculateBookmarkCount = (items, bookmarks, mode, activityType = nu
   items.forEach(item => {
     const itemId = item.docId || item.id;
     
-    if (mode === 'activities' && activityType === 'quiz') {
+    if (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz') {
       if (bookmarks.quizzes?.[itemId]) count++;
-    } else if (mode === 'announcements') {
+    } else if (mode === MODE_TYPES.ANNOUNCEMENTS) {
       if (bookmarks.announcements?.[itemId]) count++;
     } else {
       if (bookmarks[mode]?.[itemId]) count++;

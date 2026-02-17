@@ -4,6 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { MODE_TYPES } from '@utils/sharedTypes';
 import Joyride from 'react-joyride';
 import { Modal, Button } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
@@ -59,19 +60,27 @@ const DashboardPage = () => {
   const location = useLocation();
 
   const [activeTab, setActiveTab] = useState(() => {
-    const saved = localStorage.getItem('dashboardActiveTab') || 'activities';
+    const saved = localStorage.getItem('dashboardActiveTab') || MODE_TYPES.ACTIVITIES;
     return saved === 'courses' ? 'categories' : saved;
   });
   const [activeCategory, setActiveCategory] = useState(() => {
     // derive category from saved tab
     const map = {
-      activities: 'content', announcements: 'content', resources: 'content',
-      users: 'users', allowlist: 'users',
-      classes: 'academic', enrollments: 'academic', submissions: 'academic',
-      /* smtp: 'communication' - DEPRECATED */ emailTemplates: 'communication', notificationLogs: 'communication',
-      categories: 'settings', logging: 'settings'
+      [MODE_TYPES.ACTIVITIES]: 'content', 
+      [MODE_TYPES.ANNOUNCEMENTS]: 'content', 
+      [MODE_TYPES.RESOURCES]: 'content',
+      users: 'users', 
+      allowlist: 'users',
+      classes: 'academic', 
+      enrollments: 'academic', 
+      submissions: 'academic',
+      /* smtp: 'communication' - DEPRECATED */ 
+      emailTemplates: 'communication', 
+      notificationLogs: 'communication',
+      categories: 'settings', 
+      logging: 'settings'
     };
-    return map[localStorage.getItem('dashboardActiveTab') || 'activities'] || 'content';
+    return map[localStorage.getItem('dashboardActiveTab') || MODE_TYPES.ACTIVITIES] || 'content';
   });
 
   const handleTabChange = useCallback((tab, { source = 'user', shouldEmit = true } = {}) => {
@@ -90,7 +99,7 @@ const DashboardPage = () => {
     localStorage.setItem('dashboardActiveTab', tab);
     setHashProcessed(false); // Reset hash processed flag when tab changes manually
     // Tabs that should update the URL with query parameters
-    const queryParamTabs = ['activities', 'announcements', 'resources', 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'classschedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'notificationLogs', 'scheduled-reports', 'categories', 'logging'];
+    const queryParamTabs = [MODE_TYPES.ACTIVITIES, MODE_TYPES.ANNOUNCEMENTS, MODE_TYPES.RESOURCES, 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'classschedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'notificationLogs', 'scheduled-reports', 'categories', 'logging'];
     if (queryParamTabs.includes(tab)) {
       const searchParams = new URLSearchParams(location.search);
       searchParams.set('tab', tab);
@@ -191,9 +200,9 @@ const DashboardPage = () => {
       id: 'content',
       label: t('content'),
       items: [
-        { key: 'activities', label: t('activities') },
-        { key: 'announcements', label: t('announcements') },
-        { key: 'resources', label: t('resources') }
+        { key: MODE_TYPES.ACTIVITIES, label: t('activities') },
+        { key: MODE_TYPES.ANNOUNCEMENTS, label: t('announcements') },
+        { key: MODE_TYPES.RESOURCES, label: t('resources') }
       ]
     },
     {
@@ -392,10 +401,10 @@ const DashboardPage = () => {
              </div>
            </div>
         <Suspense fallback={<SimpleLoading loading type="spinner" size="md" />}>
-          {activeTab === 'activities' && (
+          {activeTab === MODE_TYPES.ACTIVITIES && (
             <ActivitiesPage />
           )}
-          {activeTab === 'announcements' && (
+          {activeTab === MODE_TYPES.ANNOUNCEMENTS && (
             <AnnouncementsPage />
           )}
           {activeTab === 'programs' && isSuperAdmin && (
@@ -436,7 +445,7 @@ const DashboardPage = () => {
           )}
           {activeTab === 'enrollments' && <EnrollmentsManagementPage />}
           {activeTab === 'users' && <UsersPage />}
-          {activeTab === 'resources' && <ResourcesPage />}
+          {activeTab === MODE_TYPES.RESOURCES && <ResourcesPage />}
           {activeTab === 'categories' && <CategoriesPage isDashboardTab />}
           {activeTab === 'emailTemplates' && <EmailTemplatesPage />}
           {activeTab === 'notificationLogs' && <NotificationLogsPage />}

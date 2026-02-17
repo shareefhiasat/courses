@@ -4,6 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Button, Select, SimpleLoading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { getPrograms, getSubjects, fetchSubject, fetchProgram } from '@services/business/programService';
@@ -339,7 +340,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   }, []);
 
   const handleDelete = useCallback((behavior) => {
-    deleteEntity('behavior', behavior, async () => {
+    deleteEntity(RECORD_TYPES.BEHAVIOR, behavior, async () => {
       setBehaviors(prev => prev.filter(b => b.docId !== behavior.docId));
       try {
         const result = await deleteBehavior(behavior.id);

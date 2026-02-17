@@ -4,6 +4,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Container, Card, CardBody, Button, Badge, Spinner, Modal } from '@ui';
 import { QRCodeGenerator } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -22,7 +23,7 @@ export default function ActivityDetailPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const snap = await getDoc(doc(db, 'activities', activityId));
+        const snap = await getDoc(doc(db, RECORD_TYPES.ACTIVITY, activityId));
         if (snap.exists()) {
           setActivity({ id: snap.id, ...snap.data() });
         }

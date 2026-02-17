@@ -12,7 +12,7 @@ import {
   getDoc
 } from 'firebase/firestore';
 import { db } from '../other/config';
-import { SUBMISSION_STATUS } from '@utils/sharedTypes';
+import { SUBMISSION_STATUS, RECORD_TYPES } from '@utils/sharedTypes';
 import { 
   getSubmissionsByUser as getSubmissionsByUserFromDb,
   getSubmissionsByActivity as getSubmissionsByActivityFromDb,
@@ -246,7 +246,7 @@ export const getActivityProgress = async (userId, classId) => {
   try {
     // Get all activities for the class
     const activitiesQuery = query(
-      collection(db, 'activities'),
+      collection(db, RECORD_TYPES.ACTIVITY),
       where('classId', '==', classId)
     );
     

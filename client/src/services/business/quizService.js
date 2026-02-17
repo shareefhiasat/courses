@@ -183,7 +183,7 @@ export const updateQuiz = async (quizId, updates) => {
         getDocs: getDocsQuery,
         updateDoc: updateDocQuery,
       } = await import("firebase/firestore");
-      const activitiesRef = col(db, "activities");
+      const activitiesRef = col(db, RECORD_TYPES.ACTIVITY);
       const activitiesQuery = q(activitiesRef, w("quizId", "==", quizId));
       const activitiesSnap = await getDocsQuery(activitiesQuery);
 
@@ -216,7 +216,7 @@ export const updateQuiz = async (quizId, updates) => {
           if (Object.keys(activityUpdates).length > 0) {
             cascadeUpdates.push(
               updateDocQuery(
-                doc(db, "activities", activityDoc.id),
+                doc(db, RECORD_TYPES.ACTIVITY, activityDoc.id),
                 activityUpdates
               )
             );

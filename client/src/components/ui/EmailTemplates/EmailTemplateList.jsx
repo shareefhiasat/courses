@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useToast } from '@ui';
+import { useToast, Spinner } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -7,7 +7,6 @@ import { ToggleSwitch } from '@ui';
 import { formatDateTime } from '@utils/date';
 import { collection, getDocs, query, orderBy, getDoc, doc, deleteDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@services/other/config';
-import { SimpleLoading } from '@ui';
 
 const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   const toast = useToast();

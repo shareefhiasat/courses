@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { DIFFICULTY_TYPES, DIFFICULTY_LABELS } from '@constants/difficultyTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Container, Card, CardBody, Button, Spinner } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import {
@@ -167,7 +168,7 @@ export default function QuizManagementPage() {
 
             // Best-effort clean up of mirrored activity document
             try {
-              await deleteDoc(doc(db, 'activities', quizId));
+              await deleteDoc(doc(db, RECORD_TYPES.ACTIVITY, quizId));
             } catch {
               // ignore if no activity doc exists
             }

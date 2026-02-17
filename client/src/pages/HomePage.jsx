@@ -42,7 +42,7 @@ const HomePage = memo(() => {
   const [searchParams, setSearchParams] = useSearchParams();
   
   // Mode: 'activities' | 'resources'
-  const mode = searchParams.get('mode') || 'activities';
+  const mode = searchParams.get('mode') || MODE_TYPES.ACTIVITIES;
   
   // Activity type: 'all' | 'quiz' | 'homework' | 'training' | 'labandproject' (only used when mode === 'activities')
   const [activityType, setActivityType] = useState('all');
@@ -185,10 +185,10 @@ const HomePage = memo(() => {
   // Initialize mode from URL
   useEffect(() => {
     const urlMode = searchParams.get('mode');
-    if (urlMode && ['activities', 'resources'].includes(urlMode)) {
+    if (urlMode && [MODE_TYPES.ACTIVITIES, MODE_TYPES.RESOURCES].includes(urlMode)) {
       // Mode is already set via searchParams
       // Reset activity type and category when switching to activities
-      if (urlMode === 'activities') {
+      if (urlMode === MODE_TYPES.ACTIVITIES) {
         setActivityType('all');
         setCategory('');
       }
@@ -298,7 +298,7 @@ const HomePage = memo(() => {
     }
     
     // Handle activities mode with activity type and category filtering
-    if (mode === 'activities') {
+    if (mode === MODE_TYPES.ACTIVITIES) {
       let filtered = [];
       
       if (activityType === 'quiz') {
@@ -339,7 +339,7 @@ const HomePage = memo(() => {
       const q = searchTerm.trim().toLowerCase();
       filtered = filtered.filter(item => {
         // Handle quizzes in activities mode
-        if (mode === 'activities' && activityType === 'quiz') {
+        if (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz') {
           const titleEn = (item.title_en || item.title || '').toLowerCase();
           const titleAr = (item.title_ar || '').toLowerCase();
           const descEn = (item.description_en || item.description || '').toLowerCase();
@@ -374,7 +374,7 @@ const HomePage = memo(() => {
       filtered = filtered.filter(item => {
         const id = item.docId || item.id;
         // Handle quizzes in activities mode
-        if (mode === 'activities' && activityType === 'quiz') {
+        if (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz') {
           return !!bookmarks.quizzes[id];
         }
         return !!bookmarks[mode]?.[id];
@@ -396,7 +396,7 @@ const HomePage = memo(() => {
         if (mode === 'resources') {
           return userProgress[id]?.completed;
         }
-        if (mode === 'activities') {
+        if (mode === MODE_TYPES.ACTIVITIES) {
           if (activityType === 'quiz') {
             // Quizzes - check submissions (TODO: implement quiz completion check)
             return false;
@@ -430,7 +430,7 @@ const HomePage = memo(() => {
         
         if (mode === 'resources') {
           isCompleted = userProgress[id]?.completed;
-        } else if (mode === 'activities') {
+        } else if (mode === MODE_TYPES.ACTIVITIES) {
           if (activityType === 'quiz') {
             // Quizzes - TODO: implement quiz completion check
             isCompleted = false;
@@ -451,7 +451,7 @@ const HomePage = memo(() => {
         if (mode === 'resources') {
           return !userProgress[id]?.completed;
         }
-        if (mode === 'activities') {
+        if (mode === MODE_TYPES.ACTIVITIES) {
           if (activityType === 'quiz') {
             // Quizzes are always pending until taken
             return true;
@@ -492,7 +492,7 @@ const HomePage = memo(() => {
       filtered = filtered.filter(item => item.type === resourceTypeFilter);
     }
 
-    if (mode === 'activities' && activityType === 'quiz' && classFilter !== 'all') {
+    if (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz' && classFilter !== 'all') {
       filtered = filtered.filter(item => 
         item.classId === classFilter || item.className === classFilter
       );
@@ -551,7 +551,7 @@ const HomePage = memo(() => {
     // Only count items relevant to current mode/activityType
     let itemsToCount = [];
     
-    if (mode === 'activities') {
+    if (mode === MODE_TYPES.ACTIVITIES) {
       if (activityType === 'quiz') {
         itemsToCount = quizzes;
       } else if (activityType === 'homework') {
@@ -592,7 +592,7 @@ const HomePage = memo(() => {
       if (userProgress[item.docId || item.id]?.completed) counts.completed++;
       
       // Required/Optional counts (for activities only)
-      if (mode === 'activities') {
+      if (mode === MODE_TYPES.ACTIVITIES) {
         if (item.optional === false) counts.required++;
         else if (item.optional === true) counts.optional++;
       }
@@ -611,7 +611,7 @@ const HomePage = memo(() => {
 
   const resourceTypeCounts = getResourceTypeCounts();
   const availableClasses = useMemo(() => {
-    if (!(mode === 'activities' && activityType === 'quiz')) return [];
+    if (!(mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz')) return [];
     const classes = new Set();
     quizzes.forEach(q => {
       if (q.classId) classes.add(q.classId);
@@ -653,7 +653,7 @@ const HomePage = memo(() => {
         pending: pendingCount,
         featured: featuredCount
       };
-    } else if (mode === 'activities') {
+    } else if (mode === MODE_TYPES.ACTIVITIES) {
       if (activityType === 'quiz') {
         // Quiz stats
         const totalCount = items.length;
@@ -792,10 +792,10 @@ const HomePage = memo(() => {
           <Tabs
             tabs={[
               {
-                value: 'activities',
+                value: MODE_TYPES.ACTIVITIES,
                 label: t('activities') || 'Activities',
-                icon: mode === 'activities' ? getIconWithColor('ui', 'clipboard_list', 16, '#ffffff') : getIconWithColor('ui', 'clipboard_list', 16, primaryColor),
-                badge: mode === 'activities' ? filteredItems.length : undefined
+                icon: mode === MODE_TYPES.ACTIVITIES ? getIconWithColor('ui', 'clipboard_list', 16, '#ffffff') : getIconWithColor('ui', 'clipboard_list', 16, primaryColor),
+                badge: mode === MODE_TYPES.ACTIVITIES ? filteredItems.length : undefined
               },
               {
                 value: 'resources',
@@ -817,7 +817,7 @@ const HomePage = memo(() => {
         </div>
 
         {/* Activity Type Tabs (only for activities mode) - Second row */}
-        {mode === 'activities' && (
+        {mode === MODE_TYPES.ACTIVITIES && (
           <div data-tour="activity-type-tabs" style={{ marginBottom: '0.15rem' }}>
             <Tabs
               tabs={[
@@ -860,7 +860,7 @@ const HomePage = memo(() => {
         )}
 
         {/* Category Tabs (only for activities mode) - Third row */}
-        {mode === 'activities' && (
+        {mode === MODE_TYPES.ACTIVITIES && (
           <div data-tour="category-tabs" style={{ marginBottom: '0.15rem' }}>
             <Tabs
               tabs={[
@@ -925,7 +925,7 @@ const HomePage = memo(() => {
             setSearchTerm={setSearchTerm}
             searchPlaceholder={
               mode === 'resources' ? (t('search_resources') || 'Search resources...') :
-              (mode === 'activities' && activityType === 'quiz') ? (t('search_quizzes') || 'Search quizzes...') :
+              (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz') ? (t('search_quizzes') || 'Search quizzes...') :
               (t('search_activities') || 'Search activities...')
             }
             completedFilter={completedFilter}
@@ -959,7 +959,7 @@ const HomePage = memo(() => {
             setGradedFilter={setGradedFilter}
             programs={[]}
             subjects={[]}
-            classes={mode === 'activities' && activityType === 'quiz' ? availableClasses.map(cls => ({ name: cls, id: cls })) : []}
+            classes={mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz' ? availableClasses.map(cls => ({ name: cls, id: cls })) : []}
             selectedClass={classFilter}
             setSelectedClass={setClassFilter}
             isMinified={isMinified}
@@ -971,11 +971,11 @@ const HomePage = memo(() => {
             showDifficultyFilters={mode !== 'announcements'}
             showPerformanceFilters={false}
             showToggleFilters={true}
-            showHierarchyFilters={mode === 'activities' && activityType === 'quiz'}
+            showHierarchyFilters={mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz'}
             hierarchyConfig={{
               showPrograms: false,
               showSubjects: false,
-              showClasses: mode === 'activities' && activityType === 'quiz',
+              showClasses: mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz',
               showStudents: false
             }}
             toggleConfig={{
@@ -1014,8 +1014,8 @@ const HomePage = memo(() => {
               }
             ] : []}
             // Quiz type filter for activities
-            quizFilter={mode === 'activities' && activityType === 'quiz' ? 'quiz' : undefined}
-            showQuizFilter={mode === 'activities' && activityType === 'quiz'}
+            quizFilter={mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz' ? 'quiz' : undefined}
+            showQuizFilter={mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz'}
             // Filter counts for all chips - use hookFilterCounts which includes bookmark counting
             filterCounts={hookFilterCounts}
           />
@@ -1047,7 +1047,7 @@ const HomePage = memo(() => {
                   completedAt = userProgress[itemId]?.completedAt;
                   isBookmarked = !!bookmarks.resources[itemId];
                   dueDate = item.dueDate;
-                } else if (mode === 'activities') {
+                } else if (mode === MODE_TYPES.ACTIVITIES) {
                   if (activityType === 'quiz') {
                     isBookmarked = !!bookmarks.quizzes[itemId];
                     // TODO: Add quiz completion logic
@@ -1065,7 +1065,7 @@ const HomePage = memo(() => {
                     return (
                       <UnifiedCard
                         key={itemId}
-                        flavor={mode === 'activities' && activityType === 'quiz' ? 'quiz' : (mode === 'resources' ? 'resource' : (mode === 'announcements' ? 'announcement' : mode))}
+                        flavor={mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz' ? 'quiz' : (mode === 'resources' ? 'resource' : (mode === 'announcements' ? 'announcement' : mode))}
                         item={item}
                         isCompleted={isCompleted}
                         completedAt={completedAt}
@@ -1075,15 +1075,15 @@ const HomePage = memo(() => {
                         t={t}
                         primaryColor={primaryColor}
                         showStartButton={
-                          (mode === 'activities' && activityType === 'quiz') ||
-                          (mode === 'activities') ||
+                          (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz') ||
+                          (mode === MODE_TYPES.ACTIVITIES) ||
                           (mode === 'resources' && (item.type === 'link' || item.type === 'video') && item.url) ||
                           (mode === 'announcements')
                         }
                         onStart={(item) => {
-                          if ((mode === 'activities' && activityType === 'quiz')) {
+                          if ((mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz')) {
                             window.location.href = `/quiz/${itemId}`;
-                          } else if (mode === 'activities') {
+                          } else if (mode === MODE_TYPES.ACTIVITIES) {
                             window.open(`/activity/${itemId}`, '_blank');
                           } else if (mode === 'resources') {
                             // Handle resource start
@@ -1111,7 +1111,7 @@ const HomePage = memo(() => {
                           handleResourceComplete(itemId);
                         }}
                         onBookmark={() => {
-                          const bookmarkMode = (mode === 'activities' && activityType === 'quiz') ? 'quizzes' : (mode === 'announcements' ? 'announcements' : mode);
+                          const bookmarkMode = (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz') ? 'quizzes' : (mode === 'announcements' ? 'announcements' : mode);
                           handleBookmark(itemId, bookmarkMode);
                         }}
                         onFeatured={() => {

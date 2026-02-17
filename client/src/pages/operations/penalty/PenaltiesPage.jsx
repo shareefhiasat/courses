@@ -3,6 +3,7 @@ import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Button, Select, useToast, AdvancedDataGrid, ProgramsSelect } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { createPenalty, updatePenalty, deletePenalty, getPenalties } from '@services/business/penaltyService';
@@ -449,7 +450,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   }, []);
 
   const handleDelete = useCallback((penalty) => {
-    deleteEntity('penalty', penalty, async () => {
+    deleteEntity(RECORD_TYPES.PENALTY, penalty, async () => {
       setPenalties(prev => prev.filter(p => p.docId !== penalty.docId));
       try {
         const result = await deletePenalty(penalty.docId || penalty.id);

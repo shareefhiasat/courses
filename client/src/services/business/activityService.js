@@ -205,7 +205,7 @@ export const updateActivity = async (id, activityData, emailOptions = { sendEmai
     const convertedData = activityData; // No date conversion - save as-is
     logger.log('🔍 [SERVICE] Saving data directly without conversion');
     
-    await updateDoc(doc(db, "activities", id), {
+    await updateDoc(doc(db, RECORD_TYPES.ACTIVITY, id), {
       ...convertedData,
       updatedAt: serverTimestamp()
     });
@@ -253,7 +253,7 @@ export const deleteActivity = async (id, activityData = null) => {
   try {
     logger.info('ACTIVITY: Deleting activity', { activityId: id, hasActivityData: !!activityData });
     
-    await deleteDoc(doc(db, "activities", id));
+    await deleteDoc(doc(db, RECORD_TYPES.ACTIVITY, id));
     
     // Log activity deletion if activity data is provided
     if (activityData) {

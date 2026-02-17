@@ -1,7 +1,8 @@
-﻿import React from 'react';
+import React from 'react';
 import Joyride from 'react-joyride';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
+import { MODE_TYPES } from '@utils/sharedTypes';
 
 const JoyrideTour = ({ 
   run, 
@@ -63,7 +64,7 @@ const JoyrideTour = ({
       disableBeacon: true,
       placement: 'top'
     },
-    ...(mode === 'activities' ? [{
+    ...(mode === MODE_TYPES.ACTIVITIES ? [{
       target: '[data-tour="mode-switcher"]',
       content: t('joyride_tour_mode_switcher') || 'Use these tabs to switch between Activities and Resources',
       disableBeacon: true,
@@ -79,7 +80,7 @@ const JoyrideTour = ({
       disableBeacon: true,
       placement: 'bottom'
     }] : []),
-    ...(mode === 'activities' && activityType === 'quiz' ? [{
+    ...(mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz' ? [{
       target: '[data-tour="class-filter"]',
       content: t('joyride_tour_class_filter') || 'Select a class to view quizzes associated with it',
       disableBeacon: true,
