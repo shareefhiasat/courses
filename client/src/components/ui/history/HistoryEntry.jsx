@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useIsMobile } from '@hooks/useIsMobile';
 import { Button, InfoTooltip, PerformedBy } from '@ui';
 import { Trash2 } from 'lucide-react';
 import { RECORD_TYPES } from '@utils/sharedTypes';
@@ -16,16 +17,7 @@ export const HistoryEntry = ({
   borderColor = '#f1f5f9',
   lang = 'en'
 }) => {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const isMobile = useIsMobile();
 
   return (
     <div style={{ 

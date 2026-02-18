@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { formatLocalizedDate } from '@utils/date';
+import { useIsMobile } from '@hooks/useIsMobile';
 
 export const HistoryDayHeader = ({ 
   dateStr, 
@@ -9,16 +10,7 @@ export const HistoryDayHeader = ({
   t, 
   isRTL 
 }) => {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const isMobile = useIsMobile();
 
   return (
     <div

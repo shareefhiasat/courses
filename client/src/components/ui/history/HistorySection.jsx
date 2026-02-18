@@ -1,4 +1,5 @@
-﻿import React from 'react';
+import React, { useCallback, useMemo } from 'react';
+import { useIsMobile } from '@hooks/useIsMobile';
 import { HistoryEntry } from './HistoryEntry';
 import { getAttendanceIcon, getAttendanceColor, ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
@@ -28,16 +29,7 @@ export const HistorySection = ({
   isRTL,
   borderColor = '#f1f5f9'
 }) => {
-  const [isMobile, setIsMobile] = React.useState(false);
-  
-  React.useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const isMobile = useIsMobile();
   // Handle the mismatch between type ('penalty') and filter key ('penalties')
   const filterKey = type === RECORD_TYPES.PENALTY ? 'penalties' : type;
   const isActive = activeFilters[filterKey];
@@ -64,12 +56,13 @@ export const HistorySection = ({
     return null;
   }
 
-  // Sort logs by date (newest first)
-  const sortedLogs = [...logs].sort((a, b) => {
-    const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
-    const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
-    return timeB - timeA; // Newest first
-  });
+  const sortedLogs = useMemo(() => {
+    return [...logs].sort((a, b) => {
+      const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
+      const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
+      return timeB - timeA;
+    });
+  }, [logs]);
   
   logger.log('🔍 HistorySection sorting:', { 
     title, 
@@ -80,8 +73,7 @@ export const HistorySection = ({
     lastLog: sortedLogs[sortedLogs.length - 1]
   });
 
-  // Get appropriate icon for each log based on type
-  const getLogIcon = (log) => {
+  const getLogIcon = useCallback((log) => {
     if (type === RECORD_TYPES.ATTENDANCE) {
       // Attendance status is now flattened to top level (no more data nesting)
       const status = log.status;
@@ -118,7 +110,7 @@ export const HistorySection = ({
     
     logger.log('🔍 HistorySection returning fallback icon');
     return icon;
-  };
+  }, [type, icon]);
 
   logger.log('🔧 HistorySection - rendering section:', title);
 

@@ -105,37 +105,31 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
     });
   }, []);
 
-  const getUserProfile = async (user) => {
-    if (!user) return null;
+  const getUserProfile = useCallback(async (u) => {
+    if (!u) return null;
     try {
-      const result = await getUserById(user.uid);
-      if (result.success) {
-        return result.data;
-      }
+      const result = await getUserById(u.uid);
+      if (result.success) return result.data;
       return null;
     } catch (error) {
       console.error('Error getting user profile:', error);
       return null;
     }
-  };
+  }, []);
 
-  const openProfile = async () => {
+  const openProfile = useCallback(async () => {
     try {
-      // Use the user service to get profile data
       const me = await getUserProfile(user);
-      
       setDisplayName(user?.displayName || me?.displayName || '');
       setPhoneNumber(me?.phoneNumber || '');
-      const color = normalizeHexColor(me?.messageColor, ACCENT_FALLBACK);
-      setPrimaryColor(color);
+      setPrimaryColor(normalizeHexColor(me?.messageColor, ACCENT_FALLBACK));
       setRealName(me?.realName || '');
       setStudentNumber(me?.studentNumber || '');
       setNotifLang(me?.notifLang || 'auto');
-      // No avatar support; we always use initials avatar
       setTimeFormat(getTimeFormatPreference());
       setShowProfile(true);
     } catch (e) { /* noop */ }
-  };
+  }, [user, getUserProfile]);
 
   const saveProfile = useCallback(async () => {
     try {

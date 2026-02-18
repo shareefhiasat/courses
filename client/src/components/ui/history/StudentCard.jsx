@@ -1,4 +1,5 @@
-﻿import React from 'react';
+import React, { useCallback, useMemo } from 'react';
+import { useIsMobile } from '@hooks/useIsMobile';
 import { Button } from '@ui';
 import { Star, ChevronDown, ChevronRight, Trash2, Users, Trophy, AlertCircle, Settings, BarChart3, QrCode, Mail, SidebarOpen, ExternalLink } from 'lucide-react';
 import StudentRosterHistory from './StudentRosterHistory';
@@ -34,20 +35,38 @@ const StudentCard = ({
   sendStudentSummaryEmail,
   lang = 'en'
 }) => {
-  const [isMobile, setIsMobile] = React.useState(false);
-  
-  React.useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
-  
-  const avatarColor = getAvatarColor(student.displayName || student.realName || student.name || '');
+
+  const avatarColor = useMemo(
+    () => getAvatarColor(student.displayName || student.realName || student.name || ''),
+    [student.displayName, student.realName, student.name]
+  );
+
+  const handleToggleFavorite = useCallback((e) => {
+    e.stopPropagation();
+    toggleFavorite(student.id);
+  }, [toggleFavorite, student.id]);
+
+  const handleToggleExpansion = useCallback((e) => {
+    e.stopPropagation();
+    toggleRowExpansion(student.id);
+  }, [toggleRowExpansion, student.id]);
+
+  const handleStudentAction = useCallback((e) => {
+    e.stopPropagation();
+    try { onStudentAction(student); } catch (error) { logger.error('Error calling onStudentAction:', error); }
+  }, [onStudentAction, student]);
+
+  const handleStudentSelect = useCallback((e) => {
+    e.stopPropagation();
+    onStudentSelect(student);
+  }, [onStudentSelect, student]);
+
+  const handleQRNavigate = useCallback((e) => {
+    e.stopPropagation();
+    navigate(`/qrcode/${student.studentNumber || student.id}`);
+  }, [navigate, student.studentNumber, student.id]);
 
   return (
     <div
@@ -71,10 +90,7 @@ const StudentCard = ({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '0.75rem', flex: 1 }}>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFavorite(student.id);
-            }}
+            onClick={handleToggleFavorite}
             style={{
               background: 'none',
               border: 'none',
@@ -122,10 +138,7 @@ const StudentCard = ({
           </div>
         </div>
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleRowExpansion(student.id);
-          }}
+          onClick={handleToggleExpansion}
           style={{
             background: 'none',
             border: 'none',
@@ -376,10 +389,7 @@ const StudentCard = ({
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              onStudentSelect(student);
-            }}
+            onClick={handleStudentSelect}
             title={t('view_details') || 'View Details'}
           >
             <SidebarOpen style={{ width: '1rem', height: '1rem' }} />
@@ -388,14 +398,7 @@ const StudentCard = ({
         <Button 
           variant="ghost" 
           size={isMobile ? 'icon' : 'sm'}
-          onClick={(e) => {
-            e.stopPropagation();
-            try {
-              onStudentAction(student);
-            } catch (error) {
-              logger.error('Error calling onStudentAction:', error);
-            }
-          }}
+          onClick={handleStudentAction}
           style={isMobile ? {} : { flex: 1 }}
           title={t('actions')}
         >
@@ -407,10 +410,7 @@ const StudentCard = ({
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onStudentSelect(student);
-            }}
+            onClick={handleStudentSelect}
             style={{ flex: 1 }}
             title={t('stats')}
           >
@@ -420,12 +420,7 @@ const StudentCard = ({
         <Button 
           variant="ghost" 
           size="icon"
-          onClick={(e) => {
-            e.stopPropagation();
-            // Navigate to QR code display page with student number
-            const studentNumber = student.studentNumber || student.id;
-            navigate(`/qrcode/${studentNumber}`);
-          }}
+          onClick={handleQRNavigate}
           title={t('open_qr_code') || 'Open QR Code'}
         >
           <QrCode style={{ width: '1rem', height: '1rem', color: '#10b981' }} />

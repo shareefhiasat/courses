@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useIsMobile } from '@hooks/useIsMobile';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
@@ -40,6 +41,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       return saved === 'true'; 
     } catch { return true; }
   });
+  const isMobile = useIsMobile();
   const [userAccentColor, setUserAccentColor] = useState(DEFAULT_ACCENT);
   const [navigationConfirmation, setNavigationConfirmation] = useState(null);
   
@@ -81,9 +83,6 @@ const SideDrawer = ({ isOpen, onClose }) => {
   }, [collapsed]);
   useEffect(() => {
     try { localStorage.setItem('drawer_sticky_mode', String(stickyMode)); } catch {}
-    // Check if mobile (screen width < 768px)
-    const isMobile = window.innerWidth < 768;
-    // Update CSS variable for main content margin when sticky mode is enabled (desktop only)
     if (stickyMode && isOpen && !collapsed && !isMobile) {
       const width = collapsed ? 64 : drawerWidth;
       document.documentElement.style.setProperty('--drawer-width', `${width}px`);
@@ -92,24 +91,11 @@ const SideDrawer = ({ isOpen, onClose }) => {
       document.documentElement.style.removeProperty('--drawer-width');
       document.documentElement.classList.remove('drawer-sticky-open');
     }
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      if (mobile) {
-        document.documentElement.style.removeProperty('--drawer-width');
-        document.documentElement.classList.remove('drawer-sticky-open');
-      } else if (stickyMode && isOpen && !collapsed) {
-        const width = collapsed ? 64 : drawerWidth;
-        document.documentElement.style.setProperty('--drawer-width', `${width}px`);
-        document.documentElement.classList.add('drawer-sticky-open');
-      }
-    };
-    window.addEventListener('resize', handleResize);
     return () => {
-      window.removeEventListener('resize', handleResize);
       document.documentElement.style.removeProperty('--drawer-width');
       document.documentElement.classList.remove('drawer-sticky-open');
     };
-  }, [stickyMode, isOpen, collapsed, drawerWidth]);
+  }, [stickyMode, isOpen, collapsed, drawerWidth, isMobile]);
   useEffect(() => {
     const handler = (e) => setDensity((e && e.detail && e.detail.density) ? e.detail.density : (document.documentElement.getAttribute('data-density') || 'compact'));
     window.addEventListener('density-change', handler);

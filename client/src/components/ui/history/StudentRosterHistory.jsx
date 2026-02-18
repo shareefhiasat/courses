@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useIsMobile } from '@hooks/useIsMobile';
 import StudentHistory from './StudentHistory';
 import {
   CheckSmallIcon, MessageSquareIcon, ZapIcon, AlertCircleSmallIcon,
@@ -24,16 +25,11 @@ const StudentRosterHistory = ({
   toggleFilter,
   lang = 'en'
 }) => {
-  const [isMobile, setIsMobile] = React.useState(false);
-  
-  React.useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const isMobile = useIsMobile();
+  const groupedLogs = useMemo(
+    () => groupLogsByDay(studentHistory[student.id] || []),
+    [groupLogsByDay, studentHistory, student.id]
+  );
   if (!studentHistory[student.id]) {
     return (
       <div style={{
@@ -157,7 +153,6 @@ const StudentRosterHistory = ({
         {studentHistory[student.id] && studentHistory[student.id].length > 0 && (
           <button
             onClick={() => {
-              const groupedLogs = groupLogsByDay(studentHistory[student.id] || []);
               const allExpanded = groupedLogs.every(log => expandedDays.has(log.date));
               if (allExpanded) {
                 collapseAllDays();
@@ -178,14 +173,12 @@ const StudentRosterHistory = ({
               cursor: 'pointer',
               transition: 'all 0.2s'
             }}
-            title={() => {
-              const groupedLogs = groupLogsByDay(studentHistory[student.id] || []);
+            title={(() => {
               const allExpanded = groupedLogs.every(log => expandedDays.has(log.date));
               return allExpanded ? (t('collapse_all') || 'Collapse All') : (t('expand_all') || 'Expand All');
-            }}
+            })()}
           >
             {(() => {
-              const groupedLogs = groupLogsByDay(studentHistory[student.id] || []);
               const allExpanded = groupedLogs.every(log => expandedDays.has(log.date));
               return allExpanded ? (
                 <>
@@ -209,7 +202,7 @@ const StudentRosterHistory = ({
 
       {/* Student History Component */}
       <StudentHistory 
-        groupedLogs={groupLogsByDay(studentHistory[student.id] || [])}
+        groupedLogs={groupedLogs}
         expandedDays={expandedDays}
         activeFilters={activeFilters}
         toggleDayExpansion={toggleDayExpansion}

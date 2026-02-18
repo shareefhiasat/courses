@@ -13,12 +13,13 @@ export const GlobalLoadingProvider = ({ children }) => {
   const [message, setMessage] = useState('');
   const showTimerRef = useRef(null);
   const hideTimerRef = useRef(null);
+  const isVisibleRef = useRef(false);
 
   const clearLoading = useCallback(() => {
+    isVisibleRef.current = false;
     setActiveCount(0);
     setIsVisible(false);
     setMessage('');
-    // End loading progress when manually cleared
     window.dispatchEvent(new CustomEvent('loading-end'));
     if (showTimerRef.current) clearTimeout(showTimerRef.current);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
@@ -47,16 +48,18 @@ export const GlobalLoadingProvider = ({ children }) => {
   useEffect(() => {
     if (activeCount > 0) {
       clearTimeout(hideTimerRef.current);
-      if (!isVisible) {
+      if (!isVisibleRef.current) {
         showTimerRef.current = setTimeout(() => {
+          isVisibleRef.current = true;
           setIsVisible(true);
           window.dispatchEvent(new CustomEvent('loading-start'));
         }, 0);
       }
     } else {
       clearTimeout(showTimerRef.current);
-      if (isVisible) {
+      if (isVisibleRef.current) {
         hideTimerRef.current = setTimeout(() => {
+          isVisibleRef.current = false;
           setIsVisible(false);
           setMessage('');
           window.dispatchEvent(new CustomEvent('loading-end'));
@@ -68,11 +71,12 @@ export const GlobalLoadingProvider = ({ children }) => {
       clearTimeout(showTimerRef.current);
       clearTimeout(hideTimerRef.current);
     };
-  }, [activeCount, isVisible]);
+  }, [activeCount]);
 
   useEffect(() => {
     if (!isVisible) return;
     const safetyTimer = setTimeout(() => {
+      isVisibleRef.current = false;
       setIsVisible(false);
       setMessage('');
       setActiveCount(0);
