@@ -1,50 +1,65 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@contexts/AuthContext';
 import { LangProvider } from '@contexts/LangContext';
-import Navbar from '@ui/Navbar';
-import { ErrorBoundary, HelpDrawer, CollapsibleSideWindow, NotificationDrawer, RankDisplay, RankHistory, VariableHelper, StudentQRCodeDisplay, StudentQuickActionModal, ToastProvider, useToast, SideDrawer, LoadingProgress } from '@ui';
 import { ThemeProvider } from '@contexts/ThemeContext';
 import { ColorThemeProvider } from '@contexts/ColorThemeContext';
 import { GlobalLoadingProvider, GlobalLoadingFallback } from '@contexts/GlobalLoadingContext';
-import logger from './utils/logger';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/system/LoginPage';
-import ChatPage from './pages/communications/chat/ChatPage';
 import { HelpProvider } from '@contexts/HelpContext';
-import ActivityDetailPage from './pages/academic/activities/ActivityDetailPage';
-import NotificationsPage from './pages/communications/notifications/NotificationsPage';
-import ProfileSettingsPage from './pages/users/ProfileSettingsPage';
-import AttendancePage from './pages/operations/attendance/AttendancePage';
-import StudentAttendancePage from './pages/operations/attendance/StudentAttendancePage';
-import HRAttendancePage from './pages/operations/attendance/HRAttendancePage';
-import PenaltiesPage from './pages/operations/penalty/PenaltiesPage';
-import ParticipationPage from './pages/operations/participation/ParticipationPage';
-import BehaviorPage from './pages/operations/behavior/BehaviorPage';
-import InstructorQRScannerPage from './pages/operations/attendance/InstructorQRScannerPage';
-import QRCodeDisplayPage from './pages/operations/attendance/QRCodeDisplayPage';
-import ClassSchedulePage from './pages/academic/classes/ClassSchedulePage';
-import ScheduleOverviewPage from './pages/academic/schedules/ScheduleOverviewPage';
-import EnrollmentsPage from './pages/academic/enrollments/EnrollmentsPage';
-import AnalyticsPage from './pages/feedback/analytics/AnalyticsPage';
+import logger from './utils/logger';
 import analytics from './utils/analytics.js';
-import RoleAccessPro from './pages/system/RoleAccessPro';
-import StudentProfilePage from './pages/users/StudentProfilePage';
-import StudentDashboardPage from './pages/dashboard/StudentDashboardPageModern';
-import QuizzesPage from './pages/quizzes/QuizzesPage';
-import QuizPreviewPage from './pages/quizzes/QuizPreviewPage';
-import StudentQuizPage from './pages/quizzes/StudentQuizPage';
-import QuestionBankPage from './pages/quizzes/QuestionBankPage';
-import QuizResultsPage from './pages/quizzes/quiz-results/QuizResultsPage';
-import ReviewResultsPage from './pages/quizzes/quiz-results/ReviewResultsPage';
-import ProgramsManagementPage from './pages/academic/programs/ProgramsManagementPage';
-import SubjectsManagementPage from './pages/academic/subjects/SubjectsManagementPage';
-import ScheduledReportsPage from './pages/feedback/reports/ScheduledReportsPage';
-import AdvancedAnalytics from './components/AdvancedAnalytics';
-
-// 🚀 ADD THESE IMPORTS FOR AUTHENTICATION GUARDS
 import ProtectedRoute from './components/ProtectedRoute';
-import UnauthorizedPage from './pages/system/UnauthorizedPage';
+import './App.css';
+import './styles/colors.css';
+import './styles/theme.css';
+import './utils/userRoleManager';
+import './utils/allowlistManager';
+
+// Direct imports — always-on shell components (not lazy, no barrel)
+import Navbar from '@ui/Navbar/Navbar';
+import ErrorBoundary from '@ui/ErrorBoundary.jsx';
+import HelpDrawer from '@ui/HelpDrawer.jsx';
+import SideDrawer from '@ui/SideDrawer/SideDrawer';
+import LoadingProgress from '@ui/LoadingProgress/LoadingProgress';
+import ToastProvider from '@ui/ToastProvider.jsx';
+import StudentQuickActionModal from '@ui/StudentQuickActionModal.jsx';
+import StudentQRCodeDisplay from '@ui/StudentQRCodeDisplay/StudentQRCodeDisplay';
+
+// Lazy-loaded pages — each becomes its own JS chunk
+const HomePage = lazy(() => import('./pages/HomePage'));
+const LoginPage = lazy(() => import('./pages/system/LoginPage'));
+const UnauthorizedPage = lazy(() => import('./pages/system/UnauthorizedPage'));
+const ChatPage = lazy(() => import('./pages/communications/chat/ChatPage'));
+const ActivityDetailPage = lazy(() => import('./pages/academic/activities/ActivityDetailPage'));
+const NotificationsPage = lazy(() => import('./pages/communications/notifications/NotificationsPage'));
+const ProfileSettingsPage = lazy(() => import('./pages/users/ProfileSettingsPage'));
+const AttendancePage = lazy(() => import('./pages/operations/attendance/AttendancePage'));
+const StudentAttendancePage = lazy(() => import('./pages/operations/attendance/StudentAttendancePage'));
+const HRAttendancePage = lazy(() => import('./pages/operations/attendance/HRAttendancePage'));
+const PenaltiesPage = lazy(() => import('./pages/operations/penalty/PenaltiesPage'));
+const ParticipationPage = lazy(() => import('./pages/operations/participation/ParticipationPage'));
+const BehaviorPage = lazy(() => import('./pages/operations/behavior/BehaviorPage'));
+const InstructorQRScannerPage = lazy(() => import('./pages/operations/attendance/InstructorQRScannerPage'));
+const QRCodeDisplayPage = lazy(() => import('./pages/operations/attendance/QRCodeDisplayPage'));
+const ClassSchedulePage = lazy(() => import('./pages/academic/classes/ClassSchedulePage'));
+const ScheduleOverviewPage = lazy(() => import('./pages/academic/schedules/ScheduleOverviewPage'));
+const EnrollmentsPage = lazy(() => import('./pages/academic/enrollments/EnrollmentsPage'));
+const AnalyticsPage = lazy(() => import('./pages/feedback/analytics/AnalyticsPage'));
+const RoleAccessPro = lazy(() => import('./pages/system/RoleAccessPro'));
+const StudentProfilePage = lazy(() => import('./pages/users/StudentProfilePage'));
+const StudentDashboardPage = lazy(() => import('./pages/dashboard/StudentDashboardPageModern'));
+const QuizzesPage = lazy(() => import('./pages/quizzes/QuizzesPage'));
+const QuizPreviewPage = lazy(() => import('./pages/quizzes/QuizPreviewPage'));
+const StudentQuizPage = lazy(() => import('./pages/quizzes/StudentQuizPage'));
+const QuestionBankPage = lazy(() => import('./pages/quizzes/QuestionBankPage'));
+const QuizResultsPage = lazy(() => import('./pages/quizzes/quiz-results/QuizResultsPage'));
+const ReviewResultsPage = lazy(() => import('./pages/quizzes/quiz-results/ReviewResultsPage'));
+const ProgramsManagementPage = lazy(() => import('./pages/academic/programs/ProgramsManagementPage'));
+const SubjectsManagementPage = lazy(() => import('./pages/academic/subjects/SubjectsManagementPage'));
+const ScheduledReportsPage = lazy(() => import('./pages/feedback/reports/ScheduledReportsPage'));
+const AdvancedAnalytics = lazy(() => import('./components/AdvancedAnalytics'));
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
+const MarksPage = lazy(() => import('./pages/academic/enrollments/grading/MarksPage'));
 
 // Handle MobX State Tree errors globally
 if (typeof window !== 'undefined') {
@@ -76,17 +91,6 @@ if (typeof window !== 'undefined') {
     }
   });
 }
-
-// Lazy loaded heavy components
-const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
-const MarksPage = lazy(() => import('./pages/academic/enrollments/grading/MarksPage'));
-import './App.css';
-import './styles/colors.css';
-import './styles/theme.css';
-
-// Import debugging utilities for browser console access
-import './utils/userRoleManager';
-import './utils/allowlistManager';
 
 // Track page views
 function PageTracker() {
@@ -122,21 +126,21 @@ const AppContent = () => {
   
   // useRealTimeUpdates(); // Temporarily disabled to fix notification spam
   
-  const toggleSideDrawer = () => {
+  const toggleSideDrawer = useCallback(() => {
     if (isSideDrawerCollapsed) {
       setIsSideDrawerCollapsed(false);
     } else {
-      setIsSideDrawerOpen(!isSideDrawerOpen);
+      setIsSideDrawerOpen((prev) => !prev);
     }
-  };
-  
-  const closeSideDrawer = () => {
+  }, [isSideDrawerCollapsed]);
+
+  const closeSideDrawer = useCallback(() => {
     setIsSideDrawerOpen(false);
-  };
-  
-  const toggleSideDrawerCollapse = () => {
-    setIsSideDrawerCollapsed(!isSideDrawerCollapsed);
-  };
+  }, []);
+
+  const toggleSideDrawerCollapse = useCallback(() => {
+    setIsSideDrawerCollapsed((prev) => !prev);
+  }, []);
   
   return (
     <HelpProvider>

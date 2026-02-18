@@ -12,7 +12,7 @@ const isValidUrl = (val) => {
   try {
     // Accept without protocol by testing with https:// fallback first
     const withProto = /^https?:\/\//i.test(val) ? val : `https://${val}`;
-    // eslint-disable-next-line no-new
+     
     new URL(withProto);
     return true;
   } catch {

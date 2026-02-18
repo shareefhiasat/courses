@@ -115,7 +115,7 @@ export const useRoleAccess = () => {
     } finally {
       setLoading(false);
     }
-  }, [user?.uid, role]); // Only depend on user.uid and role, not the entire user object
+  }, [user]); // Only depend on user object
 
   // Load on mount and when user changes
   useEffect(() => {
@@ -131,9 +131,16 @@ export const useRoleAccess = () => {
    */
   const hasAccess = useCallback((screenId) => {
     // Not authenticated
-    if (!user || !role) {
-      console.log('🔍 [useRoleAccess] No user or role:', { user: !!user, role });
+    if (!user) {
+      console.log('🔍 [useRoleAccess] No user:', { user: !!user });
       return false;
+    }
+
+    // During initial loading, if user exists but role is still 'guest', be patient and allow access
+    // This prevents the access denied flicker during role detection
+    if (!role || role === 'guest') {
+      console.log('🔍 [useRoleAccess] Role still loading or guest, allowing access:', { role });
+      return true;
     }
 
     // Super admins bypass all restrictions
@@ -170,7 +177,7 @@ export const useRoleAccess = () => {
     });
     
     return hasPermission;
-  }, [user?.uid, role, isSuperAdmin, roleScreens]); // Only depend on user.uid, not entire user object
+  }, [user, role, isSuperAdmin, roleScreens]);
 
   /**
    * Check if user has access to any of the provided screens

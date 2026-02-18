@@ -74,7 +74,7 @@ const LogsActivityPage = () => {
   const { startLoading } = useGlobalLoading();
 
   // Load data function
-  const loadData = async (isInitial = false) => {
+  const loadData = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoading(true);
     try {
       const [loginLogsRes, usersRes, enrollmentsRes] = await Promise.all([
@@ -98,7 +98,7 @@ const LogsActivityPage = () => {
     } finally {
       if (!isInitial) setLoading(false);
     }
-  };
+  }, [toast]);
 
   // Load data on component mount with Global Loading
   useLayoutEffect(() => {
@@ -116,6 +116,7 @@ const LogsActivityPage = () => {
     return () => {
       if (stopLoading) stopLoading();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-refresh for Activity tab
@@ -126,7 +127,7 @@ const LogsActivityPage = () => {
       setActivityLastUpdatedAt(Date.now());
     }, activityAutoRefreshMs);
     return () => clearInterval(id);
-  }, [activityAutoRefreshMs]);
+  }, [activityAutoRefreshMs, loadData]);
 
   // Update activity tick for progress bar
   useEffect(() => {

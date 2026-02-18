@@ -176,6 +176,8 @@ const StudentAttendancePage = () => {
 
     start();
 
+    const capturedVideoRef = videoRef.current;
+    const capturedRafRef = rafRef;
     return () => {
       // Cleanup
       if (html5QrCode) {
@@ -187,7 +189,7 @@ const StudentAttendancePage = () => {
         } catch {}
       }
       // Clean up container and media tracks
-      const container = videoRef.current;
+      const container = capturedVideoRef;
       if (container) {
         container.innerHTML = '';
         const videos = container.querySelectorAll('video');
@@ -201,9 +203,10 @@ const StudentAttendancePage = () => {
         const canvases = container.querySelectorAll('canvas');
         canvases.forEach(c => c.remove());
       }
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (capturedRafRef.current) cancelAnimationFrame(capturedRafRef.current);
       setScanning(false);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-scan support when opened from external QR readers (URL contains sid & t)
@@ -221,6 +224,7 @@ const StudentAttendancePage = () => {
         handleRawValue(`${u.origin}/my-attendance?sid=${sid}&t=${tkn}`);
       }
     } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load user's enrolled classes -> dropdown and check visibility settings
@@ -272,7 +276,7 @@ const StudentAttendancePage = () => {
       }
     };
     load();
-  }, [user]);
+  }, [user, classId, handleRawValue]);
 
   // Load history with filters
   useEffect(() => {
@@ -401,7 +405,7 @@ const StudentAttendancePage = () => {
     } catch { return { sid: null, token: null }; }
   };
 
-  const handleRawValue = async (raw) => {
+  const handleRawValue = useCallback(async (raw) => {
     const parsed = parsePayload(raw);
     
     // Handle 6-digit manual code
@@ -491,7 +495,7 @@ const StudentAttendancePage = () => {
       setLastResult({ ok: false, error: e?.message || 'error' });
       setMessage(`${t('error') || 'Error'}: ${e?.message || 'unknown'}`);
     }
-  };
+  }, [t, toast, classId, attendanceStatus, leaveReason, leaveNote]);
 
   // Store handleRawValue in ref for use in useEffect
   handleRawValueRef.current = handleRawValue;

@@ -167,6 +167,7 @@ export default function AdvancedAnalytics() {
   useEffect(() => {
     loadAllData();
     loadSavedWidgets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-refresh

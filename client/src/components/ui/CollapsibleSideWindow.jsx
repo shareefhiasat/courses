@@ -43,6 +43,7 @@ const CollapsibleSideWindow = ({
     if (!isOpen) {
       hasAppliedInitialFilters.current = false;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]); // Only depend on isOpen to avoid infinite loops
 
   // Drag handlers

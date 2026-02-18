@@ -1271,7 +1271,7 @@ export const HelpProvider = ({ children }) => {
       // console.log('[HelpContext] Cleaning up app:help event listener');
       window.removeEventListener('app:help', handleHelpEvent);
     };
-  }, [location.pathname, getHelpForRoute]);
+  }, [location.pathname, location.hash, location.search, getHelpForRoute, defaultHelp]);
 
   // Listen for help toggle events separately to avoid dependency issues
   useEffect(() => {
@@ -1304,7 +1304,7 @@ export const HelpProvider = ({ children }) => {
       // console.log('[HelpContext] Cleaning up app:help:toggle event listener');
       window.removeEventListener('app:help:toggle', handleHelpToggle);
     };
-  }, [location.pathname, getHelpForRoute]);
+  }, [location.pathname, location.hash, location.search, getHelpForRoute]);
 
   // Listen for dashboard tab changes to update help content
   useEffect(() => {

@@ -67,7 +67,7 @@ const HierarchyFilters = ({
         value: c.id || c.docId,
         label: c.name || c.code
       }))
-  ], [classes, selectedSubject, selectedProgram, subjects]);
+  ], [classes, selectedSubject, selectedProgram, subjects, t]);
 
   const studentOptions = useMemo(() => [
     { value: 'all', label: t('all_students') || 'All Students' },

@@ -152,11 +152,6 @@ export default function AnalyticsPage() {
     a.click();
   };
 
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
-
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {
     if (authLoading) return;

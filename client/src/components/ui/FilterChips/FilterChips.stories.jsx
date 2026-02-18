@@ -72,29 +72,29 @@ export const CustomFilters = {
   },
 };
 
-export const Interactive = {
-  render: () => {
-    const [filters, setFilters] = React.useState(mockFilters);
-    
-    const handleFilterClick = (filterId) => {
-      setFilters(prev => prev.map(filter => ({
-        ...filter,
-        active: filter.id === filterId ? !filter.active : filter.active
-      })));
-    };
-    
-    return (
-      <div style={{ padding: '20px' }}>
-        <FilterChips 
-          variant="type" 
-          filters={filters} 
-          t={(key) => key}
-          onFilterClick={handleFilterClick}
-        />
-        <div style={{ marginTop: '20px', fontSize: '14px', color: '#6b7280' }}>
-          Click on filters to toggle their state
-        </div>
+const InteractiveDemo = () => {
+  const [filters, setFilters] = React.useState(mockFilters);
+  const handleFilterClick = (filterId) => {
+    setFilters(prev => prev.map(filter => ({
+      ...filter,
+      active: filter.id === filterId ? !filter.active : filter.active
+    })));
+  };
+  return (
+    <div style={{ padding: '20px' }}>
+      <FilterChips
+        variant="type"
+        filters={filters}
+        t={(key) => key}
+        onFilterClick={handleFilterClick}
+      />
+      <div style={{ marginTop: '20px', fontSize: '14px', color: '#6b7280' }}>
+        Click on filters to toggle their state
       </div>
-    );
-  },
+    </div>
+  );
+};
+
+export const Interactive = {
+  render: () => <InteractiveDemo />,
 };

@@ -129,7 +129,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     getDevices();
   }, []);
 
-  const startCamera = async () => {
+  const startCamera = useCallback(async () => {
     // Check if all required fields are selected before starting camera
     if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
       showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
@@ -204,9 +204,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       // Play error feedback for camera errors
       playFeedbackSound('error');
     }
-  };
+  }, [selectedProgramId, selectedSubjectId, selectedClassId, showResult, t, addDebugLog, cameraMode, isMobile, playFeedbackSound, scanQRCode]);
 
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     setIsScanning(false);
 
     if (scanIntervalRef.current) {
@@ -224,9 +224,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
 
     addDebugLog('🛑 Camera stopped and cleaned up', 'info');
-  };
+  }, [addDebugLog]);
 
-  const scanQRCode = () => {
+  const scanQRCode = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const video = videoRef.current;
@@ -249,7 +249,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         }
       }
     }
-  };
+  }, [lastScannedCode, handleQRCodeDetected]);
 
   // Debug logging function
   const addDebugLog = useCallback((message, type = 'info') => {
@@ -295,7 +295,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     });
     setShowResultModal(true);
     addDebugLog(`📢 Showing result modal: ${finalType} - ${finalMessage}`, 'info');
-  }, [addDebugLog, getAttendanceIcon, getAttendanceLabel, lang]);
+  }, [addDebugLog, lang, t]);
 
   // Play feedback sound and vibration
   const playFeedbackSound = useCallback((type) => {
@@ -349,7 +349,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     } catch (error) {
       logger.warn('Could not play feedback sound:', error);
     }
-  }, [soundEnabled, vibrationEnabled, t]);
+  }, [soundEnabled, vibrationEnabled]);
 
   const handleQRCodeDetected = async (data) => {
     // Prevent infinite scanning - lock scanning for 3 seconds
@@ -676,7 +676,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       startCamera();
     }
-  }, [selectedProgramId, selectedSubjectId, selectedClassId, t]);
+  }, [selectedProgramId, selectedSubjectId, selectedClassId, t, isScanning, showResult, startCamera, stopCamera]);
 
   const handleManualSubmit = useCallback(() => {
     if (!manualStudentId.trim()) return;
@@ -833,7 +833,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       setTodayAttendanceStatus(null);
       return null;
     }
-  }, [findStudentData, checkTodayAttendanceStatus, addDebugLog, classId]);
+  }, [findStudentData, checkTodayAttendanceStatus, addDebugLog]);
 
   // Handle behavior/participation submission
   const handleBehaviorSubmit = useCallback(async (studentId, actions, note) => {
@@ -924,7 +924,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       logger.error('Error submitting behavior/participation:', error);
       showError('Failed to record actions');
     }
-  }, [selectedClassId, selectedSubjectId, selectedClassName, user]);
+  }, [selectedClassId, selectedSubjectId, selectedClassName, user, findStudentData, showError]);
 
   // Handle penalty submission
   const handlePenaltySubmit = useCallback(async (studentId, penalties, note) => {
@@ -989,7 +989,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       logger.error('Error submitting penalty:', error);
       showError('Failed to record penalty');
     }
-  }, [selectedClassId, selectedSubjectId, user, findStudentData, selectedClassName]);
+  }, [selectedClassId, selectedSubjectId, user, findStudentData, selectedClassName, showError]);
 
   const switchCameraMode = () => {
     const newMode = cameraMode === 'environment' ? 'user' : 'environment';
@@ -1327,7 +1327,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     } finally {
       setActivityLoading(false);
     }
-  }, [classId, students, user, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName]);
+  }, [classId, students, user, selectedProgramName, selectedSubjectName, selectedClassName, lang, t]);
 
   // Memoized helper functions for activity display - defined outside map for performance
   const getScanMethodDisplay = useCallback((scanMethod) => {
@@ -1444,7 +1444,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
     // Fallback for any other types
     return '';
-  }, [t]);
+  }, []);
 
   // Listen for real-time activity updates - optimized with useCallback
   useEffect(() => {
@@ -1620,7 +1620,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         showError('Failed to mark attendance');
       }
     }
-  }, [selectedClassId, user, lastScannedStudent, students, classId, lang, onActivityUpdate, fetchRecentActivity, showResult, addDebugLog, logger, showSuccess, showError]);
+  }, [selectedClassId, user, lastScannedStudent, students, classId, lang, t, onActivityUpdate, fetchRecentActivity, showResult, addDebugLog, showSuccess, showError]);
 
   // Senior-Level Quick Attendance Handler
   const handleQuickAttendance = useCallback(async (student, status) => {
@@ -1675,7 +1675,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       addDebugLog(`❌ Quick attendance error: ${error.message}`, 'error');
       showResult('error', `Failed to mark ${statusLabel}: ${error.message}`);
     }
-  }, [selectedClassId, user, lang, onActivityUpdate, fetchRecentActivity, showResult, addDebugLog]);
+  }, [selectedClassId, user, lang, t, onActivityUpdate, fetchRecentActivity, showResult, addDebugLog]);
 
   // Fetch activity when classId and students change
   useEffect(() => {
@@ -1692,7 +1692,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       setRecentActivity([]);
       setActivityLoading(false);
     }
-  }, [classId, students]);
+  }, [classId, students, fetchRecentActivity]);
 
   // Notify parent when minimization state changes
   useEffect(() => {
@@ -1716,14 +1716,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     return () => {
       stopCamera();
     };
-  }, []);
+  }, [stopCamera]);
 
   // Debug logging for StudentActionPanelNew rendering
   useEffect(() => {
     if (showStudentActionPanelNew && studentForAction) {
       addDebugLog(`🎯 Rendering StudentActionPanelNew for: ${studentForAction.name || studentForAction.email}`, 'info');
     }
-  }, [showStudentActionPanelNew, studentForAction]);
+  }, [showStudentActionPanelNew, studentForAction, addDebugLog]);
 
   return (
       <CollapsibleSection

@@ -236,7 +236,7 @@ export default function StudentActionPanelNew({
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedActions, actionPoints, internalNote, student?.id, onBehaviorSubmit, onParticipationSubmit, onPenaltySubmit, onClose, t, showSuccess, showError]);
+  }, [selectedActions, actionPoints, internalNote, student?.id, student?.docId, onBehaviorSubmit, onParticipationSubmit, onPenaltySubmit, onClose, t, showSuccess, showError]);
 
   const getInitials = useCallback((name) => {
     return name

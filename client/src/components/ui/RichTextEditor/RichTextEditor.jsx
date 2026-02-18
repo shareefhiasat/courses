@@ -61,16 +61,18 @@ function RichTextEditor({
       }
     });
 
+    const capturedEditorRef = editorRef.current;
     return () => {
       if (quillRef.current) {
         // Properly destroy Quill instance
-        const toolbar = editorRef.current?.parentElement?.querySelector('.ql-toolbar');
+        const toolbar = capturedEditorRef?.parentElement?.querySelector('.ql-toolbar');
         if (toolbar) {
           toolbar.remove();
         }
         quillRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update content when value prop changes

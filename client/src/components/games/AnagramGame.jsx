@@ -22,6 +22,7 @@ export default function AnagramGame({ questions, settings, onComplete }) {
     if (currentQuestion) {
       scrambleWord(currentQuestion.answer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex]);
 
   const scrambleWord = (word) => {

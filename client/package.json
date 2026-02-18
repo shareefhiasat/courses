@@ -12,8 +12,8 @@
     "build-storybook": "storybook build",
     "clean": "rm -rf node_modules package-lock.json && pnpm install",
     "cleanup": "node cleanup.mjs",
-    "analyze": "vite build --analyze",
-    "build:prod": "NODE_ENV=production vite build"
+    "analyze": "cross-env ANALYZE=true vite build",
+    "build:prod": "cross-env NODE_ENV=production vite build"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",
@@ -50,6 +50,7 @@
     "recharts": "^3.3.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@storybook/addon-essentials": "^8.6.14",
     "@storybook/addon-interactions": "^8.6.14",
     "@storybook/addon-links": "^8.6.14",
@@ -60,9 +61,16 @@
     "@tailwindcss/postcss": "^4.1.17",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.22",
+    "cross-env": "^10.1.0",
+    "eslint": "^10.0.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.0",
+    "globals": "^17.3.0",
     "postcss": "^8.5.6",
+    "rollup-plugin-visualizer": "^6.0.5",
     "storybook": "^8.6.14",
     "tailwindcss": "^4.1.17",
+    "typescript-eslint": "^8.56.0",
     "vite": "^6.0.7"
   }
 }

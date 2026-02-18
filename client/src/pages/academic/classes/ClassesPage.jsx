@@ -61,7 +61,7 @@ const ClassesPage = () => {
   const { startLoading } = useGlobalLoading();
 
   // Load all data
-  const loadData = async (isInitial = false) => {
+  const loadData = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoading(true);
     try {
       const [classesRes, programsRes, subjectsRes, usersRes, enrollmentsRes, activitiesRes] = await Promise.all([
@@ -94,7 +94,7 @@ const ClassesPage = () => {
     } finally {
       if (!isInitial) setLoading(false);
     }
-  };
+  }, [t, toast]);
 
   // Load data on mount with Global Loading
   useLayoutEffect(() => {
@@ -112,6 +112,7 @@ const ClassesPage = () => {
     return () => {
       if (stopLoading) stopLoading();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   // Utility functions
@@ -134,11 +135,11 @@ const ClassesPage = () => {
     setClassFilter('');
   };
   
-  const toast = {
+  const toast = useMemo(() => ({
     showSuccess: uiToast.success,
     showError: uiToast.error,
     showInfo: uiToast.info,
-  };
+  }), [uiToast.success, uiToast.error, uiToast.info]);
 
   const handleClassSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -242,7 +243,7 @@ const ClassesPage = () => {
         toast?.showError(t('classes_error_deleting', { error: error.message }));
       }
     });
-  }, [deleteClassModal, enrollments, activities, toast, loadData]);
+  }, [deleteClassModal, toast, loadData, t]);
 
 const handleCancelEdit = useCallback(() => {
     setEditingClass(null);
@@ -421,7 +422,7 @@ const handleCancelEdit = useCallback(() => {
         </div>
       )
     }
-  ], [subjects, users, theme, lang, t, handleEdit, handleDelete]);
+  ], [subjects, users, theme, lang, t, handleEdit, handleDelete, programs]);
 
   const filteredClasses = classes.filter(classItem => {
     if (classProgramFilter && classProgramFilter !== 'all' && classItem.programId !== classProgramFilter) return false;

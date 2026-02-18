@@ -408,7 +408,7 @@ const ClassSchedulePage = () => {
     return () => {
       if (stopLoading) stopLoading();
     };
-  }, [user, isAdmin, isInstructor, startLoading, t]);
+  }, [user, isAdmin, isInstructor, startLoading, t, loadClasses]);
 
   const loadSchedule = (classData, options = {}) => {
     const safeClass = classData ? { ...classData, docId: classData.docId || classData.id, id: classData.id || classData.docId } : null;

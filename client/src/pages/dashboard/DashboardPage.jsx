@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, lazy, Suspense, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -174,7 +174,7 @@ const DashboardPage = () => {
       alert((t('error_uploading_templates') || 'Error uploading templates: ') + error.message);
       return { success: false, error: error.message };
     }
-  }, []);
+  }, [t]);
 
   // Make the function available globally for debugging
   useEffect(() => {
@@ -182,7 +182,7 @@ const DashboardPage = () => {
       window.uploadDefaultEmailTemplates = uploadDefaultEmailTemplates;
       console.log((t('upload_function_available') || '🔧 Upload function available: ') + 'window.uploadDefaultEmailTemplates()');
     }
-  }, [uploadDefaultEmailTemplates]);
+  }, [uploadDefaultEmailTemplates, t]);
 
   const latestHandleTabChange = useRef(handleTabChange);
   useEffect(() => {
@@ -207,7 +207,7 @@ const DashboardPage = () => {
 
   // Show loading while auth is initializing to prevent useAuth errors
   // Note: Removed early return to avoid hooks order issues
-  const ribbonCategories = [
+  const ribbonCategories = useMemo(() => [
     {
       id: 'content',
       label: t('content'),
@@ -260,7 +260,7 @@ const DashboardPage = () => {
         { key: 'logging', label: t('logs') }
       ]
     }
-  ];
+  ], [t]);
   // Initialize tour steps (localization-aware)
   useEffect(() => {
     const steps = [
@@ -290,7 +290,7 @@ const DashboardPage = () => {
       }
     ];
     setTourSteps(steps);
-  }, [lang]);
+  }, [lang, t]);
   // Auto-start on demand via app event in HomePage (optional)
   useEffect(() => {
     const start = () => setRunTour(true);
@@ -337,7 +337,8 @@ const DashboardPage = () => {
       // Hash was cleared, reset flag
       setHashProcessed(false);
     }
-  }, [location.hash]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.hash, location.search]);
   useEffect(() => {
     if (!authLoading && (!user || !(isAdmin || isSuperAdmin || isInstructor))) {
       navigate('/');

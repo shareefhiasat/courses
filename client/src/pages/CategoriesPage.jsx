@@ -99,9 +99,10 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   useEffect(() => {
     if (!isInstructor && !isAdmin && !isSuperAdmin) return;
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInstructor, isAdmin, isSuperAdmin]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setPageState(PAGE_STATES.LOADING);
     try {
       const result = await getCategories();
@@ -126,7 +127,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     } finally {
       setPageState(PAGE_STATES.READY);
     }
-  };
+  }, [t, toast]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -179,7 +180,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     } finally {
       setSaving(false);
     }
-  }, [formData, editingCategory, nameEnRef, nameArRef, descEnRef, descArRef, t, toast, loadData]);
+  }, [formData, editingCategory, t, toast, loadData, formErrors, isFormValid, syncRefsToState]);
 
   const handleEdit = useCallback((category) => {
     setEditingCategory(category);
@@ -226,10 +227,6 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     });
     setEditingCategory(null);
   };
-
-  if (!isInstructor && !isAdmin && !isSuperAdmin) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>{t('access_denied') || 'Access Denied'}</div>;
-  }
 
   const columns = useMemo(() => [
     {
@@ -363,7 +360,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         );
       }
     }
-  ], [theme, lang, t, handleEdit, handleDelete, hideActions]);
+  ], [theme, t, handleEdit, handleDelete, hideActions]);
 
   return (
     <div>

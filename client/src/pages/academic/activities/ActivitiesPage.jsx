@@ -114,7 +114,7 @@ const ActivitiesPage = () => {
     } finally {
       if (!isInitial) setDataLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   // Load data on component mount with Global Loading
   useLayoutEffect(() => {
@@ -132,6 +132,7 @@ const ActivitiesPage = () => {
     return () => {
       if (stopLoading) stopLoading();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handler functions
@@ -183,6 +184,7 @@ const ActivitiesPage = () => {
     if (descArRef.current) descArRef.current.value = activityForm.description_ar || '';
     if (urlRef.current) urlRef.current.value = activityForm.url || '';
     if (imageRef.current) imageRef.current.value = activityForm.image || '';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingActivity]); // only when we load an activity for editing
 
   // Read text values from refs into form state before submit
@@ -275,7 +277,7 @@ const ActivitiesPage = () => {
       setLoading(false);
       logger.timeEnd('[PERF] handleActivitySubmit');
     }
-  }, [activityForm, editingActivity, user, toast, syncRefsToState, resetActivityForm]);
+  }, [activityForm, editingActivity, user, toast, syncRefsToState, resetActivityForm, t, emailOptions]);
 
   const handleEditActivity = useCallback((activity) => {
     // Convert dueDate to input format for editing
@@ -338,7 +340,7 @@ const ActivitiesPage = () => {
     }
     
     setActiveActivityFormTab('basic');
-  }, [quizzes]);
+  }, [quizzes, t]);
 
   // Clear filters
   const handleClearActivityFilters = () => {
@@ -723,7 +725,7 @@ const ActivitiesPage = () => {
         </div>
       )
     }
-  ], [programs, subjects, classes, quizzes, theme, lang, t, handleEditActivity, toast, loadData]);
+  ], [programs, subjects, classes, quizzes, theme, lang, t, handleEditActivity, toast, loadData, deleteActivity]);
 
   const filteredActivities = activities.filter(activity => {
     if (activityProgramFilter && activity.programId !== activityProgramFilter) return false;

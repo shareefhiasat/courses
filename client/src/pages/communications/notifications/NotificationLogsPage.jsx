@@ -75,11 +75,13 @@ const NotificationLogsPage = () => {
     return () => {
       if (stopLoading) stopLoading();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   // Reload when filters change (after initial load)
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notificationLogFilters]);
   
   const handleFilterChange = (filterName, value) => {

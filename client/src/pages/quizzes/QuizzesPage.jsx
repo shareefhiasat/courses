@@ -130,7 +130,7 @@ export default function QuizzesPage() {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   };
 
-  const normalizeQuestion = (question = {}) => {
+  const normalizeQuestion = useCallback((question = {}) => {
     const baseOptions = Array.isArray(question.options) ? question.options : [];
     const resolvedType = question.type || QUESTION_TYPES.MULTIPLE_CHOICE;
     
@@ -166,9 +166,9 @@ export default function QuizzesPage() {
       difficulty: question.difficulty || 'medium',
       options: normalizedOptions
     };
-  };
+  }, []);
 
-  const normalizeQuizData = (data = {}) => {
+  const normalizeQuizData = useCallback((data = {}) => {
     const mergedSettings = {
       ...defaultQuizTemplate.settings,
       ...(data.settings || {})
@@ -191,7 +191,7 @@ export default function QuizzesPage() {
       questions: normalizedQuestions,
       settings: mergedSettings
     };
-  };
+  }, [defaultQuizTemplate, normalizeQuestion]);
 
   const [quizData, setQuizData] = useState(() => normalizeQuizData());
   const [originalQuizData, setOriginalQuizData] = useState(null); // Store original for comparison
@@ -201,14 +201,14 @@ export default function QuizzesPage() {
     if (viewMode === 'list' && !authLoading && user) {
       loadQuizzes();
     }
-  }, [viewMode, authLoading, user]);
+  }, [viewMode, authLoading, user, loadQuizzes]);
 
   // Load quiz for editing
   useEffect(() => {
     if (viewMode === 'edit' && quizId) {
       loadQuiz(quizId);
     }
-  }, [viewMode, quizId]);
+  }, [viewMode, quizId, loadQuiz]);
 
   // Log state changes when active question changes
   useEffect(() => {
@@ -245,7 +245,7 @@ export default function QuizzesPage() {
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   };
 
-  const formatQuiz = async (quiz) => {
+  const formatQuiz = useCallback(async (quiz) => {
     const createdAt = toDate(quiz.createdAt);
     const settings = quiz.settings || {};
     const questionsArray = Array.isArray(quiz.questions) ? quiz.questions : [];
@@ -280,9 +280,9 @@ export default function QuizzesPage() {
       creatorName,
       updatedAt: toDate(quiz.updatedAt)
     };
-  };
+  }, [t, lang]);
 
-  const loadQuizzes = async () => {
+  const loadQuizzes = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     setError('');
@@ -322,9 +322,9 @@ export default function QuizzesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, isAdmin, isInstructor, t, formatQuiz]);
 
-  const loadQuiz = async (id) => {
+  const loadQuiz = useCallback(async (id) => {
     setLoading(true);
     try {
       const result = await getQuiz(id);
@@ -342,7 +342,7 @@ export default function QuizzesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [normalizeQuizData]);
 
   const saveQuiz = async () => {
     const titleEn = (quizData.title_en || quizData.title || '').trim();

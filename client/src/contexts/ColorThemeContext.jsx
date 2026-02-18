@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { adjustColor, normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
 import '../utils/themeDebug'; // Import debug utility
@@ -39,7 +39,7 @@ export const ColorThemeProvider = ({ children }) => {
   });
 
   // Apply CSS variables for the primary color
-  const applyColorVars = (color) => {
+  const applyColorVars = useCallback((color) => {
     // console.log('🎨 [ColorTheme] Applying color vars:', { color, source: 'applyColorVars' });
     try {
       const root = document.documentElement;
@@ -85,7 +85,7 @@ export const ColorThemeProvider = ({ children }) => {
     } catch (error) {
       console.error('🎨 [ColorTheme] Failed to apply color variables:', error);
     }
-  };
+  }, []);
 
   // Immediately apply initial color on mount to reduce flash
   useEffect(() => {
@@ -99,7 +99,7 @@ export const ColorThemeProvider = ({ children }) => {
         // console.log('🎨 [ColorTheme] No cached color found, using default');
       }
     }
-  }, [user?.uid]);
+  }, [user?.uid, applyColorVars]);
 
   useEffect(() => {
     // console.log('🎨 [ColorTheme] Color change effect:', { primaryColor, user: user?.uid });
@@ -114,7 +114,7 @@ export const ColorThemeProvider = ({ children }) => {
 
     // Update CSS variables
     applyColorVars(primaryColor);
-  }, [primaryColor, user?.uid]);
+  }, [primaryColor, user?.uid, applyColorVars]);
 
   // Listen for color updates from AuthContext
   useEffect(() => {
@@ -208,7 +208,7 @@ export const ColorThemeProvider = ({ children }) => {
       console.error('🎨 [ColorTheme] Failed to apply initial color variables:', error);
     }
   // Run once on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   return (

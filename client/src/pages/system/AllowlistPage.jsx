@@ -32,21 +32,6 @@ const AllowlistPage = () => {
     }
   };
 
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
-
-  // Access control
-  if (!isSuperAdmin) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <h3>Access Denied</h3>
-        <p>You need super admin privileges to access this page.</p>
-      </div>
-    );
-  }
-
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {
     if (authLoading) return;

@@ -34,11 +34,6 @@ const ScheduleOverviewPage = () => {
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [instructorFilter, setInstructorFilter] = useState('all');
 
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
-
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {
     if (authLoading) return;
@@ -70,13 +65,10 @@ const ScheduleOverviewPage = () => {
     return () => {
       safeStop();
     };
-  }, [authLoading, user, loadMetadata, loadSchedules, startLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user, loadSchedules, startLoading]);
 
-  useEffect(() => {
-    loadMetadata();
-  }, []);
-
-  const loadMetadata = async () => {
+  const loadMetadata = useCallback(async () => {
     try {
       const [programsRes, subjectsRes, usersRes] = await Promise.all([
         getPrograms(),
@@ -90,7 +82,7 @@ const ScheduleOverviewPage = () => {
     } catch (error) {
       logger.error('[ScheduleOverview] Error loading metadata:', error);
     }
-  };
+  }, []);
 
   const loadSchedules = useCallback(async () => {
     if (!term || !year) {

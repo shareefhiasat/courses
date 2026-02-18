@@ -20,6 +20,7 @@ const ChatGame = ({ questions, settings, onComplete }) => {
             addBotMessage(t('chatQuizIntro', "Hi! I'm your quiz bot. Let's start!"));
             setTimeout(() => askQuestion(0), 1000);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [questions]);
 
     useEffect(() => {

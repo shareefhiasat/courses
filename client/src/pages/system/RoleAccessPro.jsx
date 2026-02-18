@@ -125,6 +125,7 @@ export default function RoleAccessPro() {
     if (authLoading) return;
     if (!user) return;
     loadRoleScreens();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user]);
 
   const loadRoleScreens = async () => {

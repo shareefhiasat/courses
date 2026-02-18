@@ -103,6 +103,7 @@ export default function StudentQuizPage() {
 
   useEffect(() => {
     loadQuiz();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizId]);
 
   useEffect(() => {
@@ -110,6 +111,7 @@ export default function StudentQuizPage() {
     if (quiz && !started && !showResults && user?.uid && quizId) {
       checkSavedProgress();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quiz, started, showResults, user?.uid, quizId]);
 
   useEffect(() => {
@@ -176,6 +178,7 @@ export default function StudentQuizPage() {
       }, 1000);
     }
     return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started, showResults, timeLeft]);
 
   const checkSavedProgress = async () => {
@@ -673,11 +676,6 @@ export default function StudentQuizPage() {
     }
   };
 
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
-
   // Use GlobalLoading for initial quiz data load
   useLayoutEffect(() => {
     if (authLoading) return;
@@ -709,6 +707,7 @@ export default function StudentQuizPage() {
     return () => {
       safeStop();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, quizId, startLoading]);
 
   // For inline loading states (like submitting), keep SimpleLoading

@@ -86,7 +86,7 @@ const AttendancePageEnhanced = () => {
       
       return true;
     });
-  }, [classOptions, programs, subjects, programFilter, subjectFilter, classFilter, termFilter, yearFilter, instructorFilter]);
+  }, [classOptions, subjects, programFilter, subjectFilter, classFilter, termFilter, yearFilter, instructorFilter]);
 
   // Load classes, programs, subjects (authorized roles only)
   useEffect(() => {
@@ -109,7 +109,7 @@ const AttendancePageEnhanced = () => {
         if (e?.code !== 'permission-denied') logger.error('[Attendance] load data:', e);
       }
     })();
-  }, [user, isAdmin, isInstructor, isHR]);
+  }, [user, isAdmin, isInstructor, isHR, classId]);
 
   // Load config (admin only)
   useEffect(() => {
@@ -274,11 +274,6 @@ const AttendancePageEnhanced = () => {
       await setDoc(doc(db, 'config', 'attendance'), cfg, { merge: true });
     } finally { setSavingCfg(false); }
   };
-
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
 
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {

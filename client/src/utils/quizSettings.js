@@ -340,7 +340,7 @@ export function checkIPRestrictions(settings, clientIP) {
     return { allowed: true };
   }
   
-  const allowed = settings.ipRestrictions.some(allowed IP => {
+  const allowed = settings.ipRestrictions.some(allowedIP => {
     // Support CIDR notation or exact match
     return clientIP === allowedIP || clientIP.startsWith(allowedIP.split('/')[0]);
   });

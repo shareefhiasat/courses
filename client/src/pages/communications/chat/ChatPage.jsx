@@ -165,7 +165,7 @@ const ChatPage = memo(() => {
       } catch {}
     };
     if (user?.uid) loadProfile();
-  }, [user?.uid]);
+  }, [user]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -225,7 +225,8 @@ const ChatPage = memo(() => {
     el.addEventListener('scroll', onScroll);
     onScroll();
     return () => el.removeEventListener('scroll', onScroll);
-  }, [scrollContainerRef.current]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Save edits to a message
   const handleSaveEdit = async () => {
@@ -536,7 +537,7 @@ const ChatPage = memo(() => {
     unsubs.push(unsub);
     
     return () => unsubs.forEach(u => u());
-  }, [user, isAdmin, authLoading]);
+  }, [user, isAdmin, authLoading, loadClassMembers, selectedClass]);
 
   // Load all users once for DM labels
   useEffect(() => {
@@ -570,7 +571,7 @@ const ChatPage = memo(() => {
         messagesUnsubRef.current = null;
       }
     };
-  }, [selectedClass]);
+  }, [selectedClass, loadMessages]);
   
   // Auto-scroll only when new messages are appended
   const prevCountRef = useRef(0);
@@ -602,7 +603,7 @@ const ChatPage = memo(() => {
       }, { threshold: 0.5 });
       lastMsgObserverRef.current.observe(el);
     } catch {}
-  }, [messages]);
+  }, [messages, selectedClass, user]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -668,7 +669,7 @@ const ChatPage = memo(() => {
     window.addEventListener('mousemove', move);
     window.addEventListener('mouseup', up);
     return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
-  }, []);
+  }, [onDragEnd]);
 
   // Delete message (admins or the original sender). Also removes attachments when present.
   const handleDeleteMessage = async (msg) => {
@@ -1242,10 +1243,6 @@ const ChatPage = memo(() => {
       toast?.showError('Failed to start conversation');
     }
   };
-
-  // Auth loading check
-  if (authLoading) return <GlobalLoadingFallback />;
-  if (!user) return <Navigate to="/login" />;
 
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {

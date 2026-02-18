@@ -21,14 +21,8 @@ import DraggableClock from '../DraggableClock/DraggableClock';
 const ACCENT_FALLBACK = DEFAULT_ACCENT;
 
 const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
-  let authContext;
-  try {
-    authContext = useAuth();
-  } catch (error) {
-    // AuthProvider not available yet, return null
-    return null;
-  }
-  const { user, isAdmin, isSuperAdmin, isInstructor, isHR, impersonating, stopImpersonation } = authContext;
+  const authContext = useAuth();
+  const { user, isAdmin, isSuperAdmin, isInstructor, isHR, impersonating, stopImpersonation } = authContext || {};
   const navigate = useNavigate();
   const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -129,7 +123,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
       setTimeFormat(getTimeFormatPreference());
       setShowProfile(true);
     } catch (e) { /* noop */ }
-  }, [user, getUserProfile]);
+  }, [user, getUserProfile, setPrimaryColor]);
 
   const saveProfile = useCallback(async () => {
     try {

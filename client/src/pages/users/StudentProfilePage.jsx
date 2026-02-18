@@ -70,7 +70,7 @@ const StudentProfilePage = () => {
         return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
       });
     return [...opts, ...validPrograms];
-  }, [programs]);
+  }, [programs, t, theme]);
 
   const subjectOptions = useMemo(() => {
     const opts = [
@@ -89,7 +89,7 @@ const StudentProfilePage = () => {
         return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
       });
     return [...opts, ...validSubjects];
-  }, [subjects, filters.programId]);
+  }, [subjects, filters.programId, t, theme]);
 
   const classOptions = useMemo(() => {
     const opts = [
@@ -113,7 +113,7 @@ const StudentProfilePage = () => {
         return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
       });
     return [...opts, ...validClasses];
-  }, [allClasses, filters.programId, filters.subjectId]);
+  }, [allClasses, filters.programId, filters.subjectId, t, theme]);
 
   const yearOptions = useMemo(() => {
     const opts = [
@@ -126,7 +126,7 @@ const StudentProfilePage = () => {
         icon: getThemedIcon('ui', 'book_open', 16, theme)
       }));
     return [...opts, ...validYears];
-  }, [allClasses]);
+  }, [allClasses, t, theme]);
 
   const termOptions = useMemo(() => {
     const opts = [
@@ -139,7 +139,7 @@ const StudentProfilePage = () => {
         icon: getThemedIcon('ui', 'book_open', 16, theme)
       }));
     return [...opts, ...validTerms];
-  }, [allClasses]);
+  }, [allClasses, t, theme]);
 
   const semesterOptions = useMemo(() => {
     const opts = [
@@ -152,7 +152,7 @@ const StudentProfilePage = () => {
         icon: getThemedIcon('ui', 'book_open', 16, theme)
       }));
     return [...opts, ...validSemesters];
-  }, [allClasses]);
+  }, [allClasses, t, theme]);
 
   const canViewOthers = isAdmin || isHR || isInstructor;
 
@@ -160,12 +160,14 @@ const StudentProfilePage = () => {
     if (canViewOthers) {
       loadAllClasses();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canViewOthers]);
 
   useEffect(() => {
     if (targetUserId) {
       loadStudentProfile();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetUserId, filters]);
 
   // Sync URL when target changes
@@ -176,7 +178,7 @@ const StudentProfilePage = () => {
       params.set('uid', targetUserId);
       setSearchParams(params, { replace: true });
     }
-  }, [targetUserId]);
+  }, [targetUserId, searchParams, setSearchParams]);
 
   const loadAllClasses = async () => {
     try {
@@ -432,17 +434,6 @@ const StudentProfilePage = () => {
     }
   };
 
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
-
-  // Authentication check
-  if (!user) {
-    window.location.href = '/login';
-    return null;
-  }
-
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {
     if (authLoading) return;
@@ -471,6 +462,7 @@ const StudentProfilePage = () => {
     return () => {
       safeStop();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, startLoading]);
 
   if (!studentData) {

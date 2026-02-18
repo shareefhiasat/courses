@@ -50,6 +50,7 @@ const LoginPage = () => {
       sessionStorage.removeItem('logoutTimestamp');
       sessionStorage.removeItem('lastActivityTime');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getTimeAgo = useCallback((date) => {

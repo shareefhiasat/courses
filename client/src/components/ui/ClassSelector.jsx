@@ -163,7 +163,7 @@ const ClassSelector = ({
 };
 
 // Enhanced version with additional features
-ClassSelector.Advanced = ({
+const ClassSelectorAdvanced = ({
   programs = [],
   subjects = [],
   classes = [],
@@ -418,5 +418,7 @@ ClassSelector.Advanced = ({
     </div>
   );
 };
+
+ClassSelector.Advanced = ClassSelectorAdvanced;
 
 export default ClassSelector;

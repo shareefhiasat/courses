@@ -33,11 +33,11 @@ const ResourcesPage = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const uiToast = useToast();
-  const toast = {
+  const toast = useMemo(() => ({
     showSuccess: uiToast.success,
     showError: uiToast.error,
     showInfo: uiToast.info,
-  };
+  }), [uiToast.success, uiToast.error, uiToast.info]);
 
   // State management
   const [resources, setResources] = useState([]);
@@ -99,6 +99,7 @@ const ResourcesPage = () => {
     if (descEnRef.current) descEnRef.current.value = resourceForm.description_en || '';
     if (descArRef.current) descArRef.current.value = resourceForm.description_ar || '';
     if (urlRef.current) urlRef.current.value = resourceForm.url || '';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingResource]);
 
   const loadData = useCallback(async (isInitial = false) => {
@@ -157,6 +158,7 @@ const ResourcesPage = () => {
     return () => {
       if (stopLoading) stopLoading();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDropdownChange = useCallback((setter, field, resetFields = []) => {
@@ -285,7 +287,7 @@ const ResourcesPage = () => {
       setLoading(false);
       console.timeEnd('[PERF] handleResourceSubmit');
     }
-  }, [resourceForm, editingResource, user, toast, t, syncRefsToState, loadData]);
+  }, [resourceForm, editingResource, user, toast, t, syncRefsToState, loadData, resourceEmailOptions]);
 
   const handleEdit = useCallback((params) => {
     setEditingResource(params.row);
@@ -339,7 +341,7 @@ const ResourcesPage = () => {
         toast?.showError(t('resources_error_deleting', { error: error.message }));
       }
     });
-  }, [deleteResourceModal, toast, loadData]);
+  }, [deleteResourceModal, toast, loadData, t]);
 
   const handleCancelEdit = useCallback(() => {
     setEditingResource(null);
@@ -607,7 +609,7 @@ const ResourcesPage = () => {
         </div>
       )
     }
-  ], [programs, subjects, classes, courses, theme, lang, t]);
+  ], [programs, subjects, classes, courses, theme, lang, t, handleEdit, handleDelete]);
 
   const filteredResources = resources.filter(r => {
     // Apply type filter first (before public resources check)

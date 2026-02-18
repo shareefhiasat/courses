@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 const LangContext = createContext({
   lang: 'en',
@@ -4548,7 +4548,7 @@ export const LangProvider = ({ children }) => {
     localStorage.setItem('lang', value);
   };
 
-  const toggleLang = () => setLang(lang === 'en' ? 'ar' : 'en');
+  const toggleLang = useCallback(() => setLang(lang === 'en' ? 'ar' : 'en'), [lang]);
 
   const isRTL = lang === 'ar';
 
@@ -4572,7 +4572,7 @@ export const LangProvider = ({ children }) => {
     };
   }, [lang]);
 
-  const value = useMemo(() => ({ lang, isRTL, setLang, toggleLang, t }), [lang, isRTL]);
+  const value = useMemo(() => ({ lang, isRTL, setLang, toggleLang, t }), [lang, isRTL, t, toggleLang]);
 
   return (
     <LangContext.Provider value={value}>

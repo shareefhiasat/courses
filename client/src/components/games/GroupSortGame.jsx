@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Trophy, RotateCcw } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
 
@@ -53,7 +53,7 @@ export default function GroupSortGame({ data, settings, onComplete }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, submitted]);
+  }, [timeLeft, submitted, handleSubmit, settings?.timeLimit]);
 
   const getGroupColor = (index) => {
     const colors = ['#10b981', '#ef4444', '#800020', '#f59e0b', '#8b5cf6', '#ec4899'];
@@ -106,7 +106,7 @@ export default function GroupSortGame({ data, settings, onComplete }) {
     setDraggedItem(null);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     let correctCount = 0;
     let totalCount = 0;
 
@@ -129,7 +129,7 @@ export default function GroupSortGame({ data, settings, onComplete }) {
       percentage: (correctCount / totalCount) * 100,
       completedAt: new Date().toISOString()
     });
-  };
+  }, [groups, onComplete]);
 
   const handleReset = () => {
     // Move all items back

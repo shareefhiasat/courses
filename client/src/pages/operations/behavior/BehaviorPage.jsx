@@ -192,7 +192,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     return () => {
       if (stopLoading) stopLoading();
     };
-  }, [isInstructor, isAdmin, isSuperAdmin, isHR, startLoading, t]);
+  }, [isInstructor, isAdmin, isSuperAdmin, isHR, startLoading, t, toast]);
 
   // Load students when class changes
   useEffect(() => {
@@ -253,7 +253,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     }
   };
 
-  const loadBehaviorsData = () => {
+  const loadBehaviorsData = useCallback(() => {
     loadBehaviors({
       setBehaviors: setBehaviorsRaw,
       setPageState,
@@ -268,7 +268,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
       fetchSubject,
       fetchProgram
     });
-  };
+  }, [toast, t, classes, programs, subjects]);
 
   const filteredBehaviors = useMemo(() => {
     let filtered = [...behaviorsRaw];
@@ -374,7 +374,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     } finally {
       setSaving(false);
     }
-  }, [formData, editingBehavior, descriptionRef, commentRef, t, toast, loadBehaviorsData]);
+  }, [formData, editingBehavior, t, toast, loadBehaviorsData, syncRefsToState, user]);
 
   const handleEdit = useCallback((behavior) => {
     setEditingBehavior(behavior);
@@ -427,10 +427,6 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     if (pointsRef.current) pointsRef.current.value = '-1';
     setEditingBehavior(null);
   };
-
-  if (!isInstructor && !isAdmin && !isSuperAdmin) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Access Denied</div>;
-  }
 
   const filteredClasses = classes.filter(c => {
     if (subjectFilter && c.subjectId !== subjectFilter) return false;
@@ -721,7 +717,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
       )
     }])
-  ], [theme, lang, t, handleEdit, handleDelete, hideActions]);
+  ], [theme, lang, t, handleEdit, handleDelete, hideActions, behaviorsRaw, students]);
 
   return (
     <div>

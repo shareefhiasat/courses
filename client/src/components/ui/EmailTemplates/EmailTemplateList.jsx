@@ -23,6 +23,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   useEffect(() => {
     loadTemplates();
     loadSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

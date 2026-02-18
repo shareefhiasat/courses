@@ -86,6 +86,7 @@ const ProfileSettingsPage = () => {
     };
 
     loadProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleTestBrowserNotification = async () => {
@@ -153,11 +154,6 @@ const ProfileSettingsPage = () => {
     setCustomColorInput(normalizeHexColor(profileData.messageColor, DEFAULT_ACCENT));
   }, [profileData.messageColor]);
 
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
-
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {
     if (authLoading) return;
@@ -189,7 +185,8 @@ const ProfileSettingsPage = () => {
     return () => {
       safeStop();
     };
-  }, [authLoading, user, loadUserProfile, initializeNotifications, startLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user, initializeNotifications, startLoading]);
 
   if (!user) return <Navigate to="/login" />;
 

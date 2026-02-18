@@ -33,6 +33,7 @@ export default function AirplaneGame({ questions, settings, onComplete }) {
     }));
 
     setClouds(newClouds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, gameStarted]);
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export default function AirplaneGame({ questions, settings, onComplete }) {
     }, 50);
 
     return () => clearInterval(interval);
-  }, [gameStarted, gameOver]);
+  }, [gameStarted, gameOver, currentQuestion?.options, settings?.timePerQuestion]);
 
   const handleCloudClick = (cloud) => {
     if (showFeedback) return;

@@ -85,12 +85,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
   const { deleteModal, deleteUser, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   const { isOpen: isQREmailModalOpen, student: qrEmailStudent, showQREmailModal, hideQREmailModal } = useQREmailModal(t);
 
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
-
-  // Load data function - must be defined before useLayoutEffect
   const loadData = useCallback(async (isInitial = false) => {
     if (!isAdmin && !isSuperAdmin) {
       setPageState(PAGE_STATES.ERROR);
@@ -140,7 +134,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
       toast?.showError(t('users_failed_to_load_data') + ': ' + error.message);
       setPageState(PAGE_STATES.ERROR);
     }
-  }, [isAdmin, isSuperAdmin]);
+  }, [isAdmin, isSuperAdmin, t, toast]);
 
   // Simple initial load without global loading (dashboard tabs handle it)
   useLayoutEffect(() => {
@@ -149,7 +143,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
     if (!isAdmin && !isSuperAdmin) return;
 
     loadData(true);
-  }, [authLoading, user?.uid, isAdmin, isSuperAdmin, loadData]);
+  }, [authLoading, user?.uid, user, isAdmin, isSuperAdmin, loadData]);
 
   // Handler functions - must be defined before gridColumns
   const handleEditUser = useCallback((user) => {
@@ -267,7 +261,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         }
       }, relatedRecords);
     }
-  }, [deleteUser, toast, loadData, enrollments]);
+  }, [deleteUser, toast, loadData, enrollments, t]);
 
   const handleToggleUserStatus = useCallback(async (user) => {
     // Prevent disabling super admin
@@ -314,7 +308,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         }
       }
     });
-  }, [toast, loadData]);
+  }, [toast, loadData, t]);
 
   const handleResetPassword = useCallback(async (email) => {
     // Show confirmation modal
@@ -336,7 +330,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         }
       }
     });
-  }, [toast]);
+  }, [toast, t]);
 
   const openQRCodeInNewTab = useCallback((user) => {
     const qrUrl = `/qrcode/${encodeURIComponent(user.studentNumber)}`;
@@ -749,7 +743,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         </div>
       )
     }
-  ], [t, theme, handleEditUser, openQRCodeInNewTab, handleSendQRCodeEmail, handleResetPassword, handleToggleUserStatus, handleDeleteUser]);
+  ], [t, theme, handleEditUser, openQRCodeInNewTab, handleSendQRCodeEmail, handleResetPassword, handleToggleUserStatus, handleDeleteUser, user?.isSuperAdmin, user?.role]);
 
   // Helper function to get role icon using getThemedIcon
   const getRoleIconThemed = (role) => {
@@ -888,6 +882,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
     if (studentNumberRef.current) studentNumberRef.current.value = '';
     if (orderRef.current) orderRef.current.value = '';
   }, []);
+
+  if (authLoading) return <GlobalLoadingFallback />;
 
   return (
     <div className="users-page">

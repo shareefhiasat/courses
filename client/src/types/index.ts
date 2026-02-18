@@ -44,22 +44,10 @@ import { Timestamp } from 'firebase/firestore';
 // ============================================================================
 
 /**
- * User roles in the LMS system
- * - STUDENT: Can view courses, submit assignments, track progress
- * - INSTRUCTOR: Can manage classes, grade submissions, mark attendance
- * - ADMIN: Full system access, user management, system configuration
- * - HR: Human resources access, reports, employee management
- */
-import { USER_ROLES } from '../constants/userRoles';
-
-/**
  * UserRole type definition
  * Using lowercase strings to match the JavaScript constants
  */
 export type UserRole = 'admin' | 'super_admin' | 'instructor' | 'hr' | 'student';
-
-// Re-export for JavaScript compatibility
-export { USER_ROLES as UserRole };
 
 export interface User {
   uid: string;                    // Firebase Auth UID
@@ -72,7 +60,7 @@ export interface User {
   updatedAt: Timestamp;           // Last profile update
   lastLogin?: Timestamp;          // Last login tracking
   isActive: boolean;              // Account status (soft delete)
-  metadata?: Record<string, any>; // Additional user data
+  metadata?: Record<string, unknown>; // Additional user data
 }
 
 // ============================================================================
@@ -164,7 +152,7 @@ export interface Activity {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   createdBy: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export type ActivityType = 'ASSIGNMENT' | 'QUIZ' | 'PROJECT' | 'PRESENTATION' | 'READING';
@@ -201,7 +189,7 @@ export interface QuizSubmission {
   docId: string;
   userId: string;
   quizId: string;
-  answers: Record<string, any>;
+  answers: Record<string, unknown>;
   score?: number;
   maxScore?: number;
   percentage?: number;
@@ -372,7 +360,7 @@ export interface Notification {
   createdAt: Timestamp;
   expiresAt?: Timestamp;
   actionUrl?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export type NotificationType = 'SUCCESS' | 'WARNING' | 'ERROR' | 'ANNOUNCEMENT' | 'GRADE' | 'ACTIVITY' | 'MESSAGE' | 'CHAT' | 'NEWSLETTER' | 'ATTENDANCE' | 'ABSENCE' | 'PENALTY';
@@ -404,7 +392,7 @@ export interface AnalyticsRecord {
   type: AnalyticsType;
   userId?: string;
   classId?: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   createdAt: Timestamp;
 }
 
@@ -416,7 +404,7 @@ export interface ScheduledReport {
   type: ReportType;
   schedule: string;
   recipients: string[];
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
   isActive: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -434,7 +422,7 @@ export interface ActivityLog {
   action: string;
   resource: string;
   resourceId?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
   createdAt: Timestamp;
@@ -465,7 +453,7 @@ export interface Badge {
   description: string;
   descriptionAr?: string;
   icon?: string;
-  criteria: Record<string, any>;
+  criteria: Record<string, unknown>;
   points: number;
   isActive: boolean;
   createdAt: Timestamp;
@@ -478,7 +466,7 @@ export interface UserBadge {
   userId: string;
   badgeId: string;
   earnedAt: Timestamp;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -501,7 +489,7 @@ export interface FormField {
   placeholder?: string;
   options?: FormOption[];
   validation?: ValidationRule[];
-  defaultValue?: any;
+  defaultValue?: unknown;
 }
 
 export type FormFieldType = 
@@ -527,7 +515,7 @@ export interface FormOption {
 export interface ValidationRule {
   type: ValidationType;
   message: string;
-  value?: any;
+  value?: unknown;
 }
 
 export type ValidationType = 
@@ -596,7 +584,7 @@ export type DeepPartial<T> = {
 // EVENT & STATE TYPES
 // ============================================================================
 
-export interface CustomEvent<T = any> {
+export interface CustomEvent<T = unknown> {
   type: string;
   payload?: T;
   timestamp: Date;
@@ -638,7 +626,7 @@ export interface FilterState {
 //   console.error(result.error); // Error message
 // }
 
-export interface ServiceResponse<T = any> {
+export interface ServiceResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -646,7 +634,7 @@ export interface ServiceResponse<T = any> {
   timestamp: number;
 }
 
-export interface PaginatedResponse<T = any> extends ServiceResponse<T> {
+export interface PaginatedResponse<T = unknown> extends ServiceResponse<T> {
   pagination?: {
     page: number;
     limit: number;

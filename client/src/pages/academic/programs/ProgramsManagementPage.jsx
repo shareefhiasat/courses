@@ -104,6 +104,7 @@ const ProgramsManagementPage = () => {
     if (durationRef.current) durationRef.current.value = formData.duration_years?.toString() || '2';
     if (minGPARef.current) minGPARef.current.value = formData.minGPA?.toString() || '1.5';
     if (creditHoursRef.current) creditHoursRef.current.value = formData.totalCreditHours?.toString() || '70';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingProgram]); // only when we load a program for editing
 
   const handleSubmit = async (e) => {

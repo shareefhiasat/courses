@@ -433,7 +433,7 @@ const ReviewResultsPage = () => {
     });
 
     return filtered;
-  }, [mode, activities, submissions, searchTerm, selectedProgram, selectedSubject, selectedClass, selectedStudent, difficultyFilter, passedFilter, failedFilter, excellentFilter, activityType, category, lang]);
+  }, [mode, activities, submissions, searchTerm, selectedProgram, selectedSubject, selectedClass, selectedStudent, difficultyFilter, passedFilter, failedFilter, excellentFilter, activityType, category, lang, bookmarkFilter, completedFilter, enrolledClasses, featuredFilter, gradedFilter, instructorClasses, instructorStudents, isAdmin, isInstructor, isSuperAdmin, optionalFilter, overdueFilter, pendingFilter, requiredFilter, requiresSubmissionFilter, retakableFilter, selectedTerm, selectedYear, user]);
 
   // Calculate counts for each activity type based on role and filters
   const getActivityTypeCount = useCallback((type) => {
@@ -510,7 +510,7 @@ const ReviewResultsPage = () => {
 
       return filtered.length;
     }
-  }, [mode, activities, submissions, user, enrolledClasses, instructorClasses, instructorStudents, category, searchTerm, selectedProgram, selectedSubject, selectedClass, lang]);
+  }, [mode, activities, submissions, user, enrolledClasses, instructorClasses, instructorStudents, category, searchTerm, selectedProgram, selectedSubject, selectedClass, lang, isInstructor, isSuperAdmin]);
 
   // Calculate counts for each category based on role and filters
   const getCategoryCount = useCallback((categoryId) => {
@@ -549,7 +549,7 @@ const ReviewResultsPage = () => {
     }
 
     return filtered.length;
-  }, [mode, activities, user, enrolledClasses, instructorClasses, activityType, searchTerm, lang]);
+  }, [mode, activities, user, enrolledClasses, instructorClasses, activityType, searchTerm, lang, isInstructor, isSuperAdmin]);
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -586,14 +586,6 @@ const ReviewResultsPage = () => {
   const isMinified = filterViewMode === 'minified';
 
   // Auth loading check
-  if (authLoading || redirectLoading) {
-    return <GlobalLoadingFallback />;
-  }
-
-  if (!isAuthenticated) {
-    return <GlobalLoadingFallback />;
-  }
-
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {
     if (authLoading || redirectLoading) return;
@@ -631,7 +623,8 @@ const ReviewResultsPage = () => {
     return () => {
       safeStop();
     };
-  }, [authLoading, redirectLoading, isAuthenticated, user, loadSubmissions, loadPrograms, loadSubjects, loadClasses, loadActivities, loadUsers, loadCategories, startLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, redirectLoading, isAuthenticated, user, startLoading]);
 
   return (
     <div className="review-results-page" data-theme={theme} style={{ padding: '0rem 0', position: 'relative' }}>

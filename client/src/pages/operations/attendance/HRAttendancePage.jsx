@@ -227,7 +227,7 @@ const HRAttendancePage = () => {
     } finally {
       stopLoading();
     }
-  }, [programFilter, subjectFilter, classFilter, yearFilter, termFilter, dateFrom, dateTo, classes, subjects]);
+  }, [programFilter, subjectFilter, classFilter, yearFilter, termFilter, dateFrom, dateTo, classes, subjects, startLoading, t]);
 
   // Load attendance sessions
   useEffect(() => {

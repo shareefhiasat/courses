@@ -114,6 +114,7 @@ const EnrollmentsManagementPage = () => {
     return () => {
       if (stopLoading) stopLoading();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Memoized handler functions for dropdown changes

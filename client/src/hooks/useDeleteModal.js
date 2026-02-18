@@ -1,4 +1,4 @@
-﻿import { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { createDeleteModalState, resetDeleteModalState } from '@utils/deleteMessages';
 
@@ -48,7 +48,7 @@ export const useDeleteModal = (t = (key) => key) => {
     } else {
       hideDeleteModal();
     }
-  }, [deleteModal.onConfirm, hideDeleteModal]);
+  }, [deleteModal, hideDeleteModal]);
 
   /**
    * Convenience methods for common entity types

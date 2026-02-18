@@ -79,6 +79,7 @@ export default function StudentDashboardPage() {
       loadStudentsList();
       loadPrograms();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, isInstructor, isHR]);
 
   const loadStudentsList = async () => {
@@ -126,7 +127,7 @@ export default function StudentDashboardPage() {
     }
     
     return courses;
-  }, [activeSemesterData, selectedProgram, selectedSubject]);
+  }, [activeSemesterData, selectedProgram, selectedSubject, t]);
 
   const statsData = useMemo(() => {
     const totalEnrollments = enrollments.length;
@@ -162,7 +163,7 @@ export default function StudentDashboardPage() {
       behaviors: totalBehaviors,
       netScore
     };
-  }, [enrollments, attendance, penalties, participations, behaviors, marks, submissions]);
+  }, [enrollments, attendance, penalties, participations, behaviors, marks, submissions, t]);
 
   const handleSemesterClick = useCallback((semesterId) => {
     setActiveSemester(semesterId);
@@ -304,11 +305,6 @@ export default function StudentDashboardPage() {
     { id: 'behaviors', label: lang === 'ar' ? 'السلوك' : 'Behaviors' }
   ];
 
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
-
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {
     if (authLoading) return;
@@ -338,6 +334,8 @@ export default function StudentDashboardPage() {
       safeStop();
     };
   }, [authLoading, user, reload, startLoading]);
+
+  if (authLoading) return <GlobalLoadingFallback />;
 
   return (
     <div className={styles.dashboard} ref={exportRef}>

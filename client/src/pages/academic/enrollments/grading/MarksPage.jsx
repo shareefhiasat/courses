@@ -185,7 +185,7 @@ const MarksPage = () => {
       if (subject?.programId !== programFilter) return false;
     }
     return true;
-  });
+  }, [classes, subjectFilter, programFilter, subjects]);
 
   const handleEditMarks = useCallback((student) => {
     setEditingStudent(student);
@@ -473,7 +473,7 @@ const MarksPage = () => {
         );
       }
     }
-  ], [t, marksDistribution, classes, classFilter, subjects, subjectFilter, programs, handleEditMarks, getThemedIcon, theme]);
+  ], [t, marksDistribution, theme, enrollments, programFilter, students, subjectFilter]);
 
   if (authLoading) return <GlobalLoadingFallback />;
   if (!isAdmin && !isSuperAdmin && !isInstructor) return <Navigate to="/" replace />;

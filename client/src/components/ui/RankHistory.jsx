@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { useLang } from '@contexts/LangContext';
@@ -13,6 +13,7 @@ const RankHistory = ({ studentId }) => {
 
   useEffect(() => {
     loadRankHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentId]);
 
   const loadRankHistory = async () => {

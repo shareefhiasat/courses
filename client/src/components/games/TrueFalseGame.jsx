@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -29,9 +29,9 @@ export default function TrueFalseGame({ questions, settings, onComplete }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameStarted, timeLeft, currentIndex]);
+  }, [gameStarted, timeLeft, currentIndex, handleAnswer, settings?.timePerQuestion]);
 
-  const handleAnswer = (answer) => {
+  const handleAnswer = useCallback((answer) => {
     const isCorrect = answer === currentQuestion.correctAnswer;
     const newAnswers = [...answers, { questionId: currentQuestion.id, answer, correct: isCorrect, timeSpent: (settings?.timePerQuestion || 0) - timeLeft }];
     setAnswers(newAnswers);
@@ -52,7 +52,7 @@ export default function TrueFalseGame({ questions, settings, onComplete }) {
         completedAt: new Date().toISOString()
       });
     }
-  };
+  }, [answers, currentIndex, currentQuestion, questions, score, settings?.timePerQuestion, timeLeft, onComplete]);
 
   if (!gameStarted) {
     return (

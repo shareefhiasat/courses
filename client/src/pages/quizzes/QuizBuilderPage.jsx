@@ -268,6 +268,7 @@ export default function QuizBuilderPage() {
     if (quizId) {
       loadQuiz(quizId);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizId, initialQuizFromState]);
 
   const loadQuiz = async (id) => {
@@ -543,11 +544,6 @@ export default function QuizBuilderPage() {
     }
   };
 
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
-
   // Use GlobalLoading for initial quiz data load (when editing existing quiz)
   useLayoutEffect(() => {
     if (authLoading) return;
@@ -580,6 +576,7 @@ export default function QuizBuilderPage() {
     return () => {
       safeStop();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, isAdmin, isInstructor, quizId, startLoading]);
 
   // For inline loading states (like saving), keep SimpleLoading

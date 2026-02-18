@@ -507,10 +507,10 @@ const HomePage = memo(() => {
 
     return filtered;
   }, [
-    mode, activityType, category, activities, resources, quizzes, searchTerm, bookmarkFilter, difficultyFilter,
+    mode, activityType, searchTerm, bookmarkFilter, difficultyFilter,
     completedFilter, requiredFilter, optionalFilter, overdueFilter, pendingFilter,
     retakableFilter, featuredFilter, gradedFilter, resourceTypeFilter,
-    classFilter, bookmarks, userProgress, submissions, enrolledClasses
+    classFilter, bookmarks, userProgress, submissions, getCurrentItems
   ]);
 
   // Calculate resource type counts
@@ -695,7 +695,7 @@ const HomePage = memo(() => {
       }
     }
     return null;
-  }, [mode, activityType, category, activities, resources, quizzes, userProgress, submissions, enrolledClasses]);
+  }, [mode, activityType, userProgress, submissions, getCurrentItems]);
 
   // Calculate filter counts using the hook
   const hookFilterCounts = useFilterCounts(getCurrentItems(), {

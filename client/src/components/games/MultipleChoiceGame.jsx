@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -32,7 +32,7 @@ export default function MultipleChoiceGame({ questions, settings, onComplete }) 
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameStarted, timeLeft, gameFinished]);
+  }, [gameStarted, timeLeft, gameFinished, handleFinish, settings?.timeLimit]);
 
   const handleAnswerSelect = (optionId) => {
     if (showFeedback) return;
@@ -86,7 +86,7 @@ export default function MultipleChoiceGame({ questions, settings, onComplete }) 
     }
   };
 
-  const handleFinish = () => {
+  const handleFinish = useCallback(() => {
     setGameFinished(true);
     const answerArray = Object.values(answers);
     onComplete?.({
@@ -96,7 +96,7 @@ export default function MultipleChoiceGame({ questions, settings, onComplete }) 
       percentage: (score / questions.reduce((sum, q) => sum + (q.points || 1), 0)) * 100,
       completedAt: new Date().toISOString()
     });
-  };
+  }, [answers, score, totalQuestions, questions, onComplete]);
 
   if (!gameStarted) {
     return (

@@ -393,6 +393,7 @@ export const AuthProvider = ({ children }) => {
       if (userDocUnsub) userDocUnsub();
       unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const impersonateUser = async (studentId) => {

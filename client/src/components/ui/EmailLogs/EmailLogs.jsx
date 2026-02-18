@@ -32,6 +32,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
 
   useEffect(() => {
     loadLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.type, filters.status, filters.dateRange]);
 
   const loadLogs = async () => {

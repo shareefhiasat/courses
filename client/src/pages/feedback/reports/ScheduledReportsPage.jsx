@@ -195,7 +195,7 @@ const ScheduledReportsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast, loadReports]);
+  }, [toast, loadReports, selectedReport?.docId]);
 
   const handleToggleEnabled = useCallback(async (report) => {
     setLoading(true);
@@ -265,11 +265,6 @@ const ScheduledReportsPage = () => {
       (r.recipients || []).some(email => email.toLowerCase().includes(term))
     );
   });
-
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
 
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {

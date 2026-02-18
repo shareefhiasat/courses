@@ -63,7 +63,7 @@ export default function QuestionBankPage() {
     }
     loadQuestions();
     loadTags();
-  }, [user, isAdmin, isInstructor, loadQuestions, loadTags]);
+  }, [user, isAdmin, isInstructor, loadQuestions, loadTags, navigate]);
 
   const loadQuestions = useCallback(async () => {
     setLoading(true);
@@ -220,11 +220,6 @@ export default function QuestionBankPage() {
     setShowEditModal(true);
   };
 
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
-
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {
     if (authLoading) return;
@@ -258,7 +253,8 @@ export default function QuestionBankPage() {
     return () => {
       safeStop();
     };
-  }, [authLoading, user, loadQuestions, loadPrograms, loadSubjects, loadClasses, startLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user, startLoading]);
 
   return (
     <div className={styles.questionBankPage}>

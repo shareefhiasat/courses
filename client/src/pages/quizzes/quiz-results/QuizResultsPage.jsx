@@ -181,7 +181,7 @@ const QuizResultsPage = () => {
     return quizzes.filter(q => q.classId === selectedClass);
   }, [quizzes, selectedClass]);
 
-  const loadQuizResults = async () => {
+  const loadQuizResults = useCallback(async () => {
     setLoading(true);
     try {
       // Use quizSubmissions collection instead of quizResults (which doesn't exist in firestore rules)
@@ -368,7 +368,7 @@ const QuizResultsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedQuiz, selectedProgram, selectedSubject, selectedClass, selectedStudent, isInstructor, isAdmin, isSuperAdmin, classes, toast]);
 
   const columns = [
     {
@@ -825,11 +825,6 @@ const QuizResultsPage = () => {
     };
   }, [quizResults]);
 
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
-
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {
     if (authLoading) return;
@@ -864,7 +859,8 @@ const QuizResultsPage = () => {
     return () => {
       safeStop();
     };
-  }, [authLoading, user, loadQuizResults, loadQuizzes, loadPrograms, loadSubjects, loadClasses, startLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user, loadQuizResults, startLoading]);
 
   return (
     <Container>

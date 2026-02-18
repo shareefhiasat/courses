@@ -216,7 +216,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     return () => {
       if (stopLoading) stopLoading();
     };
-  }, [isInstructor, isAdmin, isSuperAdmin, isHR, startLoading, t, lang]);
+  }, [isInstructor, isAdmin, isSuperAdmin, isHR, startLoading, t, lang, toast]);
 
   // Load students when class changes
   useEffect(() => {
@@ -268,7 +268,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     }
   };
 
-  const loadParticipationsData = () => {
+  const loadParticipationsData = useCallback(() => {
     // Only run if we have the required data
     if (classes.length === 0 || programs.length === 0 || subjects.length === 0) {
       logger.log('🔍 [ParticipationPage] Skipping loadParticipationsData - missing data:', {
@@ -296,7 +296,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
       filters: {},
       lang // Pass the current language
     });
-  };
+  }, [classes, programs, subjects, toast, t, lang]);
 
   const filteredParticipations = useMemo(() => {
     let filtered = [...participationsRaw];
@@ -435,7 +435,8 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     } finally {
       setSaving(false);
     }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData, editingParticipation, t, toast, loadParticipationsData]);
 
   const handleEdit = useCallback((participation) => {
     setEditingParticipation(participation);
@@ -449,7 +450,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
       points: participation.points || 1,
       comment: participation.comment || ''
     });
-  });
+  }, []);
 
   const handleDelete = useCallback((participation) => {
     deleteEntity(RECORD_TYPES.PARTICIPATION, participation, async () => {
@@ -486,10 +487,6 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     if (pointsRef.current) pointsRef.current.value = '1';
     setEditingParticipation(null);
   };
-
-  if (!isInstructor && !isAdmin && !isSuperAdmin) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Access Denied</div>;
-  }
 
   const filteredClasses = classes.filter(c => {
     if (subjectFilter && c.subjectId !== subjectFilter) return false;
@@ -851,7 +848,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
       )
     }])
-  ], [theme, lang, t, handleEdit, handleDelete, hideActions, programs, subjects, students, userCache]);
+  ], [theme, lang, t, handleEdit, handleDelete, hideActions, students, userCache, fetchUser, participationsRaw]);
 
   return (
     <div>

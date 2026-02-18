@@ -420,7 +420,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     } finally {
       setSaving(false);
     }
-  }, [formData, editingPenalty, descriptionRef, feedbackRef, commentRef, t, toast, loadPenalties, setSaving]);
+  }, [formData, editingPenalty, t, toast, loadPenalties, setSaving, fetchClass, syncRefsToState, user]);
 
   const handleEdit = useCallback((penalty) => {
     setEditingPenalty(penalty);
@@ -482,10 +482,6 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     if (pointsRef.current) pointsRef.current.value = '-1';
     setEditingPenalty(null);
   };
-
-  if (!isHR && !isAdmin && !isSuperAdmin) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>{t('access_denied') || 'Access Denied'}</div>;
-  }
 
   const filteredClasses = classes.filter(c => {
     if (subjectFilter && c.subjectId !== subjectFilter) return false;
@@ -781,7 +777,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
       )
     }])
-  ], [theme, lang, t, handleEdit, handleDelete, hideActions, subjects]);
+  ], [theme, lang, t, handleEdit, handleDelete, hideActions, subjects, penalties, students, userCache]);
 
   return (
     <div>

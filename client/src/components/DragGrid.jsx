@@ -24,7 +24,7 @@ export default function DragGrid({ widgets = [], storageKey = 'drag_grid_layout'
     const ids = widgets.map(w => w.id);
     const merged = order.filter(id => ids.includes(id)).concat(ids.filter(id => !order.includes(id)));
     if (merged.join(',') !== order.join(',')) setOrder(merged);
-  }, [widgets]);
+  }, [widgets, order]);
 
   const onDragStart = (id) => (e) => {
     draggingId.current = id;

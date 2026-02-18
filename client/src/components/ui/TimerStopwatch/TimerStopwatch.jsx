@@ -147,6 +147,7 @@ const TimerStopwatch = ({ compact = false, showTest = false }) => {
     const startAt = Date.now() - swElapsed;
     swRef.current = setInterval(() => setSwElapsed(Date.now() - startAt), 250);
     return () => { if (swRef.current) clearInterval(swRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [swRunning]);
 
   const resetStopwatch = () => { setSwRunning(false); setSwElapsed(0); };
@@ -201,6 +202,7 @@ const TimerStopwatch = ({ compact = false, showTest = false }) => {
       }
     }, 250);
     return () => { if (tmRef.current) clearInterval(tmRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tmRunning, soundOn]);
 
   const startTimer = (ms) => {

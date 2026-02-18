@@ -262,7 +262,7 @@ const InstructorQRScannerPage = () => {
         return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
       });
     return [...opts, ...validPrograms];
-  }, [programs, t, lang]);
+  }, [programs, t, lang, theme]);
 
   const subjectOptions = useMemo(() => {
     const opts = [
@@ -282,7 +282,7 @@ const InstructorQRScannerPage = () => {
         return { value, label, icon: getThemedIcon('ui', 'file_text', 16, theme) };
       });
     return [...opts, ...validSubjects];
-  }, [subjects, selectedProgramId, t, lang]);
+  }, [subjects, selectedProgramId, t, lang, theme]);
 
   const classOptions = useMemo(() => {
     const opts = [
@@ -303,7 +303,7 @@ const InstructorQRScannerPage = () => {
         return { value, label, icon: getThemedIcon('ui', 'users', 16, theme) };
       });
     return [...opts, ...validClasses];
-  }, [classes, selectedSubjectId, t, lang]);
+  }, [classes, selectedSubjectId, t, lang, theme]);
 
   // Load programs on mount
   useEffect(() => {
@@ -335,7 +335,7 @@ const InstructorQRScannerPage = () => {
       // Don't reset selections here - let the auto-selection logic handle it
       setGridLoading(false);
     }
-  }, [selectedProgramId]);
+  }, [selectedProgramId, loadSubjects]);
 
   // Load classes when subject changes
   useEffect(() => {
@@ -369,7 +369,7 @@ const InstructorQRScannerPage = () => {
     } else {
       setFavoriteBehaviors([]);
     }
-  }, [selectedStudent?.id]);
+  }, [selectedStudent?.id, selectedStudent?.favoriteBehaviors]);
 
   // Listen for real-time attendance updates
   useEffect(() => {
@@ -422,7 +422,7 @@ const InstructorQRScannerPage = () => {
     }
   };
 
-  const loadSubjects = async (programId) => {
+  const loadSubjects = useCallback(async (programId) => {
     try {
       const subjectsResponse = await getSubjects(programId || null);
       let subjectsData = subjectsResponse.success ? subjectsResponse.data : [];
@@ -456,7 +456,7 @@ const InstructorQRScannerPage = () => {
       setGridLoading(false);
       setError('Failed to load subjects: ' + error.message);
     }
-  };
+  }, [selectedSubjectId, saveSelectedSubjectId, validateSelection]);
 
   const loadClasses = async (subjectId) => {
     try {
@@ -722,7 +722,7 @@ const InstructorQRScannerPage = () => {
     } else {
       logger.error('handleScan: Student not found', { studentId });
     }
-  }, [students]);
+  }, [students, handleMarkAttendance]);
 
   const handleStudentSelect = useCallback((student) => {
     setSelectedStudent(student); // Use old panel for viewing student details
@@ -1001,7 +1001,7 @@ const InstructorQRScannerPage = () => {
     } catch (error) {
       logger.error('Error submitting behavior:', error);
     }
-  }, [selectedClassId, selectedSubjectId, selectedDate, user?.uid, students, classes, sendNotifications, t, lang, loadStudents, triggerActivityRefresh]);
+  }, [selectedClassId, selectedSubjectId, selectedDate, user, students, classes, sendNotifications, t, lang, loadStudents, triggerActivityRefresh]);
 
   const handleTogglePin = useCallback((studentId) => {
     // TODO: Implement pin/unpin in Firebase

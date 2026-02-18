@@ -44,18 +44,6 @@ export const HistorySection = ({
     activeFilters: activeFilters
   });
   
-  if (!isActive || logs.length === 0) {
-    logger.log('🔧 HistorySection - skipping due to inactive filter or empty logs:', {
-      title,
-      type,
-      filterKey,
-      isActive,
-      logsLength: logs.length,
-      activeFilterValue: activeFilters[filterKey]
-    });
-    return null;
-  }
-
   const sortedLogs = useMemo(() => {
     return [...logs].sort((a, b) => {
       const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
@@ -111,6 +99,8 @@ export const HistorySection = ({
     logger.log('🔍 HistorySection returning fallback icon');
     return icon;
   }, [type, icon]);
+
+  if (!isActive || logs.length === 0) return null;
 
   logger.log('🔧 HistorySection - rendering section:', title);
 

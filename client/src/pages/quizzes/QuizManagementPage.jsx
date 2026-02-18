@@ -38,7 +38,7 @@ export default function QuizManagementPage() {
       setLoading(false);
       setError(t('quiz_please_log_in'));
     }
-  }, [authLoading, user, loadQuizzes]);
+  }, [authLoading, user, loadQuizzes, t]);
 
   const toDate = useCallback((value) => {
     if (!value) return null;
@@ -84,7 +84,7 @@ export default function QuizManagementPage() {
       creatorName,
       updatedAt: toDate(quiz.updatedAt)
     };
-  }, [lang, toDate]);
+  }, [lang, toDate, t]);
 
   const loadQuizzes = useCallback(async () => {
     if (!user) return;
@@ -126,7 +126,7 @@ export default function QuizManagementPage() {
     } finally {
       setLoading(false);
     }
-  }, [user, isAdmin, isInstructor, formatQuiz]);
+  }, [user, isAdmin, isInstructor, formatQuiz, t]);
 
   const handleEdit = (quiz) => {
     navigate(`/quiz-builder?id=${quiz.id}`,
@@ -335,11 +335,6 @@ export default function QuizManagementPage() {
   const averageScore = quizzes.length > 0
     ? Math.round(quizzes.reduce((sum, quiz) => sum + (quiz.averageScore || 0), 0) / quizzes.length)
     : 0;
-
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
 
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {

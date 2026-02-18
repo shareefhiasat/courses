@@ -96,11 +96,6 @@ export default function StudentDashboardPageModern() {
     };
   }, [enrollments]);
 
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
-
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {
     if (authLoading) return;
@@ -130,6 +125,8 @@ export default function StudentDashboardPageModern() {
       safeStop();
     };
   }, [authLoading, user, reload, startLoading]);
+
+  if (authLoading) return <GlobalLoadingFallback />;
 
   return (
     <div className="student-dashboard-page-modern" data-theme={theme} style={{ padding: '0rem 0', position: 'relative' }}>

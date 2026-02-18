@@ -67,7 +67,7 @@ export default function QuizPreviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [quizId, toast]);
+  }, [quizId, t]);
 
   useEffect(() => {
     loadQuiz();
@@ -97,7 +97,7 @@ export default function QuizPreviewPage() {
       default:
         return t('question') || 'Question';
     }
-  }, []);
+  }, [t]);
 
   const getDifficultyColor = useCallback((difficulty) => {
     switch ((difficulty || '').toLowerCase()) {
@@ -123,7 +123,7 @@ export default function QuizPreviewPage() {
       default:
         return difficulty || (t('general') || 'General');
     }
-  }, []);
+  }, [t]);
 
   const handleStartQuiz = () => {
     toast?.showInfo?.(t('starting_quiz') || 'Starting quiz...');
@@ -133,11 +133,6 @@ export default function QuizPreviewPage() {
   const handleEditQuiz = () => {
     navigate(`/quizzes?id=${quizId}`);
   };
-
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
 
   // Use GlobalLoading for initial quiz data load
   useLayoutEffect(() => {
@@ -170,6 +165,7 @@ export default function QuizPreviewPage() {
     return () => {
       safeStop();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, quizId, startLoading]);
 
   if (error || !quizData) {

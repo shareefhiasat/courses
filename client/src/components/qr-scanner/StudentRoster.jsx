@@ -247,7 +247,7 @@ const StudentRoster = React.memo(function StudentRoster({
     } catch (error) {
       logger.error('Error fetching student history:', error);
     }
-  }, []);
+  }, [lang, t, toYmd]);
 
   const handleDeleteAttendance = async (studentId, logId) => {
     setDeleteType(RECORD_TYPES.ATTENDANCE);
@@ -343,7 +343,7 @@ const StudentRoster = React.memo(function StudentRoster({
         }
       });
     }
-  }, [autoExpand, students]);
+  }, [autoExpand, students, fetchStudentHistory, studentHistory]);
 
   // Listen for real-time activity updates
   useEffect(() => {
@@ -523,7 +523,7 @@ const StudentRoster = React.memo(function StudentRoster({
       unsubscribeRefreshRecent();
       unsubscribeRefreshToday();
     };
-  }, [expandedRows, fetchStudentHistory, onRefresh]);
+  }, [expandedRows, fetchStudentHistory, onRefresh, students]);
 
   const toggleFavorite = useCallback(async (studentId) => {
     if (!user?.uid) return;
@@ -633,7 +633,7 @@ const StudentRoster = React.memo(function StudentRoster({
     } catch (error) {
       logger.error('Quick attendance error:', error);
     }
-  }, [selectedClassId, user, lang, onRefresh]);
+  }, [selectedClassId, user, lang, t, onRefresh]);
 
   const sendStudentSummaryEmail = async (student) => {
     setSendingEmails(prev => ({
@@ -851,7 +851,7 @@ const StudentRoster = React.memo(function StudentRoster({
         {getLocalizedAttendanceLabel(status, t, lang)}
       </span>
     );
-  }, []);
+  }, [lang, t]);
 
   const getSortIcon = useCallback((field) => {
     if (sortField !== field) return null;

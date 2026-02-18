@@ -117,7 +117,7 @@ const EnrollmentsPage = () => {
     result.sort((a, b) => (a.name || a.code || '').localeCompare(b.name || b.code || ''));
     
     return result;
-  }, [classes, programs, subjects, programFilter, subjectFilter, classFilter, yearFilter, termFilter]);
+  }, [classes, subjects, programFilter, subjectFilter, classFilter, yearFilter, termFilter]);
 
   
   const loadData = async () => {
@@ -150,6 +150,7 @@ const EnrollmentsPage = () => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadStudents = async (classId) => {

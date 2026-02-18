@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button, Modal } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getDeleteMessage, getDeleteTitle, createDeleteModalState, resetDeleteModalState } from '@utils/deleteMessages';
@@ -125,7 +125,7 @@ export const useDeleteModal = (t = (key) => key) => {
         hideDeleteModal();
       }
     }
-  }, [deleteModal.onConfirm, hideDeleteModal]);
+  }, [deleteModal, hideDeleteModal]);
 
   // Convenience methods for common entity types
   const deleteActivity = useCallback((activity, onConfirm) => {

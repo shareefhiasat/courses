@@ -100,7 +100,7 @@ const AnnouncementsPage = () => {
     } finally {
       if (!isInitial) setDataLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   // Load data on component mount with Global Loading
   useLayoutEffect(() => {
@@ -118,6 +118,7 @@ const AnnouncementsPage = () => {
     return () => {
       if (stopLoading) stopLoading();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handler functions
@@ -149,6 +150,7 @@ const AnnouncementsPage = () => {
     if (titleRef.current) titleRef.current.value = announcementForm.title || '';
     if (contentRef.current) contentRef.current.value = announcementForm.content || '';
     if (contentArRef.current) contentArRef.current.value = announcementForm.content_ar || '';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingAnnouncement]);
 
   // Read text values from refs into form state before submit
@@ -257,7 +259,7 @@ const AnnouncementsPage = () => {
       setLoading(false);
       console.timeEnd('[PERF] handleAnnouncementSubmit');
     }
-  }, [announcementForm, editingAnnouncement, user, toast, syncRefsToState, resetAnnouncementForm, emailOptions, users, loadData]);
+  }, [announcementForm, editingAnnouncement, user, toast, syncRefsToState, resetAnnouncementForm, emailOptions, loadData, t]);
 
   const handleEditAnnouncement = useCallback((announcement) => {
     setEditingAnnouncement(announcement);
@@ -419,7 +421,7 @@ const AnnouncementsPage = () => {
         </div>
       )
     }
-  ], [programs, subjects, classes, theme, lang, t, handleEditAnnouncement, toast, loadData, deleteEntity, announcements]);
+  ], [programs, subjects, classes, theme, lang, t, handleEditAnnouncement, toast, loadData, deleteEntity]);
 
   const filteredAnnouncements = announcements.filter(announcement => {
     if (announcementProgramFilter && announcement.programId !== announcementProgramFilter) return false;

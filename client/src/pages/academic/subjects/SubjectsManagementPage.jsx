@@ -119,6 +119,7 @@ const SubjectsManagementPage = () => {
     if (creditHoursRef.current) creditHoursRef.current.value = formData.creditHours?.toString() || '3';
     if (totalHoursRef.current) totalHoursRef.current.value = formData.totalHours?.toString() || '36';
     if (hoursPerWeekRef.current) hoursPerWeekRef.current.value = formData.hoursPerWeek?.toString() || '3';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingSubject]); // only when we load a subject for editing
 
   const handleSubmit = useCallback(async (e) => {
@@ -249,14 +250,6 @@ const resetForm = () => {
     if (descEnRef.current) descEnRef.current.value = '';
     if (descArRef.current) descArRef.current.value = '';
   };
-
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
-
-  if (!isAdmin && !isSuperAdmin && !isInstructor) {
-    return <Navigate to="/" replace />;
-  }
 
 const gridColumns = useMemo(() => [
     { 

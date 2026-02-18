@@ -208,7 +208,7 @@ const NotificationsPage = () => {
     }
 
     return filtered;
-  }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, filterProgram, filterSubject, filterClass, filterYear, filterSemester, searchTerm, showArchived, programs, subjects, classes]);
+  }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, filterProgram, filterSubject, filterClass, filterYear, filterSemester, searchTerm, showArchived, subjects, classes]);
 
   const unreadCount = notifications.filter(n => !n.read && !n.archived).length;
   const archivedCount = notifications.filter(n => n.archived).length;
@@ -337,13 +337,6 @@ const NotificationsPage = () => {
       navigate('/');
     }
   };
-
-  // Auth loading check
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
-  }
-
-  if (!user) return null;
 
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {
