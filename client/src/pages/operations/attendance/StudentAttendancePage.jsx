@@ -66,7 +66,7 @@ const StudentAttendancePage = () => {
               });
             };
           } else {
-            setMessage('Camera access not supported in this browser. Please use manual entry.');
+            setMessage(t('student_attendance_camera_not_supported'));
             return;
           }
         }
@@ -141,7 +141,7 @@ const StudentAttendancePage = () => {
               }
               // Show success toast
               if (toast?.success) {
-                toast.success(t('qr_code_detected') || 'QR code detected! Processing...');
+                toast.success(t('student_attendance_qr_code_detected'));
               }
               // Process the scan
               await handleRawValueRef.current(decodedText);
@@ -157,7 +157,7 @@ const StudentAttendancePage = () => {
         );
       } catch (e) {
         logger.error('[StudentAttendance] QR Scanner error:', e);
-        setMessage(e?.message || 'Failed to start camera. Please check permissions and use manual entry.');
+        setMessage(e?.message || t('student_attendance_failed_to_start_camera'));
         setScanning(false);
         
         // Clean up on error

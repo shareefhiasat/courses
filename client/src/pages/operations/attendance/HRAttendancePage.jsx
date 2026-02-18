@@ -55,7 +55,7 @@ const HRAttendancePage = () => {
   }, []);
 
   const loadSessions = useCallback(async () => {
-    const stopLoading = startLoading({ message: t('loading_attendance_sessions') || 'Loading attendance sessions...' });
+    const stopLoading = startLoading({ message: t('hr_attendance_loading_attendance_sessions') });
     try {
       // Use attendance service to get attendance data
       const attendanceResult = await getAttendanceStats();
@@ -64,8 +64,8 @@ const HRAttendancePage = () => {
       // Simplified enrichment - just use classId as className for now
       const enriched = data.map(session => ({
         ...session,
-        className: session.classId || 'General',
-        instructorName: session.instructorId || 'Unknown'
+        className: session.classId || t('hr_attendance_general'),
+        instructorName: session.instructorId || t('hr_attendance_unknown')
       }));
       
       // Apply filters
@@ -235,7 +235,7 @@ const HRAttendancePage = () => {
   }, [loadSessions]);
 
   const loadMarks = async (sessionId) => {
-    const stopLoading = startLoading({ message: t('loading_attendance_marks') || 'Loading attendance marks...' });
+    const stopLoading = startLoading({ message: t('hr_attendance_loading_attendance_marks') });
     try {
       const result = await getAttendanceMarksForExport(sessionId);
       let data = result.success ? result.data : [];
@@ -290,7 +290,7 @@ const HRAttendancePage = () => {
       setFeedback('');
     } catch (e) {
       logger.error('[HR] Error updating mark:', e);
-      alert('Failed to update: ' + (e?.message || 'unknown error'));
+      alert(t('hr_attendance_failed_to_update') + ': ' + (e?.message || t('hr_attendance_unknown_error')));
     }
   };
 

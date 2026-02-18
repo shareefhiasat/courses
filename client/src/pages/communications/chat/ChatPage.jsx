@@ -1371,7 +1371,7 @@ const ChatPage = memo(() => {
                   {/* <div style={{ display:'flex', gap:8, marginTop:6 }}>
                     <Input
                       type="text"
-                      placeholder={t('search_messages_or_courses') || 'Search messages or courses...'}
+                      placeholder={t('chat_search_messages')}
                       value={globalChatSearch || ''}
                       onChange={(e) => setGlobalChatSearch(e.target.value)}
                       style={{ flex: 1, padding: '6px 10px', fontSize: '0.9rem' }}
@@ -1465,20 +1465,20 @@ const ChatPage = memo(() => {
           {/* Direct Messages */}
           {/* {!showFavoritesOnly && (
             <div style={{ padding: '0.6rem 0.9rem', color: 'var(--muted)', fontWeight: 600, fontSize:'0.85rem', borderTop: '1px solid var(--border)' }}>
-              Direct Messages
+              {t('chat_direct_messages')}
             </div>
           )} */}
           {isAdmin && (
             <input
               type="text"
-              placeholder={t('search_dms') || 'Search DMs...'}
+              placeholder={t('chat_search_users')}
               value={dmSearch}
               onChange={(e) => setDmSearch(e.target.value)}
               style={{ margin: '0.5rem 1rem', padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: '0.85rem', width: 'calc(100% - 2rem)' }}
             />
           )}
           {directRooms.length === 0 && (
-            <div style={{ padding: '0.4rem 0.6rem', color: 'var(--muted)' }}>{t('no_conversations') || 'No conversations'}</div>
+            <div style={{ padding: '0.4rem 0.6rem', color: 'var(--muted)' }}>{t('chat_no_messages')}</div>
           )}
           {(() => {
             if (archivedRooms === null) return []; // Return empty array instead of null
@@ -1760,7 +1760,7 @@ const ChatPage = memo(() => {
                   onBlur={() => { if (!msgQuery.trim()) setShowSearch(false); }}
                   onKeyDown={(e) => { if (e.key === 'Escape') { setMsgQuery(''); setShowSearch(false); } }}
                   id="msg-search"
-                  placeholder={t('search_messages') || t('search') || 'Search'}
+                  placeholder={t('chat_search_messages')}
                   style={{ 
                     width:'100%', 
                     padding:'0.625rem 0.875rem', 
@@ -1777,7 +1777,7 @@ const ChatPage = memo(() => {
           
           {classMembers.length > 0 && !selectedClass?.startsWith('dm:') && (
             <div onClick={() => setShowMembers(true)} style={{ fontSize: '0.9rem', color: '#666', cursor: 'pointer', textDecoration: 'underline' }}>
-              {getThemedIcon('ui', 'users', 16, theme)} {classMembers.length} {t('members')}
+              {getThemedIcon('ui', 'users', 16, theme)} {classMembers.length} {t('chat_members')}
             </div>
           )}
         </div>
@@ -2521,7 +2521,7 @@ const ChatPage = memo(() => {
         {showJump && (
           <button
             onClick={() => { try { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); } catch {} }}
-            title={t('jump_to_bottom') || 'Jump to bottom'}
+            title={t('chat_jump_to_bottom')}
             style={{ position:'fixed', right: 24, bottom: 110, background:'#fff', border:'1px solid var(--border)', borderRadius: 20, padding:'8px 10px', boxShadow:'0 4px 12px rgba(0,0,0,0.15)', cursor:'pointer', zIndex: 20 }}
           >
             {getThemedIcon('ui', 'download', 16, theme)}
@@ -2695,7 +2695,7 @@ const ChatPage = memo(() => {
                 type="text"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder={t('type_message')}
+                placeholder={t('chat_type_a_message')}
                 disabled={isUploading}
                 style={{
                   flex: 1,

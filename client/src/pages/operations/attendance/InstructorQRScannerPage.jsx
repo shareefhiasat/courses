@@ -44,7 +44,7 @@ const InstructorQRScannerPage = () => {
     try {
       localStorage.setItem('qrScanner_selectedProgramId', programId);
     } catch (error) {
-      console.warn('Failed to save selected programId to localStorage:', error);
+      console.warn(t('instructor_qr_failed_to_save_program_id'), error);
     }
     setSelectedProgramId(programId);
   }, []);
@@ -53,7 +53,7 @@ const InstructorQRScannerPage = () => {
     try {
       localStorage.setItem('qrScanner_selectedSubjectId', subjectId);
     } catch (error) {
-      console.warn('Failed to save selected subjectId to localStorage:', error);
+      console.warn(t('instructor_qr_failed_to_save_subject_id'), error);
     }
     setSelectedSubjectId(subjectId);
   }, []);
@@ -62,7 +62,7 @@ const InstructorQRScannerPage = () => {
     try {
       localStorage.setItem('qrScanner_selectedClassId', classId);
     } catch (error) {
-      console.warn('Failed to save selected classId to localStorage:', error);
+      console.warn(t('instructor_qr_failed_to_save_class_id'), error);
     }
     setSelectedClassId(classId);
   }, []);
@@ -154,14 +154,14 @@ const InstructorQRScannerPage = () => {
 
   // Handle QR scanner minimization changes
   const handleScannerMinimizeChange = useCallback((isMinimized) => {
-    logger.log('🔧 QR Scanner minimization changed:', isMinimized); // Debug
+    logger.log(t('instructor_qr_qr_scanner_minimization_changed'), isMinimized); // Debug
     setIsScannerMinimized(isMinimized);
   }, []);
 
   // Redirect to login if session expired (no user)
   useEffect(() => {
     if (!user && !authLoading) {
-      logger.debug('[QR Scanner] No user found - redirecting to login');
+      logger.debug(t('instructor_qr_no_user_found_redirecting'));
       navigate('/login');
     }
   }, [user, authLoading, navigate]);
@@ -218,7 +218,7 @@ const InstructorQRScannerPage = () => {
         loadStudents(selectedClassId, selectedDate);
       }
     } catch (error) {
-      console.error('Error deleting activity:', error);
+      console.error(t('instructor_qr_error_deleting_activity'), error);
     } finally {
       setDeleteActivityLoading(false);
       setDeleteActivityModalOpen(false);
@@ -252,7 +252,7 @@ const InstructorQRScannerPage = () => {
   // Memoized options for dropdowns - following DashboardPage pattern
   const programOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 16, theme) }
+      { value: 'all', label: t('instructor_qr_all_programs'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validPrograms = programs
       .filter(prog => prog.docId || prog.id)

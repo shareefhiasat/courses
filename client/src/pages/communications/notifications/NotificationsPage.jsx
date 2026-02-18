@@ -219,10 +219,10 @@ const NotificationsPage = () => {
     const now = new Date();
     const diff = now - date;
     
-    if (diff < 60000) return 'Just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+    if (diff < 60000) return t('notifications_just_now');
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}${t('notifications_minutes_ago')}`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}${t('notifications_hours_ago')}`;
+    if (diff < 604800000) return `${Math.floor(diff / 86400000)}${t('notifications_days_ago')}`;
     return formatDateTime(date);
   };
 
@@ -254,7 +254,7 @@ const NotificationsPage = () => {
   };
 
   const handleDelete = async (notificationId) => {
-    if (!confirm('Delete this notification?')) return;
+    if (!confirm(t('notifications_delete_notification'))) return;
     setLoading(true);
     try {
       await deleteNotification(notificationId);
@@ -276,7 +276,7 @@ const NotificationsPage = () => {
   const handleTestBrowserNotification = async () => {
     if (checkSupport().notification) {
       try {
-        await triggerNotification('default', 'Test Notification', 'This is a test browser notification!');
+        await triggerNotification('default', t('notifications_test_notification'), t('notifications_test_notification_message'));
       } catch (error) {
         logger.error('Failed to send test notification:', error);
       }

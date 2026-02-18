@@ -145,20 +145,20 @@ const AttendancePageEnhanced = () => {
   }, [sessionId]);
 
   const startSession = async () => {
-    if (!user) { setErr(t('please_sign_in') || 'Please sign in'); return; }
-    if (!classId) { setErr(t('please_select_a_class') || 'Please select a class'); return; }
+    if (!user) { setErr(t('attendance_please_sign_in')); return; }
+    if (!classId) { setErr(t('attendance_please_select_a_class')); return; }
     setLoading(true);
     try {
       setErr('');
       logger.debug('[Attendance] startSession clicked', { classId, uid: user?.uid });
       const { id } = await createSession({ classId, createdBy: user.uid });
       logger.log('[Attendance] createSession returned', { id });
-      if (!id) throw new Error('No session id returned from backend');
+      if (!id) throw new Error(t('attendance_no_session_id_returned'));
       setSession({ id });
       setSessionId(id);
       setSessionStartTime(Date.now());
     } catch(e) {
-      setErr(e?.message || (t('failed_to_start_session') || 'Failed to start session'));
+      setErr(e?.message || t('attendance_failed_to_start_session'));
     } finally {
       setLoading(false);
     }
@@ -212,12 +212,12 @@ const AttendancePageEnhanced = () => {
           setSession(null);
           setToken('');
           setSessionStartTime(null);
-          setErr('Session closed locally. Backend may need CORS configuration.');
+          setErr(t('attendance_session_closed_locally'));
         } catch (localErr) {
-          setErr('Failed to end session. Please try again or contact support.');
+          setErr(t('attendance_failed_to_end_session'));
         }
       } else {
-        setErr(e?.message || 'Failed to end session. Please try again.');
+        setErr(e?.message || t('attendance_failed_to_end_session_try_again'));
       }
     } finally { 
       setLoading(false); 
