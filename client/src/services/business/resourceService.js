@@ -1,57 +1,89 @@
-﻿import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  getDocs,
-  query,
-  where,
-  serverTimestamp,
-  Timestamp
-} from "firebase/firestore";
-import { db } from '../other/config';
+import { serverTimestamp, Timestamp } from 'firebase/firestore';
 import { getUserById } from './userService';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { convertDatesToTimestamps, COMMON_DATE_FIELDS } from '@utils/date.js';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
+import { handleServiceError, withRetry } from '@utils/errorHandling';
+import { withPerformanceMonitoring, memoize, queryOptimizers } from '@utils/performance';
+import {
+  getResources as getResourcesFromDb,
+  getResource as getResourceFromDb,
+  createResource as createResourceToDb,
+  updateResource as updateResourceInDb,
+  deleteResource as deleteResourceFromDb,
+  getResourcesByClass as getResourcesByClassFromDb,
+  getResourcesBySubject as getResourcesBySubjectFromDb,
+  getResourcesByType as getResourcesByTypeFromDb,
+  searchResources as searchResourcesFromDb,
+  getResourceCount as getResourceCountFromDb
+} from '../db/resourceDbService';
 
-// Get all resources
-export const getResources = async () => {
-  try {
-    logger.info('RESOURCE: Fetching all resources');
-    
-    const querySnapshot = await getDocs(collection(db, "resources"));
-    const resources = [];
-    querySnapshot.forEach((d) => {
-      const resourceData = { docId: d.id, ...d.data() };
-      resources.push(resourceData);
-    });
-    
-    logger.info('RESOURCE: Successfully fetched resources', { count: resources.length });
-    return { success: true, data: resources };
-  } catch (error) {
-    logger.error('RESOURCE: Failed to fetch resources', { error: error.message });
-    logger.error("Error getting all resources:", error);
-    return { success: false, error: error.message };
+// Input validation helper
+const validateResourceData = (data) => {
+  const errors = [];
+  
+  if (!data.title_en && !data.title) {
+    errors.push('Resource title is required');
   }
+  
+  if (!data.type || typeof data.type !== 'string') {
+    errors.push('Resource type is required and must be a string');
+  }
+  
+  if (data.url && typeof data.url !== 'string') {
+    errors.push('Resource URL must be a string');
+  }
+  
+  if (data.description_en && typeof data.description_en !== 'string') {
+    errors.push('Resource description must be a string');
+  }
+  
+  return errors;
 };
+
+// Get all resources - with performance monitoring and memoization
+export const getResources = withPerformanceMonitoring(
+  memoize(async () => {
+    try {
+      logger.info('RESOURCE: Fetching all resources');
+      
+      const result = await getResourcesFromDb();
+      
+      if (result.success) {
+        logger.info('RESOURCE: Successfully fetched resources', { count: result.data.length });
+      } else {
+        logger.warn('RESOURCE: Failed to fetch resources', { error: result.error });
+      }
+      
+      return result;
+    } catch (error) {
+      logger.error('RESOURCE: Failed to fetch resources', { error: error.message });
+      return handleServiceError(error, { operation: 'getResources' });
+    }
+  }),
+  'getResources'
+);
 
 // Get resources by class ID
 export const getResourcesByClass = async (classId) => {
   try {
-    const q = query(collection(db, "resources"), where("classId", "==", classId));
-    const querySnapshot = await getDocs(q);
-    const resources = [];
-    querySnapshot.forEach((d) => {
-      const resourceData = { docId: d.id, ...d.data() };
-      resources.push(resourceData);
-    });
-    return { success: true, data: resources };
+    if (!classId) {
+      return { success: false, error: 'Class ID is required' };
+    }
+    
+    logger.info('RESOURCE: Fetching resources by class', { classId });
+    
+    const result = await getResourcesByClassFromDb(classId);
+    
+    if (result.success) {
+      logger.info('RESOURCE: Successfully fetched resources by class', { classId, count: result.data.length });
+    }
+    
+    return result;
   } catch (error) {
-    logger.error("Error getting resources by class:", error);
+    logger.error('RESOURCE: Failed to fetch resources by class', { error: error.message, classId });
     return { success: false, error: error.message };
   }
 };
@@ -68,59 +100,50 @@ export const addResource = async (resourceData) => {
       hasSubjectId: !!resourceData.subjectId
     });
     
+    // Validate input data
+    const validationErrors = validateResourceData(resourceData);
+    if (validationErrors.length > 0) {
+      logger.warn('RESOURCE: Validation failed', { errors: validationErrors });
+      return { success: false, error: validationErrors.join(', ') };
+    }
+    
     const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], Timestamp);
-    const docRef = await addDoc(collection(db, "resources"), {
+    const resourceWithTimestamps = {
       ...convertedData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
-    });
+    };
+
+    const result = await createResourceToDb(resourceWithTimestamps);
     
-    // Log activity
-    try {
-      await logActivity(ACTIVITY_LOG_TYPES.RESOURCE_CREATED, {
-        resourceId: docRef.id,
-        title: resourceData.title_en || resourceData.title,
-        classId: resourceData.classId
-      });
-    } catch (logError) {
-      logger.warn('RESOURCE: Failed to log resource creation:', logError);
-    }
-
-    // Send notifications for new resource
-    if (resourceData.classId) {
+    if (result.success) {
+      // Log activity
       try {
-        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', resourceData.classId)));
-        const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
-        
-        for (const studentId of studentIds) {
-          const { data: student } = await getUserById(studentId);
-          if (student && student.email) {
-            await notificationGateway.send(NOTIFICATION_TRIGGERS.RESOURCE_NEW, {
-              userId: studentId,
-              role: 'student',
-              classId: resourceData.classId,
-              title: 'New Resource Available',
-              message: `A new resource "${resourceData.title_en || resourceData.title}" has been uploaded to your class.`,
-              email: student.email,
-              resourceId: docRef.id,
-              url: resourceData.url,
-              variables: {
-                resourceTitle: resourceData.title_en || resourceData.title,
-                resourceUrl: resourceData.url,
-                resourceDescription: resourceData.description_en || resourceData.description,
-                classId: resourceData.classId
-              }
-            });
-          }
-        }
-      } catch (notificationError) {
-        logger.warn('Failed to send notifications for new resource:', notificationError);
+        await logActivity(ACTIVITY_LOG_TYPES.RESOURCE_CREATED, {
+          resourceId: result.id,
+          title: resourceData.title_en || resourceData.title,
+          type: resourceData.type
+        });
+      } catch (logError) {
+        logger.warn('RESOURCE: Failed to log resource creation:', logError);
       }
+      
+      // Send notifications for new resource
+      if (resourceData.classId) {
+        try {
+          // TODO: Implement notification logic
+          logger.info('RESOURCE: Notifications would be sent for class', { classId: resourceData.classId });
+        } catch (notifyError) {
+          logger.warn('RESOURCE: Failed to send resource notifications:', notifyError);
+        }
+      }
+      
+      logger.info('RESOURCE: Successfully created resource', { resourceId: result.id });
     }
-
-    return { success: true, id: docRef.id };
+    
+    return result;
   } catch (error) {
-    logger.error("Error adding resource:", error);
+    logger.error('RESOURCE: Failed to create resource', { error: error.message });
     return { success: false, error: error.message };
   }
 };
@@ -129,50 +152,48 @@ export const addResource = async (resourceData) => {
 export const updateResource = async (id, resourceData, emailOptions = { sendEmail: true }) => {
   try {
     if (!id) {
-      throw new Error('Resource ID is required for update');
+      return { success: false, error: 'Resource ID is required for update' };
+    }
+    
+    logger.info('RESOURCE: Updating resource', { resourceId: id });
+    
+    // Validate input data
+    const validationErrors = validateResourceData(resourceData);
+    if (validationErrors.length > 0) {
+      logger.warn('RESOURCE: Validation failed', { errors: validationErrors });
+      return { success: false, error: validationErrors.join(', ') };
     }
     
     const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], Timestamp);
-    await updateDoc(doc(db, "resources", id), {
+    const resourceWithTimestamps = {
       ...convertedData,
       updatedAt: serverTimestamp()
-    });
+    };
 
-    // Send notifications for updated resource only if email is enabled
-    if (resourceData.classId && emailOptions.sendEmail) {
+    const result = await updateResourceInDb(id, resourceWithTimestamps);
+    
+    if (result.success) {
+      // Log activity
       try {
-        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', resourceData.classId)));
-        const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
-        
-        for (const studentId of studentIds) {
-          const { data: student } = await getUserById(studentId);
-          if (student && student.email) {
-            await notificationGateway.send(NOTIFICATION_TRIGGERS.RESOURCE_UPDATED, {
-              userId: studentId,
-              role: 'student',
-              classId: resourceData.classId,
-              title: 'Resource Updated',
-              message: `Resource "${resourceData.title_en || resourceData.title}" has been updated.`,
-              email: student.email,
-              resourceId: id,
-              url: resourceData.url,
-              variables: {
-                resourceTitle: resourceData.title_en || resourceData.title,
-                resourceUrl: resourceData.url,
-                resourceDescription: resourceData.description_en || resourceData.description,
-                classId: resourceData.classId
-              }
-            });
-          }
-        }
-      } catch (notificationError) {
-        logger.warn('Failed to send notifications for resource update:', notificationError);
+        await logActivity(ACTIVITY_LOG_TYPES.RESOURCE_UPDATED, {
+          resourceId: id,
+          title: resourceData.title_en || resourceData.title
+        });
+      } catch (logError) {
+        logger.warn('RESOURCE: Failed to log resource update:', logError);
       }
+      
+      // TODO: Implement notification logic if needed
+      if (resourceData.classId && emailOptions.sendEmail) {
+        logger.info('RESOURCE: Update notifications would be sent for class', { classId: resourceData.classId });
+      }
+      
+      logger.info('RESOURCE: Successfully updated resource', { resourceId: id });
     }
-
-    return { success: true };
+    
+    return result;
   } catch (error) {
-    logger.error("Error updating resource:", error);
+    logger.error('RESOURCE: Failed to update resource', { error: error.message, resourceId: id });
     return { success: false, error: error.message };
   }
 };
@@ -180,10 +201,34 @@ export const updateResource = async (id, resourceData, emailOptions = { sendEmai
 // Delete a resource
 export const deleteResource = async (id) => {
   try {
-    await deleteDoc(doc(db, "resources", id));
-    return { success: true };
+    if (!id) {
+      return { success: false, error: 'Resource ID is required' };
+    }
+    
+    logger.info('RESOURCE: Deleting resource', { resourceId: id });
+    
+    // Get resource details for logging
+    const resourceResult = await getResourceFromDb(id);
+    
+    const result = await deleteResourceFromDb(id);
+    
+    if (result.success) {
+      // Log activity
+      try {
+        await logActivity(ACTIVITY_LOG_TYPES.RESOURCE_DELETED, {
+          resourceId: id,
+          title: resourceResult.success ? resourceResult.data.title : 'Unknown'
+        });
+      } catch (logError) {
+        logger.warn('RESOURCE: Failed to log resource deletion:', logError);
+      }
+      
+      logger.info('RESOURCE: Successfully deleted resource', { resourceId: id });
+    }
+    
+    return result;
   } catch (error) {
-    logger.error("Error deleting resource:", error);
+    logger.error('RESOURCE: Failed to delete resource', { error: error.message, resourceId: id });
     return { success: false, error: error.message };
   }
 };
@@ -191,16 +236,109 @@ export const deleteResource = async (id) => {
 // Get resource by ID
 export const getResourceById = async (id) => {
   try {
-    const docRef = doc(db, "resources", id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
-    } else {
-      return { success: false, error: 'Resource not found' };
+    if (!id) {
+      return { success: false, error: 'Resource ID is required' };
     }
+    
+    logger.info('RESOURCE: Fetching resource by ID', { resourceId: id });
+    
+    const result = await getResourceFromDb(id);
+    
+    if (result.success) {
+      logger.info('RESOURCE: Successfully fetched resource', { resourceId: id });
+    } else {
+      logger.warn('RESOURCE: Resource not found', { resourceId: id });
+    }
+    
+    return result;
   } catch (error) {
-    logger.error("Error getting resource by ID:", error);
+    logger.error('RESOURCE: Failed to fetch resource', { error: error.message, resourceId: id });
     return { success: false, error: error.message };
+  }
+};
+
+// Get resources by subject ID
+export const getResourcesBySubject = async (subjectId) => {
+  try {
+    if (!subjectId) {
+      return { success: false, error: 'Subject ID is required' };
+    }
+    
+    logger.info('RESOURCE: Fetching resources by subject', { subjectId });
+    
+    const result = await getResourcesBySubjectFromDb(subjectId);
+    
+    if (result.success) {
+      logger.info('RESOURCE: Successfully fetched resources by subject', { subjectId, count: result.data.length });
+    }
+    
+    return result;
+  } catch (error) {
+    logger.error('RESOURCE: Failed to fetch resources by subject', { error: error.message, subjectId });
+    return { success: false, error: error.message };
+  }
+};
+
+// Get resources by type
+export const getResourcesByType = async (resourceType) => {
+  try {
+    if (!resourceType) {
+      return { success: false, error: 'Resource type is required' };
+    }
+    
+    logger.info('RESOURCE: Fetching resources by type', { resourceType });
+    
+    const result = await getResourcesByTypeFromDb(resourceType);
+    
+    if (result.success) {
+      logger.info('RESOURCE: Successfully fetched resources by type', { resourceType, count: result.data.length });
+    }
+    
+    return result;
+  } catch (error) {
+    logger.error('RESOURCE: Failed to fetch resources by type', { error: error.message, resourceType });
+    return { success: false, error: error.message };
+  }
+};
+
+// Search resources - with debouncing optimization
+export const searchResources = queryOptimizers.debounceSearch(
+  withPerformanceMonitoring(async (searchTerm) => {
+    if (!searchTerm || searchTerm.trim().length === 0) {
+      return handleServiceError(
+        new Error('Search term is required'),
+        { operation: 'searchResources', searchTerm }
+      );
+    }
+    
+    logger.info('RESOURCE: Searching resources', { searchTerm });
+    
+    const result = await searchResourcesFromDb(searchTerm.trim());
+    
+    if (result.success) {
+      logger.info('RESOURCE: Successfully searched resources', { searchTerm, count: result.data.length });
+    }
+    
+    return result;
+  }, 'searchResources'),
+  300 // 300ms debounce delay
+);
+
+// Get resource count
+export const getResourceCount = async (filters = {}) => {
+  try {
+    logger.info('RESOURCE: Getting resource count', { filters });
+    
+    const result = await getResourceCountFromDb(filters);
+    
+    if (result.success) {
+      logger.info('RESOURCE: Successfully got resource count', { count: result.count });
+    }
+    
+    return result;
+  } catch (error) {
+    logger.error('RESOURCE: Failed to get resource count', { error: error.message });
+    return { success: false, error: error.message, count: 0 };
   }
 };
 

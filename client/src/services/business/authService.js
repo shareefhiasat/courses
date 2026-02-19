@@ -1,4 +1,4 @@
-﻿import { 
+import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   updateProfile,
@@ -8,30 +8,79 @@
 } from 'firebase/auth';
 import { ActivityLogger } from '../other/activityLogger';
 import { auth } from '../other/config';
+import logger from '@utils/logger';
 
 export const signIn = async (email, password) => {
   try {
+    // Input validation
+    if (!email || !password) {
+      return { success: false, error: 'Email and password are required' };
+    }
+    
+    if (!email.includes('@') || email.length < 5) {
+      return { success: false, error: 'Valid email is required' };
+    }
+    
+    if (password.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters' };
+    }
+    
+    logger.info('AUTH: User sign in attempt', { email: email.substring(0, 3) + '***' });
+    
     const result = await signInWithEmailAndPassword(auth, email, password);
+    
+    logger.info('AUTH: User signed in successfully', { userId: result.user.uid });
     return { success: true, user: result.user };
   } catch (error) {
+    logger.error('AUTH: Sign in failed', { 
+      error: error.message, 
+      email: email.substring(0, 3) + '***' 
+    });
     return { success: false, error: error.message };
   }
 };
 
 export const signUp = async (email, password, displayName) => {
   try {
+    // Input validation
+    if (!email || !password) {
+      return { success: false, error: 'Email and password are required' };
+    }
+    
+    if (!email.includes('@') || email.length < 5) {
+      return { success: false, error: 'Valid email is required' };
+    }
+    
+    if (password.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters' };
+    }
+    
+    if (displayName && (typeof displayName !== 'string' || displayName.trim().length === 0)) {
+      return { success: false, error: 'Display name must be a non-empty string' };
+    }
+    
+    logger.info('AUTH: User sign up attempt', { email: email.substring(0, 3) + '***' });
+    
     const result = await createUserWithEmailAndPassword(auth, email, password);
+    
     // If a displayName is provided, update the profile
     if (displayName && displayName.trim()) {
       try {
         await updateProfile(result.user, { displayName: displayName.trim() });
+        logger.info('AUTH: Display name updated successfully');
       } catch (e) {
         // Non-fatal: continue even if profile update fails
-        logger.warn('Failed to set displayName on signup:', e);
+        logger.warn('AUTH: Failed to set displayName on signup:', e);
       }
     }
+    
+    logger.info('AUTH: User signed up successfully', { userId: result.user.uid });
     return { success: true, user: result.user };
   } catch (error) {
+    logger.error('AUTH: Sign up failed', { 
+      error: error.message, 
+      email: email.substring(0, 3) + '***' 
+    });
     return { success: false, error: error.message };
   }
 };

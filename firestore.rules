@@ -72,7 +72,13 @@ service cloud.firestore {
       allow read: if isSignedIn();
 
       // Write: the user themselves OR an admin
-      allow write: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
+      // For bookmark updates: only allow bookmark fields and lastBookmarkUpdate
+      allow write: if (isSignedIn() && request.auth.uid == userId && 
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bookmarks', 'lastBookmarkUpdate']) ||
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['resourceProgress']) ||
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['enrolledClasses']) ||
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bookmarks', 'lastBookmarkUpdate', 'resourceProgress', 'enrolledClasses']))
+      ) || isAdmin();
 
       // Subcollection: badges under user (used by StudentDashboard achievements)
       match /badges/{badgeId} {

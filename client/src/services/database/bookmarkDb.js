@@ -155,9 +155,10 @@ export const updateBookmarkTypeInDb = async (userId, bookmarkType, bookmarkData)
  * Set up real-time listener for user bookmarks
  * @param {string} userId - User ID
  * @param {Function} callback - Callback function (bookmarks) => void
+ * @param {Function} onError - Optional error callback
  * @returns {Function} Unsubscribe function
  */
-export const onUserBookmarksChange = (userId, callback) => {
+export const onUserBookmarksChange = (userId, callback, onError = null) => {
   try {
     const userDocRef = doc(db, COLLECTION_NAME, userId);
     
@@ -180,6 +181,10 @@ export const onUserBookmarksChange = (userId, callback) => {
       callback(bookmarks);
     }, (error) => {
       logger.error('[BookmarkDb] Real-time bookmark listener error:', error);
+      // Propagate error to UI layer
+      if (onError) {
+        onError(error);
+      }
     });
   } catch (error) {
     logger.error('[BookmarkDb] Failed to set up real-time listener:', error);

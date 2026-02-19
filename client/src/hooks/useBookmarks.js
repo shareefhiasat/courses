@@ -64,7 +64,11 @@ export const useBookmarks = (options = {}) => {
 
     const unsubscribe = onBookmarksChange(user.uid, (updatedBookmarks) => {
       setBookmarks(updatedBookmarks);
+      setError(null); // Clear error on successful update
       logger.debug('[useBookmarks] Real-time bookmark update received');
+    }, (error) => {
+      setError(error.message);
+      logger.error('[useBookmarks] Real-time listener error:', error);
     });
 
     return unsubscribe;

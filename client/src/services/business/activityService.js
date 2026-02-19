@@ -7,37 +7,14 @@ import {
 import { 
   getAnnouncements as getAnnouncementsFromDb,
   getAnnouncement as getAnnouncementFromDb,
-  createAnnouncement as createAnnouncementToDb,
-  updateAnnouncement as updateAnnouncementInDb,
-  deleteAnnouncement as deleteAnnouncementFromDb,
-  getAnnouncementsByClass as getAnnouncementsByClassFromDb,
-  getAnnouncementsByProgram as getAnnouncementsByProgramFromDb,
-  getActiveAnnouncements as getActiveAnnouncementsFromDb,
-  searchAnnouncements as searchAnnouncementsFromDb
+  createAnnouncement as createAnnouncementToDb
 } from '../db/announcementDbService';
 import { 
-  getResources as getResourcesFromDb,
-  getResource as getResourceFromDb,
-  createResource as createResourceToDb,
-  updateResource as updateResourceInDb,
-  deleteResource as deleteResourceFromDb,
-  getResourcesByClass as getResourcesByClassFromDb,
-  getResourcesBySubject as getResourcesBySubjectFromDb,
-  getResourcesByType as getResourcesByTypeFromDb,
-  searchResources as searchResourcesFromDb,
-  getResourceCount as getResourceCountFromDb
+  createResource as createResourceToDb
 } from '../db/resourceDbService';
 import { 
-  getActivityLogs as getActivityLogsFromDb,
-  getActivityLog as getActivityLogFromDb,
-  createActivityLog as createActivityLogToDb,
-  getActivityLogsByUser as getActivityLogsByUserFromDb,
-  getActivityLogsByType as getActivityLogsByTypeFromDb,
-  getActivityLogsByDateRange as getActivityLogsByDateRangeFromDb,
   getLoginLogs as getLoginLogsFromDb,
-  deleteActivityLog as deleteActivityLogFromDb,
-  deleteAllActivityLogs as deleteAllActivityLogsFromDb,
-  searchActivityLogs as searchActivityLogsFromDb
+  deleteAllActivityLogs as deleteAllActivityLogsFromDb
 } from '../db/activityLogDbService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { deleteCollection, deleteDocumentsByField } from './collectionManagementService';
@@ -47,134 +24,142 @@ import { getUserById } from './userService';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS, RECORD_TYPES } from '@constants';
 import logger from '@utils/logger';
+import { handleServiceError, withRetry, measurePerformance, memoize, batchOperation } from '@utils/errorHandling';
+import { withPerformanceMonitoring, memoizedOperations, queryOptimizers } from '@utils/performance';
 import { collection, query, orderBy, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, Timestamp } from 'firebase/firestore';
 import { db } from '../other/config';
 
+// Input validation helper
+const validateActivityData = (data) => {
+  const errors = [];
+  
+  if (!data.title_en && !data.title) {
+    errors.push('Activity title is required');
+  }
+  
+  if (!data.type || typeof data.type !== 'string') {
+    errors.push('Activity type is required and must be a string');
+  }
+  
+  if (data.url && typeof data.url !== 'string') {
+    errors.push('Activity URL must be a string');
+  }
+  
+  if (data.description_en && typeof data.description_en !== 'string') {
+    errors.push('Activity description must be a string');
+  }
+  
+  if (data.maxScore && (typeof data.maxScore !== 'number' || data.maxScore < 0)) {
+    errors.push('Activity max score must be a positive number');
+  }
+  
+  if (data.dueDate && !(data.dueDate instanceof Date) && typeof data.dueDate !== 'string') {
+    errors.push('Activity due date must be a Date or string');
+  }
+  
+  return errors;
+};
+
 // Convert date fields to timestamps for Firestore using centralized utility
 
-// Activities
-export const getActivities = async () => {
-  try {
-    logger.info('ACTIVITY: Fetching all activities');
-    
-    const result = await getActivitiesFromDb();
-    if (result.success) {
-      logger.info('ACTIVITY: Successfully fetched activities', { count: result.data.length });
-    }
-    return result;
-  } catch (error) {
-    logger.error('ACTIVITY: Failed to fetch activities', { error: error.message });
-    logger.error("Error getting activities:", error);
-    return { success: false, error: error.message };
-  }
-};
-
-export const addActivity = async (activityData) => {
-  const maxRetries = 3;
-  let lastError;
-  
-  logger.info('ACTIVITY: Creating new activity', {
-    title: activityData.title_en,
-    url: activityData.url,
-    type: activityData.type,
-    hasProgram: !!activityData.programId,
-    hasSubject: !!activityData.subjectId,
-    hasClass: !!activityData.classId
-  });
-  
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+// Activities - with performance monitoring and error handling
+export const getActivities = withPerformanceMonitoring(
+  memoize(async () => {
     try {
-      logger.log(`🔍 [SERVICE] addActivity called (attempt ${attempt}/${maxRetries}):`, {
-        title: activityData.title_en,
-        url: activityData.url,
-        type: activityData.type,
-        hasProgram: !!activityData.programId,
-        hasSubject: !!activityData.subjectId,
-        hasClass: !!activityData.classId
-      });
+      logger.info('ACTIVITY: Fetching all activities');
       
-      const convertedData = activityData; // No date conversion - save as-is
-      logger.log('🔍 [SERVICE] Saving data directly without conversion');
-      
-      // Add a small delay for retries
-      if (attempt > 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      const result = await getActivitiesFromDb();
+      if (result.success) {
+        logger.info('ACTIVITY: Successfully fetched activities', { count: result.data.length });
       }
-      
-      const activityDataWithTimestamps = {
-        ...convertedData,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
-
-      const result = await createActivityToDb(activityDataWithTimestamps);
-
-      logger.log('🔍 [SERVICE] Activity saved to Firestore with ID:', result.id);
-
-      // TODO: Fix notification gateway - temporarily disabled
-      // Send notifications for new activity
-      // if (activityData.classId) {
-      //   try {
-      //     const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', activityData.classId)));
-      //     const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
-          
-      //     for (const studentId of studentIds) {
-      //       const { data: student } = await getUserById(studentId);
-      //       if (student && student.email) {
-      //         await notificationGateway.send(NOTIFICATION_TRIGGERS.ACTIVITY_NEW, {
-      //           userId: studentId,
-      //           role: 'student',
-      //           classId: activityData.classId,
-      //           title: 'New Activity Assigned',
-      //           message: `A new activity "${activityData.title}" has been assigned to your class.`,
-      //           type: RECORD_TYPES.ACTIVITY,
-      //           email: student.email,
-      //           templateId: 'activityNew',
-      //           variables: {
-      //             studentName: student.displayName || student.name || 'Student',
-      //             activityTitle: activityData.title,
-      //             dueDate: activityData.dueDate ? new Date(activityData.dueDate).toLocaleDateString() : 'N/A'
-      //           }
-      //         });
-      //       }
-      //     }
-      //   } catch (notifyError) {
-      //     logger.warn('Failed to send activity notifications:', notifyError);
-      //   }
-      // }
-
-      return { success: true, id: docRef.id };
+      return result;
     } catch (error) {
-      lastError = error;
-      logger.error(`🔍 [SERVICE] Error in addActivity (attempt ${attempt}/${maxRetries}):`, error);
-      logger.error('🔍 [SERVICE] Error details:', {
-        message: error.message,
-        code: error.code,
-        name: error.name
-      });
-      
-      // Check if it's a network error that might be worth retrying
-      const isNetworkError = error.message.includes('WebChannel') || 
-                            error.message.includes('network') ||
-                            error.code === 'unavailable' ||
-                            error.code === 'deadline-exceeded';
-      
-      if (isNetworkError && attempt < maxRetries) {
-        logger.log(`🔍 [SERVICE] Network error detected, retrying... (${attempt}/${maxRetries})`);
-        continue;
-      }
-      
-      // If it's the last attempt or not a network error, break
-      if (attempt === maxRetries || !isNetworkError) {
-        break;
-      }
+      logger.error('ACTIVITY: Failed to fetch activities', { error: error.message });
+      return handleServiceError(error, { operation: 'getActivities' });
     }
-  }
-  
-  // If we get here, all attempts failed
-  logger.error('🔍 [SERVICE] All retry attempts failed');
-  return { success: false, error: lastError?.message || 'Failed to save activity after multiple attempts' };
-};
+  }),
+  'getActivities'
+);
+
+export const addActivity = withPerformanceMonitoring(
+  withRetry(async (activityData) => {
+    logger.info('ACTIVITY: Creating new activity', {
+      title: activityData.title_en,
+      url: activityData.url,
+      type: activityData.type,
+      hasProgram: !!activityData.programId,
+      hasSubject: !!activityData.subjectId,
+      hasClass: !!activityData.classId
+    });
+    
+    // Validate input data
+    const validationErrors = validateActivityData(activityData);
+    if (validationErrors.length > 0) {
+      logger.warn('ACTIVITY: Validation failed', { errors: validationErrors });
+      return handleServiceError(
+        new Error(validationErrors.join(', ')), 
+        { operation: 'addActivity', validationErrors }
+      );
+    }
+    
+    logger.debug('[SERVICE] Processing activity data:', {
+      title: activityData.title_en,
+      url: activityData.url,
+      type: activityData.type,
+      hasProgram: !!activityData.programId,
+      hasSubject: !!activityData.subjectId,
+      hasClass: !!activityData.classId
+    });
+    
+    const convertedData = activityData; // No date conversion - save as-is
+    logger.debug('[SERVICE] Saving data directly without conversion');
+    
+    const activityDataWithTimestamps = {
+      ...convertedData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+
+    const result = await createActivityToDb(activityDataWithTimestamps);
+
+    logger.debug('[SERVICE] Activity saved to Firestore with ID:', result.id);
+
+    // TODO: Fix notification gateway - temporarily disabled
+    // Send notifications for new activity
+    // if (activityData.classId) {
+    //   try {
+    //     const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', activityData.classId)));
+    //     const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
+          
+    //     for (const studentId of studentIds) {
+    //       const { data: student } = await getUserById(studentId);
+    //       if (student && student.email) {
+    //         await notificationGateway.send(NOTIFICATION_TRIGGERS.ACTIVITY_NEW, {
+    //           userId: studentId,
+    //           role: 'student',
+    //           classId: activityData.classId,
+    //           title: 'New Activity Assigned',
+    //           message: `A new activity "${activityData.title}" has been assigned to your class.`,
+    //           type: RECORD_TYPES.ACTIVITY,
+    //           email: student.email,
+    //           templateId: 'activityNew',
+    //           variables: {
+    //             studentName: student.displayName || student.name || 'Student',
+    //             activityTitle: activityData.title,
+    //             dueDate: activityData.dueDate ? new Date(activityData.dueDate).toLocaleDateString() : 'N/A'
+    //           }
+    //         });
+    //       }
+    //     }
+    //   } catch (notifyError) {
+    //     logger.warn('Failed to send activity notifications:', notifyError);
+    //   }
+    // }
+
+    return { success: true, id: result.id };
+  }, 3), // max 3 retries
+  'addActivity'
+);
 
 export const updateActivity = async (id, activityData, emailOptions = { sendEmail: true }) => {
   try {
@@ -190,7 +175,14 @@ export const updateActivity = async (id, activityData, emailOptions = { sendEmai
       }
     });
     
-    logger.log('🔍 [SERVICE] updateActivity called with:', {
+    // Validate input data
+    const validationErrors = validateActivityData(activityData);
+    if (validationErrors.length > 0) {
+      logger.warn('ACTIVITY: Validation failed', { errors: validationErrors });
+      return { success: false, error: validationErrors.join(', ') };
+    }
+    
+    logger.debug('[SERVICE] updateActivity called with:', {
       id,
       title: activityData.title_en,
       url: activityData.url,
@@ -203,7 +195,7 @@ export const updateActivity = async (id, activityData, emailOptions = { sendEmai
     });
     
     const convertedData = activityData; // No date conversion - save as-is
-    logger.log('🔍 [SERVICE] Saving data directly without conversion');
+    logger.debug('[SERVICE] Saving data directly without conversion');
     
     await updateDoc(doc(db, RECORD_TYPES.ACTIVITY, id), {
       ...convertedData,
@@ -283,21 +275,15 @@ export const getAnnouncements = async () => {
     logger.info('ANNOUNCEMENT: Fetching all announcements');
     
     const result = await getAnnouncementsFromDb();
-    console.log('🔍 DEBUG: Raw announcements result from DB:', result);
     
     if (result.success) {
       logger.info('ANNOUNCEMENT: Successfully fetched announcements', { count: result.data.length });
-      console.log('🔍 DEBUG: Announcements data:', result.data);
-      console.log('🔍 DEBUG: Announcements count:', result.data.length);
-      console.log('🔍 DEBUG: First announcement sample:', result.data[0]);
     } else {
-      console.log('🔍 DEBUG: Failed to fetch announcements:', result.error);
+      logger.warn('ANNOUNCEMENT: Failed to fetch announcements', { error: result.error });
     }
     return result;
   } catch (error) {
     logger.error('ANNOUNCEMENT: Failed to fetch announcements', { error: error.message });
-    console.log('🔍 DEBUG: Exception in getAnnouncements:', error);
-    logger.error("Error getting announcements:", error);
     return { success: false, error: error.message };
   }
 };

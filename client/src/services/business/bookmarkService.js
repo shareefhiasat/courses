@@ -86,6 +86,40 @@ export const onBookmarksChange = (userId, callback) => {
 };
 
 /**
+ * Validate bookmark metadata
+ * @param {Object} metadata - Metadata to validate
+ * @returns {boolean} Whether metadata is valid
+ */
+const validateBookmarkMetadata = (metadata) => {
+  if (!metadata || typeof metadata !== 'object') return true; // Empty metadata is valid
+  
+  // Define allowed metadata fields
+  const allowedFields = ['mode', 'activityType', 'bookmarkedAt', 'migrated', 'category', 'difficulty'];
+  const metadataKeys = Object.keys(metadata);
+  
+  // Check for disallowed fields
+  const hasDisallowedFields = metadataKeys.some(key => !allowedFields.includes(key));
+  if (hasDisallowedFields) {
+    return false;
+  }
+  
+  // Validate field types and sizes
+  if (metadata.mode && typeof metadata.mode !== 'string') return false;
+  if (metadata.activityType && typeof metadata.activityType !== 'string') return false;
+  if (metadata.bookmarkedAt && (typeof metadata.bookmarkedAt !== 'number' || metadata.bookmarkedAt < 0)) return false;
+  if (metadata.category && typeof metadata.category !== 'string') return false;
+  if (metadata.difficulty && typeof metadata.difficulty !== 'string') return false;
+  
+  // Check metadata size (prevent large objects)
+  const metadataSize = JSON.stringify(metadata).length;
+  if (metadataSize > 1000) { // 1KB limit
+    return false;
+  }
+  
+  return true;
+};
+
+/**
  * Toggle bookmark for an item with business logic validation
  * @param {string} userId - User ID
  * @param {string} itemId - Item ID to bookmark
@@ -101,6 +135,11 @@ export const toggleBookmark = async (userId, itemId, itemType, metadata = {}) =>
 
     if (!Object.values(BOOKMARK_TYPES).includes(itemType)) {
       throw new Error(`Invalid itemType: ${itemType}. Must be one of: ${Object.values(BOOKMARK_TYPES).join(', ')}`);
+    }
+
+    // Validate metadata
+    if (!validateBookmarkMetadata(metadata)) {
+      throw new Error('Invalid bookmark metadata: contains disallowed fields or invalid data types');
     }
 
     // Get current bookmarks
