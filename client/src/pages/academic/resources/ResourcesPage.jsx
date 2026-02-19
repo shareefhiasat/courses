@@ -13,7 +13,7 @@ import { getEnrollments } from '@services/business/enrollmentService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger.jsx';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { getUserById } from '@services/business/userService';
-import { Button, Input, Textarea, Select, ToggleSwitch, DatePicker } from '@ui';
+import { Button, Input, Textarea, Select, ToggleSwitch, DatePicker, RichTextEditor } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { getResourceTypeConfig, getResourceTypeOptions, RESOURCE_TYPES } from '@constants/dashboardTypes.jsx';
 import { getCategories } from '@services/business/categoryService';
@@ -88,16 +88,12 @@ const ResourcesPage = () => {
   // Refs for text inputs — avoids re-rendering on every keystroke
   const titleEnRef = useRef(null);
   const titleArRef = useRef(null);
-  const descEnRef = useRef(null);
-  const descArRef = useRef(null);
   const urlRef = useRef(null);
   
   // Sync refs when editing
   useEffect(() => {
     if (titleEnRef.current) titleEnRef.current.value = resourceForm.title_en || '';
     if (titleArRef.current) titleArRef.current.value = resourceForm.title_ar || '';
-    if (descEnRef.current) descEnRef.current.value = resourceForm.description_en || '';
-    if (descArRef.current) descArRef.current.value = resourceForm.description_ar || '';
     if (urlRef.current) urlRef.current.value = resourceForm.url || '';
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingResource]);
@@ -174,12 +170,13 @@ const ResourcesPage = () => {
   }, []);
   
   // Read text values from refs into form state before submit
+  // description_en and description_ar are controlled via state (WYSIWYG)
   const syncRefsToState = useCallback(() => {
     return {
       title_en: titleEnRef.current?.value ?? resourceForm.title_en,
       title_ar: titleArRef.current?.value ?? resourceForm.title_ar,
-      description_en: descEnRef.current?.value ?? resourceForm.description_en,
-      description_ar: descArRef.current?.value ?? resourceForm.description_ar,
+      description_en: resourceForm.description_en,
+      description_ar: resourceForm.description_ar,
       url: urlRef.current?.value ?? resourceForm.url,
     };
   }, [resourceForm]);
@@ -272,8 +269,6 @@ const ResourcesPage = () => {
         setResourceForm({ title: '', title_en: '', title_ar: '', description: '', description_en: '', description_ar: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', courseId: '', categoryId: '' });
         if (titleEnRef.current) titleEnRef.current.value = '';
         if (titleArRef.current) titleArRef.current.value = '';
-        if (descEnRef.current) descEnRef.current.value = '';
-        if (descArRef.current) descArRef.current.value = '';
         setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
         setEditingResource(null);
         toast?.showSuccess(editingResource ? (t('resource_updated_successfully') || 'Resource updated successfully!') : (t('resource_created_successfully') || 'Resource created successfully!'));
@@ -348,8 +343,6 @@ const ResourcesPage = () => {
     setResourceForm({ title: '', title_en: '', title_ar: '', description: '', description_en: '', description_ar: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', courseId: '', categoryId: '' });
     if (titleEnRef.current) titleEnRef.current.value = '';
     if (titleArRef.current) titleArRef.current.value = '';
-    if (descEnRef.current) descEnRef.current.value = '';
-    if (descArRef.current) descArRef.current.value = '';
     setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
   }, []);
 
@@ -519,10 +512,6 @@ const ResourcesPage = () => {
           </span>
         );
       }
-    },
-    {
-      field: 'description', headerName: t('description_col'), flex: 1, minWidth: 200,
-      renderCell: (params) => params.value ? (params.value.length > 50 ? params.value.substring(0, 50) + '...' : params.value) : (t('no_description') || 'No description')
     },
     {
       field: 'dueDate', headerName: t('due_date_col'), width: 180,
@@ -717,25 +706,24 @@ const ResourcesPage = () => {
           />
         </div>
 
-        {/* Content Section */}
+        {/* Content Section - WYSIWYG */}
         <div className="form-row">
-          <div style={{ flex: 1, marginRight: '16px' }}>
-            <textarea
-              ref={descEnRef}
+          <div style={{ flex: 1, marginInlineEnd: '16px' }}>
+            <RichTextEditor
+              value={resourceForm.description_en}
+              onChange={(html) => setResourceForm(prev => ({ ...prev, description_en: html }))}
               placeholder={t('resource_description') + ' (EN)'}
-              defaultValue={resourceForm.description_en || ''}
-              rows={3}
-              style={{ width: '100%', padding: '8px', border: '1px solid var(--border-color, #e2e8f0)', borderRadius: '4px', resize: 'vertical' }}
+              height={100}
+              dir="ltr"
             />
           </div>
-          
           <div style={{ flex: 1 }}>
-            <textarea
-              ref={descArRef}
+            <RichTextEditor
+              value={resourceForm.description_ar}
+              onChange={(html) => setResourceForm(prev => ({ ...prev, description_ar: html }))}
               placeholder={t('resource_description') + ' (AR)'}
-              defaultValue={resourceForm.description_ar || ''}
-              rows={3}
-              style={{ width: '100%', padding: '8px', border: '1px solid var(--border-color, #e2e8f0)', borderRadius: '4px', resize: 'vertical' }}
+              height={100}
+              dir="rtl"
             />
           </div>
         </div>

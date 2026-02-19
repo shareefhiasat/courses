@@ -23,10 +23,12 @@ function RichTextEditor({
   readOnly = false,
   className = '',
   height = 200,
+  dir = 'ltr',
 }) {
   const editorRef = useRef(null);
   const quillRef = useRef(null);
   const isUpdatingRef = useRef(false);
+  const lastQuillHtmlRef = useRef('');  // tracks last HTML emitted by Quill
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -52,12 +54,20 @@ function RichTextEditor({
 
     quillRef.current = quill;
 
+    // Apply direction
+    if (dir === 'rtl') {
+      quill.root.setAttribute('dir', 'rtl');
+      quill.root.style.textAlign = 'right';
+    }
+
     // Handle text changes
     quill.on('text-change', () => {
       if (isUpdatingRef.current) return;
       const html = quill.root.innerHTML;
+      const normalized = html === '<p><br></p>' ? '' : html;
+      lastQuillHtmlRef.current = normalized;
       if (onChange) {
-        onChange(html === '<p><br></p>' ? '' : html);
+        onChange(normalized);
       }
     });
 
@@ -75,14 +85,14 @@ function RichTextEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update content when value prop changes
+  // Update content when value prop changes — skip if the value came from Quill itself
   useEffect(() => {
     if (!quillRef.current) return;
-    
-    const currentContent = quillRef.current.root.innerHTML;
     const normalizedValue = value || '';
+    // If this value was just emitted by Quill, don't re-set it (prevents typing lag)
+    if (normalizedValue === lastQuillHtmlRef.current) return;
+    const currentContent = quillRef.current.root.innerHTML;
     const normalizedCurrent = currentContent === '<p><br></p>' ? '' : currentContent;
-
     if (normalizedValue !== normalizedCurrent) {
       isUpdatingRef.current = true;
       if (normalizedValue === '') {
@@ -91,6 +101,7 @@ function RichTextEditor({
         quillRef.current.root.innerHTML = normalizedValue;
       }
       isUpdatingRef.current = false;
+      lastQuillHtmlRef.current = normalizedValue;
     }
   }, [value]);
 

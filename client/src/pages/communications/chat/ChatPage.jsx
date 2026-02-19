@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, memo, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, memo, useLayoutEffect, useCallback } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -154,6 +154,85 @@ const ChatPage = memo(() => {
   const safeClassMembers = useMemo(() => (Array.isArray(classMembers) ? classMembers : []), [classMembers]);
   const safeAllUsers = useMemo(() => (Array.isArray(allUsers) ? allUsers : []), [allUsers]);
   const safeMessages = useMemo(() => (Array.isArray(messages) ? messages : []), [messages]);
+
+  const loadClassMembers = useCallback(async (classId) => {
+    // Safety: if auth user not ready yet, bail early to avoid null uid errors
+    if (!user) return;
+    if (classId === 'global') {
+      const usersResult = await getUsers();
+      const all = usersResult.success ? (usersResult.data || []) : [];
+      // Exclude current user from members list
+      setClassMembers(all.filter(u => u.docId !== user.uid));
+      setAllUsers(all);
+      return;
+    }
+    
+    const usersResult = await getUsers();
+    const allUsers = usersResult.success ? (usersResult.data || []) : [];
+    // Prefer users who have this class id in enrolledClasses
+    let members = allUsers.filter(u => Array.isArray(u.enrolledClasses) && u.enrolledClasses.includes(classId) && u.docId !== user.uid);
+    // Ensure instructor/owner is included at top
+    try {
+      const cls = safeClasses.find(c => c.docId === classId);
+      const instructor = cls?.instructorId ? safeAllUsers.find(u => u.docId === cls.instructorId)
+                        : safeAllUsers.find(u => u.email === cls?.ownerEmail);
+      if (instructor && instructor.docId !== user.uid && !members.some(m => m.docId === instructor.docId)) {
+        members = [instructor, ...members];
+      }
+    } catch {}
+    // Optionally include platform admins so students can DM an admin (but not self)
+    const admins = safeAllUsers.filter(u => u.role === USER_ROLES.ADMIN && u.docId !== user.uid);
+    admins.forEach(a => { if (!members.some(m => m.docId === a.docId)) members.push(a); });
+    setClassMembers(members);
+    setAllUsers(allUsers);
+  }, [user, safeClasses, safeAllUsers]);
+
+  const loadMessages = useCallback(() => {
+    let chatType, chatId;
+    
+    if (selectedClass === 'global') {
+      chatType = 'global';
+      chatId = 'global';
+    } else if (selectedClass?.startsWith('dm:')) {
+      chatType = 'dm';
+      chatId = selectedClass.slice(3);
+    } else {
+      // Defensive: ensure users/{uid}.enrolledClasses contains selectedClass to satisfy rules
+      (async () => {
+        try {
+          if (user?.uid && selectedClass) {
+            await chatService.syncUserEnrollment(user.uid, selectedClass);
+          }
+        } catch {}
+      })();
+      chatType = 'class';
+      chatId = selectedClass;
+    }
+    
+    const unsubscribe = chatService.subscribeToMessages(chatType, chatId, (snapshot) => {
+      const msgs = [];
+      snapshot.forEach((doc) => {
+        msgs.push({ id: doc.id, ...doc.data() });
+      });
+      setMessages(msgs);
+
+      // memberReads now updates via user snapshots effect
+
+      // Mark as read for this destination
+      (async () => {
+        try {
+          const key = selectedClass === 'global' ? 'global' : selectedClass;
+          const newReadTime = await chatService.updateUserChatReads(user.uid, key);
+          setChatReads(prev => ({ ...(prev || {}), [key]: newReadTime }));
+        } catch {}
+      })();
+    }, (error) => {
+      logger.error('Error loading messages:', error);
+    });
+    
+    return unsubscribe;
+  }, [selectedClass, user]);
+
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -771,84 +850,6 @@ const ChatPage = memo(() => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadMessages = () => {
-    let chatType, chatId;
-    
-    if (selectedClass === 'global') {
-      chatType = 'global';
-      chatId = 'global';
-    } else if (selectedClass?.startsWith('dm:')) {
-      chatType = 'dm';
-      chatId = selectedClass.slice(3);
-    } else {
-      // Defensive: ensure users/{uid}.enrolledClasses contains selectedClass to satisfy rules
-      (async () => {
-        try {
-          if (user?.uid && selectedClass) {
-            await chatService.syncUserEnrollment(user.uid, selectedClass);
-          }
-        } catch {}
-      })();
-      chatType = 'class';
-      chatId = selectedClass;
-    }
-    
-    const unsubscribe = chatService.subscribeToMessages(chatType, chatId, (snapshot) => {
-      const msgs = [];
-      snapshot.forEach((doc) => {
-        msgs.push({ id: doc.id, ...doc.data() });
-      });
-      setMessages(msgs);
-
-      // memberReads now updates via user snapshots effect
-
-      // Mark as read for this destination
-      (async () => {
-        try {
-          const key = selectedClass === 'global' ? 'global' : selectedClass;
-          const newReadTime = await chatService.updateUserChatReads(user.uid, key);
-          setChatReads(prev => ({ ...(prev || {}), [key]: newReadTime }));
-        } catch {}
-      })();
-    }, (error) => {
-      logger.error('Error loading messages:', error);
-    });
-    
-    return unsubscribe;
-  };
-
-  const loadClassMembers = async (classId) => {
-    // Safety: if auth user not ready yet, bail early to avoid null uid errors
-    if (!user) return;
-    if (classId === 'global') {
-      const usersResult = await getUsers();
-      const all = usersResult.success ? (usersResult.data || []) : [];
-      // Exclude current user from members list
-      setClassMembers(all.filter(u => u.docId !== user.uid));
-      setAllUsers(all);
-      return;
-    }
-    
-    const usersResult = await getUsers();
-    const allUsers = usersResult.success ? (usersResult.data || []) : [];
-    // Prefer users who have this class id in enrolledClasses
-    let members = allUsers.filter(u => Array.isArray(u.enrolledClasses) && u.enrolledClasses.includes(classId) && u.docId !== user.uid);
-    // Ensure instructor/owner is included at top
-    try {
-      const cls = safeClasses.find(c => c.docId === classId);
-      const instructor = cls?.instructorId ? safeAllUsers.find(u => u.docId === cls.instructorId)
-                        : safeAllUsers.find(u => u.email === cls?.ownerEmail);
-      if (instructor && instructor.docId !== user.uid && !members.some(m => m.docId === instructor.docId)) {
-        members = [instructor, ...members];
-      }
-    } catch {}
-    // Optionally include platform admins so students can DM an admin (but not self)
-    const admins = safeAllUsers.filter(u => u.role === USER_ROLES.ADMIN && u.docId !== user.uid);
-    admins.forEach(a => { if (!members.some(m => m.docId === a.docId)) members.push(a); });
-    setClassMembers(members);
-    setAllUsers(allUsers);
   };
 
   const handleSendMessage = async (e) => {

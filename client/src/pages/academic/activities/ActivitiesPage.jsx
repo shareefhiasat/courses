@@ -14,7 +14,7 @@ import { getPrograms, getSubjects, getClasses } from '@services/business/program
 import { getCategories } from '@services/business/categoryService';
 import { getActivities, addActivity, updateActivity, deleteActivity as deleteActivityService } from '@services/business/activityService';
 import { getAllQuizzes } from '@services/business/quizService';
-import { Select, DatePicker, Button, ToggleSwitch, UrlInput, Input } from '@ui';
+import { Select, DatePicker, Button, ToggleSwitch, UrlInput, Input, RichTextEditor } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { ProgramsSelect } from '@ui';
@@ -171,8 +171,6 @@ const ActivitiesPage = () => {
   // Refs for text inputs — avoids re-rendering the whole page on every keystroke
   const titleEnRef = useRef(null);
   const titleArRef = useRef(null);
-  const descEnRef = useRef(null);
-  const descArRef = useRef(null);
   const urlRef = useRef(null);
   const imageRef = useRef(null);
 
@@ -180,20 +178,19 @@ const ActivitiesPage = () => {
   useEffect(() => {
     if (titleEnRef.current) titleEnRef.current.value = activityForm.title_en || '';
     if (titleArRef.current) titleArRef.current.value = activityForm.title_ar || '';
-    if (descEnRef.current) descEnRef.current.value = activityForm.description_en || '';
-    if (descArRef.current) descArRef.current.value = activityForm.description_ar || '';
     if (urlRef.current) urlRef.current.value = activityForm.url || '';
     if (imageRef.current) imageRef.current.value = activityForm.image || '';
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingActivity]); // only when we load an activity for editing
 
   // Read text values from refs into form state before submit
+  // description_en and description_ar are controlled via state (WYSIWYG)
   const syncRefsToState = useCallback(() => {
     return {
       title_en: titleEnRef.current?.value ?? activityForm.title_en,
       title_ar: titleArRef.current?.value ?? activityForm.title_ar,
-      description_en: descEnRef.current?.value ?? activityForm.description_en,
-      description_ar: descArRef.current?.value ?? activityForm.description_ar,
+      description_en: activityForm.description_en,
+      description_ar: activityForm.description_ar,
       url: urlRef.current?.value ?? activityForm.url,
       image: imageRef.current?.value ?? activityForm.image,
     };
@@ -264,8 +261,6 @@ const ActivitiesPage = () => {
       resetActivityForm();
       if (titleEnRef.current) titleEnRef.current.value = '';
       if (titleArRef.current) titleArRef.current.value = '';
-      if (descEnRef.current) descEnRef.current.value = '';
-      if (descArRef.current) descArRef.current.value = '';
       if (urlRef.current) urlRef.current.value = '';
       if (imageRef.current) imageRef.current.value = '';
       setEditingActivity(null);
@@ -858,26 +853,24 @@ const ActivitiesPage = () => {
               />
             </div>
 
-        {/* Content Section */}
+        {/* Content Section - WYSIWYG */}
         <div className="form-row">
-          <div style={{ flex: 1, marginRight: '16px' }}>
-            <textarea
-              ref={descEnRef}
+          <div style={{ flex: 1, marginInlineEnd: '16px' }}>
+            <RichTextEditor
+              value={activityForm.description_en}
+              onChange={(html) => setActivityForm(prev => ({ ...prev, description_en: html }))}
               placeholder={t('description_english') || 'Description (English)'}
-              defaultValue={activityForm.description_en}
-              rows={3}
-              className="dashboard-input dashboard-textarea"
+              height={100}
+              dir="ltr"
             />
           </div>
-          
           <div style={{ flex: 1 }}>
-            <textarea
-              ref={descArRef}
+            <RichTextEditor
+              value={activityForm.description_ar}
+              onChange={(html) => setActivityForm(prev => ({ ...prev, description_ar: html }))}
               placeholder={t('description_arabic') || 'Description (Arabic)'}
-              defaultValue={activityForm.description_ar}
-              rows={3}
-              className="dashboard-input dashboard-textarea"
-              style={{ direction: 'rtl' }}
+              height={100}
+              dir="rtl"
             />
           </div>
         </div>

@@ -63,7 +63,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     const errors = {};
     
     if (formData.order && (isNaN(formData.order) || parseInt(formData.order) < 1)) {
-      errors.order = t('order_must_be_positive') || 'Order must be a positive number';
+      errors.order = t('categories_order_must_be_positive');
     }
     
     return errors;
@@ -160,7 +160,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         if (result.success) {
           toast.success(t('category_updated_successfully') || 'Category updated successfully');
         } else {
-          toast.error(t('failed_to_update_category') || 'Failed to update category: ' + result.error);
+          toast.error(t('categories_failed_to_update_category') + result.error);
         }
       } else {
         // Create new category
@@ -168,7 +168,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         if (result.success) {
           toast.success(t('category_created_successfully') || 'Category created successfully');
         } else {
-          toast.error(t('failed_to_create_category') || 'Failed to create category: ' + result.error);
+          toast.error(t('categories_failed_to_create_category') + result.error);
         }
       }
       
@@ -176,7 +176,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
       loadData();
     } catch (error) {
       logger.error('Failed to save category:', error);
-      toast.error(t('failed_to_save_category') || 'Failed to save category: ' + error.message);
+      toast.error(t('categories_failed_to_save_category') + error.message);
     } finally {
       setSaving(false);
     }

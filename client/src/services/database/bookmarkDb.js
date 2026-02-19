@@ -110,7 +110,9 @@ export const saveUserBookmarksToDb = async (userId, bookmarks) => {
       lastBookmarkUpdate: serverTimestamp()
     };
 
-    await setUserDocument(userId, bookmarkData);
+    // Use updateDoc instead of setDoc with merge to properly handle deletions
+    const userDocRef = doc(db, COLLECTION_NAME, userId);
+    await updateDoc(userDocRef, bookmarkData);
     
     logger.debug('[BookmarkDb] Saved bookmarks to database:', {
       userId,

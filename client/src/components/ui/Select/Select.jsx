@@ -110,10 +110,10 @@ const Select = forwardRef(({
           
           const rect = containerRef.current.getBoundingClientRect();
           
-          // Use a more stable positioning approach that doesn't trigger scroll
+          // position:fixed uses viewport coords — no scroll offset needed
           setDropdownPosition({
-            top: rect.bottom + window.scrollY,
-            left: rect.left + window.scrollX,
+            top: rect.bottom,
+            left: rect.left,
             width: rect.width
           });
           

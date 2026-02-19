@@ -19,14 +19,14 @@ const AllowlistPage = () => {
     try {
       const result = await updateAllowlist(allowlist);
       if (result.success) {
-        toast?.showSuccess('Allowlist updated successfully!');
+        toast?.showSuccess(t('allowlist_updated_successfully'));
       } else {
-        logger.error('Failed to update allowlist:', result.error);
-        toast?.showError('Failed to update allowlist: ' + result.error);
+        logger.error(t('allowlist_failed_to_update'), result.error);
+        toast?.showError(t('allowlist_failed_to_update') + result.error);
       }
     } catch (error) {
-      logger.error('Error updating allowlist:', error);
-      toast?.showError('Error updating allowlist: ' + error.message);
+      logger.error(t('allowlist_error_updating'), error);
+      toast?.showError(t('allowlist_error_updating') + error.message);
     } finally {
       setSaving(false);
     }
@@ -52,11 +52,11 @@ const AllowlistPage = () => {
         if (result.success) {
           setAllowlist(result.data || { allowedEmails: [], adminEmails: [] });
         } else {
-          toast.error('Failed to load allowlist');
+          toast.error(t('allowlist_failed_to_load'));
         }
       } catch (error) {
-        console.error('Error loading allowlist:', error);
-        toast.error('Error loading allowlist');
+        console.error(t('allowlist_error_loading'), error);
+        toast.error(t('allowlist_error_loading'));
       } finally {
         safeStop();
       }
@@ -75,24 +75,24 @@ const AllowlistPage = () => {
         emails={allowlist.allowedEmails || []}
         onEmailsChange={(emails) => setAllowlist({ ...allowlist, allowedEmails: emails })}
         title={t('student_emails')}
-        placeholder="student@example.edu"
+        placeholder={t('allowlist_student_emails_placeholder')}
         description={t('students_can_register')}
         excludeEmails={allowlist.adminEmails || []}
-        excludeMessage="This email is already in admin list"
+        excludeMessage={t('allowlist_exclude_student_message')}
       />
       <EmailManager
         emails={allowlist.adminEmails || []}
         onEmailsChange={(emails) => setAllowlist({ ...allowlist, adminEmails: emails })}
         title={t('admin_emails')}
-        placeholder="admin@example.edu"
+        placeholder={t('allowlist_admin_emails_placeholder')}
         description={t('admins_get_privileges')}
         excludeEmails={allowlist.allowedEmails || []}
-        excludeMessage="This email is already in student list"
+        excludeMessage={t('allowlist_exclude_admin_message')}
       />
       <div style={{ textAlign: 'center', marginTop: '2rem' }}>
         <button onClick={handleAllowlistSave} className="submit-btn" disabled={saving} style={{ position: 'relative', opacity: saving ? 0.7 : 1 }}>
           {saving && <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>⏳</span>}
-          <span style={{ opacity: saving ? 0 : 1 }}>{t('save') + ' Allowlist Changes'}</span>
+          <span style={{ opacity: saving ? 0 : 1 }}>{t('allowlist_save_changes')}</span>
         </button>
       </div>
     </div>

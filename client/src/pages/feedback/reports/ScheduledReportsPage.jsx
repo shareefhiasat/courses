@@ -118,15 +118,15 @@ const ScheduledReportsPage = () => {
 
   const handleSave = useCallback(async () => {
     if (!formData.title.trim()) {
-      toast.error('Title is required');
+      toast.error(t('scheduled_reports_title_required'));
       return;
     }
     if (formData.recipients.length === 0) {
-      toast.error('At least one recipient is required');
+      toast.error(t('scheduled_reports_at_least_one_recipient_required'));
       return;
     }
     if (!formData.templateId) {
-      toast.error('Email template is required');
+      toast.error(t('scheduled_reports_email_template_required'));
       return;
     }
 
@@ -160,38 +160,38 @@ const ScheduledReportsPage = () => {
       }
 
       if (result.success) {
-        toast.success(editingReport ? 'Report updated successfully' : 'Report scheduled successfully');
+        toast.success(editingReport ? t('scheduled_reports_report_updated_successfully') : t('scheduled_reports_report_scheduled_successfully'));
         setShowAddForm(false);
         resetForm();
         loadReports();
       } else {
-        toast.error('Failed to save report: ' + result.error);
+        toast.error(t('scheduled_reports_failed_to_save_report') + result.error);
       }
     } catch (error) {
-      toast.error('Error saving report: ' + error.message);
+      toast.error(t('scheduled_reports_error_saving_report') + error.message);
     } finally {
       setSaving(false);
     }
   }, [formData, editingReport, user, toast, loadReports, resetForm]);
 
   const handleDelete = useCallback(async (reportId) => {
-    if (!window.confirm('Are you sure you want to delete this scheduled report?')) {
+    if (!window.confirm(t('scheduled_reports_are_you_sure_delete'))) {
       return;
     }
     setLoading(true);
     try {
       const result = await deleteScheduledReport(reportId);
       if (result.success) {
-        toast.success('Report deleted successfully');
+        toast.success(t('scheduled_reports_report_deleted_successfully'));
         loadReports();
         if (selectedReport?.docId === reportId) {
           setSelectedReport(null);
         }
       } else {
-        toast.error('Failed to delete report: ' + result.error);
+        toast.error(t('scheduled_reports_failed_to_delete_report') + result.error);
       }
     } catch (error) {
-      toast.error('Error deleting report: ' + error.message);
+      toast.error(t('scheduled_reports_error_deleting_report') + error.message);
     } finally {
       setLoading(false);
     }
@@ -202,16 +202,16 @@ const ScheduledReportsPage = () => {
     try {
       const result = await updateScheduledReport(report.docId, { enabled: !report.enabled });
       if (result.success) {
-        toast.success(`Report ${!report.enabled ? 'enabled' : 'disabled'}`);
+        toast.success(t(`scheduled_reports_report_${!report.enabled ? 'enabled' : 'disabled'}`));
         loadReports();
         if (selectedReport?.docId === report.docId) {
           setSelectedReport({ ...selectedReport, enabled: !report.enabled });
         }
       } else {
-        toast.error('Failed to update report: ' + result.error);
+        toast.error(t('scheduled_reports_failed_to_update_report') + result.error);
       }
     } catch (error) {
-      toast.error('Error updating report: ' + error.message);
+      toast.error(t('scheduled_reports_error_updating_report') + error.message);
     } finally {
       setLoading(false);
     }
@@ -235,15 +235,15 @@ const ScheduledReportsPage = () => {
   }, []);
 
   const exportToCSV = () => {
-    const headers = ['Title', 'Type', 'Schedule', 'Recipients', 'Next Run', 'Last Run', 'Status'];
+    const headers = [t('title'), t('type'), t('schedule'), t('recipients'), t('next_run'), t('last_run'), t('status')];
     const rows = filteredReports.map(r => [
       r.title || '',
-      r.reportType === 'analytics' ? 'Analytics' : 'Student Dashboard',
-      r.schedule === 'daily' ? 'Daily' : r.schedule === 'weekly' ? 'Weekly' : 'Custom',
+      r.reportType === 'analytics' ? t('scheduled_reports_analytics') : t('scheduled_reports_student_dashboard'),
+      r.schedule === 'daily' ? t('scheduled_reports_daily') : r.schedule === 'weekly' ? t('scheduled_reports_weekly') : t('scheduled_reports_custom'),
       (r.recipients || []).join('; '),
       r.nextRunAt ? formatDateTime(new Date(r.nextRunAt)) : 'N/A',
       r.lastRunAt ? formatDateTime(new Date(r.lastRunAt)) : 'Never',
-      r.enabled !== false ? 'Enabled' : 'Disabled'
+      r.enabled !== false ? t('scheduled_reports_enabled') : t('scheduled_reports_disabled')
     ]);
     
     const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');

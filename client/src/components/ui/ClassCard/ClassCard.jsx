@@ -29,12 +29,12 @@ const getIconColor = (defaultColor, theme) => {
     if (lang === 'ar' && cls.nameAr) {
       return cls.nameAr;
     }
-    return cls.name || cls.code || t('unnamed_class') || 'Unnamed Class';
+    return cls.name || cls.code || t('classcard_unnamed_class');
   };
 
   // Helper function to get localized instructor name
   const getLocalizedInstructorName = (instructor) => {
-    if (!instructor) return t('instructor') || 'Instructor';
+    if (!instructor) return t('classcard_instructor');
     
     // Add comprehensive debug logging
     console.log('🔍 [ClassCard] Instructor data:', {
@@ -81,7 +81,7 @@ const getIconColor = (defaultColor, theme) => {
       }
     }
     
-    return t('instructor') || 'Instructor';
+    return t('classcard_instructor');
   };
   
   // Helper function to get instructor initials
@@ -180,7 +180,7 @@ const getIconColor = (defaultColor, theme) => {
           color: 'var(--muted)'
         }}>
           {classStats[clsId].students > 0 && (
-            <Tooltip content={t('students') || 'Students'}>
+            <Tooltip content={t('classcard_students')}>
               <span 
                 style={{ 
                   background: `${primaryColor}15`, 
@@ -199,7 +199,7 @@ const getIconColor = (defaultColor, theme) => {
             </Tooltip>
           )}
           {classStats[clsId].penalties > 0 && (
-            <Tooltip content={t('penalties') || 'Penalties'}>
+            <Tooltip content={t('classcard_penalties')}>
               <span 
                 style={{ 
                   background: '#ef444415', 
@@ -218,7 +218,7 @@ const getIconColor = (defaultColor, theme) => {
             </Tooltip>
           )}
           {classStats[clsId].behaviors > 0 && (
-            <Tooltip content={t('behaviors') || 'Behaviors'}>
+            <Tooltip content={t('classcard_behaviors')}>
               <span 
                 style={{ 
                   background: '#f59e0b15', 
@@ -237,7 +237,7 @@ const getIconColor = (defaultColor, theme) => {
             </Tooltip>
           )}
           {classStats[clsId].quizzes > 0 && (
-            <Tooltip content={t('quizzes') || 'Quizzes'}>
+            <Tooltip content={t('classcard_quizzes')}>
               <span 
                 style={{ 
                   background: '#8b5cf615', 
@@ -256,7 +256,7 @@ const getIconColor = (defaultColor, theme) => {
             </Tooltip>
           )}
           {classStats[clsId].activities > 0 && (
-            <Tooltip content={t('activities') || 'Activities'}>
+            <Tooltip content={t('classcard_activities')}>
               <span 
                 style={{ 
                   background: '#10b98115', 
@@ -275,7 +275,7 @@ const getIconColor = (defaultColor, theme) => {
             </Tooltip>
           )}
           {classStats[clsId].announcements > 0 && (
-            <Tooltip content={t('announcements') || 'Announcements'}>
+            <Tooltip content={t('classcard_announcements')}>
               <span 
                 style={{ 
                   background: '#3b82f615', 
@@ -294,7 +294,7 @@ const getIconColor = (defaultColor, theme) => {
             </Tooltip>
           )}
           {classStats[clsId].resources > 0 && (
-            <Tooltip content={t('resources') || 'Resources'}>
+            <Tooltip content={t('classcard_resources')}>
               <span 
                 style={{ 
                   background: '#06b6d415', 
@@ -318,7 +318,7 @@ const getIconColor = (defaultColor, theme) => {
       {/* Schedule Info */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontSize: 10, color: 'var(--muted)' }}>
-          {hasSchedule ? `${cls.schedule.frequency} • ${cls.schedule.days.join(', ')}` : (t('no_schedule') || 'No schedule')}
+          {hasSchedule ? `${cls.schedule.frequency} • ${cls.schedule.days.join(', ')}` : t('classcard_no_schedule')}
         </div>
         {hasSchedule && (
           <div style={{ 

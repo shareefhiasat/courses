@@ -105,8 +105,11 @@ export const toggleBookmark = async (userId, itemId, itemType, metadata = {}) =>
 
     // Get current bookmarks
     const currentBookmarks = await getUserBookmarks(userId);
-    const isBookmarked = currentBookmarks[itemType]?.[itemId];
+    const bookmarkObject = currentBookmarks[itemType]?.[itemId];
+    // Handle both old format (boolean true) and new format (object with bookmarked field)
+    const isBookmarked = bookmarkObject === true || (bookmarkObject?.bookmarked !== false && bookmarkObject !== undefined);
     
+        
     // Prepare next bookmarks state with business logic
     const nextBookmarks = { ...currentBookmarks };
     
@@ -126,7 +129,8 @@ export const toggleBookmark = async (userId, itemId, itemType, metadata = {}) =>
 
     // Use database layer for saving
     await saveUserBookmarksToDb(userId, nextBookmarks);
-
+    
+    
     return {
       success: true,
       isBookmarked: !isBookmarked,

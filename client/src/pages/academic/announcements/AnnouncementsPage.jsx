@@ -14,7 +14,7 @@ import { getUsers, getUserById } from '@services/business/userService';
 import { notificationGateway } from '@services/business/notificationGateway';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
-import { Button, ToggleSwitch, Select, Input, SimpleLoading } from '@ui';
+import { Button, ToggleSwitch, Select, Input, SimpleLoading, RichTextEditor } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { ProgramsSelect } from '@ui';
@@ -43,8 +43,8 @@ const AnnouncementsPage = () => {
   const [classes, setClasses] = useState([]);
   const [users, setUsers] = useState([]);
   const [announcementForm, setAnnouncementForm] = useState({
-    id: '', title: '', content: '', content_ar: '',
-    target: 'global', programId: '', subjectId: '', classId: ''
+    id: '', title: '', title_en: '', title_ar: '', content: '', content_ar: '',
+    target: 'global', programId: '', subjectId: '', classId: '', featured: false
   });
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -68,8 +68,7 @@ const AnnouncementsPage = () => {
   
   // Refs for text inputs — avoids re-rendering the whole page on every keystroke
   const titleRef = useRef(null);
-  const contentRef = useRef(null);
-  const contentArRef = useRef(null);
+  const titleArRef = useRef(null);
 
   // Data loading function
   const loadData = useCallback(async (isInitial = false) => {
@@ -136,8 +135,8 @@ const AnnouncementsPage = () => {
 
   const resetAnnouncementForm = useCallback(() => {
     setAnnouncementForm({
-      id: '', title: '', content: '', content_ar: '',
-      target: 'global', programId: '', subjectId: '', classId: ''
+      id: '', title: '', title_en: '', title_ar: '', content: '', content_ar: '',
+      target: 'global', programId: '', subjectId: '', classId: '', featured: false
     });
   }, []);
 
@@ -147,18 +146,21 @@ const AnnouncementsPage = () => {
 
   // Sync refs when editing an existing announcement
   useEffect(() => {
-    if (titleRef.current) titleRef.current.value = announcementForm.title || '';
-    if (contentRef.current) contentRef.current.value = announcementForm.content || '';
-    if (contentArRef.current) contentArRef.current.value = announcementForm.content_ar || '';
+    if (titleRef.current) titleRef.current.value = announcementForm.title_en || announcementForm.title || '';
+    if (titleArRef.current) titleArRef.current.value = announcementForm.title_ar || '';
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingAnnouncement]);
 
   // Read text values from refs into form state before submit
+  // content and content_ar are now controlled via state (WYSIWYG)
   const syncRefsToState = useCallback(() => {
+    const titleEn = titleRef.current?.value ?? announcementForm.title_en ?? announcementForm.title;
     return {
-      title: titleRef.current?.value ?? announcementForm.title,
-      content: contentRef.current?.value ?? announcementForm.content,
-      content_ar: contentArRef.current?.value ?? announcementForm.content_ar,
+      title: titleEn,
+      title_en: titleEn,
+      title_ar: titleArRef.current?.value ?? announcementForm.title_ar,
+      content: announcementForm.content,
+      content_ar: announcementForm.content_ar,
     };
   }, [announcementForm]);
 
@@ -247,8 +249,7 @@ const AnnouncementsPage = () => {
       // Reset form and clear refs
       resetAnnouncementForm();
       if (titleRef.current) titleRef.current.value = '';
-      if (contentRef.current) contentRef.current.value = '';
-      if (contentArRef.current) contentArRef.current.value = '';
+      if (titleArRef.current) titleArRef.current.value = '';
       setEditingAnnouncement(null);
       setEmailOptions({ sendEmail: false, emailLang: 'en' });
       await loadData();
@@ -263,17 +264,18 @@ const AnnouncementsPage = () => {
 
   const handleEditAnnouncement = useCallback((announcement) => {
     setEditingAnnouncement(announcement);
-    
-    // Set basic form data first
     setAnnouncementForm({
       id: announcement.id || '',
-      title: announcement.title || '',
+      title: announcement.title_en || announcement.title || '',
+      title_en: announcement.title_en || announcement.title || '',
+      title_ar: announcement.title_ar || '',
       content: announcement.content || '',
       content_ar: announcement.content_ar || '',
       target: announcement.target || 'global',
       programId: announcement.programId || '',
       subjectId: announcement.subjectId || '',
-      classId: announcement.classId || ''
+      classId: announcement.classId || '',
+      featured: announcement.featured || false
     });
   }, []);
 
@@ -281,8 +283,7 @@ const AnnouncementsPage = () => {
     setEditingAnnouncement(null);
     resetAnnouncementForm();
     if (titleRef.current) titleRef.current.value = '';
-    if (contentRef.current) contentRef.current.value = '';
-    if (contentArRef.current) contentArRef.current.value = '';
+    if (titleArRef.current) titleArRef.current.value = '';
   }, [resetAnnouncementForm]);
 
   // Memoize columns to prevent re-renders
@@ -473,51 +474,55 @@ const AnnouncementsPage = () => {
           />
         </div>
 
-        {/* Title Input */}
+        {/* Title Inputs - EN + AR */}
         <div className="form-row">
-          <div>
-            <input
-              ref={titleRef}
-              type="text"
-              placeholder={(t('announcement_title') || 'Announcement Title') + '*'}
-              defaultValue={announcementForm.title}
-              className="dashboard-input"
-              required
-            />
-          </div>
+          <input
+            ref={titleRef}
+            type="text"
+            placeholder={(t('title_english') || 'Title (English)') + '*'}
+            defaultValue={announcementForm.title_en || announcementForm.title}
+            className="dashboard-input"
+            required
+          />
+          <input
+            ref={titleArRef}
+            type="text"
+            placeholder={t('title_arabic') || 'Title (Arabic)'}
+            defaultValue={announcementForm.title_ar}
+            className="dashboard-input"
+            style={{ direction: 'rtl' }}
+          />
         </div>
 
-        {/* Content Section */}
+        {/* Content Section - WYSIWYG */}
         <div className="form-row">
-          <div style={{ flex: 1, marginRight: '16px' }}>
-            <textarea
-              ref={contentRef}
-              placeholder={t('announcement_content_english') || 'Content (English)'}
-              defaultValue={announcementForm.content}
-              rows={4}
-              className="dashboard-input dashboard-textarea"
-              required
+          <div style={{ flex: 1, marginInlineEnd: '16px' }}>
+            <RichTextEditor
+              value={announcementForm.content}
+              onChange={(html) => setAnnouncementForm(prev => ({ ...prev, content: html }))}
+              placeholder={t('announcement_content_english') || 'Announcement Content (English)'}
+              height={120}
+              dir="ltr"
             />
           </div>
-          
           <div style={{ flex: 1 }}>
-            <textarea
-              ref={contentArRef}
-              placeholder={t('announcement_content_arabic') || 'Content (Arabic)'}
-              defaultValue={announcementForm.content_ar}
-              rows={4}
-              className="dashboard-input dashboard-textarea"
-              style={{ direction: 'rtl' }}
+            <RichTextEditor
+              value={announcementForm.content_ar}
+              onChange={(html) => setAnnouncementForm(prev => ({ ...prev, content_ar: html }))}
+              placeholder={t('announcement_content_arabic') || 'المحتوى بالعربية'}
+              height={120}
+              dir="rtl"
             />
           </div>
         </div>
 
-        {/* Email Options */}
-        <div style={{
-          display: 'flex',
-          gap: '1rem',
-          alignItems: 'center'
-        }}>
+        {/* Toggles row: Featured + Email on same line */}
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <ToggleSwitch
+            label={t('featured') || 'Featured'}
+            checked={announcementForm.featured || false}
+            onChange={(checked) => setAnnouncementForm(prev => ({ ...prev, featured: checked }))}
+          />
           <ToggleSwitch
             label={t('send_email_notification') || 'Send email notification'}
             checked={emailOptions.sendEmail}

@@ -77,7 +77,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
         setMissingIndexUrl(match[0]);
       } else {
         logger.error('Error loading logs:', error);
-        toast?.showError('Failed to load email logs: ' + (error?.message || ''));
+        toast?.showError(t('emaillogs_failed_to_load') + (error?.message || ''));
       }
     } finally {
       setLoading(false);
@@ -125,14 +125,14 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
               border: '1px solid #f5c2c7',
               borderRadius: 8
             }}>
-              <strong>Action needed:</strong> This query requires a Firestore index.
-              <a href={missingIndexUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#b02a37', textDecoration: 'underline', marginLeft: 6 }}>Create index</a>
-              . After the index builds, reload this page.
+              <strong>{t('emaillogs_action_needed')}</strong> {t('emaillogs_requires_index')}
+              <a href={missingIndexUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#b02a37', textDecoration: 'underline', marginLeft: 6 }}>{t('emaillogs_create_index')}</a>
+              . {t('emaillogs_after_index_build')}
             </div>
         )}
         <div style={{ marginBottom: '1.5rem' }}>
           <p style={{ color: '#666', fontSize: '0.95rem', marginBottom: '1rem' }}>
-            View all sent emails with full audit trail. Search by recipient, subject, or type.
+            {t('emaillogs_description')}
           </p>
 
           {/* Filters */}
@@ -155,7 +155,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
 
             <Input
                 type="text"
-                placeholder="Search by email, subject..."
+                placeholder={t('emaillogs_search_placeholder')}
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                 fullWidth
@@ -227,7 +227,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
                   const rawTo = r.to || r.recipients || r.recipient;
                   const toArray = Array.isArray(rawTo) ? rawTo : (rawTo ? [rawTo] : []);
                   if (toArray.length === 0) return '—';
-                  return toArray.length === 1 ? toArray[0] : `${toArray.length} recipients`;
+                  return toArray.length === 1 ? toArray[0] : `${toArray.length} ${t('emaillogs_recipients')}`;
                 }
               },
               {

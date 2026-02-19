@@ -153,13 +153,13 @@ class Logger {
 
   // Performance logging
   time(label) {
-    if (isDevelopment) {
+    if (isDevelopment && typeof this.originalConsole.time === 'function') {
       this.originalConsole.time(label);
     }
   }
 
   timeEnd(label) {
-    if (isDevelopment) {
+    if (isDevelopment && typeof this.originalConsole.timeEnd === 'function') {
       this.originalConsole.timeEnd(label);
     }
   }

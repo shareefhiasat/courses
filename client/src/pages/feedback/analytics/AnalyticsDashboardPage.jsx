@@ -16,6 +16,7 @@ import { getAnnouncements } from '@services/business/activityService';
 import { getPenalties } from '@services/business/penaltyService';
 import { getBehaviors } from '@services/business/behaviorService';
 import { getParticipations } from '@services/business/participationService';
+import { MODE_TYPES } from '@utils/sharedTypes';
 import logger from '@utils/logger';
 
 /**
@@ -348,7 +349,7 @@ const AnalyticsDashboardPage = memo(() => {
             },
             // Announcements
             {
-              type: 'announcements',
+              type: MODE_TYPES.ANNOUNCEMENTS,
               value: announcements.filter(a => {
                 if (enrollmentClassFilter !== 'all') {
                   return a.classId === enrollmentClassFilter;

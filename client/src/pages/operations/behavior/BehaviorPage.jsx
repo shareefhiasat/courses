@@ -140,7 +140,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     let stopLoading = null;
 
     const loadAll = async () => {
-      stopLoading = startLoading({ message: t('loading_behavior') || 'Loading behavior...' });
+      stopLoading = startLoading({ message: t('behavior_loading_behavior') });
       
       try {
         // 1. Load Reference Data
@@ -179,7 +179,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         
         setPageState(PAGE_STATES.SUCCESS);
       } catch (error) {
-        logger.error('Failed to load data:', error);
+        logger.error(t('behavior_failed_to_load_data'), error);
         toast.error(t('error_loading_data'));
         setPageState(PAGE_STATES.ERROR);
       } finally {
@@ -206,11 +206,11 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         if (result.success) {
           setStudents(result.data);
         } else {
-          logger.error('Failed to load students:', result.error);
+          logger.error(t('behavior_failed_to_load_students'), result.error);
           setStudents([]);
         }
       } catch (error) {
-        logger.error('Failed to load students:', error);
+        logger.error(t('behavior_failed_to_load_students'), error);
         setStudents([]);
       }
     })();
@@ -225,11 +225,11 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           if (result.success) {
             setStudents(result.data);
           } else {
-            logger.error('Failed to load students for edit:', result.error);
+            logger.error(t('behavior_failed_to_load_students_for_edit'), result.error);
             setStudents([]);
           }
         } catch (error) {
-          logger.error('Failed to load students for edit:', error);
+          logger.error(t('behavior_failed_to_load_students_for_edit'), error);
           setStudents([]);
         }
       })();
@@ -249,7 +249,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
       if (enrollmentsRes.success) setEnrollments(enrollmentsRes.data || []);
     } catch (error) {
-      logger.error('Failed to load data:', error);
+      logger.error(t('behavior_failed_to_load_data'), error);
     }
   };
 
@@ -311,7 +311,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     
     // Validation - description is required for behaviors
     if (!formData.studentId || !formData.classId || !formData.type || !textValues.description.trim()) {
-      toast.error(t('fill_required_fields_behavior') || 'Please fill in all required fields (Student, Class, Type, Description)');
+      toast.error(t('behavior_fill_required_fields_behavior'));
       return;
     }
 
@@ -369,8 +369,8 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
       resetForm();
       loadBehaviorsData();
     } catch (error) {
-      logger.error('Failed to save behavior:', error);
-      toast.error(t('failed_to_save_behavior') + ': ' + error.message);
+      logger.error(t('behavior_failed_to_save_behavior'), error);
+      toast.error(t('behavior_failed_to_save_behavior') + ': ' + error.message);
     } finally {
       setSaving(false);
     }
@@ -404,7 +404,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         await loadBehaviorsData();
       } catch (error) {
         setBehaviors(prev => [...prev, behavior]);
-        logger.error('Delete failed:', error);
+        logger.error(t('behavior_delete_failed'), error);
         toast?.showError(error.message);
       }
     });
@@ -440,7 +440,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   const columns = useMemo(() => [
     {
       field: 'studentName',
-      headerName: 'User',
+      headerName: t('behavior_user'),
       flex: 1,
       minWidth: 200,
       renderCell: (params) => {
@@ -462,7 +462,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           } else if (user?.displayName) {
             studentName = user.displayName;
           } else {
-            studentName = studentEmail || 'Unknown Student';
+            studentName = studentEmail || t('behavior_unknown_student');
           }
         }
         
@@ -484,7 +484,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
               studentName = user.displayName;
               ('Behavior User Debug - Found displayName from students array (fallback):', user.displayName);
             } else {
-              studentName = studentEmail || 'Unknown Student';
+              studentName = studentEmail || t('behavior_unknown_student');
             }
           }
         }
@@ -505,7 +505,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'className',
-      headerName: 'Class',
+      headerName: t('behavior_class'),
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => {
@@ -565,7 +565,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'type',
-      headerName: 'Type',
+      headerName: t('behavior_type'),
       width: 180,
       renderCell: (params) => {
         const behaviorType = getBehaviorTypeById(params.value);
@@ -574,7 +574,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'description',
-      headerName: 'Description',
+      headerName: t('behavior_description'),
       flex: 1.5,
       minWidth: 200,
       renderCell: (params) => {
@@ -593,7 +593,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'points',
-      headerName: 'Points',
+      headerName: t('behavior_points'),
       width: 100,
       valueGetter: (params) => {
         ('InstructorBehaviorPage: Full params object:', params);
@@ -620,14 +620,14 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'comment',
-      headerName: 'Comment',
+      headerName: t('behavior_comment'),
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => params.value || '—'
     },
     {
       field: 'createdAt',
-      headerName: 'Date',
+      headerName: t('behavior_date'),
       width: 150,
       valueGetter: (params) => {
         // Debug logging for date investigation
@@ -682,7 +682,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     ...(hideActions ? [] : [{
       field: 'actions',
-      headerName: 'Actions',
+      headerName: t('behavior_actions'),
       width: 200,
       sortable: false,
       filterable: false,
@@ -703,7 +703,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
             icon={getThemedIcon('ui', 'edit', 16, theme)}
             onClick={() => handleEdit(params.row)}
           >
-            {t('edit_behavior') || 'Edit'}
+            {t('behavior_edit')}
           </Button>
           <Button
             size="sm"
@@ -712,7 +712,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
             onClick={() => handleDelete(params.row)}
             style={{ color: '#dc2626' }}
           >
-            {t('delete_behavior') || 'Delete'}
+            {t('behavior_delete')}
           </Button>
         </div>
       )
@@ -732,7 +732,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} Editing Behavior: {getBehaviorLabel(editingBehavior.type, lang) || editingBehavior.type}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('behavior_edit_behavior')}: {getBehaviorLabel(editingBehavior.type, lang) || editingBehavior.type}
         </div>
       )}
 
@@ -775,7 +775,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
             value={formData.studentId}
             onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
             options={[
-              { value: '', label: t('select_student') || 'Select Student' },
+              { value: '', label: t('behavior_select_student') },
               ...students
                 .map(u => {
                   // Get user enrollments count
@@ -838,7 +838,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
             options={[
-              { value: '', label: 'Select Type' },
+              { value: '', label: t('behavior_select_type') },
               ...BEHAVIOR_TYPES.map(bt => {
                 let icon;
                 switch (bt.icon) {
@@ -889,7 +889,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           <textarea
             ref={commentRef}
             defaultValue={formData.comment}
-            placeholder="Comment (optional)"
+            placeholder={t('behavior_enter_comment')}
             className="dashboard-textarea"
             rows={3}
           />
@@ -900,7 +900,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
             ref={pointsRef}
             type="number"
             defaultValue={formData.points}
-            placeholder="Points"
+            placeholder={t('behavior_enter_points')}
             min={-10}
             max={10}
             step={1}
@@ -910,7 +910,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={saving}>
-            {editingBehavior ? (t('update') || 'Update') : (t('save') || 'Save')}
+            {editingBehavior ? t('behavior_edit_behavior') : t('behavior_add_behavior')}
           </Button>
           {editingBehavior && (
             <Button 
@@ -921,7 +921,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
                 resetForm();
               }}
             >
-              {t('cancel') || 'Cancel'} {t('edit_behavior') || 'Edit'}
+              {t('behavior_cancel')} {t('behavior_edit')}
             </Button>
           )}
         </div>
@@ -1005,7 +1005,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Types' },
+                { value: 'all', label: t('behavior_all_types') },
                 ...BEHAVIOR_TYPES.map(bt => {
                   let icon;
                   switch (bt.icon) {
@@ -1109,7 +1109,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#166534'
         }}>
           {getThemedIcon('ui', 'trending_up', 16, theme)}
-          {behaviorsRaw.filter(b => (b.points || 0) > 0).reduce((sum, b) => sum + (b.points || 0), 0)} Positive
+          {behaviorsRaw.filter(b => (b.points || 0) > 0).reduce((sum, b) => sum + (b.points || 0), 0)} {t('behavior_positive')}
         </div>
         <div style={{ 
           display: 'inline-flex', 
@@ -1124,7 +1124,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#991b1b'
         }}>
           {getThemedIcon('ui', 'trending_down', 16, theme)}
-          {behaviorsRaw.filter(b => (b.points || 0) < 0).reduce((sum, b) => sum + (b.points || 0), 0)} Negative
+          {behaviorsRaw.filter(b => (b.points || 0) < 0).reduce((sum, b) => sum + (b.points || 0), 0)} {t('behavior_negative')}
         </div>
       </div>
 
@@ -1139,7 +1139,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           exportFileName="behaviors"
           showExportButton
           exportLabel="Export"
-          loadingOverlayMessage={pageState === PAGE_STATES.LOADING ? "Loading behaviors..." : undefined}
+          loadingOverlayMessage={pageState === PAGE_STATES.LOADING ? t('behavior_loading_behaviors') : undefined}
         />
       </div>
 

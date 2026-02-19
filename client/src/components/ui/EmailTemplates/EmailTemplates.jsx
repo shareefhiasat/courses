@@ -70,8 +70,7 @@ const EmailTemplates = () => {
             <div>
               <div style={{ marginBottom: '1.5rem' }}>
                 <p style={{ color: '#666', fontSize: '0.95rem' }}>
-                  Create and manage email templates with bilingual support (EN + AR).
-                  All templates use Qatar timezone (UTC+3) and support dynamic variables.
+                  {t('emailtemplates_description')}
                 </p>
               </div>
 

@@ -24,6 +24,7 @@ import { getActivityTypeConfig } from '@constants/activityTypes';
 import { getDifficultyConfig } from '@constants/difficultyTypes';
 import { getResourceTypeConfig } from '@constants/resourceTypes';
 import { Card, CardBody, Modal } from '@ui';
+import { useToast } from '@ui';
 import UnifiedCard from '@/components/UnifiedCard';
 import AuthForm from '@/components/AuthForm';
 import { UnifiedFilterSection } from '@/components/filters';
@@ -36,6 +37,7 @@ const HomePage = memo(() => {
   const { lang, t } = useLang();
   const { theme } = useTheme();
   const { startLoading } = useGlobalLoading();
+  const toast = useToast();
   const isDark = theme === 'dark';
   const location = useLocation();
   const navigate = useNavigate();
@@ -74,6 +76,7 @@ const HomePage = memo(() => {
   // Help tour state
   const [runTour, setRunTour] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
+  const [announcementFullPage, setAnnouncementFullPage] = useState(false);
   const filtersRef = useRef(null);
   const gridRef = useRef(null);
   const tourSeenKey = `homePageHelpSeen_${mode}_${activityType}_${category}`;
@@ -116,7 +119,7 @@ const HomePage = memo(() => {
     loading: bookmarksLoading, 
     toggleBookmark,
     calculateFilterBookmarkCount 
-  } = useBookmarks({ enableRealtime: true });
+  } = useBookmarks({ enableRealtime: false });
   
   // Common filters (visible for all modes)
   const [searchTerm, setSearchTerm] = useState(urlSearchTerm);
@@ -293,7 +296,7 @@ const HomePage = memo(() => {
     }
     
     // Handle announcements mode
-    if (mode === 'announcements') {
+    if (mode === MODE_TYPES.ANNOUNCEMENTS) {
       return announcements;
     }
     
@@ -353,7 +356,7 @@ const HomePage = memo(() => {
           const descAr = (item.description_ar || '').toLowerCase();
           return titleEn.includes(q) || titleAr.includes(q) || descEn.includes(q) || descAr.includes(q);
         }
-        if (mode === 'announcements') {
+        if (mode === MODE_TYPES.ANNOUNCEMENTS) {
           const titleEn = (item.title_en || item.title || '').toLowerCase();
           const titleAr = (item.title_ar || '').toLowerCase();
           const descEn = (item.message_en || item.message || item.description_en || item.description || '').toLowerCase();
@@ -565,7 +568,7 @@ const HomePage = memo(() => {
       }
     } else if (mode === 'resources') {
       itemsToCount = resources;
-    } else if (mode === 'announcements') {
+    } else if (mode === MODE_TYPES.ANNOUNCEMENTS) {
       itemsToCount = announcements;
     }
     
@@ -723,22 +726,22 @@ const HomePage = memo(() => {
   };
 
   const handleBookmark = async (itemId, itemMode) => {
-  const result = await toggleBookmark(itemId, itemMode, {
-    bookmarkedAt: Date.now(),
-    mode: mode,
-    activityType: activityType
-  });
-  
-  if (!result.success) {
-    logger.error('[HomePage] Failed to toggle bookmark:', result.error);
-  } else {
-    logger.debug('[HomePage] Bookmark toggled successfully:', {
-      itemId,
-      itemMode,
-      isBookmarked: result.isBookmarked
+    const result = await toggleBookmark(itemId, itemMode, {
+      bookmarkedAt: Date.now(),
+      mode: mode,
+      activityType: activityType
     });
-  }
-};
+    
+    if (!result.success) {
+      logger.error('[HomePage] Failed to toggle bookmark:', result.error);
+    } else {
+      logger.debug('[HomePage] Bookmark toggled successfully:', {
+        itemId,
+        itemMode,
+        isBookmarked: result.isBookmarked
+      });
+    }
+  };
 
   const handleResourceComplete = async (resourceId) => {
     if (!user) return;
@@ -804,10 +807,10 @@ const HomePage = memo(() => {
                 badge: mode === 'resources' ? filteredItems.length : undefined
               },
               {
-                value: 'announcements',
+                value: MODE_TYPES.ANNOUNCEMENTS,
                 label: t('announcements') || 'Announcements',
-                icon: mode === 'announcements' ? getIconWithColor('ui', 'megaphone', 16, '#ffffff') : getIconWithColor('ui', 'megaphone', 16, primaryColor),
-                badge: mode === 'announcements' ? announcements.length : undefined
+                icon: mode === MODE_TYPES.ANNOUNCEMENTS ? getIconWithColor('ui', 'megaphone', 16, '#ffffff') : getIconWithColor('ui', 'megaphone', 16, primaryColor),
+                badge: mode === MODE_TYPES.ANNOUNCEMENTS ? announcements.length : undefined
               }
             ]}
             activeTab={mode}
@@ -967,8 +970,8 @@ const HomePage = memo(() => {
             lang={lang}
             t={t}
             primaryColor={primaryColor}
-            showStatusFilters={mode !== 'announcements'}
-            showDifficultyFilters={mode !== 'announcements'}
+            showStatusFilters={mode !== MODE_TYPES.ANNOUNCEMENTS}
+            showDifficultyFilters={mode !== MODE_TYPES.ANNOUNCEMENTS}
             showPerformanceFilters={false}
             showToggleFilters={true}
             showHierarchyFilters={mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz'}
@@ -981,7 +984,7 @@ const HomePage = memo(() => {
             toggleConfig={{
               showBookmark: true,
               showFeatured: true,
-              showRetakable: mode !== 'announcements',
+              showRetakable: mode !== MODE_TYPES.ANNOUNCEMENTS,
               showGraded: false
             }}
             // Resource type filters
@@ -1058,14 +1061,14 @@ const HomePage = memo(() => {
                     isBookmarked = !!bookmarks.activities[itemId];
                     dueDate = item.dueDate;
                   }
-                } else if (mode === "announcements") {
+                } else if (mode === MODE_TYPES.ANNOUNCEMENTS) {
                   isBookmarked = !!bookmarks.announcements[itemId];
-                }
+                                  }
 
                     return (
                       <UnifiedCard
                         key={itemId}
-                        flavor={mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz' ? 'quiz' : (mode === 'resources' ? 'resource' : (mode === 'announcements' ? 'announcement' : mode))}
+                        flavor={mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz' ? 'quiz' : (mode === 'resources' ? 'resource' : (mode === MODE_TYPES.ANNOUNCEMENTS ? 'announcement' : mode))}
                         item={item}
                         isCompleted={isCompleted}
                         completedAt={completedAt}
@@ -1078,7 +1081,7 @@ const HomePage = memo(() => {
                           (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz') ||
                           (mode === MODE_TYPES.ACTIVITIES) ||
                           (mode === 'resources' && (item.type === 'link' || item.type === 'video') && item.url) ||
-                          (mode === 'announcements')
+                          (mode === MODE_TYPES.ANNOUNCEMENTS)
                         }
                         onStart={(item) => {
                           if ((mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz')) {
@@ -1095,9 +1098,9 @@ const HomePage = memo(() => {
                               // Handle other resource types
                               logger.log('Start resource:', item);
                             }
-                          } else if (mode === 'announcements') {
+                          } else if (mode === MODE_TYPES.ANNOUNCEMENTS) {
                             // Show extended announcement view
-                            const title = lang === 'ar' ? (item.title_ar || item.title_en || item.title || 'Announcement') : (item.title_en || item.title_ar || item.title || 'Announcement');
+                                                        const title = lang === 'ar' ? (item.title_ar || item.title_en || item.title || 'Announcement') : (item.title_en || item.title_ar || item.title || 'Announcement');
                             const message = lang === 'ar' ? (item.message_ar || item.message_en || item.message || item.description || '') : (item.message_en || item.message_ar || item.message || item.description || '');
                             setSelectedAnnouncement(item);
                           }
@@ -1111,18 +1114,10 @@ const HomePage = memo(() => {
                           handleResourceComplete(itemId);
                         }}
                         onBookmark={() => {
-                          const bookmarkMode = (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz') ? 'quizzes' : (mode === 'announcements' ? 'announcements' : mode);
+                          const bookmarkMode = (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz') ? 'quizzes' : (mode === MODE_TYPES.ANNOUNCEMENTS ? 'announcements' : mode);
                           handleBookmark(itemId, bookmarkMode);
                         }}
-                        onFeatured={() => {
-                          // Handle featured toggle for announcements
-                          if (mode === 'announcements') {
-                            // This would typically update the announcement in Firestore
-                            // For now, we'll just log it (you can implement the actual Firestore update later)
-                            logger.log('Toggle featured for announcement:', itemId);
-                          }
-                        }}
-                      />
+                                              />
                     );
               })
             )}
@@ -1142,40 +1137,113 @@ const HomePage = memo(() => {
       />
 
       {/* Announcement Modal */}
-      <Modal
-        isOpen={!!selectedAnnouncement}
-        onClose={() => setSelectedAnnouncement(null)}
-        size="small"
-        showCloseButton={true}
-        title=""
-      >
-        {selectedAnnouncement && (
-          <div style={{
-            fontSize: '1rem',
-            lineHeight: '1.6',
-            whiteSpace: 'pre-wrap'
-          }}>
-            {lang === 'ar'
-              ? (selectedAnnouncement.message_ar || selectedAnnouncement.message_en || selectedAnnouncement.message || selectedAnnouncement.description || '')
-              : (selectedAnnouncement.message_en || selectedAnnouncement.message_ar || selectedAnnouncement.message || selectedAnnouncement.description || '')}
-          </div>
-        )}
+      {selectedAnnouncement && (() => {
+        // Debug: Log all available content fields
+        logger.debug('[HomePage] Announcement modal data:', {
+          id: selectedAnnouncement.id,
+          title: selectedAnnouncement.title,
+          title_en: selectedAnnouncement.title_en,
+          title_ar: selectedAnnouncement.title_ar,
+          content: selectedAnnouncement.content,
+          content_ar: selectedAnnouncement.content_ar,
+          message: selectedAnnouncement.message,
+          message_ar: selectedAnnouncement.message_ar,
+          description: selectedAnnouncement.description
+        });
         
-        {selectedAnnouncement?.createdAt && (
-          <div style={{
-            marginTop: '1rem',
-            paddingTop: '1rem',
-            borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-            fontSize: '0.875rem',
-            color: isDark ? '#9ca3af' : '#6b7280'
-          }}>
-            {(t('posted') || 'Posted:')} {selectedAnnouncement.createdAt?.seconds 
-              ? new Date(selectedAnnouncement.createdAt.seconds * 1000).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')
-              : new Date(selectedAnnouncement.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')
-            }
-          </div>
-        )}
-      </Modal>
+        const annTitle = lang === 'ar'
+          ? (selectedAnnouncement.title_ar || selectedAnnouncement.title_en || selectedAnnouncement.title || 'No Title')
+          : (selectedAnnouncement.title_en || selectedAnnouncement.title_ar || selectedAnnouncement.title || 'No Title');
+        const annContent = lang === 'ar'
+          ? (selectedAnnouncement.content_ar || selectedAnnouncement.content || selectedAnnouncement.message_ar || selectedAnnouncement.message || selectedAnnouncement.description || '')
+          : (selectedAnnouncement.content || selectedAnnouncement.content_ar || selectedAnnouncement.message || selectedAnnouncement.description || '');
+        
+        // Better HTML detection
+        const isHtml = annContent && (
+          annContent.includes('<p>') || 
+          annContent.includes('<b>') || 
+          annContent.includes('<ul>') || 
+          annContent.includes('<h') || 
+          annContent.includes('<br') ||
+          annContent.includes('<div>') ||
+          annContent.includes('<span>')
+        );
+        
+        const isFullPage = !!announcementFullPage;
+        
+        logger.debug('[HomePage] Modal content detection:', {
+          annContent: annContent ? annContent.substring(0, 100) + '...' : 'EMPTY',
+          isHtml,
+          lang
+        });
+        return (
+          <Modal
+            isOpen={true}
+            onClose={() => { setSelectedAnnouncement(null); setAnnouncementFullPage(false); }}
+            size={isFullPage ? 'large' : 'medium'}
+            showCloseButton={true}
+            title={annTitle}
+            titleStyle={{
+              fontSize: '1.125rem',
+              fontWeight: '600',
+              lineHeight: '1.3',
+              padding: '0.75rem 0'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+              <button
+                onClick={() => setAnnouncementFullPage(p => !p)}
+                style={{
+                  background: 'none',
+                  border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
+                  borderRadius: 6,
+                  padding: '2px 6px',
+                  cursor: 'pointer',
+                  fontSize: '0.75rem',
+                  color: isDark ? '#9ca3af' : '#6b7280',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
+                {isFullPage
+                  ? (getThemedIcon('ui', 'chevron_up', 14, theme))
+                  : (getThemedIcon('ui', 'chevron_down', 14, theme))}
+                {isFullPage ? (t('collapse') || 'Collapse') : (t('expand') || 'Expand')}
+              </button>
+            </div>
+            <div
+              style={{
+                fontSize: '0.95rem',
+                lineHeight: '1.7',
+                color: isDark ? '#e5e7eb' : '#1f2937',
+                direction: lang === 'ar' ? 'rtl' : 'ltr',
+                maxHeight: isFullPage ? 'none' : '60vh',
+                overflowY: isFullPage ? 'visible' : 'auto',
+              }}
+            >
+              {isHtml
+                ? <div dangerouslySetInnerHTML={{ __html: annContent }} />
+                : <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{annContent || (t('no_content') || 'No content available.')}</p>
+              }
+            </div>
+            {selectedAnnouncement.createdAt && (
+              <div style={{
+                marginTop: '1rem',
+                paddingTop: '0.75rem',
+                borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                fontSize: '0.8rem',
+                color: isDark ? '#9ca3af' : '#6b7280'
+              }}>
+                {t('posted') || 'Posted:'}{' '}
+                {selectedAnnouncement.createdAt?.seconds
+                  ? new Date(selectedAnnouncement.createdAt.seconds * 1000).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')
+                  : new Date(selectedAnnouncement.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}
+              </div>
+            )}
+          </Modal>
+        );
+      })()}
     </div>
   );
 });

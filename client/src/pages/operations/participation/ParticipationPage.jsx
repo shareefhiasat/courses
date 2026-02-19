@@ -163,7 +163,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     let stopLoading = null;
 
     const loadAll = async () => {
-      stopLoading = startLoading({ message: t('loading_participation') || 'Loading participation...' });
+      stopLoading = startLoading({ message: t('participation_loading_participation') });
       
       try {
         // 1. Load Reference Data
@@ -203,7 +203,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         
         setPageState(PAGE_STATES.SUCCESS);
       } catch (error) {
-        logger.error('Failed to load data:', error);
+        logger.error(t('participation_failed_to_load_data'), error);
         toast.error(t('error_loading_data'));
         setPageState(PAGE_STATES.ERROR);
       } finally {
@@ -246,7 +246,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         );
         setStudents(studentsData.filter(Boolean));
       } catch (err) {
-        logger.error('Failed to load students:', err);
+        logger.error(t('participation_failed_to_load_students'), err);
       }
     })();
   }, [formData.classId]);
@@ -264,7 +264,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
       if (enrollmentsRes.success) setEnrollments(enrollmentsRes.data || []);
     } catch (error) {
-      logger.error('Failed to load data:', error);
+      logger.error(t('participation_failed_to_load_data'), error);
     }
   };
 
@@ -464,7 +464,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         await loadParticipationsData();
       } catch (error) {
         setParticipationsRaw(prev => [...prev, participation]);
-        logger.error('Delete failed:', error);
+        logger.error(t('participation_delete_failed'), error);
         toast?.showError(error.message);
       }
     });
@@ -500,7 +500,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   const columns = useMemo(() => [
     {
       field: 'studentName',
-      headerName: t('user') || 'User',
+      headerName: t('participation_user'),
       flex: 1,
       minWidth: 200,
       renderCell: (params) => {
@@ -596,7 +596,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'className',
-      headerName: t('class') || 'Class',
+      headerName: t('participation_class'),
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => {
@@ -631,7 +631,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'type',
-      headerName: t('type') || 'Type',
+      headerName: t('participation_type'),
       width: 180,
       renderCell: (params) => {
         const participationType = getParticipationTypeById(params.value);
@@ -697,7 +697,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'points',
-      headerName: t('points') || 'Points',
+      headerName: t('participation_points'),
       width: 100,
       valueGetter: (params) => {
         // logger.debug('InstructorParticipationPage: Full params object:', params);
@@ -723,14 +723,14 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'comment',
-      headerName: t('comment') || 'Comment',
+      headerName: t('participation_comment'),
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => params.value || '—'
     },
     {
       field: 'createdAt',
-      headerName: t('date') || 'Date',
+      headerName: t('participation_date'),
       width: 150,
       valueGetter: (params) => {
         // Debug logging for date investigation
@@ -813,7 +813,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     ...(hideActions ? [] : [{
       field: 'actions',
-      headerName: t('actions') || 'Actions',
+      headerName: t('participation_actions'),
       width: 200,
       sortable: false,
       filterable: false,
@@ -834,7 +834,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
             icon={getThemedIcon('ui', 'edit', 16, theme)}
             onClick={() => handleEdit(params.row)}
           >
-            {t('edit_participation') || 'Edit'}
+            {t('participation_edit')}
           </Button>
           <Button
             size="sm"
@@ -843,7 +843,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
             onClick={() => handleDelete(params.row)}
             style={{ color: '#dc2626' }}
           >
-            {t('delete_participation') || 'Delete'}
+            {t('participation_delete')}
           </Button>
         </div>
       )
@@ -863,7 +863,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} Editing Participation: {getParticipationLabel(editingParticipation.type, lang) || editingParticipation.type}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('participation_edit_participation')}: {getParticipationLabel(editingParticipation.type, lang) || editingParticipation.type}
         </div>
       )}
 
@@ -906,7 +906,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
             value={formData.studentId}
             onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
             options={[
-              { value: '', label: t('select_student') || 'Select Student' },
+              { value: '', label: t('participation_select_student') },
               ...students
                 .map(u => {
                   // Get user enrollments count
@@ -931,7 +931,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
                   
                   return {
                     value: u.docId || u.id,
-                    displayLabel: u.displayName || u.realName || u.email || 'Unknown',
+                    displayLabel: u.displayName || u.realName || u.email || t('participation_unknown_student'),
                     label: (
                       <div style={{ 
                         display: 'flex', 
@@ -944,7 +944,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
                           textDecoration: isDisabled ? 'line-through' : 'none',
                           flex: 1
                         }}>
-                          {u.displayName || u.realName || u.email || 'Unknown'}
+                          {u.displayName || u.realName || u.email || t('participation_unknown_student')}
                         </span>
                         <span style={{ 
                           fontSize: '0.8em',
@@ -968,7 +968,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
             options={[
-              { value: '', label: 'Select Type' },
+              { value: '', label: t('participation_select_type') },
               ...PARTICIPATION_TYPES.map(pt => {
                 // Map the icon component name to centralized icon system
                 let iconName;
@@ -1048,7 +1048,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={saving}>
-            {editingParticipation ? (t('update') || 'Update') : (t('save') || 'Save')}
+            {editingParticipation ? t('participation_edit_participation') : t('participation_add_participation')}
           </Button>
           {editingParticipation && (
             <Button 
@@ -1059,7 +1059,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
                 resetForm();
               }}
             >
-              {t('cancel') || 'Cancel'} {t('edit_participation') || 'Edit'}
+              {t('participation_cancel')} {t('participation_edit')}
             </Button>
           )}
         </div>
@@ -1113,7 +1113,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
                     
                     return {
                       value: u.docId || u.id,
-                      displayLabel: u.displayName || u.realName || u.email || (t('unknown') || 'Unknown'),
+                      displayLabel: u.displayName || u.realName || u.email || t('participation_unknown_student'),
                       label: (
                         <div style={{ 
                           display: 'flex', 
@@ -1126,7 +1126,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
                             textDecoration: isDisabled ? 'line-through' : 'none',
                             flex: 1
                           }}>
-                            {u.displayName || u.realName || u.email || (t('unknown') || 'Unknown')}
+                            {u.displayName || u.realName || u.email || t('participation_unknown_student')}
                           </span>
                         </div>
                       ),
@@ -1143,7 +1143,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Types' },
+                { value: 'all', label: t('participation_all_types') },
                 ...PARTICIPATION_TYPES.map(pt => {
                   let icon;
                   switch (pt.icon) {
@@ -1282,7 +1282,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           exportFileName="participations"
           showExportButton
           exportLabel="Export"
-          loadingOverlayMessage={pageState === PAGE_STATES.LOADING ? "Loading participations..." : undefined}
+          loadingOverlayMessage={pageState === PAGE_STATES.LOADING ? t('participation_loading_participations') : undefined}
         />
       </div>
 

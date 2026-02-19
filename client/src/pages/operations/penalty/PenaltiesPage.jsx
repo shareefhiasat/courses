@@ -210,7 +210,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
       if (enrollmentsRes.success) setEnrollments(enrollmentsRes.data || []);
     } catch (error) {
-      logger.error('Failed to load data:', error);
+      logger.error(t('penalty_failed_to_load_data'), error);
     }
   }, []);
 
@@ -303,7 +303,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       // Create a new array to ensure React detects the change
       setPenalties([...enriched]);
     } catch (error) {
-      logger.error('Failed to load penalties:', error);
+      logger.error(t('penalty_failed_to_load_penalties'), error);
       toast.error(t('failed_to_save_penalty') + ': ' + error.message);
     } finally {
       if (!isInitial) setLoading(false);
@@ -317,7 +317,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     let stopLoading = null;
 
     const initialLoad = async () => {
-      stopLoading = startLoading({ message: t('loading_penalties') || 'Loading penalties...' });
+      stopLoading = startLoading({ message: t('penalty_loading_penalties') });
       await Promise.all([loadData(), loadPenalties(true)]);
       if (stopLoading) stopLoading();
       setLoading(false);
@@ -453,7 +453,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         }
       } catch (error) {
         setPenalties(prev => [...prev, penalty]);
-        logger.error('Delete failed:', error);
+        logger.error(t('penalty_delete_failed'), error);
         toast?.showError(error.message);
       }
     });
@@ -508,7 +508,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const columns = useMemo(() => [
     {
       field: 'studentName',
-      headerName: t('user') || 'User',
+      headerName: t('penalty_user'),
       flex: 1,
       minWidth: 200,
       renderCell: (params) => {
@@ -578,7 +578,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'className',
-      headerName: t('class') || 'Class',
+      headerName: t('penalty_class'),
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => {
@@ -652,7 +652,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'type',
-      headerName: t('type') || 'Type',
+      headerName: t('penalty_type'),
       width: 180,
       renderCell: (params) => {
         const penaltyType = PENALTY_TYPES.find(pt => pt.id === params.value);
@@ -661,7 +661,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'points',
-      headerName: t('points') || 'Points',
+      headerName: t('penalty_points'),
       width: 100,
       valueGetter: (params) => {
         return Number(params.value) || 0;
@@ -685,7 +685,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'description',
-      headerName: 'Description',
+      headerName: t('penalty_description'),
       flex: 1.5,
       minWidth: 200,
       renderCell: (params) => {
@@ -704,7 +704,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'createdAt',
-      headerName: t('date') || 'Date',
+      headerName: t('penalty_date'),
       width: 150,
       valueGetter: (params) => {
         
@@ -742,7 +742,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     ...(hideActions ? [] : [{
       field: 'actions',
-      headerName: t('actions') || 'Actions',
+      headerName: t('penalty_actions'),
       width: 200,
       sortable: false,
       filterable: false,
@@ -763,7 +763,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             icon={getThemedIcon('ui', 'edit', 16, theme)}
             onClick={() => handleEdit(params.row)}
           >
-            {t('edit') || 'Edit'}
+            {t('penalty_edit')}
           </Button>
           <Button
             size="sm"
@@ -772,7 +772,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             onClick={() => handleDelete(params.row)}
             style={{ color: '#dc2626' }}
           >
-            {t('delete') || 'Delete'}
+            {t('penalty_delete')}
           </Button>
         </div>
       )
@@ -839,7 +839,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             value={formData.studentId}
             onChange={(e) => setFormData(prev => ({ ...prev, studentId: e.target.value }))}
             options={[
-              { value: '', label: t('select_student') || 'Select Student' },
+              { value: '', label: t('penalty_select_student') },
               ...students
                 .map(u => {
                   // Get user enrollments count
@@ -878,7 +878,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                           textDecoration: isDisabled ? 'line-through' : 'none',
                           flex: 1
                         }}>
-                          {u.displayName || u.realName || u.email || (t('unknown') || 'Unknown')}
+                          {u.displayName || u.realName || u.email || t('penalty_unknown_student')}
                         </span>
                         <span style={{ 
                           fontSize: '0.8em',
@@ -906,7 +906,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             value={formData.type}
             onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
             options={[
-              { value: '', label: t('select_type') || 'Select Type' },
+              { value: '', label: t('penalty_select_type') },
               ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: PENALTY_TYPE_ICONS[pt.id] }))
             ]}
             placeholder={t('select_penalty_type')}
@@ -958,7 +958,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             ref={pointsRef}
             type="number"
             defaultValue={formData.points}
-            placeholder={t('points') || 'Points'}
+            placeholder={t('penalty_points')}
             min={-10}
             max={10}
             step={1}
@@ -968,7 +968,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={saving}>
-            {editingPenalty ? (t('update') || 'Update') : (t('save') || 'Save')}
+            {editingPenalty ? t('penalty_edit_penalty') : t('penalty_add_penalty')}
           </Button>
           {editingPenalty && (
             <Button 
@@ -1046,7 +1046,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                             textDecoration: isDisabled ? 'line-through' : 'none',
                             flex: 1
                           }}>
-                            {u.displayName || u.realName || u.email || (t('unknown') || 'Unknown')}
+                            {u.displayName || u.realName || u.email || t('penalty_unknown_student')}
                           </span>
                         </div>
                       ),
@@ -1063,7 +1063,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
               options={[
-                { value: 'all', label: t('all_types') || 'All Types' },
+                { value: 'all', label: t('penalty_all_types') },
                 ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: PENALTY_TYPE_ICONS[pt.id] }))
               ]}
               placeholder={t('type') || 'Type'}
@@ -1136,7 +1136,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#166534'
         }}>
           {getThemedIcon('ui', 'trending_up', 16, theme)}
-          {penalties.filter(p => (p.points || 0) > 0).reduce((sum, p) => sum + (p.points || 0), 0)} {t('positive') || 'Positive'}
+          {penalties.filter(p => (p.points || 0) > 0).reduce((sum, p) => sum + (p.points || 0), 0)} {t('penalty_positive')}
         </div>
         <div style={{ 
           display: 'inline-flex', 
@@ -1151,7 +1151,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#991b1b'
         }}>
           {getThemedIcon('ui', 'trending_down', 16, theme)}
-          {penalties.filter(p => (p.points || 0) < 0).reduce((sum, p) => sum + (p.points || 0), 0)} {t('negative') || 'Negative'}
+          {penalties.filter(p => (p.points || 0) < 0).reduce((sum, p) => sum + (p.points || 0), 0)} {t('penalty_negative')}
         </div>
         
         {/* Type-specific counter chips */}
@@ -1189,7 +1189,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           exportFileName="penalties"
           showExportButton
           exportLabel={t('export') || 'Export'}
-          loadingOverlayMessage={loading ? (t('loading_penalties') || "Loading penalties...") : undefined}
+          loadingOverlayMessage={loading ? t('penalty_loading_penalties_overlay') : undefined}
         />
       </div>
 

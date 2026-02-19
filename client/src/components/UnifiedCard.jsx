@@ -47,20 +47,20 @@ const UnifiedCard = memo(({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const getTitle = () => {
-    if (flavor === 'quiz') {
+    if (flavor === RECORD_TYPES.QUIZ) {
       return lang === 'ar'
           ? (item.title_ar || item.title_en || item.title || item.name || 'Untitled Quiz')
           : (item.title_en || item.title_ar || item.title || item.name || 'Untitled Quiz');
     }
-    if (flavor === 'resource') {
+    if (flavor === RECORD_TYPES.RESOURCE) {
       return lang === 'ar'
           ? (item.title_ar || item.title_en || item.title || item.id)
           : (item.title_en || item.title_ar || item.title || item.id);
     }
-    if (flavor === 'announcements') {
+    if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
       return lang === 'ar'
-          ? (item.title_ar || item.title_en || item.title || item.message || 'Untitled Announcement')
-          : (item.title_en || item.title_ar || item.title || item.message || 'Untitled Announcement');
+          ? (item.title_ar || item.title_en || item.title || '—')
+          : (item.title_en || item.title_ar || item.title || '—');
     }
     return lang === 'ar'
         ? (item.title_ar || item.title_en || item.id)
@@ -80,12 +80,17 @@ const UnifiedCard = memo(({
     }
     if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
       return lang === 'ar'
-          ? (item.message_ar || item.message_en || item.message || item.description || '—')
-          : (item.message_en || item.message_ar || item.message || item.description || '—');
+          ? (item.content_ar || item.content || item.message_ar || item.message || item.description || '')
+          : (item.content || item.content_ar || item.message || item.description || '');
     }
     return lang === 'ar'
         ? (item.description_ar || item.description_en || '—')
         : (item.description_en || item.description_ar || '—');
+  };
+
+  const isHtmlContent = () => {
+    const desc = getDescription();
+    return typeof desc === 'string' && (desc.includes('<p>') || desc.includes('<b>') || desc.includes('<ul>') || desc.includes('<ol>') || desc.includes('<h') || desc.includes('<br'));
   };
 
   const getTypeIcon = () => {
@@ -194,92 +199,47 @@ const UnifiedCard = memo(({
         transition: 'all 0.2s',
         color: cardText
       }}>
-        {/* Bookmark Button - Top Right Corner (matching Activities style) */}
+        {/* Bookmark Button - Top Right Corner */}
         {onBookmark && (
-            <button
-                onClick={onBookmark}
-                aria-label={isBookmarked ? t('remove_bookmark') || 'Remove bookmark' : t('add_bookmark') || 'Add bookmark'}
-                style={{
-                  position: 'absolute',
-                  top: 10,
-                  [lang === 'ar' ? 'left' : 'right']: 10,
-                  background: isDark ? '#374151' : 'white',
-                  border: isDark ? '1px solid #4b5563' : '1px solid #e5e7eb',
-                  borderRadius: 20,
-                  width: 32,
-                  height: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  zIndex: 10,
-                  transition: 'all 0.2s',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
-                  color: isBookmarked ? '#f5c518' : '#bbb'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = isDark ? '#4b5563' : '#f9fafb';
-                  e.currentTarget.style.borderColor = isDark ? '#6b7280' : '#d1d5db';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = isDark ? '#374151' : 'white';
-                  e.currentTarget.style.borderColor = isDark ? '#4b5563' : '#e5e7eb';
-                }}
-            >
-              {isBookmarked ? (
-                  getIconWithColor('ui', 'star', 18, '#fbbf24') // Gold color for bookmarked
-              ) : (
-                  getThemedIcon('ui', 'star_off', 18, theme)
-              )}
-            </button>
+          <button
+            onClick={() => {
+            onBookmark();
+          }}
+            aria-label={`${isBookmarked ? (t('remove_bookmark') || 'Remove bookmark') : (t('add_bookmark') || 'Add bookmark')} - ${isBookmarked ? (t('currently_bookmarked') || 'Currently bookmarked') : (t('not_bookmarked') || 'Not bookmarked')}`}
+            title={`${isBookmarked ? (t('remove_bookmark') || 'Click to remove bookmark') : (t('add_bookmark') || 'Click to add bookmark')} (${isBookmarked ? (t('bookmarked') || 'bookmarked') : (t('not_bookmarked') || 'not bookmarked')})`}
+            style={{
+              position: 'absolute',
+              top: 10,
+              [lang === 'ar' ? 'left' : 'right']: 10,
+              background: isDark ? '#374151' : 'white',
+              border: isDark ? '1px solid #4b5563' : '1px solid #e5e7eb',
+              borderRadius: 20,
+              width: 32,
+              height: 32,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 10,
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = isDark ? '#4b5563' : '#f9fafb';
+              e.currentTarget.style.borderColor = isDark ? '#6b7280' : '#d1d5db';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = isDark ? '#374151' : 'white';
+              e.currentTarget.style.borderColor = isDark ? '#4b5563' : '#e5e7eb';
+            }}
+          >
+            {isBookmarked
+              ? getIconWithColor('ui', 'star', 18, '#fbbf24')
+              : getThemedIcon('ui', 'star_off', 18, theme)}
+          </button>
         )}
 
-        {/* Featured Toggle Button - Below Bookmark */}
-        {onFeatured && flavor === RECORD_TYPES.ANNOUNCEMENT && (
-            <button
-                onClick={onFeatured}
-                aria-label={item.featured ? t('remove_featured') || 'Remove featured' : t('add_featured') || 'Add featured'}
-                style={{
-                  position: 'absolute',
-                  top: 48,
-                  [lang === 'ar' ? 'left' : 'right']: 10,
-                  background: item.featured ? '#f59e0b' : (isDark ? '#374151' : 'white'),
-                  border: item.featured ? '1px solid #f59e0b' : (isDark ? '1px solid #4b5563' : '1px solid #e5e7eb'),
-                  borderRadius: 20,
-                  width: 32,
-                  height: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  zIndex: 10,
-                  transition: 'all 0.2s',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
-                  color: item.featured ? '#ffffff' : (isDark ? '#9ca3af' : '#6b7280')
-                }}
-                onMouseEnter={(e) => {
-                  if (item.featured) {
-                    e.currentTarget.style.background = '#d97706';
-                    e.currentTarget.style.borderColor = '#d97706';
-                  } else {
-                    e.currentTarget.style.background = isDark ? '#4b5563' : '#f9fafb';
-                    e.currentTarget.style.borderColor = isDark ? '#6b7280' : '#d1d5db';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (item.featured) {
-                    e.currentTarget.style.background = '#f59e0b';
-                    e.currentTarget.style.borderColor = '#f59e0b';
-                  } else {
-                    e.currentTarget.style.background = isDark ? '#374151' : 'white';
-                    e.currentTarget.style.borderColor = isDark ? '#4b5563' : '#e5e7eb';
-                  }
-                }}
-            >
-                {getIconWithColor('ui', 'star', 16, item.featured ? '#ffffff' : (isDark ? '#9ca3af' : '#6b7280'))}
-            </button>
-        )}
-
+        
         {/* Title */}
         <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', paddingRight: onBookmark ? '2.5rem' : 0, color: cardText, fontSize: '1.15rem', fontWeight: '600' }}>
           <span>{getTitle()}</span>
@@ -309,9 +269,16 @@ const UnifiedCard = memo(({
         {/* Content Area */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
           {/* Description */}
-          <p style={{ color: isDark ? '#94a3b8' : '#666', fontSize: '0.84rem', margin: 0, lineHeight: 1.5 }}>
-            {getDescription()}
-          </p>
+          {isHtmlContent() ? (
+            <div
+              style={{ color: isDark ? '#94a3b8' : '#666', fontSize: '0.84rem', margin: 0, lineHeight: 1.5 }}
+              dangerouslySetInnerHTML={{ __html: getDescription() }}
+            />
+          ) : (
+            <p style={{ color: isDark ? '#94a3b8' : '#666', fontSize: '0.84rem', margin: 0, lineHeight: 1.5 }}>
+              {getDescription()}
+            </p>
+          )}
 
           {/* Spacer to push content to bottom */}
           <div style={{ flex: 1 }}></div>
@@ -533,7 +500,7 @@ const UnifiedCard = memo(({
                         cursor: 'pointer',
                         transition: 'all 0.2s'
                       }}
-                      onClick={onStart}
+                      onClick={() => onStart(item)}
                       aria-label={t('view') || 'View'}
                       title={t('view') || 'View'}
                       onMouseEnter={(e) => {
@@ -558,7 +525,7 @@ const UnifiedCard = memo(({
                         alignItems: 'center',
                         justifyContent: 'center'
                       }}
-                      onClick={onStart}
+                      onClick={() => onStart(item)}
                       aria-label={t('start') || 'Start'}
                       title={t('start') || 'Start'}
                     >
