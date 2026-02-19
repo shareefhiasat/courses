@@ -406,6 +406,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       items: [
         { path: '/analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: t('dashboards') || 'Dashboards' },
         { path: '/advanced-analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: t('advanced') || 'Advanced' },
+        { path: '/performance', icon: getThemedIcon('ui', 'activity', 18, theme), label: t('performance') || 'Performance' },
       ]
     },
     communication: {

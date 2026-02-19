@@ -54,13 +54,14 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config.js';
 import logger from '@utils/logger';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
- * Get attendance records with filters
+ * Get attendance records with filters - with performance monitoring
  * @param {Object} filters - Query filters
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getAttendanceRecords = async (filters = {}) => {
+export const getAttendanceRecords = withPerformanceMonitoring(async (filters = {}) => {
   try {
     const { studentId, classId, subjectId, semester, status, date, limit } = filters;
     
@@ -116,7 +117,7 @@ export const getAttendanceRecords = async (filters = {}) => {
     logger.error('[AttendanceDbService] Error getting attendance records:', error);
     return { success: false, error: error.message };
   }
-};
+}, 'getAttendanceRecords');
 
 /**
  * Get a single attendance record by ID

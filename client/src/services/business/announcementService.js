@@ -6,6 +6,7 @@ import {
   deleteAnnouncement as deleteAnnouncementFromDb
 } from '../db/announcementDbService';
 import logger from '@utils/logger';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Announcement Service
@@ -14,21 +15,24 @@ import logger from '@utils/logger';
  */
 
 /**
- * Get all announcements ordered by creation date
+ * Get all announcements ordered by creation date - with performance monitoring and memoization
  * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
  */
-export const getAnnouncements = async () => {
-  try {
-    const result = await getAnnouncementsFromDb();
-    if (result.success) {
-      return { success: true, data: result.data };
+export const getAnnouncements = withPerformanceMonitoring(
+  memoize(async () => {
+    try {
+      const result = await getAnnouncementsFromDb();
+      if (result.success) {
+        return { success: true, data: result.data };
+      }
+      return { success: false, error: result.error };
+    } catch (error) {
+      logger.error("Error getting announcements:", error);
+      return { success: false, error: error.message };
     }
-    return { success: false, error: result.error };
-  } catch (error) {
-    logger.error("Error getting announcements:", error);
-    return { success: false, error: error.message };
-  }
-};
+  }),
+  'getAnnouncements'
+);
 
 /**
  * Add a new announcement

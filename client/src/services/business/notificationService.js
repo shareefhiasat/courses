@@ -27,18 +27,19 @@ import {
   deleteNotification as deleteNotificationFromDb,
   onNotificationsChange as onNotificationsChangeFromDb
 } from '../db/notificationDbService';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 // ===== Notifications =====
 // Model: collection "notifications" documents { userId, title, message, type, read, createdAt, data? }
 
-export const getNotifications = async (userId) => {
+export const getNotifications = withPerformanceMonitoring(async (userId) => {
   try {
     return await getNotificationsFromDb(userId);
   } catch (error) {
     logger.error('Error getting notifications:', error);
     return { success: false, error: error.message };
   }
-};
+}, 'getNotifications');
 
 export const addNotification = async (notification) => {
   try {

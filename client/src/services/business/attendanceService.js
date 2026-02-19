@@ -5,6 +5,7 @@ import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { getUserById } from './userService';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import logger from '@utils/logger';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 import { 
   getAttendanceRecords as getAttendanceRecordsFromDb,
   getAttendanceRecord as getAttendanceRecordFromDb,
@@ -175,41 +176,41 @@ export const markAttendance = async (attendanceData) => {
 // ===== ADVANCED ATTENDANCE OPERATIONS (from attendance.js) =====
 
 /**
- * Get attendance records for a specific class and date
+ * Get attendance records for a specific class and date - with performance monitoring
  */
-export const getAttendanceByClass = async (classId, date) => {
+export const getAttendanceByClass = withPerformanceMonitoring(async (classId, date) => {
   try {
     return await getAttendanceRecordsFromDb({ classId, date });
   } catch (error) {
     logger.error('Error fetching class attendance:', error);
     return { success: false, error: error.message };
   }
-};
+}, 'getAttendanceByClass');
 
 /**
- * Get attendance records for a specific student
+ * Get attendance records for a specific student - with performance monitoring
  */
-export const getAttendanceByStudent = async (studentId, startDate = null, endDate = null) => {
+export const getAttendanceByStudent = withPerformanceMonitoring(async (studentId, startDate = null, endDate = null) => {
   try {
     return await getAttendanceRecordsFromDb({ studentId, startDate, endDate });
   } catch (error) {
     logger.error('Error fetching student attendance:', error);
     return { success: false, error: error.message };
   }
-};
+}, 'getAttendanceByStudent');
 
 /**
- * Get attendance statistics for a class
+ * Get attendance statistics for a class - with performance monitoring
  * Returns detailed breakdown by all status types for HR analytics
  */
-export const getAttendanceStats = async (classId, startDate = null, endDate = null) => {
+export const getAttendanceStats = withPerformanceMonitoring(async (classId, startDate = null, endDate = null) => {
   try {
     return await getAttendanceStatsFromDb(classId, startDate, endDate);
   } catch (error) {
     logger.error('Error calculating attendance stats:', error);
     return { success: false, error: error.message };
   }
-};
+}, 'getAttendanceStats');
 
 /**
  * Quick mark attendance (simplified version)

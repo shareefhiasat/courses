@@ -25,6 +25,7 @@ import {
   updateQuiz as updateQuizInDb,
   deleteQuiz as deleteQuizFromDb
 } from '../db/quizzesDbService';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 // Create a new quiz
 export const createQuiz = async (quizData, userId) => {
@@ -87,25 +88,28 @@ export const createQuiz = async (quizData, userId) => {
   }
 };
 
-// Get a quiz by ID
-export const getQuiz = async (quizId) => {
-  try {
-    const quizRef = doc(db, "quizzes", quizId);
-    const quizSnap = await getDoc(quizRef);
+// Get a quiz by ID - with performance monitoring and memoization
+export const getQuiz = withPerformanceMonitoring(
+  memoize(async (quizId) => {
+    try {
+      const quizRef = doc(db, "quizzes", quizId);
+      const quizSnap = await getDoc(quizRef);
 
-    if (quizSnap.exists()) {
-      return { success: true, data: { id: quizSnap.id, ...quizSnap.data() } };
-    } else {
-      return { success: false, error: "Quiz not found" };
+      if (quizSnap.exists()) {
+        return { success: true, data: { id: quizSnap.id, ...quizSnap.data() } };
+      } else {
+        return { success: false, error: "Quiz not found" };
+      }
+    } catch (error) {
+      logger.error("Error getting quiz:", error);
+      return { success: false, error: error.message };
     }
-  } catch (error) {
-    logger.error("Error getting quiz:", error);
-    return { success: false, error: error.message };
-  }
-};
+  }),
+  'getQuiz'
+);
 
-// Get all quizzes
-export const getAllQuizzes = async () => {
+// Get all quizzes - with performance monitoring
+export const getAllQuizzes = withPerformanceMonitoring(async () => {
   try {
     const quizzesRef = collection(db, "quizzes");
     const q = query(quizzesRef, orderBy("createdAt", "desc"));
@@ -124,30 +128,33 @@ export const getAllQuizzes = async () => {
     logger.error("Error getting quizzes:", error?.message || error);
     return { success: false, error: error.message };
   }
-};
+}, 'getAllQuizzes');
 
-// Get quizzes by creator
-export const getQuizzesByCreator = async (userId) => {
-  try {
-    const quizzesRef = collection(db, "quizzes");
-    const q = query(
-      quizzesRef,
-      where("createdBy", "==", userId),
-      orderBy("createdAt", "desc")
-    );
-    const querySnapshot = await getDocs(q);
+// Get quizzes by creator - with performance monitoring and memoization
+export const getQuizzesByCreator = withPerformanceMonitoring(
+  memoize(async (userId) => {
+    try {
+      const quizzesRef = collection(db, "quizzes");
+      const q = query(
+        quizzesRef,
+        where("createdBy", "==", userId),
+        orderBy("createdAt", "desc")
+      );
+      const querySnapshot = await getDocs(q);
 
-    const quizzes = [];
-    querySnapshot.forEach((doc) => {
-      quizzes.push({ id: doc.id, ...doc.data() });
-    });
+      const quizzes = [];
+      querySnapshot.forEach((doc) => {
+        quizzes.push({ id: doc.id, ...doc.data() });
+      });
 
-    return { success: true, data: quizzes };
-  } catch (error) {
-    logger.error("Error getting quizzes by creator:", error);
-    return { success: false, error: error.message };
-  }
-};
+      return { success: true, data: quizzes };
+    } catch (error) {
+      logger.error("Error getting quizzes by creator:", error);
+      return { success: false, error: error.message };
+    }
+  }),
+  'getQuizzesByCreator'
+);
 
 // Update a quiz and cascade update related activities
 export const updateQuiz = async (quizId, updates) => {

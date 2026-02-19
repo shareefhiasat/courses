@@ -26,40 +26,47 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
- * Get all subjects
+ * Get all subjects - with performance monitoring and memoization
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getSubjects = async () => {
-  try {
-    const q = query(collection(db, 'subjects'), orderBy('name_en', 'asc'));
-    const querySnapshot = await getDocs(q);
-    const subjects = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: subjects };
-  } catch (error) {
-    logger.error('[SubjectDbService] Error getting subjects:', error);
-    return { success: false, error: error.message };
-  }
-};
+export const getSubjects = withPerformanceMonitoring(
+  memoize(async () => {
+    try {
+      const q = query(collection(db, 'subjects'), orderBy('name_en', 'asc'));
+      const querySnapshot = await getDocs(q);
+      const subjects = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+      return { success: true, data: subjects };
+    } catch (error) {
+      logger.error('[SubjectDbService] Error getting subjects:', error);
+      return { success: false, error: error.message };
+    }
+  }),
+  'getSubjects'
+);
 
 /**
- * Get subject by ID
+ * Get subject by ID - with performance monitoring and memoization
  * @param {string} subjectId - Subject ID
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export const getSubject = async (subjectId) => {
-  try {
-    const docSnap = await getDoc(doc(db, 'subjects', subjectId));
-    if (docSnap.exists()) {
-      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
+export const getSubject = withPerformanceMonitoring(
+  memoize(async (subjectId) => {
+    try {
+      const docSnap = await getDoc(doc(db, 'subjects', subjectId));
+      if (docSnap.exists()) {
+        return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
+      }
+      return { success: false, error: 'Subject not found' };
+    } catch (error) {
+      logger.error('[SubjectDbService] Error getting subject:', error);
+      return { success: false, error: error.message };
     }
-    return { success: false, error: 'Subject not found' };
-  } catch (error) {
-    logger.error('[SubjectDbService] Error getting subject:', error);
-    return { success: false, error: error.message };
-  }
-};
+  }),
+  'getSubject'
+);
 
 /**
  * Create subject

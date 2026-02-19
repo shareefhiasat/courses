@@ -47,6 +47,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 // Collection name
 const COLLECTION = 'behaviors';
@@ -89,30 +90,33 @@ export const createBehavior = async (behaviorData) => {
  * @param {string} id - Behavior document ID
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export const getBehavior = async (id) => {
-  try {
-    const docRef = doc(db, COLLECTION, id);
-    const docSnap = await getDoc(docRef);
-    
-    if (docSnap.exists()) {
-      return {
-        success: true,
-        data: { id: docSnap.id, ...docSnap.data() }
-      };
-    } else {
+export const getBehavior = withPerformanceMonitoring(
+  memoize(async (id) => {
+    try {
+      const docRef = doc(db, COLLECTION, id);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        return {
+          success: true,
+          data: { id: docSnap.id, ...docSnap.data() }
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Behavior not found'
+        };
+      }
+    } catch (error) {
+      logger.error('[BehaviorDbService] Error getting behavior:', { error: error.message });
       return {
         success: false,
-        error: 'Behavior not found'
+        error: error.message
       };
     }
-  } catch (error) {
-    logger.error('[BehaviorDbService] Error getting behavior:', { error: error.message });
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-};
+  }),
+  'getBehavior'
+);
 
 /**
  * Update behavior record

@@ -11,6 +11,7 @@ import {
   isStudent as isRoleStudent,
   isHR as isRoleHR
 } from '@constants/userRoles';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 // Prevent duplicate ensureUserDoc writes during React StrictMode re-mounts
 const _ensureUserDocOnce = new Set();
@@ -20,29 +21,32 @@ const _ensureUserDocOnce = new Set();
  * This REPLACES the limited user.js file
  */
 
-// Get user by ID (centralized)
-export const getUserById = async (userId) => {
-  if (!userId) {
-    return { success: false, error: 'User ID is required' };
-  }
-
-  try {
-    logger.debug('USER: Fetching user by ID', { userId });
-    
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (userDoc.exists()) {
-      const userData = { id: userDoc.id, ...userDoc.data() };
-      logger.debug('USER: Successfully fetched user', { userId });
-      return { success: true, data: userData };
+// Get user by ID (centralized) - with performance monitoring and memoization
+export const getUserById = withPerformanceMonitoring(
+  memoize(async (userId) => {
+    if (!userId) {
+      return { success: false, error: 'User ID is required' };
     }
-    
-    logger.warn('USER: User not found', { userId });
-    return { success: false, error: 'User not found' };
-  } catch (error) {
-    logger.error('USER: Failed to fetch user', { error: error.message, userId });
-    return { success: false, error: error.message };
-  }
-};
+
+    try {
+      logger.debug('USER: Fetching user by ID', { userId });
+      
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        const userData = { id: userDoc.id, ...userDoc.data() };
+        logger.debug('USER: Successfully fetched user', { userId });
+        return { success: true, data: userData };
+      }
+      
+      logger.warn('USER: User not found', { userId });
+      return { success: false, error: 'User not found' };
+    } catch (error) {
+      logger.error('USER: Failed to fetch user', { error: error.message, userId });
+      return { success: false, error: error.message };
+    }
+  }),
+  'getUserById'
+);
 
 // Get user by email (centralized)
 export const getUserByEmail = async (email) => {

@@ -48,6 +48,8 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../other/config';
+import logger from '@utils/logger';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 // Collection name
 const COLLECTION = 'participations';
@@ -90,30 +92,33 @@ export const createParticipation = async (participationData) => {
  * @param {string} id - Participation document ID
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export const getParticipation = async (id) => {
-  try {
-    const docRef = doc(db, COLLECTION, id);
-    const docSnap = await getDoc(docRef);
-    
-    if (docSnap.exists()) {
-      return {
-        success: true,
-        data: { id: docSnap.id, ...docSnap.data() }
-      };
-    } else {
+export const getParticipation = withPerformanceMonitoring(
+  memoize(async (id) => {
+    try {
+      const docRef = doc(db, COLLECTION, id);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        return {
+          success: true,
+          data: { id: docSnap.id, ...docSnap.data() }
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Participation not found'
+        };
+      }
+    } catch (error) {
+      logger.error('Error getting participation:', error);
       return {
         success: false,
-        error: 'Participation not found'
+        error: error.message
       };
     }
-  } catch (error) {
-    logger.error('Error getting participation:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-};
+  }),
+  'getParticipation'
+);
 
 /**
  * Update participation record

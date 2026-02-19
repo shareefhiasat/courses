@@ -14,6 +14,7 @@ import {
   getParticipationsByStudent as getParticipationsByStudentFromDb,
   getParticipationsByClass as getParticipationsByClassFromDb
 } from '../db/participationDbService';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;
@@ -317,17 +318,20 @@ export const getParticipationsByClassAndDate = async (classId, date) => {
   }
 };
 
-export const getParticipations = async () => {
-  try {
-    const participationsRef = collection(db, "participations");
-    const participationsQuery = query(participationsRef, orderBy("createdAt", "desc"));
-    const snapshot = await getDocs(participationsQuery);
-    const allParticipations = snapshot.docs.map(d => ({ docId: d.id, ...d.data() }));
-    return { success: true, data: allParticipations };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const getParticipations = withPerformanceMonitoring(
+  memoize(async () => {
+    try {
+      const participationsRef = collection(db, "participations");
+      const participationsQuery = query(participationsRef, orderBy("createdAt", "desc"));
+      const snapshot = await getDocs(participationsQuery);
+      const allParticipations = snapshot.docs.map(d => ({ docId: d.id, ...d.data() }));
+      return { success: true, data: allParticipations };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }),
+  'getParticipations'
+);
 
 /**
  * Load participations from Firestore with enrichment

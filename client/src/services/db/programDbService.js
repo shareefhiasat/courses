@@ -26,39 +26,46 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
- * Get all programs
+ * Get all programs - with performance monitoring and memoization
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getPrograms = async () => {
-  try {
-    const querySnapshot = await getDocs(collection(db, 'programs'));
-    const programs = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: programs };
-  } catch (error) {
-    logger.error('[ProgramDbService] Error getting programs:', error);
-    return { success: false, error: error.message };
-  }
-};
+export const getPrograms = withPerformanceMonitoring(
+  memoize(async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'programs'));
+      const programs = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+      return { success: true, data: programs };
+    } catch (error) {
+      logger.error('[ProgramDbService] Error getting programs:', error);
+      return { success: false, error: error.message };
+    }
+  }),
+  'getPrograms'
+);
 
 /**
- * Get program by ID
+ * Get program by ID - with performance monitoring and memoization
  * @param {string} programId - Program ID
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export const getProgram = async (programId) => {
-  try {
-    const docSnap = await getDoc(doc(db, 'programs', programId));
-    if (docSnap.exists()) {
-      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
+export const getProgram = withPerformanceMonitoring(
+  memoize(async (programId) => {
+    try {
+      const docSnap = await getDoc(doc(db, 'programs', programId));
+      if (docSnap.exists()) {
+        return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
+      }
+      return { success: false, error: 'Program not found' };
+    } catch (error) {
+      logger.error('[ProgramDbService] Error getting program:', error);
+      return { success: false, error: error.message };
     }
-    return { success: false, error: 'Program not found' };
-  } catch (error) {
-    logger.error('[ProgramDbService] Error getting program:', error);
-    return { success: false, error: error.message };
-  }
-};
+  }),
+  'getProgram'
+);
 
 /**
  * Get all programs sorted by name

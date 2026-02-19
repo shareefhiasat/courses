@@ -11,21 +11,25 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import { getClasses as getClassesFromDb, createClass as createClassToDb, updateClass as updateClassInDb, deleteClass as deleteClassFromDb, getClass as getClassByIdFromDb } from '../db/classDbService';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Class Service
  * Handles class/course management
  */
 
-// Get all classes
-export const getClasses = async () => {
-  try {
-    return await getClassesFromDb();
-  } catch (error) {
-    logger.error('CLASS: Failed to fetch classes', { error: error.message });
-    return { success: false, error: error.message };
-  }
-};
+// Get all classes - with performance monitoring and memoization
+export const getClasses = withPerformanceMonitoring(
+  memoize(async () => {
+    try {
+      return await getClassesFromDb();
+    } catch (error) {
+      logger.error('CLASS: Failed to fetch classes', { error: error.message });
+      return { success: false, error: error.message };
+    }
+  }),
+  'getClasses'
+);
 
 // Add new class
 export const addClass = async (data) => {

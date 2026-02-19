@@ -9,6 +9,7 @@ import { getAllClassSubjectMarks as getAllClassSubjectMarksDb } from '@services/
 import { getSubjectMarksDistribution as getSubjectMarksDistributionDb } from '@services/db/enrollmentsDbService';
 import { setSubjectMarksDistribution as setSubjectMarksDistributionDb } from '@services/db/enrollmentsDbService';
 import { USER_ROLES } from '@constants/userRoles';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * GPA Grading Rules

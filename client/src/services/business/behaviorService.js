@@ -14,6 +14,7 @@ import {
   getBehaviorsByStudent as getBehaviorsByStudentFromDb,
   getBehaviorsByClass as getBehaviorsByClassFromDb
 } from '../db/behaviorDbService';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;
@@ -315,18 +316,21 @@ export const getBehaviorsByClassAndDate = async (classId, date) => {
   }
 };
 
-export const getBehaviors = async () => {
-  try {
-    const behaviorsRef = collection(db, 'behaviors');
-    const behaviorsQuery = query(behaviorsRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(behaviorsQuery);
-    const allBehaviors = snapshot.docs.map(d => ({ docId: d.id, ...d.data() }));
-    return { success: true, data: allBehaviors };
-  } catch (error) {
-    logger.error('BEHAVIOR_SERVICE: Error getting behaviors:', error);
-    return { success: false, error: error.message };
-  }
-};
+export const getBehaviors = withPerformanceMonitoring(
+  memoize(async () => {
+    try {
+      const behaviorsRef = collection(db, 'behaviors');
+      const behaviorsQuery = query(behaviorsRef, orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(behaviorsQuery);
+      const allBehaviors = snapshot.docs.map(d => ({ docId: d.id, ...d.data() }));
+      return { success: true, data: allBehaviors };
+    } catch (error) {
+      logger.error('BEHAVIOR_SERVICE: Error getting behaviors:', error);
+      return { success: false, error: error.message };
+    }
+  }),
+  'getBehaviors'
+);
 
 /**
  * Load behaviors from Firestore with enrichment

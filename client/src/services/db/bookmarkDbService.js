@@ -1,6 +1,7 @@
 import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import logger from '@utils/logger';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Bookmark Database Service - Pure database operations
@@ -11,20 +12,23 @@ import logger from '@utils/logger';
 const COLLECTION_NAME = 'users';
 
 /**
- * Get user document from Firestore
+ * Get user document from Firestore - with performance monitoring and memoization
  * @param {string} userId - User ID
  * @returns {Promise<DocumentSnapshot>} User document snapshot
  */
-export const getUserDocument = async (userId) => {
-  try {
-    const userDocRef = doc(db, COLLECTION_NAME, userId);
-    const userDoc = await getDoc(userDocRef);
-    return userDoc;
-  } catch (error) {
-    logger.error('[BookmarkDb] Failed to get user document:', error);
-    throw error;
-  }
-};
+export const getUserDocument = withPerformanceMonitoring(
+  memoize(async (userId) => {
+    try {
+      const userDocRef = doc(db, COLLECTION_NAME, userId);
+      const userDoc = await getDoc(userDocRef);
+      return userDoc;
+    } catch (error) {
+      logger.error('[BookmarkDb] Failed to get user document:', error);
+      throw error;
+    }
+  }),
+  'getUserDocument'
+);
 
 /**
  * Set user document in Firestore

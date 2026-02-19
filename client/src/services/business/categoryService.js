@@ -14,27 +14,31 @@ import {
   Timestamp
 } from "firebase/firestore";
 import { db } from '../other/config';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
- * Get all categories
+ * Get all categories - with performance monitoring and memoization
  */
-export const getCategories = async () => {
-  try {
-    const querySnapshot = await getDocs(collection(db, "categories"));
-    const categories = [];
-    querySnapshot.forEach((d) => {
-      const categoryData = { docId: d.id, ...d.data() };
-      if (categoryData.createdAt?.toDate) {
-        categoryData.createdAt = categoryData.createdAt.toDate();
-      }
-      categories.push(categoryData);
-    });
-    return { success: true, data: categories };
-  } catch (error) {
-    console.error("Error getting categories:", error);
-    return { success: false, error: error.message };
-  }
-};
+export const getCategories = withPerformanceMonitoring(
+  memoize(async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "categories"));
+      const categories = [];
+      querySnapshot.forEach((d) => {
+        const categoryData = { docId: d.id, ...d.data() };
+        if (categoryData.createdAt?.toDate) {
+          categoryData.createdAt = categoryData.createdAt.toDate();
+        }
+        categories.push(categoryData);
+      });
+      return { success: true, data: categories };
+    } catch (error) {
+      console.error("Error getting categories:", error);
+      return { success: false, error: error.message };
+    }
+  }),
+  'getCategories'
+);
 
 /**
  * Seed default categories

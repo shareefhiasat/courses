@@ -27,62 +27,69 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
- * Get all quizzes with filters
+ * Get all quizzes with filters - with performance monitoring and memoization
  * @param {Object} filters - Query filters
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getQuizzes = async (filters = {}) => {
-  try {
-    const { 
-      classId,
-      programId, 
-      subjectId,
-      limitCount = 100,
-      orderByField = 'createdAt',
-      orderDirection = 'desc'
-    } = filters;
-    
-    let conditions = [];
-    
-    if (classId) conditions.push(where('classId', '==', classId));
-    if (programId) conditions.push(where('programId', '==', programId));
-    if (subjectId) conditions.push(where('subjectId', '==', subjectId));
-    
-    const q = query(
-      collection(db, 'quizzes'),
-      ...conditions,
-      orderBy(orderByField, orderDirection),
-      limit(limitCount)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    const quizzes = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: quizzes };
-  } catch (error) {
-    logger.error('[QuizzesDbService] Error getting quizzes:', error);
-    return { success: false, error: error.message };
-  }
-};
+export const getQuizzes = withPerformanceMonitoring(
+  memoize(async (filters = {}) => {
+    try {
+      const { 
+        classId,
+        programId, 
+        subjectId,
+        limitCount = 100,
+        orderByField = 'createdAt',
+        orderDirection = 'desc'
+      } = filters;
+      
+      let conditions = [];
+      
+      if (classId) conditions.push(where('classId', '==', classId));
+      if (programId) conditions.push(where('programId', '==', programId));
+      if (subjectId) conditions.push(where('subjectId', '==', subjectId));
+      
+      const q = query(
+        collection(db, 'quizzes'),
+        ...conditions,
+        orderBy(orderByField, orderDirection),
+        limit(limitCount)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const quizzes = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+      return { success: true, data: quizzes };
+    } catch (error) {
+      logger.error('[QuizzesDbService] Error getting quizzes:', error);
+      return { success: false, error: error.message };
+    }
+  }),
+  'getQuizzes'
+);
 
 /**
- * Get quiz by ID
+ * Get quiz by ID - with performance monitoring and memoization
  * @param {string} quizId - Quiz ID
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export const getQuiz = async (quizId) => {
-  try {
-    const docSnap = await getDoc(doc(db, 'quizzes', quizId));
-    if (docSnap.exists()) {
-      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
+export const getQuiz = withPerformanceMonitoring(
+  memoize(async (quizId) => {
+    try {
+      const docSnap = await getDoc(doc(db, 'quizzes', quizId));
+      if (docSnap.exists()) {
+        return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
+      }
+      return { success: false, error: 'Quiz not found' };
+    } catch (error) {
+      logger.error('[QuizzesDbService] Error getting quiz:', error);
+      return { success: false, error: error.message };
     }
-    return { success: false, error: 'Quiz not found' };
-  } catch (error) {
-    logger.error('[QuizzesDbService] Error getting quiz:', error);
-    return { success: false, error: error.message };
-  }
-};
+  }),
+  'getQuiz'
+);
 
 /**
  * Create quiz

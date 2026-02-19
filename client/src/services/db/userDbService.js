@@ -40,24 +40,28 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
- * Get user by ID
+ * Get user by ID - with performance monitoring and memoization
  * @param {string} userId - User ID
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export const getUserById = async (userId) => {
-  try {
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (userDoc.exists()) {
-      return { success: true, data: { id: userDoc.id, ...userDoc.data() } };
+export const getUserById = withPerformanceMonitoring(
+  memoize(async (userId) => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        return { success: true, data: { id: userDoc.id, ...userDoc.data() } };
+      }
+      return { success: false, error: 'User not found' };
+    } catch (error) {
+      logger.error('[UserDbService] Error getting user by ID:', error);
+      return { success: false, error: error.message };
     }
-    return { success: false, error: 'User not found' };
-  } catch (error) {
-    logger.error('[UserDbService] Error getting user by ID:', error);
-    return { success: false, error: error.message };
-  }
-};
+  }),
+  'getUserById'
+);
 
 /**
  * Get user by student number

@@ -58,6 +58,7 @@ const ProgramsManagementPage = lazy(() => import('./pages/academic/programs/Prog
 const SubjectsManagementPage = lazy(() => import('./pages/academic/subjects/SubjectsManagementPage'));
 const ScheduledReportsPage = lazy(() => import('./pages/feedback/reports/ScheduledReportsPage'));
 const AdvancedAnalytics = lazy(() => import('./components/AdvancedAnalytics'));
+const PerformanceDashboard = lazy(() => import('./components/PerformanceDashboard'));
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
 const MarksPage = lazy(() => import('./pages/academic/enrollments/grading/MarksPage'));
 
@@ -406,6 +407,15 @@ const AppContent = () => {
             element={
               <ProtectedRoute screenId="advancedAnalytics" screenName="Advanced Analytics">
                 <AdvancedAnalytics />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/performance" 
+            element={
+              <ProtectedRoute screenId="performance" screenName="Performance Dashboard">
+                <PerformanceDashboard />
               </ProtectedRoute>
             } 
           />

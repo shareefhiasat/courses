@@ -28,24 +28,28 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
+import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
- * Get student gamification data
+ * Get student gamification data - with performance monitoring and memoization
  * @param {string} studentId - Student ID
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export const getStudentGamification = async (studentId) => {
-  try {
-    const docSnap = await getDoc(doc(db, 'gamification', studentId));
-    if (docSnap.exists()) {
-      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
+export const getStudentGamification = withPerformanceMonitoring(
+  memoize(async (studentId) => {
+    try {
+      const docSnap = await getDoc(doc(db, 'gamification', studentId));
+      if (docSnap.exists()) {
+        return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
+      }
+      return { success: false, error: 'Student gamification data not found' };
+    } catch (error) {
+      logger.error('[GamificationDbService] Error getting student gamification:', error);
+      return { success: false, error: error.message };
     }
-    return { success: false, error: 'Student gamification data not found' };
-  } catch (error) {
-    logger.error('[GamificationDbService] Error getting student gamification:', error);
-    return { success: false, error: error.message };
-  }
-};
+  }),
+  'getStudentGamification'
+);
 
 /**
  * Create or update student gamification data
