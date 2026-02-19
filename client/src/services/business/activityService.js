@@ -25,40 +25,21 @@ import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS, RECORD_TYPES } from '@constants';
 import logger from '@utils/logger';
 import { handleServiceError, withRetry, measurePerformance, memoize, batchOperation } from '@utils/errorHandling';
+import { validateEntity, validateBilingualField } from '@utils/validationHelpers';
 import { withPerformanceMonitoring, memoizedOperations, queryOptimizers } from '@utils/performance';
 import { collection, query, orderBy, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, Timestamp } from 'firebase/firestore';
 import { db } from '../other/config';
 
-// Input validation helper
-const validateActivityData = (data) => {
-  const errors = [];
-  
-  if (!data.title_en && !data.title) {
-    errors.push('Activity title is required');
-  }
-  
-  if (!data.type || typeof data.type !== 'string') {
-    errors.push('Activity type is required and must be a string');
-  }
-  
-  if (data.url && typeof data.url !== 'string') {
-    errors.push('Activity URL must be a string');
-  }
-  
-  if (data.description_en && typeof data.description_en !== 'string') {
-    errors.push('Activity description must be a string');
-  }
-  
-  if (data.maxScore && (typeof data.maxScore !== 'number' || data.maxScore < 0)) {
-    errors.push('Activity max score must be a positive number');
-  }
-  
-  if (data.dueDate && !(data.dueDate instanceof Date) && typeof data.dueDate !== 'string') {
-    errors.push('Activity due date must be a Date or string');
-  }
-  
-  return errors;
-};
+const ACTIVITY_VALIDATION_RULES = [
+  { field: 'type', required: true, type: 'string', label: 'Activity type' },
+  { field: 'url', type: 'string', label: 'Activity URL' },
+  { field: 'description_en', type: 'string', label: 'Activity description' },
+  { field: 'maxScore', type: 'number', positive: true, label: 'Max score' }
+];
+const validateActivityData = (data) => [
+  ...validateBilingualField(data, 'title', 'Activity title'),
+  ...validateEntity(data, ACTIVITY_VALIDATION_RULES)
+];
 
 // Convert date fields to timestamps for Firestore using centralized utility
 

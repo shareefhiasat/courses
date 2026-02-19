@@ -70,7 +70,7 @@ export const addNotification = async (notification) => {
         timestamp: serverTimestamp()
       });
     } catch (logError) {
-      console.warn('Failed to log notification to notificationLogs:', logError);
+      logger.warn('Failed to log notification to notificationLogs:', logError);
     }
     
     return { success: true, id: ref.id };
@@ -236,7 +236,7 @@ export const sendStudentNotification = async ({
         metadata: { ...variables, sentAt: new Date().toISOString() }
       });
     } catch (error) {
-      console.error('Error sending system notification:', error);
+      logger.error('Error sending system notification:', error);
       results.system = { success: false, error: error.message };
     }
   }
@@ -254,7 +254,7 @@ export const sendStudentNotification = async ({
         }
       });
     } catch (error) {
-      console.error('Error sending email notification:', error);
+      logger.error('Error sending email notification:', error);
       results.email = { success: false, error: error.message };
     }
   }
@@ -446,8 +446,7 @@ export async function logNotificationActivity(activity) {
     // Store in notificationLogs collection
     await addDoc(collection(db, 'notificationLogs'), logEntry);
     
-    // Also log to console for development
-    logger.log('🔔 Notification Activity:', {
+    logger.info('Notification Activity:', {
       trigger: activity.trigger,
       channel: activity.channel,
       userId: activity.userId,
@@ -630,6 +629,57 @@ export async function getNotificationLogs(filters = {}, limitCount = 100) {
 /**
  * Format date for notifications
  */
+// ===== NOTIFICATION SETTINGS =====
+
+/**
+ * Get notification settings for a user
+ * @param {string} userId - User ID
+ * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
+ */
+export const getNotificationSettings = async (userId) => {
+  try {
+    if (!userId) return { success: false, error: 'User ID is required' };
+    const { getUserById } = await import('./userService');
+    const result = await getUserById(userId);
+    if (!result.success) return { success: false, error: result.error };
+    const data = result.data;
+    return {
+      success: true,
+      data: {
+        soundEnabled: data.notificationSoundEnabled !== false,
+        vibrationEnabled: data.notificationVibrationEnabled !== false,
+        browserNotificationsEnabled: data.browserNotificationsEnabled !== false,
+        permissionsRequested: data.notificationPermissionsRequested || false
+      }
+    };
+  } catch (error) {
+    logger.error('NOTIFICATION: Failed to get notification settings', { error: error.message });
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Save notification settings for a user
+ * @param {string} userId - User ID
+ * @param {Object} settings - Settings object
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const saveNotificationSettings = async (userId, settings) => {
+  try {
+    if (!userId) return { success: false, error: 'User ID is required' };
+    const { updateUserById } = await import('./userService');
+    return await updateUserById(userId, {
+      notificationSoundEnabled: settings.soundEnabled,
+      notificationVibrationEnabled: settings.vibrationEnabled,
+      browserNotificationsEnabled: settings.browserNotificationsEnabled,
+      notificationPermissionsRequested: settings.permissionsRequested
+    });
+  } catch (error) {
+    logger.error('NOTIFICATION: Failed to save notification settings', { error: error.message });
+    return { success: false, error: error.message };
+  }
+};
+
 function formatDate(date) {
   if (!date) return 'N/A';
   const d = date.toDate ? date.toDate() : new Date(date);

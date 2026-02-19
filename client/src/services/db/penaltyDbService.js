@@ -46,6 +46,7 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../other/config';
+import logger from '@utils/logger';
 
 // Collection name
 const COLLECTION = 'penalties';
@@ -75,7 +76,7 @@ export const createPenalty = async (penaltyData) => {
       data: { id: docRef.id, ...penaltyWithTimestamp }
     };
   } catch (error) {
-    console.error('Error creating penalty:', error);
+    logger.error('[PenaltyDbService] Error creating penalty:', { error: error.message });
     return {
       success: false,
       error: error.message
@@ -105,7 +106,7 @@ export const getPenalty = async (id) => {
       };
     }
   } catch (error) {
-    console.error('Error getting penalty:', error);
+    logger.error('[PenaltyDbService] Error getting penalty:', { error: error.message });
     return {
       success: false,
       error: error.message
@@ -134,7 +135,7 @@ export const updatePenalty = async (id, updateData) => {
       data: { id, ...updateWithTimestamp }
     };
   } catch (error) {
-    console.error('Error updating penalty:', error);
+    logger.error('[PenaltyDbService] Error updating penalty:', { error: error.message });
     return {
       success: false,
       error: error.message
@@ -156,7 +157,7 @@ export const deletePenalty = async (id) => {
       success: true
     };
   } catch (error) {
-    console.error('Error deleting penalty:', error);
+    logger.error('[PenaltyDbService] Error deleting penalty:', { error: error.message });
     return {
       success: false,
       error: error.message
@@ -192,7 +193,7 @@ export const getPenaltiesByStudent = async (studentId) => {
       data: penalties
     };
   } catch (error) {
-    console.error('Error getting penalties by student:', error);
+    logger.error('[PenaltyDbService] Error getting penalties by student:', { error: error.message });
     return {
       success: false,
       error: error.message
@@ -224,7 +225,7 @@ export const getPenaltiesByClass = async (classId) => {
       data: penalties
     };
   } catch (error) {
-    console.error('Error getting penalties by class:', error);
+    logger.error('[PenaltyDbService] Error getting penalties by class:', { error: error.message });
     return {
       success: false,
       error: error.message

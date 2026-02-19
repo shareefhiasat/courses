@@ -4,6 +4,7 @@
  */
 
 import { memoize, measurePerformance, optimizeQuery } from './errorHandling.js';
+import logger from '@utils/logger';
 
 // Memoized database operations for frequently accessed data
 export const memoizedOperations = {
@@ -112,7 +113,7 @@ export const queryOptimizers = {
       } catch (error) {
         // Return stale cache if available, otherwise throw error
         if (cache) {
-          console.warn('Using stale cache due to fetch error:', error);
+          logger.warn('Using stale cache due to fetch error:', { error: error.message });
           return cache;
         }
         throw error;
@@ -195,7 +196,7 @@ export const withPerformanceMonitoring = (fn, operationName) => {
       
       // Log slow operations
       if (duration > 1000) {
-        console.warn(`Slow operation: ${operationName} took ${duration.toFixed(2)}ms`);
+        logger.warn(`Slow operation: ${operationName} took ${duration.toFixed(2)}ms`);
       }
     }
   };
@@ -221,12 +222,12 @@ export const resourceMonitor = {
   
   addConnection: (id) => {
     resourceMonitor.activeConnections.add(id);
-    console.log(`Active connections: ${resourceMonitor.activeConnections.size}`);
+    logger.debug(`Active connections: ${resourceMonitor.activeConnections.size}`);
   },
   
   removeConnection: (id) => {
     resourceMonitor.activeConnections.delete(id);
-    console.log(`Active connections: ${resourceMonitor.activeConnections.size}`);
+    logger.debug(`Active connections: ${resourceMonitor.activeConnections.size}`);
   },
   
   getConnectionCount: () => {
@@ -264,7 +265,7 @@ export const batchProcessor = {
         return batchResults;
       } catch (error) {
         if (retryFailures && retryCount < maxRetries) {
-          console.warn(`Batch failed, retrying... (${retryCount + 1}/${maxRetries})`, error);
+          logger.warn(`Batch failed, retrying... (${retryCount + 1}/${maxRetries})`, { error: error.message });
           await new Promise(resolve => setTimeout(resolve, delayBetweenBatches * (retryCount + 1)));
           return await processBatchWithRetry(batch, retryCount + 1);
         }
@@ -291,7 +292,7 @@ export const batchProcessor = {
           await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
         }
       } catch (error) {
-        console.error(`Batch group failed:`, error);
+        logger.error(`Batch group failed:`, { error: error.message });
         failures.push({ batchIndex: i, error });
       }
     }

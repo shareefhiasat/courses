@@ -9,21 +9,14 @@ import {
 import { ActivityLogger } from '../other/activityLogger';
 import { auth } from '../other/config';
 import logger from '@utils/logger';
+import { validateEmail as validateEmailFormat } from '@utils/validationHelpers';
 
 export const signIn = async (email, password) => {
   try {
-    // Input validation
-    if (!email || !password) {
-      return { success: false, error: 'Email and password are required' };
-    }
-    
-    if (!email.includes('@') || email.length < 5) {
-      return { success: false, error: 'Valid email is required' };
-    }
-    
-    if (password.length < 6) {
-      return { success: false, error: 'Password must be at least 6 characters' };
-    }
+    if (!email || !password) return { success: false, error: 'Email and password are required' };
+    const emailCheck = validateEmailFormat(email);
+    if (!emailCheck.isValid) return { success: false, error: emailCheck.errors[0] };
+    if (password.length < 6) return { success: false, error: 'Password must be at least 6 characters' };
     
     logger.info('AUTH: User sign in attempt', { email: email.substring(0, 3) + '***' });
     
@@ -42,19 +35,10 @@ export const signIn = async (email, password) => {
 
 export const signUp = async (email, password, displayName) => {
   try {
-    // Input validation
-    if (!email || !password) {
-      return { success: false, error: 'Email and password are required' };
-    }
-    
-    if (!email.includes('@') || email.length < 5) {
-      return { success: false, error: 'Valid email is required' };
-    }
-    
-    if (password.length < 6) {
-      return { success: false, error: 'Password must be at least 6 characters' };
-    }
-    
+    if (!email || !password) return { success: false, error: 'Email and password are required' };
+    const emailCheck = validateEmailFormat(email);
+    if (!emailCheck.isValid) return { success: false, error: emailCheck.errors[0] };
+    if (password.length < 6) return { success: false, error: 'Password must be at least 6 characters' };
     if (displayName && (typeof displayName !== 'string' || displayName.trim().length === 0)) {
       return { success: false, error: 'Display name must be a non-empty string' };
     }

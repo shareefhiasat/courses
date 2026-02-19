@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@contexts/AuthContext';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '@services/other/config';
+import { getNotificationSettings, saveNotificationSettings } from '@services/business/notificationService';
 import notificationManager from '../utils/notifications';
+import logger from '@utils/logger';
 
 export const useNotifications = () => {
   const { user } = useAuth();
@@ -15,40 +15,31 @@ export const useNotifications = () => {
   const [isInitializing, setIsInitializing] = useState(false);
   const initializationRef = useRef(false);
 
-  // Load notification settings from Firestore
+  // Load notification settings via service layer
   const loadSettings = useCallback(async () => {
     if (!user) return;
 
     try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        setSettings(prev => ({
-          ...prev,
-          soundEnabled: data.notificationSoundEnabled !== false,
-          vibrationEnabled: data.notificationVibrationEnabled !== false,
-          browserNotificationsEnabled: data.browserNotificationsEnabled !== false,
-          permissionsRequested: data.notificationPermissionsRequested || false
-        }));
+      const result = await getNotificationSettings(user.uid);
+      if (result.success) {
+        setSettings(prev => ({ ...prev, ...result.data }));
       }
     } catch (error) {
       logger.error('Failed to load notification settings:', error);
     }
   }, [user]);
 
-  // Save notification settings to Firestore
+  // Save notification settings via service layer
   const saveSettings = useCallback(async (newSettings) => {
     if (!user) return false;
 
     try {
-      await updateDoc(doc(db, 'users', user.uid), {
-        notificationSoundEnabled: newSettings.soundEnabled,
-        notificationVibrationEnabled: newSettings.vibrationEnabled,
-        browserNotificationsEnabled: newSettings.browserNotificationsEnabled,
-        notificationPermissionsRequested: newSettings.permissionsRequested
-      });
-      setSettings(newSettings);
-      return true;
+      const result = await saveNotificationSettings(user.uid, newSettings);
+      if (result.success) {
+        setSettings(newSettings);
+        return true;
+      }
+      return false;
     } catch (error) {
       logger.error('Failed to save notification settings:', error);
       return false;

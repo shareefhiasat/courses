@@ -38,7 +38,7 @@ export const getAnnouncements = async (options = {}) => {
   try {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
-    console.log('🔍 DEBUG: Querying announcements collection with options:', options);
+    logger.debug('Querying announcements collection with options:', options);
     
     const q = query(
       collection(db, 'announcements'),
@@ -46,18 +46,11 @@ export const getAnnouncements = async (options = {}) => {
       limit(limitCount)
     );
     
-    console.log('🔍 DEBUG: Firestore query created');
-    
     const querySnapshot = await getDocs(q);
-    console.log('🔍 DEBUG: Query snapshot size:', querySnapshot.size);
-    console.log('🔍 DEBUG: Query snapshot docs:', querySnapshot.docs);
-    
     const announcements = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    console.log('🔍 DEBUG: Mapped announcements:', announcements);
     
     return { success: true, data: announcements };
   } catch (error) {
-    console.log('🔍 DEBUG: Error in getAnnouncements DB service:', error);
     logger.error('[AnnouncementDbService] Error getting announcements:', error);
     return { success: false, error: error.message };
   }

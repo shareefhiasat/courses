@@ -3,6 +3,7 @@ import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { handleServiceError, withRetry } from '@utils/errorHandling';
 import { withPerformanceMonitoring, memoize } from '@utils/performance';
+import { validateEntity } from '@utils/validationHelpers';
 import { 
   getCourses as getCoursesFromDb,
   getCourse as getCourseFromDb,
@@ -20,24 +21,12 @@ import {
  * Handles course/program management with proper business logic
  */
 
-// Input validation helper
-const validateCourseData = (data) => {
-  const errors = [];
-  
-  if (!data.name || typeof data.name !== 'string' || data.name.trim().length === 0) {
-    errors.push('Course name is required and must be a non-empty string');
-  }
-  
-  if (data.description && typeof data.description !== 'string') {
-    errors.push('Course description must be a string');
-  }
-  
-  if (data.duration && (typeof data.duration !== 'number' || data.duration <= 0)) {
-    errors.push('Course duration must be a positive number');
-  }
-  
-  return errors;
-};
+const COURSE_VALIDATION_RULES = [
+  { field: 'name', required: true, type: 'string', label: 'Course name' },
+  { field: 'description', type: 'string', label: 'Course description' },
+  { field: 'duration', type: 'number', positive: true, label: 'Course duration' }
+];
+const validateCourseData = (data) => validateEntity(data, COURSE_VALIDATION_RULES);
 
 // Get all courses - with performance monitoring and memoization
 export const getCourses = withPerformanceMonitoring(

@@ -46,6 +46,7 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../other/config';
+import logger from '@utils/logger';
 
 // Collection name
 const COLLECTION = 'behaviors';
@@ -75,7 +76,7 @@ export const createBehavior = async (behaviorData) => {
       data: { id: docRef.id, ...behaviorWithTimestamp }
     };
   } catch (error) {
-    console.error('Error creating behavior:', error);
+    logger.error('[BehaviorDbService] Error creating behavior:', { error: error.message });
     return {
       success: false,
       error: error.message
@@ -105,7 +106,7 @@ export const getBehavior = async (id) => {
       };
     }
   } catch (error) {
-    console.error('Error getting behavior:', error);
+    logger.error('[BehaviorDbService] Error getting behavior:', { error: error.message });
     return {
       success: false,
       error: error.message
@@ -134,7 +135,7 @@ export const updateBehavior = async (id, updateData) => {
       data: { id, ...updateWithTimestamp }
     };
   } catch (error) {
-    console.error('Error updating behavior:', error);
+    logger.error('[BehaviorDbService] Error updating behavior:', { error: error.message });
     return {
       success: false,
       error: error.message
@@ -156,7 +157,7 @@ export const deleteBehavior = async (id) => {
       success: true
     };
   } catch (error) {
-    console.error('Error deleting behavior:', error);
+    logger.error('[BehaviorDbService] Error deleting behavior:', { error: error.message });
     return {
       success: false,
       error: error.message
@@ -192,7 +193,7 @@ export const getBehaviorsByStudent = async (studentId) => {
       data: behaviors
     };
   } catch (error) {
-    console.error('Error getting behaviors by student:', error);
+    logger.error('[BehaviorDbService] Error getting behaviors by student:', { error: error.message });
     return {
       success: false,
       error: error.message
@@ -224,7 +225,7 @@ export const getBehaviorsByClass = async (classId) => {
       data: behaviors
     };
   } catch (error) {
-    console.error('Error getting behaviors by class:', error);
+    logger.error('[BehaviorDbService] Error getting behaviors by class:', { error: error.message });
     return {
       success: false,
       error: error.message

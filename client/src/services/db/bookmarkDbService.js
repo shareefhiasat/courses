@@ -181,7 +181,6 @@ export const onUserBookmarksChange = (userId, callback, onError = null) => {
       callback(bookmarks);
     }, (error) => {
       logger.error('[BookmarkDb] Real-time bookmark listener error:', error);
-      // Propagate error to UI layer
       if (onError) {
         onError(error);
       }
@@ -242,7 +241,6 @@ export const batchUpdateBookmarkTypes = async (userId, bookmarkUpdates) => {
       lastBookmarkUpdate: serverTimestamp()
     };
 
-    // Add each bookmark type to the update
     Object.keys(bookmarkUpdates).forEach(bookmarkType => {
       updateData[`bookmarks.${bookmarkType}`] = bookmarkUpdates[bookmarkType];
     });

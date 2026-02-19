@@ -1,6 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@services/other/config';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { 
   getNotifications, 
@@ -230,7 +228,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
   const unreadCount = notifications.filter(n => !n.read && !n.archived).length;
   const archivedCount = notifications.filter(n => n.archived).length;
 
-  const formatTime = (timestamp) => {
+  const formatTime = useCallback((timestamp) => {
     if (!timestamp) return '';
     const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
     const now = new Date();
@@ -241,7 +239,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
     if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
     return formatDateTime(date);
-  };
+  }, [formatDateTime]);
 
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
@@ -254,7 +252,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     setBrowserNotificationsEnabled(notificationSettings.browserNotificationsEnabled);
   }, [notificationSettings]);
 
-  const handleTestBrowserNotification = async () => {
+  const handleTestBrowserNotification = useCallback(async () => {
     if (checkSupport().notification) {
       try {
         await triggerNotification('default', 'Test Notification', 'This is a test browser notification!');
@@ -262,9 +260,9 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
         logger.error('Failed to send test notification:', error);
       }
     }
-  };
+  }, [checkSupport, triggerNotification]);
 
-  const handleMarkAsRead = async (notificationId, e) => {
+  const handleMarkAsRead = useCallback(async (notificationId, e) => {
     e?.stopPropagation();
     setLoading(true);
     try {
@@ -272,9 +270,9 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleMarkAsUnread = async (notificationId, e) => {
+  const handleMarkAsUnread = useCallback(async (notificationId, e) => {
     e?.stopPropagation();
     setLoading(true);
     try {
@@ -282,9 +280,9 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleArchive = async (notificationId, e) => {
+  const handleArchive = useCallback(async (notificationId, e) => {
     e?.stopPropagation();
     setLoading(true);
     try {
@@ -292,7 +290,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleDelete = async (notificationId, e) => {
     e?.stopPropagation();

@@ -1,14 +1,13 @@
-﻿/**
+/**
  * Consolidated User Utilities
  * Combines userHelpers.js, roleAccess.js, and other user-related utilities
  */
 
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@services/other/config";
 import { 
   USER_ROLES, 
   getRoleDisplayName
 } from '@constants/userRoles';
+import { getUserById } from '@services/business/userService';
 
 // ===== ROLE ACCESS UTILITIES =====
 
@@ -36,9 +35,10 @@ export const hasScreenAccess = async (
   let screens = roleScreens;
   if (!screens) {
     try {
-      const configRef = doc(db, 'config', 'roleScreens');
-      const configSnap = await getDoc(configRef);
-      screens = configSnap.exists() ? configSnap.data() : {};
+      // Import getRoleScreens dynamically to avoid circular dependency
+      const { getRoleScreens } = await import('@services/business/configService');
+      const result = await getRoleScreens();
+      screens = result.success ? result.data : {};
     } catch (error) {
       logger.error('Error loading role screens:', error);
       return false;
@@ -184,9 +184,8 @@ export const isSuperAdminUser = (user) => {
 export async function getUserProfile(user) {
   if (!user) return null;
   try {
-    const userDocRef = doc(db, 'users', user.uid);
-    const userDoc = await getDoc(userDocRef);
-    return userDoc.exists() ? { id: userDoc.id, ...userDoc.data() } : null;
+    const result = await getUserById(user.uid);
+    return result.success ? result.data : null;
   } catch (error) {
     logger.error('Error fetching user profile:', error);
     return null;

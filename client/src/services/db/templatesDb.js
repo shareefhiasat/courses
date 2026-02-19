@@ -6,6 +6,7 @@
 
 import { db } from '../other/config';
 import { collection, addDoc, getDocs, serverTimestamp, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import logger from '@utils/logger';
 
 const TEMPLATES_COLLECTION = 'emailTemplates';
 
@@ -14,7 +15,7 @@ const TEMPLATES_COLLECTION = 'emailTemplates';
  */
 export const getAllTemplates = async () => {
   try {
-    console.log('🔍 DEBUG: Fetching all email templates from Firestore...');
+    logger.debug('Fetching all email templates from Firestore');
     
     const templatesSnapshot = await getDocs(collection(db, TEMPLATES_COLLECTION));
     const templates = templatesSnapshot.docs.map(doc => ({
@@ -22,12 +23,12 @@ export const getAllTemplates = async () => {
       ...doc.data()
     }));
     
-    console.log('📋 DEBUG: Templates found:', templates.length);
-    console.log('📋 DEBUG: Template IDs:', templates.map(t => t.id));
+    logger.debug('Templates found:', templates.length);
+    logger.debug('Template IDs:', templates.map(t => t.id));
     
     return { success: true, data: templates };
   } catch (error) {
-    console.error('❌ DEBUG: Failed to fetch templates:', error);
+    logger.error('Failed to fetch templates:', { error: error.message });
     return { success: false, error: error.message };
   }
 };
@@ -40,11 +41,11 @@ export const getExistingTemplateIds = async () => {
     const templatesSnapshot = await getDocs(collection(db, TEMPLATES_COLLECTION));
     const templateIds = templatesSnapshot.docs.map(doc => doc.data().id);
     
-    console.log('📋 DEBUG: Existing template IDs:', templateIds);
+    logger.debug('Existing template IDs:', templateIds);
     
     return templateIds;
   } catch (error) {
-    console.error('❌ DEBUG: Failed to get existing template IDs:', error);
+    logger.error('Failed to get existing template IDs:', { error: error.message });
     return [];
   }
 };
@@ -54,7 +55,7 @@ export const getExistingTemplateIds = async () => {
  */
 export const createTemplate = async (templateData) => {
   try {
-    console.log('📤 DEBUG: Creating template:', templateData.id);
+    logger.debug('Creating template:', templateData.id);
     
     const docRef = await addDoc(collection(db, TEMPLATES_COLLECTION), {
       ...templateData,
@@ -62,11 +63,11 @@ export const createTemplate = async (templateData) => {
       updatedAt: serverTimestamp()
     });
     
-    console.log('✅ DEBUG: Template created with ID:', docRef.id);
+    logger.debug('Template created with ID:', docRef.id);
     
     return { success: true, id: docRef.id };
   } catch (error) {
-    console.error('❌ DEBUG: Failed to create template:', error);
+    logger.error('Failed to create template:', { error: error.message });
     return { success: false, error: error.message };
   }
 };
@@ -85,7 +86,7 @@ export const getTemplateById = async (templateId) => {
       return { success: false, error: 'Template not found' };
     }
   } catch (error) {
-    console.error('❌ DEBUG: Failed to get template:', error);
+    logger.error('Failed to get template:', { error: error.message });
     return { success: false, error: error.message };
   }
 };
@@ -95,7 +96,7 @@ export const getTemplateById = async (templateId) => {
  */
 export const updateTemplate = async (templateId, updateData) => {
   try {
-    console.log('📝 DEBUG: Updating template:', templateId);
+    logger.debug('Updating template:', templateId);
     
     const docRef = doc(db, TEMPLATES_COLLECTION, templateId);
     await updateDoc(docRef, {
@@ -103,11 +104,11 @@ export const updateTemplate = async (templateId, updateData) => {
       updatedAt: serverTimestamp()
     });
     
-    console.log('✅ DEBUG: Template updated successfully');
+    logger.debug('Template updated successfully');
     
     return { success: true };
   } catch (error) {
-    console.error('❌ DEBUG: Failed to update template:', error);
+    logger.error('Failed to update template:', { error: error.message });
     return { success: false, error: error.message };
   }
 };
@@ -117,16 +118,16 @@ export const updateTemplate = async (templateId, updateData) => {
  */
 export const deleteTemplate = async (templateId) => {
   try {
-    console.log('🗑️ DEBUG: Deleting template:', templateId);
+    logger.debug('Deleting template:', templateId);
     
     const docRef = doc(db, TEMPLATES_COLLECTION, templateId);
     await deleteDoc(docRef);
     
-    console.log('✅ DEBUG: Template deleted successfully');
+    logger.debug('Template deleted successfully');
     
     return { success: true };
   } catch (error) {
-    console.error('❌ DEBUG: Failed to delete template:', error);
+    logger.error('Failed to delete template:', { error: error.message });
     return { success: false, error: error.message };
   }
 };

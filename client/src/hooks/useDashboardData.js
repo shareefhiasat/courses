@@ -43,7 +43,7 @@ const useDashboardData = (selectedStudentId = null) => {
 
     setLoading(true);
     try {
-      logger.log('Loading dashboard data', { userId });
+      logger.info('Loading dashboard data', { userId });
 
       const [
         enrollmentsRes,

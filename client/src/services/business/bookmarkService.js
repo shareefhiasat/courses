@@ -6,7 +6,7 @@ import {
   batchUpdateBookmarkTypes,
   getUserBookmarkMetadata,
   deleteAllUserBookmarks
-} from '@services/database/bookmarkDb';
+} from '@services/db/bookmarkDbService';
 import { MODE_TYPES } from '@utils/sharedTypes';
 import logger from '@utils/logger';
 

@@ -3,6 +3,8 @@
  * Provides consistent error categorization, formatting, and logging
  */
 
+import logger from '@utils/logger';
+
 // Error categories for better error handling and user experience
 export const ERROR_CATEGORIES = {
   VALIDATION: 'VALIDATION',
@@ -131,45 +133,47 @@ const getErrorSeverity = (category, error) => {
   }
 };
 
-// Retry logic with exponential backoff
-export const withRetry = async (fn, maxRetries = 3, baseDelay = 1000, context = {}) => {
-  let lastError;
-  
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-      const category = classifyError(error);
-      
-      // Don't retry on validation or authorization errors
-      if (category === ERROR_CATEGORIES.VALIDATION || 
-          category === ERROR_CATEGORIES.AUTHORIZATION ||
-          category === ERROR_CATEGORIES.NOT_FOUND) {
-        throw error;
+// Retry decorator factory with exponential backoff
+// Returns a wrapped async function that retries on network/database failures
+export const withRetry = (fn, maxRetries = 3, baseDelay = 1000, context = {}) => {
+  return async (...args) => {
+    let lastError;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn(...args);
+      } catch (error) {
+        lastError = error;
+        const category = classifyError(error);
+        
+        // Don't retry on validation or authorization errors
+        if (category === ERROR_CATEGORIES.VALIDATION || 
+            category === ERROR_CATEGORIES.AUTHORIZATION ||
+            category === ERROR_CATEGORIES.NOT_FOUND) {
+          throw error;
+        }
+        
+        // If it's the last attempt, throw the error
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        
+        // Calculate delay with exponential backoff
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        
+        logger.info(`Retry attempt ${attempt}/${maxRetries} after ${delay}ms`, {
+          category,
+          message: error.message,
+          context
+        });
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
-      
-      // If it's the last attempt, throw the error
-      if (attempt === maxRetries) {
-        throw error;
-      }
-      
-      // Calculate delay with exponential backoff
-      const delay = baseDelay * Math.pow(2, attempt - 1);
-      
-      // Log retry attempt
-      console.warn(`Retry attempt ${attempt}/${maxRetries} after ${delay}ms`, {
-        category,
-        message: error.message,
-        context
-      });
-      
-      // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, delay));
     }
-  }
-  
-  throw lastError;
+    
+    throw lastError;
+  };
 };
 
 // Performance monitoring helper
@@ -181,9 +185,8 @@ export const measurePerformance = (fn, operationName) => {
       const endTime = performance.now();
       const duration = endTime - startTime;
       
-      // Log performance metrics
-      if (duration > 1000) { // Log if operation takes more than 1 second
-        console.warn(`Slow operation detected: ${operationName} took ${duration.toFixed(2)}ms`);
+      if (duration > 1000) {
+        logger.warn(`Slow operation detected: ${operationName} took ${duration.toFixed(2)}ms`);
       }
       
       return result;
@@ -191,8 +194,7 @@ export const measurePerformance = (fn, operationName) => {
       const endTime = performance.now();
       const duration = endTime - startTime;
       
-      // Log failed operation performance
-      console.error(`Failed operation: ${operationName} failed after ${duration.toFixed(2)}ms`, error);
+      logger.error(`Failed operation: ${operationName} failed after ${duration.toFixed(2)}ms`, { error: error.message });
       
       throw error;
     }
@@ -240,8 +242,7 @@ export const batchOperation = async (items, operationFn, batchSize = 10, delayBe
         await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
       }
     } catch (error) {
-      // Handle batch errors
-      console.error(`Batch operation failed at batch ${Math.floor(i / batchSize) + 1}:`, error);
+      logger.error(`Batch operation failed at batch ${Math.floor(i / batchSize) + 1}:`, { error: error.message });
       throw error;
     }
   }

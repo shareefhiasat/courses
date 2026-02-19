@@ -1,4 +1,4 @@
-﻿import { doc, getDoc, updateDoc, setDoc, serverTimestamp, collection, query, where, orderBy, getDocs } from "firebase/firestore";
+import { doc, getDoc, updateDoc, setDoc, serverTimestamp, collection, query, where, orderBy, getDocs } from "firebase/firestore";
 import { db } from '../other/config';
 import { 
   CONFIG_TYPES, 
@@ -311,6 +311,26 @@ export const deleteScheduledReport = async (id) => {
     return { success: true };
   } catch (error) {
     logger.error("Error deleting scheduled report:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Get role screens configuration
+ * @returns {Promise<{success: boolean, data: Object, error?: string}>}
+ */
+export const getRoleScreens = async () => {
+  try {
+    const docRef = doc(db, "config", "roleScreens");
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      return { success: true, data: docSnap.data() };
+    } else {
+      return { success: false, error: 'Role screens configuration not found' };
+    }
+  } catch (error) {
+    logger.error("Error getting role screens:", error);
     return { success: false, error: error.message };
   }
 };

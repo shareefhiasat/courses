@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@services/other/config';
 import { useAuth } from '@contexts/AuthContext';
 import logger from '@utils/logger';
+import { getUserById } from '@services/business/userService';
+import { getRoleScreens } from '@services/business/configService';
 
 // Default role screens (fallback if Firestore fails) - moved outside component to prevent re-creation
 // User requirements: Super Admin/HR/Admin/Instructor get ALL screens, Student gets only student-related screens
@@ -95,22 +95,20 @@ export const useRoleAccess = () => {
       setLoading(true);
       setError(null);
       
-      const docRef = doc(db, 'config', 'roleScreens');
-      const snap = await getDoc(docRef);
+      const result = await getRoleScreens();
       
-      if (snap.exists()) {
-        const data = snap.data();
-        setRoleScreens(data);
+      if (result.success) {
+        setRoleScreens(result.data);
+        logger.debug('[useRoleAccess] Loaded role screens from Firestore');
       } else {
-        console.log('[useRoleAccess] No role screens found in Firestore, using defaults');
-        console.log('[useRoleAccess] Default role screens:', defaultRoleScreens);
+        logger.info('[useRoleAccess] No role screens found, using defaults');
         setRoleScreens(defaultRoleScreens);
       }
     } catch (err) {
-      console.error('[useRoleAccess] Error loading role screens:', err);
+      logger.error('[useRoleAccess] Error loading role screens:', err);
       setError(err.message);
       // Fallback to defaults on error
-      console.log('[useRoleAccess] Using default role screens due to error');
+      logger.info('[useRoleAccess] Using default role screens due to error');
       setRoleScreens(defaultRoleScreens);
     } finally {
       setLoading(false);

@@ -1,6 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { collection, getDocs, query, where, orderBy, Timestamp, doc, getDoc } from 'firebase/firestore';
-import { db } from '@services/other/config';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import logger from '../utils/logger';
@@ -8,6 +6,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
 import { getPrograms, getSubjects } from '@services/business/programService';
+import { getUserById } from '@services/business/userService';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import BarChart from './charts/BarChart';
 import LineChart from './charts/LineChart';
@@ -75,10 +74,9 @@ export default function AdvancedAnalytics() {
     
     const loadAccentColor = async () => {
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          const color = normalizeHexColor(data.messageColor, DEFAULT_ACCENT);
+        const result = await getUserById(user.uid);
+        if (result.success) {
+          const color = normalizeHexColor(result.data.messageColor, DEFAULT_ACCENT);
           setUserAccentColor(color);
           // Cache in localStorage
           try {
@@ -114,7 +112,7 @@ export default function AdvancedAnalytics() {
   
   // Debug log
   useEffect(() => {
-    logger.log('🎨 [AdvancedAnalytics] Accent color:', accentColor, 'userAccentColor:', userAccentColor, 'DEFAULT_ACCENT:', DEFAULT_ACCENT);
+    logger.debug('Accent color:', { accentColor, userAccentColor, defaultAccent: DEFAULT_ACCENT });
   }, [accentColor, userAccentColor]);
   
   const [loading, setLoading] = useState(true);
@@ -235,13 +233,13 @@ export default function AdvancedAnalytics() {
     }
   };
 
-  const pushToast = (msg) => {
+  const pushToast = useCallback((msg) => {
     const id = Math.random().toString(36).slice(2, 8);
     setToasts((t)=> [...t, { id, msg }]);
     setTimeout(()=> setToasts((t)=> t.filter(x=>x.id!==id)), 2500);
-  };
+  }, []);
 
-  const refreshWidget = async (id) => {
+  const refreshWidget = useCallback(async (id) => {
     setWidgetLoading((m)=> ({ ...m, [id]: true }));
     await loadAllData();
     setWidgetLoading((m)=> ({ ...m, [id]: false }));
@@ -249,7 +247,7 @@ export default function AdvancedAnalytics() {
     setRecentlyRefreshed((m)=> ({ ...m, [id]: true }));
     setTimeout(()=> setRecentlyRefreshed((m)=> ({ ...m, [id]: false })), 1200);
     pushToast(t('data_up_to_date') || 'Data up to date');
-  };
+  }, [loadAllData, pushToast, t]);
 
   const loadSavedWidgets = () => {
     try {

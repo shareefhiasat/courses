@@ -7,6 +7,7 @@ import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { handleServiceError, withRetry } from '@utils/errorHandling';
 import { withPerformanceMonitoring, memoize, queryOptimizers } from '@utils/performance';
+import { validateEntity, validateBilingualField } from '@utils/validationHelpers';
 import {
   getResources as getResourcesFromDb,
   getResource as getResourceFromDb,
@@ -20,28 +21,15 @@ import {
   getResourceCount as getResourceCountFromDb
 } from '../db/resourceDbService';
 
-// Input validation helper
-const validateResourceData = (data) => {
-  const errors = [];
-  
-  if (!data.title_en && !data.title) {
-    errors.push('Resource title is required');
-  }
-  
-  if (!data.type || typeof data.type !== 'string') {
-    errors.push('Resource type is required and must be a string');
-  }
-  
-  if (data.url && typeof data.url !== 'string') {
-    errors.push('Resource URL must be a string');
-  }
-  
-  if (data.description_en && typeof data.description_en !== 'string') {
-    errors.push('Resource description must be a string');
-  }
-  
-  return errors;
-};
+const RESOURCE_VALIDATION_RULES = [
+  { field: 'type', required: true, type: 'string', label: 'Resource type' },
+  { field: 'url', type: 'string', label: 'Resource URL' },
+  { field: 'description_en', type: 'string', label: 'Resource description' }
+];
+const validateResourceData = (data) => [
+  ...validateBilingualField(data, 'title', 'Resource title'),
+  ...validateEntity(data, RESOURCE_VALIDATION_RULES)
+];
 
 // Get all resources - with performance monitoring and memoization
 export const getResources = withPerformanceMonitoring(

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Validation Helper Functions
  * Provides utilities for data validation and error handling
  */
@@ -226,6 +226,77 @@ export const validateFileSize = (file, maxSizeMB = 10) => {
   return createValidationResult(errors.length === 0, errors, warnings);
 };
 
+/**
+ * Generic entity validator — returns a plain string[] of errors (for use in services)
+ * 
+ * @param {Object} data - Data to validate
+ * @param {Array<{field: string, required?: boolean, type?: string, label?: string}>} rules - Rules
+ * @returns {string[]} Array of error strings (empty = valid)
+ * 
+ * @example
+ * const errors = validateEntity(data, [
+ *   { field: 'title_en', required: true, label: 'Title' },
+ *   { field: 'type', required: true, type: 'string', label: 'Type' },
+ *   { field: 'url', type: 'string', label: 'URL' }
+ * ]);
+ */
+export const validateEntity = (data, rules) => {
+  const errors = [];
+
+  rules.forEach(({ field, required, type, label, min, max, positive }) => {
+    const value = data[field];
+    const displayName = label || field;
+
+    if (required) {
+      if (value === null || value === undefined || value === '' || 
+          (typeof value === 'string' && value.trim().length === 0)) {
+        errors.push(`${displayName} is required`);
+        return; // Skip further checks for this field
+      }
+    }
+
+    if (value !== null && value !== undefined && value !== '') {
+      if (type && typeof value !== type) {
+        errors.push(`${displayName} must be a ${type}`);
+      }
+      if (type === 'number' || typeof value === 'number') {
+        const num = Number(value);
+        if (isNaN(num)) errors.push(`${displayName} must be a number`);
+        else {
+          if (positive && num < 0) errors.push(`${displayName} must be positive`);
+          if (min !== undefined && num < min) errors.push(`${displayName} must be at least ${min}`);
+          if (max !== undefined && num > max) errors.push(`${displayName} cannot exceed ${max}`);
+        }
+      }
+      if (type === 'string' && min !== undefined && value.trim().length < min) {
+        errors.push(`${displayName} must be at least ${min} characters`);
+      }
+      if (type === 'string' && max !== undefined && value.trim().length > max) {
+        errors.push(`${displayName} cannot exceed ${max} characters`);
+      }
+    }
+  });
+
+  return errors;
+};
+
+/**
+ * Validate bilingual field — requires at least one of field_en or field_ar
+ * @param {Object} data
+ * @param {string} baseField - e.g. 'title'
+ * @returns {string[]} errors
+ */
+export const validateBilingualField = (data, baseField, label) => {
+  const enValue = data[`${baseField}_en`];
+  const arValue = data[`${baseField}_ar`];
+  const hasEn = enValue && typeof enValue === 'string' && enValue.trim().length > 0;
+  const hasAr = arValue && typeof arValue === 'string' && arValue.trim().length > 0;
+  if (!hasEn && !hasAr) {
+    return [`${label || baseField} is required (provide English or Arabic)`];
+  }
+  return [];
+};
+
 export default {
   createValidationResult,
   validateRequiredFields,
@@ -234,6 +305,8 @@ export default {
   validateStudentId,
   validateDateRange,
   validatePoints,
-  validateFileSize
+  validateFileSize,
+  validateEntity,
+  validateBilingualField
 };
 
