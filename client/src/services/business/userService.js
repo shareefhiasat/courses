@@ -9,8 +9,7 @@ import {
   isAdmin as isRoleAdmin, 
   isInstructor as isRoleInstructor, 
   isStudent as isRoleStudent,
-  isHR as isRoleHR,
-  isSuperAdmin as isRoleSuperAdmin
+  isHR as isRoleHR
 } from '@constants/userRoles';
 
 // Prevent duplicate ensureUserDoc writes during React StrictMode re-mounts
@@ -23,20 +22,24 @@ const _ensureUserDocOnce = new Set();
 
 // Get user by ID (centralized)
 export const getUserById = async (userId) => {
+  if (!userId) {
+    return { success: false, error: 'User ID is required' };
+  }
+
   try {
-    logger.info('USER: Fetching user by ID', { userId });
+    logger.debug('USER: Fetching user by ID', { userId });
     
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (userDoc.exists()) {
-      logger.info('USER: Successfully fetched user', { userId });
-      return { success: true, data: { id: userDoc.id, ...userDoc.data() } };
+      const userData = { id: userDoc.id, ...userDoc.data() };
+      logger.debug('USER: Successfully fetched user', { userId });
+      return { success: true, data: userData };
     }
     
     logger.warn('USER: User not found', { userId });
     return { success: false, error: 'User not found' };
   } catch (error) {
     logger.error('USER: Failed to fetch user', { error: error.message, userId });
-    logger.error('Error fetching user:', error);
     return { success: false, error: error.message };
   }
 };
@@ -450,6 +453,8 @@ export const getUsersByIds = async (userIds) => {
     }
 
     const uniqueIds = [...new Set(userIds)]; // Remove duplicates
+    
+    // Batch fetch users with error handling
     const userPromises = uniqueIds.map(async (userId) => {
       try {
         const userDoc = await getDoc(doc(db, 'users', userId));
@@ -463,12 +468,14 @@ export const getUsersByIds = async (userIds) => {
       }
     });
 
-    const results = await Promise.all(userPromises);
+    const results = await Promise.allSettled(userPromises);
     
     // Convert array to object map for easy lookup
     const userMap = {};
     results.forEach(result => {
-      userMap[result.id] = result.data;
+      if (result.status === 'fulfilled' && result.value) {
+        userMap[result.value.id] = result.value.data;
+      }
     });
 
     return { success: true, data: userMap };
@@ -864,6 +871,29 @@ export const getUserEnrollmentCount = (user) => {
   } catch (error) {
     logger.error('Error getting user enrollment count:', error);
     return 0;
+  }
+};
+
+/**
+ * Update user progress function
+ * @param {string} userId - User ID
+ * @param {Object} progressData - Progress data to update
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const updateUserProgress = async (userId, progressData) => {
+  try {
+    logger.info('USER: Updating user progress', { userId, progressKeys: Object.keys(progressData) });
+    
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, {
+      resourceProgress: progressData
+    }, { merge: true });
+    
+    logger.info('USER: Successfully updated user progress', { userId });
+    return { success: true };
+  } catch (error) {
+    logger.error('USER: Failed to update user progress', { error: error.message, userId });
+    return { success: false, error: error.message };
   }
 };
 

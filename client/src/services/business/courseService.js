@@ -12,7 +12,6 @@ import {
   setCourse as setCourseToDb,
   deleteCourse as deleteCourseFromDb,
   getActiveCourses as getActiveCoursesFromDb,
-  getCoursesByProgram as getCoursesByProgramFromDb,
   searchCourses as searchCoursesFromDb
 } from '../db/courseDbService';
 

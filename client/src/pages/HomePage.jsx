@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import JoyrideTour from '@ui/JoyrideTour';
 import iconTypes from '@constants/iconTypes';
 import logger from '@utils/logger';
-const { getThemedIcon, getColoredIcon, deriveIconColor, getIconWithColor } = iconTypes;
+const { getThemedIcon, getIconWithColor } = iconTypes;
 import { useTheme } from '@contexts/ThemeContext';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { Tabs } from '@ui';
@@ -11,11 +11,9 @@ import { getActivities, getAnnouncements, getResources } from '@services/busines
 import { getCourses } from '@services/business/courseService';
 import { getAllQuizzes } from '@services/business/quizService';
 import { getUserSubmissions } from '@services/business/submissionService';
-import { getUserProfile } from '@services/business/userService';
+import { getUserProfile, updateUserProgress } from '@services/business/userService';
 import { getCategories } from '@services/business/categoryService';
 import { useAuth } from '@contexts/AuthContext';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@services/other/config';
 import { useLang } from '@contexts/LangContext';
 import { formatDateTime } from '@utils/date';
 import { SUBMISSION_STATUS, TASK_STATUS, getStatusLabel, MODE_TYPES, RESOURCE_TYPES } from '@utils/sharedTypes';
@@ -87,15 +85,19 @@ const HomePage = memo(() => {
   }, [mode]);
 
   // Navbar toggle function
-  const toggleNavbar = () => {
+  const toggleNavbar = useCallback(() => {
     const newCollapsed = !isNavbarCollapsed;
     setIsNavbarCollapsed(newCollapsed);
-    localStorage.setItem('navbarCollapsed', newCollapsed.toString());
+    try {
+      localStorage.setItem('navbarCollapsed', newCollapsed.toString());
+    } catch (error) {
+      logger.warn('Failed to save navbar state to localStorage:', error);
+    }
     // Dispatch event to notify other components
     window.dispatchEvent(new CustomEvent('navbar:toggle', { 
       detail: { collapsed: newCollapsed } 
     }));
-  };
+  }, [isNavbarCollapsed]);
   
   // Data states
   const [activities, setActivities] = useState([]);
@@ -510,14 +512,15 @@ const HomePage = memo(() => {
 
     return filtered;
   }, [
-    mode, activityType, searchTerm, bookmarkFilter, difficultyFilter,
+    mode, activityType, category, searchTerm, bookmarkFilter, difficultyFilter,
     completedFilter, requiredFilter, optionalFilter, overdueFilter, pendingFilter,
     retakableFilter, featuredFilter, gradedFilter, resourceTypeFilter,
-    classFilter, bookmarks, userProgress, submissions, getCurrentItems
+    classFilter, bookmarks, userProgress, submissions, enrolledClasses,
+    activities, resources, quizzes, announcements
   ]);
 
   // Calculate resource type counts
-  const getResourceTypeCounts = () => {
+  const resourceTypeCounts = useMemo(() => {
     if (mode !== MODE_TYPES.RESOURCES) return {};
     
     const counts = {
@@ -535,7 +538,7 @@ const HomePage = memo(() => {
     });
     
     return counts;
-  };
+  }, [mode, resources]);
 
   // Calculate filter counts for all chips
   const getFilterCounts = () => {
@@ -612,7 +615,6 @@ const HomePage = memo(() => {
     return counts;
   };
 
-  const resourceTypeCounts = getResourceTypeCounts();
   const availableClasses = useMemo(() => {
     if (!(mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz')) return [];
     const classes = new Set();
@@ -721,11 +723,11 @@ const HomePage = memo(() => {
   // Remove manual filterCounts since we're using the hook
   // const filterCounts = getFilterCounts();
 
-  const handleModeChange = (newMode) => {
+  const handleModeChange = useCallback((newMode) => {
     setSearchParams({ mode: newMode });
-  };
+  }, [setSearchParams]);
 
-  const handleBookmark = async (itemId, itemMode) => {
+  const handleBookmark = useCallback(async (itemId, itemMode) => {
     const result = await toggleBookmark(itemId, itemMode, {
       bookmarkedAt: Date.now(),
       mode: mode,
@@ -741,9 +743,9 @@ const HomePage = memo(() => {
         isBookmarked: result.isBookmarked
       });
     }
-  };
+  }, [toggleBookmark, mode, activityType]);
 
-  const handleResourceComplete = async (resourceId) => {
+  const handleResourceComplete = useCallback(async (resourceId) => {
     if (!user) return;
     const isCompleted = userProgress[resourceId]?.completed || false;
     const newProgress = {
@@ -754,24 +756,20 @@ const HomePage = memo(() => {
       }
     };
     setUserProgress(newProgress);
-    try {
-      await setDoc(doc(db, 'users', user.uid), {
-        resourceProgress: newProgress
-      }, { merge: true });
-    } catch (error) {
-      logger.error('Error updating progress:', error);
+    
+    const result = await updateUserProgress(user.uid, newProgress);
+    if (!result.success) {
+      logger.error('Error updating progress:', result.error);
       setUserProgress(userProgress); // Revert on error
     }
-  };
+  }, [user, userProgress]);
 
   // Get primary color from CSS variable
-  const getPrimaryColor = () => {
+  const primaryColor = useMemo(() => {
     if (typeof window === 'undefined') return '#800020';
     const root = document.documentElement;
     return getComputedStyle(root).getPropertyValue('--color-primary').trim() || '#800020';
-  };
-
-  const primaryColor = getPrimaryColor();
+  }, []);
 
   if (authLoading) {
     return <GlobalLoadingFallback />;

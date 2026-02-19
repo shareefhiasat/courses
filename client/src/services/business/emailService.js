@@ -92,19 +92,17 @@ class EmailService {
     const startTime = Date.now();
     
     try {
-      console.log('🔍 DEBUG: Email service - qstashEnabled:', this.qstashEnabled);
-      console.log('🔍 DEBUG: Email service - qstashUrl:', !!this.qstashUrl);
-      console.log('🔍 DEBUG: Email service - qstashToken:', !!this.qstashToken);
+      logger.debug('Email service - qstashEnabled:', this.qstashEnabled);
       
       if (this.qstashEnabled) {
-        console.log('🔍 DEBUG: Attempting QStash send...');
+        logger.debug('Attempting QStash send');
         return await this.sendViaQStash(emailData);
       } else {
-        console.log('🔍 DEBUG: Using fallback send...');
+        logger.debug('Using fallback send');
         return await this.sendViaFallback(emailData);
       }
     } catch (error) {
-      console.log('🔍 DEBUG: Email service error, falling back to Firebase functions:', error);
+      logger.debug('Email service error, falling back to Firebase functions:', error);
       analytics.trackEmailOperation('send_single', 1, false, { error: error.message });
       logger.error('Failed to send single email:', error);
       throw error;
@@ -142,7 +140,7 @@ class EmailService {
    */
   async getEmailTemplate(templateId) {
     try {
-      console.log('🔍 DEBUG: Fetching template from Firestore:', templateId);
+      logger.debug('Fetching template from Firestore:', templateId);
       
       // Import Firebase functions dynamically
       const { collection, getDocs, query, where } = await import('firebase/firestore');
@@ -154,18 +152,18 @@ class EmailService {
       const querySnapshot = await getDocs(q);
       
       if (querySnapshot.empty) {
-        console.log('🔍 DEBUG: Template not found:', templateId);
+        logger.warn('Template not found:', templateId);
         return { success: false, error: 'Template not found' };
       }
       
       const templateDoc = querySnapshot.docs[0];
       const template = { id: templateDoc.id, ...templateDoc.data() };
       
-      console.log('🔍 DEBUG: Template found:', template.name);
+      logger.debug('Template found:', template.name);
       return { success: true, template };
       
     } catch (error) {
-      console.error('❌ DEBUG: Error fetching template:', error);
+      logger.error('Error fetching template:', error);
       return { success: false, error: error.message };
     }
   }
@@ -174,8 +172,7 @@ class EmailService {
    * Replace template variables with actual values
    */
   replaceTemplateVariables(template, variables) {
-    console.log('🔍 DEBUG: Replacing variables in template');
-    console.log('🔍 DEBUG: Available variables:', Object.keys(variables));
+    logger.debug('Replacing variables in template');
     
     let result = template;
     
@@ -185,7 +182,6 @@ class EmailService {
       result = result.replace(regex, value || '');
     });
     
-    console.log('🔍 DEBUG: Template variables replaced');
     return result;
   }
 
@@ -193,7 +189,7 @@ class EmailService {
    * Send via QStash
    */
   async sendViaQStash(emailData) {
-    console.log('🔍 DEBUG: sendViaQStash called with:', emailData);
+    logger.debug('sendViaQStash called with:', { to: emailData.to, templateId: emailData.templateId });
     
     try {
       // Get template content if templateId is provided
@@ -201,18 +197,18 @@ class EmailService {
       let subject = emailData.subject;
       
       if (emailData.templateId && !html) {
-        console.log('🔍 DEBUG: Fetching template for QStash:', emailData.templateId);
+        logger.debug('Fetching template for QStash:', emailData.templateId);
         const templateResult = await this.getEmailTemplate(emailData.templateId);
         
         if (templateResult.success && templateResult.template) {
           const template = templateResult.template;
-          console.log('🔍 DEBUG: Template found for QStash:', template.name);
+          logger.debug('Template found for QStash:', template.name);
           
           // Replace variables in template
           html = this.replaceTemplateVariables(template.html, emailData.data || emailData.variables || {});
           subject = this.replaceTemplateVariables(template.subject, emailData.data || emailData.variables || {});
         } else {
-          console.warn('🔍 DEBUG: Template not found for QStash, using fallback');
+          logger.warn('Template not found for QStash, using fallback');
           html = emailData.variables?.message || emailData.variables?.messageEn || '<p>Email message</p>';
           subject = emailData.variables?.title || emailData.variables?.titleEn || 'Email Notification';
         }
@@ -238,7 +234,7 @@ class EmailService {
         }
       };
 
-      console.log('🔍 DEBUG: QStash payload:', payload);
+      logger.debug('QStash payload prepared');
 
       const response = await fetch(this.qstashUrl, {
         method: 'POST',
@@ -266,7 +262,7 @@ class EmailService {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      console.error('❌ DEBUG: QStash failed:', error);
+      logger.error('QStash failed:', error);
       throw error;
     }
   }
@@ -406,11 +402,6 @@ class EmailService {
       };
     } catch (error) {
       logger.error('Fallback email failed:', error);
-      console.error('❌ DEBUG: Fallback email error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
       throw error;
     }
   }
@@ -561,12 +552,7 @@ const getEmailService = () => {
 
 // Named exports for backward compatibility
 export const sendEmail = async (emailData) => {
-  console.log('🔍 DEBUG: sendEmail called with:', emailData);
-  console.log('🔍 DEBUG: Email data keys:', Object.keys(emailData));
-  console.log('🔍 DEBUG: Has templateId:', !!emailData.templateId);
-  console.log('🔍 DEBUG: Has subject:', !!emailData.subject);
-  console.log('🔍 DEBUG: Has variables:', !!emailData.variables);
-  console.log('🔍 DEBUG: Variables keys:', emailData.variables ? Object.keys(emailData.variables) : 'none');
+  logger.debug('sendEmail called with:', { to: emailData.to, templateId: emailData.templateId });
   
   const service = getEmailService();
   return await service.sendSingleEmail(emailData);
@@ -574,40 +560,28 @@ export const sendEmail = async (emailData) => {
 
 export const getEmailTemplates = async () => {
   try {
-    console.log('🔍 DEBUG: Loading email templates...');
-    console.log('🔍 DEBUG: Querying collection: emailTemplates');
-    console.log('🔍 DEBUG: Query: orderBy("name", "asc")');
+    logger.debug('Loading email templates');
     
     // Import Firebase functions dynamically
     const { getDocs, collection, query, orderBy } = await import('firebase/firestore');
     const { db } = await import('../other/config');
     
     const templatesRef = collection(db, 'emailTemplates');
-    console.log('🔍 DEBUG: Templates ref created:', templatesRef.path);
     
     const q = query(templatesRef, orderBy('name', 'asc'));
-    console.log('🔍 DEBUG: Query constructed:', q);
     
     const querySnapshot = await getDocs(q);
-    console.log('🔍 DEBUG: Query executed, docs count:', querySnapshot.docs.length);
-    console.log('🔍 DEBUG: Query snapshot metadata:', {
-      hasPendingWrites: querySnapshot.metadata.hasPendingWrites,
-      fromCache: querySnapshot.metadata.fromCache
-    });
+    logger.debug('Query executed, docs count:', querySnapshot.docs.length);
     
     const templates = querySnapshot.docs.map(doc => {
       const data = doc.data();
-      console.log('📋 DEBUG: Processing doc:', doc.id, 'data keys:', Object.keys(data));
       return {
         id: doc.id,
         ...data
       };
     });
     
-    console.log('📋 DEBUG: Templates found:', templates.length);
-    console.log('📋 DEBUG: All template IDs:', templates.map(t => t.id));
-    console.log('📋 DEBUG: All template names:', templates.map(t => t.name || t.id));
-    console.log('📋 DEBUG: Full template data:', templates);
+    logger.info('Templates found:', templates.length);
     
     // Check which expected templates are missing
     const expected = [
@@ -625,42 +599,21 @@ export const getEmailTemplates = async () => {
     const found = templates.map(t => t.id);
     const missing = expected.filter(id => !found.includes(id));
     
-    console.log('📋 DEBUG: Expected templates:', expected);
-    console.log('📋 DEBUG: Found template IDs:', found);
-    console.log('⚠️ DEBUG: Missing templates:', missing);
-    
     if (missing.length > 0) {
-      console.warn('⚠️ DEBUG: Missing templates:', missing);
-      console.warn('💡 DEBUG: You may need to add these templates to Firestore');
-    } else {
-      console.log('✅ DEBUG: All expected templates found!');
+      logger.warn('Missing templates:', missing);
     }
     
     // Check specifically for student_qr_code
     const studentQRTemplate = templates.find(t => t.id === 'student_qr_code');
     if (studentQRTemplate) {
-      console.log('✅ DEBUG: student_qr_code template found:', studentQRTemplate);
+      logger.debug('student_qr_code template found:', studentQRTemplate);
     } else {
-      console.warn('❌ DEBUG: student_qr_code template NOT found!');
-      console.warn('💡 DEBUG: Available templates that might be QR-related:', 
-        templates.filter(t => t.id.toLowerCase().includes('qr') || t.name?.toLowerCase().includes('qr'))
-      );
-      
-      // Show all available templates for debugging
-      console.log('📋 DEBUG: ALL AVAILABLE TEMPLATES:');
-      templates.forEach((template, index) => {
-        console.log(`  ${index + 1}. ID: "${template.id}", Name: "${template.name || 'N/A'}"`);
-      });
+      logger.warn('student_qr_code template NOT found!');
     }
     
     return { success: true, data: templates };
   } catch (error) {
-    console.error('❌ DEBUG: Failed to get email templates:', error);
-    console.error('❌ DEBUG: Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
-    });
+    logger.error('Failed to get email templates:', error);
     return { success: false, error: error.message };
   }
 };

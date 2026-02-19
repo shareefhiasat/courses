@@ -9,8 +9,7 @@ import { DeleteModal, useDeleteModal } from '@ui';
 import { getCategories, addCategory, updateCategory, deleteCategory } from '@services/business/categoryService';
 import { 
   PAGE_STATES, 
-  FORM_STATES, 
-  MODAL_TYPES
+  FORM_STATES
 } from '@constants/pageTypes';
 
 const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
