@@ -28,7 +28,8 @@
       "@hooks/*": ["./src/hooks/*"],
       "@services/*": ["./src/services/*"],
       "@constants/*": ["./src/constants/*"],
-      "@types/*": ["./src/types/*"]
+      "@types/*": ["./src/types/*"],
+      "@components/*": ["./src/components/*"]
     },
 
     /* Linting */

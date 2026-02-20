@@ -8,20 +8,38 @@ import styles from './EmptyState.module.css';
  * Display when no data is available.
  */
 const EmptyState = ({
-  icon: Icon = Inbox,
+  icon,
   title = 'No data found',
   description,
   action,
   className = '',
 }) => {
+  // Safely render the icon
+  const renderIcon = () => {
+    if (!icon) {
+      return <Inbox size={64} className={styles.icon} />;
+    }
+    
+    if (typeof icon === 'function') {
+      try {
+        return <icon size={64} className={styles.icon} />;
+      } catch (e) {
+        return <Inbox size={64} className={styles.icon} />;
+      }
+    }
+    
+    if (React.isValidElement(icon)) {
+      return <div className={styles.icon}>{icon}</div>;
+    }
+    
+    // Fallback for any other type
+    return <Inbox size={64} className={styles.icon} />;
+  };
+
   return (
     <div className={`${styles.emptyState} ${className}`}>
       <div className={styles.iconWrapper}>
-        {typeof Icon === 'function' ? (
-          <Icon size={64} className={styles.icon} />
-        ) : (
-          <div className={styles.icon}>{Icon}</div>
-        )}
+        {renderIcon()}
       </div>
       <h3 className={styles.title}>{title}</h3>
       {description && <p className={styles.description}>{description}</p>}

@@ -27,6 +27,7 @@ export default defineConfig({
       '@services': path.resolve(__dirname, './src/services'),
       '@constants': path.resolve(__dirname, './src/constants'),
       '@types': path.resolve(__dirname, './src/types'),
+      '@components': path.resolve(__dirname, './src/components'),
     },
   },
   build: {

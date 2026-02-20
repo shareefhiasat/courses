@@ -113,6 +113,18 @@ export const AuthProvider = ({ children }) => {
     };
   }, [user]);
   
+  // Add loading timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        logger.error('[Auth] Loading timeout - forcing loading to false');
+        setLoading(false);
+      }
+    }, 15000); // 15 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [loading]);
+
   // Load cached profile from sessionStorage on mount
   useEffect(() => {
     const cached = sessionStorage.getItem('userProfile');
@@ -130,6 +142,15 @@ export const AuthProvider = ({ children }) => {
     let isSubscribed = true; // Prevent state updates if component unmounted
     let authRetryCount = 0;
     const maxRetries = 3;
+    let authTimeoutId = null;
+
+    // Add auth initialization timeout
+    authTimeoutId = setTimeout(() => {
+      if (loading && isSubscribed) {
+        logger.error('[Auth] Auth initialization timeout - forcing loading to false');
+        setLoading(false);
+      }
+    }, 20000); // 20 second timeout for auth initialization
 
     const unsubscribe = onAuthChange(async (firebaseUser) => {
       // Prevent race conditions - if user changed during async operations, skip
@@ -364,6 +385,7 @@ export const AuthProvider = ({ children }) => {
     // Cleanup function
     return () => {
       isSubscribed = false;
+      if (authTimeoutId) clearTimeout(authTimeoutId);
       if (userDocUnsub) {
         userDocUnsub();
       }
@@ -371,7 +393,7 @@ export const AuthProvider = ({ children }) => {
         unsubscribe();
       }
     };
-  }, [hasLoggedInThisSession]);
+  }, [hasLoggedInThisSession, loading]);
 
   const impersonateUser = async (studentId) => {
     if (!isAdmin) return { success: false, error: 'Only admins can impersonate' };

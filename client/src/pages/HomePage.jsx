@@ -1429,26 +1429,26 @@ const HomePage = memo(() => {
                   onProgramChange={(val) => { setSelectedProgram(val); setSelectedSubject('all'); setSelectedClass('all'); }}
                   onSubjectChange={(val) => { setSelectedSubject(val); setSelectedClass('all'); }}
                   onClassChange={setSelectedClass}
-                  showLabels={true}
+                  showLabels={false}
+                  style={{ flex: 1 }}
+                  fullWidth
                 />
                 {canFilterByStudent && (
-                  <div style={{ minWidth: 200 }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>
-                      {t('student') || 'Student'}
-                    </div>
-                    <select
-                      value={selectedStudent}
-                      onChange={e => setSelectedStudent(e.target.value)}
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: isDark ? '1px solid #333' : '1px solid #e5e7eb', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#111', fontSize: '0.875rem', outline: 'none' }}
-                    >
-                      <option value="all">{t('all_students') || 'All Students'}</option>
-                      {reviewStudents.map(s => (
-                        <option key={s.uid || s.id} value={s.uid || s.id}>
-                          {s.displayName || s.email || s.uid}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <Select
+                    searchable
+                    value={selectedStudent}
+                    onChange={(e) => setSelectedStudent(e.target.value)}
+                    options={[
+                      { value: 'all', label: t('all_students') || 'All Students' },
+                      ...reviewStudents.map(s => ({
+                        value: s.uid || s.id,
+                        label: s.displayName || s.email || s.uid
+                      }))
+                    ]}
+                    style={{ flex: 1 }}
+                    fullWidth
+                    placeholder={t('all_students') || 'All Students'}
+                  />
                 )}
                 {/* Year filter */}
                 {reviewAvailableYears.length > 0 && (

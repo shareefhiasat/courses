@@ -47,7 +47,7 @@ const EnrollmentsPage = lazy(() => import('./pages/academic/enrollments/Enrollme
 const AnalyticsPage = lazy(() => import('./pages/feedback/analytics/AnalyticsPage'));
 const RoleAccessPro = lazy(() => import('./pages/system/RoleAccessPro'));
 const StudentProfilePage = lazy(() => import('./pages/users/StudentProfilePage'));
-const StudentDashboardPage = lazy(() => import('./pages/dashboard/StudentDashboardPageModern'));
+const StudentDashboardPage = lazy(() => import('./pages/dashboard/StudentDashboardPage'));
 const QuizzesPage = lazy(() => import('./pages/quizzes/QuizzesPage'));
 const QuizPreviewPage = lazy(() => import('./pages/quizzes/QuizPreviewPage'));
 const StudentQuizPage = lazy(() => import('./pages/quizzes/StudentQuizPage'));

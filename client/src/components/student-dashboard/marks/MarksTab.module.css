@@ -1,0 +1,200 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* GPA summary card */
+.gpaCard {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(135deg, var(--primary, #6366f1) 0%, #8b5cf6 100%);
+  border-radius: 12px;
+  color: #ffffff;
+  flex-wrap: wrap;
+}
+
+.gpaIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.gpaInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.gpaLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  opacity: 0.85;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gpaValue {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.gpaDivider {
+  width: 1px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Semester group */
+.semesterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.semesterHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block-end: 0.5rem;
+  border-block-end: 2px solid var(--border-color, #e5e7eb);
+}
+
+.semesterLabel {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  margin: 0;
+}
+
+/* Marks table */
+.marksTable {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  background: var(--bg-secondary, #f9fafb);
+  border-block-end: 1px solid var(--border-color, #e5e7eb);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  align-items: center;
+  border-block-end: 1px solid var(--border-color, #e5e7eb);
+  transition: background 0.15s;
+}
+
+.tableRow:last-child {
+  border-block-end: none;
+}
+
+.tableRow:hover {
+  background: var(--bg-secondary, #f9fafb);
+}
+
+.courseCell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.courseName {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary, #1f2937);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.courseCode {
+  font-size: 0.7rem;
+  color: var(--text-secondary, #6b7280);
+  font-family: monospace;
+}
+
+.markValue {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary, #1f2937);
+}
+
+/* Dark mode */
+[data-theme="dark"] .marksTable {
+  border-color: var(--border-color, #374151);
+}
+
+[data-theme="dark"] .tableHeader {
+  background: var(--bg-secondary, #111827);
+  border-color: var(--border-color, #374151);
+}
+
+[data-theme="dark"] .tableRow {
+  border-color: var(--border-color, #374151);
+}
+
+[data-theme="dark"] .tableRow:hover {
+  background: var(--bg-secondary, #111827);
+}
+
+[data-theme="dark"] .semesterHeader {
+  border-color: var(--border-color, #374151);
+}
+
+/* RTL */
+[dir="rtl"] .gpaCard,
+[dir="rtl"] .semesterHeader,
+[dir="rtl"] .tableHeader,
+[dir="rtl"] .tableRow {
+  direction: rtl;
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+  .gpaCard {
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .gpaValue {
+    font-size: 1.5rem;
+  }
+
+  .gpaDivider {
+    display: none;
+  }
+
+  .tableHeader,
+  .tableRow {
+    grid-template-columns: 2fr 1fr 1fr;
+  }
+
+  .tableHeader span:nth-child(4),
+  .tableHeader span:nth-child(5),
+  .tableRow span:nth-child(4),
+  .tableRow span:nth-child(5) {
+    display: none;
+  }
+}
