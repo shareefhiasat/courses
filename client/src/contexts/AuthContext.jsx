@@ -8,6 +8,7 @@ import { ensureUserDoc } from '@services/business/userService';
 import { addLoginLog } from '@services/business/activityService';
 import { ActivityLogger } from '@services/other/activityLogger.jsx';
 import { canUserLogin, getUserStatus, getUserStatusSummary } from '../utils/userStatus';
+import logger from '@utils/logger';
 import { 
   USER_ROLES
 } from '@constants/userRoles';

@@ -25,6 +25,13 @@ import logger from '@utils/logger';
  * @param {string} props.lang - Language ('en' | 'ar')
  * @param {Object} props.t - Translation function
  * @param {boolean} props.showStartButton - Whether to show the start button
+ * @param {boolean} props.isReviewMode - Whether the card is in review mode
+ * @param {number} props.scorePercent - Score percentage
+ * @param {string} props.scoreColor - Score color
+ * @param {string} props.scoreBg - Score background color
+ * @param {string} props.submissionStatus - Submission status
+ * @param {string} props.studentName - Student name
+ * @param {Function} props.onReview - Callback when review button is clicked
  */
 const UnifiedCard = memo(({
   flavor = 'activity',
@@ -42,7 +49,14 @@ const UnifiedCard = memo(({
   t = (key) => key,
   isMinified = false,
   primaryColor = '#800020',
-  showStartButton = true
+  showStartButton = true,
+  isReviewMode = false,
+  scorePercent = null,
+  scoreColor = '#6b7280',
+  scoreBg = '#f3f4f6',
+  submissionStatus = null,
+  studentName = null,
+  onReview = null
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -224,8 +238,31 @@ const UnifiedCard = memo(({
         transition: 'all 0.2s',
         color: cardText
       }}>
+        {/* Score Badge - Top Right Corner (review mode) */}
+        {isReviewMode && scorePercent !== null && (
+          <div
+            aria-label={`Score: ${scorePercent}%`}
+            style={{
+              position: 'absolute',
+              top: 10,
+              [lang === 'ar' ? 'left' : 'right']: 10,
+              background: scoreBg,
+              color: scoreColor,
+              border: `1px solid ${scoreColor}40`,
+              borderRadius: 999,
+              padding: '3px 10px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              zIndex: 10,
+              letterSpacing: '0.02em'
+            }}
+          >
+            {scorePercent}%
+          </div>
+        )}
+
         {/* Bookmark Button - Top Right Corner */}
-        {onBookmark && (
+        {onBookmark && !isReviewMode && (
           <button
             onClick={() => {
             onBookmark();
@@ -264,9 +301,8 @@ const UnifiedCard = memo(({
           </button>
         )}
 
-        
         {/* Title */}
-        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', paddingRight: onBookmark ? '2.5rem' : 0, color: cardText, fontSize: '1.15rem', fontWeight: '600' }}>
+        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', paddingRight: (onBookmark && !isReviewMode) || (isReviewMode && scorePercent !== null) ? '2.5rem' : 0, color: cardText, fontSize: '1.15rem', fontWeight: '600' }}>
           <span>{getTitle()}</span>
           {item.featured && (
               <button
@@ -303,6 +339,14 @@ const UnifiedCard = memo(({
             <p style={{ color: isDark ? '#94a3b8' : '#666', fontSize: '0.84rem', margin: 0, lineHeight: 1.5 }}>
               {getDescription()}
             </p>
+          )}
+
+          {/* Student name in review mode */}
+          {isReviewMode && studentName && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: isDark ? '#94a3b8' : '#6b7280', marginTop: '0.25rem' }}>
+              {getColoredIcon('ui', 'user', 12, '#6b7280', theme)}
+              <span>{studentName}</span>
+            </div>
           )}
 
           {/* Spacer to push content to bottom */}
@@ -529,7 +573,32 @@ const UnifiedCard = memo(({
 
             {/* Action Buttons on the right */}
             <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
-              {onStart && showStartButton && (
+              {/* View Results button - review mode primary action */}
+              {isReviewMode && onReview && (
+                <Button
+                  variant="outline"
+                  size="small"
+                  style={{
+                    height: 28,
+                    padding: '0 10px',
+                    borderRadius: 6,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    borderColor: scoreColor,
+                    color: scoreColor
+                  }}
+                  onClick={onReview}
+                  aria-label={t('view_results') || 'View Results'}
+                  title={t('view_results') || 'View Results'}
+                >
+                  {getColoredIcon('ui', 'eye', 12, scoreColor, theme)}
+                  {!isMinified && <span>{t('view_results') || 'View Results'}</span>}
+                </Button>
+              )}
+              {onStart && showStartButton && !isReviewMode && (
                   flavor === RECORD_TYPES.ANNOUNCEMENT ? (
                     <button
                       style={{
@@ -579,8 +648,8 @@ const UnifiedCard = memo(({
                   )
               )}
 
-              {/* Complete button for activities, resources, homework, labels (except announcements) */}
-              {onComplete && flavor !== RECORD_TYPES.ANNOUNCEMENT && (
+              {/* Complete button for activities, resources, homework, labels (except announcements, not in review mode) */}
+              {onComplete && flavor !== RECORD_TYPES.ANNOUNCEMENT && !isReviewMode && (
                   <Button
                       variant={isCompleted ? 'success' : 'outline'}
                       size="small"
@@ -616,6 +685,33 @@ const UnifiedCard = memo(({
             </div>
           </div>
         </div>
+
+        {/* Progress bar - review mode */}
+        {isReviewMode && scorePercent !== null && (
+          <div
+            role="progressbar"
+            aria-valuenow={scorePercent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 3,
+              borderRadius: '0 0 12px 12px',
+              background: isDark ? '#374151' : '#e5e7eb',
+              overflow: 'hidden'
+            }}
+          >
+            <div style={{
+              height: '100%',
+              width: `${scorePercent}%`,
+              background: scoreColor,
+              transition: 'width 0.4s ease'
+            }} />
+          </div>
+        )}
 
         </div>
   );

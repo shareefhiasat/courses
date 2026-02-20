@@ -14,7 +14,8 @@ import { ATTENDANCE_STATUS_LABELS } from '../constants/attendanceTypes';
 export const MODE_TYPES = {
   ACTIVITIES: 'activities',
   RESOURCES: 'resources',
-  ANNOUNCEMENTS: 'announcements'
+  ANNOUNCEMENTS: 'announcements',
+  REVIEW: 'review'
 };
 
 // Resource types for filtering

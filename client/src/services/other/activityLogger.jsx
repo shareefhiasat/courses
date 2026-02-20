@@ -5,6 +5,7 @@
 
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./config";
+import logger from '@utils/logger';
 
 import { 
   Filter,
@@ -60,6 +61,7 @@ export const getActivityLogOptions = (t) => [
   { value: ACTIVITY_LOG_TYPES.ACTIVITY_UPDATED, label: t('activity_updated') || 'Activity Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.ACTIVITY_DELETED, label: t('activity_deleted') || 'Activity Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.ACTIVITY_VIEWED, label: t('activity_viewed') || 'Activity Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
+  { value: ACTIVITY_LOG_TYPES.ACTIVITY_BOOKMARKED, label: t('activity_bookmarked') || 'Activity Bookmarked', icon: <Bookmark size={16} color="var(--text-secondary, #374151)" /> },
   
   // Assignment/Submission
   { value: ACTIVITY_LOG_TYPES.ASSIGNMENT_STARTED, label: t('assignment_started') || 'Assignment Started', icon: <PenTool size={16} color="var(--text-secondary, #374151)" /> },
@@ -263,6 +265,7 @@ export const ACTIVITY_LOG_TYPES = {
   ACTIVITY_CREATED: "activity_created",
   ACTIVITY_UPDATED: "activity_updated",
   ACTIVITY_DELETED: "activity_deleted",
+  ACTIVITY_BOOKMARKED: "activity_bookmarked",
 
   // Penalties CRUD
   PENALTY_CREATED: "penalty_created",
@@ -365,6 +368,15 @@ export const ActivityLogger = {
     logActivity(ACTIVITY_LOG_TYPES.RESOURCE_BOOKMARKED, {
       resourceId,
       resourceTitle,
+    }),
+
+  // Activities (Home Page)
+  activityViewed: (activityId, activityTitle) =>
+    logActivity(ACTIVITY_LOG_TYPES.ACTIVITY_VIEWED, { activityId, activityTitle }),
+  activityBookmarked: (activityId, activityTitle) =>
+    logActivity(ACTIVITY_LOG_TYPES.ACTIVITY_BOOKMARKED, {
+      activityId,
+      activityTitle,
     }),
 
   // Navigation

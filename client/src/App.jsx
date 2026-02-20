@@ -53,7 +53,6 @@ const QuizPreviewPage = lazy(() => import('./pages/quizzes/QuizPreviewPage'));
 const StudentQuizPage = lazy(() => import('./pages/quizzes/StudentQuizPage'));
 const QuestionBankPage = lazy(() => import('./pages/quizzes/QuestionBankPage'));
 const QuizResultsPage = lazy(() => import('./pages/quizzes/quiz-results/QuizResultsPage'));
-const ReviewResultsPage = lazy(() => import('./pages/quizzes/quiz-results/ReviewResultsPage'));
 const ProgramsManagementPage = lazy(() => import('./pages/academic/programs/ProgramsManagementPage'));
 const SubjectsManagementPage = lazy(() => import('./pages/academic/subjects/SubjectsManagementPage'));
 const ScheduledReportsPage = lazy(() => import('./pages/feedback/reports/ScheduledReportsPage'));
@@ -259,11 +258,7 @@ const AppContent = () => {
           
           <Route 
             path="/review-results" 
-            element={
-              <ProtectedRoute screenId="reviewResults" screenName="Review Results">
-                <ReviewResultsPage />
-              </ProtectedRoute>
-            } 
+            element={<Navigate to="/home?mode=review" replace />}
           />
           
           {/* ============================================ */}

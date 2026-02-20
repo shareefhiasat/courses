@@ -11,8 +11,12 @@ import { getActivities, getAnnouncements, getResources } from '@services/busines
 import { getCourses } from '@services/business/courseService';
 import { getAllQuizzes } from '@services/business/quizService';
 import { getUserSubmissions } from '@services/business/submissionService';
-import { getUserProfile, updateUserProgress } from '@services/business/userService';
+import { getSubmissions } from '@services/business/submissionsService';
+import { getUserProfile, updateUserProgress, getUsers } from '@services/business/userService';
 import { getCategories } from '@services/business/categoryService';
+import { getPrograms, getSubjects } from '@services/business/programService';
+import { getClasses } from '@services/business/classService';
+import ProgramsSelect from '@/components/ui/Select/ProgramsSelect';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { formatDateTime } from '@utils/date';
@@ -24,7 +28,7 @@ import { useFilterCounts } from '@hooks/useFilterCounts';
 import { getActivityTypeConfig } from '@constants/activityTypes';
 import { getDifficultyConfig } from '@constants/difficultyTypes';
 import { getResourceTypeConfig } from '@constants/resourceTypes';
-import { Card, CardBody, Modal } from '@ui';
+import { Card, CardBody, Modal, EmptyState, Select } from '@ui';
 import { useToast } from '@ui';
 import UnifiedCard from '@/components/UnifiedCard';
 import AuthForm from '@/components/AuthForm';
@@ -157,6 +161,21 @@ const HomePage = memo(() => {
   const [resourceTypeFilter, setResourceTypeFilter] = useState('all'); // For resources
   const [classFilter, setClassFilter] = useState('all'); // For quizzes
 
+  // Review mode state
+  const [reviewSubmissions, setReviewSubmissions] = useState([]);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewPrograms, setReviewPrograms] = useState([]);
+  const [reviewSubjects, setReviewSubjects] = useState([]);
+  const [reviewClasses, setReviewClasses] = useState([]);
+  const [reviewStudents, setReviewStudents] = useState([]);
+  const [reviewActivities, setReviewActivities] = useState([]);
+  const [selectedProgram, setSelectedProgram] = useState('all');
+  const [selectedSubject, setSelectedSubject] = useState('all');
+  const [selectedClass, setSelectedClass] = useState('all');
+  const [selectedStudent, setSelectedStudent] = useState('all');
+  const [selectedYear, setSelectedYear] = useState('all');
+  const [selectedTerm, setSelectedTerm] = useState('all');
+
   // Save filter view mode preference
   useEffect(() => {
     try {
@@ -279,6 +298,94 @@ const HomePage = memo(() => {
       }
     }
   }, []);
+
+  // Load review mode data (submissions + enrichment)
+  const loadReviewData = useCallback(async () => {
+    if (!user) return;
+    setReviewLoading(true);
+    try {
+      const [programsRes, subjectsRes, classesRes, activitiesRes, usersRes] = await Promise.all([
+        getPrograms(),
+        getSubjects(),
+        getClasses(),
+        getActivities(),
+        getUsers()
+      ]);
+
+      let programsData = programsRes.success ? (programsRes.data || []) : [];
+      let subjectsData = subjectsRes.success ? (subjectsRes.data || []) : [];
+      let classesData = classesRes.success ? (classesRes.data || []) : [];
+      let activitiesData = activitiesRes.success ? (activitiesRes.data || []) : [];
+      const usersData = usersRes.success ? (usersRes.data || []) : [];
+
+      const isInstructor = user?.role === 'instructor';
+      const isSuperAdmin = user?.role === 'superadmin';
+
+      if (isInstructor && !isAdmin && !isSuperAdmin) {
+        classesData = classesData.filter(c =>
+          c.instructorId === user.uid || c.ownerEmail === user.email || c.instructor === user.email
+        );
+        const accessibleSubjectIds = new Set(classesData.map(c => c.subjectId).filter(Boolean));
+        subjectsData = subjectsData.filter(s => accessibleSubjectIds.has(s.docId || s.id));
+        const accessibleProgramIds = new Set(subjectsData.map(s => s.programId).filter(Boolean));
+        programsData = programsData.filter(p => accessibleProgramIds.has(p.docId || p.id));
+        const accessibleClassIds = new Set(classesData.map(c => c.id || c.docId));
+        activitiesData = activitiesData.filter(a => !a.classId || accessibleClassIds.has(a.classId));
+      }
+
+      setReviewPrograms(programsData);
+      setReviewSubjects(subjectsData);
+      setReviewClasses(classesData);
+      setReviewActivities(activitiesData);
+      setReviewStudents(usersData.filter(u => u.role === 'student'));
+
+      const submissionsResult = await getSubmissions();
+      let submissionsData = submissionsResult.success ? submissionsResult.data : [];
+
+      const enriched = submissionsData.map(sub => {
+        const activity = activitiesData.find(a => (a.id || a.docId) === sub.activityId);
+        const student = usersData.find(u => (u.id || u.docId || u.uid) === sub.userId);
+        const classData = classesData.find(c => (c.id || c.docId) === (sub.classId || activity?.classId));
+        const subject = subjectsData.find(s => (s.id || s.docId) === classData?.subjectId);
+        const program = programsData.find(p => (p.id || p.docId) === subject?.programId);
+        return {
+          ...sub,
+          id: sub.docId || sub.id,
+          activityTitle: activity
+            ? (lang === 'ar' ? (activity.title_ar || activity.title_en) : (activity.title_en || activity.title_ar))
+            : 'N/A',
+          activityType: activity?.type || 'unknown',
+          difficulty: activity?.difficulty || activity?.level || 'beginner',
+          studentName: student?.displayName || student?.email || 'N/A',
+          studentEmail: student?.email || null,
+          className: classData ? (classData.name || classData.code) : 'N/A',
+          subjectName: subject
+            ? (lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar))
+            : 'N/A',
+          programName: program
+            ? (lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar))
+            : 'N/A',
+          classId: sub.classId || activity?.classId,
+          subjectId: classData?.subjectId,
+          programId: subject?.programId,
+          activity
+        };
+      });
+
+      setReviewSubmissions(enriched);
+    } catch (error) {
+      logger.error('[HomePage] loadReviewData error:', error);
+    } finally {
+      setReviewLoading(false);
+    }
+  }, [user, isAdmin, lang]);
+
+  // Trigger review data load when entering review mode
+  useEffect(() => {
+    if (mode === MODE_TYPES.REVIEW && user && !authLoading) {
+      loadReviewData();
+    }
+  }, [mode, user, authLoading, loadReviewData]);
 
   // Load user data with global loading to prevent flicker
   useLayoutEffect(() => {
@@ -922,6 +1029,170 @@ const HomePage = memo(() => {
   // Remove manual filterCounts since we're using the hook
   // const filterCounts = getFilterCounts();
 
+  // Review mode: derive available years and terms from submissions
+  const reviewAvailableYears = useMemo(() => {
+    const years = new Set();
+    reviewSubmissions.forEach(sub => {
+      const year = sub.year || sub.academicYear;
+      if (year) years.add(String(year));
+    });
+    return Array.from(years).sort();
+  }, [reviewSubmissions]);
+
+  const reviewAvailableTerms = useMemo(() => {
+    const terms = new Set();
+    reviewSubmissions.forEach(sub => {
+      const term = sub.term || sub.semester;
+      if (term) terms.add(term);
+    });
+    return Array.from(terms);
+  }, [reviewSubmissions]);
+
+  // Review mode: filtered items with role-based scoping + all active filters
+  const filteredReviewItems = useMemo(() => {
+    if (mode !== MODE_TYPES.REVIEW) return [];
+
+    const isStudent = user?.role === 'student';
+    const isInstructor = user?.role === 'instructor';
+    const isSuperAdmin = user?.role === 'superadmin';
+
+    // Instructor classes for scoping
+    const instructorClassIds = new Set(reviewClasses.map(c => c.id || c.docId));
+    const instructorStudentIds = new Set(
+      reviewStudents
+        .filter(s => s.enrolledClasses?.some(cid => instructorClassIds.has(cid)))
+        .map(s => s.uid)
+    );
+
+    // Start from enriched submissions
+    let filtered = [...reviewSubmissions];
+
+    // Role-based scoping
+    if (isStudent) {
+      filtered = filtered.filter(sub => sub.userId === user.uid || sub.studentId === user.uid);
+    } else if (isInstructor && !isSuperAdmin) {
+      filtered = filtered.filter(sub =>
+        instructorClassIds.has(sub.classId) || instructorStudentIds.has(sub.userId)
+      );
+    }
+    // Admin / HR / Super Admin see all
+
+    // Activity type filter (reuse activityType tab state)
+    if (activityType !== 'all') {
+      filtered = filtered.filter(sub => sub.activityType === activityType);
+    }
+
+    // Search
+    if (searchTerm.trim()) {
+      const q = searchTerm.trim().toLowerCase();
+      filtered = filtered.filter(sub =>
+        (sub.activityTitle || '').toLowerCase().includes(q) ||
+        (sub.studentName || '').toLowerCase().includes(q) ||
+        (sub.studentEmail || '').toLowerCase().includes(q) ||
+        (sub.programName || '').toLowerCase().includes(q) ||
+        (sub.subjectName || '').toLowerCase().includes(q) ||
+        (sub.className || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Program / Subject / Class hierarchy filters
+    if (selectedProgram && selectedProgram !== 'all') {
+      filtered = filtered.filter(sub => sub.programId === selectedProgram);
+    }
+    if (selectedSubject && selectedSubject !== 'all') {
+      filtered = filtered.filter(sub => sub.subjectId === selectedSubject);
+    }
+    if (selectedClass && selectedClass !== 'all') {
+      filtered = filtered.filter(sub => sub.classId === selectedClass);
+    }
+
+    // Student filter (non-student roles only)
+    if (!isStudent && selectedStudent && selectedStudent !== 'all') {
+      filtered = filtered.filter(sub => sub.userId === selectedStudent || sub.studentId === selectedStudent);
+    }
+
+    // Year / Term filters
+    if (selectedYear && selectedYear !== 'all') {
+      filtered = filtered.filter(sub => String(sub.year || sub.academicYear) === selectedYear);
+    }
+    if (selectedTerm && selectedTerm !== 'all') {
+      filtered = filtered.filter(sub => (sub.term || sub.semester) === selectedTerm);
+    }
+
+    // Difficulty
+    if (difficultyFilter !== 'all') {
+      filtered = filtered.filter(sub => (sub.difficulty || '').toLowerCase() === difficultyFilter.toLowerCase());
+    }
+
+    // Status filters
+    if (completedFilter) {
+      filtered = filtered.filter(sub => sub.status === 'graded' || sub.status === 'completed');
+    }
+    if (pendingFilter) {
+      filtered = filtered.filter(sub => !sub.status || sub.status === 'pending');
+    }
+    if (requiredFilter) {
+      filtered = filtered.filter(sub => sub.activity?.optional === false);
+    }
+    if (optionalFilter) {
+      filtered = filtered.filter(sub => sub.activity?.optional === true);
+    }
+    if (overdueFilter) {
+      const now = new Date();
+      filtered = filtered.filter(sub => {
+        if (!sub.activity?.dueDate) return false;
+        const dd = sub.activity.dueDate?.seconds
+          ? new Date(sub.activity.dueDate.seconds * 1000)
+          : new Date(sub.activity.dueDate);
+        return dd < now && sub.status !== 'completed';
+      });
+    }
+    if (featuredFilter) {
+      filtered = filtered.filter(sub => sub.activity?.featured === true);
+    }
+    if (retakableFilter) {
+      filtered = filtered.filter(sub =>
+        sub.activity?.allowRetake === true || sub.activity?.settings?.allowRetake === true
+      );
+    }
+    if (gradedFilter === 'graded') {
+      filtered = filtered.filter(sub => sub.status === 'graded');
+    } else if (gradedFilter === 'not_graded') {
+      filtered = filtered.filter(sub => sub.status !== 'graded');
+    }
+
+    // Sort newest first
+    filtered.sort((a, b) => {
+      const aTime = a.submittedAt?.toDate
+        ? a.submittedAt.toDate().getTime()
+        : (a.submittedAt ? new Date(a.submittedAt).getTime() : 0);
+      const bTime = b.submittedAt?.toDate
+        ? b.submittedAt.toDate().getTime()
+        : (b.submittedAt ? new Date(b.submittedAt).getTime() : 0);
+      return bTime - aTime;
+    });
+
+    return filtered;
+  }, [
+    mode, reviewSubmissions, reviewClasses, reviewStudents, user,
+    activityType, searchTerm, selectedProgram, selectedSubject, selectedClass,
+    selectedStudent, selectedYear, selectedTerm,
+    difficultyFilter, completedFilter, pendingFilter, requiredFilter, optionalFilter,
+    overdueFilter, featuredFilter, retakableFilter, gradedFilter
+  ]);
+
+  // Review mode stats for StatsBar
+  const reviewStats = useMemo(() => {
+    if (mode !== MODE_TYPES.REVIEW) return {};
+    const total = filteredReviewItems.length;
+    const passed = filteredReviewItems.filter(sub => {
+      const pct = sub.maxScore > 0 ? (sub.score / sub.maxScore) * 100 : 0;
+      return pct >= 60;
+    }).length;
+    const failed = total - passed;
+    return { total, passed, failed };
+  }, [mode, filteredReviewItems]);
+
   const handleModeChange = useCallback((newMode) => {
     setSearchParams({ mode: newMode });
   }, [setSearchParams]);
@@ -1009,6 +1280,12 @@ const HomePage = memo(() => {
                 label: t('announcements') || 'Announcements',
                 icon: mode === MODE_TYPES.ANNOUNCEMENTS ? getIconWithColor('ui', 'megaphone', 16, '#ffffff') : getIconWithColor('ui', 'megaphone', 16, primaryColor),
                 badge: modeCounts.announcements
+              },
+              {
+                value: MODE_TYPES.REVIEW,
+                label: t('review_results') || 'Review Results',
+                icon: mode === MODE_TYPES.REVIEW ? getIconWithColor('ui', 'eye', 16, '#ffffff') : getIconWithColor('ui', 'eye', 16, primaryColor),
+                badge: mode === MODE_TYPES.REVIEW ? filteredReviewItems.length : reviewSubmissions.length
               }
             ]}
             activeTab={mode}
@@ -1118,6 +1395,181 @@ const HomePage = memo(() => {
           </div>
         )}
 
+        {/* ── REVIEW MODE ─────────────────────────────────────────────── */}
+        {mode === MODE_TYPES.REVIEW && (() => {
+          const isStudent = user?.role === 'student';
+          const canFilterByStudent = !isStudent;
+          return (
+            <>
+              {/* Activity type sub-tabs for review mode */}
+              <div style={{ marginBottom: '0.05rem' }}>
+                <Tabs
+                  tabs={[
+                    { value: 'all', label: lang === 'en' ? 'All' : 'الكل', icon: activityType === 'all' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor) },
+                    { value: ACTIVITY_TYPES.QUIZ, label: t('quiz') || 'Quiz', icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, primaryColor) },
+                    { value: ACTIVITY_TYPES.HOMEWORK, label: t('homework') || 'Homework', icon: activityType === ACTIVITY_TYPES.HOMEWORK ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, primaryColor) },
+                    { value: ACTIVITY_TYPES.TRAINING, label: t('training') || 'Training', icon: activityType === ACTIVITY_TYPES.TRAINING ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, primaryColor) },
+                    { value: ACTIVITY_TYPES.LAB_AND_PROJECT, label: t('lab_and_project') || 'Lab & Project', icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, primaryColor) }
+                  ]}
+                  activeTab={activityType}
+                  onTabChange={setActivityType}
+                  variant="default"
+                />
+              </div>
+
+              {/* ProgramsSelect + Student dropdown row */}
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '0.75rem', padding: '0.75rem 1rem', background: isDark ? '#1a1a1a' : '#fff', borderRadius: 12, boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.08)', border: isDark ? '1px solid #333' : 'none' }}>
+                <ProgramsSelect
+                  programs={reviewPrograms}
+                  subjects={reviewSubjects}
+                  classes={reviewClasses}
+                  selectedProgram={selectedProgram}
+                  selectedSubject={selectedSubject}
+                  selectedClass={selectedClass}
+                  onProgramChange={(val) => { setSelectedProgram(val); setSelectedSubject('all'); setSelectedClass('all'); }}
+                  onSubjectChange={(val) => { setSelectedSubject(val); setSelectedClass('all'); }}
+                  onClassChange={setSelectedClass}
+                  showLabels={true}
+                />
+                {canFilterByStudent && (
+                  <div style={{ minWidth: 200 }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>
+                      {t('student') || 'Student'}
+                    </div>
+                    <select
+                      value={selectedStudent}
+                      onChange={e => setSelectedStudent(e.target.value)}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: isDark ? '1px solid #333' : '1px solid #e5e7eb', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#111', fontSize: '0.875rem', outline: 'none' }}
+                    >
+                      <option value="all">{t('all_students') || 'All Students'}</option>
+                      {reviewStudents.map(s => (
+                        <option key={s.uid || s.id} value={s.uid || s.id}>
+                          {s.displayName || s.email || s.uid}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {/* Year filter */}
+                {reviewAvailableYears.length > 0 && (
+                  <div style={{ minWidth: 120 }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>{t('year') || 'Year'}</div>
+                    <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: isDark ? '1px solid #333' : '1px solid #e5e7eb', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#111', fontSize: '0.875rem', outline: 'none' }}>
+                      <option value="all">{t('all') || 'All'}</option>
+                      {reviewAvailableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>
+                )}
+                {/* Term filter */}
+                {reviewAvailableTerms.length > 0 && (
+                  <div style={{ minWidth: 120 }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>{t('term') || 'Term'}</div>
+                    <select value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: isDark ? '1px solid #333' : '1px solid #e5e7eb', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#111', fontSize: '0.875rem', outline: 'none' }}>
+                      <option value="all">{t('all') || 'All'}</option>
+                      {reviewAvailableTerms.map(term => <option key={term} value={term}>{term}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Status / difficulty / toggle filter chips (reuse UnifiedFilterSection) */}
+              <div ref={filtersRef} data-tour="filters">
+                <UnifiedFilterSection
+                  stats={reviewStats}
+                  filterCounts={{}}
+                  searchTerm={searchTerm}
+                  setSearchTerm={setSearchTerm}
+                  searchPlaceholder={t('search_results') || 'Search results...'}
+                  completedFilter={completedFilter}
+                  setCompletedFilter={setCompletedFilter}
+                  pendingFilter={pendingFilter}
+                  setPendingFilter={setPendingFilter}
+                  requiredFilter={requiredFilter}
+                  setRequiredFilter={setRequiredFilter}
+                  optionalFilter={optionalFilter}
+                  setOptionalFilter={setOptionalFilter}
+                  overdueFilter={overdueFilter}
+                  setOverdueFilter={setOverdueFilter}
+                  requiresSubmissionFilter={requiresSubmissionFilter}
+                  setRequiresSubmissionFilter={setRequiresSubmissionFilter}
+                  difficultyFilter={difficultyFilter}
+                  setDifficultyFilter={setDifficultyFilter}
+                  bookmarkFilter={bookmarkFilter}
+                  setBookmarkFilter={setBookmarkFilter}
+                  featuredFilter={featuredFilter}
+                  setFeaturedFilter={setFeaturedFilter}
+                  retakableFilter={retakableFilter}
+                  setRetakableFilter={setRetakableFilter}
+                  gradedFilter={gradedFilter}
+                  setGradedFilter={setGradedFilter}
+                  isMinified={isMinified}
+                  theme={theme}
+                  lang={lang}
+                  t={t}
+                  primaryColor={primaryColor}
+                  showStatusFilters={true}
+                  showDifficultyFilters={true}
+                  showToggleFilters={true}
+                  showHierarchyFilters={false}
+                  toggleConfig={{ showBookmark: false, showFeatured: true, showRetakable: true, showGraded: true }}
+                />
+              </div>
+
+              {/* Review cards grid */}
+              {reviewLoading ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#9ca3af' : '#666' }}>
+                  <p>{t('loading') || 'Loading...'}</p>
+                </div>
+              ) : filteredReviewItems.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#9ca3af' : '#666' }}>
+                  <h3>{t('no_results_found') || 'No results found'}</h3>
+                  <p>{t('try_adjusting_filters') || 'Try adjusting your filters'}</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', marginTop: '1rem' }}>
+                  {filteredReviewItems.map(sub => {
+                    const pct = sub.maxScore > 0 ? Math.round((sub.score / sub.maxScore) * 100) : null;
+                    const scoreColor = pct === null ? '#6b7280' : pct >= 60 ? '#16a34a' : '#dc2626';
+                    const scoreBg = pct === null ? (isDark ? '#374151' : '#f3f4f6') : pct >= 60 ? (isDark ? 'rgba(22,163,74,0.15)' : '#dcfce7') : (isDark ? 'rgba(220,38,38,0.15)' : '#fee2e2');
+                    const activityItem = sub.activity || { title_en: sub.activityTitle, type: sub.activityType, difficulty: sub.difficulty };
+                    return (
+                      <UnifiedCard
+                        key={sub.id}
+                        flavor={sub.activityType === ACTIVITY_TYPES.QUIZ ? RECORD_TYPES.QUIZ : RECORD_TYPES.ACTIVITY}
+                        item={activityItem}
+                        isCompleted={sub.status === 'graded' || sub.status === 'completed'}
+                        completedAt={sub.submittedAt || sub.gradedAt}
+                        dueDate={sub.activity?.dueDate}
+                        lang={lang}
+                        t={t}
+                        primaryColor={primaryColor}
+                        isMinified={isMinified}
+                        showStartButton={false}
+                        isReviewMode={true}
+                        scorePercent={pct}
+                        scoreColor={scoreColor}
+                        scoreBg={scoreBg}
+                        submissionStatus={sub.status}
+                        studentName={sub.studentName}
+                        onReview={() => {
+                          if (sub.activityType === ACTIVITY_TYPES.QUIZ) {
+                            navigate(`/quiz-preview/${sub.activityId}?resultId=${sub.id}`);
+                          } else {
+                            navigate(`/submission/${sub.id}`);
+                          }
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          );
+        })()}
+
+        {/* ── STANDARD MODES (activities / resources / announcements) ── */}
+        {mode !== MODE_TYPES.REVIEW && (
+          <div style={{ display: 'contents' }}>
         {/* Unified Filters Section */}
         <div ref={filtersRef} data-tour="filters">
           <UnifiedFilterSection
@@ -1212,8 +1664,6 @@ const HomePage = memo(() => {
             // Quiz type filter for activities
             quizFilter={mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ ? 'quiz' : undefined}
             showQuizFilter={mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ}
-            // Filter counts for all chips - use hookFilterCounts which includes bookmark counting
-            filterCounts={hookFilterCounts}
           />
         </div>
 
@@ -1351,7 +1801,9 @@ const HomePage = memo(() => {
               })
             )}
           </div>
-        </div>
+          </div>
+        )}
+      </div>
       
       {/* Joyride Help Tour */}
       <JoyrideTour
