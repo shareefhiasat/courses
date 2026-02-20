@@ -11,21 +11,21 @@ const TYPE_CONFIG = {
     badgeVariant: 'danger',
     icon: 'alert_circle',
     category: TYPE_CATEGORIES?.PENALTY || 'penalty',
-    emptyKey: 'no_penalties',
+    emptyKey: 'records.no_penalties',
     emptyFallback: 'No penalties recorded',
   },
   participations: {
     badgeVariant: 'success',
     icon: 'zap',
     category: TYPE_CATEGORIES?.PARTICIPATION || 'participation',
-    emptyKey: 'no_participations',
+    emptyKey: 'records.no_participations',
     emptyFallback: 'No participations recorded',
   },
   behaviors: {
     badgeVariant: 'warning',
     icon: 'activity',
     category: TYPE_CATEGORIES?.BEHAVIOR || 'behavior',
-    emptyKey: 'no_behaviors',
+    emptyKey: 'records.no_behaviors',
     emptyFallback: 'No behaviors recorded',
   },
 };
@@ -79,7 +79,7 @@ const RecordsTab = React.memo(({
     <div className={styles.container}>
       <div className={styles.count}>
         <Badge variant={config.badgeVariant} size="sm">
-          {sortedRecords.length} {t(recordType) || recordType}
+          {sortedRecords.length} {t(`records.${recordType}`) || recordType}
         </Badge>
       </div>
 

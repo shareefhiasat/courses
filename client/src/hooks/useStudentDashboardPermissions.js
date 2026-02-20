@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useAuth } from '@contexts/AuthContext';
+import logger from '@utils/logger';
 
 /**
  * Resolves role-based permissions and data scoping for the Student Dashboard.
@@ -11,6 +12,18 @@ const useStudentDashboardPermissions = () => {
   const permissions = useMemo(() => {
     const isStudent = !isAdmin && !isInstructor && !isHR && !isSuperAdmin;
     const isStaff = isAdmin || isInstructor || isHR || isSuperAdmin;
+
+    // Debug: Log role detection
+    logger.log('[StudentDashboardPermissions] Role detection:', {
+      userUid: user?.uid,
+      userProfile,
+      isAdmin,
+      isInstructor,
+      isHR,
+      isSuperAdmin,
+      isStudent,
+      isStaff
+    });
 
     return {
       // Role flags

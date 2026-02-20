@@ -1,5 +1,6 @@
 import React from 'react';
 import styles from './Tabs.module.css';
+import logger from '@utils/logger';
 
 /**
  * Modern Tabs Component
@@ -13,6 +14,18 @@ const Tabs = ({
   size = 'md', // 'sm', 'md', 'lg'
   className = ''
 }) => {
+  // Debug: Log tab props and interactions
+  React.useEffect(() => {
+    logger.log('[Tabs] Tabs props:', { tabs, activeTab, variant, size, className });
+  }, [tabs, activeTab, variant, size, className]);
+
+  const handleTabClick = (tabValue) => {
+    logger.log('[Tabs] Tab clicked:', { tabValue, currentActiveTab: activeTab });
+    if (onTabChange && tabValue !== activeTab) {
+      onTabChange(tabValue);
+    }
+  };
+
   return (
     <div className={`${styles.tabsContainer} ${styles[variant]} ${styles[size]} ${className}`}>
       <div className={styles.tabsWrapper}>
@@ -22,7 +35,7 @@ const Tabs = ({
             <button
               key={tab.value || index}
               className={`${styles.tab} ${isActive ? styles.active : ''}`}
-              onClick={() => onTabChange?.(tab.value)}
+              onClick={() => handleTabClick(tab.value)}
               type="button"
             >
               {tab.icon && <span className={styles.tabIcon}>{tab.icon}</span>}

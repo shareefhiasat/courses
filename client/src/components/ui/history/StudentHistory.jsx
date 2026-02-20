@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { HistoryDayHeader } from './HistoryDayHeader';
 import { HistorySection } from './HistorySection';
 import { HistoryEntry } from './HistoryEntry';
@@ -6,6 +6,7 @@ import { AttendanceIcon, ParticipationIcon, ZapIcon, PenaltyIcon, CheckSmallIcon
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getAttendanceIcon, getAttendanceColor } from '@constants/attendanceTypes';
 import { formatLocalizedDate } from '@utils/date';
+import logger from '@utils/logger';
 
 const StudentHistory = React.memo(({ 
   groupedLogs, 

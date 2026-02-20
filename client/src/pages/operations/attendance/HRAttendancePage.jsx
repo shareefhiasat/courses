@@ -9,7 +9,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
-import { getAttendanceStats, getAttendanceMarksForExport } from '@services/business/attendanceService';
+import { getAttendanceStats, getAttendanceMarksForExport, getAllAttendanceSessions, updateAttendanceMark } from '@services/business/attendanceService';
 import { getUsers, getUserById } from '@services/business/userService';
 
 const HRAttendancePage = () => {
@@ -57,8 +57,8 @@ const HRAttendancePage = () => {
   const loadSessions = useCallback(async () => {
     const stopLoading = startLoading({ message: t('hr_attendance_loading_attendance_sessions') });
     try {
-      // Use attendance service to get attendance data
-      const attendanceResult = await getAttendanceStats();
+      // Use attendance service to get attendance sessions
+      const attendanceResult = await getAllAttendanceSessions();
       const data = attendanceResult.success ? attendanceResult.data.sessions || [] : [];
       
       // Simplified enrichment - just use classId as className for now
@@ -151,44 +151,48 @@ const HRAttendancePage = () => {
         }
       });
 
-      // Auto-close expired sessions
+      // Auto-close expired sessions using service function
       if (expiredSessions.length > 0) {
         await Promise.all(expiredSessions.map(async (sessionId) => {
           try {
-            await updateDoc(doc(db, 'attendanceSessions', sessionId), { status: 'closed' });
+            const { closeAttendanceSession } = await import('@services/business/attendanceService');
+            await closeAttendanceSession(sessionId);
           } catch (err) {
             console.warn('Failed to auto-close session:', err);
           }
         }));
-        // Reload and re-filter sessions after closing
-        const updatedSnap = await getDocs(collection(db, 'attendanceSessions'));
-        let updatedData = updatedSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Reload sessions after closing expired ones
+        const reloadResult = await getAllAttendanceSessions();
+        if (reloadResult.success) {
+          let updatedData = reloadResult.data.sessions || [];
         
-        // Re-enrich
-        const reEnriched = await Promise.all(updatedData.map(async (session) => {
-          try {
-            if (session.classId) {
-              const classDoc = await getDoc(doc(db, 'classes', session.classId));
-              if (classDoc.exists()) {
-                const classData = classDoc.data();
-                session.className = classData.name || classData.code || session.classId;
-                session.classTerm = classData.term;
-                session.classYear = classData.year;
+          // Re-enrich sessions with class and user data
+          const reEnriched = await Promise.all(updatedData.map(async (session) => {
+            try {
+              if (session.classId) {
+                const classResult = await getClasses();
+                if (classResult.success) {
+                  const classItem = classResult.data.find(c => (c.id || c.docId) === session.classId);
+                  if (classItem) {
+                    session.className = classItem.name || classItem.code || session.classId;
+                    session.classTerm = classItem.term;
+                    session.classYear = classItem.year;
+                  }
+                }
                 
                 if (session.createdBy) {
-                  const userDoc = await getDoc(doc(db, 'users', session.createdBy));
-                  if (userDoc.exists()) {
-                    const userData = userDoc.data();
+                  const userResult = await getUserById(session.createdBy);
+                  if (userResult.success) {
+                    const userData = userResult.data;
                     session.instructorName = userData.displayName || userData.email;
                   }
                 }
               }
+            } catch (err) {
+              logger.warn('Failed to enrich session:', err);
             }
-          } catch (err) {
-            logger.warn('Failed to enrich session:', err);
-          }
-          return session;
-        }));
+            return session;
+          }));
         
         filtered = reEnriched;
         
@@ -211,6 +215,7 @@ const HRAttendancePage = () => {
             return createdAt <= to;
           });
         }
+      }
       }
 
       // Sort by date desc
@@ -276,13 +281,10 @@ const HRAttendancePage = () => {
 
   const updateMarkStatus = async (sessionId, uid, newStatus, newReason, newFeedback) => {
     try {
-      await updateDoc(doc(db, 'attendanceSessions', sessionId, 'marks', uid), {
-        status: newStatus,
-        reason: newReason || null,
-        feedback: newFeedback || null,
-        updatedBy: user?.uid,
-        updatedAt: new Date()
-      });
+      const result = await updateAttendanceMark(sessionId, uid, newStatus, newReason, newFeedback, user?.uid);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
       // Reload marks
       await loadMarks(sessionId);
       setEditingMark(null);
@@ -350,7 +352,7 @@ const HRAttendancePage = () => {
   }
 
   // Add initial loading state
-  if (!initialDataLoaded && loading && sessions.length === 0 && classes.length === 0) {
+  if (!initialDataLoaded && authLoading && sessions.length === 0 && classes.length === 0) {
     return (
       <SimpleLoading 
         loading
@@ -512,7 +514,7 @@ const HRAttendancePage = () => {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
         <div style={{ flex: '1 1 300px', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12, maxHeight: 600, overflowY: 'auto' }}>
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>{t('sessions') || 'Sessions'} ({sessions.length})</div>
-          {!loading && sessions.length === 0 && <div style={{ padding: '0.75rem', textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>{t('no_sessions') || 'No sessions found'}</div>}
+          {initialDataLoaded && sessions.length === 0 && <div style={{ padding: '0.75rem', textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>{t('no_sessions') || 'No sessions found'}</div>}
           <div style={{ display: 'grid', gap: 6 }}>
             {sessions.map((session, idx) => {
               const className = session.className || classes.find(c => c.id === session.classId)?.name || session.classId;

@@ -79,7 +79,7 @@ const MarksTab = React.memo(({
   if (marks.length === 0) {
     return (
       <EmptyState
-        title={lang === 'ar' ? 'لا توجد درجات مسجلة' : 'No marks recorded yet'}
+        title={t('marks.no_marks_recorded') || (lang === 'ar' ? 'لا توجد درجات مسجلة' : 'No marks recorded yet')}
       />
     );
   }
@@ -92,12 +92,12 @@ const MarksTab = React.memo(({
           {getThemedIcon('ui', 'award', 24, theme)}
         </div>
         <div className={styles.gpaInfo}>
-          <span className={styles.gpaLabel}>{t('overall_gpa') || 'Overall GPA'}</span>
+          <span className={styles.gpaLabel}>{t('marks.overall_gpa') || 'Overall GPA'}</span>
           <span className={styles.gpaValue}>{statsData.gpa ?? '—'}</span>
         </div>
         <div className={styles.gpaDivider} />
         <div className={styles.gpaInfo}>
-          <span className={styles.gpaLabel}>{t('total_courses') || 'Total Courses'}</span>
+          <span className={styles.gpaLabel}>{t('marks.total_courses') || 'Total Courses'}</span>
           <span className={styles.gpaValue}>{marks.length}</span>
         </div>
       </div>
@@ -109,18 +109,18 @@ const MarksTab = React.memo(({
             <h3 className={styles.semesterLabel}>{group.label}</h3>
             {semesterGPAs[group.key] !== null && (
               <Badge variant="info" size="sm">
-                {t('gpa') || 'GPA'}: {semesterGPAs[group.key]}
+                {t('marks.gpa') || 'GPA'}: {semesterGPAs[group.key]}
               </Badge>
             )}
           </div>
 
           <div className={styles.marksTable}>
             <div className={styles.tableHeader}>
-              <span>{lang === 'ar' ? 'المقرر' : 'Course'}</span>
-              <span>{lang === 'ar' ? 'الدرجة الكلية' : 'Total Mark'}</span>
-              <span>{lang === 'ar' ? 'التقدير' : 'Grade'}</span>
-              <span>{lang === 'ar' ? 'النقاط' : 'Points'}</span>
-              <span>{lang === 'ar' ? 'الساعات' : 'Credits'}</span>
+              <span>{t('marks.course') || (lang === 'ar' ? 'المقرر' : 'Course')}</span>
+              <span>{t('marks.total_mark') || (lang === 'ar' ? 'الدرجة الكلية' : 'Total Mark')}</span>
+              <span>{t('marks.grade') || (lang === 'ar' ? 'التقدير' : 'Grade')}</span>
+              <span>{t('marks.points') || (lang === 'ar' ? 'النقاط' : 'Points')}</span>
+              <span>{t('marks.credits') || (lang === 'ar' ? 'الساعات' : 'Credits')}</span>
               {canNavigateToMarksEntry && <span></span>}
             </div>
 
@@ -151,7 +151,7 @@ const MarksTab = React.memo(({
                     variant="ghost"
                     size="sm"
                     onClick={() => handleNavigateToMarks(mark.classId)}
-                    title={lang === 'ar' ? 'إدخال الدرجات' : 'Enter Marks'}
+                    title={t('marks.enter_marks') || (lang === 'ar' ? 'إدخال الدرجات' : 'Enter Marks')}
                   >
                     {getThemedIcon('ui', 'edit', 14, theme)}
                   </Button>

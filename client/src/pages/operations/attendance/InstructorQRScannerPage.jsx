@@ -335,7 +335,7 @@ const InstructorQRScannerPage = () => {
       // Don't reset selections here - let the auto-selection logic handle it
       setGridLoading(false);
     }
-  }, [selectedProgramId, loadSubjects]);
+  }, [selectedProgramId]);
 
   // Load classes when subject changes
   useEffect(() => {

@@ -177,23 +177,44 @@ export const closeAttendanceSession = async (classId, sessionId) => {
 };
 
 /**
- * Finalize attendance session (close and calculate statistics)
- * @param {string} classId - Class ID
- * @param {string} sessionId - Session ID
- * @param {Object} finalData - Final session data
- * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
+ * Get all attendance sessions for HR dashboard
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const finalizeAttendanceSession = async (classId, sessionId, finalData) => {
+export const getAllAttendanceSessions = async () => {
   try {
-    await updateDoc(doc(db, 'classes', classId, 'sessions', sessionId), {
-      ...finalData,
-      status: 'finalized',
-      finalizedAt: serverTimestamp(),
+    const q = query(collection(db, 'attendanceSessions'), orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    
+    const sessions = querySnapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data() 
+    }));
+    
+    return { success: true, data: sessions };
+  } catch (error) {
+    logger.error('[AttendanceSessionsDbService] Error getting all attendance sessions:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Update attendance mark status
+ * @param {string} sessionId - Session ID
+ * @param {string} uid - User ID
+ * @param {Object} updateData - Update data
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const updateAttendanceMark = async (sessionId, uid, updateData) => {
+  try {
+    const markRef = doc(db, 'attendanceSessions', sessionId, 'marks', uid);
+    await updateDoc(markRef, {
+      ...updateData,
       updatedAt: serverTimestamp()
     });
+    
     return { success: true };
   } catch (error) {
-    logger.error('[AttendanceSessionsDbService] Error finalizing attendance session:', error);
+    logger.error('[AttendanceSessionsDbService] Error updating attendance mark:', error);
     return { success: false, error: error.message };
   }
 };

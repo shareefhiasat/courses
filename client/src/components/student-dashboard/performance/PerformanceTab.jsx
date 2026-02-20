@@ -79,7 +79,7 @@ const PerformanceTab = React.memo(({
   if (coursePerformance.length === 0) {
     return (
       <EmptyState
-        title={lang === 'ar' ? 'لا توجد بيانات أداء' : 'No performance data available'}
+        title={t('performance.no_data') || (lang === 'ar' ? 'لا توجد بيانات أداء' : 'No performance data available')}
       />
     );
   }
@@ -93,7 +93,7 @@ const PerformanceTab = React.memo(({
             {getThemedIcon('ui', 'award', 20, theme)}
           </div>
           <div className={styles.kpiInfo}>
-            <span className={styles.kpiLabel}>{t('overall_gpa') || 'Overall GPA'}</span>
+            <span className={styles.kpiLabel}>{t('performance.overall_gpa') || 'Overall GPA'}</span>
             <span className={styles.kpiValue}>{statsData.gpa ?? '—'}</span>
           </div>
         </div>
@@ -103,7 +103,7 @@ const PerformanceTab = React.memo(({
             {getThemedIcon('ui', 'check_circle', 20, theme)}
           </div>
           <div className={styles.kpiInfo}>
-            <span className={styles.kpiLabel}>{t('attendance_rate') || 'Attendance Rate'}</span>
+            <span className={styles.kpiLabel}>{t('performance.attendance_rate') || 'Attendance Rate'}</span>
             <span className={styles.kpiValue}>{statsData.attendanceRate ?? 0}%</span>
           </div>
         </div>
@@ -113,7 +113,7 @@ const PerformanceTab = React.memo(({
             {getThemedIcon('ui', 'zap', 20, theme)}
           </div>
           <div className={styles.kpiInfo}>
-            <span className={styles.kpiLabel}>{t('participations') || 'Participations'}</span>
+            <span className={styles.kpiLabel}>{t('performance.participations') || 'Participations'}</span>
             <span className={styles.kpiValue}>{statsData.participations ?? 0}</span>
           </div>
         </div>
@@ -123,7 +123,7 @@ const PerformanceTab = React.memo(({
             {getThemedIcon('ui', 'trending_up', 20, theme)}
           </div>
           <div className={styles.kpiInfo}>
-            <span className={styles.kpiLabel}>{t('net_score') || 'Net Score'}</span>
+            <span className={styles.kpiLabel}>{t('performance.net_score') || 'Net Score'}</span>
             <span className={styles.kpiValue}>
               {statsData.netScore >= 0 ? '+' : ''}{statsData.netScore ?? 0}
             </span>
@@ -134,7 +134,7 @@ const PerformanceTab = React.memo(({
       {/* Per-course breakdown */}
       <div className={styles.sectionTitle}>
         {getThemedIcon('ui', 'bar_chart_2', 16, theme)}
-        <span>{t('course_breakdown') || 'Course Breakdown'}</span>
+        <span>{t('performance.course_breakdown') || 'Course Breakdown'}</span>
       </div>
 
       <div className={styles.courseList}>

@@ -146,6 +146,18 @@ export default function StudentDashboardPage() {
       dashData.enrollments?.length, dashData.attendance?.length, dashData.penalties?.length, 
       dashData.behaviors?.length, filters.students.length, filters.filteredStudents.length, studentUsers.length]);
 
+  // Debug: Log tab changes
+  useEffect(() => {
+    logger.log('[StudentDashboardPage] Tab state:', {
+      activeTab,
+      showSelectionPrompt,
+      dashDataLoading: dashData.loading,
+      dashDataError: dashData.error,
+      classMetricsLoading: classMetrics.loading,
+      classMetricsError: classMetrics.error
+    });
+  }, [activeTab, showSelectionPrompt, dashData.loading, dashData.error, classMetrics.loading, classMetrics.error]);
+
   // ─── Global loading ────────────────────────────────────────────────────────
   useLayoutEffect(() => {
     if (authLoading || !user) return;
@@ -212,13 +224,13 @@ export default function StudentDashboardPage() {
 
   // ─── Memoized tabs configuration (Performance optimization) ─────────────────────
   const dashTabs = useMemo(() => [
-    { id: 'overview',      label: t('dashboard.overview') || (lang === 'ar' ? 'نظرة عامة'   : 'Overview') },
-    { id: 'attendance',    label: t('dashboard.attendance') || (lang === 'ar' ? 'الحضور'       : 'Attendance') },
-    { id: 'marks',         label: t('dashboard.marks') || (lang === 'ar' ? 'الدرجات'      : 'Marks') },
-    { id: 'performance',   label: t('dashboard.performance') || (lang === 'ar' ? 'الأداء'       : 'Performance') },
-    { id: 'penalties',     label: t('dashboard.penalties') || (lang === 'ar' ? 'العقوبات'     : 'Penalties') },
-    { id: 'participations',label: t('dashboard.participations') || (lang === 'ar' ? 'المشاركات'    : 'Participations') },
-    { id: 'behaviors',     label: t('dashboard.behaviors') || (lang === 'ar' ? 'السلوك'       : 'Behaviors') },
+    { value: 'overview',      label: t('dashboard.overview') || (lang === 'ar' ? 'نظرة عامة'   : 'Overview') },
+    { value: 'attendance',    label: t('dashboard.attendance') || (lang === 'ar' ? 'الحضور'       : 'Attendance') },
+    { value: 'marks',         label: t('dashboard.marks') || (lang === 'ar' ? 'الدرجات'      : 'Marks') },
+    { value: 'performance',   label: t('dashboard.performance') || (lang === 'ar' ? 'الأداء'       : 'Performance') },
+    { value: 'penalties',     label: t('dashboard.penalties') || (lang === 'ar' ? 'العقوبات'     : 'Penalties') },
+    { value: 'participations',label: t('dashboard.participations') || (lang === 'ar' ? 'المشاركات'    : 'Participations') },
+    { value: 'behaviors',     label: t('dashboard.behaviors') || (lang === 'ar' ? 'السلوك'       : 'Behaviors') },
   ], [lang, t]);
 
   if (authLoading) return <GlobalLoadingFallback />;

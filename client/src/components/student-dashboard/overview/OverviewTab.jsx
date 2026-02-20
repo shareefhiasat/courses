@@ -76,7 +76,7 @@ const OverviewTab = React.memo(({
       return Array.from(termMap.values());
     }
     // Default: class (flat list as single group)
-    return [{ key: 'all', label: lang === 'ar' ? 'كل المقررات' : 'All Courses', items: classSummaries }];
+    return [{ key: 'all', label: t('overview.all_courses') || (lang === 'ar' ? 'كل المقررات' : 'All Courses'), items: classSummaries }];
   }, [classSummaries, grouping, lang]);
 
   const handleClassClick = useCallback((cls) => {
@@ -86,7 +86,7 @@ const OverviewTab = React.memo(({
   if (classSummaries.length === 0) {
     return (
       <EmptyState
-        title={lang === 'ar' ? 'لا توجد مقررات مسجلة' : 'No enrolled courses found'}
+        title={t('overview.no_courses_found') || (lang === 'ar' ? 'لا توجد مقررات مسجلة' : 'No enrolled courses found')}
       />
     );
   }
@@ -100,7 +100,7 @@ const OverviewTab = React.memo(({
             type="button"
             className={`${styles.toggleBtn} ${viewMode === 'card' ? styles.active : ''}`}
             onClick={() => setViewMode('card')}
-            title={lang === 'ar' ? 'عرض البطاقات' : 'Card View'}
+            title={t('overview.card_view') || (lang === 'ar' ? 'عرض البطاقات' : 'Card View')}
           >
             {getThemedIcon('ui', 'grid', 16, theme)}
           </button>
@@ -108,7 +108,7 @@ const OverviewTab = React.memo(({
             type="button"
             className={`${styles.toggleBtn} ${viewMode === 'list' ? styles.active : ''}`}
             onClick={() => setViewMode('list')}
-            title={lang === 'ar' ? 'عرض القائمة' : 'List View'}
+            title={t('overview.list_view') || (lang === 'ar' ? 'عرض القائمة' : 'List View')}
           >
             {getThemedIcon('ui', 'list', 16, theme)}
           </button>
@@ -142,10 +142,10 @@ const OverviewTab = React.memo(({
           ) : (
             <div className={styles.listView}>
               <div className={styles.listHeader}>
-                <span>{lang === 'ar' ? 'المقرر' : 'Course'}</span>
-                <span>{lang === 'ar' ? 'الحضور' : 'Attendance'}</span>
-                <span>{lang === 'ar' ? 'المعدل' : 'GPA'}</span>
-                <span>{lang === 'ar' ? 'الدرجة' : 'Grade'}</span>
+                <span>{t('overview.course') || (lang === 'ar' ? 'المقرر' : 'Course')}</span>
+                <span>{t('overview.attendance') || (lang === 'ar' ? 'الحضور' : 'Attendance')}</span>
+                <span>{t('overview.gpa') || (lang === 'ar' ? 'المعدل' : 'GPA')}</span>
+                <span>{t('overview.grade') || (lang === 'ar' ? 'الدرجة' : 'Grade')}</span>
                 <span></span>
               </div>
               {group.items.map(cls => (
@@ -168,7 +168,7 @@ const OverviewTab = React.memo(({
                     size="sm"
                     onClick={() => handleClassClick(cls)}
                   >
-                    {lang === 'ar' ? 'عرض' : 'View'}
+                    {t('overview.view') || (lang === 'ar' ? 'عرض' : 'View')}
                   </Button>
                 </div>
               ))}

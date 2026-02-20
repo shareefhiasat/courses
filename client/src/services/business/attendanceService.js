@@ -497,6 +497,60 @@ export async function scanAttendance(payload) {
 }
 
 /**
+ * Get all attendance sessions for HR dashboard
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getAllAttendanceSessions = async () => {
+  try {
+    const { getAllAttendanceSessions: getAllSessionsFromDb } = await import('../db/attendanceSessionsDbService');
+    const result = await getAllSessionsFromDb();
+    
+    if (result.success) {
+      return { success: true, data: { sessions: result.data } };
+    } else {
+      return { success: false, error: result.error };
+    }
+  } catch (error) {
+    logger.error('Error getting all attendance sessions:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Update attendance mark status
+ * @param {string} sessionId - Session ID
+ * @param {string} uid - User ID
+ * @param {string} status - New status
+ * @param {string} reason - Reason for status change
+ * @param {string} feedback - Feedback
+ * @param {string} updatedBy - User who made the update
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const updateAttendanceMark = async (sessionId, uid, status, reason = null, feedback = null, updatedBy = null) => {
+  try {
+    const { updateAttendanceMark: updateMarkFromDb } = await import('../db/attendanceSessionsDbService');
+    
+    const updateData = {
+      status,
+      reason: reason || null,
+      feedback: feedback || null,
+      updatedBy
+    };
+    
+    const result = await updateMarkFromDb(sessionId, uid, updateData);
+    
+    if (result.success) {
+      return { success: true };
+    } else {
+      return { success: false, error: result.error };
+    }
+  } catch (error) {
+    logger.error('Error updating attendance mark:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Generate simple device hash for attendance tracking
  * @returns {string} Device hash
  */
