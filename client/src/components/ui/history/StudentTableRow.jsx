@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@ui';
 import { Star, ChevronDown, ChevronRight, Trash2, SidebarOpen, QrCode, Mail, ExternalLink, Users, Trophy, AlertCircle } from 'lucide-react';
@@ -490,9 +490,10 @@ const StudentTableRow = ({
               size="icon"
               onClick={async (e) => {
                 e.stopPropagation();
-                // Navigate to QR code display page with student number
+                // Navigate to QR code display page with student number in new tab
                 const studentNumber = student.studentNumber || student.id;
-                navigate(`/qrcode/${studentNumber}`);
+                const qrUrl = `/qrcode/${studentNumber}`;
+                window.open(qrUrl, '_blank');
               }}
               title={t('open_qr_code')}
             >

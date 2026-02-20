@@ -65,8 +65,9 @@ const StudentCard = ({
 
   const handleQRNavigate = useCallback((e) => {
     e.stopPropagation();
-    navigate(`/qrcode/${student.studentNumber || student.id}`);
-  }, [navigate, student.studentNumber, student.id]);
+    const qrUrl = `/qrcode/${student.studentNumber || student.id}`;
+    window.open(qrUrl, '_blank');
+  }, [student.studentNumber, student.id]);
 
   return (
     <div
