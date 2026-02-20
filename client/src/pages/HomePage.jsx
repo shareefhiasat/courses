@@ -19,6 +19,7 @@ import { formatDateTime } from '@utils/date';
 import { SUBMISSION_STATUS, TASK_STATUS, getStatusLabel, MODE_TYPES, RESOURCE_TYPES, RECORD_TYPES } from '@utils/sharedTypes';
 import { ACTIVITY_TYPES } from '@constants/activityTypes';
 import { DIFFICULTY_TYPES } from '@constants/difficultyTypes';
+import { USER_ROLES, isAdmin as isAdminRole } from '@constants/userRoles';
 import { useFilterCounts } from '@hooks/useFilterCounts';
 import { getActivityTypeConfig } from '@constants/activityTypes';
 import { getDifficultyConfig } from '@constants/difficultyTypes';
@@ -204,15 +205,26 @@ const HomePage = memo(() => {
 
   // Load data function (defined before useEffect that uses it)
   const loadData = useCallback(async (stopGlobalLoading) => {
+    console.log('[HomePage] loadData called - about to fetch resources');
     try {
+      logger.debug('[HomePage] Starting loadData - calling all services...');
+      
       const [activitiesResult, resourcesResult, quizzesResult, announcementsResult, coursesResult, categoriesResult] = await Promise.all([
         getActivities(),
-        getResources(),
+        getResources().then(result => {
+        console.log('[HomePage] getResources result:', result);
+        return result;
+      }).catch(err => {
+        console.error('[HomePage] getResources FAILED:', err);
+        return { success: false, error: err.message, data: [] };
+      }),
         getAllQuizzes(),
         getAnnouncements(),
         getCourses(),
         getCategories()
       ]);
+
+      logger.debug('[HomePage] Promise.all completed, checking results...');
 
       if (activitiesResult.success) {
         setActivities(activitiesResult.data || []);
@@ -231,8 +243,28 @@ const HomePage = memo(() => {
           optional: a.optional,
           dueDate: a.dueDate
         })));
+        
+        // Debug: Check what activity types we're looking for vs what we have
+        logger.debug('[HomePage] Looking for activity types:', {
+          QUIZ: ACTIVITY_TYPES.QUIZ,
+          HOMEWORK: ACTIVITY_TYPES.HOMEWORK, 
+          TRAINING: ACTIVITY_TYPES.TRAINING,
+          LAB_AND_PROJECT: ACTIVITY_TYPES.LAB_AND_PROJECT
+        });
       }
-      if (resourcesResult.success) setResources(resourcesResult.data || []);
+      if (resourcesResult.success) {
+        logger.debug('[HomePage] Resources loaded from service:', {
+          success: resourcesResult.success,
+          dataLength: resourcesResult.data?.length || 0,
+          data: resourcesResult.data
+        });
+        console.log('[HomePage] Resources data received:', resourcesResult.data);
+        setResources(resourcesResult.data || []);
+      } else {
+        logger.warn('[HomePage] Resources service failed:', resourcesResult.error);
+        console.log('[HomePage] Resources service failed:', resourcesResult.error);
+        setResources([]);
+      }
       if (quizzesResult.success) setQuizzes(quizzesResult.data || []);
       if (announcementsResult.success) {
         setAnnouncements(announcementsResult.data || []);
@@ -250,8 +282,11 @@ const HomePage = memo(() => {
 
   // Load user data with global loading to prevent flicker
   useLayoutEffect(() => {
+    logger.debug('[HomePage] useLayoutEffect running:', { authLoading, user: !!user });
+    
     if (authLoading) return;
     if (!user) {
+      logger.debug('[HomePage] No user, clearing all data');
       setActivities([]);
       setResources([]);
       setQuizzes([]);
@@ -260,6 +295,7 @@ const HomePage = memo(() => {
       return;
     }
 
+    logger.debug('[HomePage] User exists, calling loadData');
     let stopped = false;
     const stopGlobalLoading = startLoading();
     const safeStop = () => {
@@ -307,16 +343,49 @@ const HomePage = memo(() => {
 
   // Get current items based on mode and activity type
   const getCurrentItems = useCallback(() => {
-    if (mode === RECORD_TYPES.RESOURCE) {
-      // Filter resources by category
-      return resources.filter(r => 
-        category === '' || (r.docId || r.category || 'general') === category
+    // Helper function to check if user can access item based on class
+    const canUserAccessItem = (item) => {
+      // HR and Admin roles can see all items
+      if (isAdminRole(user?.role)) return true;
+      
+      // Public items (no program/subject/class assignments) are visible to all logged-in users
+      if (!item.programId && !item.subjectId && !item.classId) return true;
+      
+      // If item has no classId, it's public/available to all
+      if (!item.classId) return true;
+      
+      // Students and instructors can only see items from their enrolled classes
+      return enrolledClasses.includes(item.classId);
+    };
+    
+    if (mode === MODE_TYPES.RESOURCES) {
+      // Filter resources by category and class access
+      const filteredResources = resources.filter(r => 
+        (category === '' || (r.category || '') === category) &&
+        canUserAccessItem(r)
       );
+      console.log('[HomePage] Resources filtering:', {
+        totalResources: resources.length,
+        category,
+        filteredCount: filteredResources.length,
+        resourcesSample: resources.slice(0, 3),
+        isAdmin: isAdminRole(user?.role),
+        enrolledClasses,
+        canAccessSample: resources.slice(0, 3).map(r => ({
+          id: r.docId || r.id,
+          title: r.title_en || r.title,
+          classId: r.classId,
+          category: r.category,
+          categoryCheck: (r.category || '') === category,
+          canAccess: canUserAccessItem(r)
+        }))
+      });
+      return filteredResources;
     }
     
     // Handle announcements mode
     if (mode === MODE_TYPES.ANNOUNCEMENTS) {
-      return announcements;
+      return announcements.filter(canUserAccessItem);
     }
     
     // Handle activities mode with activity type and category filtering
@@ -328,40 +397,88 @@ const HomePage = memo(() => {
         filtered = activities.filter(a => 
           a.type === ACTIVITY_TYPES.QUIZ &&
           a.show !== false && 
-          (!a.classId || enrolledClasses.includes(a.classId)) &&
+          canUserAccessItem(a) &&
           (category === '' || (a.course || 'general') === category)
         );
       } else if (activityType === 'all') {
         // Show all activities when activity type is all, filtered by category
         filtered = activities.filter(a => 
           a.show !== false && 
-          (!a.classId || enrolledClasses.includes(a.classId)) &&
+          canUserAccessItem(a) &&
           (category === '' || (a.course || 'general') === category)
         );
       } else {
-        // Show filtered activities by type (homework, training, labandproject), also filtered by category
-        filtered = activities.filter(a => 
+        // For other activity types (training, homework, labandproject), show all activities if specific type is empty
+        const specificTypeActivities = activities.filter(a => 
           a.type === activityType && 
           a.show !== false && 
-          (!a.classId || enrolledClasses.includes(a.classId)) &&
+          canUserAccessItem(a) &&
           (category === '' || (a.course || 'general') === category)
         );
+        
+        // If no activities of this specific type, show all activities
+        if (specificTypeActivities.length === 0) {
+          filtered = activities.filter(a => 
+            a.show !== false && 
+            canUserAccessItem(a) &&
+            (category === '' || (a.course || 'general') === category)
+          );
+        } else {
+          filtered = specificTypeActivities;
+        }
       }
       
       return filtered;
     }
     
     return [];
-  }, [mode, activityType, category, activities, resources, quizzes, announcements, enrolledClasses]);
+  }, [mode, activityType, category, activities, resources, quizzes, announcements, enrolledClasses, user]);
+
+  // Debug: Log when resources state changes
+  useEffect(() => {
+    console.log('[HomePage] Resources state updated:', {
+      resourcesLength: resources.length,
+      resourcesSample: resources.slice(0, 2),
+      mode
+    });
+  }, [resources, mode]);
 
   // Filter items based on mode and filters
   const filteredItems = useMemo(() => {
     const items = getCurrentItems();
     let filtered = [...items];
 
+    console.log('[HomePage] FILTERING START:', {
+      mode,
+      activityType,
+      category,
+      searchTerm: `'${searchTerm}'`,
+      bookmarkFilter,
+      difficultyFilter,
+      completedFilter,
+      requiredFilter,
+      optionalFilter,
+      overdueFilter,
+      pendingFilter,
+      retakableFilter,
+      featuredFilter,
+      gradedFilter,
+      resourceTypeFilter,
+      classFilter,
+      getCurrentItemsLength: items.length,
+      initialFilteredLength: filtered.length,
+      itemsSample: items.slice(0, 3).map(item => ({
+        id: item.docId || item.id,
+        title: item.title_en || item.title,
+        type: item.type,
+        classId: item.classId
+      }))
+    });
+
     // Common: Search
     if (searchTerm.trim()) {
       const q = searchTerm.trim().toLowerCase();
+      const beforeSearch = filtered.length;
       filtered = filtered.filter(item => {
         // Handle quizzes in activities mode
         if (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) {
@@ -371,7 +488,7 @@ const HomePage = memo(() => {
           const descAr = (item.description_ar || '').toLowerCase();
           return titleEn.includes(q) || titleAr.includes(q) || descEn.includes(q) || descAr.includes(q);
         }
-        if (mode === RECORD_TYPES.RESOURCE) {
+        if (mode === MODE_TYPES.RESOURCES) {
           const titleEn = (item.title_en || item.title || '').toLowerCase();
           const titleAr = (item.title_ar || '').toLowerCase();
           const descEn = (item.description_en || item.description || '').toLowerCase();
@@ -392,10 +509,12 @@ const HomePage = memo(() => {
         const descAr = (item.description_ar || '').toLowerCase();
         return titleEn.includes(q) || titleAr.includes(q) || descEn.includes(q) || descAr.includes(q);
       });
+      console.log('[HomePage] AFTER SEARCH FILTER:', { beforeSearch, afterSearch: filtered.length });
     }
 
     // Common: Bookmark
     if (bookmarkFilter) {
+      const beforeBookmark = filtered.length;
       filtered = filtered.filter(item => {
         const id = item.docId || item.id;
         // Handle quizzes in activities mode
@@ -404,6 +523,7 @@ const HomePage = memo(() => {
         }
         return !!bookmarks[mode]?.[id];
       });
+      console.log('[HomePage] AFTER BOOKMARK FILTER:', { beforeBookmark, afterBookmark: filtered.length });
     }
 
     // Common: Difficulty
@@ -418,7 +538,7 @@ const HomePage = memo(() => {
     if (completedFilter) {
       filtered = filtered.filter(item => {
         const id = item.docId || item.id;
-        if (mode === RECORD_TYPES.RESOURCE) {
+        if (mode === MODE_TYPES.RESOURCES) {
           return userProgress[id]?.completed;
         }
         if (mode === MODE_TYPES.ACTIVITIES) {
@@ -454,7 +574,7 @@ const HomePage = memo(() => {
         const id = item.docId || item.id;
         let isCompleted = false;
         
-        if (mode === RECORD_TYPES.RESOURCE) {
+        if (mode === MODE_TYPES.RESOURCES) {
           isCompleted = userProgress[id]?.completed;
         } else if (mode === MODE_TYPES.ACTIVITIES) {
           if (activityType === ACTIVITY_TYPES.QUIZ) {
@@ -475,7 +595,7 @@ const HomePage = memo(() => {
     if (pendingFilter) {
       filtered = filtered.filter(item => {
         const id = item.docId || item.id;
-        if (mode === RECORD_TYPES.RESOURCE) {
+        if (mode === MODE_TYPES.RESOURCES) {
           return !userProgress[id]?.completed;
         }
         if (mode === MODE_TYPES.ACTIVITIES) {
@@ -531,6 +651,16 @@ const HomePage = memo(() => {
       const aDate = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt || 0).getTime();
       const bDate = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt || 0).getTime();
       return (bDate || 0) - (aDate || 0);
+    });
+
+    logger.debug('[HomePage] Final filteredItems result:', {
+      finalLength: filtered.length,
+      finalItemsSample: filtered.slice(0, 3).map(item => ({
+        id: item.docId || item.id,
+        title: item.title_en || item.title,
+        type: item.type,
+        classId: item.classId
+      }))
     });
 
     return filtered;
@@ -609,7 +739,7 @@ const HomePage = memo(() => {
           }))
         });
       }
-    } else if (mode === RECORD_TYPES.RESOURCE) {
+    } else if (mode === MODE_TYPES.RESOURCES) {
       itemsToCount = resources;
     } else if (mode === MODE_TYPES.ANNOUNCEMENTS) {
       itemsToCount = announcements;
@@ -667,12 +797,51 @@ const HomePage = memo(() => {
 
   // Calculate counts for each mode
   const modeCounts = useMemo(() => {
-    return {
-      activities: getCurrentItems().length,
-      resources: resources.length,
-      announcements: announcements.length
+    // Helper function to check if user can access item based on class
+    const canUserAccessItem = (item) => {
+      // HR and Admin roles can see all items
+      if (isAdminRole(user?.role)) return true;
+      
+      // If item has no classId, it's public/available to all
+      if (!item.classId) return true;
+      
+      // Students and instructors can only see items from their enrolled classes
+      return enrolledClasses.includes(item.classId);
     };
-  }, [getCurrentItems, resources, announcements]);
+    
+    // Calculate activities count with class-based filtering
+    const activitiesCount = activities.filter(a => 
+      a.show !== false && 
+      canUserAccessItem(a) &&
+      (category === '' || (a.course || 'general') === category)
+    ).length;
+    
+    // Calculate resources count with class-based filtering
+    const resourcesCount = resources.filter(canUserAccessItem).length;
+    
+    // Calculate announcements count with class-based filtering
+    const announcementsCount = announcements.filter(canUserAccessItem).length;
+    
+    // Debug logging for resources
+    logger.debug('[HomePage] Mode counts debug:', {
+      isAdmin,
+      enrolledClasses,
+      totalResources: resources.length,
+      filteredResources: resourcesCount,
+      resourcesSample: resources.slice(0, 3).map(r => ({
+        id: r.docId || r.id,
+        title: r.title_en || r.title,
+        classId: r.classId,
+        canAccess: canUserAccessItem(r)
+      }))
+    });
+    
+    return {
+      activities: activitiesCount,
+      resources: resourcesCount,
+      announcements: announcementsCount
+    };
+  }, [activities, resources, announcements, enrolledClasses, category, user]);
 
   // Calculate counts for each activity type
   const activityTypeCounts = useMemo(() => {
@@ -681,23 +850,47 @@ const HomePage = memo(() => {
       (!a.classId || enrolledClasses.includes(a.classId))
     );
     
+    const quizActivities = allActivities.filter(a => a.type === ACTIVITY_TYPES.QUIZ);
+    const homeworkActivities = allActivities.filter(a => a.type === ACTIVITY_TYPES.HOMEWORK);
+    const trainingActivities = allActivities.filter(a => a.type === ACTIVITY_TYPES.TRAINING);
+    const labProjectActivities = allActivities.filter(a => a.type === ACTIVITY_TYPES.LAB_AND_PROJECT);
+    
     return {
       all: allActivities.length,
-      quiz: allActivities.filter(a => a.type === ACTIVITY_TYPES.QUIZ).length,
-      homework: allActivities.filter(a => a.type === ACTIVITY_TYPES.HOMEWORK).length,
-      training: allActivities.filter(a => a.type === ACTIVITY_TYPES.TRAINING).length,
-      labandproject: allActivities.filter(a => a.type === ACTIVITY_TYPES.LAB_AND_PROJECT).length
+      quiz: quizActivities.length,
+      homework: homeworkActivities.length,
+      training: trainingActivities.length,
+      labandproject: labProjectActivities.length
     };
   }, [activities, enrolledClasses]);
 
-  // Calculate filter counts using the hook
-  const hookFilterCounts = useFilterCounts(getCurrentItems(), {
-    mode,
-    activityType,
-    userProgress,
-    submissions,
-    bookmarks // Add bookmarks to the hook
-  });
+  // Calculate filter counts using the hook - use activity-specific items for proper counts
+  const hookFilterCounts = useFilterCounts(
+    mode === MODE_TYPES.ACTIVITIES && activityType !== 'all' 
+      ? (() => {
+          const specificTypeActivities = activities.filter(a => 
+            a.type === activityType && 
+            a.show !== false && 
+            (!a.classId || enrolledClasses.includes(a.classId))
+          );
+          
+          // If no activities of this specific type, use all activities
+          return specificTypeActivities.length === 0 
+            ? activities.filter(a => 
+                a.show !== false && 
+                (!a.classId || enrolledClasses.includes(a.classId))
+              )
+            : specificTypeActivities;
+        })()
+      : getCurrentItems(),
+    {
+      mode,
+      activityType,
+      userProgress,
+      submissions,
+      bookmarks // Add bookmarks to the hook
+    }
+  );
 
   // Calculate comprehensive stats using the same hook as ReviewResultsPage
   const stats = useMemo(() => {
@@ -793,6 +986,7 @@ const HomePage = memo(() => {
 
   return (
     <div className="home-page" data-theme={theme} style={{ padding: '0rem 0', position: 'relative' }}>
+      {console.log('[HomePage] RENDERING - mode:', mode, 'filteredItems.length:', filteredItems.length)}
       <div className="content-section" style={{ position: 'relative' }}>
         {/* Mode Switcher - Using Tabs component */}
         <div data-tour="mode-switcher" style={{ marginBottom: '0.05rem' }}>
@@ -1044,7 +1238,7 @@ const HomePage = memo(() => {
                 let isBookmarked = false;
                 let dueDate = null;
 
-                if (mode === RECORD_TYPES.RESOURCE) {
+                if (mode === MODE_TYPES.RESOURCES) {
                   isCompleted = userProgress[itemId]?.completed || false;
                   completedAt = userProgress[itemId]?.completedAt;
                   isBookmarked = !!bookmarks.resources[itemId];
@@ -1091,7 +1285,7 @@ const HomePage = memo(() => {
                     return (
                       <UnifiedCard
                         key={itemId}
-                        flavor={mode === MODE_TYPES.ACTIVITIES ? RECORD_TYPES.ACTIVITY : (mode === 'resources' ? RECORD_TYPES.RESOURCE : (mode === MODE_TYPES.ANNOUNCEMENTS ? RECORD_TYPES.ANNOUNCEMENT : mode))}
+                        flavor={mode === MODE_TYPES.ACTIVITIES ? RECORD_TYPES.ACTIVITY : (mode === MODE_TYPES.RESOURCES ? RECORD_TYPES.RESOURCE : (mode === MODE_TYPES.ANNOUNCEMENTS ? RECORD_TYPES.ANNOUNCEMENT : mode))}
                         item={item}
                         isCompleted={isCompleted}
                         completedAt={completedAt}
@@ -1103,7 +1297,7 @@ const HomePage = memo(() => {
                         showStartButton={
                           (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) ||
                           (mode === MODE_TYPES.ACTIVITIES) ||
-                          (mode === 'resources' && (item.type === 'link' || item.type === 'video') && item.url) ||
+                          (mode === MODE_TYPES.RESOURCES && (item.type === 'link' || item.type === 'video') && item.url) ||
                           (mode === MODE_TYPES.ANNOUNCEMENTS)
                         }
                         onStart={() => {
@@ -1114,13 +1308,13 @@ const HomePage = memo(() => {
                               itemTitle: item.title_en || item.title,
                               featured: item.featured,
                               dueDate: item.dueDate,
-                              flavor: mode === MODE_TYPES.ACTIVITIES ? RECORD_TYPES.ACTIVITY : (mode === 'resources' ? RECORD_TYPES.RESOURCE : (mode === MODE_TYPES.ANNOUNCEMENTS ? RECORD_TYPES.ANNOUNCEMENT : mode))
+                              flavor: mode === MODE_TYPES.ACTIVITIES ? RECORD_TYPES.ACTIVITY : (mode === MODE_TYPES.RESOURCES ? RECORD_TYPES.RESOURCE : (mode === MODE_TYPES.ANNOUNCEMENTS ? RECORD_TYPES.ANNOUNCEMENT : mode))
                             });
                           }
                           // Handle start logic based on mode and type
                           if (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) {
                             navigate(`/quiz/${itemId}`);
-                          } else if (mode === RECORD_TYPES.RESOURCE) {
+                          } else if (mode === MODE_TYPES.RESOURCES) {
                             if (item.type === 'link' && item.url) {
                               window.open(item.url, '_blank');
                             } else if (item.type === 'video' && item.url) {
@@ -1144,7 +1338,7 @@ const HomePage = memo(() => {
                             isCompleted,
                             itemId: item.docId || item.id
                           });
-                          if (mode === RECORD_TYPES.RESOURCE) {
+                          if (mode === MODE_TYPES.RESOURCES) {
                             handleResourceComplete(itemId);
                           } else {
                             // Handle activity completion

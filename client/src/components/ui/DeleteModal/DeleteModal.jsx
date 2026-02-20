@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Button, Modal } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getDeleteMessage, getDeleteTitle, createDeleteModalState, resetDeleteModalState } from '@utils/deleteMessages';
+import logger from '@utils/logger';
 
 /**
  * Unified DeleteModal Component

@@ -83,7 +83,7 @@ const ResourcesPage = () => {
   
   const [editingResource, setEditingResource] = useState(null);
   const [resourceEmailOptions, setResourceEmailOptions] = useState({ sendEmail: false, createAnnouncement: false });
-  const { deleteModal, deleteResource: deleteResourceModal, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+  const { deleteModal, showDeleteModal, hideDeleteModal } = useDeleteModal(t);
   
   // Refs for text inputs — avoids re-rendering on every keystroke
   const titleEnRef = useRef(null);
@@ -156,6 +156,65 @@ const ResourcesPage = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const [resourceToDelete, setResourceToDelete] = useState(null);
+
+  // Custom delete confirmation handler
+  const handleDeleteConfirm = useCallback(async () => {
+    // Get the resource from state
+    const resource = resourceToDelete;
+    
+    // Safety check to ensure resource exists
+    if (!resource || !(resource.docId || resource.id)) {
+      logger.error('Invalid resource provided to handleDeleteConfirm:', resource);
+      toast?.showError(t('resources_error_deleting', { error: 'Invalid resource' }));
+      hideDeleteModal();
+      setResourceToDelete(null);
+      return;
+    }
+    
+    const resourceId = resource.docId || resource.id;
+    
+    // Optimistic update
+    setResources(prev => prev.filter(r => (r.docId || r.id) !== resourceId));
+    
+    try {
+      const result = await deleteResource(resourceId);
+      if (result.success) {
+        try {
+          await logActivity(ACTIVITY_LOG_TYPES.RESOURCE_DELETED, {
+            resourceId,
+            resourceTitle: resource.title,
+            resourceType: resource.type
+          });
+        } catch (e) { logger.warn('Failed to log activity:', e); }
+        toast?.showSuccess(t('resources_deleted_successfully'));
+        await loadData();
+      } else {
+        // Rollback on error
+        setResources(prev => [...prev, resource]);
+        toast?.showError(t('resources_error_deleting', { error: result.error }));
+      }
+    } catch (error) {
+      // Rollback on error
+      setResources(prev => [...prev, resource]);
+      logger.error('Error deleting resource:', error);
+      toast?.showError(t('resources_error_deleting', { error: error.message }));
+    } finally {
+      // Clean up
+      hideDeleteModal();
+      setResourceToDelete(null);
+    }
+  }, [resourceToDelete, toast, loadData, t, hideDeleteModal]);
+  
+  const handleDelete = useCallback((params) => {
+    const resource = params.row;
+    const resourceName = resource.title_en || resource.title || resource.name || 'this resource';
+    
+    // Store the resource to delete in state
+    setResourceToDelete(resource);
+    showDeleteModal('resource', resourceName, handleDeleteConfirm);
+  }, [showDeleteModal, handleDeleteConfirm]);
 
   const handleDropdownChange = useCallback((setter, field, resetFields = []) => {
     return (value) => {
@@ -305,38 +364,6 @@ const ResourcesPage = () => {
       categoryId: params.row.categoryId || ''
     });
   }, []);
-
-  const handleDelete = useCallback((params) => {
-    const resource = params.row;
-    deleteResourceModal(resource, async () => {
-      // Optimistic update
-      setResources(prev => prev.filter(r => (r.docId || r.id) !== (resource.docId || resource.id)));
-      
-      try {
-        const result = await deleteResource(resource.docId);
-        if (result.success) {
-          try {
-            await logActivity(ACTIVITY_LOG_TYPES.RESOURCE_DELETED, {
-              resourceId: resource.docId,
-              resourceTitle: resource.title,
-              resourceType: resource.type
-            });
-          } catch (e) { logger.warn('Failed to log activity:', e); }
-          toast?.showSuccess(t('resources_deleted_successfully'));
-          await loadData();
-        } else {
-          // Rollback on error
-          setResources(prev => [...prev, resource]);
-          toast?.showError(t('resources_error_deleting', { error: result.error }));
-        }
-      } catch (error) {
-        // Rollback on error
-        setResources(prev => [...prev, resource]);
-        logger.error('Error deleting resource:', error);
-        toast?.showError(t('resources_error_deleting', { error: error.message }));
-      }
-    });
-  }, [deleteResourceModal, toast, loadData, t]);
 
   const handleCancelEdit = useCallback(() => {
     setEditingResource(null);
