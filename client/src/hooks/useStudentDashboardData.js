@@ -98,6 +98,18 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true) => {
       }
 
       setRawData({ enrollments, attendance, penalties, participations, behaviors, marks, activities, submissions, quizResults });
+      
+      logger.log('[StudentDashboardData] Data loaded successfully:', {
+        enrollments: enrollments.length,
+        attendance: attendance.length,
+        penalties: penalties.length,
+        participations: participations.length,
+        behaviors: behaviors.length,
+        marks: marks.length,
+        activities: activities.length,
+        submissions: submissions.length,
+        quizResults: quizResults.length
+      });
     } catch (err) {
       logger.error('[StudentDashboardData] Failed to load dashboard data', err);
       setError(err);
@@ -213,6 +225,21 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true) => {
       netScore,
     };
   }, [rawData]);
+
+  // Log stats data for debugging
+  useMemo(() => {
+    if (rawData.enrollments.length > 0 || rawData.attendance.length > 0) {
+      logger.log('[StudentDashboardData] Stats calculated:', {
+        gpa: statsData.gpa,
+        attendanceRate: statsData.attendanceRate,
+        participations: statsData.participations,
+        penalties: statsData.penalties,
+        behaviors: statsData.behaviors,
+        netScore: statsData.netScore,
+        loading
+      });
+    }
+  }, [statsData, rawData.enrollments.length, rawData.attendance.length, loading]);
 
   // ─── Derived: grouped attendance history (for history components) ──────────
   const attendanceHistory = useMemo(() => {

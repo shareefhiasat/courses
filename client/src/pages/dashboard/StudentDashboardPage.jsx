@@ -1,17 +1,22 @@
-import React, { useState, useMemo, useRef, useCallback, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import {
-  Container, Button, Select, Tabs, useToast, Badge, EmptyState, Skeleton,
-} from '@ui';
-import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import { useToast } from '@ui';
+import { useGlobalLoading, GlobalLoadingFallback } from '@contexts/GlobalLoadingContext';
+import { Container, Button, Select, UserSelect, Tabs, Skeleton } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
+import { USER_ROLES } from '@constants';
+import ProgramsSelect from '@ui/Select/ProgramsSelect';
+import logger from '@utils/logger';
+
 import useStudentDashboardPermissions from '@hooks/useStudentDashboardPermissions';
 import useStudentDashboardFilters from '@hooks/useStudentDashboardFilters';
 import useStudentDashboardData from '@hooks/useStudentDashboardData';
+import useClassLevelMetrics from '@hooks/useClassLevelMetrics';
+import { getStudentsByClass } from '@services/business/enrollmentService';
+
 import {
   OverviewTab,
   AttendanceTab,
@@ -31,6 +36,7 @@ export default function StudentDashboardPage() {
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
   const exportRef = useRef(null);
+  const userSelectRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [exporting, setExporting] = useState(false);
@@ -52,8 +58,93 @@ export default function StudentDashboardPage() {
     return userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || t('student') || 'Student';
   }, [permissions.isStaff, filters.selectedStudentId, filters.filteredStudents, userProfile, user, t]);
 
-  // ─── Data hook ─────────────────────────────────────────────────────────────
-  const dashData = useStudentDashboardData(displayStudentId, filters.hasSelection);
+  // ─── Data hooks with proper conditional loading ────────────────────────────────
+  const dashData = useStudentDashboardData(
+    permissions.isStaff && !filters.hasSelection ? null : displayStudentId, 
+    filters.hasSelection
+  );
+
+  // Class-level metrics for staff when no student is selected
+  const classMetrics = useClassLevelMetrics(
+    permissions.isStaff && filters.selectedClassId && filters.selectedClassId !== 'all' 
+      ? filters.selectedClassId 
+      : null,
+    permissions.isStaff && !filters.hasSelection
+  );
+
+  // Load class enrollments when a class is selected (for UserSelect)
+  const [classEnrollments, setClassEnrollments] = useState([]);
+  const [loadingClassEnrollments, setLoadingClassEnrollments] = useState(false);
+
+  useEffect(() => {
+    const loadClassEnrollments = async () => {
+      if (!permissions.isStaff || !filters.selectedClassId || filters.selectedClassId === 'all') {
+        setClassEnrollments([]);
+        return;
+      }
+
+      setLoadingClassEnrollments(true);
+      logger.log('[StudentDashboardPage] Loading enrollments for class:', filters.selectedClassId);
+      
+      try {
+        const result = await getStudentsByClass(filters.selectedClassId);
+        if (result.success) {
+          logger.log('[StudentDashboardPage] Loaded class enrollments:', result.data.length, 'students');
+          setClassEnrollments(result.data || []);
+        } else {
+          logger.error('[StudentDashboardPage] Failed to load class enrollments:', result.error);
+          setClassEnrollments([]);
+        }
+      } catch (error) {
+        logger.error('[StudentDashboardPage] Error loading class enrollments:', error);
+        setClassEnrollments([]);
+      } finally {
+        setLoadingClassEnrollments(false);
+      }
+    };
+
+    loadClassEnrollments();
+  }, [permissions.isStaff, filters.selectedClassId]);
+
+  // Only students should appear in the user dropdown (defensive in case role is missing)
+  const studentUsers = useMemo(() => {
+    return filters.filteredStudents.filter(u => {
+      const role = (u.role || '').toLowerCase();
+      return role === (USER_ROLES.STUDENT || 'student');
+    });
+  }, [filters.filteredStudents]);
+
+  // ─── Selection prompt state (needed early for debugging) ─────────────────────
+  const showSelectionPrompt = permissions.isStaff && !filters.hasSelection;
+
+  // Debug logging for data flow
+  useEffect(() => {
+    logger.log('[StudentDashboardPage] Dashboard state:', {
+      authLoading,
+      user: user?.uid,
+      userProfile: userProfile?.displayName,
+      isStaff: permissions.isStaff,
+      hasSelection: filters.hasSelection,
+      selectedProgramId: filters.selectedProgramId,
+      selectedSubjectId: filters.selectedSubjectId,
+      selectedClassId: filters.selectedClassId,
+      selectedStudentId: filters.selectedStudentId,
+      displayStudentId,
+      showSelectionPrompt,
+      dashDataLoading: dashData.loading,
+      enrollmentsCount: dashData.enrollments?.length || 0,
+      attendanceCount: dashData.attendance?.length || 0,
+      penaltiesCount: dashData.penalties?.length || 0,
+      behaviorsCount: dashData.behaviors?.length || 0,
+      studentsAvailable: filters.students.length,
+      filteredStudentsCount: filters.filteredStudents.length,
+      studentUsersCount: studentUsers.length
+    });
+  }, [authLoading, user, userProfile, permissions.isStaff, filters.hasSelection, 
+      filters.selectedProgramId, filters.selectedSubjectId, filters.selectedClassId, 
+      filters.selectedStudentId, displayStudentId, showSelectionPrompt, dashData.loading, 
+      dashData.enrollments?.length, dashData.attendance?.length, dashData.penalties?.length, 
+      dashData.behaviors?.length, filters.students.length, filters.filteredStudents.length, studentUsers.length]);
 
   // ─── Global loading ────────────────────────────────────────────────────────
   useLayoutEffect(() => {
@@ -66,7 +157,7 @@ export default function StudentDashboardPage() {
     return () => { clearTimeout(timer); safeStop(); };
   }, [authLoading, user, dashData.loading, startLoading]);
 
-  // ─── Export handlers ───────────────────────────────────────────────────────
+  // ─── Memoized export handlers (Performance optimization) ───────────────────────
   const handleExportPDF = useCallback(async () => {
     setExporting(true);
     try {
@@ -97,13 +188,13 @@ export default function StudentDashboardPage() {
 
   const handleExportCSV = useCallback(() => {
     const rows = dashData.enrollments.map(e => ({
-      [lang === 'ar' ? 'المقرر' : 'Course']: e.className || e.courseName || '',
-      [lang === 'ar' ? 'الفصل' : 'Semester']: `${e.semester || ''} ${e.academicYear || e.year || ''}`.trim(),
-      [lang === 'ar' ? 'الحضور' : 'Attendance']: `${(e.attendanceRate || 0).toFixed(1)}%`,
-      [lang === 'ar' ? 'التقدير' : 'Grade']: e.grade || '—',
-      [lang === 'ar' ? 'الدرجة' : 'Mark']: e.totalMarks !== undefined ? `${e.totalMarks}%` : '—',
+      [t('dashboard.course') || (lang === 'ar' ? 'المقرر' : 'Course')]: e.className || e.courseName || '',
+      [t('dashboard.semester') || (lang === 'ar' ? 'الفصل' : 'Semester')]: `${e.semester || ''} ${e.academicYear || e.year || ''}`.trim(),
+      [t('dashboard.attendance_rate') || (lang === 'ar' ? 'الحضور' : 'Attendance')]: `${(e.attendanceRate || 0).toFixed(1)}%`,
+      [t('dashboard.grade') || (lang === 'ar' ? 'التقدير' : 'Grade')]: e.grade || '—',
+      [t('dashboard.mark') || (lang === 'ar' ? 'الدرجة' : 'Mark')]: e.totalMarks !== undefined ? `${e.totalMarks}%` : '—',
     }));
-    if (!rows.length) { toast?.showWarning?.(t('no_data_to_export') || 'No data to export'); return; }
+    if (!rows.length) { toast?.showWarning?.(t('dashboard.no_data_to_export') || (lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export')); return; }
     const headers = Object.keys(rows[0]);
     const csv = [headers.join(','), ...rows.map(r => headers.map(h => `"${r[h]}"`).join(','))].join('\n');
     const a = document.createElement('a');
@@ -113,42 +204,24 @@ export default function StudentDashboardPage() {
     toast?.showSuccess?.(t('exported_successfully') || 'Exported successfully');
   }, [dashData.enrollments, displayName, lang, toast, t]);
 
-  // ─── Select options ────────────────────────────────────────────────────────
-  const programOptions = useMemo(() => [
-    { value: 'all', label: lang === 'ar' ? 'كل البرامج' : 'All Programs' },
-    ...filters.programs.map(p => ({ value: p.id || p.docId, label: lang === 'ar' ? (p.name_ar || p.name || '') : (p.name_en || p.name || '') })),
-  ], [filters.programs, lang]);
-
-  const subjectOptions = useMemo(() => [
-    { value: 'all', label: lang === 'ar' ? 'كل المواد' : 'All Subjects' },
-    ...filters.filteredSubjects.map(s => ({ value: s.id || s.docId, label: lang === 'ar' ? (s.name_ar || s.name || '') : (s.name_en || s.name || '') })),
-  ], [filters.filteredSubjects, lang]);
-
-  const classOptions = useMemo(() => [
-    { value: 'all', label: lang === 'ar' ? 'كل الفصول' : 'All Classes' },
-    ...filters.filteredClasses.map(c => ({ value: c.id || c.docId, label: lang === 'ar' ? (c.name_ar || c.name || '') : (c.name || '') })),
-  ], [filters.filteredClasses, lang]);
-
+  // ─── Memoized select options (Performance optimization) ────────────────────────
   const studentOptions = useMemo(() => [
-    { value: '', label: lang === 'ar' ? 'اختر طالب' : 'Select Student' },
+    { value: '', label: t('filters.select_student') || (lang === 'ar' ? 'اختر طالب' : 'Select Student') },
     ...filters.filteredStudents.map(s => ({ value: s.id || s.uid, label: s.displayName || s.email || '' })),
-  ], [filters.filteredStudents, lang]);
+  ], [filters.filteredStudents, lang, t]);
 
-  // ─── Tabs ──────────────────────────────────────────────────────────────────
-  const dashTabs = [
-    { id: 'overview',      label: lang === 'ar' ? 'نظرة عامة'   : 'Overview' },
-    { id: 'attendance',    label: lang === 'ar' ? 'الحضور'       : 'Attendance' },
-    { id: 'marks',         label: lang === 'ar' ? 'الدرجات'      : 'Marks' },
-    { id: 'performance',   label: lang === 'ar' ? 'الأداء'       : 'Performance' },
-    { id: 'penalties',     label: lang === 'ar' ? 'العقوبات'     : 'Penalties' },
-    { id: 'participations',label: lang === 'ar' ? 'المشاركات'    : 'Participations' },
-    { id: 'behaviors',     label: lang === 'ar' ? 'السلوك'       : 'Behaviors' },
-  ];
+  // ─── Memoized tabs configuration (Performance optimization) ─────────────────────
+  const dashTabs = useMemo(() => [
+    { id: 'overview',      label: t('dashboard.overview') || (lang === 'ar' ? 'نظرة عامة'   : 'Overview') },
+    { id: 'attendance',    label: t('dashboard.attendance') || (lang === 'ar' ? 'الحضور'       : 'Attendance') },
+    { id: 'marks',         label: t('dashboard.marks') || (lang === 'ar' ? 'الدرجات'      : 'Marks') },
+    { id: 'performance',   label: t('dashboard.performance') || (lang === 'ar' ? 'الأداء'       : 'Performance') },
+    { id: 'penalties',     label: t('dashboard.penalties') || (lang === 'ar' ? 'العقوبات'     : 'Penalties') },
+    { id: 'participations',label: t('dashboard.participations') || (lang === 'ar' ? 'المشاركات'    : 'Participations') },
+    { id: 'behaviors',     label: t('dashboard.behaviors') || (lang === 'ar' ? 'السلوك'       : 'Behaviors') },
+  ], [lang, t]);
 
   if (authLoading) return <GlobalLoadingFallback />;
-
-  // ─── Selection prompt for staff with no selection ──────────────────────────
-  const showSelectionPrompt = permissions.isStaff && !filters.hasSelection;
 
   return (
     <div className={styles.dashboard} ref={exportRef}>
@@ -158,28 +231,17 @@ export default function StudentDashboardPage() {
         <div className={styles.header}>
           <div className={styles.headerTop}>
             <div className={styles.headerTitle}>
-              <h1>{lang === 'ar' ? 'لوحة تحكم الطالب' : 'Student Dashboard'}</h1>
-              <p className={styles.subtitle}>
-                {displayName}
-                {permissions.isStaff && !filters.selectedStudentId && (
-                  <span className={styles.subtitleHint}>
-                    {' — '}{lang === 'ar' ? 'اختر طالباً لعرض البيانات' : 'Select a student to view data'}
-                  </span>
-                )}
-              </p>
+              {/* Empty header - no username display */}
             </div>
             <div className={styles.headerActions}>
               <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting || showSelectionPrompt}>
                 {getThemedIcon('ui', 'download', 16, theme)}
-                {lang === 'ar' ? 'PDF' : 'PDF'}
               </Button>
               <Button variant="outline" size="sm" onClick={handleExportImage} disabled={exporting || showSelectionPrompt}>
                 {getThemedIcon('ui', 'file', 16, theme)}
-                {lang === 'ar' ? 'صورة' : 'Image'}
               </Button>
               <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={showSelectionPrompt}>
                 {getThemedIcon('ui', 'file_text', 16, theme)}
-                {lang === 'ar' ? 'CSV' : 'CSV'}
               </Button>
             </div>
           </div>
@@ -187,76 +249,156 @@ export default function StudentDashboardPage() {
           {/* ── Cascading filters for staff ── */}
           {permissions.isStaff && (
             <div className={styles.filters}>
-              <Select
-                value={filters.selectedProgramId}
-                onChange={e => filters.setSelectedProgramId(e.target.value)}
-                options={programOptions}
+              <ProgramsSelect
+                programs={filters.programs}
+                subjects={filters.subjects}
+                classes={filters.classes}
+                selectedProgram={filters.selectedProgramId}
+                selectedSubject={filters.selectedSubjectId}
+                selectedClass={filters.selectedClassId}
+                onProgramChange={filters.setSelectedProgramId}
+                onSubjectChange={filters.setSelectedSubjectId}
+                onClassChange={filters.setSelectedClassId}
+                showLabels={false}
+                className="w-full"
               />
-              <Select
-                value={filters.selectedSubjectId}
-                onChange={e => filters.setSelectedSubjectId(e.target.value)}
-                options={subjectOptions}
-              />
-              <Select
-                value={filters.selectedClassId}
-                onChange={e => filters.setSelectedClassId(e.target.value)}
-                options={classOptions}
-              />
-              <Select
+              <UserSelect
+                ref={userSelectRef}
+                users={filters.selectedClassId && filters.selectedClassId !== 'all' ? classEnrollments : studentUsers}
+                enrollments={dashData.enrollments}
                 value={filters.selectedStudentId}
                 onChange={e => filters.setSelectedStudentId(e.target.value)}
-                options={studentOptions}
-                placeholder={lang === 'ar' ? 'اختر طالب' : 'Select Student'}
+                placeholder={t('filters.select_student') || (lang === 'ar' ? 'اختر طالب' : 'Select Student')}
+                roleFilter={[USER_ROLES.STUDENT]}
+                showEnrollments={true}
+                showStatus={true}
+                searchable={true}
+                disabled={loadingClassEnrollments}
               />
+              {/* Debug info for student filtering */}
+              {process.env.NODE_ENV === 'development' && (
+                <div style={{ marginTop: '1rem', padding: '1rem', background: '#f0f9ff', border: '1px solid #3b82f6', borderRadius: '8px', fontSize: '0.8rem' }}>
+                  <strong>Debug - Student Selection:</strong><br/>
+                  Selected Class: {filters.selectedClassId || 'None'}<br/>
+                  Class Name: {filters.selectedClassId ? filters.classes.find(c => (c.id || c.docId) === filters.selectedClassId)?.name || 'Unknown' : 'N/A'}<br/>
+                  Available Students: {studentUsers.length}<br/>
+                  Filtered Students: {filters.filteredStudents.length}<br/>
+                  Class Enrollments: {classEnrollments.length} students<br/>
+                  Loading Class Enrollments: {loadingClassEnrollments ? 'Yes' : 'No'}<br/>
+                  Enrollments Count: {dashData.enrollments?.length || 0}<br/>
+                  {filters.selectedClassId && filters.selectedClassId !== 'all' && (
+                    <>
+                      Query: getStudentsByClass('{filters.selectedClassId}')<br/>
+                      Class Enrollments: {dashData.enrollments?.filter(e => e.classId === filters.selectedClassId).length || 0}<br/>
+                    </>
+                  )}
+                  {classEnrollments.length > 0 && (
+                    <details style={{ marginTop: '0.5rem' }}>
+                      <summary style={{ cursor: 'pointer', fontSize: '0.7rem' }}>View Class Students</summary>
+                      <div style={{ fontSize: '0.6rem', background: '#f8fafc', padding: '0.5rem', borderRadius: '4px', marginTop: '0.25rem', maxHeight: '100px', overflow: 'auto' }}>
+                        {classEnrollments.map(student => (
+                          <div key={student.id || student.docId}>
+                            {student.displayName || student.email} ({student.id || student.docId})
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* ── Stats summary bar ── */}
+        {/* ── Stats summary bar (Class-level or Student-level) ── */}
         {!showSelectionPrompt && !dashData.loading && (
           <div className={styles.statsBar}>
-            <div className={styles.statItem} data-color="purple">
-              <span className={styles.statLabel}>{lang === 'ar' ? 'المعدل' : 'GPA'}</span>
-              <span className={styles.statValue}>{dashData.statsData.gpa}</span>
-            </div>
-            <div className={styles.statItem} data-color="green">
-              <span className={styles.statLabel}>{lang === 'ar' ? 'الحضور' : 'Attendance'}</span>
-              <span className={styles.statValue}>{dashData.statsData.attendanceRate}%</span>
-            </div>
-            <div className={styles.statItem} data-color="blue">
-              <span className={styles.statLabel}>{lang === 'ar' ? 'المشاركات' : 'Participations'}</span>
-              <span className={styles.statValue}>{dashData.statsData.participations}</span>
-            </div>
-            <div className={styles.statItem} data-color="red">
-              <span className={styles.statLabel}>{lang === 'ar' ? 'العقوبات' : 'Penalties'}</span>
-              <span className={styles.statValue}>{dashData.statsData.penalties}</span>
-            </div>
-            <div className={styles.statItem} data-color="orange">
-              <span className={styles.statLabel}>{lang === 'ar' ? 'الصافي' : 'Net Score'}</span>
-              <span className={styles.statValue}>
-                {dashData.statsData.netScore >= 0 ? '+' : ''}{dashData.statsData.netScore}
-              </span>
-            </div>
+            {permissions.isStaff && !filters.selectedStudentId ? (
+              // Class-level metrics
+              <>
+                <div className={styles.statItem} data-color="blue">
+                  <span className={styles.statLabel}>{t('dashboard.total_students')}</span>
+                  <span className={styles.statValue}>{classMetrics.metrics.totalStudents}</span>
+                </div>
+                <div className={styles.statItem} data-color="green">
+                  <span className={styles.statLabel}>{t('dashboard.average_attendance')}</span>
+                  <span className={styles.statValue}>{classMetrics.metrics.averageAttendance}%</span>
+                </div>
+                <div className={styles.statItem} data-color="purple">
+                  <span className={styles.statLabel}>{t('dashboard.average_gpa')}</span>
+                  <span className={styles.statValue}>{classMetrics.metrics.averageGPA}</span>
+                </div>
+                <div className={styles.statItem} data-color="red">
+                  <span className={styles.statLabel}>{t('dashboard.total_penalties')}</span>
+                  <span className={styles.statValue}>{classMetrics.metrics.totalPenalties}</span>
+                </div>
+                <div className={styles.statItem} data-color="orange">
+                  <span className={styles.statLabel}>{t('dashboard.total_behaviors')}</span>
+                  <span className={styles.statValue}>{classMetrics.metrics.totalBehaviors}</span>
+                </div>
+              </>
+            ) : (
+              // Student-level metrics
+              <>
+                <div className={styles.statItem} data-color="purple">
+                  <span className={styles.statLabel}>{t('dashboard.gpa') || (lang === 'ar' ? 'المعدل' : 'GPA')}</span>
+                  <span className={styles.statValue}>{dashData.statsData.gpa}</span>
+                </div>
+                <div className={styles.statItem} data-color="green">
+                  <span className={styles.statLabel}>{t('dashboard.attendance') || (lang === 'ar' ? 'الحضور' : 'Attendance')}</span>
+                  <span className={styles.statValue}>{dashData.statsData.attendanceRate}%</span>
+                </div>
+                <div className={styles.statItem} data-color="blue">
+                  <span className={styles.statLabel}>{t('dashboard.participations') || (lang === 'ar' ? 'المشاركات' : 'Participations')}</span>
+                  <span className={styles.statValue}>{dashData.statsData.participations}</span>
+                </div>
+                <div className={styles.statItem} data-color="red">
+                  <span className={styles.statLabel}>{t('dashboard.penalties') || (lang === 'ar' ? 'العقوبات' : 'Penalties')}</span>
+                  <span className={styles.statValue}>{dashData.statsData.penalties}</span>
+                </div>
+                <div className={styles.statItem} data-color="orange">
+                  <span className={styles.statLabel}>{t('dashboard.net_score') || (lang === 'ar' ? 'الصافي' : 'Net Score')}</span>
+                  <span className={styles.statValue}>
+                    {dashData.statsData.netScore >= 0 ? '+' : ''}{dashData.statsData.netScore}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── Error state ── */}
+        {(dashData.error || classMetrics.error) && (
+          <div className={styles.errorState}>
+            {getThemedIcon('ui', 'alert_triangle', 48, theme)}
+            <h3>{t('dashboard.error_loading_data')}</h3>
+            <p>{dashData.error?.message || classMetrics.error?.message}</p>
+            <Button onClick={() => {
+              dashData.reload?.();
+              classMetrics.reload?.();
+            }}>
+              {t('common.retry')}
+            </Button>
           </div>
         )}
 
         {/* ── Selection prompt ── */}
-        {showSelectionPrompt && (
+        {showSelectionPrompt && !dashData.error && !classMetrics.error && (
           <div className={styles.selectionPrompt}>
             {getThemedIcon('ui', 'users', 32, theme)}
-            <p>{lang === 'ar' ? 'الرجاء اختيار فصل أو طالب لعرض البيانات' : 'Please select a class or student to view data'}</p>
+            <p>{t('dashboard.select_class_or_student_to_view_data')}</p>
           </div>
         )}
 
         {/* ── Loading skeleton ── */}
-        {dashData.loading && !showSelectionPrompt && (
+        {(dashData.loading || classMetrics.loading) && !showSelectionPrompt && (
           <div className={styles.skeletonGrid}>
             {[1,2,3,4].map(i => <Skeleton key={i} height={80} borderRadius={10} />)}
           </div>
         )}
 
-        {/* ── Tabs + content ── */}
-        {!showSelectionPrompt && !dashData.loading && (
+        {/* ── Tabs + content (only when data is available) ── */}
+        {!showSelectionPrompt && !dashData.loading && !dashData.error && !classMetrics.error && (
           <div className={styles.detailsSection}>
             <Tabs tabs={dashTabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
@@ -266,6 +408,7 @@ export default function StudentDashboardPage() {
                   semesters={dashData.semesters}
                   enrollments={dashData.enrollments}
                   statsData={dashData.statsData}
+                  classMetrics={permissions.isStaff && !filters.selectedStudentId ? classMetrics.metrics : null}
                   grouping={filters.grouping}
                   canViewAllStudents={permissions.canViewAllStudents}
                   onNavigateToClass={classId => navigate(`/classes/${classId}`)}

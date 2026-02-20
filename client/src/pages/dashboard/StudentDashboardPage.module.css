@@ -37,8 +37,8 @@
 }
 
 .filters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
   padding: 1.5rem;
   background: var(--card-bg, #ffffff);
@@ -374,18 +374,68 @@
 }
 
 /* ── Dark mode ─────────────────────────────────────────────────────────────── */
+[data-theme="dark"] .dashboard {
+  background: var(--bg-primary, #111827);
+}
+
+[data-theme="dark"] .headerTitle h1 {
+  color: var(--text-primary, #f9fafb);
+}
+
+[data-theme="dark"] .subtitle {
+  color: var(--text-secondary, #d1d5db);
+}
+
+[data-theme="dark"] .filters {
+  background: var(--card-bg, #1f2937);
+  border-color: var(--border-color, #374151);
+}
+
+[data-theme="dark"] .semesterHeader h2 {
+  color: var(--text-primary, #f9fafb);
+}
+
+[data-theme="dark"] .detailsSection {
+  background: var(--card-bg, #1f2937);
+}
+
+[data-theme="dark"] .cardTitle {
+  color: var(--text-primary, #f9fafb);
+}
+
+[data-theme="dark"] .urgentTaskTitle {
+  color: var(--text-primary, #f9fafb);
+}
+
+[data-theme="dark"] .markHeader h4 {
+  color: var(--text-primary, #f9fafb);
+}
+
+[data-theme="dark"] .recordItem p {
+  color: var(--text-primary, #f9fafb);
+}
+
 [data-theme="dark"] .statItem {
   background: var(--card-bg, #1f2937);
   border-color: var(--border-color, #374151);
 }
 
+[data-theme="dark"] .statLabel {
+  color: var(--text-secondary, #d1d5db);
+}
+
+[data-theme="dark"] .statValue {
+  color: var(--text-primary, #f9fafb);
+}
+
 [data-theme="dark"] .selectionPrompt {
   background: var(--card-bg, #1f2937);
   border-color: var(--border-color, #374151);
+  color: var(--text-secondary, #d1d5db);
 }
 
-[data-theme="dark"] .detailsSection {
-  background: var(--card-bg, #1f2937);
+[data-theme="dark"] .subtitleHint {
+  color: var(--primary, #818cf8);
 }
 
 /* ── RTL ───────────────────────────────────────────────────────────────────── */

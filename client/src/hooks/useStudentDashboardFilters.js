@@ -69,6 +69,7 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
   const loadFilters = useCallback(async () => {
     setLoading(true);
     try {
+      logger.log('[StudentDashboardFilters] Loading filters data...');
       const [programsRes, subjectsRes, classesRes, studentsRes] = await Promise.allSettled([
         getPrograms(),
         getSubjects(),
@@ -81,10 +82,33 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
       const classesData = classesRes.status === 'fulfilled' ? (classesRes.value?.data || []) : [];
       const studentsData = studentsRes.status === 'fulfilled' ? (studentsRes.value?.data || []) : [];
 
+      logger.log('[StudentDashboardFilters] Raw data counts:', {
+        programs: programsData.length,
+        subjects: subjectsData.length,
+        classes: classesData.length,
+        students: studentsData.length,
+        shouldLoadStudents
+      });
+
+      // Debug: Log first few students to understand data structure
+      if (studentsData.length > 0) {
+        logger.log('[StudentDashboardFilters] Sample students:', studentsData.slice(0, 3).map(s => ({
+          id: s.id || s.docId,
+          displayName: s.displayName,
+          email: s.email,
+          role: s.role,
+          hasEnrollments: !!s.enrollments,
+          enrollmentCount: s.enrollments?.length || 0
+        })));
+      }
+
       setPrograms(programsData);
       setSubjects(subjectsData);
       setClasses(classesData);
-      setStudents(shouldLoadStudents ? studentsData.filter(u => u.role === 'student') : []);
+      
+      const filteredStudents = shouldLoadStudents ? studentsData.filter(u => u.role === 'student') : [];
+      logger.log('[StudentDashboardFilters] Filtered students (role=student):', filteredStudents.length);
+      setStudents(filteredStudents);
     } catch (error) {
       logger.error('Failed to load dashboard filters', error);
     } finally {
@@ -117,13 +141,42 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
     return result;
   }, [classes, selectedSubjectId, selectedProgramId, filteredSubjects]);
 
-  // Derived: students filtered by selected class (via enrollment classId on student object if available)
+  // Derived: students filtered by selected class (via enrollments collection)
   const filteredStudents = useMemo(() => {
-    if (!selectedClassId || selectedClassId === 'all') return students;
-    return students.filter(s =>
-      s.classId === selectedClassId ||
-      s.enrolledClassIds?.includes(selectedClassId)
-    );
+    if (!selectedClassId || selectedClassId === 'all') {
+      logger.log('[StudentDashboardFilters] No class selected, returning all students:', students.length);
+      return students;
+    }
+    
+    // Filter students who are enrolled in the selected class
+    const filtered = students.filter(s => {
+      // Check if student has enrollments array
+      if (s.enrollments && Array.isArray(s.enrollments)) {
+        const hasEnrollment = s.enrollments.some(enrollment => enrollment.classId === selectedClassId);
+        if (hasEnrollment) {
+          logger.log('[StudentDashboardFilters] Student', s.displayName, 'has enrollment in class', selectedClassId);
+        }
+        return hasEnrollment;
+      }
+      // Fallback to direct classId property
+      const hasDirectClass = s.classId === selectedClassId ||
+             s.enrolledClassIds?.includes(selectedClassId);
+      if (hasDirectClass) {
+        logger.log('[StudentDashboardFilters] Student', s.displayName, 'has direct class access', selectedClassId);
+      }
+      return hasDirectClass;
+    });
+    
+    logger.log('[StudentDashboardFilters] Filtered students for class', selectedClassId, ':', filtered.length, 'from', students.length);
+    if (filtered.length === 0 && students.length > 0) {
+      logger.log('[StudentDashboardFilters] No students found for class. Sample student data:', students.slice(0, 2).map(s => ({
+        displayName: s.displayName,
+        enrollments: s.enrollments,
+        classId: s.classId,
+        enrolledClassIds: s.enrolledClassIds
+      })));
+    }
+    return filtered;
   }, [students, selectedClassId]);
 
   // hasSelection: for staff, at least a class must be selected to trigger data load
