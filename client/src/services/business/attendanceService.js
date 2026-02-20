@@ -551,6 +551,27 @@ export const updateAttendanceMark = async (sessionId, uid, status, reason = null
 };
 
 /**
+ * Get attendance marks count for a session
+ * @param {string} sessionId - Session ID
+ * @returns {Promise<{success: boolean, data: Object, error?: string}>}
+ */
+export const getAttendanceMarksCount = async (sessionId) => {
+  try {
+    const { getAttendanceMarksCount: getMarksCountFromDb } = await import('../db/attendanceSessionsDbService');
+    const result = await getMarksCountFromDb(sessionId);
+    
+    if (result.success) {
+      return { success: true, data: result.data };
+    } else {
+      return { success: false, error: result.error };
+    }
+  } catch (error) {
+    logger.error('Error getting attendance marks count:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Generate simple device hash for attendance tracking
  * @returns {string} Device hash
  */

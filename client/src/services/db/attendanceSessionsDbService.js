@@ -198,6 +198,36 @@ export const getAllAttendanceSessions = async () => {
 };
 
 /**
+ * Get attendance marks count for a session
+ * @param {string} sessionId - Session ID
+ * @returns {Promise<{success: boolean, data: Object, error?: string}>}
+ */
+export const getAttendanceMarksCount = async (sessionId) => {
+  try {
+    const q = query(collection(db, 'attendanceSessions', sessionId, 'marks'));
+    const querySnapshot = await getDocs(q);
+    
+    const marks = querySnapshot.docs.map(doc => ({ 
+      uid: doc.id, 
+      ...doc.data() 
+    }));
+    
+    // Count by status
+    const counts = marks.reduce((acc, mark) => {
+      const status = mark.status || 'present';
+      acc[status] = (acc[status] || 0) + 1;
+      acc.total = (acc.total || 0) + 1;
+      return acc;
+    }, {});
+    
+    return { success: true, data: counts };
+  } catch (error) {
+    logger.error('[AttendanceSessionsDbService] Error getting attendance marks count:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Update attendance mark status
  * @param {string} sessionId - Session ID
  * @param {string} uid - User ID
