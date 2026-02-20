@@ -78,12 +78,6 @@ export const GENERAL_STATUS = {
   ON_HOLD: 'on_hold',
   REVIEW: 'review',
   
-  // Quality statuses
-  EXCELLENT: 'excellent',
-  GOOD: 'good',
-  SATISFACTORY: 'satisfactory',
-  NEEDS_IMPROVEMENT: 'needs_improvement',
-  
   // System statuses
   LOADING: 'loading',
   ERROR: 'error',

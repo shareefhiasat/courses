@@ -98,12 +98,6 @@ export const ROUTE_CONFIG = {
       screenId: 'quizzes',
       screenName: 'Take Quiz'
     },
-    quizResults: {
-      path: '/quiz-results',
-      requireAuth: true,
-      screenId: 'quizResults',
-      screenName: 'Quiz Results'
-    },
     reviewResults: {
       path: '/review-results',
       requireAuth: true,

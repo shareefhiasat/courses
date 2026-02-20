@@ -105,9 +105,6 @@ const ReviewResultsPage = () => {
   const [selectedYear, setSelectedYear] = useState('all');
   const [selectedTerm, setSelectedTerm] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
-  const [passedFilter, setPassedFilter] = useState(false);
-  const [failedFilter, setFailedFilter] = useState(false);
-  const [excellentFilter, setExcellentFilter] = useState(false);
   // Status filters
   const [completedFilter, setCompletedFilter] = useState(false);
   const [pendingFilter, setPendingFilter] = useState(false);
@@ -293,9 +290,6 @@ const ReviewResultsPage = () => {
         selectedYear,
         selectedTerm,
         difficultyFilter,
-        passedFilter,
-        failedFilter,
-        excellentFilter,
         completedFilter,
         pendingFilter,
         requiredFilter,
@@ -403,28 +397,6 @@ const ReviewResultsPage = () => {
       filtered = filtered.filter(sub => sub.difficulty === difficultyFilter);
     }
 
-    // Performance filters
-    if (passedFilter) {
-      filtered = filtered.filter(sub => {
-        const percentage = sub.maxScore > 0 ? (sub.score / sub.maxScore) * 100 : 0;
-        return percentage >= 60;
-      });
-    }
-
-    if (failedFilter) {
-      filtered = filtered.filter(sub => {
-        const percentage = sub.maxScore > 0 ? (sub.score / sub.maxScore) * 100 : 0;
-        return percentage < 60;
-      });
-    }
-
-    if (excellentFilter) {
-      filtered = filtered.filter(sub => {
-        const percentage = sub.maxScore > 0 ? (sub.score / sub.maxScore) * 100 : 0;
-        return percentage >= 90;
-      });
-    }
-
     // Sort by submission date (newest first)
     filtered.sort((a, b) => {
       const aTime = a.submittedAt?.toDate ? a.submittedAt.toDate().getTime() : (a.submittedAt ? new Date(a.submittedAt).getTime() : 0);
@@ -433,7 +405,18 @@ const ReviewResultsPage = () => {
     });
 
     return filtered;
-  }, [mode, activities, submissions, searchTerm, selectedProgram, selectedSubject, selectedClass, selectedStudent, difficultyFilter, passedFilter, failedFilter, excellentFilter, activityType, category, lang, bookmarkFilter, completedFilter, enrolledClasses, featuredFilter, gradedFilter, instructorClasses, instructorStudents, isAdmin, isInstructor, isSuperAdmin, optionalFilter, overdueFilter, pendingFilter, requiredFilter, requiresSubmissionFilter, retakableFilter, selectedTerm, selectedYear, user]);
+  }, [mode, activities, submissions, searchTerm, selectedProgram, selectedSubject, selectedClass, selectedStudent, difficultyFilter, activityType, category, lang, bookmarkFilter, completedFilter, enrolledClasses, featuredFilter, gradedFilter, instructorClasses, instructorStudents, isAdmin, isInstructor, isSuperAdmin, optionalFilter, overdueFilter, pendingFilter, requiredFilter, requiresSubmissionFilter, retakableFilter, selectedTerm, selectedYear, user]);
+
+  // Calculate filter counts using the hook
+  const filterCounts = useSubmissionFilterCounts(filteredSubmissions, {
+    mode,
+    completedFilter,
+    pendingFilter,
+    requiredFilter,
+    optionalFilter,
+    overdueFilter,
+    requiresSubmissionFilter
+  });
 
   // Calculate counts for each activity type based on role and filters
   const getActivityTypeCount = useCallback((type) => {
@@ -725,13 +708,6 @@ const ReviewResultsPage = () => {
           requiresSubmissionFilter={requiresSubmissionFilter}
           setRequiresSubmissionFilter={setRequiresSubmissionFilter}
           requiresSubmissionCount={filterCounts.requiresSubmissionCount}
-          // Performance filters
-          passedFilter={passedFilter}
-          setPassedFilter={setPassedFilter}
-          failedFilter={setFailedFilter}
-          setFailedFilter={setFailedFilter}
-          excellentFilter={excellentFilter}
-          setExcellentFilter={setExcellentFilter}
           // Difficulty filter
           difficultyFilter={difficultyFilter}
           setDifficultyFilter={setDifficultyFilter}
@@ -770,7 +746,6 @@ const ReviewResultsPage = () => {
           primaryColor={primaryColor}
           showStatusFilters={true}
           showDifficultyFilters={true}
-          showPerformanceFilters={true}
           showToggleFilters={true}
           showHierarchyFilters={true}
           hierarchyConfig={{

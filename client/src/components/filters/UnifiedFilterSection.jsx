@@ -85,13 +85,6 @@ const UnifiedFilterSection = ({
   // Difficulty filter
   difficultyFilter,
   setDifficultyFilter,
-  // Performance filters (for results pages)
-  passedFilter,
-  setPassedFilter,
-  failedFilter,
-  setFailedFilter,
-  excellentFilter,
-  setExcellentFilter,
   // Toggle filters
   bookmarkFilter,
   setBookmarkFilter,

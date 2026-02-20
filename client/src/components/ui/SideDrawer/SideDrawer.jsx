@@ -308,7 +308,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
     quiz: {
       label: t('quiz') || 'QUIZ',
       items: [
-        { path: '/quiz-results', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: (t('quiz_results') || 'Quiz Results').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
+        { path: '/review-results', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: (t('quiz_results') || 'Quiz Results').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
         { path: '/?mode=quizzes', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
         { path: '/?mode=activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: (t('activities') || 'Activities').charAt(0).toUpperCase() + (t('activities') || 'Activities').slice(1) },
         { path: '/?mode=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: (t('homework') || 'Homework').charAt(0).toUpperCase() + (t('homework') || 'Homework').slice(1) },
@@ -365,7 +365,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: t('quiz') || 'QUIZ',
       items: [
         { path: '/quizzes', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
-        { path: '/quiz-results', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: t('quiz_results') || 'Quiz Results' },
+        { path: '/review-results', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: t('quiz_results') || 'Quiz Results' },
       ]
     },
     academic: isSuperAdmin || isInstructor || isAdmin ? {
