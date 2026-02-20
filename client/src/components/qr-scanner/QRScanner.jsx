@@ -129,6 +129,347 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     getDevices();
   }, []);
 
+  // Debug logging function
+  const addDebugLog = useCallback((message, type = 'info') => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = {
+      timestamp,
+      message,
+      type,
+      id: Date.now() + Math.random()
+    };
+    setDebugLogs(prev => [logEntry, ...prev].slice(0, 50)); // Keep last 50 logs
+    logger.log(`[${timestamp}] ${message}`);
+  }, []);
+
+  // Show result modal function - Enhanced for attendance types
+  const showResult = useCallback((type, message, attendanceStatus = null, isSummary = false) => {
+    // If attendance status is provided, use its color and icon
+    let finalType = type;
+    let finalMessage = message;
+    
+    if (attendanceStatus && [
+      ATTENDANCE_STATUS.PRESENT,
+      ATTENDANCE_STATUS.LATE,
+      ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
+      ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE,
+      ATTENDANCE_STATUS.EXCUSED_LEAVE,
+      ATTENDANCE_STATUS.HUMAN_CASE
+    ].includes(attendanceStatus)) {
+      finalType = attendanceStatus;
+      // Add attendance icon to message if not already present
+      const icon = getAttendanceIcon(attendanceStatus);
+      const label = getLocalizedAttendanceLabel(attendanceStatus, t, lang);
+      if (!message.includes(label)) {
+        finalMessage = `${label}: ${message}`;
+      }
+    }
+    
+    setResultModalData({ 
+      type: finalType, 
+      message: finalMessage, 
+      isSummary,
+      attendanceStatus // Store for icon/color rendering
+    });
+    setShowResultModal(true);
+    addDebugLog(`📢 Showing result modal: ${finalType} - ${finalMessage}`, 'info');
+  }, [addDebugLog, lang, t]);
+
+  const handleQRCodeDetected = async (data) => {
+    // Prevent infinite scanning - lock scanning for 3 seconds
+    if (isScanningLocked) {
+      addDebugLog('🔒 Scanning locked - ignoring duplicate scan', 'warning');
+      return;
+    }
+
+    setIsScanningLocked(true);
+    addDebugLog(`🔍 QR Code scanned: ${data}`, GENERAL_STATUS.SUCCESS);
+
+    // Play success feedback
+    playFeedbackSound(GENERAL_STATUS.SUCCESS);
+
+    onScan(data);
+    setRecentScans(prev => prev + 1);
+
+    // Parse QR data to get student info
+    let studentInfo = null;
+    try {
+      if (typeof data === 'string') {
+        if (data.includes('/qr/student/')) {
+          // URL format like https://localhost:5174/qr/student/12345 or any student number
+          const urlParts = data.split('/qr/student/');
+          if (urlParts.length > 1) {
+            const studentId = urlParts[1].split('?')[0]; // Remove query params if any
+            studentInfo = { studentNumber: studentId };
+          }
+        } else {
+          // Direct student number or any text/number
+          studentInfo = { studentNumber: data.trim() };
+        }
+      } else {
+        studentInfo = data;
+      }
+    } catch (error) {
+      addDebugLog(`❌ Error parsing QR data: ${error.message}`, 'error');
+      playFeedbackSound('error'); // Add vibration for parsing error
+      showError(t('invalid_qr_code_format'));
+      setIsScanningLocked(false);
+      return;
+    }
+
+    addDebugLog(`👤 Student info parsed: ${JSON.stringify(studentInfo)}`, 'info');
+    addDebugLog(`🔍 Available students count: ${students.length}`, 'info');
+    addDebugLog(`🔍 Selected program: ${selectedProgramId}, subject: ${selectedSubjectId}, class: ${selectedClassId}`, 'info');
+
+    // If students array is empty, try to fetch from Firebase using multiple methods
+    if (students.length === 0) {
+      addDebugLog(`⚠️ Students array is empty, trying multiple Firebase lookups`, 'warning');
+
+      let foundStudent = null;
+
+      // Method 1: Try direct student number lookup
+      try {
+        const result = await getUserByStudentNumber(studentInfo.studentNumber);
+        if (result.success && result.data && !isAdmin(result.data.role) && !isSuperAdmin(result.data.role)) {
+          foundStudent = {
+            id: result.data.docId || result.data.id,
+            docId: result.data.docId,
+            referenceId: result.data.referenceId,
+            studentId: result.data.studentNumber || result.data.docId || result.data.id,
+            studentNumber: result.data.studentNumber || result.data.docId || result.data.id,
+            name: result.data.displayName || result.data.realName || result.data.name || 'Unknown',
+            displayName: result.data.displayName,
+            realName: result.data.realName,
+            email: result.data.email,
+            attendance: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
+            participation: 0,
+            behavior: 0,
+            penalty: 0,
+            totalAttendance: 0,
+            attendanceStats: {
+              present: 0,
+              late: 0,
+              absent_no_excuse: 0,
+              absent_with_excuse: 0,
+              excused_leave: 0,
+              humanitarian_case: 0
+            },
+            isPinned: result.data.isPinned || false,
+            referenceId: result.data.referenceId // Ensure referenceId is included
+          };
+          addDebugLog(`✅ Found student via direct lookup: ${foundStudent.name}`, 'success');
+        }
+      } catch (error) {
+        addDebugLog(`❌ Direct lookup failed: ${error.message}`, 'error');
+      }
+
+      // Method 2: Try to find by studentNumber field (query all users)
+      if (!foundStudent) {
+        try {
+          // Use getUsers to fetch all users and find by studentNumber
+          const result = await getUsers();
+          if (result.success) {
+            const allUsers = result.data;
+            addDebugLog(`🔍 Searching ${allUsers.length} users for matches`, 'info');
+
+            // Show first few users for debugging
+            allUsers.slice(0, 3).forEach((u, idx) => {
+              addDebugLog(`User ${idx}: docId=${u.docId}, id=${u.id}, studentNumber=${u.studentNumber}, referenceId=${u.referenceId}, name=${u.displayName || u.name}`, 'info');
+            });
+
+            const student = allUsers.find(u => {
+              const matches = [
+                u.studentNumber === studentInfo.studentNumber,
+                u.referenceId === studentInfo.studentNumber,
+                `STU-${u.studentNumber}` === studentInfo.studentNumber,
+                // Only check generateReferenceId if docId exists
+                u.docId && generateReferenceId(u.docId) === studentInfo.studentNumber
+              ];
+
+              if (matches.some(Boolean)) {
+                addDebugLog(`🎯 Found potential match: ${u.displayName || u.name || 'Unknown'}, studentNumber=${u.studentNumber}, referenceId=${u.referenceId}, docId=${u.docId}`, 'info');
+              }
+
+              return matches.some(Boolean);
+            });
+
+            if (student && !isAdmin(student.role) && !isSuperAdmin(student.role)) {
+              foundStudent = {
+                id: student.docId || student.id, // Use docId as primary, fallback to id
+                docId: student.docId,
+                referenceId: student.referenceId, // Include referenceId
+                studentId: student.studentNumber || student.docId || student.id,
+                studentNumber: student.studentNumber || student.docId || student.id,
+                name: student.displayName || student.realName || student.name || 'Unknown',
+                displayName: student.displayName,
+                realName: student.realName,
+                email: student.email,
+                attendance: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
+                participation: 0,
+                behavior: 0,
+                penalty: 0,
+                totalAttendance: 0,
+                attendanceStats: {
+                  present: 0,
+                  late: 0,
+                  absent_no_excuse: 0,
+                  absent_with_excuse: 0,
+                  excused_leave: 0,
+                  humanitarian_case: 0
+                },
+                isPinned: student.isPinned || false,
+                referenceId: student.referenceId // Ensure referenceId is included
+              };
+              addDebugLog(`✅ Found student via user search: ${foundStudent.name}`, 'success');
+            }
+          }
+        } catch (error) {
+          addDebugLog(`❌ User search failed: ${error.message}`, 'error');
+        }
+      }
+
+      if (foundStudent) {
+        setLastScannedStudent(foundStudent);
+        setShowScanDialog(true);
+        setIsScanningLocked(false);
+        setLastScannedCode(null);
+        stopCamera();
+        return;
+      } else {
+        addDebugLog(`❌ Student not found: ${studentInfo.studentNumber}`, 'error');
+        showResult('error', t('student_not_found'));
+        setIsScanningLocked(false);
+        setLastScannedCode(null);
+        stopCamera();
+        return;
+      }
+    }
+
+    // Find student in the provided students array
+    const student = students.find(s => {
+      const studentId = s.studentId || s.id;
+      const studentNumber = s.studentNumber;
+      const referenceId = s.referenceId;
+      
+      return [
+        studentId === studentInfo.studentNumber,
+        studentNumber === studentInfo.studentNumber,
+        referenceId === studentInfo.studentNumber,
+        `STU-${studentNumber}` === studentInfo.studentNumber,
+        // Only check generateReferenceId if docId exists
+        s.docId && generateReferenceId(s.docId) === studentInfo.studentNumber
+      ].some(Boolean);
+    });
+
+    if (student) {
+      addDebugLog(`✅ Found student: ${student.name || student.email}`, 'success');
+      setLastScannedStudent(student);
+      setShowScanDialog(true);
+    } else {
+      addDebugLog(`❌ Student not found: ${studentInfo.studentNumber}`, 'error');
+      showResult('error', t('student_not_found'));
+    }
+
+    // Safety timeout to unlock scanning after 3 seconds
+    setTimeout(() => {
+      setIsScanningLocked(false);
+      setLastScannedCode(null); // Reset to allow re-scanning
+      addDebugLog('🔓 Scanning unlocked after timeout', 'info');
+    }, 3000);
+
+    // Stop camera after scan - user will manually restart
+    stopCamera();
+    setTimeout(() => {
+      if (videoRef.current && canvasRef.current) {
+        // Clear the video element to prevent black screen
+        videoRef.current.srcObject = null;
+      }
+    }, 100);
+
+    // Unlock scanning immediately for next manual scan
+    setIsScanningLocked(false);
+    addDebugLog('🔓 Scanning unlocked - ready for next manual scan', 'info');
+  };
+
+  const scanQRCode = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+      if (code) {
+        // Add additional check to prevent multiple scans of the same code
+        if (code.data !== lastScannedCode) {
+          setLastScannedCode(code.data);
+          handleQRCodeDetected(code.data);
+        }
+      }
+    }
+  }, [lastScannedCode, handleQRCodeDetected]);
+
+  // Play feedback sound and vibration
+  const playFeedbackSound = useCallback((type) => {
+    try {
+      // Vibration for both success and error
+      if (vibrationEnabled && navigator.vibrate) {
+        if (type === GENERAL_STATUS.SUCCESS) {
+          // Short vibration for success
+          navigator.vibrate(100);
+        } else if (type === GENERAL_STATUS.ERROR) {
+          // Longer vibration pattern for error
+          navigator.vibrate([200, 100, 200]);
+        }
+      }
+
+      // Sound feedback
+      if (soundEnabled) {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        if (type === GENERAL_STATUS.SUCCESS) {
+          // Success sound: ascending tone
+          oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+          oscillator.frequency.exponentialRampToValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+          oscillator.frequency.exponentialRampToValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.3);
+        } else if (type === GENERAL_STATUS.ERROR) {
+          // Error sound: descending tone
+          oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4
+          oscillator.frequency.exponentialRampToValueAtTime(220, audioContext.currentTime + 0.2); // A3
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.3);
+        }
+      }
+
+      // Don't show toast notification - using modal system instead
+      // const message = type === GENERAL_STATUS.SUCCESS
+      //   ? (t('qr_scan_success') || 'QR Code scanned successfully!')
+      //   : (t('qr_scan_error') || 'QR Code scan failed. Please try again.');
+      //
+      // addToast(message, type);
+    } catch (error) {
+      logger.warn('Could not play feedback sound:', error);
+    }
+  }, [soundEnabled, vibrationEnabled]);
+
   const startCamera = useCallback(async () => {
     // Check if all required fields are selected before starting camera
     if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
@@ -226,441 +567,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     addDebugLog('🛑 Camera stopped and cleaned up', 'info');
   }, [addDebugLog]);
 
-  const scanQRCode = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
-
-      if (code) {
-        // Add additional check to prevent multiple scans of the same code
-        if (code.data !== lastScannedCode) {
-          setLastScannedCode(code.data);
-          handleQRCodeDetected(code.data);
-        }
-      }
-    }
-  }, [lastScannedCode, handleQRCodeDetected]);
-
-  // Debug logging function
-  const addDebugLog = useCallback((message, type = 'info') => {
-    const timestamp = new Date().toLocaleTimeString();
-    const logEntry = {
-      timestamp,
-      message,
-      type,
-      id: Date.now() + Math.random()
-    };
-    setDebugLogs(prev => [logEntry, ...prev].slice(0, 50)); // Keep last 50 logs
-    logger.log(`[${timestamp}] ${message}`);
-  }, []);
-
-  // Show result modal function - Enhanced for attendance types
-  const showResult = useCallback((type, message, attendanceStatus = null, isSummary = false) => {
-    // If attendance status is provided, use its color and icon
-    let finalType = type;
-    let finalMessage = message;
-    
-    if (attendanceStatus && [
-      ATTENDANCE_STATUS.PRESENT,
-      ATTENDANCE_STATUS.LATE,
-      ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
-      ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE,
-      ATTENDANCE_STATUS.EXCUSED_LEAVE,
-      ATTENDANCE_STATUS.HUMAN_CASE
-    ].includes(attendanceStatus)) {
-      finalType = attendanceStatus;
-      // Add attendance icon to message if not already present
-      const icon = getAttendanceIcon(attendanceStatus);
-      const label = getLocalizedAttendanceLabel(attendanceStatus, t, lang);
-      if (!message.includes(label)) {
-        finalMessage = `${label}: ${message}`;
-      }
-    }
-    
-    setResultModalData({ 
-      type: finalType, 
-      message: finalMessage, 
-      isSummary,
-      attendanceStatus // Store for icon/color rendering
-    });
-    setShowResultModal(true);
-    addDebugLog(`📢 Showing result modal: ${finalType} - ${finalMessage}`, 'info');
-  }, [addDebugLog, lang, t]);
-
-  // Play feedback sound and vibration
-  const playFeedbackSound = useCallback((type) => {
-    try {
-      // Vibration for both success and error
-      if (vibrationEnabled && navigator.vibrate) {
-        if (type === GENERAL_STATUS.SUCCESS) {
-          // Short vibration for success
-          navigator.vibrate(100);
-        } else if (type === GENERAL_STATUS.ERROR) {
-          // Longer vibration pattern for error
-          navigator.vibrate([200, 100, 200]);
-        }
-      }
-
-      // Sound feedback
-      if (soundEnabled) {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-
-        if (type === GENERAL_STATUS.SUCCESS) {
-          // Success sound: ascending tone
-          oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
-          oscillator.frequency.exponentialRampToValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
-          oscillator.frequency.exponentialRampToValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
-          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-          oscillator.start(audioContext.currentTime);
-          oscillator.stop(audioContext.currentTime + 0.3);
-        } else if (type === GENERAL_STATUS.ERROR) {
-          // Error sound: descending tone
-          oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4
-          oscillator.frequency.exponentialRampToValueAtTime(220, audioContext.currentTime + 0.2); // A3
-          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-          oscillator.start(audioContext.currentTime);
-          oscillator.stop(audioContext.currentTime + 0.3);
-        }
-      }
-
-      // Don't show toast notification - using modal system instead
-      // const message = type === GENERAL_STATUS.SUCCESS
-      //   ? (t('qr_scan_success') || 'QR Code scanned successfully!')
-      //   : (t('qr_scan_error') || 'QR Code scan failed. Please try again.');
-      //
-      // addToast(message, type);
-    } catch (error) {
-      logger.warn('Could not play feedback sound:', error);
-    }
-  }, [soundEnabled, vibrationEnabled]);
-
-  const handleQRCodeDetected = async (data) => {
-    // Prevent infinite scanning - lock scanning for 3 seconds
-    if (isScanningLocked) {
-      addDebugLog('🔒 Scanning locked - ignoring duplicate scan', 'warning');
-      return;
-    }
-
-    setIsScanningLocked(true);
-    addDebugLog(`🔍 QR Code scanned: ${data}`, GENERAL_STATUS.SUCCESS);
-
-    // Play success feedback
-    playFeedbackSound(GENERAL_STATUS.SUCCESS);
-
-    onScan(data);
-    setRecentScans(prev => prev + 1);
-
-    // Parse QR data to get student info
-    let studentInfo = null;
-    try {
-      if (typeof data === 'string') {
-        if (data.includes('/qr/student/')) {
-          // URL format like https://localhost:5174/qr/student/12345 or any student number
-          const urlParts = data.split('/qr/student/');
-          if (urlParts.length > 1) {
-            const studentId = urlParts[1].split('?')[0]; // Remove query params if any
-            studentInfo = { studentNumber: studentId };
-          }
-        } else {
-          // Direct student number or any text/number
-          studentInfo = { studentNumber: data.trim() };
-        }
-      } else {
-        studentInfo = data;
-      }
-    } catch (error) {
-      addDebugLog(`❌ Error parsing QR data: ${error.message}`, 'error');
-      playFeedbackSound('error'); // Add vibration for parsing error
-      showError(t('invalid_qr_code_format'));
-      setIsScanningLocked(false);
-      return;
-    }
-
-    addDebugLog(`👤 Student info parsed: ${JSON.stringify(studentInfo)}`, 'info');
-    addDebugLog(`🔍 Available students count: ${students.length}`, 'info');
-    addDebugLog(`🔍 Selected program: ${selectedProgramId}, subject: ${selectedSubjectId}, class: ${selectedClassId}`, 'info');
-
-    // If students array is empty, try to fetch from Firebase using multiple methods
-    if (students.length === 0) {
-      addDebugLog(`⚠️ Students array is empty, trying multiple Firebase lookups`, 'warning');
-
-      // Try multiple ways to find the student
-      let foundStudent = null;
-
-      // Method 1: Try to find by document ID (but only if it's not a simple number)
-      if (!/^\d+$/.test(studentInfo.studentNumber) || studentInfo.studentNumber.length > 4) {
-        try {
-          const userResult = await getUserByStudentNumber(studentInfo.studentNumber);
-          if (userResult.success) {
-            const studentData = userResult.data;
-            // Check if this is actually a student (not admin)
-            if (!isAdmin(studentData.role) && !isSuperAdmin(studentData.role)) {
-              foundStudent = {
-                id: userResult.data.id,
-                docId: userResult.data.id,
-                referenceId: studentData.referenceId, // Include referenceId
-                studentId: studentData.studentNumber || userResult.data.id,
-                studentNumber: studentData.studentNumber || userResult.data.id,
-                name: studentData.displayName || studentData.realName || studentData.name || 'Unknown',
-                displayName: studentData.displayName,
-                realName: studentData.realName,
-                email: studentData.email,
-                attendance: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
-                participation: 0,
-                behavior: 0,
-                penalty: 0,
-                totalAttendance: 0,
-                attendanceStats: {
-                  present: 0,
-                  late: 0,
-                  absent: 0,
-                  absentWithExcuse: 0,
-                  excusedLeave: 0,
-                  humanitarianCase: 0
-                },
-                isPinned: false,
-                behaviorHistory: [],
-                participationHistory: [],
-                penaltyHistory: []
-              };
-              addDebugLog(`✅ Found student by document ID: ${foundStudent.name}`, 'success');
-            }
-          }
-        } catch (error) {
-          addDebugLog(`❌ Error fetching by document ID: ${error.message}`, 'error');
-        }
-      }
-
-      // Method 2: Try to find by studentNumber field (query all users)
-      if (!foundStudent) {
-        try {
-          // Use getUsers to fetch all users and find by studentNumber
-          const result = await getUsers();
-          if (result.success) {
-            const allUsers = result.data;
-            addDebugLog(`🔍 Searching ${allUsers.length} users for matches`, 'info');
-
-            // Show first few users for debugging
-            allUsers.slice(0, 3).forEach((u, idx) => {
-              addDebugLog(`User ${idx}: docId=${u.docId}, id=${u.id}, studentNumber=${u.studentNumber}, referenceId=${u.referenceId}, name=${u.displayName || u.name}`, 'info');
-            });
-
-            const student = allUsers.find(u => {
-              const matches = [
-                u.studentNumber === studentInfo.studentNumber,
-                u.referenceId === studentInfo.studentNumber,
-                `STU-${u.studentNumber}` === studentInfo.studentNumber,
-                // Only check generateReferenceId if docId exists
-                u.docId && generateReferenceId(u.docId) === studentInfo.studentNumber
-              ];
-
-              if (matches.some(Boolean)) {
-                addDebugLog(`🎯 Found potential match: ${u.displayName || u.name || 'Unknown'}, studentNumber=${u.studentNumber}, referenceId=${u.referenceId}, docId=${u.docId}`, 'info');
-              }
-
-              return matches.some(Boolean);
-            });
-
-            if (student && !isAdmin(student.role) && !isSuperAdmin(student.role)) {
-              foundStudent = {
-                id: student.docId || student.id, // Use docId as primary, fallback to id
-                docId: student.docId,
-                referenceId: student.referenceId, // Include referenceId
-                studentId: student.studentNumber || student.docId || student.id,
-                studentNumber: student.studentNumber || student.docId || student.id,
-                name: student.displayName || student.realName || student.name || 'Unknown',
-                displayName: student.displayName,
-                realName: student.realName,
-                email: student.email,
-                attendance: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
-                participation: 0,
-                behavior: 0,
-                penalty: 0,
-                totalAttendance: 0,
-                attendanceStats: {
-                  present: 0,
-                  late: 0,
-                  absent: 0,
-                  absentWithExcuse: 0,
-                  excusedLeave: 0,
-                  humanitarianCase: 0
-                },
-                isPinned: false,
-                behaviorHistory: [],
-                participationHistory: [],
-                penaltyHistory: []
-              };
-              addDebugLog(`✅ Found student by searching all users: ${foundStudent.name}`, 'success');
-            } else if (student) {
-              addDebugLog(`⚠️ Found user but it's an admin: ${student.displayName || student.name}, role: ${student.role}`, 'warning');
-            }
-          }
-        } catch (error) {
-          addDebugLog(`❌ Error searching all users: ${error.message}`, 'error');
-        }
-      }
-
-      if (foundStudent) {
-        setLastScannedStudent({
-          ...foundStudent,
-          name: foundStudent.name || foundStudent.displayName,
-          email: foundStudent.email,
-          studentNumber: foundStudent.studentNumber,
-          referenceId: foundStudent.referenceId // Ensure referenceId is included
-        });
-        setShowScanDialog(true);
-        setIsScanningLocked(false);
-        setLastScannedCode(null);
-        stopCamera();
-        return;
-      }
-    }
-
-    // Use the EXACT same lookup logic as manual scan
-    let fullStudent = students.find(s => {
-      const matches = [
-        s.studentNumber === studentInfo.studentNumber,
-        s.referenceId === studentInfo.studentNumber,
-        s.studentId === studentInfo.studentNumber,
-        `STU-${s.studentNumber}` === studentInfo.studentNumber, // Backward compatibility
-        generateReferenceId(s.id) === studentInfo.studentNumber // Backward compatibility
-      ];
-
-      if (matches.some(Boolean)) {
-        addDebugLog('Camera student match found:', {
-          searchingFor: studentInfo.studentNumber,
-          found: {
-            id: s.id,
-            studentId: s.studentId,
-            referenceId: s.referenceId,
-            studentNumber: s.studentNumber,
-            matches: matches
-          }
-        });
-      }
-
-      return matches.some(Boolean);
-    });
-
-    // If still not found in local array, try to fetch from Firebase
-    if (!fullStudent && studentInfo.studentNumber) {
-      try {
-        addDebugLog(`🔄 Fetching student from Firebase for number: ${studentInfo.studentNumber}`, 'info');
-        const userResult = await getUserByStudentNumber(studentInfo.studentNumber);
-        if (userResult.success) {
-          const studentData = userResult.data;
-          // Create a student object with the same structure as the students array
-          fullStudent = {
-            id: userResult.data.id,
-            docId: userResult.data.id,
-            studentId: studentData.studentNumber || userResult.data.id,
-            studentNumber: studentData.studentNumber || userResult.data.id,
-            name: studentData.displayName || studentData.realName || studentData.name || 'Unknown',
-            displayName: studentData.displayName,
-            realName: studentData.realName,
-            email: studentData.email,
-            // Add default values for fields that might be expected
-            attendance: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, // Default when no attendance
-            participation: 0,
-            behavior: 0,
-            penalty: 0,
-            totalAttendance: 0,
-            attendanceStats: {
-              present: 0,
-              late: 0,
-              absent: 0,
-              absentWithExcuse: 0,
-              excusedLeave: 0,
-              humanitarianCase: 0
-            },
-            isPinned: false,
-            behaviorHistory: [],
-            participationHistory: [],
-            penaltyHistory: []
-          };
-          addDebugLog(`✅ Fetched student from Firebase: ${fullStudent.name}`, 'success');
-        }
-      } catch (error) {
-        addDebugLog(`❌ Error fetching student from Firebase: ${error.message}`, 'error');
-      }
-    }
-
-    if (fullStudent) {
-      const searchMethod = students.find(s => s.studentNumber === studentInfo.studentNumber) ? 'studentNumber' :
-          students.find(s => s.studentId === studentInfo.studentNumber) ? 'studentId' : 'Firebase';
-      addDebugLog(`✅ Found full student by ${searchMethod}: ${fullStudent.displayName || fullStudent.name} (${fullStudent.studentNumber})`, 'success');
-      // Make sure we include all necessary fields
-      setLastScannedStudent({
-        ...fullStudent,
-        // Ensure we have these fields from the full student record
-        name: fullStudent.name || fullStudent.displayName,
-        email: fullStudent.email,
-        studentNumber: fullStudent.studentNumber
-      });
-    } else {
-      addDebugLog(`❌ Student not found with number: ${studentInfo.studentNumber}`, 'error');
-      addDebugLog(`🔍 Available student numbers: ${students.slice(0, 5).map(s => s.studentNumber).join(', ')}...`, 'info');
-      addDebugLog(`🔍 Available referenceIds: ${students.slice(0, 5).map(s => s.referenceId).join(', ')}...`, 'info');
-      addDebugLog(`🔍 Available studentIds: ${students.slice(0, 5).map(s => s.studentId).join(', ')}...`, 'info');
-      playFeedbackSound('error'); // Add vibration for student not found
-      // If not found in students array, use what we have
-      setLastScannedStudent({
-        ...studentInfo,
-        // If we don't have a name, use a default
-        name: studentInfo.name || `Student ${studentInfo.studentNumber || ''}`.trim()
-      });
-    }
-
-    // Check if all required fields are selected
-    if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
-      playFeedbackSound('error'); // Add vibration for missing fields
-      showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
-      addDebugLog('❌ Cannot scan: Missing required selections', 'error');
-      stopCamera();
-      return;
-    }
-
-    // Always use semi-auto mode - show dialog to choose action
-    addDebugLog('🔄 Semi-auto mode: Showing action dialog', 'info');
-    setShowScanDialog(true);
-
-    // Safety timeout to unlock scanning after 3 seconds
-    setTimeout(() => {
-      setIsScanningLocked(false);
-      setLastScannedCode(null); // Reset to allow re-scanning
-      addDebugLog('🔓 Scanning unlocked after timeout', 'info');
-    }, 3000);
-
-    // Stop camera after scan - user will manually restart
-    stopCamera();
-    setTimeout(() => {
-      if (videoRef.current && canvasRef.current) {
-        // Clear the video element to prevent black screen
-        videoRef.current.srcObject = null;
-      }
-    }, 100);
-
-    // Unlock scanning immediately for next manual scan
-    setIsScanningLocked(false);
-    addDebugLog('🔓 Scanning unlocked - ready for next manual scan', 'info');
-  };
 
   const toggleCamera = useCallback(() => {
     if (isScanning) {

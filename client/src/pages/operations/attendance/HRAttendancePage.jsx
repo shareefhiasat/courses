@@ -153,10 +153,11 @@ const HRAttendancePage = () => {
       
       // Apply filters
       let filtered = enriched;
+      console.log('[HRAttendance] Starting with enriched sessions count:', filtered.length);
       logger.log('[HRAttendance] Starting with enriched sessions count:', filtered.length);
       
       // Filter by program
-      if (programFilter !== 'all') {
+      if (programFilter && programFilter !== 'all') {
         logger.log('[HRAttendance] Applying program filter:', programFilter);
         filtered = filtered.filter(s => {
           if (!s.classId) return false;
@@ -170,7 +171,7 @@ const HRAttendancePage = () => {
       }
       
       // Filter by subject
-      if (subjectFilter !== 'all') {
+      if (subjectFilter && subjectFilter !== 'all') {
         logger.log('[HRAttendance] Applying subject filter:', subjectFilter);
         filtered = filtered.filter(s => {
           if (!s.classId) return false;
@@ -182,14 +183,15 @@ const HRAttendancePage = () => {
       }
       
       // Filter by class
-      if (classFilter !== 'all') {
+      if (classFilter && classFilter !== 'all') {
         logger.log('[HRAttendance] Applying class filter:', classFilter);
         filtered = filtered.filter(s => s.classId === classFilter);
         logger.log('[HRAttendance] After class filter count:', filtered.length);
       }
       
       // Filter by year
-      if (yearFilter !== 'all') {
+      if (yearFilter && yearFilter !== 'all') {
+        console.log('[HRAttendance] Applying year filter:', yearFilter);
         logger.log('[HRAttendance] Applying year filter:', yearFilter);
         logger.log('[HRAttendance] Sessions before year filter:', filtered.map(s => ({
           id: s.id,
@@ -226,10 +228,19 @@ const HRAttendancePage = () => {
           return false;
         });
         logger.log('[HRAttendance] After year filter count:', filtered.length);
+      } else {
+        console.log('[HRAttendance] Year filter is "all", not applying year filter');
+        logger.log('[HRAttendance] Year filter is "all", not applying year filter');
       }
       
       // Filter by term
-      if (termFilter !== 'all') {
+      if (termFilter && termFilter !== 'all') {
+        console.log('[HRAttendance] Applying term filter:', termFilter);
+        console.log('[HRAttendance] Sessions and their terms:', filtered.map(s => ({
+          id: s.id,
+          classTerm: s.classTerm,
+          termPart: s.classTerm ? s.classTerm.split(' ')[0] : 'null'
+        })));
         logger.log('[HRAttendance] Applying term filter:', termFilter);
         logger.log('[HRAttendance] Sessions before term filter:', filtered.map(s => ({
           id: s.id,
@@ -240,12 +251,17 @@ const HRAttendancePage = () => {
           if (!s.classTerm) return false;
           const termPart = s.classTerm.split(' ')[0];
           const matches = termPart === termFilter;
+          console.log('[HRAttendance] Session term check:', s.id, 'classTerm:', s.classTerm, 'termPart:', termPart, 'filter:', termFilter, 'matches:', matches);
           if (matches) {
             logger.log('[HRAttendance] Session matched by term:', s.id, s.classTerm, 'termPart:', termPart);
           }
           return matches;
         });
+        console.log('[HRAttendance] After term filter count:', filtered.length);
         logger.log('[HRAttendance] After term filter count:', filtered.length);
+      } else {
+        console.log('[HRAttendance] Term filter is "all", not applying term filter');
+        logger.log('[HRAttendance] Term filter is "all", not applying term filter');
       }
       if (dateFrom) {
         logger.log('[HRAttendance] Applying dateFrom filter:', dateFrom);
@@ -255,6 +271,8 @@ const HRAttendancePage = () => {
           return createdAt >= from;
         });
         logger.log('[HRAttendance] After dateFrom filter count:', filtered.length);
+      } else {
+        logger.log('[HRAttendance] dateFrom is empty, not applying dateFrom filter');
       }
       if (dateTo) {
         logger.log('[HRAttendance] Applying dateTo filter:', dateTo);
@@ -265,6 +283,8 @@ const HRAttendancePage = () => {
           return createdAt <= to;
         });
         logger.log('[HRAttendance] After dateTo filter count:', filtered.length);
+      } else {
+        logger.log('[HRAttendance] dateTo is empty, not applying dateTo filter');
       }
 
       // Check for expired sessions and auto-close them
@@ -330,8 +350,60 @@ const HRAttendancePage = () => {
         filtered = reEnriched;
         
         // Re-apply filters
-        if (classFilter !== 'all') {
+        if (programFilter && programFilter !== 'all') {
+          filtered = filtered.filter(s => {
+            if (!s.classId) return false;
+            const classItem = classes.find(c => (c.id || c.docId) === s.classId);
+            if (!classItem || !classItem.subjectId) return false;
+            const subject = subjects.find(sub => (sub.docId || sub.id) === classItem.subjectId);
+            if (!subject) return false;
+            return (subject.programId || '') === programFilter;
+          });
+        }
+        if (subjectFilter && subjectFilter !== 'all') {
+          filtered = filtered.filter(s => {
+            if (!s.classId) return false;
+            const classItem = classes.find(c => (c.id || c.docId) === s.classId);
+            if (!classItem) return false;
+            return (classItem.subjectId || '') === subjectFilter;
+          });
+        }
+        if (classFilter && classFilter !== 'all') {
           filtered = filtered.filter(s => s.classId === classFilter);
+        }
+        if (yearFilter && yearFilter !== 'all') {
+          filtered = filtered.filter(s => {
+            // Check classYear field
+            if (s.classYear && String(s.classYear) === yearFilter) {
+              return true;
+            }
+            
+            // Check classTerm field for year in term like "Fall 2025"
+            if (s.classTerm) {
+              const parts = s.classTerm.split(' ');
+              if (parts.length > 1 && parts[parts.length - 1] === yearFilter) {
+                return true;
+              }
+            }
+            
+            // Check createdAt date year
+            if (s.createdAt) {
+              const createdDate = s.createdAt?.toDate ? s.createdAt.toDate() : new Date(s.createdAt || 0);
+              const createdYear = String(createdDate.getFullYear());
+              if (createdYear === yearFilter) {
+                return true;
+              }
+            }
+            
+            return false;
+          });
+        }
+        if (termFilter && termFilter !== 'all') {
+          filtered = filtered.filter(s => {
+            if (!s.classTerm) return false;
+            const termPart = s.classTerm.split(' ')[0];
+            return termPart === termFilter;
+          });
         }
         if (dateFrom) {
           const from = new Date(dateFrom);
@@ -360,7 +432,26 @@ const HRAttendancePage = () => {
 
       setSessions(filtered);
       setInitialDataLoaded(true);
+      console.log('[HRAttendance] Final sessions set:', filtered.length, 'sessions');
+      console.log('[HRAttendance] Final filter values:', {
+        programFilter,
+        subjectFilter,
+        classFilter,
+        yearFilter,
+        termFilter,
+        dateFrom,
+        dateTo
+      });
       logger.log('[HRAttendance] Final sessions set:', filtered.length, 'sessions');
+      logger.log('[HRAttendance] Final filter values:', {
+        programFilter,
+        subjectFilter,
+        classFilter,
+        yearFilter,
+        termFilter,
+        dateFrom,
+        dateTo
+      });
     } catch (e) {
       logger.error('[HR] Error loading sessions:', e);
     } finally {
@@ -415,7 +506,7 @@ const HRAttendancePage = () => {
 
       // Apply status filter
       let filtered = enriched;
-      if (statusFilter !== 'all') {
+      if (statusFilter && statusFilter !== 'all') {
         filtered = enriched.filter(m => {
           const status = m.status || 'present';
           // Handle legacy statuses
@@ -651,12 +742,36 @@ const HRAttendancePage = () => {
               }}
               options={[
                 { value: 'all', label: t('all_status') || 'All Status' },
-                { value: ATTENDANCE_STATUS.PRESENT, label: ATTENDANCE_STATUS_LABELS.present.en },
-                { value: ATTENDANCE_STATUS.LATE, label: ATTENDANCE_STATUS_LABELS.late.en },
-                { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: ATTENDANCE_STATUS_LABELS.absent_no_excuse.en },
-                { value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: ATTENDANCE_STATUS_LABELS.absent_with_excuse.en },
-                { value: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: ATTENDANCE_STATUS_LABELS.excused_leave.en },
-                { value: ATTENDANCE_STATUS.HUMAN_CASE, label: ATTENDANCE_STATUS_LABELS.human_case.en }
+                { 
+                  value: ATTENDANCE_STATUS.PRESENT, 
+                  label: ATTENDANCE_STATUS_LABELS.present.en,
+                  icon: getThemedIcon('ui', 'check', 16, '#10b981')
+                },
+                { 
+                  value: ATTENDANCE_STATUS.LATE, 
+                  label: ATTENDANCE_STATUS_LABELS.late.en,
+                  icon: getThemedIcon('ui', 'clock', 16, '#f59e0b')
+                },
+                { 
+                  value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, 
+                  label: ATTENDANCE_STATUS_LABELS.absent_no_excuse.en,
+                  icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
+                },
+                { 
+                  value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, 
+                  label: ATTENDANCE_STATUS_LABELS.absent_with_excuse.en,
+                  icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
+                },
+                { 
+                  value: ATTENDANCE_STATUS.EXCUSED_LEAVE, 
+                  label: ATTENDANCE_STATUS_LABELS.excused_leave.en,
+                  icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
+                },
+                { 
+                  value: ATTENDANCE_STATUS.HUMAN_CASE, 
+                  label: ATTENDANCE_STATUS_LABELS.human_case.en,
+                  icon: getThemedIcon('ui', 'heart', 16, '#8b5cf6')
+                }
               ]}
               fullWidth
               placeholder={t('all_status') || 'All Status'}
@@ -997,12 +1112,36 @@ const HRAttendancePage = () => {
                                 value={normalizedStatus}
                                 onChange={(e) => setEditingMark({ ...mark, status: e.target.value })}
                                 options={[
-                                  { value: ATTENDANCE_STATUS.PRESENT, label: `${ATTENDANCE_STATUS_LABELS.present.en} - ${ATTENDANCE_STATUS_LABELS.present.ar}` },
-                                  { value: ATTENDANCE_STATUS.LATE, label: `${ATTENDANCE_STATUS_LABELS.late.en} - ${ATTENDANCE_STATUS_LABELS.late.ar}` },
-                                  { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: `❌ ${ATTENDANCE_STATUS_LABELS.absent_no_excuse.en} - ${ATTENDANCE_STATUS_LABELS.absent_no_excuse.ar}` },
-                                  { value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: `📝 ${ATTENDANCE_STATUS_LABELS.absent_with_excuse.en} - ${ATTENDANCE_STATUS_LABELS.absent_with_excuse.ar}` },
-                                  { value: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: `🚪 ${ATTENDANCE_STATUS_LABELS.excused_leave.en} - ${ATTENDANCE_STATUS_LABELS.excused_leave.ar}` },
-                                  { value: ATTENDANCE_STATUS.HUMAN_CASE, label: `💜 ${ATTENDANCE_STATUS_LABELS.human_case.en} - ${ATTENDANCE_STATUS_LABELS.human_case.ar}` }
+                                  { 
+                                    value: ATTENDANCE_STATUS.PRESENT, 
+                                    label: `${ATTENDANCE_STATUS_LABELS.present.en} - ${ATTENDANCE_STATUS_LABELS.present.ar}`,
+                                    icon: getThemedIcon('ui', 'check', 16, '#10b981')
+                                  },
+                                  { 
+                                    value: ATTENDANCE_STATUS.LATE, 
+                                    label: `${ATTENDANCE_STATUS_LABELS.late.en} - ${ATTENDANCE_STATUS_LABELS.late.ar}`,
+                                    icon: getThemedIcon('ui', 'clock', 16, '#f59e0b')
+                                  },
+                                  { 
+                                    value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, 
+                                    label: `${ATTENDANCE_STATUS_LABELS.absent_no_excuse.en} - ${ATTENDANCE_STATUS_LABELS.absent_no_excuse.ar}`,
+                                    icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
+                                  },
+                                  { 
+                                    value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, 
+                                    label: `${ATTENDANCE_STATUS_LABELS.absent_with_excuse.en} - ${ATTENDANCE_STATUS_LABELS.absent_with_excuse.ar}`,
+                                    icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
+                                  },
+                                  { 
+                                    value: ATTENDANCE_STATUS.EXCUSED_LEAVE, 
+                                    label: `${ATTENDANCE_STATUS_LABELS.excused_leave.en} - ${ATTENDANCE_STATUS_LABELS.excused_leave.ar}`,
+                                    icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
+                                  },
+                                  { 
+                                    value: ATTENDANCE_STATUS.HUMAN_CASE, 
+                                    label: `${ATTENDANCE_STATUS_LABELS.human_case.en} - ${ATTENDANCE_STATUS_LABELS.human_case.ar}`,
+                                    icon: getThemedIcon('ui', 'heart', 16, '#8b5cf6')
+                                  }
                                 ]}
                                 fullWidth
                               />

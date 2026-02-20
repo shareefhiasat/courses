@@ -943,6 +943,7 @@ const DICT = {
     quiz_results: 'Quiz Results',
     community: 'COMMUNITY',
     dashboard: 'Dashboard',
+    qr_class: 'Daily Scan',
     see_how_you_rank: 'See how you rank among your peers',
     my_classes: 'Classes',
     instructor: 'Instructor',
@@ -968,7 +969,7 @@ const DICT = {
     start_activity: 'Start Activity',
     // UI Elements
     help: 'Help',
-    collapse_all: 'Collapse All',
+    collapse_all: '',
     section_content: 'Content',
     logs: 'Logs',
     
@@ -3993,7 +3994,7 @@ const DICT = {
     start_activity: 'بدأ النشاط',
     // UI Elements
     help: 'مساعدة',
-    collapse_all: 'طي الكل',
+    collapse_all: '',
     expand_all: 'توسيع الكل',
     section_content: 'المحتوى',
     logs: 'السجلات',
@@ -4914,6 +4915,7 @@ const DICT = {
     quiz_results: 'نتائج الاختبارات',
     community: 'المجتمع',
     dashboard: 'لوحة التحكم',
+    qr_class: 'مسح يومي',
     leaderboard: 'لوحة المتصدرين',
     my_progress: 'تقدمي',
     

@@ -707,41 +707,6 @@ const InstructorQRScannerPage = () => {
     }
   }, []);
 
-  const handleScan = useCallback((studentId) => {
-    // studentId here is the reference ID (like STU-JLHXQ2)
-    const student = students.find(s => s.studentId === studentId || s.id === studentId || `STU-${s.studentNumber}` === studentId);
-    if (student) {
-      setSelectedStudentForAction(student); // Use new panel instead of old
-      // Always use the user ID (student.id) for attendance marking, not reference ID
-      logger.debug('handleScan: Found student', {
-        referenceId: studentId,
-        userId: student.id,
-        studentName: student.displayName || student.name
-      });
-      handleMarkAttendance(student.id, 'present', 'QR scan', 'qr_camera');
-    } else {
-      logger.error('handleScan: Student not found', { studentId });
-    }
-  }, [students, handleMarkAttendance]);
-
-  const handleStudentSelect = useCallback((student) => {
-    setSelectedStudent(student); // Use old panel for viewing student details
-  }, []);
-
-  // Listen for attendance updates to refresh students
-  useEffect(() => {
-    const unsubscribeAttendanceDeleted = eventBus.on(EVENTS.ATTENDANCE_DELETED, () => {
-      // Refresh students when attendance is deleted
-      if (selectedClassId && selectedDate) {
-        loadStudents(selectedClassId, selectedDate);
-      }
-    });
-
-    return () => {
-      unsubscribeAttendanceDeleted();
-    };
-  }, [selectedClassId, selectedDate, loadStudents]);
-
   const handleMarkAttendance = useCallback(async (studentId, status, notes = '', method = 'manual_instructor') => {
     try {
       // Get performedBy fields using shared service
@@ -828,6 +793,41 @@ const InstructorQRScannerPage = () => {
       logger.error('Error marking attendance:', error);
     }
   }, [selectedClassId, selectedDate, user, students, classes, sendNotifications, t, lang, loadStudents, triggerActivityRefresh]);
+
+  const handleScan = useCallback((studentId) => {
+    // studentId here is the reference ID (like STU-JLHXQ2)
+    const student = students.find(s => s.studentId === studentId || s.id === studentId || `STU-${s.studentNumber}` === studentId);
+    if (student) {
+      setSelectedStudentForAction(student); // Use new panel instead of old
+      // Always use the user ID (student.id) for attendance marking, not reference ID
+      logger.debug('handleScan: Found student', {
+        referenceId: studentId,
+        userId: student.id,
+        studentName: student.displayName || student.name
+      });
+      handleMarkAttendance(student.id, 'present', 'QR scan', 'qr_camera');
+    } else {
+      logger.error('handleScan: Student not found', { studentId });
+    }
+  }, [students, handleMarkAttendance]);
+
+  const handleStudentSelect = useCallback((student) => {
+    setSelectedStudent(student); // Use old panel for viewing student details
+  }, []);
+
+  // Listen for attendance updates to refresh students
+  useEffect(() => {
+    const unsubscribeAttendanceDeleted = eventBus.on(EVENTS.ATTENDANCE_DELETED, () => {
+      // Refresh students when attendance is deleted
+      if (selectedClassId && selectedDate) {
+        loadStudents(selectedClassId, selectedDate);
+      }
+    });
+
+    return () => {
+      unsubscribeAttendanceDeleted();
+    };
+  }, [selectedClassId, selectedDate, loadStudents]);
 
   const handleBehaviorSubmit = useCallback(async (studentId, actions, note, pointsOverride = {}) => {
     try {
