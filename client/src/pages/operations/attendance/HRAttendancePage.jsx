@@ -975,7 +975,7 @@ const HRAttendancePage = () => {
                   <div style={{ fontSize: 10, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     {session.instructorName && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        {getThemedIcon('ui', 'user', 12, theme)}
+                        {getThemedIcon('ui', 'graduation_cap', 12, theme)}
                         {session.instructorName}
                       </span>
                     )}
@@ -1046,7 +1046,7 @@ const HRAttendancePage = () => {
                       color: 'var(--muted)', 
                       marginBottom: '0.25rem' 
                     }}>
-                      {getThemedIcon('ui', 'user', 12, theme)}
+                      {getThemedIcon('ui', 'graduation_cap', 12, theme)}
                       {selectedSession.instructorName}
                     </div>
                   )}

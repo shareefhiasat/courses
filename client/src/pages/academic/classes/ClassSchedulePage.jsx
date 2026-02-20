@@ -712,7 +712,8 @@ const ClassSchedulePage = () => {
                     )}
                   </div>
                   {cls.ownerEmail && (
-                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 3 }}>
+                      {getThemedIcon('ui', 'graduation_cap', 10, theme)}
                       {instructors[cls.ownerEmail] 
                         ? (instructors[cls.ownerEmail].realName || instructors[cls.ownerEmail].displayName || instructors[cls.ownerEmail].email)
                         : `${t('loading') || 'Loading'}... (${cls.ownerEmail})`

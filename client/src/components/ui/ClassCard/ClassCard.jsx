@@ -141,8 +141,12 @@ const ClassCard = ({
         </h4>
         {showInstructorInfo && instructor && (
           <div style={{ 
-            marginTop: '0.25rem'
+            marginTop: '0.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
           }}>
+            {getThemedIcon('ui', 'graduation_cap', 10, theme)}
             <span style={{ 
               fontSize: '0.8rem', 
               color: theme === 'dark' ? '#9ca3af' : '#6b7280' 
