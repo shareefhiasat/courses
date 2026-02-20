@@ -107,11 +107,15 @@ const HRAttendancePage = () => {
         let instructorName = session.instructorId || t('hr_attendance_unknown');
         let scanCounts = { total: 0 };
         
-        // Get class name
+        // Get class name and term/year info
         if (session.classId) {
           const classItem = classes.find(c => (c.id || c.docId) === session.classId);
           if (classItem) {
             className = classItem.name || classItem.code || session.classId;
+            // Enrich with class term and year for filtering
+            session.classTerm = classItem.term;
+            // Extract year from term if no separate year field exists
+            session.classYear = classItem.year || (classItem.term ? classItem.term.split(' ')[1] : undefined);
           }
         }
         
@@ -329,7 +333,7 @@ const HRAttendancePage = () => {
                   if (classItem) {
                     session.className = classItem.name || classItem.code || session.classId;
                     session.classTerm = classItem.term;
-                    session.classYear = classItem.year;
+                    session.classYear = classItem.year || (classItem.term ? classItem.term.split(' ')[1] : undefined);
                   }
                 }
                 
@@ -893,6 +897,26 @@ const HRAttendancePage = () => {
                     color: theme === 'dark' ? '#f9fafb' : '#111827'
                   }}>{className}</div>
                   
+                  {/* Year and Term */}
+                  {(session.classYear || session.classTerm) && (
+                    <div style={{ 
+                      fontSize: 11, 
+                      color: 'var(--muted)', 
+                      marginBottom: 4,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      flexWrap: 'wrap'
+                    }}>
+                      {session.classTerm && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                          {getThemedIcon('ui', 'calendar', 10, theme)}
+                          {session.classTerm}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  
                   {/* Attendance Summaries */}
                   {session.scanCounts && (
                     <div style={{ 
@@ -959,6 +983,24 @@ const HRAttendancePage = () => {
                       {getThemedIcon('ui', 'calendar', 12, theme)}
                       {createdAt.toLocaleDateString('en-GB')} {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                     </span>
+                    {/* Session Duration */}
+                    {(() => {
+                      const startTime = createdAt;
+                      const endTime = session.closedAt ? (session.closedAt.toDate ? session.closedAt.toDate() : new Date(session.closedAt)) : 
+                                     (session.status === 'closed' ? createdAt : new Date());
+                      const durationMs = endTime - startTime;
+                      const durationMinutes = Math.max(1, Math.round(durationMs / (1000 * 60)));
+                      const hours = Math.floor(durationMinutes / 60);
+                      const minutes = durationMinutes % 60;
+                      const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+                      
+                      return (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {getThemedIcon('ui', 'clock', 12, theme)}
+                          {durationText}
+                        </span>
+                      );
+                    })()}
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: session.status === 'open' ? '#10b981' : '#6b7280', fontWeight: 600 }}>
                       <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: session.status === 'open' ? '#10b981' : '#6b7280' }}></span>
                       {session.status === 'open' ? (t('active_session') || 'Active Session') : (t('ended') || 'Ended')}

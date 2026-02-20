@@ -697,9 +697,19 @@ const ClassSchedulePage = () => {
                   <div style={{ fontWeight: 600, fontSize: 14 }}>
                     {getLocalizedClassName(cls)}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                    {cls.term && <span>{cls.term}</span>}
-                    {cls.year && !cls.term && <span>{t('year') || 'Year'} {cls.year}</span>}
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {cls.term && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        {getThemedIcon('ui', 'calendar', 10, theme)}
+                        {cls.term}
+                      </span>
+                    )}
+                    {cls.year && !cls.term && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        {getThemedIcon('ui', 'calendar', 10, theme)}
+                        {t('year') || 'Year'} {cls.year}
+                      </span>
+                    )}
                   </div>
                   {cls.ownerEmail && (
                     <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
@@ -794,9 +804,19 @@ const ClassSchedulePage = () => {
             <>
               <div style={{ marginBottom: 24 }}>
                 <h2 style={{ margin: 0, fontSize: 20 }}>{getLocalizedClassName(selectedClass)}</h2>
-                <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                  {selectedClass.term && `${t('term') || 'Term'}: ${selectedClass.term}`}
-                  {selectedClass.year && ` • ${t('year') || 'Year'}: ${selectedClass.year}`}
+                <div style={{ fontSize: 12, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  {selectedClass.term && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      {getThemedIcon('ui', 'calendar', 10, theme)}
+                      {selectedClass.term}
+                    </span>
+                  )}
+                  {selectedClass.year && !selectedClass.term && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      {getThemedIcon('ui', 'calendar', 10, theme)}
+                      {t('year') || 'Year'} {selectedClass.year}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -1018,7 +1038,8 @@ const ClassSchedulePage = () => {
                   borderBottom: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
                 }}>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: primaryColor }}>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: primaryColor, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {getThemedIcon('ui', 'calendar', 14, theme)}
                       {semester}
                     </h3>
                     <p style={{ margin: '0.25rem 0 0 0', fontSize: 12, color: 'var(--muted)' }}>

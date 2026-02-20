@@ -21,7 +21,7 @@ import { getParticipationLabel } from '@constants/participationTypes';
 import { getBehaviorLabel } from '@constants/behaviorTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import { getFavoriteStudents } from '@services/business/userPreferenceService';
+import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '@services/business/userPreferenceService';
 import { getUserProfile } from '@services/business/userService';
 import { StudentHistory, StudentRosterHistory } from '@ui/history';
 import { DeleteModal } from '@ui';
