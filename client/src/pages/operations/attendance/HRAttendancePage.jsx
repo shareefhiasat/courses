@@ -624,7 +624,8 @@ const HRAttendancePage = () => {
 
       {/* Filters */}
       <div style={{ marginBottom: 16, padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: 8 }}>
+        {/* Row 1: Program, Subject, Class */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8, marginBottom: 8 }}>
           <div>
             <Select
               searchable
@@ -690,6 +691,10 @@ const HRAttendancePage = () => {
               placeholder={t('all_classes') || 'All Classes'}
             />
           </div>
+        </div>
+        
+        {/* Row 2: Year, Term, Date From, Date To, Status */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
           <div>
             <Select
               searchable
@@ -730,6 +735,30 @@ const HRAttendancePage = () => {
               ]}
               fullWidth
               placeholder={t('all_terms') || 'All Terms'}
+            />
+          </div>
+          <div>
+            <DatePicker
+              type="date"
+              value={dateFrom ? (dateFrom.includes('/') ? new Date(dateFrom.split('/').reverse().join('-')).toISOString().split('T')[0] : dateFrom) : ''}
+              onChange={(iso) => {
+                logger.log('[HRAttendance] DateFrom changing from:', dateFrom, 'to:', iso ? new Date(iso).toLocaleDateString('en-CA') : '');
+                setDateFrom(iso ? new Date(iso).toLocaleDateString('en-CA') : '');
+              }}
+              placeholder={t('from_date') || 'From Date'}
+              fullWidth
+            />
+          </div>
+          <div>
+            <DatePicker
+              type="date"
+              value={dateTo ? (dateTo.includes('/') ? new Date(dateTo.split('/').reverse().join('-')).toISOString().split('T')[0] : dateTo) : ''}
+              onChange={(iso) => {
+                logger.log('[HRAttendance] DateTo changing from:', dateTo, 'to:', iso ? new Date(iso).toLocaleDateString('en-CA') : '');
+                setDateTo(iso ? new Date(iso).toLocaleDateString('en-CA') : '');
+              }}
+              placeholder={t('to_date') || 'To Date'}
+              fullWidth
             />
           </div>
           <div>
@@ -775,30 +804,6 @@ const HRAttendancePage = () => {
               ]}
               fullWidth
               placeholder={t('all_status') || 'All Status'}
-            />
-          </div>
-          <div>
-            <DatePicker
-              type="date"
-              value={dateFrom ? (dateFrom.includes('/') ? new Date(dateFrom.split('/').reverse().join('-')).toISOString().split('T')[0] : dateFrom) : ''}
-              onChange={(iso) => {
-                logger.log('[HRAttendance] DateFrom changing from:', dateFrom, 'to:', iso ? new Date(iso).toLocaleDateString('en-CA') : '');
-                setDateFrom(iso ? new Date(iso).toLocaleDateString('en-CA') : '');
-              }}
-              placeholder={t('from_date') || 'From Date'}
-              fullWidth
-            />
-          </div>
-          <div>
-            <DatePicker
-              type="date"
-              value={dateTo ? (dateTo.includes('/') ? new Date(dateTo.split('/').reverse().join('-')).toISOString().split('T')[0] : dateTo) : ''}
-              onChange={(iso) => {
-                logger.log('[HRAttendance] DateTo changing from:', dateTo, 'to:', iso ? new Date(iso).toLocaleDateString('en-CA') : '');
-                setDateTo(iso ? new Date(iso).toLocaleDateString('en-CA') : '');
-              }}
-              placeholder={t('to_date') || 'To Date'}
-              fullWidth
             />
           </div>
         </div>
@@ -890,7 +895,7 @@ const HRAttendancePage = () => {
                       {createAttendanceBadge(
                         session.scanCounts.human_case || session.scanCounts.HUMAN_CASE || 0,
                         'heart',
-                        '#ec4899',
+                        '#8b5cf6',
                         t('human_case') || 'Human Case',
                         theme
                       )}
@@ -1164,6 +1169,8 @@ const HRAttendancePage = () => {
                                   setSavingMark(mark.uid);
                                   await updateMarkStatus(selectedSession.id, mark.uid, editingMark.status, reason, feedback);
                                   setSavingMark(null);
+                                  // Refresh sessions to update the left side
+                                  await loadSessions();
                                 }}
                               >
                                 {t('save') || 'Save'}

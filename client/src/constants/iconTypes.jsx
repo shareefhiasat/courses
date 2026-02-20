@@ -548,7 +548,7 @@ export const getColoredIcon = (category, type, size = 16, chipColor = null, them
 };
 
 // Derive icon color from chip color
-const deriveIconColor = (chipColor) => {
+export const deriveIconColor = (chipColor) => {
   // If chip is orange/green/red, derive a complementary color
   if (chipColor === '#f59e0b') return '#d97706'; // Orange chip -> darker orange icon
   if (chipColor === '#22c55e') return '#16a34a'; // Green chip -> darker green icon

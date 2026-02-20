@@ -2,7 +2,7 @@ import React from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, deriveIconColor } from '@constants/iconTypes';
 import { Tooltip } from '@ui';
 import { createClassStatBadge, CLASS_STAT_CONFIGS } from '@utils/badgeUtils';
 
@@ -189,7 +189,7 @@ const ClassCard = ({
                   gap: '2px'
                 }}
               >
-                {getThemedIcon('ui', 'users', 10, getIconColor(primaryColor, theme))}
+                {getThemedIcon('ui', 'users', 10, deriveIconColor(primaryColor))}
                 {classStats[clsId].students}
               </span>
             </Tooltip>
