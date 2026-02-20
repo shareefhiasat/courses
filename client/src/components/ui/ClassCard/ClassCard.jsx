@@ -32,17 +32,6 @@ const ClassCard = ({
   const getLocalizedInstructorName = (instructor) => {
     if (!instructor) return t('classcard_instructor');
     
-    // Add comprehensive debug logging
-    console.log('🔍 [ClassCard] Instructor data:', {
-      instructor,
-      firstName: instructor?.firstName,
-      lastName: instructor?.lastName,
-      displayName: instructor?.displayName,
-      realName: instructor?.realName,
-      email: instructor?.email,
-      messageColor: instructor?.messageColor
-    });
-    
     // Arabic support
     if (lang === 'ar' && instructor.firstNameAr && instructor.lastNameAr) {
       return `${instructor.firstNameAr} ${instructor.lastNameAr}`;
@@ -72,7 +61,6 @@ const ClassCard = ({
         .join(' ');
       
       if (formattedName && formattedName !== emailName) {
-        console.log('📧 [ClassCard] Extracted name from email:', formattedName);
         return formattedName;
       }
     }

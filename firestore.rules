@@ -40,6 +40,11 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+    
+    // Allow listing announcements for authenticated users
+    match /announcements {
+      allow list: if isSignedIn();
+    }
 
     match /config/{docId} {
       allow read: if true;
@@ -159,7 +164,7 @@ service cloud.firestore {
     // Classes/Subjects: Admin write, authenticated read
     match /classes/{classId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isAdmin() || (isSignedIn() && request.auth.token.instructor == true);
     }
 
     // Enrollments: Admin write, user can read their own enrollment, instructors can read all

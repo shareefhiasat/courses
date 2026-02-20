@@ -922,9 +922,8 @@ const ClassSchedulePage = () => {
                     const maxDays = frequencyOptions.find(f => f.value === schedule.frequency)?.days || 1;
                     const canSelect = isSelected || schedule.days.length < maxDays;
                     return (
-                      <Tooltip content={t(`day_${dayOption.value.toLowerCase()}`) || dayOption.label}>
+                      <Tooltip key={dayOption.value} content={t(`day_${dayOption.value.toLowerCase()}`) || dayOption.label}>
                       <button
-                        key={dayOption.value}
                         onClick={() => canSelect && toggleDay(dayOption.value)}
                         disabled={!canSelect}
                         style={{

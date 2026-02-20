@@ -161,9 +161,20 @@ export const AuthProvider = ({ children }) => {
         if (authRetryCount < maxRetries) {
           authRetryCount++;
           logger.warn(`[Auth] Temporary auth state change detected, retry ${authRetryCount}/${maxRetries}`);
-          // Wait a bit and see if auth state recovers
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          return;
+          
+          // Check if this is actually a network issue vs real logout
+          const hasRecentActivity = sessionStorage.getItem('hasLoggedInThisSession') === 'true';
+          const sessionStart = sessionStorage.getItem('sessionStart');
+          const recentSession = sessionStart && (Date.now() - parseInt(sessionStart)) < 5 * 60 * 1000; // 5 minutes
+          
+          if (hasRecentActivity && recentSession) {
+            // Wait a bit and see if auth state recovers
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Increased wait time
+            return;
+          } else {
+            // If no recent activity, this might be a real logout
+            logger.info('[Auth] No recent session activity, treating as real logout');
+          }
         }
 
         logger.warn('[Auth] User signed out - Firebase auth state changed to null');
