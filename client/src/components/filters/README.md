@@ -180,7 +180,7 @@ import { PerformanceFilterChips } from '@/components/filters';
 ```
 
 ### 6. ToggleFilterChips
-Toggle filter chips for Bookmark, Featured, Retake Allowed, Graded.
+Toggle filter chips for Bookmark, Featured, Retakable, Graded.
 
 **Usage:**
 ```jsx

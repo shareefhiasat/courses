@@ -41,6 +41,21 @@ const ReviewResultsPage = () => {
 
   // Focus on activities mode only - simplified from HomePage
   const [activityType, setActivityType] = useState(searchParams.get('activityType') || 'all');
+
+  // Update URL when activityType changes
+  const handleActivityTypeChange = useCallback((newActivityType) => {
+    setActivityType(newActivityType);
+    searchParams.set('activityType', newActivityType);
+    setSearchParams(searchParams);
+  }, [searchParams, setSearchParams]);
+
+  // Sync activityType with URL
+  useEffect(() => {
+    const urlActivityType = searchParams.get('activityType');
+    if (urlActivityType && urlActivityType !== activityType) {
+      setActivityType(urlActivityType);
+    }
+  }, [searchParams, activityType]);
   
   // Category filter for programs: '' | programId
   const [category, setCategory] = useState('');
@@ -245,6 +260,8 @@ const ReviewResultsPage = () => {
       category,
       totalSubmissions: submissions?.length,
       submissions: submissions?.slice(0, 3), // Show first 3 submissions
+      totalActivities: activities?.length,
+      activities: activities?.slice(0, 3), // Show first 3 activities
       userRole: user?.role,
       isAdmin,
       isSuperAdmin,
@@ -270,7 +287,93 @@ const ReviewResultsPage = () => {
       }
     });
 
-    // Filter submissions with role-based access
+    // If there are no submissions for the selected activity type, show activities instead
+    const hasSubmissionsForActivityType = submissions.some(sub => 
+      activityType === 'all' || sub.activityType === activityType
+    );
+
+    if (!hasSubmissionsForActivityType) {
+      // Return activities that match the activity type (like HomePage)
+      let filtered = [...activities];
+
+      // Apply role-based filtering for activities
+      if (user?.role === 'student') {
+        filtered = filtered.filter(a => 
+          !a.classId || enrolledClasses.includes(a.classId)
+        );
+      } else if (isInstructor && !isSuperAdmin) {
+        filtered = filtered.filter(a => 
+          !a.classId || instructorClasses.includes(a.classId)
+        );
+      }
+
+      // Filter by activity type
+      if (activityType !== 'all') {
+        filtered = filtered.filter(a => a.type === activityType);
+      }
+
+      // Apply search filter
+      if (searchTerm.trim()) {
+        const q = searchTerm.trim().toLowerCase();
+        filtered = filtered.filter(a => {
+          const title = lang === 'ar' ? (a.title_ar || a.title_en || a.title || '') : (a.title_en || a.title_ar || a.title || '');
+          return title.toLowerCase().includes(q);
+        });
+      }
+
+      // Apply other filters to activities
+      if (completedFilter) {
+        filtered = filtered.filter(a => {
+          const aid = a.docId || a.id;
+          const submission = submissions.find(s => s.activityId === aid);
+          return submission && (submission.status === 'graded' || submission.status === 'completed');
+        });
+      }
+      if (pendingFilter) {
+        filtered = filtered.filter(a => {
+          const aid = a.docId || a.id;
+          const submission = submissions.find(s => s.activityId === aid);
+          return !submission || submission.status === 'pending';
+        });
+      }
+      if (requiredFilter) {
+        filtered = filtered.filter(a => !a.optional);
+      }
+      if (optionalFilter) {
+        filtered = filtered.filter(a => a.optional);
+      }
+      if (overdueFilter) {
+        const now = new Date();
+        filtered = filtered.filter(a => {
+          if (!a.dueDate) return false;
+          const dueDate = a.dueDate?.seconds ? new Date(a.dueDate.seconds * 1000) : new Date(a.dueDate);
+          const aid = a.docId || a.id;
+          const submission = submissions.find(s => s.activityId === aid);
+          return dueDate < now && (!submission || submission.status !== 'completed');
+        });
+      }
+      if (requiresSubmissionFilter) {
+        filtered = filtered.filter(a => a.requiresSubmission === true);
+      }
+
+      // Convert activities to submission-like objects for display
+      return filtered.map(activity => ({
+        id: activity.docId || activity.id,
+        activityTitle: lang === 'ar' ? (activity.title_ar || activity.title_en) : (activity.title_en || activity.title_ar),
+        activityType: activity.type,
+        activity: activity,
+        studentName: 'No submissions yet',
+        programName: 'N/A',
+        subjectName: 'N/A',
+        className: 'N/A',
+        score: 0,
+        maxScore: 0,
+        submittedAt: activity.createdAt || activity.dueDate,
+        status: 'pending'
+      }));
+    }
+
+    // Original submission filtering logic
     let filtered = [...submissions];
 
     // Role-based filtering for submissions
@@ -380,7 +483,7 @@ const ReviewResultsPage = () => {
     });
 
     return filtered;
-  }, [submissions, searchTerm, selectedProgram, selectedSubject, selectedClass, selectedStudent, difficultyFilter, activityType, category, lang, bookmarkFilter, completedFilter, enrolledClasses, featuredFilter, gradedFilter, instructorClasses, instructorStudents, isAdmin, isInstructor, isSuperAdmin, optionalFilter, overdueFilter, pendingFilter, requiredFilter, requiresSubmissionFilter, retakableFilter, selectedTerm, selectedYear, user]);
+  }, [submissions, activities, searchTerm, selectedProgram, selectedSubject, selectedClass, selectedStudent, difficultyFilter, activityType, category, lang, bookmarkFilter, completedFilter, enrolledClasses, featuredFilter, gradedFilter, instructorClasses, instructorStudents, isAdmin, isInstructor, isSuperAdmin, optionalFilter, overdueFilter, pendingFilter, requiredFilter, requiresSubmissionFilter, retakableFilter, selectedTerm, selectedYear, user]);
 
   // Calculate filter counts using the same hook as HomePage
   const filterCounts = useFilterCounts(activities, {
@@ -540,7 +643,7 @@ const ReviewResultsPage = () => {
               }
             ]}
             activeTab={activityType}
-            onTabChange={setActivityType}
+            onTabChange={handleActivityTypeChange}
             variant="default"
           />
         </div>
@@ -641,15 +744,17 @@ const ReviewResultsPage = () => {
             </div>
           ) : (
             filteredSubmissions.map(submission => {
-              const percentage = submission.maxScore > 0 ? ((submission.score / submission.maxScore) * 100).toFixed(1) : 0;
-              const scoreClass = percentage >= 90 ? 'excellent' : percentage >= 60 ? 'good' : 'failed';
+              const isActivityWithoutSubmission = submission.studentName === 'No submissions yet';
+              const percentage = !isActivityWithoutSubmission && submission.maxScore > 0 ? ((submission.score / submission.maxScore) * 100).toFixed(1) : 0;
+              const scoreClass = !isActivityWithoutSubmission ? (percentage >= 90 ? 'excellent' : percentage >= 60 ? 'good' : 'failed') : 'pending';
               
               return (
                 <div
                   key={submission.id}
                   className="submission-card"
                   data-theme={theme}
-                  onClick={() => handleViewDetails(submission)}
+                  onClick={() => !isActivityWithoutSubmission && handleViewDetails(submission)}
+                  style={{ cursor: isActivityWithoutSubmission ? 'default' : 'pointer' }}
                 >
                   <div className="submission-card-header">
                     <div style={{ flex: 1 }}>
@@ -659,11 +764,19 @@ const ReviewResultsPage = () => {
                         <span>{submission.studentName}</span>
                       </div>
                     </div>
-                    <Badge variant={scoreClass === 'excellent' ? 'success' : scoreClass === 'good' ? 'warning' : 'danger'}>
-                      {percentage}%
-                    </Badge>
+                    {!isActivityWithoutSubmission && (
+                      <Badge variant={scoreClass === 'excellent' ? 'success' : scoreClass === 'good' ? 'warning' : 'danger'}>
+                        {percentage}%
+                      </Badge>
+                    )}
+                    {isActivityWithoutSubmission && (
+                      <Badge variant="secondary">
+                        {t('no_submissions') || 'No Submissions'}
+                      </Badge>
+                    )}
                   </div>
 
+                  {!isActivityWithoutSubmission && (
                   <div className="submission-card-score">
                     <div style={{ fontSize: '1.5rem', fontWeight: 700, color: scoreClass === 'excellent' ? '#16a34a' : scoreClass === 'good' ? '#f59e0b' : '#dc2626' }}>
                       {submission.score}/{submission.maxScore}
@@ -674,36 +787,83 @@ const ReviewResultsPage = () => {
                        (t('failed') || 'Failed')}
                     </div>
                   </div>
+                )}
+
+                {isActivityWithoutSubmission && (
+                  <div className="submission-card-score" style={{ textAlign: 'center', padding: '1rem 0' }}>
+                    <div style={{ fontSize: '1rem', fontWeight: 600, color: '#6b7280' }}>
+                      {t('activity_pending') || 'Activity Pending'}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                      {submission.activityType && (
+                        <span style={{ 
+                          textTransform: 'capitalize', 
+                          background: '#f3f4f6', 
+                          padding: '2px 8px', 
+                          borderRadius: '12px',
+                          fontSize: '0.75rem'
+                        }}>
+                          {submission.activityType}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                   <div className="submission-card-tags">
-                    <div className="tag" style={{ borderColor: primaryColor, color: primaryColor }}>
-                      {submission.programName}
-                    </div>
-                    <div className="tag" style={{ borderColor: '#6b7280', color: '#6b7280' }}>
-                      {submission.subjectName}
-                    </div>
-                    <div className="tag" style={{ borderColor: '#6b7280', color: '#6b7280' }}>
-                      {submission.className}
-                    </div>
+                    {!isActivityWithoutSubmission && (
+                      <>
+                        <div className="tag" style={{ borderColor: primaryColor, color: primaryColor }}>
+                          {submission.programName}
+                        </div>
+                        <div className="tag" style={{ borderColor: '#6b7280', color: '#6b7280' }}>
+                          {submission.subjectName}
+                        </div>
+                        <div className="tag" style={{ borderColor: '#6b7280', color: '#6b7280' }}>
+                          {submission.className}
+                        </div>
+                      </>
+                    )}
+                    {isActivityWithoutSubmission && submission.activity && (
+                      <>
+                        {submission.activity.difficulty && (
+                          <div className="tag" style={{ borderColor: '#6b7280', color: '#6b7280' }}>
+                            {submission.activity.difficulty}
+                          </div>
+                        )}
+                        {!submission.activity.optional && (
+                          <div className="tag" style={{ borderColor: '#dc2626', color: '#dc2626' }}>
+                            {t('required') || 'Required'}
+                          </div>
+                        )}
+                        {submission.activity.optional && (
+                          <div className="tag" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
+                            {t('optional') || 'Optional'}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
 
                   <div className="submission-card-footer">
                     <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
                       {submission.submittedAt && formatDateTime(submission.submittedAt)}
                     </div>
-                    <button
-                      className="view-button"
-                      style={{
-                        background: primaryColor,
-                        color: '#fff'
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewDetails(submission);
-                      }}
-                    >
-                      {t('view_details') || 'View Details'}
-                    </button>
+                    {!isActivityWithoutSubmission && (
+                      <button
+                        className="view-button"
+                        style={{
+                          background: primaryColor,
+                          color: '#fff'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewDetails(submission);
+                        }}
+                      >
+                        {t('view_details') || 'View Details'}
+                      </button>
+                    )}
                   </div>
                 </div>
               );

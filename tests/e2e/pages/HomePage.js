@@ -43,7 +43,7 @@ export class HomePage {
     // Additional filters
     this.bookmarkedFilter = page.locator('button:has-text("Bookmarked"), [aria-label*="Bookmarked" i]');
     this.featuredFilter = page.locator('button:has-text("Featured"), [aria-label*="Featured" i]');
-    this.retakeAllowedFilter = page.locator('button:has-text("Retake Allowed"), [aria-label*="Retake" i]');
+    this.retakeAllowedFilter = page.locator('button:has-text("Retakable"), [aria-label*="Retake" i]');
     this.gradedFilter = page.locator('button:has-text("Graded"), [aria-label*="Graded" i]');
     
     // Category tabs

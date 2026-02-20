@@ -626,7 +626,8 @@ const DICT = {
     filter_required: 'Required',
     filter_optional: 'Optional',
     filter_overdue: 'Overdue',
-    filter_requires_submission: 'Requires Submission',
+    filter_requires_submission: 'Submission',
+    retakable: 'Retakable',
 
     // Dashboard specific localizations
     featured_resource: 'Featured Resource',
@@ -1128,7 +1129,7 @@ const DICT = {
     graded: 'Graded',
     not_graded: 'Not Graded',
     retake: 'Retake',
-    retake_allowed: 'Retake Allowed',
+    retake_allowed: 'Retakable',
     grading_status: 'Grading Status',
     completion: 'Completion',
     graded_on: 'Graded On',
@@ -4312,7 +4313,8 @@ const DICT = {
     filter_required: 'مطلوب',
     filter_optional: 'اختياري',
     filter_overdue: 'متأخر',
-    filter_requires_submission: 'يتطلب التقديم',
+    filter_requires_submission: 'تقديم',
+    retakable: 'قابل لإعادة المحاولة',
     
     // Dashboard specific localizations (Arabic)
     featured_resource: 'مورد مميز',

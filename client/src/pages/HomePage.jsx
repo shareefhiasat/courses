@@ -16,7 +16,9 @@ import { getCategories } from '@services/business/categoryService';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { formatDateTime } from '@utils/date';
-import { SUBMISSION_STATUS, TASK_STATUS, getStatusLabel, MODE_TYPES, RESOURCE_TYPES } from '@utils/sharedTypes';
+import { SUBMISSION_STATUS, TASK_STATUS, getStatusLabel, MODE_TYPES, RESOURCE_TYPES, RECORD_TYPES } from '@utils/sharedTypes';
+import { ACTIVITY_TYPES } from '@constants/activityTypes';
+import { DIFFICULTY_TYPES } from '@constants/difficultyTypes';
 import { useFilterCounts } from '@hooks/useFilterCounts';
 import { getActivityTypeConfig } from '@constants/activityTypes';
 import { getDifficultyConfig } from '@constants/difficultyTypes';
@@ -214,6 +216,21 @@ const HomePage = memo(() => {
 
       if (activitiesResult.success) {
         setActivities(activitiesResult.data || []);
+        // Debug: Log all activity types to see what we have
+        const activityTypes = [...new Set(activitiesResult.data.map(a => a.type))];
+        logger.debug('[HomePage] Available activity types:', activityTypes);
+        logger.debug('[HomePage] All activities data:', activitiesResult.data.map(a => ({
+          id: a.docId,
+          type: a.type,
+          title: a.title_en || a.title,
+          featured: a.featured,
+          allowRetake: a.allowRetake,
+          settingsAllowRetake: a.settings?.allowRetake,
+          level: a.level,
+          difficulty: a.difficulty,
+          optional: a.optional,
+          dueDate: a.dueDate
+        })));
       }
       if (resourcesResult.success) setResources(resourcesResult.data || []);
       if (quizzesResult.success) setQuizzes(quizzesResult.data || []);
@@ -290,7 +307,7 @@ const HomePage = memo(() => {
 
   // Get current items based on mode and activity type
   const getCurrentItems = useCallback(() => {
-    if (mode === 'resources') {
+    if (mode === RECORD_TYPES.RESOURCE) {
       // Filter resources by category
       return resources.filter(r => 
         category === '' || (r.docId || r.category || 'general') === category
@@ -306,10 +323,13 @@ const HomePage = memo(() => {
     if (mode === MODE_TYPES.ACTIVITIES) {
       let filtered = [];
       
-      if (activityType === 'quiz') {
-        // Show quizzes when activity type is quiz, filtered by category
-        filtered = quizzes.filter(q => 
-          (category === '' || (q.course || 'general') === category)
+      if (activityType === ACTIVITY_TYPES.QUIZ) {
+        // Show activities that have type 'quiz' (not from separate quizzes collection)
+        filtered = activities.filter(a => 
+          a.type === ACTIVITY_TYPES.QUIZ &&
+          a.show !== false && 
+          (!a.classId || enrolledClasses.includes(a.classId)) &&
+          (category === '' || (a.course || 'general') === category)
         );
       } else if (activityType === 'all') {
         // Show all activities when activity type is all, filtered by category
@@ -344,14 +364,14 @@ const HomePage = memo(() => {
       const q = searchTerm.trim().toLowerCase();
       filtered = filtered.filter(item => {
         // Handle quizzes in activities mode
-        if (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz') {
+        if (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) {
           const titleEn = (item.title_en || item.title || '').toLowerCase();
           const titleAr = (item.title_ar || '').toLowerCase();
           const descEn = (item.description_en || item.description || '').toLowerCase();
           const descAr = (item.description_ar || '').toLowerCase();
           return titleEn.includes(q) || titleAr.includes(q) || descEn.includes(q) || descAr.includes(q);
         }
-        if (mode === 'resources') {
+        if (mode === RECORD_TYPES.RESOURCE) {
           const titleEn = (item.title_en || item.title || '').toLowerCase();
           const titleAr = (item.title_ar || '').toLowerCase();
           const descEn = (item.description_en || item.description || '').toLowerCase();
@@ -379,8 +399,8 @@ const HomePage = memo(() => {
       filtered = filtered.filter(item => {
         const id = item.docId || item.id;
         // Handle quizzes in activities mode
-        if (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz') {
-          return !!bookmarks.quizzes[id];
+        if (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) {
+          return !!bookmarks.activities[id];
         }
         return !!bookmarks[mode]?.[id];
       });
@@ -389,7 +409,7 @@ const HomePage = memo(() => {
     // Common: Difficulty
     if (difficultyFilter !== 'all') {
       filtered = filtered.filter(item => {
-        const level = (item.level || item.difficulty || 'beginner').toLowerCase();
+        const level = (item.level || item.difficulty || DIFFICULTY_TYPES.BEGINNER).toLowerCase();
         return level === difficultyFilter.toLowerCase();
       });
     }
@@ -398,13 +418,14 @@ const HomePage = memo(() => {
     if (completedFilter) {
       filtered = filtered.filter(item => {
         const id = item.docId || item.id;
-        if (mode === 'resources') {
+        if (mode === RECORD_TYPES.RESOURCE) {
           return userProgress[id]?.completed;
         }
         if (mode === MODE_TYPES.ACTIVITIES) {
-          if (activityType === 'quiz') {
-            // Quizzes - check submissions (TODO: implement quiz completion check)
-            return false;
+          if (activityType === ACTIVITY_TYPES.QUIZ) {
+            // Quizzes - check submissions for completion
+            const submission = submissions[id];
+            return submission?.status === SUBMISSION_STATUS.GRADED;
           } else {
             // Activities
             return submissions[id]?.status === SUBMISSION_STATUS.GRADED;
@@ -433,12 +454,13 @@ const HomePage = memo(() => {
         const id = item.docId || item.id;
         let isCompleted = false;
         
-        if (mode === 'resources') {
+        if (mode === RECORD_TYPES.RESOURCE) {
           isCompleted = userProgress[id]?.completed;
         } else if (mode === MODE_TYPES.ACTIVITIES) {
-          if (activityType === 'quiz') {
-            // Quizzes - TODO: implement quiz completion check
-            isCompleted = false;
+          if (activityType === ACTIVITY_TYPES.QUIZ) {
+            // Quizzes - check submissions for completion
+            const submission = submissions[id];
+            isCompleted = submission?.status === SUBMISSION_STATUS.GRADED;
           } else {
             // Activities
             isCompleted = submissions[id]?.status === SUBMISSION_STATUS.GRADED;
@@ -453,13 +475,14 @@ const HomePage = memo(() => {
     if (pendingFilter) {
       filtered = filtered.filter(item => {
         const id = item.docId || item.id;
-        if (mode === 'resources') {
+        if (mode === RECORD_TYPES.RESOURCE) {
           return !userProgress[id]?.completed;
         }
         if (mode === MODE_TYPES.ACTIVITIES) {
-          if (activityType === 'quiz') {
-            // Quizzes are always pending until taken
-            return true;
+          if (activityType === ACTIVITY_TYPES.QUIZ) {
+            // Quizzes - check if not completed
+            const submission = submissions[id];
+            return !submission || submission?.status !== SUBMISSION_STATUS.GRADED;
           } else {
             // Activities
             return !submissions[id] || submissions[id]?.status !== SUBMISSION_STATUS.GRADED;
@@ -497,7 +520,7 @@ const HomePage = memo(() => {
       filtered = filtered.filter(item => item.type === resourceTypeFilter);
     }
 
-    if (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz' && classFilter !== 'all') {
+    if (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ && classFilter !== 'all') {
       filtered = filtered.filter(item => 
         item.classId === classFilter || item.className === classFilter
       );
@@ -558,18 +581,35 @@ const HomePage = memo(() => {
     let itemsToCount = [];
     
     if (mode === MODE_TYPES.ACTIVITIES) {
-      if (activityType === 'quiz') {
-        itemsToCount = quizzes;
-      } else if (activityType === 'homework') {
-        itemsToCount = activities.filter(a => a.type === 'homework');
-      } else if (activityType === 'training') {
-        itemsToCount = activities.filter(a => a.type === 'training');
-      } else if (activityType === 'lab') {
-        itemsToCount = activities.filter(a => a.type === 'lab');
+      if (activityType === ACTIVITY_TYPES.QUIZ) {
+        itemsToCount = activities.filter(a => a.type === ACTIVITY_TYPES.QUIZ);
+      } else if (activityType === ACTIVITY_TYPES.HOMEWORK) {
+        itemsToCount = activities.filter(a => a.type === ACTIVITY_TYPES.HOMEWORK);
+      } else if (activityType === ACTIVITY_TYPES.TRAINING) {
+        itemsToCount = activities.filter(a => a.type === ACTIVITY_TYPES.TRAINING);
+      } else if (activityType === ACTIVITY_TYPES.LAB_AND_PROJECT) {
+        itemsToCount = activities.filter(a => a.type === ACTIVITY_TYPES.LAB_AND_PROJECT);
       } else {
         itemsToCount = activities;
       }
-    } else if (mode === 'resources') {
+      
+      // Debug: Log what we're counting for each activity type
+      if (activityType === ACTIVITY_TYPES.TRAINING || activityType === ACTIVITY_TYPES.LAB_AND_PROJECT) {
+        logger.debug(`[HomePage] ${activityType} items to count:`, {
+          activityType,
+          totalItems: itemsToCount.length,
+          items: itemsToCount.map(item => ({
+            id: item.docId,
+            type: item.type,
+            featured: item.featured,
+            allowRetake: item.allowRetake,
+            settingsAllowRetake: item.settings?.allowRetake,
+            level: item.level,
+            difficulty: item.difficulty
+          }))
+        });
+      }
+    } else if (mode === RECORD_TYPES.RESOURCE) {
       itemsToCount = resources;
     } else if (mode === MODE_TYPES.ANNOUNCEMENTS) {
       itemsToCount = announcements;
@@ -616,91 +656,39 @@ const HomePage = memo(() => {
   };
 
   const availableClasses = useMemo(() => {
-    if (!(mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz')) return [];
+    if (!(mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ)) return [];
     const classes = new Set();
-    quizzes.forEach(q => {
-      if (q.classId) classes.add(q.classId);
-      if (q.className) classes.add(q.className);
+    activities.filter(a => a.type === ACTIVITY_TYPES.QUIZ).forEach(quiz => {
+      if (quiz.classId) classes.add(quiz.classId);
+      if (quiz.className) classes.add(quiz.className);
     });
     return Array.from(classes);
-  }, [mode, activityType, quizzes]);
+  }, [mode, activityType, activities]);
 
-  // Calculate comprehensive stats for all modes
-  const stats = useMemo(() => {
-    const items = getCurrentItems();
-    const now = new Date();
+  // Calculate counts for each mode
+  const modeCounts = useMemo(() => {
+    return {
+      activities: getCurrentItems().length,
+      resources: resources.length,
+      announcements: announcements.length
+    };
+  }, [getCurrentItems, resources, announcements]);
+
+  // Calculate counts for each activity type
+  const activityTypeCounts = useMemo(() => {
+    const allActivities = activities.filter(a => 
+      a.show !== false && 
+      (!a.classId || enrolledClasses.includes(a.classId))
+    );
     
-    if (mode === 'resources') {
-      const completedCount = Object.values(userProgress).filter(p => p.completed).length;
-      const requiredTotal = items.filter(r => !r.optional).length;
-      const requiredCompleted = items.filter(r => !r.optional).filter(r => {
-        const rid = r.docId || r.id;
-        return userProgress[rid]?.completed;
-      }).length;
-      const requiredRemaining = Math.max(0, requiredTotal - requiredCompleted);
-      const overdueCount = items.filter(r => {
-        if (!r.dueDate) return false;
-        const dueDate = r.dueDate?.seconds ? new Date(r.dueDate.seconds * 1000) : new Date(r.dueDate);
-        const rid = r.docId || r.id;
-        return dueDate < now && !userProgress[rid]?.completed;
-      }).length;
-      const optionalCount = items.filter(r => r.optional).length;
-      const pendingCount = items.filter(r => {
-        const rid = r.docId || r.id;
-        return !userProgress[rid]?.completed;
-      }).length;
-      const featuredCount = items.filter(r => r.featured).length;
-      return { 
-        completed: completedCount, 
-        required: requiredRemaining, 
-        overdue: overdueCount,
-        optional: optionalCount,
-        pending: pendingCount,
-        featured: featuredCount
-      };
-    } else if (mode === MODE_TYPES.ACTIVITIES) {
-      if (activityType === 'quiz') {
-        // Quiz stats
-        const totalCount = items.length;
-        const featuredCount = items.filter(q => q.featured).length;
-        const retakableCount = items.filter(q => !!(q.allowRetake || q.retakeAllowed)).length;
-        // For quizzes, we can't easily determine completion without quiz submissions
-        return {
-          total: totalCount,
-          featured: featuredCount,
-          retakable: retakableCount
-        };
-      } else {
-        // Activities stats
-        const completedCount = items.filter(a => {
-          const aid = a.docId || a.id;
-          return submissions[aid]?.status === SUBMISSION_STATUS.GRADED;
-        }).length;
-        const pendingCount = items.filter(a => {
-          const aid = a.docId || a.id;
-          return !submissions[aid] || submissions[aid]?.status !== SUBMISSION_STATUS.GRADED;
-        }).length;
-        const overdueCount = items.filter(a => {
-          if (!a.dueDate) return false;
-          const dueDate = a.dueDate?.seconds ? new Date(a.dueDate.seconds * 1000) : new Date(a.dueDate);
-          const aid = a.docId || a.id;
-          return dueDate < now && submissions[aid]?.status !== SUBMISSION_STATUS.GRADED;
-        }).length;
-        const optionalCount = items.filter(a => a.optional).length;
-        const requiredCount = items.filter(a => !a.optional).length;
-        const featuredCount = items.filter(a => a.featured).length;
-        return {
-          completed: completedCount,
-          pending: pendingCount,
-          overdue: overdueCount,
-          optional: optionalCount,
-          required: requiredCount,
-          featured: featuredCount
-        };
-      }
-    }
-    return null;
-  }, [mode, activityType, userProgress, submissions, getCurrentItems]);
+    return {
+      all: allActivities.length,
+      quiz: allActivities.filter(a => a.type === ACTIVITY_TYPES.QUIZ).length,
+      homework: allActivities.filter(a => a.type === ACTIVITY_TYPES.HOMEWORK).length,
+      training: allActivities.filter(a => a.type === ACTIVITY_TYPES.TRAINING).length,
+      labandproject: allActivities.filter(a => a.type === ACTIVITY_TYPES.LAB_AND_PROJECT).length
+    };
+  }, [activities, enrolledClasses]);
 
   // Calculate filter counts using the hook
   const hookFilterCounts = useFilterCounts(getCurrentItems(), {
@@ -710,6 +698,24 @@ const HomePage = memo(() => {
     submissions,
     bookmarks // Add bookmarks to the hook
   });
+
+  // Calculate comprehensive stats using the same hook as ReviewResultsPage
+  const stats = useMemo(() => {
+    return {
+      // Map filterCounts to StatsBar expected format
+      completed: hookFilterCounts.completedCount,
+      pending: hookFilterCounts.pendingCount,
+      required: hookFilterCounts.requiredCount,
+      optional: hookFilterCounts.optionalCount,
+      overdue: hookFilterCounts.overdueCount,
+      requiresSubmission: hookFilterCounts.requiresSubmissionCount,
+      bookmark: hookFilterCounts.bookmark,
+      featured: hookFilterCounts.featured,
+      retakable: hookFilterCounts.retakable,
+      // Additional stats for specific modes
+      total: getCurrentItems().length
+    };
+  }, [hookFilterCounts, getCurrentItems]);
 
   // Debug logging to see what the hook returns
   logger.debug('[HomePage] Hook filter counts:', {
@@ -789,26 +795,26 @@ const HomePage = memo(() => {
     <div className="home-page" data-theme={theme} style={{ padding: '0rem 0', position: 'relative' }}>
       <div className="content-section" style={{ position: 'relative' }}>
         {/* Mode Switcher - Using Tabs component */}
-        <div data-tour="mode-switcher" style={{ marginBottom: '0.15rem' }}>
+        <div data-tour="mode-switcher" style={{ marginBottom: '0.05rem' }}>
           <Tabs
             tabs={[
               {
                 value: MODE_TYPES.ACTIVITIES,
                 label: t('activities') || 'Activities',
                 icon: mode === MODE_TYPES.ACTIVITIES ? getIconWithColor('ui', 'clipboard_list', 16, '#ffffff') : getIconWithColor('ui', 'clipboard_list', 16, primaryColor),
-                badge: mode === MODE_TYPES.ACTIVITIES ? filteredItems.length : undefined
+                badge: modeCounts.activities
               },
               {
                 value: 'resources',
                 label: t('resources') || 'Resources',
                 icon: mode === 'resources' ? getIconWithColor('ui', 'book_open', 16, '#ffffff') : getIconWithColor('ui', 'book_open', 16, primaryColor),
-                badge: mode === 'resources' ? filteredItems.length : undefined
+                badge: modeCounts.resources
               },
               {
                 value: MODE_TYPES.ANNOUNCEMENTS,
                 label: t('announcements') || 'Announcements',
                 icon: mode === MODE_TYPES.ANNOUNCEMENTS ? getIconWithColor('ui', 'megaphone', 16, '#ffffff') : getIconWithColor('ui', 'megaphone', 16, primaryColor),
-                badge: mode === MODE_TYPES.ANNOUNCEMENTS ? announcements.length : undefined
+                badge: modeCounts.announcements
               }
             ]}
             activeTab={mode}
@@ -819,38 +825,38 @@ const HomePage = memo(() => {
 
         {/* Activity Type Tabs (only for activities mode) - Second row */}
         {mode === MODE_TYPES.ACTIVITIES && (
-          <div data-tour="activity-type-tabs" style={{ marginBottom: '0.15rem' }}>
+          <div data-tour="activity-type-tabs" style={{ marginBottom: '0.05rem' }}>
             <Tabs
               tabs={[
                 {
                   value: 'all',
                   label: lang === 'en' ? 'All' : 'الكل',
                   icon: activityType === 'all' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor),
-                  badge: activityType === 'all' ? filteredItems.length : undefined
+                  badge: activityTypeCounts.all
                 },
                 {
-                  value: 'quiz',
-                  label: lang === 'en' ? 'Quiz' : 'اختبار',
-                  icon: activityType === 'quiz' ? getIconWithColor('ui', getActivityTypeConfig('quiz', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('quiz', theme, lang).icon, 16, primaryColor),
-                  badge: activityType === 'quiz' ? filteredItems.length : undefined
+                  value: ACTIVITY_TYPES.QUIZ,
+                  label: t('quiz') || 'Quiz',
+                  icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, primaryColor),
+                  badge: activityTypeCounts.quiz
                 },
                 {
-                  value: 'homework',
-                  label: lang === 'en' ? 'Homework' : 'واجب',
-                  icon: activityType === 'homework' ? getIconWithColor('ui', getActivityTypeConfig('homework', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('homework', theme, lang).icon, 16, primaryColor),
-                  badge: activityType === 'homework' ? filteredItems.length : undefined
+                  value: ACTIVITY_TYPES.HOMEWORK,
+                  label: t('homework') || 'Homework',
+                  icon: activityType === ACTIVITY_TYPES.HOMEWORK ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, primaryColor),
+                  badge: activityTypeCounts.homework
                 },
                 {
-                  value: 'training',
-                  label: lang === 'en' ? 'Training' : 'تدريب',
-                  icon: activityType === 'training' ? getIconWithColor('ui', getActivityTypeConfig('training', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('training', theme, lang).icon, 16, primaryColor),
-                  badge: activityType === 'training' ? filteredItems.length : undefined
+                  value: ACTIVITY_TYPES.TRAINING,
+                  label: t('training') || 'Training',
+                  icon: activityType === ACTIVITY_TYPES.TRAINING ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, primaryColor),
+                  badge: activityTypeCounts.training
                 },
                 {
-                  value: 'labandproject',
-                  label: lang === 'en' ? 'Lab & Project' : 'معمل ومشروع',
-                  icon: activityType === 'labandproject' ? getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, primaryColor),
-                  badge: activityType === 'labandproject' ? filteredItems.length : undefined
+                  value: ACTIVITY_TYPES.LAB_AND_PROJECT,
+                  label: t('lab_and_project') || 'Lab & Project',
+                  icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, primaryColor),
+                  badge: activityTypeCounts.labandproject
                 }
               ]}
               activeTab={activityType}
@@ -862,14 +868,14 @@ const HomePage = memo(() => {
 
         {/* Category Tabs (only for activities mode) - Third row */}
         {mode === MODE_TYPES.ACTIVITIES && (
-          <div data-tour="category-tabs" style={{ marginBottom: '0.15rem' }}>
+          <div data-tour="category-tabs" style={{ marginBottom: '0.05rem' }}>
             <Tabs
               tabs={[
                 {
                   value: '',
                   label: lang === 'en' ? 'All' : 'الكل',
                   icon: category === '' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor),
-                  badge: category === '' ? filteredItems.length : undefined
+                  badge: filteredItems.length
                 },
                 ...(categories.length ? categories.map(c => {
                   // Count activities that match current filters (not all activities)
@@ -891,14 +897,14 @@ const HomePage = memo(() => {
 
         {/* Category Tabs (only for resources mode) - Third row */}
         {mode === 'resources' && (
-          <div data-tour="category-tabs" style={{ marginBottom: '0.15rem' }}>
+          <div data-tour="category-tabs" style={{ marginBottom: '0.05rem' }}>
             <Tabs
               tabs={[
                 {
                   value: '',
                   label: lang === 'en' ? 'All' : 'الكل',
                   icon: category === '' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor),
-                  badge: category === '' ? filteredItems.length : undefined
+                  badge: filteredItems.length
                 },
                 ...(categories.length ? categories.map(c => {
                   // Count resources that match current filters
@@ -922,32 +928,27 @@ const HomePage = memo(() => {
         <div ref={filtersRef} data-tour="filters">
           <UnifiedFilterSection
             stats={stats}
+            filterCounts={hookFilterCounts}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             searchPlaceholder={
               mode === 'resources' ? (t('search_resources') || 'Search resources...') :
-              (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz') ? (t('search_quizzes') || 'Search quizzes...') :
+              (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) ? (t('search_quizzes') || 'Search quizzes...') :
               (t('search_activities') || 'Search activities...')
             }
             completedFilter={completedFilter}
             setCompletedFilter={setCompletedFilter}
-            completedCount={hookFilterCounts.completedCount}
             pendingFilter={pendingFilter}
             setPendingFilter={setPendingFilter}
-            pendingCount={hookFilterCounts.pendingCount}
             requiredFilter={requiredFilter}
             setRequiredFilter={setRequiredFilter}
-            requiredCount={hookFilterCounts.requiredCount}
             optionalFilter={optionalFilter}
             setOptionalFilter={setOptionalFilter}
-            optionalCount={hookFilterCounts.optionalCount}
             overdueFilter={overdueFilter}
             setOverdueFilter={setOverdueFilter}
-            overdueCount={hookFilterCounts.overdueCount}
             // Additional status filters
             requiresSubmissionFilter={requiresSubmissionFilter}
             setRequiresSubmissionFilter={setRequiresSubmissionFilter}
-            requiresSubmissionCount={hookFilterCounts.requiresSubmissionCount}
             difficultyFilter={difficultyFilter}
             setDifficultyFilter={setDifficultyFilter}
             bookmarkFilter={bookmarkFilter}
@@ -960,7 +961,7 @@ const HomePage = memo(() => {
             setGradedFilter={setGradedFilter}
             programs={[]}
             subjects={[]}
-            classes={mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz' ? availableClasses.map(cls => ({ name: cls, id: cls })) : []}
+            classes={mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ ? availableClasses.map(cls => ({ name: cls, id: cls })) : []}
             selectedClass={classFilter}
             setSelectedClass={setClassFilter}
             isMinified={isMinified}
@@ -972,11 +973,11 @@ const HomePage = memo(() => {
             showDifficultyFilters={mode !== MODE_TYPES.ANNOUNCEMENTS}
             showPerformanceFilters={false}
             showToggleFilters={true}
-            showHierarchyFilters={mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz'}
+            showHierarchyFilters={mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ}
             hierarchyConfig={{
               showPrograms: false,
               showSubjects: false,
-              showClasses: mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz',
+              showClasses: mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ,
               showStudents: false
             }}
             toggleConfig={{
@@ -1015,8 +1016,8 @@ const HomePage = memo(() => {
               }
             ] : []}
             // Quiz type filter for activities
-            quizFilter={mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz' ? 'quiz' : undefined}
-            showQuizFilter={mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz'}
+            quizFilter={mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ ? 'quiz' : undefined}
+            showQuizFilter={mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ}
             // Filter counts for all chips - use hookFilterCounts which includes bookmark counting
             filterCounts={hookFilterCounts}
           />
@@ -1043,15 +1044,39 @@ const HomePage = memo(() => {
                 let isBookmarked = false;
                 let dueDate = null;
 
-                if (mode === 'resources') {
+                if (mode === RECORD_TYPES.RESOURCE) {
                   isCompleted = userProgress[itemId]?.completed || false;
                   completedAt = userProgress[itemId]?.completedAt;
                   isBookmarked = !!bookmarks.resources[itemId];
                   dueDate = item.dueDate;
                 } else if (mode === MODE_TYPES.ACTIVITIES) {
-                  if (activityType === 'quiz') {
-                    isBookmarked = !!bookmarks.quizzes[itemId];
-                    // TODO: Add quiz completion logic
+                  if (activityType === ACTIVITY_TYPES.QUIZ) {
+                    // Quiz activities use activities bookmark logic (not separate quizzes)
+                    isBookmarked = !!bookmarks.activities[itemId];
+                    // Quiz completion logic - check submissions for quiz completion
+                    const submission = submissions[itemId];
+                    isCompleted = submission?.status === SUBMISSION_STATUS.GRADED;
+                    completedAt = submission?.completedAt || submission?.submittedAt;
+                    dueDate = item.dueDate; // Add due date for quizzes
+                    
+                    // Debug logs for quiz card data
+                    logger.debug('[HomePage] Quiz card data:', {
+                      itemId,
+                      itemTitle: item.title_en || item.title,
+                      featured: item.featured,
+                      dueDate: item.dueDate,
+                      allowRetake: item.allowRetake,
+                      settings: item.settings,
+                      settingsAllowRetake: item.settings?.allowRetake,
+                      hasSubmission: !!submission,
+                      submissionStatus: submission?.status,
+                      isCompleted,
+                      activityType,
+                      mode,
+                      // Log all item properties to see what's available
+                      allItemProps: Object.keys(item),
+                      itemData: item
+                    });
                   } else {
                     const submission = submissions[itemId];
                     isCompleted = submission?.status === SUBMISSION_STATUS.GRADED;
@@ -1066,7 +1091,7 @@ const HomePage = memo(() => {
                     return (
                       <UnifiedCard
                         key={itemId}
-                        flavor={mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz' ? 'quiz' : (mode === 'resources' ? 'resource' : (mode === MODE_TYPES.ANNOUNCEMENTS ? 'announcement' : mode))}
+                        flavor={mode === MODE_TYPES.ACTIVITIES ? RECORD_TYPES.ACTIVITY : (mode === 'resources' ? RECORD_TYPES.RESOURCE : (mode === MODE_TYPES.ANNOUNCEMENTS ? RECORD_TYPES.ANNOUNCEMENT : mode))}
                         item={item}
                         isCompleted={isCompleted}
                         completedAt={completedAt}
@@ -1076,46 +1101,58 @@ const HomePage = memo(() => {
                         t={t}
                         primaryColor={primaryColor}
                         showStartButton={
-                          (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz') ||
+                          (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) ||
                           (mode === MODE_TYPES.ACTIVITIES) ||
                           (mode === 'resources' && (item.type === 'link' || item.type === 'video') && item.url) ||
                           (mode === MODE_TYPES.ANNOUNCEMENTS)
                         }
-                        onStart={(item) => {
-                          if ((mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz')) {
-                            window.location.href = `/quiz/${itemId}`;
-                          } else if (mode === MODE_TYPES.ACTIVITIES) {
-                            window.open(`/activity/${itemId}`, '_blank');
-                          } else if (mode === 'resources') {
-                            // Handle resource start
+                        onStart={() => {
+                          // Debug log when starting a quiz
+                          if (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) {
+                            logger.debug('[HomePage] Starting quiz:', {
+                              itemId,
+                              itemTitle: item.title_en || item.title,
+                              featured: item.featured,
+                              dueDate: item.dueDate,
+                              flavor: mode === MODE_TYPES.ACTIVITIES ? RECORD_TYPES.ACTIVITY : (mode === 'resources' ? RECORD_TYPES.RESOURCE : (mode === MODE_TYPES.ANNOUNCEMENTS ? RECORD_TYPES.ANNOUNCEMENT : mode))
+                            });
+                          }
+                          // Handle start logic based on mode and type
+                          if (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) {
+                            navigate(`/quiz/${itemId}`);
+                          } else if (mode === RECORD_TYPES.RESOURCE) {
                             if (item.type === 'link' && item.url) {
                               window.open(item.url, '_blank');
                             } else if (item.type === 'video' && item.url) {
                               window.open(item.url, '_blank');
                             } else {
                               // Handle other resource types
-                              logger.log('Start resource:', item);
+                              logger.info('[HomePage] Resource click:', { itemId, type: item.type });
                             }
                           } else if (mode === MODE_TYPES.ANNOUNCEMENTS) {
-                            // Show extended announcement view
-                                                        const title = lang === 'ar' ? (item.title_ar || item.title_en || item.title || 'Announcement') : (item.title_en || item.title_ar || item.title || 'Announcement');
-                            const message = lang === 'ar' ? (item.message_ar || item.message_en || item.message || item.description || '') : (item.message_en || item.message_ar || item.message || item.description || '');
                             setSelectedAnnouncement(item);
+                            setAnnouncementFullPage(true);
+                          } else {
+                            // Handle other activity types
+                            navigate(`/activity/${itemId}`);
                           }
                         }}
-                        onDetails={(item) => {
-                          // Handle details view
-                          logger.log('Show details for:', item);
-                        }}
                         onComplete={(item) => {
-                          // Handle resource completion
-                          handleResourceComplete(itemId);
+                          console.log('[UnifiedCard] Complete button clicked:', {
+                            flavor,
+                            item,
+                            isCompleted,
+                            itemId: item.docId || item.id
+                          });
+                          if (mode === RECORD_TYPES.RESOURCE) {
+                            handleResourceComplete(itemId);
+                          } else {
+                            // Handle activity completion
+                            logger.info('[HomePage] Activity completion:', { itemId, mode, activityType });
+                          }
                         }}
-                        onBookmark={() => {
-                          const bookmarkMode = (mode === MODE_TYPES.ACTIVITIES && activityType === 'quiz') ? 'quizzes' : (mode === MODE_TYPES.ANNOUNCEMENTS ? 'announcements' : mode);
-                          handleBookmark(itemId, bookmarkMode);
-                        }}
-                                              />
+                        onBookmark={() => handleBookmark(itemId, mode)}
+                      />
                     );
               })
             )}

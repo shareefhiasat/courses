@@ -85,7 +85,7 @@ const StatsBar = ({
       icon: 'repeat',
       color: '#0ea5e9',
       value: stats.retakable,
-      title: t('retake_allowed') || 'Retake Allowed'
+      title: t('retake_allowed') || 'Retakable'
     });
   }
 

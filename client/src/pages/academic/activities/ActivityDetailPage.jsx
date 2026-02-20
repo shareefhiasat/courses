@@ -81,7 +81,7 @@ export default function ActivityDetailPage() {
                 {activity.allowRetake && (
                   <Badge variant="subtle" color="info">
                     {getThemedIcon('ui', 'repeat', 14, theme)}
-                    {t('retake_allowed') || 'Retake Allowed'}
+                    {t('retake_allowed') || 'Retakable'}
                   </Badge>
                 )}
               </div>

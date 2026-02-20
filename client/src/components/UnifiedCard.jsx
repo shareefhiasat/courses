@@ -46,6 +46,24 @@ const UnifiedCard = memo(({
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  
+  // Debug logs to track props
+  if (flavor === 'quiz' || flavor === RECORD_TYPES.QUIZ) {
+    console.log('[UnifiedCard] Quiz card props:', {
+      flavor,
+      item: {
+        docId: item.docId,
+        title: item.title_en || item.title,
+        featured: item.featured,
+        dueDate: item.dueDate,
+        estimatedTime: item.estimatedTime,
+        type: item.type
+      },
+      dueDate,
+      isCompleted,
+      isBookmarked
+    });
+  }
   const getTitle = () => {
     if (flavor === RECORD_TYPES.QUIZ) {
       return lang === 'ar'
@@ -421,6 +439,26 @@ const UnifiedCard = memo(({
                 }}>
               {getColoredIcon('ui', 'book_open', 10, '#f57c00', theme)}
                 {!isMinified && <span>{t('optional') || 'Optional'}</span>}
+            </span>
+            )}
+
+            {/* Retakable badge */}
+            {(item.allowRetake || item.settings?.allowRetake) && (
+                <span className="filter-button" style={{
+                  background: isDark ? 'rgba(59, 130, 246, 0.2)' : '#dbeafe',
+                  color: '#3b82f6',
+                  padding: '4px 8px',
+                  borderRadius: 999,
+                  border: '1px solid #3b82f6',
+                  fontSize: '0.75rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontWeight: 600,
+                  cursor: 'default'
+                }}>
+              {getColoredIcon('ui', 'repeat', 12, '#3b82f6', theme)}
+                {!isMinified && <span>{t('retakable') || 'Retakable'}</span>}
             </span>
             )}
 

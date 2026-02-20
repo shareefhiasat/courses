@@ -271,16 +271,16 @@ test.describe('Home Page - Activities, Resources, Quizzes', () => {
     expect(true).toBeTruthy();
   });
 
-  test(`TC-HOME-017: Filter by Retake Allowed ${tags.dashboard}`, async ({ page }) => {
+  test(`TC-HOME-017: Filter by Retakable ${tags.dashboard}`, async ({ page }) => {
     /**
-     * Business Case: Retake Allowed filter shows activities that can be attempted multiple times.
+     * Business Case: Retakable filter shows activities that can be attempted multiple times.
      * This is crucial for users who want to improve their scores, practice skills,
      * or retake assessments after additional study, supporting mastery-based learning.
      */
     await homePage.switchToActivities();
     await page.waitForTimeout(1000);
     
-    // Filter by Retake Allowed
+    // Filter by Retakable
     await homePage.filterByRetakeAllowed();
     await page.waitForTimeout(1000);
     
