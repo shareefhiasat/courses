@@ -32,5 +32,8 @@
   },
   "storage": {
     "rules": "storage.rules"
+  },
+  "auth": {
+    "sessionLength": "432000000"
   }
 }

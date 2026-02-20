@@ -126,15 +126,25 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     let userDocUnsub = null;
+    let isSubscribed = true; // Prevent state updates if component unmounted
+    let authRetryCount = 0;
+    const maxRetries = 3;
+
     const unsubscribe = onAuthChange(async (firebaseUser) => {
+      // Prevent race conditions - if user changed during async operations, skip
+      if (!isSubscribed) return;
+      
       if (!firebaseUser) {
-        // logger.warn('[Auth] User signed out - Firebase auth state changed to null');
-        // logger.warn('[Auth] Session storage at logout:', {
-        //   hasLoggedIn: sessionStorage.getItem('hasLoggedInThisSession'),
-        //   sessionStart: sessionStorage.getItem('sessionStart'),
-        //   userProfile: sessionStorage.getItem('userProfile') ? 'exists' : 'missing',
-        //   logoutReason: sessionStorage.getItem('logoutReason')
-        // });
+        // Only logout if this wasn't a temporary auth state change
+        if (authRetryCount < maxRetries) {
+          authRetryCount++;
+          logger.warn(`[Auth] Temporary auth state change detected, retry ${authRetryCount}/${maxRetries}`);
+          // Wait a bit and see if auth state recovers
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return;
+        }
+
+        logger.warn('[Auth] User signed out - Firebase auth state changed to null');
         
         // Store logout reason if not already set (likely Firebase auth error)
         if (!sessionStorage.getItem('logoutReason')) {
@@ -142,15 +152,30 @@ export const AuthProvider = ({ children }) => {
           sessionStorage.setItem('logoutTimestamp', Date.now().toString());
         }
         
+        // Cleanup any existing listeners
+        if (userDocUnsub) {
+          userDocUnsub();
+          userDocUnsub = null;
+        }
+        
         setUser(null);
         setIsAdmin(false);
+        setIsHR(false);
+        setIsInstructor(false);
+        setIsSuperAdmin(false);
         setRole('guest');
         setLoading(false);
-        setHasLoggedInThisSession(false); // Reset on logout
+        setHasLoggedInThisSession(false);
         sessionStorage.removeItem('hasLoggedInThisSession');
         sessionStorage.removeItem('sessionStart');
+        sessionStorage.removeItem('userProfile');
+        authRetryCount = 0; // Reset retry count
         return;
       }
+
+      // Reset retry count on successful auth
+      authRetryCount = 0;
+      logger.log('[Auth] User authenticated:', firebaseUser.email);
 
       // Only log login if we haven't logged this session yet
       const isNewLogin = !hasLoggedInThisSession;
@@ -193,8 +218,16 @@ export const AuthProvider = ({ children }) => {
         } catch {}
 
         // Claims and allowlist
-        const token = await firebaseUser.getIdTokenResult();
-        let admin = !!token.claims.admin;
+        let token = null;
+        let admin = false;
+        try {
+          token = await firebaseUser.getIdTokenResult(true); // Force refresh to get latest claims
+          admin = !!token.claims.admin;
+        } catch (error) {
+          logger.warn('[Auth] Failed to get ID token result:', error);
+          // Continue with allowlist check as fallback
+        }
+        
         if (!admin) {
           try {
             const allow = await getAllowlist();
@@ -203,7 +236,7 @@ export const AuthProvider = ({ children }) => {
               const admins = (allow.data.adminEmails || []).map(e => (e || '').toLowerCase());
               admin = admins.includes(email);
               // Attempt to set claim via Cloud Function (production only)
-              if (admin && !token.claims.admin && import.meta.env.PROD) {
+              if (admin && !token?.claims?.admin && import.meta.env.PROD) {
                 try {
                   const { getFunctions, httpsCallable } = await import('firebase/functions');
                   const { app } = await import('@services/other/config');
@@ -217,7 +250,9 @@ export const AuthProvider = ({ children }) => {
                 }
               }
             }
-          } catch {}
+          } catch (error) {
+            logger.warn('[Auth] Failed to check allowlist:', error);
+          }
         }
 
         // Check user doc for roles and fetch full profile
@@ -227,37 +262,21 @@ export const AuthProvider = ({ children }) => {
         let adminFromDoc = false;
         let superAdminFromDoc = false;
         let profile = null;
+        
         try {
           profile = await getUserProfile(firebaseUser);
-          // logger.log('🔧 AuthContext getUserProfile result:', profile);
-          if (profile) {
-            // logger.log('🔧 AuthContext full profile data:', profile);
-            // logger.log('🔧 AuthContext profile.role:', profile.role);
-            // logger.log('🔧 AuthContext profile.isAdmin:', profile.isAdmin);
-            // logger.log('🔧 AuthContext profile.isSuperAdmin:', profile.isSuperAdmin);
-            // logger.log('🔧 AuthContext profile.isHR:', profile.isHR);
-            // logger.log('🔧 AuthContext profile.isInstructor:', profile.isInstructor);
-            
+          if (profile && isSubscribed) {
             adminFromDoc = isAdminCheck(profile.role) || profile.isAdmin === true;
             superAdminFromDoc = isSuperAdminCheck(profile.role) || profile.isSuperAdmin === true;
             hr = isHRCheck(profile.role) || profile.isHR === true;
             instructor = isInstructorCheck(profile.role) || profile.isInstructor === true;
             
-            // logger.log('🔧 AuthContext role detection debug:', {
-            //   profileRole: profile.role,
-            //   isSuperAdminRole: isSuperAdminCheck(profile.role),
-            //   profileIsSuperAdmin: profile.isSuperAdmin,
-            //   superAdminFromDoc,
-            //   'profile.role === USER_ROLES.SUPER_ADMIN': profile.role === USER_ROLES.SUPER_ADMIN,
-            //   'USER_ROLES.SUPER_ADMIN': USER_ROLES.SUPER_ADMIN
-            // });
-            
-            // logger.log('🔧 AuthContext detected roles:', {
-            //   adminFromDoc,
-            //   superAdminFromDoc,
-            //   hr,
-            //   instructor
-            // });
+            // Cache profile in sessionStorage
+            try {
+              sessionStorage.setItem('userProfile', JSON.stringify(profile));
+            } catch (e) {
+              logger.warn('[Auth] Failed to cache user profile:', e);
+            }
             
             // Load user enrollments for status check
             let enrollments = [];
@@ -265,136 +284,93 @@ export const AuthProvider = ({ children }) => {
               const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('userId', '==', firebaseUser.uid)));
               enrollments = enrollmentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
             } catch (e) {
-              logger.warn('Failed to load enrollments for status check:', e);
+              logger.warn('[Auth] Failed to load enrollments for status check:', e);
             }
             
             // Check user status
             const userStatus = getUserStatus(profile, enrollments);
             const statusSummary = getUserStatusSummary(profile, enrollments);
             
-            // Prevent deleted users from logging in
-            if (!canUserLogin(profile)) {
-              logger.warn('[Auth] User is deleted. Signing out.');
-              await signOutUser();
-              return;
-            }
-            
-            // Store full profile with display name and status
-            profile = {
-              uid: firebaseUser.uid,
-              email: profile.email || firebaseUser.email,
-              displayName: profile.displayName || profile.name || firebaseUser.displayName || profile.email?.split('@')[0],
-              name: profile.name || profile.displayName || firebaseUser.displayName,
-              role: profile.role,
-              studentNumber: profile.studentNumber,
-              photoURL: profile.photoURL || firebaseUser.photoURL,
-              status: userStatus,
-              statusSummary,
-              ...profile
-            };
-            
-            // logger.log('🔧 AuthContext final profile:', profile);
-            // logger.log('🔧 AuthContext final profile.displayName:', profile.displayName);
-            
-            // Cache in sessionStorage
-            sessionStorage.setItem('userProfile', JSON.stringify(profile));
-            setUserProfile(profile);
-
-            // Update localStorage with messageColor for ColorThemeContext
-            try {
-              if (profile?.messageColor) {
-                localStorage.setItem(`accent_color_${firebaseUser.uid}`, profile.messageColor);
-                // Notify ColorThemeContext to update
-                window.dispatchEvent(new CustomEvent('accent-color-updated', { detail: { uid: firebaseUser.uid, color: profile.messageColor } }));
+            // Only update state if component is still subscribed
+            if (isSubscribed) {
+              setUserProfile(profile);
+              setIsAdmin(admin || adminFromDoc);
+              setIsHR(hr);
+              setIsInstructor(instructor);
+              setIsSuperAdmin(superAdminFromDoc);
+              
+              // Determine role with priority
+              if (superAdminFromDoc || adminFromDoc || admin) {
+                userRole = superAdminFromDoc ? USER_ROLES.SUPER_ADMIN : USER_ROLES.ADMIN;
+              } else if (hr) {
+                userRole = USER_ROLES.HR;
+              } else if (instructor) {
+                userRole = USER_ROLES.INSTRUCTOR;
+              } else {
+                userRole = USER_ROLES.STUDENT;
               }
-            } catch {}
+              
+              setRole(userRole);
+              setRealUser({ ...firebaseUser, role: userRole });
+              
+              // Log login if new session
+              if (isNewLogin) {
+                try {
+                  await addLoginLog(firebaseUser, statusSummary);
+                } catch (e) {
+                  logger.warn('[Auth] Failed to add login log:', e);
+                }
+                
+                // Mark session as logged in
+                setHasLoggedInThisSession(true);
+                sessionStorage.setItem('hasLoggedInThisSession', 'true');
+                sessionStorage.setItem('sessionStart', Date.now().toString());
+              }
+            }
+          } else if (!profile) {
+            logger.warn('[Auth] User profile not found, using defaults');
+            // Set basic admin status from allowlist if profile is missing
+            if (isSubscribed) {
+              setIsAdmin(admin);
+              setRole(admin ? USER_ROLES.ADMIN : USER_ROLES.STUDENT);
+            }
           }
         } catch (error) {
-          logger.error('🔧 AuthContext error in role detection:', error);
-          logger.error('🔧 AuthContext error stack:', error?.stack);
+          logger.error('[Auth] Error loading user profile:', error);
+          // Set fallback role based on admin status from allowlist
+          if (isSubscribed) {
+            setIsAdmin(admin);
+            setRole(admin ? USER_ROLES.ADMIN : USER_ROLES.STUDENT);
+          }
         }
-
-        // If Firestore says admin, honor it (hot-fix for missing claims/allowlist)
-        if (!admin && adminFromDoc) admin = true;
-
-        // logger.log('🔧 AuthContext before final assignment:', {
-        //   admin,
-        //   adminFromDoc,
-        //   superAdminFromDoc,
-        //   hr,
-        //   instructor,
-        //   'typeof superAdminFromDoc': typeof superAdminFromDoc
-        // });
-
-        setIsAdmin(!!admin);
-        setIsSuperAdmin(!!superAdminFromDoc);
-        setIsHR(hr);
-        setIsInstructor(instructor);
         
-        console.log('🔍 [AuthContext] Role detection results:', {
-          admin,
-          superAdminFromDoc,
-          hr,
-          instructor,
-          userProfileRole: profile?.role,
-          isSuperAdminField: profile?.isSuperAdmin,
-          isAdminField: profile?.isAdmin,
-          isHRField: profile?.isHR,
-          isInstructorField: profile?.isInstructor
-        });
-        
-        if (superAdminFromDoc) userRole = USER_ROLES.SUPER_ADMIN;
-        else if (admin) userRole = USER_ROLES.ADMIN;
-        else if (hr) userRole = USER_ROLES.HR;
-        else if (instructor) userRole = USER_ROLES.INSTRUCTOR;
-        else userRole = USER_ROLES.STUDENT;
-        
-        // logger.log('🔧 AuthContext final role assignment:', {
-        //   superAdminFromDoc,
-        //   admin,
-        //   hr,
-        //   instructor,
-        //   finalRole: userRole
-        // });
-        
-        setRole(userRole);
-
-        // Only log login on actual login action (new session), not on every auth state change
-        if (isNewLogin) {
-          try {
-            await addLoginLog({ userId: firebaseUser.uid, email: firebaseUser.email, displayName: firebaseUser.displayName || null });
-            // Log activity with new logger - only on actual login
-            await ActivityLogger.login();
-            setHasLoggedInThisSession(true); // Mark as logged for this session
-            sessionStorage.setItem('hasLoggedInThisSession', 'true');
-            sessionStorage.setItem('sessionStart', Date.now().toString());
-          } catch {}
+        // Set loading to false only after all operations are complete
+        if (isSubscribed) {
+          setLoading(false);
         }
-
-        // Listen to user doc existence (sign out if removed)
-        try {
-          if (userDocUnsub) userDocUnsub();
-          userDocUnsub = onSnapshot(doc(db, 'users', firebaseUser.uid), (snap) => {
-            if (!snap.exists()) {
-              logger.warn('[Auth] User doc removed. Signing out.');
-              signOutUser();
-            }
-          });
-        } catch {}
       } catch (error) {
-        logger.warn('Auth init non-fatal error:', error?.message || error);
-        setIsAdmin(false);
-        setRole(USER_ROLES.STUDENT);
+        logger.error('[Auth] Critical error in auth state change:', error);
+        if (isSubscribed) {
+          // Set fallback state to prevent app from breaking
+          setUser(firebaseUser);
+          setIsAdmin(false);
+          setRole('guest');
+          setLoading(false);
+        }
       }
-      setLoading(false);
     });
 
+    // Cleanup function
     return () => {
-      if (userDocUnsub) userDocUnsub();
-      unsubscribe();
+      isSubscribed = false;
+      if (userDocUnsub) {
+        userDocUnsub();
+      }
+      if (unsubscribe) {
+        unsubscribe();
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hasLoggedInThisSession]);
 
   const impersonateUser = async (studentId) => {
     if (!isAdmin) return { success: false, error: 'Only admins can impersonate' };

@@ -10,6 +10,7 @@ import { ActivityLogger } from '../other/activityLogger';
 import { auth } from '../other/config';
 import logger from '@utils/logger';
 import { validateEmail as validateEmailFormat } from '@utils/validationHelpers';
+import AuthErrorHandler from '@utils/authErrorHandler';
 
 export const signIn = async (email, password) => {
   try {
@@ -115,6 +116,27 @@ export const resetPassword = async (email) => {
 };
 
 export const onAuthChange = (callback) => {
-  return onAuthStateChanged(auth, callback);
+  return onAuthStateChanged(auth, async (user) => {
+    try {
+      await callback(user);
+      AuthErrorHandler.resetRetryCount(); // Reset retry count on successful auth change
+    } catch (error) {
+      // Handle permission errors gracefully
+      const shouldRetry = await AuthErrorHandler.handlePermissionError(error, 'auth-state-change');
+      
+      if (!shouldRetry) {
+        // If we shouldn't retry, let the original error propagate
+        throw error;
+      }
+      
+      // If we should retry, try the callback again
+      try {
+        await callback(user);
+      } catch (retryError) {
+        // If retry fails, let it propagate
+        throw retryError;
+      }
+    }
+  });
 };
 
