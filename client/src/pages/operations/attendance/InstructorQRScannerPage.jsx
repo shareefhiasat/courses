@@ -548,6 +548,13 @@ const InstructorQRScannerPage = () => {
       const attendanceResponse = await getAttendanceByClass(classId, dateStr);
       const attendance = attendanceResponse.success ? attendanceResponse.data : [];
       setAttendanceRecords(attendance);
+      
+      // Simple debug - check if we have attendance data
+      console.log('🔍 [DEBUG] Attendance data for', dateStr, ':', {
+        success: attendanceResponse.success,
+        count: attendance.length,
+        sample: attendance.slice(0, 3).map(a => ({ studentId: a.studentId, status: a.status, date: a.date }))
+      });
 
       // Create penalty map for O(1) lookup
       const penaltyMap = new Map();
@@ -592,6 +599,13 @@ const InstructorQRScannerPage = () => {
           // Find the primary attendance record
           const studentRecords = attendance.filter(a => a.studentId === studentId);
           const todayAttendance = studentRecords.find(a => !a.delta) || studentRecords[0];
+          
+          console.log('🔍 [LoadStudents] Student attendance data:', {
+            studentId,
+            studentName,
+            todayAttendance: todayAttendance?.status,
+            allRecords: studentRecords.map(r => ({ studentId: r.studentId, status: r.status, delta: r.delta }))
+          });
 
           // Fetch all attendance records for this student (attendance only)
           const studentAttendanceResponse = await getAttendanceByStudent(studentId);
@@ -697,6 +711,17 @@ const InstructorQRScannerPage = () => {
       }
 
       setStudents(studentsWithData);
+      
+      // Debug: Log a sample of student data with attendance
+      console.log('🔍 [LoadStudents] Sample student data:', studentsWithData.slice(0, 3).map(s => ({
+        id: s.id,
+        name: s.name,
+        attendance: s.attendance,
+        participation: s.participation,
+        behavior: s.behavior,
+        penalty: s.penalty
+      })));
+      
       logger.log('🔧 loadStudents completed - set', studentsWithData.length, 'students');
     } catch (error) {
       logger.error('[QR Scanner] Error loading students:', error);
@@ -1134,7 +1159,23 @@ const InstructorQRScannerPage = () => {
 
     // Apply attendance filter
     if (attendanceFilter !== 'all') {
-      filtered = filtered.filter(student => student.attendance === attendanceFilter);
+      console.log('🔍 [Filter] Applying attendance filter:', attendanceFilter);
+      console.log('🔍 [Filter] Students before filter:', filtered.length);
+      
+      // More flexible filtering - check multiple possible attendance fields
+      filtered = filtered.filter(student => {
+        const attendanceStatus = student.attendance || student.status || 'absent_no_excuse';
+        const matches = attendanceStatus === attendanceFilter;
+        
+        if (!matches && attendanceFilter === 'absent_no_excuse') {
+          // Also check for null/undefined attendance as absent no excuse
+          return !student.attendance || student.attendance === 'absent_no_excuse';
+        }
+        
+        return matches;
+      });
+      
+      console.log('🔍 [Filter] Students after filter:', filtered.length);
     }
 
     // Apply participation range filter
@@ -1656,7 +1697,10 @@ const InstructorQRScannerPage = () => {
                 </label>
                 <select
                   value={attendanceFilter}
-                  onChange={(e) => setAttendanceFilter(e.target.value)}
+                  onChange={(e) => {
+                    console.log('🔍 [Filter] Attendance filter changed from', attendanceFilter, 'to', e.target.value);
+                    setAttendanceFilter(e.target.value);
+                  }}
                   style={{
                     width: '100%',
                     padding: '0.5rem',

@@ -486,10 +486,26 @@ const HRAttendancePage = () => {
   }, [termFilter]);
 
   const loadMarks = async (sessionId) => {
+    console.log('🔍 [HRAttendance] loadMarks called for sessionId:', sessionId);
+    
     const stopLoading = startLoading({ message: t('hr_attendance_loading_attendance_marks') });
     try {
       const result = await getAttendanceMarksForExport(sessionId);
       let data = result.success ? result.data : [];
+      
+      console.log('🔍 [HRAttendance] Raw attendance data loaded:', {
+        sessionId,
+        success: result.success,
+        dataCount: data.length,
+        sampleData: data.slice(0, 3).map(m => ({
+          uid: m.uid,
+          status: m.status,
+          displayName: m.displayName,
+          email: m.email,
+          timestamp: m.timestamp,
+          createdAt: m.createdAt
+        }))
+      });
 
       // Enrich with user data
       const enriched = await Promise.all(data.map(async (mark) => {
@@ -506,15 +522,45 @@ const HRAttendancePage = () => {
 
       // Apply status filter
       let filtered = enriched;
+      console.log('🔍 [HRAttendance] Status filter debugging:', {
+        statusFilter,
+        totalMarks: enriched.length,
+        sampleMarks: enriched.slice(0, 5).map(m => ({
+          uid: m.uid,
+          status: m.status,
+          displayName: m.displayName,
+          email: m.email
+        }))
+      });
+      
       if (statusFilter && statusFilter !== 'all') {
+        console.log('🔍 [HRAttendance] Applying status filter:', statusFilter);
+        console.log('🔍 [HRAttendance] ATTENDANCE_STATUS constants:', ATTENDANCE_STATUS);
+        
         filtered = enriched.filter(m => {
           const status = m.status || 'present';
-          // Handle legacy statuses
-          if (statusFilter === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE && (status === 'absent' || status === 'absent_no_excuse')) return true;
-          if (statusFilter === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE && status === 'absent_with_excuse') return true;
-          if (statusFilter === ATTENDANCE_STATUS.EXCUSED_LEAVE && (status === 'leave' || status === 'excused_leave')) return true;
-          return status === statusFilter;
+          const matches = 
+            // Handle legacy statuses
+            (statusFilter === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE && (status === 'absent' || status === 'absent_no_excuse')) ||
+            (statusFilter === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE && status === 'absent_with_excuse') ||
+            (statusFilter === ATTENDANCE_STATUS.EXCUSED_LEAVE && (status === 'leave' || status === 'excused_leave')) ||
+            // Direct match
+            status === statusFilter;
+          
+          console.log('🔍 [HRAttendance] Mark status check:', {
+            uid: m.uid,
+            displayName: m.displayName,
+            status: m.status,
+            filter: statusFilter,
+            matches
+          });
+          
+          return matches;
         });
+        
+        console.log('🔍 [HRAttendance] After status filter count:', filtered.length);
+      } else {
+        console.log('🔍 [HRAttendance] Status filter is "all", showing all marks');
       }
 
       setMarks(filtered);
@@ -919,7 +965,7 @@ const HRAttendancePage = () => {
                     </span>
                     {session.scanCounts && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#6b7280', fontWeight: 600 }}>
-                        {getThemedIcon('ui', 'users', 12, theme)}
+                        {getThemedIcon('ui', 'qr_code', 12, theme)}
                         {session.scanCounts.total || 0} {t('scans') || 'scans'}
                       </span>
                     )}
@@ -974,7 +1020,7 @@ const HRAttendancePage = () => {
                     fontSize: '0.75rem',
                     color: marks.length > 0 ? actualPrimaryColor : '#6b7280'
                   }}>
-                    {getThemedIcon('ui', 'users', 14, theme)}
+                    {getThemedIcon('ui', 'qr_code', 14, theme)}
                     <span>{marks.length} {t('scans') || 'scans'}</span>
                   </div>
                 </div>

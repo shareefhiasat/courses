@@ -145,6 +145,10 @@ export const createAttendanceSummaryStats = (marks, theme) => {
  * Class stat configurations for badges
  */
 export const CLASS_STAT_CONFIGS = {
+  students: {
+    color: '#22c55e', // This will be overridden with primaryColor
+    icon: { type: 'ui', name: 'users' }
+  },
   penalties: {
     color: '#ef4444',
     icon: { type: 'penalty_type', name: 'cheating' }

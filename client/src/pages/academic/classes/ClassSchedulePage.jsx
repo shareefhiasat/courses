@@ -21,6 +21,7 @@ import { ProgramsSelect } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Tooltip } from '@ui';
 import { ClassCard } from '@ui';
+import { createClassStatBadge, CLASS_STAT_CONFIGS } from '@utils/badgeUtils';
 
 const ClassSchedulePage = () => {
   const { user, isAdmin, isInstructor } = useAuth();
@@ -227,12 +228,12 @@ const ClassSchedulePage = () => {
     return grouped;
   }, [filteredClasses]);
 
-  // Fetch class statistics for semester view (OPTIMIZED but functional)
+  // Fetch class statistics for all views (not just semester)
   const fetchClassStats = useCallback(async (classList) => {
     const stats = {};
     
-    // Only fetch stats if we're in semester view and have classes
-    if (viewMode !== 'semester' || !classList || classList.length === 0) {
+    // Only fetch stats if we have classes
+    if (!classList || classList.length === 0) {
       return;
     }
     
@@ -310,12 +311,12 @@ const ClassSchedulePage = () => {
 
   // Refetch stats when classes change for semester view (BALANCED)
   useEffect(() => {
-    // Fetch stats when in semester view and classes are available
-    if (viewMode === 'semester' && classes.length > 0) {
-      console.log('🔄 [ClassSchedule] Triggering stats fetch for semester view');
+    // Fetch stats when classes are available (for all view modes)
+    if (classes.length > 0) {
+      console.log('🔄 [ClassSchedule] Triggering stats fetch for all classes');
       fetchClassStats(classes);
     }
-  }, [viewMode, classes, fetchClassStats]);
+  }, [classes, fetchClassStats]);
 
   const loadClasses = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoading(true);
@@ -725,138 +726,54 @@ const ClassSchedulePage = () => {
                       fontSize: 9,
                       color: 'var(--muted)'
                     }}>
-                      {classStats[clsId].students > 0 && (
-                        <Tooltip content={t('students') || 'Students'}>
-                          <span 
-                            style={{ 
-                              background: `${primaryColor}15`, 
-                              color: primaryColor, 
-                              padding: '1px 4px', 
-                              borderRadius: 3,
-                              fontWeight: 500,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '2px'
-                            }}
-                          >
-                            {getThemedIcon('ui', 'users', 8, theme === 'light' ? 'white' : primaryColor)}
-                            {classStats[clsId].students}
-                          </span>
-                        </Tooltip>
+                      {createClassStatBadge(
+                        classStats[clsId].students,
+                        CLASS_STAT_CONFIGS.students.icon,
+                        primaryColor,
+                        t('students') || 'Students',
+                        theme
                       )}
-                      {classStats[clsId].penalties > 0 && (
-                        <Tooltip content={t('penalties') || 'Penalties'}>
-                          <span 
-                            style={{ 
-                              background: '#ef444415', 
-                              color: '#ef4444', 
-                              padding: '1px 4px', 
-                              borderRadius: 3,
-                              fontWeight: 500,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '2px'
-                            }}
-                          >
-                            {getThemedIcon('penalty_type', 'cheating', 8, theme === 'light' ? 'white' : '#ef4444')}
-                            {classStats[clsId].penalties}
-                          </span>
-                        </Tooltip>
+                      {createClassStatBadge(
+                        classStats[clsId].penalties,
+                        CLASS_STAT_CONFIGS.penalties.icon,
+                        CLASS_STAT_CONFIGS.penalties.color,
+                        t('penalties') || 'Penalties',
+                        theme
                       )}
-                      {classStats[clsId].behaviors > 0 && (
-                        <Tooltip content={t('behaviors') || 'Behaviors'}>
-                          <span 
-                            style={{ 
-                              background: '#f59e0b15', 
-                              color: '#f59e0b', 
-                              padding: '1px 4px', 
-                              borderRadius: 3,
-                              fontWeight: 500,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '2px'
-                            }}
-                          >
-                            {getThemedIcon('behavior_type', 'disruptive', 8, theme === 'light' ? 'white' : '#f59e0b')}
-                            {classStats[clsId].behaviors}
-                          </span>
-                        </Tooltip>
+                      {createClassStatBadge(
+                        classStats[clsId].behaviors,
+                        CLASS_STAT_CONFIGS.behaviors.icon,
+                        CLASS_STAT_CONFIGS.behaviors.color,
+                        t('behaviors') || 'Behaviors',
+                        theme
                       )}
-                      {classStats[clsId].quizzes > 0 && (
-                        <Tooltip content={t('quizzes') || 'Quizzes'}>
-                          <span 
-                            style={{ 
-                              background: '#8b5cf615', 
-                              color: '#8b5cf6', 
-                              padding: '1px 4px', 
-                              borderRadius: 3,
-                              fontWeight: 500,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '2px'
-                            }}
-                          >
-                            {getThemedIcon('ui', 'file_text', 8, theme === 'light' ? 'white' : '#8b5cf6')}
-                            {classStats[clsId].quizzes}
-                          </span>
-                        </Tooltip>
+                      {createClassStatBadge(
+                        classStats[clsId].quizzes,
+                        CLASS_STAT_CONFIGS.quizzes.icon,
+                        CLASS_STAT_CONFIGS.quizzes.color,
+                        t('quizzes') || 'Quizzes',
+                        theme
                       )}
-                      {classStats[clsId].activities > 0 && (
-                        <Tooltip content={t('activities') || 'Activities'}>
-                          <span 
-                            style={{ 
-                              background: '#10b98115', 
-                              color: '#10b981', 
-                              padding: '1px 4px', 
-                              borderRadius: 3,
-                              fontWeight: 500,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '2px'
-                            }}
-                          >
-                            {getThemedIcon('participation_type', 'excellent', 8, theme === 'light' ? 'white' : '#10b981')}
-                            {classStats[clsId].activities}
-                          </span>
-                        </Tooltip>
+                      {createClassStatBadge(
+                        classStats[clsId].activities,
+                        CLASS_STAT_CONFIGS.activities.icon,
+                        CLASS_STAT_CONFIGS.activities.color,
+                        t('activities') || 'Activities',
+                        theme
                       )}
-                      {classStats[clsId].announcements > 0 && (
-                        <Tooltip content={t('announcements') || 'Announcements'}>
-                          <span 
-                            style={{ 
-                              background: '#3b82f615', 
-                              color: '#3b82f6', 
-                              padding: '1px 4px', 
-                              borderRadius: 3,
-                              fontWeight: 500,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '2px'
-                            }}
-                          >
-                            {getThemedIcon('ui', 'megaphone', 8, theme === 'light' ? 'white' : '#3b82f6')}
-                            {classStats[clsId].announcements}
-                          </span>
-                        </Tooltip>
+                      {createClassStatBadge(
+                        classStats[clsId].announcements,
+                        CLASS_STAT_CONFIGS.announcements.icon,
+                        CLASS_STAT_CONFIGS.announcements.color,
+                        t('announcements') || 'Announcements',
+                        theme
                       )}
-                      {classStats[clsId].resources > 0 && (
-                        <Tooltip content={t('resources') || 'Resources'}>
-                          <span 
-                            style={{ 
-                              background: '#06b6d415', 
-                              color: '#06b6d4', 
-                              padding: '1px 4px', 
-                              borderRadius: 3,
-                              fontWeight: 500,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '2px'
-                            }}
-                          >
-                            {getThemedIcon('ui', 'folder', 8, theme === 'light' ? 'white' : '#06b6d4')}
-                            {classStats[clsId].resources}
-                          </span>
-                        </Tooltip>
+                      {createClassStatBadge(
+                        classStats[clsId].resources,
+                        CLASS_STAT_CONFIGS.resources.icon,
+                        CLASS_STAT_CONFIGS.resources.color,
+                        t('resources') || 'Resources',
+                        theme
                       )}
                     </div>
                   )}
