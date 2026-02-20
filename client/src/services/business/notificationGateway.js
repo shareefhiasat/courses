@@ -6,7 +6,6 @@ import { NOTIFICATION_CHANNELS, NOTIFICATION_TRIGGERS } from '@constants/notific
 import { EMAIL_TEMPLATE_TYPES } from '@constants/templateTypes';
 import { DICT } from '@contexts/LangContext';
 import { logNotificationActivity } from './notificationService';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Smart Notification Gateway
@@ -205,20 +204,17 @@ export const notificationGateway = {
    * Get notification settings for a specific role and trigger - with performance monitoring and memoization
    * @private
    */
-  getSettings: withPerformanceMonitoring(
-    memoize(async (role, trigger) => {
-      try {
-        // In a real scenario, we might want to cache this or use a context
-        const settingsDoc = await getDoc(doc(db, 'config', 'notificationSettings'));
-        const settings = settingsDoc.exists() ? settingsDoc.data() : {};
-        
-        return settings[role]?.[trigger] || { web: true, email: true }; 
-      } catch (error) {
-        logger.warn('Failed to load notification settings, falling back to defaults:', error);
-        return { web: true, email: true };
-      }
-    }),
-    'getSettings'
-  ),
+  getSettings: async (role, trigger) => {
+    try {
+      // In a real scenario, we might want to cache this or use a context
+      const settingsDoc = await getDoc(doc(db, 'config', 'notificationSettings'));
+      const settings = settingsDoc.exists() ? settingsDoc.data() : {};
+      
+      return settings[role]?.[trigger] || { web: true, email: true }; 
+    } catch (error) {
+      logger.warn('Failed to load notification settings, falling back to defaults:', error);
+      return { web: true, email: true };
+    }
+  },
 };
 

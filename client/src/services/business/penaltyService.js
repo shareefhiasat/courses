@@ -20,7 +20,6 @@ import { USER_ROLES } from "@constants/userRoles";
 import logger from '../../utils/logger';
 import { PENALTY_TYPES } from "@constants/penaltyTypes";
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;
@@ -35,74 +34,71 @@ const toYmd = (tsOrDate) => {
  * Based on Arabic academic regulations
  */
 
-export const getPenalties = withPerformanceMonitoring(
-  memoize(async (studentId = null, subjectId = null) => {
-    try {
-      logger.info('PENALTIES: Fetching penalties', { studentId, subjectId });
-      
-      let q;
-      if (studentId && subjectId) {
-        // console.log('🔧 Querying with studentId and subjectId');
-        q = query(
-          collection(db, "penalties"),
-          where("studentId", "==", studentId),
-          where("subjectId", "==", subjectId),
-          orderBy("createdAt", "desc")
-        );
-      } else if (studentId) {
-        // console.log('🔧 Querying with studentId only:', studentId);
-        q = query(
-          collection(db, "penalties"),
-          where("studentId", "==", studentId)
-          // Temporarily removed orderBy to avoid index requirement
-          // orderBy("createdAt", "desc")
-        );
-      } else if (subjectId) {
-        q = query(
-          collection(db, "penalties"),
-          where("subjectId", "==", subjectId),
-          orderBy("createdAt", "desc")
-        );
-      } else {
-        // console.log('🔧 Querying all penalties');
-        q = query(collection(db, "penalties"), orderBy("createdAt", "desc"));
-      }
-      
-      const qs = await getDocs(q);
-      // console.log('🔧 Query returned', qs.docs.length, 'documents');
-      
-      const items = [];
-      qs.forEach((d) => {
-        const penalty = { docId: d.id, ...d.data() };
-        items.push(penalty);
-        // Debug log each penalty
-        // console.log('🔧 getPenalties - found penalty:', {
-        //   id: penalty.docId,
-        //   studentId: penalty.studentId,
-        //   date: penalty.date,
-        //   type: penalty.type,
-        //   points: penalty.points
-        // });
-      });
-      
-      // Sort client-side if we removed server-side orderBy
-      if (studentId && !subjectId) {
-        items.sort((a, b) => {
-          const aTime = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds || 0) * 1000;
-          const bTime = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds || 0) * 1000;
-          return bTime - aTime; // descending (newest first)
-        });
-      }
-      
-      // console.log('🔧 getPenalties - total penalties found:', items.length, 'for studentId:', studentId);
-      return { success: true, data: items };
-    } catch (error) {
-      logger.error('🔧 Error in getPenalties:', error);
-      return { success: false, error: error.message };
+export const getPenalties = async (studentId = null, subjectId = null) => {
+  try {
+    logger.info('PENALTIES: Fetching penalties', { studentId, subjectId });
+    
+    let q;
+    if (studentId && subjectId) {
+      // console.log('🔧 Querying with studentId and subjectId');
+      q = query(
+        collection(db, "penalties"),
+        where("studentId", "==", studentId),
+        where("subjectId", "==", subjectId),
+        orderBy("createdAt", "desc")
+      );
+    } else if (studentId) {
+      // console.log('🔧 Querying with studentId only:', studentId);
+      q = query(
+        collection(db, "penalties"),
+        where("studentId", "==", studentId)
+        // Temporarily removed orderBy to avoid index requirement
+        // orderBy("createdAt", "desc")
+      );
+    } else if (subjectId) {
+      q = query(
+        collection(db, "penalties"),
+        where("subjectId", "==", subjectId),
+        orderBy("createdAt", "desc")
+      );
+    } else {
+      // console.log('🔧 Querying all penalties');
+      q = query(collection(db, "penalties"), orderBy("createdAt", "desc"));
     }
-  }),
-  'getPenalties'
-);
+    
+    const qs = await getDocs(q);
+    // console.log('🔧 Query returned', qs.docs.length, 'documents');
+    
+    const items = [];
+    qs.forEach((d) => {
+      const penalty = { docId: d.id, ...d.data() };
+      items.push(penalty);
+      // Debug log each penalty
+      // console.log('🔧 getPenalties - found penalty:', {
+      //   id: penalty.docId,
+      //   studentId: penalty.studentId,
+      //   date: penalty.date,
+      //   type: penalty.type,
+      //   points: penalty.points
+      // });
+    });
+    
+    // Sort client-side if we removed server-side orderBy
+    if (studentId && !subjectId) {
+      items.sort((a, b) => {
+        const aTime = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds || 0) * 1000;
+        const bTime = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds || 0) * 1000;
+        return bTime - aTime; // descending (newest first)
+      });
+    }
+    
+    // console.log('🔧 getPenalties - total penalties found:', items.length, 'for studentId:', studentId);
+    return { success: true, data: items };
+  } catch (error) {
+    logger.error('🔧 Error in getPenalties:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get penalties by class and date

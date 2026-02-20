@@ -29,7 +29,6 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Get notifications for a user - with performance monitoring and memoization
@@ -37,33 +36,30 @@ import { withPerformanceMonitoring, memoize } from '@utils/performance';
  * @param {Object} options - Query options
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getNotifications = withPerformanceMonitoring(
-  memoize(async (userId, options = {}) => {
-    try {
-      const { unreadOnly = false, limitCount = 50 } = options;
-      const conditions = [where('userId', '==', userId)];
-      
-      if (unreadOnly) {
-        conditions.push(where('read', '==', false));
-      }
-      
-      const q = query(
-        collection(db, 'notifications'),
-        ...conditions,
-        orderBy('createdAt', 'desc'),
-        limit(limitCount)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const notifications = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-      return { success: true, data: notifications };
-    } catch (error) {
-      logger.error('[NotificationDbService] Error getting notifications:', error);
-      return { success: false, error: error.message };
+export const getNotifications = async (userId, options = {}) => {
+  try {
+    const { unreadOnly = false, limitCount = 50 } = options;
+    const conditions = [where('userId', '==', userId)];
+    
+    if (unreadOnly) {
+      conditions.push(where('read', '==', false));
     }
-  }),
-  'getNotifications'
-);
+    
+    const q = query(
+      collection(db, 'notifications'),
+      ...conditions,
+      orderBy('createdAt', 'desc'),
+      limit(limitCount)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const notifications = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: notifications };
+  } catch (error) {
+    logger.error('[NotificationDbService] Error getting notifications:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get notification by ID

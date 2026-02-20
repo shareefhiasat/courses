@@ -17,7 +17,6 @@ import { db } from '../other/config';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { getProgramsSorted } from '../db/programDbService';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 // Re-export getClasses from classService for convenience
 export { getClasses, addClass, updateClass, deleteClass, getClassById } from './classService';
@@ -25,33 +24,27 @@ export { getClasses, addClass, updateClass, deleteClass, getClassById } from './
 /**
  * Programs Collection - Top-level academic programs that contain subjects
  */
-export const getPrograms = withPerformanceMonitoring(
-  memoize(async () => {
-    try {
-      return await getProgramsSorted();
-    } catch (error) {
-      logger.error('PROGRAM: Failed to fetch programs', { error: error.message });
-      return { success: false, error: error.message };
-    }
-  }),
-  'getPrograms'
-);
+export const getPrograms = async () => {
+  try {
+    return await getProgramsSorted();
+  } catch (error) {
+    logger.error('PROGRAM: Failed to fetch programs', { error: error.message });
+    return { success: false, error: error.message };
+  }
+};
 
-export const getProgram = withPerformanceMonitoring(
-  memoize(async (programId) => {
-    try {
-      const docRef = doc(db, 'programs', programId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
-      }
-      return { success: false, error: 'Program not found' };
-    } catch (error) {
-      return { success: false, error: error.message };
+export const getProgram = async (programId) => {
+  try {
+    const docRef = doc(db, 'programs', programId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
-  }),
-  'getProgram'
-);
+    return { success: false, error: 'Program not found' };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
 
 export const createProgram = async (data) => {
   try {

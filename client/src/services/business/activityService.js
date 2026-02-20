@@ -26,7 +26,6 @@ import { NOTIFICATION_TRIGGERS, RECORD_TYPES } from '@constants';
 import logger from '@utils/logger';
 import { handleServiceError, withRetry, measurePerformance, memoize, batchOperation } from '@utils/errorHandling';
 import { validateEntity, validateBilingualField } from '@utils/validationHelpers';
-import { withPerformanceMonitoring, memoizedOperations, queryOptimizers } from '@utils/performance';
 import { collection, query, orderBy, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, Timestamp } from 'firebase/firestore';
 import { db } from '../other/config';
 
@@ -44,26 +43,23 @@ const validateActivityData = (data) => [
 // Convert date fields to timestamps for Firestore using centralized utility
 
 // Activities - with performance monitoring and error handling
-export const getActivities = withPerformanceMonitoring(
-  memoize(async () => {
-    try {
-      logger.info('ACTIVITY: Fetching all activities');
+export const getActivities = async () => {
+  try {
+    logger.info('ACTIVITY: Fetching all activities');
       
       const result = await getActivitiesFromDb();
       if (result.success) {
         logger.info('ACTIVITY: Successfully fetched activities', { count: result.data.length });
       }
       return result;
-    } catch (error) {
-      logger.error('ACTIVITY: Failed to fetch activities', { error: error.message });
-      return handleServiceError(error, { operation: 'getActivities' });
-    }
-  }),
-  'getActivities'
-);
+  } catch (error) {
+    logger.error('ACTIVITY: Failed to fetch activities', { error: error.message });
+    return handleServiceError(error, { operation: 'getActivities' });
+  }
+};
 
-export const addActivity = withPerformanceMonitoring(
-  withRetry(async (activityData) => {
+export const addActivity = async (activityData) => {
+  return await withRetry(async (activityData) => {
     logger.info('ACTIVITY: Creating new activity', {
       title: activityData.title_en,
       url: activityData.url,
@@ -138,9 +134,8 @@ export const addActivity = withPerformanceMonitoring(
     // }
 
     return { success: true, id: result.id };
-  }, 3), // max 3 retries
-  'addActivity'
-);
+  }, 3); // max 3 retries
+};
 
 export const updateActivity = async (id, activityData, emailOptions = { sendEmail: true }) => {
   try {

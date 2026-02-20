@@ -22,37 +22,30 @@ import {
   getActiveSubjects as getActiveSubjectsFromDb,
   searchSubjects as searchSubjectsFromDb
 } from '../db/subjectDbService';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Subjects Collection - Academic subjects within programs
  */
-export const getSubjects = withPerformanceMonitoring(
-  memoize(async () => {
-    try {
-      return await getSubjectsFromDb();
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }),
-  'getSubjects'
-);
+export const getSubjects = async () => {
+  try {
+    return await getSubjectsFromDb();
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
 
-export const getSubject = withPerformanceMonitoring(
-  memoize(async (subjectId) => {
-    try {
-      const docRef = doc(db, 'subjects', subjectId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
-      }
-      return { success: false, error: 'Subject not found' };
-    } catch (error) {
-      return { success: false, error: error.message };
+export const getSubject = async (subjectId) => {
+  try {
+    const docRef = doc(db, 'subjects', subjectId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
-  }),
-  'getSubject'
-);
+    return { success: false, error: 'Subject not found' };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
 
 export const createSubject = async (data) => {
   try {

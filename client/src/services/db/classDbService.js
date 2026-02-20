@@ -27,46 +27,39 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Get all classes - with performance monitoring and memoization
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getClasses = withPerformanceMonitoring(
-  memoize(async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, 'classes'));
-      const classes = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-      return { success: true, data: classes };
-    } catch (error) {
-      logger.error('[ClassDbService] Error getting classes:', error);
-      return { success: false, error: error.message };
-    }
-  }),
-  'getClasses'
-);
+export const getClasses = async () => {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'classes'));
+    const classes = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: classes };
+  } catch (error) {
+    logger.error('[ClassDbService] Error getting classes:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get class by ID - with performance monitoring and memoization
  * @param {string} classId - Class ID
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export const getClass = withPerformanceMonitoring(
-  memoize(async (classId) => {
-    try {
-      const docSnap = await getDoc(doc(db, 'classes', classId));
-      if (docSnap.exists()) {
-        return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
-      }
-      return { success: false, error: 'Class not found' };
-    } catch (error) {
-      logger.error('[ClassDbService] Error getting class:', error);
-      return { success: false, error: error.message };
+export const getClass = async (classId) => {
+  try {
+    const docSnap = await getDoc(doc(db, 'classes', classId));
+    if (docSnap.exists()) {
+      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
-  }),
-  'getClass'
-);
+    return { success: false, error: 'Class not found' };
+  } catch (error) {
+    logger.error('[ClassDbService] Error getting class:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get classes by program

@@ -27,65 +27,55 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Get all enrollments - with performance monitoring and memoization
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getEnrollments = withPerformanceMonitoring(
-  memoize(async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, 'enrollments'));
-      const enrollments = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-      return { success: true, data: enrollments };
-    } catch (error) {
-      logger.error('[EnrollmentDbService] Error getting enrollments:', error);
-      return { success: false, error: error.message };
-    }
-  }),
-  'getEnrollments'
-);
+export const getEnrollments = async () => {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'enrollments'));
+    const enrollments = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: enrollments };
+  } catch (error) {
+    logger.error('[EnrollmentDbService] Error getting enrollments:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get enrollments by user - with performance monitoring and memoization
  * @param {string} userId - User ID
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getEnrollmentsByUser = withPerformanceMonitoring(
-  memoize(async (userId) => {
-    try {
-      const q = query(collection(db, 'enrollments'), where('userId', '==', userId));
-      const querySnapshot = await getDocs(q);
-      const enrollments = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-      return { success: true, data: enrollments };
-    } catch (error) {
-      logger.error('[EnrollmentDbService] Error getting enrollments by user:', error);
-      return { success: false, error: error.message };
-    }
-  }),
-  'getEnrollmentsByUser'
-);
+export const getEnrollmentsByUser = async (userId) => {
+  try {
+    const q = query(collection(db, 'enrollments'), where('userId', '==', userId));
+    const querySnapshot = await getDocs(q);
+    const enrollments = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: enrollments };
+  } catch (error) {
+    logger.error('[EnrollmentDbService] Error getting enrollments by user:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get enrollments by class - with performance monitoring and memoization
  * @param {string} classId - Class ID
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getEnrollmentsByClass = withPerformanceMonitoring(
-  memoize(async (classId) => {
-    try {
-      const q = query(collection(db, 'enrollments'), where('classId', '==', classId));
-      const querySnapshot = await getDocs(q);
-      const enrollments = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-      return { success: true, data: enrollments };
-    } catch (error) {
-      logger.error('[EnrollmentDbService] Error getting enrollments by class:', error);
-      return { success: false, error: error.message };
-    }
-  }),
-  'getEnrollmentsByClass'
-);
+export const getEnrollmentsByClass = async (classId) => {
+  try {
+    const q = query(collection(db, 'enrollments'), where('classId', '==', classId));
+    const querySnapshot = await getDocs(q);
+    const enrollments = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: enrollments };
+  } catch (error) {
+    logger.error('[EnrollmentDbService] Error getting enrollments by class:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get enrollment by ID

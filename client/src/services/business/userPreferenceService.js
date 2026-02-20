@@ -1,31 +1,27 @@
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Get user preferences from Firestore - with performance monitoring and memoization
  * @param {string} userId - User ID
  * @returns {Promise<Object>} User preferences object
  */
-export const getUserPreferences = withPerformanceMonitoring(
-  memoize(async (userId) => {
-    try {
-      const userDocRef = doc(db, 'users', userId);
-      const userDoc = await getDoc(userDocRef);
-      
-      if (userDoc.exists()) {
-        return userDoc.data().preferences || {};
-      }
-      
-      return {};
-    } catch (error) {
-      logger.error('Error getting user preferences:', error);
-      return {};
+export const getUserPreferences = async (userId) => {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (userDoc.exists()) {
+      return userDoc.data().preferences || {};
     }
-  }),
-  'getUserPreferences'
-);
+    
+    return {};
+  } catch (error) {
+    logger.error('Error getting user preferences:', error);
+    return {};
+  }
+};
 
 /**
  * Update user preferences in Firestore

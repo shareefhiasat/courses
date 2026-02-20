@@ -16,7 +16,6 @@ import {
   getSchedulesByInstructor
 } from '@services/db/scheduleDbService';
 import logger from '@utils/logger';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Get schedules for a specific term and year - with performance monitoring and memoization
@@ -24,31 +23,28 @@ import { withPerformanceMonitoring, memoize } from '@utils/performance';
  * @param {string} year - Year (e.g., '2024')
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getSchedules = withPerformanceMonitoring(
-  memoize(async (term, year) => {
-    try {
-      if (!term || !year) {
-        return { success: false, error: 'Term and year are required' };
-      }
-
-      const result = await getSchedulesByTermAndYear(term, year);
-      
-      if (!result.success) {
-        return result;
-      }
-
-      return {
-        success: true,
-        data: result.data,
-        timestamp: Date.now()
-      };
-    } catch (error) {
-      logger.error('[ScheduleService] Error getting schedules:', error);
-      return { success: false, error: error.message };
+export const getSchedules = async (term, year) => {
+  try {
+    if (!term || !year) {
+      return { success: false, error: 'Term and year are required' };
     }
-  }),
-  'getSchedules'
-);
+
+    const result = await getSchedulesByTermAndYear(term, year);
+    
+    if (!result.success) {
+      return result;
+    }
+
+    return {
+      success: true,
+      data: result.data,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('[ScheduleService] Error getting schedules:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get all schedules (no filtering)

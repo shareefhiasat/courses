@@ -14,14 +14,12 @@ import {
   Timestamp
 } from "firebase/firestore";
 import { db } from '../other/config';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Get all categories - with performance monitoring and memoization
  */
-export const getCategories = withPerformanceMonitoring(
-  memoize(async () => {
-    try {
+export const getCategories = async () => {
+  try {
       const querySnapshot = await getDocs(collection(db, "categories"));
       const categories = [];
       querySnapshot.forEach((d) => {
@@ -31,14 +29,12 @@ export const getCategories = withPerformanceMonitoring(
         }
         categories.push(categoryData);
       });
-      return { success: true, data: categories };
-    } catch (error) {
-      console.error("Error getting categories:", error);
-      return { success: false, error: error.message };
-    }
-  }),
-  'getCategories'
-);
+    return { success: true, data: categories };
+  } catch (error) {
+    console.error("Error getting categories:", error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Seed default categories

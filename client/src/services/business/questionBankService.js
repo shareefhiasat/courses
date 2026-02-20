@@ -32,7 +32,6 @@ import {
   getRandomQuestions as getRandomQuestionsFromDb,
   updateQuestionUsage as updateQuestionUsageInDb
 } from '../db/questionBankDbService';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 const COLLECTION = 'questionBank';
 
@@ -57,42 +56,39 @@ export async function createQuestion(questionData) {
 /**
  * Get all questions from the bank - with performance monitoring and memoization
  */
-export const getAllQuestions = withPerformanceMonitoring(
-  memoize(async (filters = {}) => {
-    try {
-      let q = collection(db, COLLECTION);
-      
-      // Apply filters
-      if (filters.topic) {
-        q = query(q, where('tags', 'array-contains', filters.topic));
-      }
-      if (filters.difficulty) {
-        q = query(q, where('difficulty', '==', filters.difficulty));
-      }
-      if (filters.type) {
-        q = query(q, where('type', '==', filters.type));
-      }
-      if (filters.createdBy) {
-        q = query(q, where('createdBy', '==', filters.createdBy));
-      }
-      
-      // Order by usage or creation date
-      q = query(q, orderBy(filters.sortBy || 'createdAt', 'desc'));
-      
-      const snapshot = await getDocs(q);
-      const questions = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      return { success: true, data: questions };
-    } catch (error) {
-      logger.error('Error fetching questions:', error);
-      return { success: false, error: error.message };
+export const getAllQuestions = async (filters = {}) => {
+  try {
+    let q = collection(db, COLLECTION);
+    
+    // Apply filters
+    if (filters.topic) {
+      q = query(q, where('tags', 'array-contains', filters.topic));
     }
-  }),
-  'getAllQuestions'
-);
+    if (filters.difficulty) {
+      q = query(q, where('difficulty', '==', filters.difficulty));
+    }
+    if (filters.type) {
+      q = query(q, where('type', '==', filters.type));
+    }
+    if (filters.createdBy) {
+      q = query(q, where('createdBy', '==', filters.createdBy));
+    }
+    
+    // Order by usage or creation date
+    q = query(q, orderBy(filters.sortBy || 'createdAt', 'desc'));
+    
+    const snapshot = await getDocs(q);
+    const questions = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    return { success: true, data: questions };
+  } catch (error) {
+    logger.error('Error fetching questions:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get a single question by ID

@@ -3,49 +3,35 @@
  * Shows how to use performance.js utilities in your services
  */
 
-import { withPerformanceMonitoring, memoizedOperations, batchProcessor } from '@utils/performance';
 import logger from '@utils/logger';
 
 // Example: Wrap your service functions with performance monitoring
-export const getUserData = withPerformanceMonitoring(
-  async (userId) => {
-    // Your existing logic here
-    const response = await fetch(`/api/users/${userId}`);
-    return response.json();
-  },
-  'get_user_data'
-);
+export const getUserData = async (userId) => {
+  // Your existing logic here
+  const response = await fetch(`/api/users/${userId}`);
+  return response.json();
+};
 
-// Example: Use memoized operations for frequently accessed data
-export const getCourseData = memoizedOperations.getCourseById;
 
-// Example: Batch processing for multiple operations
 export const processMultipleGrades = async (grades) => {
-  return await batchProcessor.processBatch(
-    grades,
-    async (grade) => {
-      // Process individual grade
+  // Process grades sequentially (simplified without batch processor)
+  const results = [];
+  for (const grade of grades) {
+    try {
       const response = await fetch(`/api/grades/${grade.id}`, {
         method: 'PUT',
         body: JSON.stringify(grade)
       });
-      return response.json();
-    },
-    {
-      batchSize: 10,
-      maxConcurrency: 3,
-      delayBetweenBatches: 100
+      results.push(await response.json());
+    } catch (error) {
+      logger.error('Error processing grade:', error);
+      results.push({ error: error.message });
     }
-  );
+  }
+  return results;
 };
 
-// Example: Resource monitoring for real-time connections
 export const setupRealtimeListener = (listenerId) => {
-  const { resourceMonitor } = require('@utils/performance');
-  
-  // Track connection
-  resourceMonitor.addConnection(listenerId);
-  
   // Your listener setup
   const unsubscribe = someRealtimeService.onSnapshot((data) => {
     // Handle updates
@@ -54,6 +40,5 @@ export const setupRealtimeListener = (listenerId) => {
   // Return cleanup function
   return () => {
     unsubscribe();
-    resourceMonitor.removeConnection(listenerId);
   };
 };

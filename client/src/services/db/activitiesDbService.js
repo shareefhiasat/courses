@@ -28,7 +28,6 @@ import {
 import { db } from '../other/config';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import logger from '@utils/logger';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Get activities by class ID - with performance monitoring and memoization
@@ -36,28 +35,25 @@ import { withPerformanceMonitoring, memoize } from '@utils/performance';
  * @param {Object} options - Query options
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getActivitiesByClass = withPerformanceMonitoring(
-  memoize(async (classId, options = {}) => {
-    try {
-      const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
-      
-      const q = query(
-        collection(db, RECORD_TYPES.ACTIVITY),
-        where('classId', '==', classId),
-        orderBy(orderByField, orderDirection),
-        limit(limitCount)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const activities = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-      return { success: true, data: activities };
-    } catch (error) {
-      logger.error('[ActivitiesDbService] Error getting activities by class:', error);
-      return { success: false, error: error.message };
-    }
-  }),
-  'getActivitiesByClass'
-);
+export const getActivitiesByClass = async (classId, options = {}) => {
+  try {
+    const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
+    
+    const q = query(
+      collection(db, RECORD_TYPES.ACTIVITY),
+      where('classId', '==', classId),
+      orderBy(orderByField, orderDirection),
+      limit(limitCount)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const activities = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: activities };
+  } catch (error) {
+    logger.error('[ActivitiesDbService] Error getting activities by class:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get activities by multiple class IDs - with performance monitoring and memoization
@@ -65,31 +61,28 @@ export const getActivitiesByClass = withPerformanceMonitoring(
  * @param {Object} options - Query options
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getActivitiesByClasses = withPerformanceMonitoring(
-  memoize(async (classIds, options = {}) => {
-    try {
-      const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
-      
-      // Firestore 'in' query supports up to 10 values
-      const limitedClassIds = classIds.slice(0, 10);
-      
-      const q = query(
-        collection(db, RECORD_TYPES.ACTIVITY),
-        where('classId', 'in', limitedClassIds),
-        orderBy(orderByField, orderDirection),
-        limit(limitCount)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const activities = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-      return { success: true, data: activities };
-    } catch (error) {
-      logger.error('[ActivitiesDbService] Error getting activities by classes:', error);
-      return { success: false, error: error.message };
-    }
-  }),
-  'getActivitiesByClasses'
-);
+export const getActivitiesByClasses = async (classIds, options = {}) => {
+  try {
+    const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
+    
+    // Firestore 'in' query supports up to 10 values
+    const limitedClassIds = classIds.slice(0, 10);
+    
+    const q = query(
+      collection(db, RECORD_TYPES.ACTIVITY),
+      where('classId', 'in', limitedClassIds),
+      orderBy(orderByField, orderDirection),
+      limit(limitCount)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const activities = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: activities };
+  } catch (error) {
+    logger.error('[ActivitiesDbService] Error getting activities by classes:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get activities by user ID - with performance monitoring and memoization
@@ -97,49 +90,43 @@ export const getActivitiesByClasses = withPerformanceMonitoring(
  * @param {Object} options - Query options
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getActivitiesByUser = withPerformanceMonitoring(
-  memoize(async (userId, options = {}) => {
-    try {
-      const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
-      
-      const q = query(
-        collection(db, RECORD_TYPES.ACTIVITY),
-        where('userId', '==', userId),
-        orderBy(orderByField, orderDirection),
-        limit(limitCount)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const activities = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-      return { success: true, data: activities };
-    } catch (error) {
-      logger.error('[ActivitiesDbService] Error getting activities by user:', error);
-      return { success: false, error: error.message };
-    }
-  }),
-  'getActivitiesByUser'
-);
+export const getActivitiesByUser = async (userId, options = {}) => {
+  try {
+    const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
+    
+    const q = query(
+      collection(db, RECORD_TYPES.ACTIVITY),
+      where('userId', '==', userId),
+      orderBy(orderByField, orderDirection),
+      limit(limitCount)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const activities = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: activities };
+  } catch (error) {
+    logger.error('[ActivitiesDbService] Error getting activities by user:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get activity by ID - with performance monitoring and memoization
  * @param {string} activityId - Activity ID
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export const getActivity = withPerformanceMonitoring(
-  memoize(async (activityId) => {
-    try {
-      const docSnap = await getDoc(doc(db, RECORD_TYPES.ACTIVITY, activityId));
-      if (docSnap.exists()) {
-        return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
-      }
-      return { success: false, error: 'Activity not found' };
-    } catch (error) {
-      logger.error('[ActivitiesDbService] Error getting activity:', error);
-      return { success: false, error: error.message };
+export const getActivity = async (activityId) => {
+  try {
+    const docSnap = await getDoc(doc(db, RECORD_TYPES.ACTIVITY, activityId));
+    if (docSnap.exists()) {
+      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
-  }),
-  'getActivity'
-);
+    return { success: false, error: 'Activity not found' };
+  } catch (error) {
+    logger.error('[ActivitiesDbService] Error getting activity:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Create activity

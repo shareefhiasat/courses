@@ -21,28 +21,24 @@ import {
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { notificationGateway } from './notificationGateway';
 import logger from '@utils/logger';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Get all activities with filters - with performance monitoring and memoization
  * @param {Object} filters - Query filters
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getActivities = withPerformanceMonitoring(
-  memoize(async (filters = {}) => {
-    try {
-      const result = await getActivitiesFromDb(filters);
-      if (result.success) {
-        logger.log('[ActivitiesService] Successfully fetched activities', { count: result.data.length });
-      }
-      return result;
-    } catch (error) {
-      logger.error('[ActivitiesService] Error getting activities:', error);
-      return { success: false, error: error.message };
+export const getActivities = async (filters = {}) => {
+  try {
+    const result = await getActivitiesFromDb(filters);
+    if (result.success) {
+      logger.log('[ActivitiesService] Successfully fetched activities', { count: result.data.length });
     }
-  }),
-  'getActivities'
-);
+    return result;
+  } catch (error) {
+    logger.error('[ActivitiesService] Error getting activities:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get activities by class ID - with performance monitoring and memoization
@@ -50,21 +46,18 @@ export const getActivities = withPerformanceMonitoring(
  * @param {Object} options - Query options
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getActivitiesByClass = withPerformanceMonitoring(
-  memoize(async (classId, options = {}) => {
-    try {
-      const result = await getActivitiesByClassFromDb(classId, options);
-      if (result.success) {
-        logger.log('[ActivitiesService] Successfully fetched activities for class', { classId, count: result.data.length });
-      }
-      return result;
-    } catch (error) {
-      logger.error('[ActivitiesService] Error getting activities by class:', error);
-      return { success: false, error: error.message };
+export const getActivitiesByClass = async (classId, options = {}) => {
+  try {
+    const result = await getActivitiesByClassFromDb(classId, options);
+    if (result.success) {
+      logger.log('[ActivitiesService] Successfully fetched activities for class', { classId, count: result.data.length });
     }
-  }),
-  'getActivitiesByClass'
-);
+    return result;
+  } catch (error) {
+    logger.error('[ActivitiesService] Error getting activities by class:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get activities by multiple class IDs - with performance monitoring and memoization
@@ -72,21 +65,18 @@ export const getActivitiesByClass = withPerformanceMonitoring(
  * @param {Object} options - Query options
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getActivitiesByClasses = withPerformanceMonitoring(
-  memoize(async (classIds, options = {}) => {
-    try {
-      const result = await getActivitiesByClassesFromDb(classIds, options);
-      if (result.success) {
-        logger.log('[ActivitiesService] Successfully fetched activities for classes', { classIds: classIds.length, count: result.data.length });
-      }
-      return result;
-    } catch (error) {
-      logger.error('[ActivitiesService] Error getting activities by classes:', error);
-      return { success: false, error: error.message };
+export const getActivitiesByClasses = async (classIds, options = {}) => {
+  try {
+    const result = await getActivitiesByClassesFromDb(classIds, options);
+    if (result.success) {
+      logger.log('[ActivitiesService] Successfully fetched activities for classes', { classIds: classIds.length, count: result.data.length });
     }
-  }),
-  'getActivitiesByClasses'
-);
+    return result;
+  } catch (error) {
+    logger.error('[ActivitiesService] Error getting activities by classes:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get activities by user ID - with performance monitoring and memoization
@@ -94,42 +84,36 @@ export const getActivitiesByClasses = withPerformanceMonitoring(
  * @param {Object} options - Query options
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getActivitiesByUser = withPerformanceMonitoring(
-  memoize(async (userId, options = {}) => {
-    try {
-      const result = await getActivitiesByUserFromDb(userId, options);
-      if (result.success) {
-        logger.log('[ActivitiesService] Successfully fetched activities for user', { userId, count: result.data.length });
-      }
-      return result;
-    } catch (error) {
-      logger.error('[ActivitiesService] Error getting activities by user:', error);
-      return { success: false, error: error.message };
+export const getActivitiesByUser = async (userId, options = {}) => {
+  try {
+    const result = await getActivitiesByUserFromDb(userId, options);
+    if (result.success) {
+      logger.log('[ActivitiesService] Successfully fetched activities for user', { userId, count: result.data.length });
     }
-  }),
-  'getActivitiesByUser'
-);
+    return result;
+  } catch (error) {
+    logger.error('[ActivitiesService] Error getting activities by user:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get single activity by ID - with performance monitoring and memoization
  * @param {string} activityId - Activity ID
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export const getActivity = withPerformanceMonitoring(
-  memoize(async (activityId) => {
-    try {
-      const result = await getActivityFromDb(activityId);
-      if (result.success) {
-        logger.log('[ActivitiesService] Successfully fetched activity', { activityId });
-      }
-      return result;
-    } catch (error) {
-      logger.error('[ActivitiesService] Error getting activity:', error);
-      return { success: false, error: error.message };
+export const getActivity = async (activityId) => {
+  try {
+    const result = await getActivityFromDb(activityId);
+    if (result.success) {
+      logger.log('[ActivitiesService] Successfully fetched activity', { activityId });
     }
-  }),
-  'getActivity'
-);
+    return result;
+  } catch (error) {
+    logger.error('[ActivitiesService] Error getting activity:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Create new activity

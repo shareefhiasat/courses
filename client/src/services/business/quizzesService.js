@@ -18,49 +18,42 @@ import {
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { notificationGateway } from './notificationGateway';
 import logger from '@utils/logger';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Get all quizzes with filters - with performance monitoring and memoization
  * @param {Object} filters - Query filters
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getQuizzes = withPerformanceMonitoring(
-  memoize(async (filters = {}) => {
-    try {
-      const result = await getQuizzesFromDb(filters);
-      if (result.success) {
-        logger.log('[QuizzesService] Successfully fetched quizzes', { count: result.data.length });
-      }
-      return result;
-    } catch (error) {
-      logger.error('[QuizzesService] Error getting quizzes:', error);
-      return { success: false, error: error.message };
+export const getQuizzes = async (filters = {}) => {
+  try {
+    const result = await getQuizzesFromDb(filters);
+    if (result.success) {
+      logger.log('[QuizzesService] Successfully fetched quizzes', { count: result.data.length });
     }
-  }),
-  'getQuizzes'
-);
+    return result;
+  } catch (error) {
+    logger.error('[QuizzesService] Error getting quizzes:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get single quiz by ID - with performance monitoring and memoization
  * @param {string} quizId - Quiz ID
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export const getQuiz = withPerformanceMonitoring(
-  memoize(async (quizId) => {
-    try {
-      const result = await getQuizFromDb(quizId);
-      if (result.success) {
-        logger.log('[QuizzesService] Successfully fetched quiz', { quizId });
-      }
-      return result;
-    } catch (error) {
-      logger.error('[QuizzesService] Error getting quiz:', error);
-      return { success: false, error: error.message };
+export const getQuiz = async (quizId) => {
+  try {
+    const result = await getQuizFromDb(quizId);
+    if (result.success) {
+      logger.log('[QuizzesService] Successfully fetched quiz', { quizId });
     }
-  }),
-  'getQuiz'
-);
+    return result;
+  } catch (error) {
+    logger.error('[QuizzesService] Error getting quiz:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Create new quiz

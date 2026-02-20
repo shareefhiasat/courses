@@ -10,9 +10,8 @@ import { ActivityLogger } from '../other/activityLogger';
 import { auth } from '../other/config';
 import logger from '@utils/logger';
 import { validateEmail as validateEmailFormat } from '@utils/validationHelpers';
-import { withPerformanceMonitoring } from '@utils/performance';
 
-export const signIn = withPerformanceMonitoring(async (email, password) => {
+export const signIn = async (email, password) => {
   try {
     if (!email || !password) return { success: false, error: 'Email and password are required' };
     const emailCheck = validateEmailFormat(email);
@@ -32,9 +31,9 @@ export const signIn = withPerformanceMonitoring(async (email, password) => {
     });
     return { success: false, error: error.message };
   }
-}, 'signIn');
+};
 
-export const signUp = withPerformanceMonitoring(async (email, password, displayName) => {
+export const signUp = async (email, password, displayName) => {
   try {
     if (!email || !password) return { success: false, error: 'Email and password are required' };
     const emailCheck = validateEmailFormat(email);
@@ -68,9 +67,9 @@ export const signUp = withPerformanceMonitoring(async (email, password, displayN
     });
     return { success: false, error: error.message };
   }
-}, 'signUp');
+};
 
-export const signOutUser = withPerformanceMonitoring(async (user = null) => {
+export const signOutUser = async (user = null) => {
   try {
     // Reset session flag immediately when logout is initiated
     sessionStorage.removeItem('hasLoggedInThisSession');
@@ -96,9 +95,9 @@ export const signOutUser = withPerformanceMonitoring(async (user = null) => {
   } catch (error) {
     return { success: false, error: error.message };
   }
-}, 'signOut');
+};
 
-export const resetPassword = withPerformanceMonitoring(async (email) => {
+export const resetPassword = async (email) => {
   try {
     await sendPasswordResetEmail(auth, email);
     
@@ -113,7 +112,7 @@ export const resetPassword = withPerformanceMonitoring(async (email) => {
   } catch (error) {
     return { success: false, error: error.message };
   }
-}, 'resetPassword');
+};
 
 export const onAuthChange = (callback) => {
   return onAuthStateChanged(auth, callback);

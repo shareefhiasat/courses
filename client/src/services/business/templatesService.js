@@ -7,7 +7,6 @@
 import templatesDb from '../db/templatesDb';
 import { defaultTemplates } from '@utils/defaultEmailTemplates';
 import logger from '@utils/logger';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Upload default templates to Firestore (smart upload - only missing templates)
@@ -86,48 +85,42 @@ export const uploadDefaultTemplates = async () => {
 /**
  * Get all templates with business logic - with performance monitoring and memoization
  */
-export const getAllTemplates = withPerformanceMonitoring(
-  memoize(async () => {
-    try {
-      const result = await templatesDb.getAllTemplates();
-      
-      if (result.success) {
-        logger.info(`📋 Retrieved ${result.data.length} templates`);
-        return result;
-      } else {
-        logger.error('Failed to get templates:', result.error);
-        return result;
-      }
-    } catch (error) {
-      logger.error('Get all templates service error:', error);
-      return { success: false, error: error.message, data: [] };
+export const getAllTemplates = async () => {
+  try {
+    const result = await templatesDb.getAllTemplates();
+    
+    if (result.success) {
+      logger.info(`📋 Retrieved ${result.data.length} templates`);
+      return result;
+    } else {
+      logger.error('Failed to get templates:', result.error);
+      return result;
     }
-  }),
-  'getAllTemplates'
-);
+  } catch (error) {
+    logger.error('Get all templates service error:', error);
+    return { success: false, error: error.message, data: [] };
+  }
+};
 
 /**
  * Get template by ID with business logic - with performance monitoring and memoization
  */
-export const getTemplateById = withPerformanceMonitoring(
-  memoize(async (templateId) => {
-    try {
-      const result = await templatesDb.getTemplateById(templateId);
-      
-      if (result.success) {
-        logger.info(`📋 Retrieved template: ${templateId}`);
-      } else {
-        logger.warn(`Template not found: ${templateId}`);
-      }
-      
-      return result;
-    } catch (error) {
-      logger.error('Get template by ID service error:', error);
-      return { success: false, error: error.message };
+export const getTemplateById = async (templateId) => {
+  try {
+    const result = await templatesDb.getTemplateById(templateId);
+    
+    if (result.success) {
+      logger.info(`📋 Retrieved template: ${templateId}`);
+    } else {
+      logger.warn(`Template not found: ${templateId}`);
     }
-  }),
-  'getTemplateById'
-);
+    
+    return result;
+  } catch (error) {
+    logger.error('Get template by ID service error:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Update template with business logic

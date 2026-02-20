@@ -32,24 +32,18 @@ import {
   getUserMessageColor as getUserMessageColorFromDb,
   updateUserMessageColor as updateUserMessageColorInDb
 } from '../db/chatDbService';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 // Chat Service - Centralized chat operations
 export const chatService = {
   // User operations
   async getUserMessageColor(userId) {
-    return await withPerformanceMonitoring(
-      memoize(async (userId) => {
-        try {
-          const result = await getUserMessageColorFromDb(userId);
-          return result.success ? result.data : null;
-        } catch (error) {
-          logger.error('Error getting user message color:', error);
-          return null;
-        }
-      }),
-      'getUserMessageColor'
-    )(userId);
+    try {
+      const result = await getUserMessageColorFromDb(userId);
+      return result.success ? result.data : null;
+    } catch (error) {
+      logger.error('Error getting user message color:', error);
+      return null;
+    }
   },
 
   subscribeToUserMessageColor(userId, callback) {

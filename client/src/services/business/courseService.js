@@ -2,7 +2,6 @@ import { serverTimestamp } from 'firebase/firestore';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { handleServiceError, withRetry } from '@utils/errorHandling';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 import { validateEntity } from '@utils/validationHelpers';
 import { 
   getCourses as getCoursesFromDb,
@@ -28,27 +27,24 @@ const COURSE_VALIDATION_RULES = [
 const validateCourseData = (data) => validateEntity(data, COURSE_VALIDATION_RULES);
 
 // Get all courses - with performance monitoring and memoization
-export const getCourses = withPerformanceMonitoring(
-  memoize(async () => {
-    try {
-      logger.info('COURSE: Fetching all courses');
-      
-      const result = await getCoursesFromDb();
-      
-      if (result.success) {
-        logger.info('COURSE: Successfully fetched courses', { count: result.data.length });
-      } else {
-        logger.warn('COURSE: Failed to fetch courses', { error: result.error });
-      }
-      
-      return result;
-    } catch (error) {
-      logger.error('COURSE: Failed to fetch courses', { error: error.message });
-      return handleServiceError(error, { operation: 'getCourses' });
+export const getCourses = async () => {
+  try {
+    logger.info('COURSE: Fetching all courses');
+    
+    const result = await getCoursesFromDb();
+    
+    if (result.success) {
+      logger.info('COURSE: Successfully fetched courses', { count: result.data.length });
+    } else {
+      logger.warn('COURSE: Failed to fetch courses', { error: result.error });
     }
-  }),
-  'getCourses'
-);
+    
+    return result;
+  } catch (error) {
+    logger.error('COURSE: Failed to fetch courses', { error: error.message });
+    return handleServiceError(error, { operation: 'getCourses' });
+  }
+};
 
 // Set/update course with validation
 export const setCourse = async (courseId, data) => {

@@ -26,47 +26,40 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Get all courses - with performance monitoring and memoization
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getCourses = withPerformanceMonitoring(
-  memoize(async () => {
-    try {
-      const q = query(collection(db, 'courses'), orderBy('order', 'asc'));
-      const querySnapshot = await getDocs(q);
-      const courses = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-      return { success: true, data: courses };
-    } catch (error) {
-      logger.error('[CourseDbService] Error getting courses:', error);
-      return { success: false, error: error.message };
-    }
-  }),
-  'getCourses'
-);
+export const getCourses = async () => {
+  try {
+    const q = query(collection(db, 'courses'), orderBy('order', 'asc'));
+    const querySnapshot = await getDocs(q);
+    const courses = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: courses };
+  } catch (error) {
+    logger.error('[CourseDbService] Error getting courses:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get course by ID - with performance monitoring and memoization
  * @param {string} courseId - Course ID
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export const getCourse = withPerformanceMonitoring(
-  memoize(async (courseId) => {
-    try {
-      const docSnap = await getDoc(doc(db, 'courses', courseId));
-      if (docSnap.exists()) {
-        return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
-      }
-      return { success: false, error: 'Course not found' };
-    } catch (error) {
-      logger.error('[CourseDbService] Error getting course:', error);
-      return { success: false, error: error.message };
+export const getCourse = async (courseId) => {
+  try {
+    const docSnap = await getDoc(doc(db, 'courses', courseId));
+    if (docSnap.exists()) {
+      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
-  }),
-  'getCourse'
-);
+    return { success: false, error: 'Course not found' };
+  } catch (error) {
+    logger.error('[CourseDbService] Error getting course:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Create course

@@ -45,7 +45,6 @@
 
 import logger from '@utils/logger';
 import analytics from '@utils/analytics';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 class EmailService {
   constructor() {
@@ -117,63 +116,56 @@ class EmailService {
    * Send bulk emails - with performance monitoring
    */
   async sendBulkEmails(emailDataList) {
-    return await withPerformanceMonitoring(async () => {
-      const startTime = Date.now();
-      const recipientCount = emailDataList.length;
-      
-      try {
-        if (this.qstashEnabled && recipientCount > this.maxBatchSize) {
-          return await this.sendBulkViaQStash(emailDataList);
-        } else {
-          return await this.sendBulkViaFallback(emailDataList);
-        }
-      } catch (error) {
-        analytics.trackEmailOperation('send_bulk', recipientCount, false, { error: error.message });
-        logger.error('Failed to send bulk emails:', error);
-        throw error;
-      } finally {
-        const duration = Date.now() - startTime;
-        analytics.trackEmailOperation('send_bulk', recipientCount, true, { duration });
+    const startTime = Date.now();
+    const recipientCount = emailDataList.length;
+    
+    try {
+      if (this.qstashEnabled && recipientCount > this.maxBatchSize) {
+        return await this.sendBulkViaQStash(emailDataList);
+      } else {
+        return await this.sendBulkViaFallback(emailDataList);
       }
-    }, 'sendBulkEmails')();
+    } catch (error) {
+      analytics.trackEmailOperation('send_bulk', recipientCount, false, { error: error.message });
+      logger.error('Failed to send bulk emails:', error);
+      throw error;
+    } finally {
+      const duration = Date.now() - startTime;
+      analytics.trackEmailOperation('send_bulk', recipientCount, true, { duration });
+    }
   }
 
   /**
    * Get email template by ID - with performance monitoring and memoization
    */
   async getEmailTemplate(templateId) {
-    return await withPerformanceMonitoring(
-      memoize(async (templateId) => {
-        try {
-          logger.debug('Fetching template from Firestore:', templateId);
-          
-          // Import Firebase functions dynamically
-          const { collection, getDocs, query, where } = await import('firebase/firestore');
-          const { db } = await import('../other/config');
-          
-          // Query for template by ID field
-          const templatesRef = collection(db, 'emailTemplates');
-          const q = query(templatesRef, where('id', '==', templateId));
-          const querySnapshot = await getDocs(q);
-          
-          if (querySnapshot.empty) {
-            logger.warn('Template not found:', templateId);
-            return { success: false, error: 'Template not found' };
-          }
-          
-          const templateDoc = querySnapshot.docs[0];
-          const template = { id: templateDoc.id, ...templateDoc.data() };
-          
-          logger.debug('Template found:', template.name);
-          return { success: true, template };
-          
-        } catch (error) {
-          logger.error('Error fetching template:', error);
-          return { success: false, error: error.message };
-        }
-      }),
-      'getEmailTemplate'
-    )(templateId);
+    try {
+      logger.debug('Fetching template from Firestore:', templateId);
+      
+      // Import Firebase functions dynamically
+      const { collection, getDocs, query, where } = await import('firebase/firestore');
+      const { db } = await import('../other/config');
+      
+      // Query for template by ID field
+      const templatesRef = collection(db, 'emailTemplates');
+      const q = query(templatesRef, where('id', '==', templateId));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        logger.warn('Template not found:', templateId);
+        return { success: false, error: 'Template not found' };
+      }
+      
+      const templateDoc = querySnapshot.docs[0];
+      const template = { id: templateDoc.id, ...templateDoc.data() };
+      
+      logger.debug('Template found:', template.name);
+      return { success: true, template };
+      
+    } catch (error) {
+      logger.error('Error fetching template:', error);
+      return { success: false, error: error.message };
+    }
   }
 
   /**

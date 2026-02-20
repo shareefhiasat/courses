@@ -9,7 +9,6 @@ import {
 } from '@services/db/bookmarkDbService';
 import { MODE_TYPES } from '@utils/sharedTypes';
 import logger from '@utils/logger';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Bookmark Service - Business logic layer
@@ -40,30 +39,27 @@ export const BOOKMARK_COLLECTIONS = {
  * @param {string} userId - User ID
  * @returns {Promise<Object>} Bookmarks object
  */
-export const getUserBookmarks = withPerformanceMonitoring(
-  memoize(async (userId) => {
-    try {
-      if (!userId) {
-        logger.warn('[BookmarkService] No userId provided for getUserBookmarks');
-        return getEmptyBookmarks();
-      }
-
-      // Use database layer for data retrieval
-      const bookmarks = await getUserBookmarksFromDb(userId);
-
-      logger.debug('[BookmarkService] Loaded and validated bookmarks:', {
-        userId,
-        totalBookmarks: Object.values(bookmarks).reduce((sum, items) => sum + Object.keys(items).length, 0)
-      });
-
-      return bookmarks;
-    } catch (error) {
-      logger.error('[BookmarkService] Failed to get user bookmarks:', error);
+export const getUserBookmarks = async (userId) => {
+  try {
+    if (!userId) {
+      logger.warn('[BookmarkService] No userId provided for getUserBookmarks');
       return getEmptyBookmarks();
     }
-  }),
-  'getUserBookmarks'
-);
+
+    // Use database layer for data retrieval
+    const bookmarks = await getUserBookmarksFromDb(userId);
+
+    logger.debug('[BookmarkService] Loaded and validated bookmarks:', {
+      userId,
+      totalBookmarks: Object.values(bookmarks).reduce((sum, items) => sum + Object.keys(items).length, 0)
+    });
+
+    return bookmarks;
+  } catch (error) {
+    logger.error('[BookmarkService] Failed to get user bookmarks:', error);
+    return getEmptyBookmarks();
+  }
+};
 
 /**
  * Set up real-time bookmark listener with business logic

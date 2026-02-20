@@ -2,7 +2,6 @@ import React from 'react';
 import StatsBar from './StatsBar';
 import StatusFilterChips from './StatusFilterChips';
 import DifficultyFilterChips from './DifficultyFilterChips';
-import PerformanceFilterChips from './PerformanceFilterChips';
 import ToggleFilterChips from './ToggleFilterChips';
 import HierarchyFilters from './HierarchyFilters';
 
@@ -54,7 +53,6 @@ import HierarchyFilters from './HierarchyFilters';
  * @param {string} props.primaryColor - Primary color
  * @param {boolean} props.showStatusFilters - Show status filter chips
  * @param {boolean} props.showDifficultyFilters - Show difficulty filter chips
- * @param {boolean} props.showPerformanceFilters - Show performance filter chips (for results pages)
  * @param {boolean} props.showToggleFilters - Show toggle filter chips
  * @param {boolean} props.showHierarchyFilters - Show hierarchy filters
  * @param {Object} props.hierarchyConfig - Configuration for which hierarchy filters to show
@@ -140,7 +138,6 @@ const UnifiedFilterSection = ({
   // Visibility config
   showStatusFilters = true,
   showDifficultyFilters = true,
-  showPerformanceFilters = false,
   showToggleFilters = true,
   showHierarchyFilters = true,
   hierarchyConfig = {
@@ -237,23 +234,6 @@ const UnifiedFilterSection = ({
           theme={theme}
           lang={lang}
           t={t}
-        />
-        </div>
-      )}
-
-      {/* Row 3: Performance Filter Chips */}
-      {showPerformanceFilters && (
-        <div style={{ marginBottom: '0.75rem' }}>
-          <PerformanceFilterChips
-            passedFilter={passedFilter}
-            setPassedFilter={setPassedFilter}
-            failedFilter={failedFilter}
-            setFailedFilter={setFailedFilter}
-            excellentFilter={excellentFilter}
-            setExcellentFilter={setExcellentFilter}
-            isMinified={isMinified}
-            theme={theme}
-            t={t}
         />
         </div>
       )}

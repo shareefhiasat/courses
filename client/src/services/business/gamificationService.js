@@ -28,7 +28,6 @@ import {
   getTopStudents as getTopStudentsFromDb,
   initializeStudentGamification as initializeStudentGamificationToDb
 } from '../db/gamificationDbService';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Gamification Service
@@ -103,25 +102,22 @@ export const awardPoints = async (pointsData) => {
 };
 
 // Get points for a student - with performance monitoring and memoization
-export const getStudentPoints = withPerformanceMonitoring(
-  memoize(async (studentId) => {
-    try {
-      const q = query(
-        collection(db, "points"),
-        where("studentId", "==", studentId),
-        orderBy("timestamp", "desc")
-      );
-      const qs = await getDocs(q);
-      const points = [];
-      qs.forEach((d) => points.push({ id: d.id, ...d.data() }));
-      return { success: true, data: points };
-    } catch (error) {
-      logger.error("Error getting student points:", error);
-      return { success: false, error: error.message };
-    }
-  }),
-  'getStudentPoints'
-);
+export const getStudentPoints = async (studentId) => {
+  try {
+    const q = query(
+      collection(db, "points"),
+      where("studentId", "==", studentId),
+      orderBy("timestamp", "desc")
+    );
+    const qs = await getDocs(q);
+    const points = [];
+    qs.forEach((d) => points.push({ id: d.id, ...d.data() }));
+    return { success: true, data: points };
+  } catch (error) {
+    logger.error("Error getting student points:", error);
+    return { success: false, error: error.message };
+  }
+};
 
 // Get all points for a class
 export const getClassPoints = async (classId) => {

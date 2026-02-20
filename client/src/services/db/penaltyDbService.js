@@ -47,7 +47,6 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 // Collection name
 const COLLECTION = 'penalties';
@@ -90,33 +89,30 @@ export const createPenalty = async (penaltyData) => {
  * @param {string} id - Penalty document ID
  * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
  */
-export const getPenalty = withPerformanceMonitoring(
-  memoize(async (id) => {
-    try {
-      const docRef = doc(db, COLLECTION, id);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        return {
-          success: true,
-          data: { id: docSnap.id, ...docSnap.data() }
-        };
-      } else {
-        return {
-          success: false,
-          error: 'Penalty not found'
-        };
-      }
-    } catch (error) {
-      logger.error('[PenaltyDbService] Error getting penalty:', { error: error.message });
+export const getPenalty = async (id) => {
+  try {
+    const docRef = doc(db, COLLECTION, id);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      return {
+        success: true,
+        data: { id: docSnap.id, ...docSnap.data() }
+      };
+    } else {
       return {
         success: false,
-        error: error.message
+        error: 'Penalty not found'
       };
     }
-  }),
-  'getPenalty'
-);
+  } catch (error) {
+    logger.error('[PenaltyDbService] Error getting penalty:', { error: error.message });
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
 
 /**
  * Update penalty record

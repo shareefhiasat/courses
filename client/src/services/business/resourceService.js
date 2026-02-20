@@ -6,7 +6,6 @@ import { convertDatesToTimestamps, COMMON_DATE_FIELDS } from '@utils/date.js';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { handleServiceError, withRetry } from '@utils/errorHandling';
-import { withPerformanceMonitoring, memoize, queryOptimizers } from '@utils/performance';
 import { validateEntity, validateBilingualField } from '@utils/validationHelpers';
 import {
   getResources as getResourcesFromDb,
@@ -32,27 +31,24 @@ const validateResourceData = (data) => [
 ];
 
 // Get all resources - with performance monitoring and memoization
-export const getResources = withPerformanceMonitoring(
-  memoize(async () => {
-    try {
-      logger.info('RESOURCE: Fetching all resources');
-      
-      const result = await getResourcesFromDb();
-      
-      if (result.success) {
-        logger.info('RESOURCE: Successfully fetched resources', { count: result.data.length });
-      } else {
-        logger.warn('RESOURCE: Failed to fetch resources', { error: result.error });
-      }
-      
-      return result;
-    } catch (error) {
-      logger.error('RESOURCE: Failed to fetch resources', { error: error.message });
-      return handleServiceError(error, { operation: 'getResources' });
+export const getResources = async () => {
+  try {
+    logger.info('RESOURCE: Fetching all resources');
+    
+    const result = await getResourcesFromDb();
+    
+    if (result.success) {
+      logger.info('RESOURCE: Successfully fetched resources', { count: result.data.length });
+    } else {
+      logger.warn('RESOURCE: Failed to fetch resources', { error: result.error });
     }
-  }),
-  'getResources'
-);
+    
+    return result;
+  } catch (error) {
+    logger.error('RESOURCE: Failed to fetch resources', { error: error.message });
+    return handleServiceError(error, { operation: 'getResources' });
+  }
+};
 
 // Get resources by class ID
 export const getResourcesByClass = async (classId) => {
@@ -290,27 +286,24 @@ export const getResourcesByType = async (resourceType) => {
 };
 
 // Search resources - with debouncing optimization
-export const searchResources = queryOptimizers.debounceSearch(
-  withPerformanceMonitoring(async (searchTerm) => {
-    if (!searchTerm || searchTerm.trim().length === 0) {
-      return handleServiceError(
-        new Error('Search term is required'),
-        { operation: 'searchResources', searchTerm }
-      );
-    }
-    
-    logger.info('RESOURCE: Searching resources', { searchTerm });
-    
-    const result = await searchResourcesFromDb(searchTerm.trim());
-    
-    if (result.success) {
-      logger.info('RESOURCE: Successfully searched resources', { searchTerm, count: result.data.length });
-    }
-    
-    return result;
-  }, 'searchResources'),
-  300 // 300ms debounce delay
-);
+export const searchResources = async (searchTerm) => {
+  if (!searchTerm || searchTerm.trim().length === 0) {
+    return handleServiceError(
+      new Error('Search term is required'),
+      { operation: 'searchResources', searchTerm }
+    );
+  }
+  
+  logger.info('RESOURCE: Searching resources', { searchTerm });
+  
+  const result = await searchResourcesFromDb(searchTerm.trim());
+  
+  if (result.success) {
+    logger.info('RESOURCE: Successfully searched resources', { searchTerm, count: result.data.length });
+  }
+  
+  return result;
+};
 
 // Get resource count
 export const getResourceCount = async (filters = {}) => {

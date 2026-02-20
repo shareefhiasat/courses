@@ -14,7 +14,6 @@ import { db } from '../other/config';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { notificationGateway } from './notificationGateway';
 import logger from '@utils/logger';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 import { 
   getEnrollments as getEnrollmentsFromDb,
   getEnrollmentsByUser as getEnrollmentsByUserFromDb,
@@ -39,14 +38,14 @@ import {
  */
 
 // Get all enrollments - with performance monitoring
-export const getEnrollments = withPerformanceMonitoring(async () => {
+export const getEnrollments = async () => {
   try {
     return await getEnrollmentsFromDb();
   } catch (error) {
     logger.error('ENROLLMENT: Failed to fetch enrollments', { error: error.message });
     return { success: false, error: error.message };
   }
-}, 'getEnrollments');
+};
 
 // Add new enrollment
 export const addEnrollment = async (data) => {
@@ -118,24 +117,24 @@ export const deleteEnrollment = async (id) => {
 };
 
 // Get enrollments by user ID - with performance monitoring
-export const getEnrollmentsByUser = withPerformanceMonitoring(async (userId) => {
+export const getEnrollmentsByUser = async (userId) => {
   try {
     return await getEnrollmentsByUserFromDb(userId);
   } catch (error) {
     logger.error('ENROLLMENT: Failed to fetch enrollments by user', { error: error.message, userId });
     return { success: false, error: error.message };
   }
-}, 'getEnrollmentsByUser');
+};
 
 // Get enrollments by class ID - with performance monitoring
-export const getEnrollmentsByClass = withPerformanceMonitoring(async (classId) => {
+export const getEnrollmentsByClass = async (classId) => {
   try {
     return await getEnrollmentsByClassFromDb(classId);
   } catch (error) {
     logger.error('ENROLLMENT: Failed to fetch enrollments by class', { error: error.message, classId });
     return { success: false, error: error.message };
   }
-}, 'getEnrollmentsByClass');
+};
 
 /**
  * Get students enrolled in a class with their user data

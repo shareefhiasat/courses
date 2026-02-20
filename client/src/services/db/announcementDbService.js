@@ -28,37 +28,33 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
-import { withPerformanceMonitoring, memoize } from '@utils/performance';
 
 /**
  * Get all announcements - with performance monitoring and memoization
  * @param {Object} options - Query options
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
-export const getAnnouncements = withPerformanceMonitoring(
-  memoize(async (options = {}) => {
-    try {
-      const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
-      
-      logger.debug('Querying announcements collection with options:', options);
-      
-      const q = query(
-        collection(db, 'announcements'),
-        orderBy(orderByField, orderDirection),
-        limit(limitCount)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const announcements = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-      
-      return { success: true, data: announcements };
-    } catch (error) {
-      logger.error('[AnnouncementDbService] Error getting announcements:', error);
-      return { success: false, error: error.message };
-    }
-  }),
-  'getAnnouncements'
-);
+export const getAnnouncements = async (options = {}) => {
+  try {
+    const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
+    
+    logger.debug('Querying announcements collection with options:', options);
+    
+    const q = query(
+      collection(db, 'announcements'),
+      orderBy(orderByField, orderDirection),
+      limit(limitCount)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const announcements = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    
+    return { success: true, data: announcements };
+  } catch (error) {
+    logger.error('[AnnouncementDbService] Error getting announcements:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Get latest announcement
