@@ -1,6 +1,13 @@
 .review-results-page {
+  min-height: 100vh;
   padding: 0;
   position: relative;
+}
+
+.review-results-page .content-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
 }
 
 .filter-container {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
-import { useSubmissionFilterCounts } from '@hooks/useFilterCounts';
+import { useFilterCounts } from '@hooks/useFilterCounts';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -39,26 +39,8 @@ const ReviewResultsPage = () => {
     fallbackRedirect: '/'
   });
 
-  // Mode: 'quiz' | 'homework' | 'training' | 'labandproject' | 'activities' | 'resources'
-  const [mode, setMode] = useState(searchParams.get('mode') || MODE_TYPES.ACTIVITIES);
-
-  // Update URL when mode changes
-  const handleModeChange = useCallback((newMode) => {
-    setMode(newMode);
-    searchParams.set('mode', newMode);
-    setSearchParams(searchParams);
-  }, [searchParams, setSearchParams]);
-
-  // Use handleModeChange to avoid unused warning
-  useEffect(() => {
-    const urlMode = searchParams.get('mode');
-    if (urlMode && urlMode !== mode) {
-      handleModeChange(urlMode);
-    }
-  }, [searchParams, mode, handleModeChange]);
-
-  // Activity type: 'all' | 'quiz' | 'homework' | 'training' | 'labandproject' (only used when mode === MODE_TYPES.ACTIVITIES)
-  const [activityType, setActivityType] = useState('all');
+  // Focus on activities mode only - simplified from HomePage
+  const [activityType, setActivityType] = useState(searchParams.get('activityType') || 'all');
   
   // Category filter for programs: '' | programId
   const [category, setCategory] = useState('');
@@ -136,7 +118,7 @@ const ReviewResultsPage = () => {
 
   const primaryColor = getPrimaryColor();
 
-  // Load data
+  // Load data - simplified for activities focus
   const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -155,9 +137,6 @@ const ReviewResultsPage = () => {
       let classesData = classesRes.success ? (classesRes.data || []) : [];
       let activitiesData = activitiesRes.success ? (activitiesRes.data || []) : [];
       let usersData = usersRes.success ? (usersRes.data || []) : [];
-
-      // Filter activities by mode
-      activitiesData = activitiesData.filter(a => a.type === mode);
 
       // Filter for instructors
       if (isInstructor && !isAdmin && !isSuperAdmin) {
@@ -214,21 +193,10 @@ const ReviewResultsPage = () => {
         setInstructorStudents([]);
       }
 
-      // Load submissions
-      let submissionsData = [];
-      if (mode === 'quiz') {
-        const submissionsResult = await getQuizSubmissions();
-        submissionsData = submissionsResult.success ? submissionsResult.data : [];
-      } else {
-        const submissionsResult = await getSubmissions();
-        submissionsData = submissionsResult.success ? submissionsResult.data : [];
-        // Filter by activity type
-        submissionsData = submissionsData.filter(s => {
-          const activity = activitiesData.find(a => (a.id || a.docId) === s.activityId);
-          return activity && activity.type === mode;
-        });
-      }
-
+      // Load submissions for review results
+      const submissionsResult = await getSubmissions();
+      let submissionsData = submissionsResult.success ? submissionsResult.data : [];
+      
       // Enrich submissions with related data
       const enrichedSubmissions = submissionsData.map(sub => {
         const activity = activitiesData.find(a => (a.id || a.docId) === sub.activityId);
@@ -241,7 +209,7 @@ const ReviewResultsPage = () => {
           ...sub,
           id: sub.docId || sub.id,
           activityTitle: activity ? (lang === 'ar' ? (activity.title_ar || activity.title_en) : (activity.title_en || activity.title_ar)) : 'N/A',
-          activityType: activity?.type || mode,
+          activityType: activity?.type || 'unknown',
           difficulty: activity?.difficulty || activity?.level || 'beginner',
           studentName: student?.displayName || student?.email || 'N/A',
           studentEmail: student?.email || null,
@@ -261,19 +229,18 @@ const ReviewResultsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, mode, isAdmin, isInstructor, isSuperAdmin, lang]);
+  }, [user, isAdmin, isInstructor, isSuperAdmin, lang]);
 
   useEffect(() => {
     if (!authLoading && user) {
       loadData();
     }
-  }, [authLoading, user, mode, loadData]);
+  }, [authLoading, user, loadData]);
 
-  // Filter submissions or activities based on mode and user role
+  // Filter submissions for review results - activity focused
   const filteredSubmissions = useMemo(() => {
     // Debug logging
     console.log('ReviewResultsPage - Debug Info:', {
-      mode,
       activityType,
       category,
       totalSubmissions: submissions?.length,
@@ -303,47 +270,7 @@ const ReviewResultsPage = () => {
       }
     });
 
-    // For activities mode, return activities instead of submissions
-    if (mode === MODE_TYPES.ACTIVITIES) {
-      let filtered = [...activities];
-
-      // Role-based filtering for activities
-      if (user?.role === 'student') {
-        // Students see only activities assigned to their enrolled classes
-        filtered = filtered.filter(a => 
-          !a.classId || enrolledClasses.includes(a.classId)
-        );
-      } else if (isInstructor && !isSuperAdmin) {
-        // Instructors see only activities from their classes
-        filtered = filtered.filter(a => 
-          !a.classId || instructorClasses.includes(a.classId)
-        );
-      }
-      // Admin, Super Admin, HR see all activities
-
-      // Filter by activity type
-      if (activityType !== 'all') {
-        filtered = filtered.filter(a => a.type === activityType);
-      }
-
-      // Search filter
-      if (searchTerm.trim()) {
-        const q = searchTerm.trim().toLowerCase();
-        filtered = filtered.filter(a => {
-          const title = lang === 'ar' ? (a.title_ar || a.title_en || a.title || '') : (a.title_en || a.title_ar || a.title || '');
-          return title.toLowerCase().includes(q);
-        });
-      }
-
-      // Category filter
-      if (category !== '') {
-        filtered = filtered.filter(a => (a.course || 'general') === category);
-      }
-
-      return filtered;
-    }
-
-    // For other modes, filter submissions with role-based access
+    // Filter submissions with role-based access
     let filtered = [...submissions];
 
     // Role-based filtering for submissions
@@ -358,6 +285,36 @@ const ReviewResultsPage = () => {
       );
     }
     // Admin, Super Admin, HR see all submissions
+
+    // Filter by activity type
+    if (activityType !== 'all') {
+      filtered = filtered.filter(sub => sub.activityType === activityType);
+    }
+
+    // Apply status filters based on activity properties
+    if (completedFilter) {
+      filtered = filtered.filter(sub => sub.activity?.optional === false && (sub.status === 'graded' || sub.status === 'completed'));
+    }
+    if (pendingFilter) {
+      filtered = filtered.filter(sub => !sub.status || sub.status === 'pending');
+    }
+    if (requiredFilter) {
+      filtered = filtered.filter(sub => sub.activity?.optional === false);
+    }
+    if (optionalFilter) {
+      filtered = filtered.filter(sub => sub.activity?.optional === true);
+    }
+    if (overdueFilter) {
+      const now = new Date();
+      filtered = filtered.filter(sub => {
+        if (!sub.activity?.dueDate) return false;
+        const dueDate = sub.activity.dueDate?.seconds ? new Date(sub.activity.dueDate.seconds * 1000) : new Date(sub.activity.dueDate);
+        return dueDate < now && sub.status !== 'completed';
+      });
+    }
+    if (requiresSubmissionFilter) {
+      filtered = filtered.filter(sub => sub.activity?.requiresSubmission === true);
+    }
 
     // Search filter
     if (searchTerm.trim()) {
@@ -397,6 +354,24 @@ const ReviewResultsPage = () => {
       filtered = filtered.filter(sub => sub.difficulty === difficultyFilter);
     }
 
+    // Toggle filters
+    if (bookmarkFilter) {
+      filtered = filtered.filter(sub => sub.activity?.bookmarked === true);
+    }
+    if (featuredFilter) {
+      filtered = filtered.filter(sub => sub.activity?.featured === true);
+    }
+    if (retakableFilter) {
+      filtered = filtered.filter(sub => sub.activity?.allowRetake === true || sub.activity?.settings?.allowRetake === true);
+    }
+    if (gradedFilter !== 'all') {
+      if (gradedFilter === 'graded') {
+        filtered = filtered.filter(sub => sub.status === 'graded');
+      } else if (gradedFilter === 'not_graded') {
+        filtered = filtered.filter(sub => sub.status !== 'graded');
+      }
+    }
+
     // Sort by submission date (newest first)
     filtered.sort((a, b) => {
       const aTime = a.submittedAt?.toDate ? a.submittedAt.toDate().getTime() : (a.submittedAt ? new Date(a.submittedAt).getTime() : 0);
@@ -405,100 +380,21 @@ const ReviewResultsPage = () => {
     });
 
     return filtered;
-  }, [mode, activities, submissions, searchTerm, selectedProgram, selectedSubject, selectedClass, selectedStudent, difficultyFilter, activityType, category, lang, bookmarkFilter, completedFilter, enrolledClasses, featuredFilter, gradedFilter, instructorClasses, instructorStudents, isAdmin, isInstructor, isSuperAdmin, optionalFilter, overdueFilter, pendingFilter, requiredFilter, requiresSubmissionFilter, retakableFilter, selectedTerm, selectedYear, user]);
+  }, [submissions, searchTerm, selectedProgram, selectedSubject, selectedClass, selectedStudent, difficultyFilter, activityType, category, lang, bookmarkFilter, completedFilter, enrolledClasses, featuredFilter, gradedFilter, instructorClasses, instructorStudents, isAdmin, isInstructor, isSuperAdmin, optionalFilter, overdueFilter, pendingFilter, requiredFilter, requiresSubmissionFilter, retakableFilter, selectedTerm, selectedYear, user]);
 
-  // Calculate filter counts using the hook
-  const filterCounts = useSubmissionFilterCounts(filteredSubmissions, {
-    mode,
-    completedFilter,
-    pendingFilter,
-    requiredFilter,
-    optionalFilter,
-    overdueFilter,
-    requiresSubmissionFilter
+  // Calculate filter counts using the same hook as HomePage
+  const filterCounts = useFilterCounts(activities, {
+    mode: 'activities',
+    submissions: submissions.reduce((acc, sub) => {
+      acc[sub.activityId] = sub;
+      return acc;
+    }, {}),
+    activityType: activityType
   });
 
   // Calculate counts for each activity type based on role and filters
   const getActivityTypeCount = useCallback((type) => {
-    if (mode === MODE_TYPES.ACTIVITIES) {
-      let filtered = [...activities];
-
-      // Apply role-based filtering
-      if (user?.role === 'student') {
-        filtered = filtered.filter(a => 
-          !a.classId || enrolledClasses.includes(a.classId)
-        );
-      } else if (isInstructor && !isSuperAdmin) {
-        filtered = filtered.filter(a => 
-          !a.classId || instructorClasses.includes(a.classId)
-        );
-      }
-
-      // Filter by activity type
-      if (type !== 'all') {
-        filtered = filtered.filter(a => a.type === type);
-      }
-
-      // Apply category filter
-      if (category !== '') {
-        filtered = filtered.filter(a => (a.course || 'general') === category);
-      }
-
-      // Apply search filter
-      if (searchTerm.trim()) {
-        const q = searchTerm.trim().toLowerCase();
-        filtered = filtered.filter(a => {
-          const title = lang === 'ar' ? (a.title_ar || a.title_en || a.title || '') : (a.title_en || a.title_ar || a.title || '');
-          return title.toLowerCase().includes(q);
-        });
-      }
-
-      return filtered.length;
-    } else {
-      // For non-activities modes, count submissions by activity type
-      let filtered = [...submissions];
-
-      // Apply role-based filtering
-      if (user?.role === 'student') {
-        filtered = filtered.filter(sub => sub.studentId === user.uid);
-      } else if (isInstructor && !isSuperAdmin) {
-        filtered = filtered.filter(sub => 
-          instructorClasses.includes(sub.classId) || 
-          instructorStudents.includes(sub.studentId)
-        );
-      }
-
-      // Filter by activity type
-      if (type !== 'all') {
-        filtered = filtered.filter(sub => sub.activityType === type);
-      }
-
-      // Apply other filters
-      if (selectedProgram !== 'all') {
-        filtered = filtered.filter(sub => sub.programId === selectedProgram);
-      }
-      if (selectedSubject !== 'all') {
-        filtered = filtered.filter(sub => sub.subjectId === selectedSubject);
-      }
-      if (selectedClass !== 'all') {
-        filtered = filtered.filter(sub => sub.classId === selectedClass);
-      }
-      if (searchTerm.trim()) {
-        const q = searchTerm.trim().toLowerCase();
-        filtered = filtered.filter(sub =>
-          sub.activityTitle.toLowerCase().includes(q) ||
-          sub.studentName.toLowerCase().includes(q)
-        );
-      }
-
-      return filtered.length;
-    }
-  }, [mode, activities, submissions, user, enrolledClasses, instructorClasses, instructorStudents, category, searchTerm, selectedProgram, selectedSubject, selectedClass, lang, isInstructor, isSuperAdmin]);
-
-  // Calculate counts for each category based on role and filters
-  const getCategoryCount = useCallback((categoryId) => {
-    if (mode !== 'activities') return 0;
-    
+    // Count activities by type (like HomePage)
     let filtered = [...activities];
 
     // Apply role-based filtering
@@ -513,13 +409,13 @@ const ReviewResultsPage = () => {
     }
 
     // Filter by activity type
-    if (activityType !== 'all') {
-      filtered = filtered.filter(a => a.type === activityType);
+    if (type !== 'all') {
+      filtered = filtered.filter(a => a.type === type);
     }
 
-    // Filter by category
-    if (categoryId !== '') {
-      filtered = filtered.filter(a => (a.course || 'general') === categoryId);
+    // Apply category filter
+    if (category !== '') {
+      filtered = filtered.filter(a => (a.course || 'general') === category);
     }
 
     // Apply search filter
@@ -532,31 +428,33 @@ const ReviewResultsPage = () => {
     }
 
     return filtered.length;
-  }, [mode, activities, user, enrolledClasses, instructorClasses, activityType, searchTerm, lang, isInstructor, isSuperAdmin]);
+  }, [activities, user, enrolledClasses, instructorClasses, category, searchTerm, lang, isInstructor, isSuperAdmin]);
 
-  // Calculate statistics
+  // Calculate statistics - include all filter counts like HomePage
   const stats = useMemo(() => {
-    if (filteredSubmissions.length === 0) {
-      return {
-        total: 0,
-        passed: 0,
-        failed: 0
-      };
-    }
-
-    const total = filteredSubmissions.length;
-    const passed = filteredSubmissions.filter(sub => {
-      const percentage = sub.maxScore > 0 ? (sub.score / sub.maxScore) * 100 : 0;
-      return percentage >= 60;
-    }).length;
-    const failed = total - passed;
-
     return {
-      total,
-      passed,
-      failed
+      // Map filterCounts to StatsBar expected format
+      completed: filterCounts.completedCount,
+      pending: filterCounts.pendingCount,
+      required: filterCounts.requiredCount,
+      optional: filterCounts.optionalCount,
+      overdue: filterCounts.overdueCount,
+      requiresSubmission: filterCounts.requiresSubmissionCount,
+      bookmark: filterCounts.bookmark,
+      featured: filterCounts.featured,
+      retakable: filterCounts.retakable,
+      // Keep existing stats
+      total: filteredSubmissions.length,
+      passed: filteredSubmissions.filter(sub => {
+        const percentage = sub.maxScore > 0 ? (sub.score / sub.maxScore) * 100 : 0;
+        return percentage >= 60;
+      }).length,
+      failed: filteredSubmissions.filter(sub => {
+        const percentage = sub.maxScore > 0 ? (sub.score / sub.maxScore) * 100 : 0;
+        return percentage < 60;
+      }).length
     };
-  }, [filteredSubmissions]);
+  }, [filteredSubmissions, filterCounts]);
 
   const handleViewDetails = (submission) => {
     if (mode === 'quiz') {
@@ -583,17 +481,9 @@ const ReviewResultsPage = () => {
       stopGlobalLoading();
     };
 
-    const loadData = async () => {
+    const loadData2 = async () => {
       try {
-        await Promise.all([
-          loadSubmissions(),
-          loadPrograms(),
-          loadSubjects(),
-          loadClasses(),
-          loadActivities(),
-          loadUsers(),
-          loadCategories()
-        ]);
+        await loadData();
       } catch (error) {
         console.error('Error loading review data:', error);
       } finally {
@@ -601,7 +491,7 @@ const ReviewResultsPage = () => {
       }
     };
 
-    loadData();
+    loadData2();
 
     return () => {
       safeStop();
@@ -614,7 +504,7 @@ const ReviewResultsPage = () => {
       {/* No inline loading needed - GlobalLoading handles page-level loading */}
       
       <div className="content-section" style={{ position: 'relative' }}>
-        {/* Activity Type Tabs - Main navigation for ReviewResultsPage */}
+        {/* Activity Type Tabs - Main navigation like HomePage */}
         <div data-tour="activity-type-tabs" style={{ marginBottom: '0.15rem' }}>
           <Tabs
             tabs={[
@@ -624,63 +514,36 @@ const ReviewResultsPage = () => {
                 icon: activityType === 'all' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor),
                 badge: getActivityTypeCount('all')
               },
-                {
-                  value: 'quiz',
-                  label: lang === 'en' ? 'Quiz' : 'اختبار',
-                  icon: activityType === 'quiz' ? getIconWithColor('ui', getActivityTypeConfig('quiz', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('quiz', theme, lang).icon, 16, primaryColor),
-                  badge: getActivityTypeCount('quiz')
-                },
-                {
-                  value: 'homework',
-                  label: lang === 'en' ? 'Homework' : 'واجب',
-                  icon: activityType === 'homework' ? getIconWithColor('ui', getActivityTypeConfig('homework', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('homework', theme, lang).icon, 16, primaryColor),
-                  badge: getActivityTypeCount('homework')
-                },
-                {
-                  value: 'training',
-                  label: lang === 'en' ? 'Training' : 'تدريب',
-                  icon: activityType === 'training' ? getIconWithColor('ui', getActivityTypeConfig('training', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('training', theme, lang).icon, 16, primaryColor),
-                  badge: getActivityTypeCount('training')
-                },
-                {
-                  value: 'labandproject',
-                  label: lang === 'en' ? 'Lab & Project' : 'معمل ومشروع',
-                  icon: activityType === 'labandproject' ? getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, primaryColor),
-                  badge: getActivityTypeCount('labandproject')
-                }
-              ]}
-              activeTab={activityType}
-              onTabChange={setActivityType}
-              variant="default"
-            />
-          </div>
-
-        {/* Category Tabs - Third row (only for activities mode) */}
-        {mode === MODE_TYPES.ACTIVITIES && (
-          <div data-tour="category-tabs" style={{ marginBottom: '0.15rem' }}>
-            <Tabs
-              tabs={[
-                {
-                  value: '',
-                  label: lang === 'en' ? 'All' : 'الكل',
-                  icon: category === '' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor),
-                  badge: getCategoryCount('')
-                },
-                ...(categories.length ? categories.map(c => {
-                  return {
-                    value: c.docId || c.id,
-                    label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId || c.id) : (c.name_en || c.name_ar || c.docId || c.id),
-                    icon: category === (c.docId || c.id) ? getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, '#ffffff') : getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, primaryColor),
-                    badge: getCategoryCount(c.docId || c.id)
-                  };
-                }) : [])
-              ]}
-              activeTab={category}
-              onTabChange={setCategory}
-              variant="default"
-            />
-          </div>
-        )}
+              {
+                value: 'quiz',
+                label: lang === 'en' ? 'Quiz' : 'اختبار',
+                icon: activityType === 'quiz' ? getIconWithColor('ui', getActivityTypeConfig('quiz', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('quiz', theme, lang).icon, 16, primaryColor),
+                badge: getActivityTypeCount('quiz')
+              },
+              {
+                value: 'homework',
+                label: lang === 'en' ? 'Homework' : 'واجب',
+                icon: activityType === 'homework' ? getIconWithColor('ui', getActivityTypeConfig('homework', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('homework', theme, lang).icon, 16, primaryColor),
+                badge: getActivityTypeCount('homework')
+              },
+              {
+                value: 'training',
+                label: lang === 'en' ? 'Training' : 'تدريب',
+                icon: activityType === 'training' ? getIconWithColor('ui', getActivityTypeConfig('training', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('training', theme, lang).icon, 16, primaryColor),
+                badge: getActivityTypeCount('training')
+              },
+              {
+                value: 'labandproject',
+                label: lang === 'en' ? 'Lab & Project' : 'معمل ومشروع',
+                icon: activityType === 'labandproject' ? getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, primaryColor),
+                badge: getActivityTypeCount('labandproject')
+              }
+            ]}
+            activeTab={activityType}
+            onTabChange={setActivityType}
+            variant="default"
+          />
+        </div>
 
         {/* Unified Filters Section */}
         <UnifiedFilterSection
@@ -688,26 +551,21 @@ const ReviewResultsPage = () => {
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           searchPlaceholder={t('search') || 'Search...'}
+          filterCounts={filterCounts}
           // Status filters
           completedFilter={completedFilter}
           setCompletedFilter={setCompletedFilter}
-          completedCount={filterCounts.completedCount}
           pendingFilter={pendingFilter}
           setPendingFilter={setPendingFilter}
-          pendingCount={filterCounts.pendingCount}
           requiredFilter={requiredFilter}
           setRequiredFilter={setRequiredFilter}
-          requiredCount={filterCounts.requiredCount}
           optionalFilter={optionalFilter}
           setOptionalFilter={setOptionalFilter}
-          optionalCount={filterCounts.optionalCount}
           overdueFilter={overdueFilter}
           setOverdueFilter={setOverdueFilter}
-          overdueCount={filterCounts.overdueCount}
           // Additional status filters
           requiresSubmissionFilter={requiresSubmissionFilter}
           setRequiresSubmissionFilter={setRequiresSubmissionFilter}
-          requiresSubmissionCount={filterCounts.requiresSubmissionCount}
           // Difficulty filter
           difficultyFilter={difficultyFilter}
           setDifficultyFilter={setDifficultyFilter}
@@ -765,86 +623,93 @@ const ReviewResultsPage = () => {
         />
 
         {/* Submissions Cards Grid */}
-        {filteredSubmissions.length === 0 ? (
-              <div style={{
-                gridColumn: '1 / -1',
-                textAlign: 'center',
-                padding: '3rem',
-                color: isDark ? '#9ca3af' : '#666'
-              }}>
-                <h3>{t('no_results_found') || 'No results found'}</h3>
-                <p>{t('try_adjusting_filters') || 'Try adjusting your filters'}</p>
-              </div>
-            ) : (
-              filteredSubmissions.map(submission => {
-                const percentage = submission.maxScore > 0 ? ((submission.score / submission.maxScore) * 100).toFixed(1) : 0;
-                const scoreClass = percentage >= 90 ? 'excellent' : percentage >= 60 ? 'good' : 'failed';
-                
-                return (
-                  <div
-                    key={submission.id}
-                    className="submission-card"
-                    data-theme={theme}
-                    onClick={() => handleViewDetails(submission)}
-                  >
-                    <div className="submission-card-header">
-                      <div style={{ flex: 1 }}>
-                        <div className="submission-card-title">{submission.activityTitle}</div>
-                        <div className="submission-card-meta">
-                          {getColoredIcon('ui', 'user', 12, '#6b7280', theme)}
-                          <span>{submission.studentName}</span>
-                        </div>
-                      </div>
-                      <Badge variant={scoreClass === 'excellent' ? 'success' : scoreClass === 'good' ? 'warning' : 'danger'}>
-                        {percentage}%
-                      </Badge>
-                    </div>
-
-                    <div className="submission-card-score">
-                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: scoreClass === 'excellent' ? '#16a34a' : scoreClass === 'good' ? '#f59e0b' : '#dc2626' }}>
-                        {submission.score}/{submission.maxScore}
-                      </div>
-                      <div className={`score-badge ${scoreClass}`}>
-                        {scoreClass === 'excellent' ? (t('excellent') || 'Excellent') : 
-                         scoreClass === 'good' ? (t('passed') || 'Passed') : 
-                         (t('failed') || 'Failed')}
+        <div className="cards-grid" style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
+          gap: '1.5rem', 
+          marginTop: '2rem' 
+        }}>
+          {filteredSubmissions.length === 0 ? (
+            <div style={{
+              gridColumn: '1 / -1',
+              textAlign: 'center',
+              padding: '3rem',
+              color: isDark ? '#9ca3af' : '#666'
+            }}>
+              <h3>{t('no_results_found') || 'No results found'}</h3>
+              <p>{t('try_adjusting_filters') || 'Try adjusting your filters'}</p>
+            </div>
+          ) : (
+            filteredSubmissions.map(submission => {
+              const percentage = submission.maxScore > 0 ? ((submission.score / submission.maxScore) * 100).toFixed(1) : 0;
+              const scoreClass = percentage >= 90 ? 'excellent' : percentage >= 60 ? 'good' : 'failed';
+              
+              return (
+                <div
+                  key={submission.id}
+                  className="submission-card"
+                  data-theme={theme}
+                  onClick={() => handleViewDetails(submission)}
+                >
+                  <div className="submission-card-header">
+                    <div style={{ flex: 1 }}>
+                      <div className="submission-card-title">{submission.activityTitle}</div>
+                      <div className="submission-card-meta">
+                        {getColoredIcon('ui', 'user', 12, '#6b7280', theme)}
+                        <span>{submission.studentName}</span>
                       </div>
                     </div>
+                    <Badge variant={scoreClass === 'excellent' ? 'success' : scoreClass === 'good' ? 'warning' : 'danger'}>
+                      {percentage}%
+                    </Badge>
+                  </div>
 
-                    <div className="submission-card-tags">
-                      <div className="tag" style={{ borderColor: primaryColor, color: primaryColor }}>
-                        {submission.programName}
-                      </div>
-                      <div className="tag" style={{ borderColor: '#6b7280', color: '#6b7280' }}>
-                        {submission.subjectName}
-                      </div>
-                      <div className="tag" style={{ borderColor: '#6b7280', color: '#6b7280' }}>
-                        {submission.className}
-                      </div>
+                  <div className="submission-card-score">
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: scoreClass === 'excellent' ? '#16a34a' : scoreClass === 'good' ? '#f59e0b' : '#dc2626' }}>
+                      {submission.score}/{submission.maxScore}
                     </div>
-
-                    <div className="submission-card-footer">
-                      <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                        {submission.submittedAt && formatDateTime(submission.submittedAt)}
-                      </div>
-                      <button
-                        className="view-button"
-                        style={{
-                          background: primaryColor,
-                          color: '#fff'
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewDetails(submission);
-                        }}
-                      >
-                        {t('view_details') || 'View Details'}
-                      </button>
+                    <div className={`score-badge ${scoreClass}`}>
+                      {scoreClass === 'excellent' ? (t('excellent') || 'Excellent') : 
+                       scoreClass === 'good' ? (t('passed') || 'Passed') : 
+                       (t('failed') || 'Failed')}
                     </div>
                   </div>
-                );
-              })
-            )}
+
+                  <div className="submission-card-tags">
+                    <div className="tag" style={{ borderColor: primaryColor, color: primaryColor }}>
+                      {submission.programName}
+                    </div>
+                    <div className="tag" style={{ borderColor: '#6b7280', color: '#6b7280' }}>
+                      {submission.subjectName}
+                    </div>
+                    <div className="tag" style={{ borderColor: '#6b7280', color: '#6b7280' }}>
+                      {submission.className}
+                    </div>
+                  </div>
+
+                  <div className="submission-card-footer">
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                      {submission.submittedAt && formatDateTime(submission.submittedAt)}
+                    </div>
+                    <button
+                      className="view-button"
+                      style={{
+                        background: primaryColor,
+                        color: '#fff'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewDetails(submission);
+                      }}
+                    >
+                      {t('view_details') || 'View Details'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );
