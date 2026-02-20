@@ -615,27 +615,31 @@ const ActivitiesPage = () => {
         const isVisible = params.value;
         return (
           <span style={{ 
-            color: isVisible ? getThemeColor('success', theme) : getThemeColor('error', theme),
-            fontWeight: 500,
-            fontSize: '0.85rem'
+            color: isVisible ? getThemeColor('success', theme) : getThemeColor('muted', theme),
+            fontWeight: isVisible ? '600' : '400',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px'
           }}>
-            {isVisible ? (t('yes') || 'Yes') : (t('no') || 'No')}
+            {isVisible ? getThemedIcon('ui', 'check', 16, theme) : '—'}
           </span>
         );
       },
       valueFormatter: (params) => params.value ? (t('yes') || 'Yes') : (t('no') || 'No')
     },
     {
-      field: 'allowRetake', headerName: t('allow_retakes') || 'Allow Retakes', width: 120,
+      field: 'allowRetake', headerName: t('allow_retakes') || 'Retakable', width: 120,
       renderCell: (params) => {
         const allowed = params.value;
         return (
           <span style={{ 
-            color: allowed ? getThemeColor('success', theme) : getThemeColor('muted', theme),
-            fontWeight: 500,
-            fontSize: '0.85rem'
+            color: allowed ? getThemeColor('info', theme) : getThemeColor('muted', theme),
+            fontWeight: allowed ? '600' : '400',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px'
           }}>
-            {allowed ? (t('yes') || 'Yes') : (t('no') || 'No')}
+            {allowed ? getThemedIcon('ui', 'repeat', 16, theme) : '—'}
           </span>
         );
       },
@@ -647,11 +651,13 @@ const ActivitiesPage = () => {
         const isFeatured = params.value;
         return (
           <span style={{ 
-            color: isFeatured ? getThemeColor('warning', theme) : getThemeColor('muted', theme),
-            fontWeight: 500,
-            fontSize: '0.85rem'
+            color: isFeatured ? 'var(--color-warning, #ffc107)' : getThemeColor('muted', theme),
+            fontWeight: isFeatured ? '600' : '400',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px'
           }}>
-            {isFeatured ? (t('yes') || 'Yes') : (t('no') || 'No')}
+            {isFeatured ? getThemedIcon('ui', 'star', 16, theme) : '—'}
           </span>
         );
       },
@@ -664,10 +670,12 @@ const ActivitiesPage = () => {
         return (
           <span style={{ 
             color: isOptional ? getThemeColor('info', theme) : getThemeColor('muted', theme),
-            fontWeight: 500,
-            fontSize: '0.85rem'
+            fontWeight: isOptional ? '600' : '400',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px'
           }}>
-            {isOptional ? (t('yes') || 'Yes') : (t('no') || 'No')}
+            {isOptional ? getThemedIcon('ui', 'check', 16, theme) : '—'}
           </span>
         );
       },
@@ -680,10 +688,12 @@ const ActivitiesPage = () => {
         return (
           <span style={{ 
             color: required ? getThemeColor('error', theme) : getThemeColor('muted', theme),
-            fontWeight: 500,
-            fontSize: '0.85rem'
+            fontWeight: required ? '600' : '400',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px'
           }}>
-            {required ? (t('yes') || 'Yes') : (t('no') || 'No')}
+            {required ? getThemedIcon('ui', 'alert_circle', 16, theme) : '—'}
           </span>
         );
       },
@@ -1019,11 +1029,11 @@ const ActivitiesPage = () => {
           <div key="toggle-allowRetake-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <ToggleSwitch
               key="toggle-allowRetake"
-              label={t('allow_retakes') || 'Allow retakes'}
+              label={t('allow_retakes') || 'Retakable'}
               checked={activityForm.allowRetake || false}
               onChange={(checked) => {
                 if (activityForm.quizId && !activityForm.overrideQuizSettings) {
-                  toast?.showInfo?.(t('allow_retakes_synced_from_quiz') || 'Allow retakes is synced from quiz. Enable "Override quiz settings" to edit.');
+                  toast?.showInfo?.(t('allow_retakes_synced_from_quiz') || 'Retakable is synced from quiz. Enable "Override quiz settings" to edit.');
                   return;
                 }
                 handleFieldChange('allowRetake', checked);
@@ -1283,6 +1293,140 @@ const ActivitiesPage = () => {
             </div>
           );
         })}
+        
+        {/* Status Chips */}
+        {/* Visible Chip */}
+        {(() => {
+          const visibleCount = activities.filter(a => a.show !== false).length;
+          const hiddenCount = activities.filter(a => a.show === false).length;
+          return (
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              padding: '0.5rem 0.75rem', 
+              background: isDark ? '#1e3a8a' : '#f0f9ff', 
+              border: isDark ? '1px solid #3b82f6' : '1px solid #bae6fd', 
+              borderRadius: '9999px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: isDark ? '#dbeafe' : '#0369a1'
+            }}>
+              {getThemedIcon('ui', 'eye', 16, theme)}
+              {visibleCount} {t('visible') || 'Visible'}
+              {hiddenCount > 0 && (
+                <span style={{ 
+                  marginLeft: '0.25rem', 
+                  opacity: 0.7,
+                  fontSize: '0.75rem'
+                }}>
+                  ({hiddenCount} {t('hidden') || 'hidden'})
+                </span>
+              )}
+            </div>
+          );
+        })()}
+        
+        {/* Featured Chip */}
+        {(() => {
+          const featuredCount = activities.filter(a => a.featured === true).length;
+          if (featuredCount === 0) return null;
+          return (
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              padding: '0.5rem 0.75rem', 
+              background: isDark ? '#713f12' : '#fef3c7', 
+              border: isDark ? '1px solid #f59e0b' : '1px solid #fde68a', 
+              borderRadius: '9999px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: isDark ? '#fef3c7' : '#92400e'
+            }}>
+              {getThemedIcon('ui', 'star', 16, theme)}
+              {featuredCount} {t('featured') || 'Featured'}
+            </div>
+          );
+        })()}
+        
+        {/* Optional Chip */}
+        {(() => {
+          const optionalCount = activities.filter(a => a.optional === true).length;
+          const requiredCount = activities.filter(a => a.optional !== true).length;
+          return (
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              padding: '0.5rem 0.75rem', 
+              background: isDark ? '#1e40af' : '#dbeafe', 
+              border: isDark ? '1px solid #3b82f6' : '1px solid #93c5fd', 
+              borderRadius: '9999px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: isDark ? '#dbeafe' : '#1e40af'
+            }}>
+              {getThemedIcon('ui', 'check_circle', 16, theme)}
+              {optionalCount} {t('optional') || 'Optional'}
+              {requiredCount > 0 && (
+                <span style={{ 
+                  marginLeft: '0.25rem', 
+                  opacity: 0.7,
+                  fontSize: '0.75rem'
+                }}>
+                  ({requiredCount} {t('required') || 'required'})
+                </span>
+              )}
+            </div>
+          );
+        })()}
+        
+        {/* Requires Submission Chip */}
+        {(() => {
+          const submissionCount = activities.filter(a => a.requiresSubmission === true).length;
+          if (submissionCount === 0) return null;
+          return (
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              padding: '0.5rem 0.75rem', 
+              background: isDark ? '#7f1d1d' : '#fee2e2', 
+              border: isDark ? '1px solid #dc2626' : '1px solid #fecaca', 
+              borderRadius: '9999px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: isDark ? '#fecaca' : '#dc2626'
+            }}>
+              {getThemedIcon('ui', 'upload', 16, theme)}
+              {submissionCount} {t('requires_submission') || 'Requires Submission'}
+            </div>
+          );
+        })()}
+        
+        {/* Retakable Chip */}
+        {(() => {
+          const retakableCount = activities.filter(a => a.allowRetake === true).length;
+          if (retakableCount === 0) return null;
+          return (
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              padding: '0.5rem 0.75rem', 
+              background: isDark ? '#1e3a8a' : '#e0e7ff', 
+              border: isDark ? '1px solid #6366f1' : '1px solid #c7d2fe', 
+              borderRadius: '9999px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: isDark ? '#e0e7ff' : '#4338ca'
+            }}>
+              {getThemedIcon('ui', 'repeat', 16, theme)}
+              {retakableCount} {t('retakable') || 'Retakable'}
+            </div>
+          );
+        })()}
       </div>
       
       <div style={{ marginTop: '1rem' }}>

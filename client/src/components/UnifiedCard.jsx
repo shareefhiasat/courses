@@ -132,6 +132,12 @@ const UnifiedCard = memo(({
     if (type === ACTIVITY_TYPES.HOMEWORK) {
       return getColoredIcon('ui', 'clipboard_list', 14, '#f57c00', theme);
     }
+    if (type === ACTIVITY_TYPES.TRAINING) {
+      return getColoredIcon('ui', 'book_open', 14, '#0284c7', theme);
+    }
+    if (type === ACTIVITY_TYPES.LAB_AND_PROJECT) {
+      return getColoredIcon('ui', 'wrench', 14, '#7c3aed', theme);
+    }
     return getColoredIcon('ui', 'book_open', 14, primaryColor, theme);
   };
 
@@ -165,9 +171,10 @@ const UnifiedCard = memo(({
     const type = item.type || ACTIVITY_TYPES.TRAINING;
     if (type === ACTIVITY_TYPES.QUIZ) return { bg: '#eef2ff', fg: '#4f46e5', border: '#e0e7ff' };
     if (type === ACTIVITY_TYPES.HOMEWORK) return { bg: '#fff3e0', fg: '#b45309', border: '#ffe0b2' };
-    // For activities, use primary color for training type to unify
-    if (type === ACTIVITY_TYPES.TRAINING) return { bg: `${primaryColor}15`, fg: primaryColor, border: `${primaryColor}40` };
-    return { bg: '#e3f2fd', fg: '#1976d2', border: '#bbdefb' };
+    if (type === ACTIVITY_TYPES.TRAINING) return { bg: '#e0f2fe', fg: '#0284c7', border: '#bae6fd' };
+    if (type === ACTIVITY_TYPES.LAB_AND_PROJECT) return { bg: '#f3e8ff', fg: '#7c3aed', border: '#e9d5ff' };
+    // For activities, use primary color for other types to unify
+    return { bg: `${primaryColor}15`, fg: primaryColor, border: `${primaryColor}40` };
   };
 
   const getLevelColors = () => {
@@ -348,9 +355,9 @@ const UnifiedCard = memo(({
                 border = typeColors.border;
               } else {
                 if (type === ACTIVITY_TYPES.TRAINING) {
-                  bg = typeColors.bg;
-                  fg = typeColors.fg;
-                  border = typeColors.border;
+                  bg = '#e0f2fe'; fg = '#0284c7'; border = '#0284c7';
+                } else if (type === ACTIVITY_TYPES.LAB_AND_PROJECT) {
+                  bg = '#f3e8ff'; fg = '#7c3aed'; border = '#7c3aed';
                 } else if (type === ACTIVITY_TYPES.HOMEWORK) {
                   bg = '#fff3e0'; fg = '#f57c00'; border = '#f57c00';
                 } else if (type === ACTIVITY_TYPES.QUIZ) {

@@ -583,7 +583,7 @@ export const HelpProvider = ({ children }) => {
           title: t('options') || 'Options & Settings',
           items: [
             { text: t('show_to_students') || 'Show to Students', description: t('help_activity_show') || 'Toggle visibility. When off, students cannot see this activity.' },
-            { text: t('allow_retakes') || 'Allow Retakes', description: t('help_activity_retakes') || 'Allow students to retake the activity multiple times. For quizzes, can sync from quiz template.' },
+            { text: t('allow_retakes') || 'Retakable', description: t('help_activity_retakes') || 'Allow students to retake the activity multiple times. For quizzes, can sync from quiz template.' },
             { text: t('featured') || 'Featured', description: t('help_activity_featured') || 'Highlight this activity as featured on the student dashboard.' },
             { text: t('optional') || 'Optional', description: t('help_activity_optional') || 'Mark as optional. If off, the activity is required.' },
             { text: t('requires_submission') || 'Requires Submission', description: t('help_activity_submission') || 'Students must submit work for this activity to be considered complete.' },

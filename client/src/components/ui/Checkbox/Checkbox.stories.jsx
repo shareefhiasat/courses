@@ -122,7 +122,7 @@ export const ActivityOptions = () => {
           onChange={handleChange('show')}
         />
         <Checkbox
-          label="Allow retakes"
+          label="Retakable"
           checked={options.allowRetake}
           onChange={handleChange('allowRetake')}
           helperText="Students can retake this activity"
