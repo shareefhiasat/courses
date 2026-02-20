@@ -12,6 +12,7 @@ import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { getAttendanceStats, getAttendanceMarksForExport, getAllAttendanceSessions, updateAttendanceMark, getAttendanceMarksCount } from '@services/business/attendanceService';
 import { getUsers, getUserById } from '@services/business/userService';
+import { getAttendanceIcon, createAttendanceBadge } from '@utils/badgeUtils';
 
 const HRAttendancePage = () => {
   const { user, isHR, isAdmin, loading: authLoading } = useAuth();
@@ -30,36 +31,6 @@ const HRAttendancePage = () => {
   
   // Use the user's primary color or fallback to maroon
   const actualPrimaryColor = primaryColor || '#800020';
-  
-  // Helper function to get icon color based on theme
-  const getIconColor = (defaultColor, theme) => {
-    return theme === 'light' ? 'white' : defaultColor;
-  };
-  
-  // Helper function to create attendance summary badges
-  const createAttendanceBadge = (count, iconType, color, tooltipText) => {
-    if (!count || count <= 0) return null;
-    
-    return (
-      <Tooltip content={tooltipText}>
-        <span 
-          style={{ 
-            background: `${color}15`, 
-            color: color, 
-            padding: '1px 4px', 
-            borderRadius: 3,
-            fontWeight: 500,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '2px'
-          }}
-        >
-          {getThemedIcon('ui', iconType, 10, getIconColor(color, theme))}
-          {count}
-        </span>
-      </Tooltip>
-    );
-  };
   
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
@@ -769,38 +740,44 @@ const HRAttendancePage = () => {
                         session.scanCounts.present || session.scanCounts.PRESENT || 0,
                         'check_circle',
                         '#10b981',
-                        t('present') || 'Present'
+                        t('present') || 'Present',
+                        theme
                       )}
                       {createAttendanceBadge(
                         session.scanCounts.late || session.scanCounts.LATE || 0,
                         'clock',
                         '#f59e0b',
-                        t('late') || 'Late'
+                        t('late') || 'Late',
+                        theme
                       )}
                       {createAttendanceBadge(
                         (session.scanCounts.absent_no_excuse || session.scanCounts.absent || 0) + 
                         (session.scanCounts.ABSENT_NO_EXCUSE || 0),
                         'x_circle',
                         '#ef4444',
-                        t('absent_no_excuse') || 'Absent (No Excuse)'
+                        t('absent_no_excuse') || 'Absent (No Excuse)',
+                        theme
                       )}
                       {createAttendanceBadge(
                         session.scanCounts.absent_with_excuse || session.scanCounts.ABSENT_WITH_EXCUSE || 0,
                         'file_text',
                         '#3b82f6',
-                        t('absent_with_excuse') || 'Absent (Excused)'
+                        t('absent_with_excuse') || 'Absent (Excused)',
+                        theme
                       )}
                       {createAttendanceBadge(
                         session.scanCounts.excused_leave || session.scanCounts.EXCUSED_LEAVE || 0,
                         'home',
                         '#8b5cf6',
-                        t('excused_leave') || 'Excused Leave'
+                        t('excused_leave') || 'Excused Leave',
+                        theme
                       )}
                       {createAttendanceBadge(
                         session.scanCounts.human_case || session.scanCounts.HUMAN_CASE || 0,
                         'heart',
                         '#ec4899',
-                        t('human_case') || 'Human Case'
+                        t('human_case') || 'Human Case',
+                        theme
                       )}
                     </div>
                   )}
@@ -914,7 +891,10 @@ const HRAttendancePage = () => {
                   const displayLabel = label.en || key;
                   return (
                     <div key={key} style={{ padding: '0.5rem 0.75rem', background: color + '15', border: `1px solid ${color}`, borderRadius: 6, textAlign: 'center' }}>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: color, lineHeight: 1.2 }}>{count}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: color, lineHeight: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                        {getThemedIcon('ui', getAttendanceIcon(key), 16, color)}
+                        {count}
+                      </div>
                       <div style={{ fontSize: 9, textTransform: 'uppercase', fontWeight: 600, color: color, marginTop: 2, lineHeight: 1.2 }}>{displayLabel}</div>
                     </div>
                   );

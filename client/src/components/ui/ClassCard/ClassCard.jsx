@@ -4,6 +4,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Tooltip } from '@ui';
+import { createClassStatBadge, CLASS_STAT_CONFIGS } from '@utils/badgeUtils';
 
 const ClassCard = ({ 
   cls, 
@@ -18,11 +19,6 @@ const ClassCard = ({
   const clsId = cls.docId || cls.id;
   const hasSchedule = cls.schedule && cls.schedule.days && cls.schedule.days.length > 0;
   const instructor = cls.instructorData;
-
-  // Helper function to get icon color based on theme
-const getIconColor = (defaultColor, theme) => {
-  return theme === 'light' ? 'white' : defaultColor;
-};
 
 // Helper function to get localized class name
   const getLocalizedClassName = (cls) => {
@@ -199,118 +195,58 @@ const getIconColor = (defaultColor, theme) => {
             </Tooltip>
           )}
           {classStats[clsId].penalties > 0 && (
-            <Tooltip content={t('classcard_penalties')}>
-              <span 
-                style={{ 
-                  background: '#ef444415', 
-                  color: '#ef4444', 
-                  padding: '1px 4px', 
-                  borderRadius: 3,
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '2px'
-                }}
-              >
-                {getThemedIcon('penalty_type', 'cheating', 10, getIconColor('#ef4444', theme))}
-                {classStats[clsId].penalties}
-              </span>
-            </Tooltip>
+            createClassStatBadge(
+              classStats[clsId].penalties,
+              CLASS_STAT_CONFIGS.penalties.icon,
+              CLASS_STAT_CONFIGS.penalties.color,
+              t('classcard_penalties'),
+              theme
+            )
           )}
           {classStats[clsId].behaviors > 0 && (
-            <Tooltip content={t('classcard_behaviors')}>
-              <span 
-                style={{ 
-                  background: '#f59e0b15', 
-                  color: '#f59e0b', 
-                  padding: '1px 4px', 
-                  borderRadius: 3,
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '2px'
-                }}
-              >
-                {getThemedIcon('behavior_type', 'disruptive', 10, getIconColor('#f59e0b', theme))}
-                {classStats[clsId].behaviors}
-              </span>
-            </Tooltip>
+            createClassStatBadge(
+              classStats[clsId].behaviors,
+              CLASS_STAT_CONFIGS.behaviors.icon,
+              CLASS_STAT_CONFIGS.behaviors.color,
+              t('classcard_behaviors'),
+              theme
+            )
           )}
           {classStats[clsId].quizzes > 0 && (
-            <Tooltip content={t('classcard_quizzes')}>
-              <span 
-                style={{ 
-                  background: '#8b5cf615', 
-                  color: '#8b5cf6', 
-                  padding: '1px 4px', 
-                  borderRadius: 3,
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '2px'
-                }}
-              >
-                {getThemedIcon('ui', 'file_text', 10, getIconColor('#8b5cf6', theme))}
-                {classStats[clsId].quizzes}
-              </span>
-            </Tooltip>
+            createClassStatBadge(
+              classStats[clsId].quizzes,
+              CLASS_STAT_CONFIGS.quizzes.icon,
+              CLASS_STAT_CONFIGS.quizzes.color,
+              t('classcard_quizzes'),
+              theme
+            )
           )}
           {classStats[clsId].activities > 0 && (
-            <Tooltip content={t('classcard_activities')}>
-              <span 
-                style={{ 
-                  background: '#10b98115', 
-                  color: '#10b981', 
-                  padding: '1px 4px', 
-                  borderRadius: 3,
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '2px'
-                }}
-              >
-                {getThemedIcon('participation_type', 'excellent', 10, getIconColor('#10b981', theme))}
-                {classStats[clsId].activities}
-              </span>
-            </Tooltip>
+            createClassStatBadge(
+              classStats[clsId].activities,
+              CLASS_STAT_CONFIGS.activities.icon,
+              CLASS_STAT_CONFIGS.activities.color,
+              t('classcard_activities'),
+              theme
+            )
           )}
           {classStats[clsId].announcements > 0 && (
-            <Tooltip content={t('classcard_announcements')}>
-              <span 
-                style={{ 
-                  background: '#3b82f615', 
-                  color: '#3b82f6', 
-                  padding: '1px 4px', 
-                  borderRadius: 3,
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '2px'
-                }}
-              >
-                {getThemedIcon('ui', 'megaphone', 10, getIconColor('#3b82f6', theme))}
-                {classStats[clsId].announcements}
-              </span>
-            </Tooltip>
+            createClassStatBadge(
+              classStats[clsId].announcements,
+              CLASS_STAT_CONFIGS.announcements.icon,
+              CLASS_STAT_CONFIGS.announcements.color,
+              t('classcard_announcements'),
+              theme
+            )
           )}
           {classStats[clsId].resources > 0 && (
-            <Tooltip content={t('classcard_resources')}>
-              <span 
-                style={{ 
-                  background: '#06b6d415', 
-                  color: '#06b6d4', 
-                  padding: '1px 4px', 
-                  borderRadius: 3,
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '2px'
-                }}
-              >
-                {getThemedIcon('ui', 'folder', 10, getIconColor('#06b6d4', theme))}
-                {classStats[clsId].resources}
-              </span>
-            </Tooltip>
+            createClassStatBadge(
+              classStats[clsId].resources,
+              CLASS_STAT_CONFIGS.resources.icon,
+              CLASS_STAT_CONFIGS.resources.color,
+              t('classcard_resources'),
+              theme
+            )
           )}
         </div>
       )}
