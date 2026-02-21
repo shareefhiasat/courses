@@ -873,7 +873,21 @@ const HRAttendancePage = () => {
           borderRadius: '8px',
           border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
         }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '24px', alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 1fr auto', gap: '16px', alignItems: 'center' }}>
+            {/* QR Code Icon */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              width: '32px',
+              height: '32px',
+              background: theme === 'dark' ? '#374151' : '#f3f4f6',
+              borderRadius: '6px',
+              border: `1px solid ${theme === 'dark' ? '#4b5563' : '#d1d5db'}`
+            }}>
+              {getThemedIcon('ui', 'qr_code', 16, theme)}
+            </div>
+            
             <Slider
               mode="single"
               min={0}
@@ -900,48 +914,61 @@ const HRAttendancePage = () => {
               // label={t('scan_to') || 'To'}
               showValue={true}
             />
-            <div
-              onClick={() => {
-                logger.log('[HRAttendance] Clearing scan filter');
-                setScanFrom(0);
-                setScanTo(50);
-              }}
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '8px',
-                background: scanFrom === 0 && scanTo === 50
-                  ? (theme === 'dark' ? '#374151' : '#f3f4f6')
-                  : (theme === 'dark' ? '#dc2626' : '#ef4444'),
-                border: `1px solid ${
-                  scanFrom === 0 && scanTo === 50
-                    ? (theme === 'dark' ? '#4b5563' : '#d1d5db')
-                    : (theme === 'dark' ? '#991b1b' : '#dc2626')
-                }`,
-                display: 'flex',
+            
+            {/* Scan Count Chip (replaces delete icon) */}
+            {(scanFrom > 0 || scanTo < 50) ? (
+              <div style={{ 
+                display: 'inline-flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                cursor: scanFrom === 0 && scanTo === 50 ? 'not-allowed' : 'pointer',
-                opacity: scanFrom === 0 && scanTo === 50 ? 0.5 : 1,
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <svg 
-                width="18" 
-                height="18" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke={scanFrom === 0 && scanTo === 50
-                  ? (theme === 'dark' ? '#6b7280' : '#9ca3af')
-                  : 'white'
+                gap: '6px',
+                padding: '4px 8px',
+                background: theme === 'dark' ? '#3b82f6' : '#2563eb',
+                color: 'white',
+                borderRadius: '12px',
+                fontSize: '11px',
+                fontWeight: '500',
+                border: `1px solid ${theme === 'dark' ? '#2563eb' : '#1d4ed8'}`
+              }}>
+                {getThemedIcon('ui', 'qr_code', 12, 'white')}
+                {scanFrom === scanTo 
+                  ? `${scanFrom} scans` 
+                  : `${scanFrom}-${scanTo} scans`
                 }
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
+              </div>
+            ) : (
+              <div
+                onClick={() => {
+                  logger.log('[HRAttendance] Clearing scan filter');
+                  setScanFrom(0);
+                  setScanTo(50);
+                }}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  background: theme === 'dark' ? '#374151' : '#f3f4f6',
+                  border: `1px solid ${theme === 'dark' ? '#4b5563' : '#d1d5db'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
               >
-                <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14zM10 11v6M14 11v6"/>
-              </svg>
-            </div>
+                <svg 
+                  width="16" 
+                  height="16" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke={theme === 'dark' ? '#6b7280' : '#9ca3af'}
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14zM10 11v6M14 11v6"/>
+                </svg>
+              </div>
+            )}
           </div>
         </div>
       </div>
