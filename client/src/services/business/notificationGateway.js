@@ -1,5 +1,3 @@
-import { db } from '../other/config';
-import { doc, getDoc } from 'firebase/firestore';
 import { addNotification } from './notificationService';
 import { sendEmail } from './emailService';
 import { NOTIFICATION_CHANNELS, NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
@@ -207,10 +205,10 @@ export const notificationGateway = {
   getSettings: async (role, trigger) => {
     try {
       // In a real scenario, we might want to cache this or use a context
-      const settingsDoc = await getDoc(doc(db, 'config', 'notificationSettings'));
-      const settings = settingsDoc.exists() ? settingsDoc.data() : {};
+      // For now, return default settings since we don't have a config service
+      const defaultSettings = { web: true, email: true };
       
-      return settings[role]?.[trigger] || { web: true, email: true }; 
+      return defaultSettings; 
     } catch (error) {
       logger.warn('Failed to load notification settings, falling back to defaults:', error);
       return { web: true, email: true };

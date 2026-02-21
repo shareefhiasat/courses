@@ -1,23 +1,3 @@
-import {
-  collection,
-  doc,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  deleteDoc,
-  setDoc,
-  getDoc,
-  serverTimestamp,
-  getDocs,
-  updateDoc,
-  arrayUnion,
-  arrayRemove,
-  deleteField
-} from 'firebase/firestore';
-import { ref, deleteObject } from 'firebase/storage';
-import { db, storage } from '../other/config';
 import logger from '@utils/logger';
 import { 
   getChatRoom as getChatRoomFromDb,
@@ -55,8 +35,10 @@ export const chatService = {
 
   async getUserChatReads(userId) {
     try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      const data = userDoc.data() || {};
+      // Use user service to get user data
+      const { getUserById } = await import('./userService');
+      const result = await getUserById(userId);
+      const data = result.success && result.data ? result.data : {};
       return data.chatReads || {};
     } catch (error) {
       logger.error('Error getting user chat reads:', error);
@@ -66,11 +48,18 @@ export const chatService = {
 
   async updateUserChatReads(userId, chatKey) {
     try {
-      await setDoc(doc(db, 'users', userId), { 
+      // Use user service to update user data
+      const { updateUser } = await import('./userService');
+      const result = await updateUser(userId, { 
         chatReads: { 
-          [chatKey]: serverTimestamp() 
+          [chatKey]: new Date().toISOString()
         } 
-      }, { merge: true });
+      });
+      
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      
       return new Date();
     } catch (error) {
       logger.error('Error updating user chat reads:', error);

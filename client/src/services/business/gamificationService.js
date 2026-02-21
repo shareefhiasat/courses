@@ -1,17 +1,3 @@
-import { 
-  collection, 
-  doc, 
-  getDocs, 
-  getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy,
-  Timestamp
-} from 'firebase/firestore';
-import { db } from '../other/config';
 import { getStudentRank } from '@constants/sharedConfig';
 import logger from '@utils/logger';
 import { 
@@ -20,13 +6,9 @@ import {
   awardPoints as awardPointsToDb,
   updateStudentRank as updateStudentRankInDb,
   getLeaderboard as getLeaderboardFromDb,
-  getClassLeaderboard as getClassLeaderboardFromDb,
-  getStudentAchievements as getStudentAchievementsFromDb,
-  awardAchievement as awardAchievementToDb,
-  updateStudentSkills as updateStudentSkillsInDb,
-  getTopStudents as getTopStudentsFromDb,
-  initializeStudentGamification as initializeStudentGamificationToDb
+  getClassLeaderboard as getClassLeaderboardFromDb
 } from '../db/gamificationDbService';
+import { getUserById } from './userService';
 
 /**
  * Gamification Service
@@ -48,16 +30,15 @@ export const awardPoints = async (pointsData) => {
 
     const results = await Promise.all(
       studentIds.map(async (studentId) => {
-        // Get current rank before awarding
-        const studentRef = doc(db, "users", studentId);
-        const studentSnap = await getDoc(studentRef);
-        const currentPoints = studentSnap.exists()
-          ? studentSnap.data().totalPoints || 0
+        // Get current user data to check existing points
+        const userResult = await getUserById(studentId);
+        const currentPoints = userResult.success && userResult.data 
+          ? userResult.data.totalPoints || 0 
           : 0;
         const oldRank = getStudentRank(currentPoints);
 
-        // Add point record
-        await addDoc(collection(db, "points"), {
+        // Use database service to award points
+        const pointData = {
           studentId,
           classId,
           awardedBy,
@@ -65,17 +46,21 @@ export const awardPoints = async (pointsData) => {
           category,
           reason: reason || "",
           activityId: activityId || null,
-          timestamp: Timestamp.now(),
-        });
+          timestamp: new Date()
+        };
 
-        // Update student's total points
-        const newPoints = currentPoints + Number(points);
-        if (studentSnap.exists()) {
-          await updateDoc(studentRef, {
-            totalPoints: newPoints,
-            lastPointsUpdate: Timestamp.now(),
-          });
+        const awardResult = await awardPointsToDb(pointData);
+        if (!awardResult.success) {
+          return { studentId, success: false, error: awardResult.error };
         }
+
+        // Update student's total points using user service
+        const newPoints = currentPoints + Number(points);
+        const { updateUser } = await import('./userService');
+        const updateResult = await updateUser(studentId, {
+          totalPoints: newPoints,
+          lastPointsUpdate: new Date()
+        });
 
         // Check if rank changed
         const newRank = getStudentRank(newPoints);
@@ -103,15 +88,10 @@ export const awardPoints = async (pointsData) => {
 // Get points for a student - with performance monitoring and memoization
 export const getStudentPoints = async (studentId) => {
   try {
-    const q = query(
-      collection(db, "points"),
-      where("studentId", "==", studentId),
-      orderBy("timestamp", "desc")
-    );
-    const qs = await getDocs(q);
-    const points = [];
-    qs.forEach((d) => points.push({ id: d.id, ...d.data() }));
-    return { success: true, data: points };
+    // Use database service to get student points
+    const { getStudentPoints: getStudentPointsFromDb } = await import('../db/gamificationDbService');
+    const result = await getStudentPointsFromDb(studentId);
+    return result;
   } catch (error) {
     logger.error("Error getting student points:", error);
     return { success: false, error: error.message };
@@ -121,15 +101,10 @@ export const getStudentPoints = async (studentId) => {
 // Get all points for a class
 export const getClassPoints = async (classId) => {
   try {
-    const q = query(
-      collection(db, "points"),
-      where("classId", "==", classId),
-      orderBy("timestamp", "desc")
-    );
-    const qs = await getDocs(q);
-    const points = [];
-    qs.forEach((d) => points.push({ id: d.id, ...d.data() }));
-    return { success: true, data: points };
+    // Use database service to get class points
+    const { getClassPoints: getClassPointsFromDb } = await import('../db/gamificationDbService');
+    const result = await getClassPointsFromDb(classId);
+    return result;
   } catch (error) {
     logger.error("Error getting class points:", error);
     return { success: false, error: error.message };
@@ -139,39 +114,9 @@ export const getClassPoints = async (classId) => {
 // Get leaderboard for a class
 export const getClassLeaderboard = async (classId) => {
   try {
-    // Get all enrollments for the class
-    const enrollmentsQuery = query(
-      collection(db, "enrollments"),
-      where("classId", "==", classId)
-    );
-    const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
-
-    const leaderboard = [];
-    for (const enrollmentDoc of enrollmentsSnapshot.docs) {
-      const enrollment = enrollmentDoc.data();
-      
-      // Get user data with total points
-      const userDoc = await getDoc(doc(db, "users", enrollment.userId));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        const totalPoints = userData.totalPoints || 0;
-        const rank = getStudentRank(totalPoints);
-        
-        leaderboard.push({
-          userId: enrollment.userId,
-          displayName: userData.displayName || userData.email,
-          email: userData.email,
-          totalPoints,
-          rank: rank.current,
-          lastPointsUpdate: userData.lastPointsUpdate?.toDate()
-        });
-      }
-    }
-
-    // Sort by total points descending
-    leaderboard.sort((a, b) => b.totalPoints - a.totalPoints);
-    
-    return { success: true, data: leaderboard };
+    // Use database service to get class leaderboard
+    const result = await getClassLeaderboardFromDb(classId);
+    return result;
   } catch (error) {
     logger.error("Error getting class leaderboard:", error);
     return { success: false, error: error.message };
@@ -181,20 +126,10 @@ export const getClassLeaderboard = async (classId) => {
 // Create or update skill
 export const saveSkill = async (skillData) => {
   try {
-    const { docId, ...data } = skillData;
-    if (docId) {
-      await updateDoc(doc(db, "skills", docId), {
-        ...data,
-        updatedAt: Timestamp.now()
-      });
-    } else {
-      await addDoc(collection(db, "skills"), {
-        ...data,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
-      });
-    }
-    return { success: true };
+    // Use database service to save skill
+    const { saveSkill: saveSkillToDb } = await import('../db/gamificationDbService');
+    const result = await saveSkillToDb(skillData);
+    return result;
   } catch (error) {
     logger.error("Error saving skill:", error);
     return { success: false, error: error.message };
@@ -204,11 +139,10 @@ export const saveSkill = async (skillData) => {
 // Get skills for a class
 export const getClassSkills = async (classId) => {
   try {
-    const q = query(collection(db, "skills"), where("classId", "==", classId));
-    const qs = await getDocs(q);
-    const skills = [];
-    qs.forEach((d) => skills.push({ id: d.id, ...d.data() }));
-    return { success: true, data: skills };
+    // Use database service to get class skills
+    const { getClassSkills: getClassSkillsFromDb } = await import('../db/gamificationDbService');
+    const result = await getClassSkillsFromDb(classId);
+    return result;
   } catch (error) {
     logger.error("Error getting class skills:", error);
     return { success: false, error: error.message };
@@ -218,8 +152,10 @@ export const getClassSkills = async (classId) => {
 // Delete skill
 export const deleteSkill = async (skillId) => {
   try {
-    await deleteDoc(doc(db, "skills", skillId));
-    return { success: true };
+    // Use database service to delete skill
+    const { deleteSkill: deleteSkillFromDb } = await import('../db/gamificationDbService');
+    const result = await deleteSkillFromDb(skillId);
+    return result;
   } catch (error) {
     logger.error("Error deleting skill:", error);
     return { success: false, error: error.message };

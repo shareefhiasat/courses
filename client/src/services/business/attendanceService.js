@@ -1,12 +1,9 @@
-import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, setDoc, serverTimestamp, deleteDoc, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../other/config';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { getUserById } from './userService';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import logger from '@utils/logger';
-import { getQatarNow, formatQatarDateOnly, getQatarTimestampString } from '@utils/qatarDate';
 import { 
   getAttendanceRecords as getAttendanceRecordsFromDb,
   getAttendanceRecord as getAttendanceRecordFromDb,
@@ -16,7 +13,10 @@ import {
   getAttendanceStats as getAttendanceStatsFromDb
 } from '../db/attendanceDbService';
 import {
-  getOpenAttendanceSessions as getOpenAttendanceSessionsFromDb
+  getOpenAttendanceSessions as getOpenAttendanceSessionsFromDb,
+  getAttendanceMarksCount as getAttendanceMarksCountFromDb,
+  updateAttendanceMark as updateAttendanceMarkFromDb,
+  getAllAttendanceSessions as getAllSessionsFromDb
 } from '../db/attendanceSessionsDbService';
 
 /**
@@ -29,6 +29,12 @@ import {
 // Get attendance marks count for real-time updates
 export const listenAttendanceMarksCount = (sessionId, callback) => {
   try {
+    // This function uses onSnapshot which is a Firebase-specific real-time listener
+    // For now, we'll keep this as is since real-time updates require Firebase directly
+    // In a future refactor, we could move this to a separate real-time service layer
+    const { onSnapshot, collection } = require('firebase/firestore');
+    const { db } = require('../other/config');
+    
     const unsubscribe = onSnapshot(
       collection(db, 'attendanceSessions', sessionId, 'marks'),
       (snapshot) => {
@@ -49,13 +55,9 @@ export const listenAttendanceMarksCount = (sessionId, callback) => {
 // Get attendance marks for export
 export const getAttendanceMarksForExport = async (sessionId) => {
   try {
-    const q = query(collection(db, 'attendanceSessions', sessionId, 'marks'));
-    const querySnapshot = await getDocs(q);
-    const marks = querySnapshot.docs.map(doc => ({ 
-      uid: doc.id, 
-      ...doc.data() 
-    }));
-    return { success: true, data: marks };
+    const { getAttendanceMarksForExport: getMarksForExportFromDb } = await import('../db/attendanceSessionsDbService');
+    const result = await getMarksForExportFromDb(sessionId);
+    return result;
   } catch (error) {
     logger.error('Error getting attendance marks for export:', error);
     return { success: false, error: error.message };
@@ -465,6 +467,11 @@ export async function listOpenSessions({ classId }) {
  */
 export function listenAttendanceSession(sessionId, cb) {
   try {
+    // This function uses onSnapshot which is a Firebase-specific real-time listener
+    // For now, we'll keep this as is since real-time updates require Firebase directly
+    const { onSnapshot, doc } = require('firebase/firestore');
+    const { db } = require('../other/config');
+    
     const ref = doc(db, 'attendanceSessions', sessionId);
     return onSnapshot(ref, (snap) => cb(snap.exists() ? { id: snap.id, ...snap.data() } : null));
   } catch (error) {
@@ -522,7 +529,6 @@ export async function scanAttendance(payload) {
  */
 export const getAllAttendanceSessions = async () => {
   try {
-    const { getAllAttendanceSessions: getAllSessionsFromDb } = await import('../db/attendanceSessionsDbService');
     const result = await getAllSessionsFromDb();
     
     if (result.success) {
@@ -548,8 +554,6 @@ export const getAllAttendanceSessions = async () => {
  */
 export const updateAttendanceMark = async (sessionId, uid, status, reason = null, feedback = null, updatedBy = null) => {
   try {
-    const { updateAttendanceMark: updateMarkFromDb } = await import('../db/attendanceSessionsDbService');
-    
     const updateData = {
       status,
       reason: reason || null,
@@ -557,7 +561,7 @@ export const updateAttendanceMark = async (sessionId, uid, status, reason = null
       updatedBy
     };
     
-    const result = await updateMarkFromDb(sessionId, uid, updateData);
+    const result = await updateAttendanceMarkFromDb(sessionId, uid, updateData);
     
     if (result.success) {
       return { success: true };
@@ -577,8 +581,7 @@ export const updateAttendanceMark = async (sessionId, uid, status, reason = null
  */
 export const getAttendanceMarksCount = async (sessionId) => {
   try {
-    const { getAttendanceMarksCount: getMarksCountFromDb } = await import('../db/attendanceSessionsDbService');
-    const result = await getMarksCountFromDb(sessionId);
+    const result = await getAttendanceMarksCountFromDb(sessionId);
     
     if (result.success) {
       return { success: true, data: result.data };

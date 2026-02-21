@@ -1,4 +1,3 @@
-import { serverTimestamp } from 'firebase/firestore';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { handleServiceError, withRetry } from '@utils/errorHandling';
@@ -61,7 +60,7 @@ export const setCourse = async (courseId, data) => {
     // Add timestamps
     const courseData = {
       ...data,
-      updatedAt: serverTimestamp()
+      updatedAt: new Date()
     };
     
     const result = await setCourseToDb(courseId, courseData);
@@ -166,8 +165,8 @@ export const createCourse = async (courseData) => {
     // Add timestamps
     const newCourseData = {
       ...courseData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
       isActive: true
     };
     
@@ -213,7 +212,7 @@ export const updateCourse = async (courseId, updateData) => {
     // Add timestamp
     const courseUpdateData = {
       ...updateData,
-      updatedAt: serverTimestamp()
+      updatedAt: new Date()
     };
     
     const result = await updateCourseInDb(courseId, courseUpdateData);

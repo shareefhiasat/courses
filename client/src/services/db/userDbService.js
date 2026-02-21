@@ -34,8 +34,6 @@ import {
   where, 
   getDocs, 
   onSnapshot,
-  orderBy,
-  Timestamp,
   serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../other/config';
@@ -233,5 +231,137 @@ export const onUserChange = (userId, callback) => {
   } catch (error) {
     logger.error('[UserDbService] Error setting up user listener:', error);
     return () => {};
+  }
+};
+
+/**
+ * Get multiple users by their IDs in bulk
+ * @param {Array<string>} userIds - Array of user IDs to fetch
+ * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
+ */
+export const getUsersByIds = async (userIds) => {
+  try {
+    if (!userIds || userIds.length === 0) {
+      return { success: true, data: {} };
+    }
+
+    const uniqueIds = [...new Set(userIds)]; // Remove duplicates
+    
+    // Batch fetch users with error handling
+    const userPromises = uniqueIds.map(async (userId) => {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        if (userDoc.exists()) {
+          return { id: userId, data: { id: userDoc.id, ...userDoc.data() } };
+        }
+        return { id: userId, data: null };
+      } catch (error) {
+        logger.error(`Error fetching user ${userId}:`, error);
+        return { id: userId, data: null };
+      }
+    });
+
+    const results = await Promise.allSettled(userPromises);
+    
+    // Convert array to object map for easy lookup
+    const userMap = {};
+    results.forEach(result => {
+      if (result.status === 'fulfilled' && result.value) {
+        userMap[result.value.id] = result.value.data;
+      }
+    });
+
+    return { success: true, data: userMap };
+  } catch (error) {
+    logger.error('[UserDbService] Error fetching users in bulk:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Admin cascade delete for a user
+ * @param {string} uid - User ID
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const deleteUserCascade = async (uid) => {
+  try {
+    if (!uid) return { success: false, error: "uid required" };
+    const deletions = [];
+    
+    // notifications
+    const nqs = await getDocs(
+      query(collection(db, "notifications"), where("userId", "==", uid))
+    );
+    nqs.forEach((d) =>
+      deletions.push(deleteDoc(doc(db, "notifications", d.id)))
+    );
+    
+    // enrollments
+    const eqs = await getDocs(
+      query(collection(db, "enrollments"), where("userId", "==", uid))
+    );
+    eqs.forEach((d) => deletions.push(deleteDoc(doc(db, "enrollments", d.id))));
+    
+    // submissions
+    const sqs = await getDocs(
+      query(collection(db, "submissions"), where("userId", "==", uid))
+    );
+    sqs.forEach((d) => deletions.push(deleteDoc(doc(db, "submissions", d.id))));
+    
+    // attendance records
+    const attQuery = await getDocs(
+      query(collection(db, "attendance"), where("studentId", "==", uid))
+    );
+    attQuery.forEach((d) =>
+      deletions.push(deleteDoc(doc(db, "attendance", d.id)))
+    );
+    
+    // quiz submissions
+    const quizSubQuery = await getDocs(
+      query(collection(db, "quizSubmissions"), where("userId", "==", uid))
+    );
+    quizSubQuery.forEach((d) =>
+      deletions.push(deleteDoc(doc(db, "quizSubmissions", d.id)))
+    );
+    
+    // quiz results
+    const quizResQuery = await getDocs(
+      query(collection(db, "quizResults"), where("userId", "==", uid))
+    );
+    quizResQuery.forEach((d) =>
+      deletions.push(deleteDoc(doc(db, "quizResults", d.id)))
+    );
+    
+    // marks/grades
+    const marksQuery = await getDocs(
+      query(collection(db, "studentMarks"), where("studentId", "==", uid))
+    );
+    marksQuery.forEach((d) =>
+      deletions.push(deleteDoc(doc(db, "studentMarks", d.id)))
+    );
+    
+    // messages (sent by user)
+    const mqs = await getDocs(
+      query(collection(db, "messages"), where("senderId", "==", uid))
+    );
+    mqs.forEach((d) => deletions.push(deleteDoc(doc(db, "messages", d.id))));
+    
+    // direct rooms containing user (delete room)
+    const rqs = await getDocs(
+      query(
+        collection(db, "directRooms"),
+        where("participants", "array-contains", uid)
+      )
+    );
+    rqs.forEach((d) => deletions.push(deleteDoc(doc(db, "directRooms", d.id))));
+    
+    await Promise.allSettled(deletions);
+    
+    // finally delete users/{uid}
+    await deleteDoc(doc(db, "users", uid));
+    return { success: true };
+  } catch (error) {
+    logger.error('[UserDbService] Error deleting user cascade:', error);
+    return { success: false, error: error.message };
   }
 };

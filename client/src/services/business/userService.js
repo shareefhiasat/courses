@@ -1,11 +1,18 @@
-import { doc, getDoc, query, collection, where, getDocs, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
-import { db } from '../other/config';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
-import { getUserByEmail as getUserByEmailFromDb } from '../db/userDbService';
+import { 
+  getUserById as getUserByIdFromDb,
+  getUserByEmail as getUserByEmailFromDb,
+  getUserByStudentNumber as getUserByStudentNumberFromDb,
+  getUsersByRole as getUsersByRoleFromDb,
+  getUsers as getAllUsersFromDb,
+  setUser as setUserToDb,
+  updateUser as updateUserInDb,
+  deleteUser as deleteUserFromDb,
+  userExists as checkUserExists
+} from '../db/userDbService';
 import { USER_STATUS } from '@utils/userStatus';
 import { 
-  USER_ROLES, 
   isAdmin as isRoleAdmin, 
   isInstructor as isRoleInstructor, 
   isStudent as isRoleStudent,
@@ -29,15 +36,15 @@ export const getUserById = async (userId) => {
   try {
     logger.debug('USER: Fetching user by ID', { userId });
     
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (userDoc.exists()) {
-      const userData = { id: userDoc.id, ...userDoc.data() };
+    const result = await getUserByIdFromDb(userId);
+    
+    if (result.success) {
       logger.debug('USER: Successfully fetched user', { userId });
-      return { success: true, data: userData };
+      return result;
     }
     
     logger.warn('USER: User not found', { userId });
-    return { success: false, error: 'User not found' };
+    return result;
   } catch (error) {
     logger.error('USER: Failed to fetch user', { error: error.message, userId });
     return { success: false, error: error.message };
@@ -57,11 +64,7 @@ export const getUserByEmail = async (email) => {
 // Get user by student number (centralized)
 export const getUserByStudentNumber = async (studentNumber) => {
   try {
-    const userDoc = await getDoc(doc(db, 'users', studentNumber));
-    if (userDoc.exists()) {
-      return { success: true, data: { id: userDoc.id, ...userDoc.data() } };
-    }
-    return { success: false, error: 'Student not found' };
+    return await getUserByStudentNumberFromDb(studentNumber);
   } catch (error) {
     logger.error('Error fetching student by number:', error);
     return { success: false, error: error.message };
@@ -71,8 +74,7 @@ export const getUserByStudentNumber = async (studentNumber) => {
 // Check if user exists by ID
 export const userExists = async (userId) => {
   try {
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    return userDoc.exists();
+    return await checkUserExists(userId);
   } catch (error) {
     logger.error('Error checking user existence:', error);
     return false;
@@ -82,9 +84,9 @@ export const userExists = async (userId) => {
 // Get user preferences (centralized)
 export const getUserPreferences = async (userId) => {
   try {
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (userDoc.exists()) {
-      return { success: true, data: userDoc.data().preferences || {} };
+    const result = await getUserByIdFromDb(userId);
+    if (result.success) {
+      return { success: true, data: result.data.preferences || {} };
     }
     return { success: false, error: 'User not found' };
   } catch (error) {
@@ -96,13 +98,7 @@ export const getUserPreferences = async (userId) => {
 // Get users by role (centralized)
 export const getUsersByRole = async (role) => {
   try {
-    const q = query(collection(db, 'users'), where('role', '==', role));
-    const querySnapshot = await getDocs(q);
-    const users = [];
-    querySnapshot.forEach((doc) => {
-      users.push({ id: doc.id, ...doc.data() });
-    });
-    return { success: true, data: users };
+    return await getUsersByRoleFromDb(role);
   } catch (error) {
     logger.error('Error fetching users by role:', error);
     return { success: false, error: error.message };
@@ -112,22 +108,22 @@ export const getUsersByRole = async (role) => {
 // Search users by display name or email (centralized)
 export const searchUsers = async (searchTerm) => {
   try {
-    const usersRef = collection(db, 'users');
-    const querySnapshot = await getDocs(usersRef);
-    const users = [];
-    querySnapshot.forEach((doc) => {
-      const userData = { id: doc.id, ...doc.data() };
-      const searchLower = searchTerm.toLowerCase();
-      if (
-        userData.displayName?.toLowerCase().includes(searchLower) ||
-        userData.email?.toLowerCase().includes(searchLower) ||
-        userData.realName?.toLowerCase().includes(searchLower) ||
-        userData.studentNumber?.toLowerCase().includes(searchLower)
-      ) {
-        users.push(userData);
-      }
-    });
-    return { success: true, data: users };
+    const result = await getAllUsersFromDb();
+    
+    if (!result.success) {
+      return result;
+    }
+    
+    const users = result.data;
+    const searchLower = searchTerm.toLowerCase();
+    const filteredUsers = users.filter(userData => 
+      userData.displayName?.toLowerCase().includes(searchLower) ||
+      userData.email?.toLowerCase().includes(searchLower) ||
+      userData.realName?.toLowerCase().includes(searchLower) ||
+      userData.studentNumber?.toLowerCase().includes(searchLower)
+    );
+    
+    return { success: true, data: filteredUsers };
   } catch (error) {
     logger.error('Error searching users:', error);
     return { success: false, error: error.message };
@@ -196,22 +192,29 @@ export const ensureUserDoc = async (uid, data = {}) => {
   if (!uid) return { success: false, error: "uid required" };
   if (_ensureUserDocOnce.has(uid)) return { success: true, skipped: true };
   try {
-    const ref = doc(db, "users", uid);
-    const snap = await getDoc(ref);
-    const base = {
+    // Check if user exists first
+    const exists = await checkUserExists(uid);
+    
+    const baseData = {
       email: data.email || null,
       displayName: data.displayName || null,
       realName: data.realName || null,
       studentNumber: data.studentNumber || null,
       role: data.role || "student",
-      createdAt: Timestamp.now(),
+      createdAt: new Date(), // Will be converted to Timestamp by DB service
     };
+    
     // If document exists, only merge the provided data fields
     // If document doesn't exist, use the base object with provided data
-    const updateData = snap.exists() ? data : { ...base, ...data };
-    await setDoc(ref, updateData, { merge: true });
-    _ensureUserDocOnce.add(uid);
-    return { success: true };
+    const updateData = exists ? data : { ...baseData, ...data };
+    
+    const result = await setUserToDb(uid, updateData);
+    
+    if (result.success) {
+      _ensureUserDocOnce.add(uid);
+    }
+    
+    return result;
   } catch (error) {
     // Ignore permission-denied to avoid noisy console during restricted environments
     const code = error && (error.code || "").toString();
@@ -226,12 +229,7 @@ export const ensureUserDoc = async (uid, data = {}) => {
 // Get all users
 export const getUsers = async () => {
   try {
-    const querySnapshot = await getDocs(collection(db, "users"));
-    const users = [];
-    querySnapshot.forEach((d) => {
-      users.push({ docId: d.id, ...d.data() });
-    });
-    return { success: true, data: users };
+    return await getAllUsersFromDb();
   } catch (error) {
     logger.error("Error getting users:", error);
     return { success: false, error: error.message };
@@ -245,10 +243,9 @@ export const getUser = async (uid) => {
   }
 
   try {
-    const ref = doc(db, "users", uid);
-    const snap = await getDoc(ref);
-
-    if (!snap.exists()) {
+    const result = await getUserByIdFromDb(uid);
+    
+    if (!result.success) {
       return { success: false, error: "user_not_found" };
     }
 
@@ -256,7 +253,7 @@ export const getUser = async (uid) => {
       success: true,
       data: {
         docId: uid,
-        ...snap.data(),
+        ...result.data,
       },
     };
   } catch (error) {
@@ -279,13 +276,14 @@ export const addUser = async (userData) => {
     if (!userData?.uid) {
       return { success: false, error: "uid is required for addUser" };
     }
+    
     const { uid, ...rest } = userData;
-    await setDoc(
-      doc(db, "users", uid),
-      { ...rest, createdAt: Timestamp.now() },
-      { merge: true }
-    );
-    return { success: true, id: uid };
+    const result = await setUserToDb(uid, {
+      ...rest,
+      createdAt: new Date() // Will be converted to Timestamp by DB service
+    });
+    
+    return result.success ? { success: true, id: uid } : result;
   } catch (error) {
     logger.error("Error adding user:", error);
     return { success: false, error: error.message };
@@ -298,10 +296,9 @@ export const updateUser = async (id, userData) => {
     logger.info('USER: Updating user', { userId: id, updateFields: Object.keys(userData) });
     
     // Check if email is being changed
-    const userRef = doc(db, "users", id);
-    const userSnap = await getDoc(userRef);
+    const currentUserResult = await getUserByIdFromDb(id);
     
-    if (userSnap.exists() && userData.email && userData.email !== userSnap.data().email) {
+    if (currentUserResult.success && userData.email && userData.email !== currentUserResult.data.email) {
       // Log email change activity
       try {
         const { ActivityLogger } = await import('../other/activityLogger');
@@ -311,20 +308,23 @@ export const updateUser = async (id, userData) => {
       }
     }
     
-    await updateDoc(userRef, userData);
+    const result = await updateUserInDb(id, userData);
     
-    // Log activity
-    try {
-      await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
-        userId: id,
-        updateFields: Object.keys(userData)
-      });
-    } catch (logError) {
-      logger.warn('USER: Failed to log user update:', logError);
+    if (result.success) {
+      // Log activity
+      try {
+        await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
+          userId: id,
+          updateFields: Object.keys(userData)
+        });
+      } catch (logError) {
+        logger.warn('USER: Failed to log user update:', logError);
+      }
+      
+      logger.info('USER: Successfully updated user', { userId: id });
     }
     
-    logger.info('USER: Successfully updated user', { userId: id });
-    return { success: true };
+    return result;
   } catch (error) {
     logger.error('USER: Failed to update user', { error: error.message, userId: id });
     logger.error("Error updating user:", error);
@@ -337,19 +337,22 @@ export const deleteUser = async (id) => {
   try {
     logger.info('USER: Deleting user', { userId: id });
     
-    await deleteDoc(doc(db, "users", id));
+    const result = await deleteUserFromDb(id);
     
-    // Log activity
-    try {
-      await logActivity(ACTIVITY_LOG_TYPES.USER_DELETED, {
-        userId: id
-      });
-    } catch (logError) {
-      logger.warn('USER: Failed to log user deletion:', logError);
+    if (result.success) {
+      // Log activity
+      try {
+        await logActivity(ACTIVITY_LOG_TYPES.USER_DELETED, {
+          userId: id
+        });
+      } catch (logError) {
+        logger.warn('USER: Failed to log user deletion:', logError);
+      }
+      
+      logger.info('USER: Successfully deleted user', { userId: id });
     }
     
-    logger.info('USER: Successfully deleted user', { userId: id });
-    return { success: true };
+    return result;
   } catch (error) {
     logger.error('USER: Failed to delete user', { error: error.message, userId: id });
     logger.error("Error deleting user:", error);
@@ -361,80 +364,13 @@ export const deleteUser = async (id) => {
 export const deleteUserCascade = async (uid) => {
   try {
     if (!uid) return { success: false, error: "uid required" };
-    const deletions = [];
     
-    // notifications
-    const nqs = await getDocs(
-      query(collection(db, "notifications"), where("userId", "==", uid))
-    );
-    nqs.forEach((d) =>
-      deletions.push(deleteDoc(doc(db, "notifications", d.id)))
-    );
+    // This function needs to be moved to a database service since it uses direct Firebase operations
+    // For now, we'll delegate to a separate cascade delete service
+    const { deleteUserCascade: cascadeDeleteFromDb } = await import('../db/userDbService');
     
-    // enrollments
-    const eqs = await getDocs(
-      query(collection(db, "enrollments"), where("userId", "==", uid))
-    );
-    eqs.forEach((d) => deletions.push(deleteDoc(doc(db, "enrollments", d.id))));
-    
-    // submissions
-    const sqs = await getDocs(
-      query(collection(db, "submissions"), where("userId", "==", uid))
-    );
-    sqs.forEach((d) => deletions.push(deleteDoc(doc(db, "submissions", d.id))));
-    
-    // attendance records
-    const attQuery = await getDocs(
-      query(collection(db, "attendance"), where("studentId", "==", uid))
-    );
-    attQuery.forEach((d) =>
-      deletions.push(deleteDoc(doc(db, "attendance", d.id)))
-    );
-    
-    // quiz submissions
-    const quizSubQuery = await getDocs(
-      query(collection(db, "quizSubmissions"), where("userId", "==", uid))
-    );
-    quizSubQuery.forEach((d) =>
-      deletions.push(deleteDoc(doc(db, "quizSubmissions", d.id)))
-    );
-    
-    // quiz results
-    const quizResQuery = await getDocs(
-      query(collection(db, "quizResults"), where("userId", "==", uid))
-    );
-    quizResQuery.forEach((d) =>
-      deletions.push(deleteDoc(doc(db, "quizResults", d.id)))
-    );
-    
-    // marks/grades
-    const marksQuery = await getDocs(
-      query(collection(db, "studentMarks"), where("studentId", "==", uid))
-    );
-    marksQuery.forEach((d) =>
-      deletions.push(deleteDoc(doc(db, "studentMarks", d.id)))
-    );
-    
-    // messages (sent by user)
-    const mqs = await getDocs(
-      query(collection(db, "messages"), where("senderId", "==", uid))
-    );
-    mqs.forEach((d) => deletions.push(deleteDoc(doc(db, "messages", d.id))));
-    
-    // direct rooms containing user (delete room)
-    const rqs = await getDocs(
-      query(
-        collection(db, "directRooms"),
-        where("participants", "array-contains", uid)
-      )
-    );
-    rqs.forEach((d) => deletions.push(deleteDoc(doc(db, "directRooms", d.id))));
-    
-    await Promise.allSettled(deletions);
-    
-    // finally delete users/{uid}
-    await deleteDoc(doc(db, "users", uid));
-    return { success: true };
+    const result = await cascadeDeleteFromDb(uid);
+    return result;
   } catch (error) {
     logger.error("Error deleting user cascade:", error);
     return { success: false, error: error.message };
@@ -454,31 +390,11 @@ export const getUsersByIds = async (userIds) => {
 
     const uniqueIds = [...new Set(userIds)]; // Remove duplicates
     
-    // Batch fetch users with error handling
-    const userPromises = uniqueIds.map(async (userId) => {
-      try {
-        const userDoc = await getDoc(doc(db, 'users', userId));
-        if (userDoc.exists()) {
-          return { id: userId, data: { id: userDoc.id, ...userDoc.data() } };
-        }
-        return { id: userId, data: null };
-      } catch (error) {
-        logger.error(`Error fetching user ${userId}:`, error);
-        return { id: userId, data: null };
-      }
-    });
-
-    const results = await Promise.allSettled(userPromises);
+    // Use the database service for batch operations
+    const { getUsersByIds: getUsersByIdsFromDb } = await import('../db/userDbService');
+    const result = await getUsersByIdsFromDb(uniqueIds);
     
-    // Convert array to object map for easy lookup
-    const userMap = {};
-    results.forEach(result => {
-      if (result.status === 'fulfilled' && result.value) {
-        userMap[result.value.id] = result.value.data;
-      }
-    });
-
-    return { success: true, data: userMap };
+    return result;
   } catch (error) {
     logger.error('Error fetching users in bulk:', error);
     return { success: false, error: error.message };
@@ -494,16 +410,31 @@ export const getUsersByIds = async (userIds) => {
  */
 export const getAllUsers = async (options = {}) => {
   try {
-    const usersSnap = await getDocs(collection(db, 'users'));
-    let users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
+    const filters = {};
+    
     if (options.studentsOnly) {
-      users = users.filter(u => !u.isAdmin && !u.isInstructor && !u.isHR && !u.isSuperAdmin);
+      // This would need to be implemented in the DB service with complex filtering
+      filters.role = { notIn: ['admin', 'instructor', 'hr', 'superadmin'] };
     } else if (options.instructorsOnly) {
-      users = users.filter(u => u.isInstructor || u.isAdmin || u.isSuperAdmin);
+      filters.role = { in: ['admin', 'instructor', 'superadmin'] };
     }
-
-    return { success: true, data: users };
+    
+    const result = await getAllUsersFromDb(filters);
+    
+    if (result.success && (options.studentsOnly || options.instructorsOnly)) {
+      // Apply additional filtering at the business logic level
+      let users = result.data;
+      
+      if (options.studentsOnly) {
+        users = users.filter(u => !u.isAdmin && !u.isInstructor && !u.isHR && !u.isSuperAdmin);
+      } else if (options.instructorsOnly) {
+        users = users.filter(u => u.isInstructor || u.isAdmin || u.isSuperAdmin);
+      }
+      
+      return { success: true, data: users };
+    }
+    
+    return result;
   } catch (error) {
     logger.error('Error fetching all users:', error);
     return { success: false, error: error.message };
@@ -884,13 +815,15 @@ export const updateUserProgress = async (userId, progressData) => {
   try {
     logger.info('USER: Updating user progress', { userId, progressKeys: Object.keys(progressData) });
     
-    const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, {
+    const result = await updateUserInDb(userId, {
       resourceProgress: progressData
-    }, { merge: true });
+    });
     
-    logger.info('USER: Successfully updated user progress', { userId });
-    return { success: true };
+    if (result.success) {
+      logger.info('USER: Successfully updated user progress', { userId });
+    }
+    
+    return result;
   } catch (error) {
     logger.error('USER: Failed to update user progress', { error: error.message, userId });
     return { success: false, error: error.message };

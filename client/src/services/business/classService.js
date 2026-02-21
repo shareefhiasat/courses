@@ -1,15 +1,5 @@
 import logger from '@utils/logger';
-import { RECORD_TYPES } from '@utils/sharedTypes';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
-import { 
-  collection, 
-  doc, 
-  query, 
-  where, 
-  getDocs, 
-  deleteDoc 
-} from 'firebase/firestore';
-import { db } from '../other/config';
 import { getClasses as getClassesFromDb, createClass as createClassToDb, updateClass as updateClassInDb, deleteClass as deleteClassFromDb, getClass as getClassByIdFromDb } from '../db/classDbService';
 
 /**
@@ -83,49 +73,25 @@ export const deleteClass = async (id) => {
   try {
     logger.info('CLASS: Deleting class', { classId: id });
     
-    // Cascade delete: enrollments, attendance, activities linked to this class
-    const deletions = [];
-    let deletedCount = 0;
-
-    // Delete enrollments for this class
-    const enrollmentQuery = query(collection(db, "enrollments"), where("classId", "==", id));
-    const enrollmentSnap = await getDocs(enrollmentQuery);
-    enrollmentSnap.docs.forEach((d) => {
-      deletions.push(deleteDoc(doc(db, "enrollments", d.id)));
-      deletedCount++;
-    });
-
-    // Delete attendance records for this class
-    const attendanceQuery = query(collection(db, "attendance"), where("classId", "==", id));
-    const attendanceSnap = await getDocs(attendanceQuery);
-    attendanceSnap.docs.forEach((d) => {
-      deletions.push(deleteDoc(doc(db, "attendance", d.id)));
-      deletedCount++;
-    });
-
-    // Delete activities for this class
-    const activityQuery = query(collection(db, RECORD_TYPES.ACTIVITY), where("classId", "==", id));
-    const activitySnap = await getDocs(activityQuery);
-    activitySnap.docs.forEach((d) => {
-      deletions.push(deleteDoc(doc(db, RECORD_TYPES.ACTIVITY, d.id)));
-      deletedCount++;
-    });
-
-    await Promise.allSettled(deletions);
-    await deleteDoc(doc(db, "classes", id));
+    // Use database service for cascade delete
+    const { deleteClassCascade: deleteClassCascadeFromDb } = await import('../db/classDbService');
+    const result = await deleteClassCascadeFromDb(id);
     
-    // Log activity
-    try {
-      await logActivity(ACTIVITY_LOG_TYPES.CLASS_DELETED, {
-        classId: id,
-        cascadeDeletedCount: deletedCount
-      });
-    } catch (logError) {
-      logger.warn('CLASS: Failed to log class deletion:', logError);
+    if (result.success) {
+      // Log activity
+      try {
+        await logActivity(ACTIVITY_LOG_TYPES.CLASS_DELETED, {
+          classId: id,
+          cascadeDeletedCount: result.deletedCount || 0
+        });
+      } catch (logError) {
+        logger.warn('CLASS: Failed to log class deletion:', logError);
+      }
+      
+      logger.info('CLASS: Successfully deleted class', { classId: id, cascadeDeletedCount: result.deletedCount });
     }
     
-    logger.info('CLASS: Successfully deleted class', { classId: id, cascadeDeletedCount: deletedCount });
-    return { success: true };
+    return result;
   } catch (error) {
     logger.error('CLASS: Failed to delete class', { error: error.message, classId: id });
     return { success: false, error: error.message };
@@ -149,11 +115,9 @@ export const getClassById = async (id) => {
  */
 export const updateClassSchedule = async (classId, schedule) => {
   try {
-    await updateDoc(doc(db, 'classes', classId), {
-      schedule: schedule,
-      updatedAt: serverTimestamp()
-    });
-    return { success: true };
+    // Use database service to update class
+    const result = await updateClassInDb(classId, { schedule });
+    return result;
   } catch (error) {
     logger.error('Error updating class schedule:', error);
     return { success: false, error: error.message };
@@ -166,17 +130,8 @@ export const updateClassSchedule = async (classId, schedule) => {
  */
 export const getAllClasses = async () => {
   try {
-    const classesSnap = await getDocs(collection(db, 'classes'));
-    const data = classesSnap.docs.map(d => {
-      const docData = d.data();
-      const docId = d.id;
-      return {
-        ...docData,
-        docId,
-        id: docData?.id || docId
-      };
-    });
-    return { success: true, data };
+    // Use database service to get all classes
+    return await getClassesFromDb();
   } catch (error) {
     logger.error('Error fetching classes:', error);
     return { success: false, error: error.message };

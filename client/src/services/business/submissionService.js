@@ -1,17 +1,3 @@
-import { 
-  doc, 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  query, 
-  where, 
-  getDocs,
-  serverTimestamp,
-  Timestamp,
-  deleteDoc,
-  getDoc
-} from 'firebase/firestore';
-import { db } from '../other/config';
 import { SUBMISSION_STATUS, RECORD_TYPES } from '@utils/sharedTypes';
 import { 
   getSubmissionsByUser as getSubmissionsByUserFromDb,

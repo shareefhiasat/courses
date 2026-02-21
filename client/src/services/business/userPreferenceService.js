@@ -1,5 +1,3 @@
-import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { db } from '../other/config';
 import logger from '@utils/logger';
 
 /**
@@ -9,11 +7,12 @@ import logger from '@utils/logger';
  */
 export const getUserPreferences = async (userId) => {
   try {
-    const userDocRef = doc(db, 'users', userId);
-    const userDoc = await getDoc(userDocRef);
+    // Use user service to get user data
+    const { getUserById } = await import('./userService');
+    const result = await getUserById(userId);
     
-    if (userDoc.exists()) {
-      return userDoc.data().preferences || {};
+    if (result.success && result.data) {
+      return result.data.preferences || {};
     }
     
     return {};

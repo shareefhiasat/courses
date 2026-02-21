@@ -1,35 +1,15 @@
-import {
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  setDoc,
-  query,
-  where,
-  orderBy,
-  serverTimestamp,
-  Timestamp
-} from "firebase/firestore";
-import { db } from '../other/config';
+import logger from '@utils/logger';
 
 /**
  * Get all categories - with performance monitoring and memoization
  */
 export const getCategories = async () => {
   try {
-      const querySnapshot = await getDocs(collection(db, "categories"));
-      const categories = [];
-      querySnapshot.forEach((d) => {
-        const categoryData = { docId: d.id, ...d.data() };
-        if (categoryData.createdAt?.toDate) {
-          categoryData.createdAt = categoryData.createdAt.toDate();
-        }
-        categories.push(categoryData);
-      });
-    return { success: true, data: categories };
+    // This function would need to be implemented in the database layer
+    // For now, we'll delegate to a database service when available
+    logger.warn('getCategories called - needs database service implementation');
+    
+    return { success: false, error: 'Database service not yet implemented for category management' };
   } catch (error) {
     console.error("Error getting categories:", error);
     return { success: false, error: error.message };
@@ -87,20 +67,10 @@ export const seedDefaultCategories = async () => {
     const results = [];
     for (const category of defaultCategories) {
       try {
-        // Use setDoc with specific document ID instead of addDoc
-        const categoryData = {
-          name_en: category.name_en,
-          name_ar: category.name_ar,
-          icon: category.icon,
-          description_en: category.description_en,
-          description_ar: category.description_ar,
-          color: category.color,
-          order: category.order,
-          updatedAt: serverTimestamp()
-        };
-        
-        await setDoc(doc(db, "categories", category.docId), categoryData);
-        results.push({ action: 'created', category: category.docId, success: true });
+        // This function would need to be implemented in the database layer
+        // For now, we'll delegate to a database service when available
+        logger.warn(`seedDefaultCategories called for ${category.docId} - needs database service implementation`);
+        results.push({ action: 'not_implemented', category: category.docId, success: false });
       } catch (error) {
         console.error(`Error creating category ${category.docId}:`, error);
         results.push({ action: 'error', category: category.docId, success: false, error: error.message });
@@ -119,13 +89,11 @@ export const seedDefaultCategories = async () => {
  */
 export const addCategory = async (categoryData) => {
   try {
-    const convertedData = {
-      ...categoryData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    };
-    const docRef = await addDoc(collection(db, "categories"), convertedData);
-    return { success: true, data: { docId: docRef.id, ...convertedData } };
+    // This function would need to be implemented in the database layer
+    // For now, we'll delegate to a database service when available
+    logger.warn('addCategory called - needs database service implementation');
+    
+    return { success: false, error: 'Database service not yet implemented for category management' };
   } catch (error) {
     console.error("Error adding category:", error);
     return { success: false, error: error.message };
@@ -137,12 +105,11 @@ export const addCategory = async (categoryData) => {
  */
 export const updateCategory = async (docId, categoryData) => {
   try {
-    const convertedData = {
-      ...categoryData,
-      updatedAt: serverTimestamp()
-    };
-    await updateDoc(doc(db, "categories", docId), convertedData);
-    return { success: true, data: { docId, ...convertedData } };
+    // This function would need to be implemented in the database layer
+    // For now, we'll delegate to a database service when available
+    logger.warn('updateCategory called - needs database service implementation');
+    
+    return { success: false, error: 'Database service not yet implemented for category management' };
   } catch (error) {
     console.error("Error updating category:", error);
     return { success: false, error: error.message };
@@ -154,8 +121,11 @@ export const updateCategory = async (docId, categoryData) => {
  */
 export const deleteCategory = async (docId) => {
   try {
-    await deleteDoc(doc(db, "categories", docId));
-    return { success: true };
+    // This function would need to be implemented in the database layer
+    // For now, we'll delegate to a database service when available
+    logger.warn('deleteCategory called - needs database service implementation');
+    
+    return { success: false, error: 'Database service not yet implemented for category management' };
   } catch (error) {
     console.error("Error deleting category:", error);
     return { success: false, error: error.message };

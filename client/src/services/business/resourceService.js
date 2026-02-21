@@ -1,4 +1,3 @@
-import { serverTimestamp, Timestamp } from 'firebase/firestore';
 import { getUserById } from './userService';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
@@ -91,11 +90,11 @@ export const addResource = async (resourceData) => {
       return { success: false, error: validationErrors.join(', ') };
     }
     
-    const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], Timestamp);
+    const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], new Date());
     const resourceWithTimestamps = {
       ...convertedData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
 
     const result = await createResourceToDb(resourceWithTimestamps);
@@ -148,10 +147,10 @@ export const updateResource = async (id, resourceData, emailOptions = { sendEmai
       return { success: false, error: validationErrors.join(', ') };
     }
     
-    const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], Timestamp);
+    const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], new Date());
     const resourceWithTimestamps = {
       ...convertedData,
-      updatedAt: serverTimestamp()
+      updatedAt: new Date()
     };
 
     const result = await updateResourceInDb(id, resourceWithTimestamps);

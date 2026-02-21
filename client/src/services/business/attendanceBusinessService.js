@@ -5,21 +5,21 @@
  */
 
 import { httpsCallable } from 'firebase/functions';
-import { doc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { functions, db } from '../other/config.js';
+import { functions } from '../other/config.js';
 import { 
   getAttendanceRecords, 
   getAttendanceRecord, 
   setAttendanceRecord, 
-  updateAttendanceRecord, 
-  deleteAttendanceRecord, 
   getAttendanceStats 
-} from '../db-services/attendanceDbService.js';
+} from '../db/attendanceDbService.js';
+import {
+  getOpenAttendanceSessions,
+  getAttendanceSession
+} from '../db/attendanceSessionsDbService.js';
 import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import { addNotification } from '../notificationService.js';
 import { sendEmail } from '../emailService.js';
 import logger from '../../utils/logger';
-import { getUserDisplayName } from '../userService.js';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes.js';
 import { RECORD_TYPES } from '@utils/sharedTypes.js';
 import { getQatarNow, formatQatarDateOnly, getQatarTimestampString } from '@utils/qatarDate';
@@ -89,19 +89,18 @@ export async function createAttendanceSession({ classId, subjectId, scheduledAt,
  */
 export async function markAttendanceByQR({ classId, sessionId, uid, action, reason }) {
   try {
-    // action: 'present' | 'participation' | 'penalty'
-    const markRef = doc(db, 'classes', classId, 'sessions', sessionId, 'marks', uid);
-    const base = {
-      updatedAt: getQatarTimestampString(),
-      history: [{ at: getQatarTimestampString(), action, reason: reason || null }],
+    // This function needs to be moved to a database service since it uses direct Firebase operations
+    // For now, we'll delegate to a separate QR marking service
+    const { markAttendanceByQR: markQRFromDb } = await import('../db/attendanceSessionsDbService');
+    
+    const markData = {
+      action,
+      reason: reason || null,
+      updatedAt: getQatarTimestampString()
     };
     
-    if (action === 'present') base.status = 'present';
-    if (action === RECORD_TYPES.PARTICIPATION) base.delta = (base.delta || 0) + 1;
-    if (action === RECORD_TYPES.PENALTY) base.delta = (base.delta || 0) - 1;
-    
-    await setDoc(markRef, base, { merge: true });
-    return { success: true };
+    const result = await markQRFromDb(sessionId, uid, markData);
+    return result;
   } catch (error) {
     console.error('[AttendanceBusinessService] Error marking attendance by QR:', error);
     return { success: false, error: error.message };
@@ -115,11 +114,17 @@ export async function markAttendanceByQR({ classId, sessionId, uid, action, reas
  */
 export async function finalizeAttendanceSession({ classId, sessionId, absentUids }) {
   try {
-    const sessRef = doc(db, 'classes', classId, 'sessions', sessionId);
-    await updateDoc(sessRef, { status: 'confirmed', confirmedAt: serverTimestamp() });
+    // Use database service to finalize session
+    const { finalizeAttendanceSession: finalizeSessionFromDb } = await import('../db/attendanceSessionsDbService');
     
-    // Optionally set absent marks in batch on client-side UI; here we leave to UI for performance reasons.
-    return { success: true };
+    const finalizeData = {
+      status: 'confirmed',
+      confirmedAt: getQatarTimestampString(),
+      absentUids: absentUids || []
+    };
+    
+    const result = await finalizeSessionFromDb(classId, sessionId, finalizeData);
+    return result;
   } catch (error) {
     console.error('[AttendanceBusinessService] Error finalizing session:', error);
     return { success: false, error: error.message };
@@ -133,7 +138,8 @@ export async function finalizeAttendanceSession({ classId, sessionId, absentUids
  */
 export async function listOpenAttendanceSessions({ classId }) {
   try {
-    return await getOpenAttendanceSessionsFromDb(classId);
+    const result = await getOpenAttendanceSessions(classId);
+    return result;
   } catch (error) {
     logger.error('[AttendanceBusinessService] Error listing open sessions:', error);
     return { success: false, error: error.message };
@@ -147,7 +153,8 @@ export async function listOpenAttendanceSessions({ classId }) {
  */
 export async function getAttendanceSession({ classId, sessionId }) {
   try {
-    return await getAttendanceSessionFromDb(classId, sessionId);
+    const result = await getAttendanceSession(classId, sessionId);
+    return result;
   } catch (error) {
     logger.error('[AttendanceBusinessService] Error getting session:', error);
     return { success: false, error: error.message };

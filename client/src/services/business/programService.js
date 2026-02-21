@@ -1,19 +1,3 @@
-import { 
-  collection, 
-  doc, 
-  getDocs, 
-  getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  setDoc,
-  query, 
-  where, 
-  orderBy,
-  limit,
-  Timestamp
-} from 'firebase/firestore';
-import { db } from '../other/config';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { getProgramsSorted } from '../db/programDbService';
@@ -35,10 +19,12 @@ export const getPrograms = async () => {
 
 export const getProgram = async (programId) => {
   try {
-    const docRef = doc(db, 'programs', programId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
+    // Use database service to get program
+    const { getProgram: getProgramFromDb } = await import('../db/programDbService');
+    const result = await getProgramFromDb(programId);
+    
+    if (result.success) {
+      return { success: true, data: { docId: programId, ...result.data } };
     }
     return { success: false, error: 'Program not found' };
   } catch (error) {
@@ -50,11 +36,15 @@ export const createProgram = async (data) => {
   try {
     const programData = {
       ...data,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
-    const docRef = await addDoc(collection(db, 'programs'), programData);
-    return { success: true, id: docRef.id };
+    
+    // Use database service to create program
+    const { createProgram: createProgramToDb } = await import('../db/programDbService');
+    const result = await createProgramToDb(programData);
+    
+    return { success: true, id: result.id };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -62,22 +52,31 @@ export const createProgram = async (data) => {
 
 export const updateProgram = async (programId, data) => {
   try {
-    const docRef = doc(db, 'programs', programId);
-    await updateDoc(docRef, {
+    const updateData = {
       ...data,
-      updatedAt: Timestamp.now()
-    });
-    return { success: true };
+      updatedAt: new Date()
+    };
+    
+    // Use database service to update program
+    const { updateProgram: updateProgramInDb } = await import('../db/programDbService');
+    const result = await updateProgramInDb(programId, updateData);
+    
+    return result;
   } catch (error) {
+    logger.error('Error updating program:', error);
     return { success: false, error: error.message };
   }
 };
 
 export const deleteProgram = async (programId) => {
   try {
-    await deleteDoc(doc(db, 'programs', programId));
-    return { success: true };
+    // Use database service to delete program
+    const { deleteProgram: deleteProgramFromDb } = await import('../db/programDbService');
+    const result = await deleteProgramFromDb(programId);
+    
+    return result;
   } catch (error) {
+    logger.error('Error deleting program:', error);
     return { success: false, error: error.message };
   }
 };

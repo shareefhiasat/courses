@@ -1,25 +1,9 @@
-import { 
-  collection, 
-  doc, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy,
-  onSnapshot,
-  serverTimestamp,
-  limit as firebaseLimit
-} from 'firebase/firestore';
-import { db } from '../other/config';
 import { notificationGateway } from './notificationGateway';
 import { sendEmail } from './emailService';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import logger from '../../utils/logger';
 import { 
   getNotifications as getNotificationsFromDb,
-  getNotification as getNotificationFromDb,
   createNotification as createNotificationToDb,
   markNotificationAsRead as markNotificationAsReadInDb,
   markAllNotificationsAsRead as markAllNotificationsAsReadInDb,
@@ -52,7 +36,7 @@ export const addNotification = async (notification) => {
       deliveryStatus: 'sent', // sent, failed, pending
       read: false,
       readAt: null,
-      createdAt: serverTimestamp()
+      createdAt: new Date() // Will be converted to Timestamp by DB service
     };
     
     // Preserve existing data field if provided
@@ -60,20 +44,25 @@ export const addNotification = async (notification) => {
       notificationData.data = notification.data;
     }
     
-    const ref = await addDoc(collection(db, 'notifications'), notificationData);
+    const result = await createNotificationToDb(notificationData);
     
-    // Also log to notificationLogs for analytics
-    try {
-      await addDoc(collection(db, 'notificationLogs'), {
-        ...notificationData,
-        notificationId: ref.id,
-        timestamp: serverTimestamp()
-      });
-    } catch (logError) {
-      logger.warn('Failed to log notification to notificationLogs:', logError);
+    if (result.success) {
+      // Also log to notificationLogs for analytics
+      try {
+        const { logNotificationActivity } = await import('../db/notificationDbService');
+        await logNotificationActivity({
+          ...notificationData,
+          notificationId: result.id,
+          timestamp: new Date().toISOString()
+        });
+      } catch (logError) {
+        logger.warn('Failed to log notification to notificationLogs:', logError);
+      }
+      
+      return { success: true, id: result.id };
     }
     
-    return { success: true, id: ref.id };
+    return result;
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -81,8 +70,7 @@ export const addNotification = async (notification) => {
 
 export const markNotificationRead = async (notificationId) => {
   try {
-    await updateDoc(doc(db, 'notifications', notificationId), { read: true });
-    return { success: true };
+    return await markNotificationAsReadInDb(notificationId);
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -90,18 +78,7 @@ export const markNotificationRead = async (notificationId) => {
 
 export const markAllNotificationsRead = async (userId) => {
   try {
-    const q = query(
-      collection(db, 'notifications'),
-      where('userId', '==', userId),
-      where('read', '==', false)
-    );
-    const qs = await getDocs(q);
-    const updates = [];
-    qs.forEach(d => {
-      updates.push(updateDoc(doc(db, 'notifications', d.id), { read: true }));
-    });
-    await Promise.all(updates);
-    return { success: true };
+    return await markAllNotificationsAsReadInDb(userId);
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -109,8 +86,7 @@ export const markAllNotificationsRead = async (userId) => {
 
 export const deleteNotification = async (notificationId) => {
   try {
-    await deleteDoc(doc(db, 'notifications', notificationId));
-    return { success: true };
+    return await deleteNotificationFromDb(notificationId);
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -118,8 +94,7 @@ export const deleteNotification = async (notificationId) => {
 
 export const archiveNotification = async (notificationId) => {
   try {
-    await updateDoc(doc(db, 'notifications', notificationId), { archived: true, archivedAt: serverTimestamp() });
-    return { success: true };
+    return await archiveNotificationInDb(notificationId);
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -127,8 +102,9 @@ export const archiveNotification = async (notificationId) => {
 
 export const markNotificationUnread = async (notificationId) => {
   try {
-    await updateDoc(doc(db, 'notifications', notificationId), { read: false, readAt: null });
-    return { success: true };
+    // This function needs to be implemented in the DB service
+    const { markNotificationAsUnread } = await import('../db/notificationDbService');
+    return await markNotificationAsUnread(notificationId);
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -136,42 +112,36 @@ export const markNotificationUnread = async (notificationId) => {
 
 // Real-time notifications listener
 export const subscribeToNotifications = (userId, callback, includeArchived = false) => {
-  const constraints = [
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
-  ];
-  
-  if (!includeArchived) {
-    constraints.push(where('archived', '!=', true));
+  try {
+    return onNotificationsChangeFromDb(userId, callback, includeArchived);
+  } catch (error) {
+    logger.error('Error setting up notifications listener:', error);
+    return () => {}; // Return empty unsubscribe function
   }
-  
-  const q = query(collection(db, 'notifications'), ...constraints);
-  
-  return onSnapshot(q, (snapshot) => {
-    const notifications = [];
-    snapshot.forEach(doc => {
-      notifications.push({ id: doc.id, ...doc.data() });
-    });
-    callback(notifications);
-  });
 };
 
 // Bulk notification helpers
 export const notifyAllUsers = async (title, message, type = 'info', data = null) => {
   try {
     // Get all users
-    const usersSnapshot = await getDocs(collection(db, 'users'));
+    const { getUsers } = await import('./userService');
+    const usersResult = await getUsers();
+    
+    if (!usersResult.success) {
+      return usersResult;
+    }
+    
     const notifications = [];
     
-    usersSnapshot.forEach(userDoc => {
+    for (const user of usersResult.data) {
       notifications.push(addNotification({
-        userId: userDoc.id,
+        userId: user.id,
         title,
         message,
         type,
         data
       }));
-    });
+    }
     
     await Promise.all(notifications);
     return { success: true };
@@ -183,15 +153,16 @@ export const notifyAllUsers = async (title, message, type = 'info', data = null)
 export const notifyUsersByClass = async (classId, title, message, type = 'info', data = null) => {
   try {
     // Get enrollments for this class
-    const enrollmentsQuery = query(
-      collection(db, 'enrollments'),
-      where('classId', '==', classId)
-    );
-    const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+    const { getEnrollmentsByClass } = await import('./enrollmentService');
+    const enrollmentsResult = await getEnrollmentsByClass(classId);
+    
+    if (!enrollmentsResult.success) {
+      return enrollmentsResult;
+    }
+    
     const notifications = [];
     
-    enrollmentsSnapshot.forEach(enrollmentDoc => {
-      const enrollment = enrollmentDoc.data();
+    for (const enrollment of enrollmentsResult.data) {
       notifications.push(addNotification({
         userId: enrollment.userId,
         title,
@@ -199,7 +170,7 @@ export const notifyUsersByClass = async (classId, title, message, type = 'info',
         type,
         data: { ...data, classId }
       }));
-    });
+    }
     
     await Promise.all(notifications);
     return { success: true };

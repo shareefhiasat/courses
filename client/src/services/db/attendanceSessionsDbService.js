@@ -248,3 +248,72 @@ export const updateAttendanceMark = async (sessionId, uid, updateData) => {
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Get attendance marks for export
+ * @param {string} sessionId - Session ID
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getAttendanceMarksForExport = async (sessionId) => {
+  try {
+    const q = query(collection(db, 'attendanceSessions', sessionId, 'marks'));
+    const querySnapshot = await getDocs(q);
+    const marks = querySnapshot.docs.map(doc => ({ 
+      uid: doc.id, 
+      ...doc.data() 
+    }));
+    return { success: true, data: marks };
+  } catch (error) {
+    logger.error('[AttendanceSessionsDbService] Error getting attendance marks for export:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Mark attendance by QR scan
+ * @param {string} sessionId - Session ID
+ * @param {string} uid - User ID
+ * @param {Object} markData - Mark data
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const markAttendanceByQR = async (sessionId, uid, markData) => {
+  try {
+    const markRef = doc(db, 'attendanceSessions', sessionId, 'marks', uid);
+    const base = {
+      ...markData,
+      history: [{ at: markData.updatedAt, action: markData.action, reason: markData.reason || null }],
+    };
+    
+    if (markData.action === 'present') base.status = 'present';
+    if (markData.action === 'participation') base.delta = (base.delta || 0) + 1;
+    if (markData.action === 'penalty') base.delta = (base.delta || 0) - 1;
+    
+    await setDoc(markRef, base, { merge: true });
+    return { success: true };
+  } catch (error) {
+    logger.error('[AttendanceSessionsDbService] Error marking attendance by QR:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Finalize attendance session
+ * @param {string} classId - Class ID
+ * @param {string} sessionId - Session ID
+ * @param {Object} finalizeData - Finalization data
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const finalizeAttendanceSession = async (classId, sessionId, finalizeData) => {
+  try {
+    const sessRef = doc(db, 'classes', classId, 'sessions', sessionId);
+    await updateDoc(sessRef, {
+      ...finalizeData,
+      updatedAt: serverTimestamp()
+    });
+    
+    return { success: true };
+  } catch (error) {
+    logger.error('[AttendanceSessionsDbService] Error finalizing attendance session:', error);
+    return { success: false, error: error.message };
+  }
+};

@@ -1,16 +1,3 @@
-import { 
-  doc, 
-  getDoc, 
-  query, 
-  where, 
-  getDocs, 
-  collection,
-  Timestamp, 
-  arrayUnion, 
-  increment, 
-  serverTimestamp 
-} from 'firebase/firestore';
-import { db } from '../other/config';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { notificationGateway } from './notificationGateway';
 import logger from '@utils/logger';
@@ -23,6 +10,8 @@ import {
   updateEnrollment as updateEnrollmentInDb,
   deleteEnrollment as deleteEnrollmentFromDb
 } from '../db/enrollmentDbService';
+import { getUserById, updateUser } from './userService';
+import { getClassById } from './classService';
 
 /**
  * Unified Enrollment Service
@@ -54,29 +43,35 @@ export const addEnrollment = async (data) => {
     if (!userId || !classId)
       return { success: false, error: "userId and classId are required" };
     const detId = `${userId}_${classId}`;
-    // Write deterministic enrollment doc
-    await setDoc(
-      doc(db, "enrollments", detId),
-      { ...data, createdAt: Timestamp.now() },
-      { merge: true }
-    );
-    // Keep users/{uid}.enrolledClasses in sync
+    
+    // Use database service to set enrollment
+    const enrollmentData = {
+      ...data,
+      createdAt: new Date()
+    };
+    const result = await setEnrollmentToDb(detId, enrollmentData);
+    
+    if (!result.success) {
+      return result;
+    }
+    
+    // Update user's enrolledClasses array
     try {
-      await updateDoc(doc(db, "users", userId), {
-        enrolledClasses: arrayUnion(classId),
-      });
-    } catch {}
-
-    // Update student progress
-    try {
-      const progressRef = doc(db, "studentProgress", userId);
-      const progressSnap = await getDoc(progressRef);
-      if (progressSnap.exists()) {
-        await updateDoc(progressRef, {
-          enrolledClasses: increment(1),
-          updatedAt: serverTimestamp(),
-        });
+      const userResult = await getUserById(userId);
+      if (userResult.success) {
+        const currentEnrolledClasses = userResult.data.enrolledClasses || [];
+        const updatedEnrolledClasses = [...new Set([...currentEnrolledClasses, classId])];
+        await updateUser(userId, { enrolledClasses: updatedEnrolledClasses });
       }
+    } catch (error) {
+      logger.warn("Failed to update user enrolledClasses:", error);
+    }
+
+    // Update student progress (if needed)
+    try {
+      // This would need to be implemented in studentProgressDbService
+      const { updateStudentProgress } = await import('../db/studentProgressDbService');
+      await updateStudentProgress(userId, { enrolledClasses: 1 });
     } catch (e) {
       logger.warn("Failed to update student progress:", e);
     }
@@ -90,27 +85,27 @@ export const addEnrollment = async (data) => {
 // Delete enrollment
 export const deleteEnrollment = async (id) => {
   try {
-    const enrollmentDoc = await getDoc(doc(db, "enrollments", id));
-    if (enrollmentDoc.exists()) {
-      const enrollmentData = enrollmentDoc.data();
+    // Use database service to get enrollment data before deletion
+    const { getEnrollment } = await import('../db/enrollmentDbService');
+    const enrollmentResult = await getEnrollment(id);
+    
+    if (enrollmentResult.success && enrollmentResult.data) {
+      const enrollmentData = enrollmentResult.data;
       const userId = enrollmentData.userId;
       const classId = enrollmentData.classId;
 
       // Cascade delete: attendance records for this enrollment
-      const attendanceQuery = query(
-        collection(db, "attendance"),
-        where("studentId", "==", userId),
-        where("classId", "==", classId)
-      );
-      const attendanceSnap = await getDocs(attendanceQuery);
-      const attendanceDeletions = attendanceSnap.docs.map((d) =>
-        deleteDoc(doc(db, "attendance", d.id))
-      );
-      await Promise.allSettled(attendanceDeletions);
+      try {
+        const { deleteAttendanceByStudentClass } = await import('../db/attendanceDbService');
+        await deleteAttendanceByStudentClass(userId, classId);
+      } catch (error) {
+        logger.warn("Failed to cascade delete attendance records:", error);
+      }
     }
 
-    await deleteDoc(doc(db, "enrollments", id));
-    return { success: true };
+    // Use database service to delete enrollment
+    const result = await deleteEnrollmentFromDb(id);
+    return result;
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -144,9 +139,15 @@ export const getEnrollmentsByClass = async (classId) => {
 export const getStudentsByClass = async (classId) => {
   try {
     // Get enrollments for this class
-    const q = query(collection(db, "enrollments"), where("classId", "==", classId));
-    const enrollmentsSnap = await getDocs(q);
-    const enrollmentIds = enrollmentsSnap.docs.map(d => d.data().userId).filter(Boolean);
+    const enrollmentsResult = await getEnrollmentsByClassFromDb(classId);
+    
+    if (!enrollmentsResult.success) {
+      return enrollmentsResult;
+    }
+    
+    const enrollmentIds = enrollmentsResult.data
+      .map(enrollment => enrollment.userId)
+      .filter(Boolean);
     
     if (enrollmentIds.length === 0) {
       return { success: true, data: [] };
@@ -155,9 +156,9 @@ export const getStudentsByClass = async (classId) => {
     // Fetch user data for all enrolled students
     const studentsData = await Promise.all(
       enrollmentIds.map(async (studentId) => {
-        const studentDoc = await getDoc(doc(db, 'users', studentId));
-        if (studentDoc.exists()) {
-          const data = studentDoc.data();
+        const userResult = await getUserById(studentId);
+        if (userResult.success && userResult.data) {
+          const data = userResult.data;
           return { id: studentId, ...data, displayName: data.displayName || data.email };
         }
         return null;
@@ -184,13 +185,18 @@ export const getStudentsByClass = async (classId) => {
  */
 export const getClassWithDisabledStudents = async (classId) => {
   try {
-    const classDoc = await getDoc(doc(db, 'classes', classId));
-    const classData = classDoc.exists() ? classDoc.data() : {};
+    // Use database service to get class data
+    const classResult = await getClassById(classId);
+    
+    if (!classResult.success) {
+      return classResult;
+    }
+    
     return {
       success: true,
       data: {
-        ...classData,
-        disabledStudents: classData.disabledStudents || []
+        ...classResult.data,
+        disabledStudents: classResult.data.disabledStudents || []
       }
     };
   } catch (error) {
@@ -205,13 +211,21 @@ export const getClassWithDisabledStudents = async (classId) => {
  */
 export const getAllUsers = async () => {
   try {
-    const usersSnap = await getDocs(collection(db, 'users'));
-    const allUsers = usersSnap.docs.map(d => ({ 
-      docId: d.id, 
-      id: d.id, 
-      ...d.data() 
-    }));
-    return { success: true, data: allUsers };
+    // Use user service to get all users
+    const { getUsers } = await import('./userService');
+    const result = await getUsers();
+    
+    if (result.success) {
+      // Transform data to match expected format
+      const allUsers = result.data.map(user => ({
+        docId: user.id,
+        id: user.id,
+        ...user
+      }));
+      return { success: true, data: allUsers };
+    }
+    
+    return result;
   } catch (error) {
     logger.error('Error fetching all users:', error);
     return { success: false, error: error.message };
@@ -320,13 +334,19 @@ export const getEnrolledStudents = async (classId, options = {}) => {
 export const toggleStudentAccess = async (classId, studentId, currentlyDisabled, options = {}) => {
   try {
     const { studentEmail, studentName, className, instructorName, lang = 'en' } = options;
-    const classRef = doc(db, 'classes', classId);
+    
+    // Get current class data
+    const classResult = await getClassById(classId);
+    if (!classResult.success) {
+      return { success: false, error: 'Class not found' };
+    }
+    
+    const currentDisabledStudents = classResult.data.disabledStudents || [];
+    let updatedDisabledStudents;
     
     if (currentlyDisabled) {
       // Enable student (remove from disabledStudents array)
-      await updateDoc(classRef, {
-        disabledStudents: arrayRemove(studentId)
-      });
+      updatedDisabledStudents = currentDisabledStudents.filter(id => id !== studentId);
       
       // Log activity
       await logActivity(ACTIVITY_LOG_TYPES.STUDENT_ACCESS_ENABLED, {
@@ -351,9 +371,7 @@ export const toggleStudentAccess = async (classId, studentId, currentlyDisabled,
       
     } else {
       // Disable student (add to disabledStudents array)
-      await updateDoc(classRef, {
-        disabledStudents: arrayUnion(studentId)
-      });
+      updatedDisabledStudents = [...new Set([...currentDisabledStudents, studentId])];
       
       // Log activity
       await logActivity(ACTIVITY_LOG_TYPES.STUDENT_ACCESS_DISABLED, {
@@ -377,8 +395,11 @@ export const toggleStudentAccess = async (classId, studentId, currentlyDisabled,
       }
     }
     
+    // Update class with new disabledStudents array
+    const updateResult = await updateClassInDb(classId, { disabledStudents: updatedDisabledStudents });
+    
     return { 
-      success: true, 
+      success: updateResult.success, 
       data: { 
         enabled: currentlyDisabled,
         disabled: !currentlyDisabled,
@@ -407,12 +428,16 @@ export const enrollStudent = async (classId, studentId, options = {}) => {
       userId: studentId,
       classId,
       role: 'student',
-      enrolledAt: serverTimestamp(),
+      enrolledAt: new Date(),
       enrolledBy: instructorName || 'System'
     };
     
-    const enrollmentRef = doc(collection(db, 'enrollments'));
-    await setDoc(enrollmentRef, enrollmentData);
+    // Use database service to create enrollment
+    const result = await setEnrollmentToDb(`${studentId}_${classId}`, enrollmentData);
+    
+    if (!result.success) {
+      return result;
+    }
     
     // Log activity
     await logActivity(ACTIVITY_LOG_TYPES.STUDENT_ENROLLED, {
@@ -453,26 +478,22 @@ export const unenrollStudent = async (classId, studentId, options = {}) => {
   try {
     const { studentEmail, studentName, className, instructorName, lang = 'en' } = options;
     
-    // Find and delete enrollment document
-    const q = query(
-      collection(db, 'enrollments'), 
-      where('userId', '==', studentId), 
-      where('classId', '==', classId)
-    );
-    const querySnapshot = await getDocs(q);
+    // Use database service to delete enrollment
+    const enrollmentId = `${studentId}_${classId}`;
+    const deleteResult = await deleteEnrollmentFromDb(enrollmentId);
     
-    if (querySnapshot.empty) {
-      throw new Error('Enrollment not found');
+    if (!deleteResult.success) {
+      throw new Error('Enrollment not found or could not be deleted');
     }
     
-    const enrollmentDoc = querySnapshot.docs[0];
-    await deleteDoc(enrollmentDoc.ref);
-    
     // Remove from disabledStudents if present
-    const classRef = doc(db, 'classes', classId);
-    await updateDoc(classRef, {
-      disabledStudents: arrayRemove(studentId)
-    });
+    const classResult = await getClassById(classId);
+    if (classResult.success) {
+      const currentDisabledStudents = classResult.data.disabledStudents || [];
+      const updatedDisabledStudents = currentDisabledStudents.filter(id => id !== studentId);
+      
+      await updateClassInDb(classId, { disabledStudents: updatedDisabledStudents });
+    }
     
     // Log activity
     await logActivity(ACTIVITY_LOG_TYPES.STUDENT_UNENROLLED, {

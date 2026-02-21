@@ -7,10 +7,15 @@ import {
 import { 
   getAnnouncements as getAnnouncementsFromDb,
   getAnnouncement as getAnnouncementFromDb,
-  createAnnouncement as createAnnouncementToDb
+  createAnnouncement as createAnnouncementToDb,
+  updateAnnouncement as updateAnnouncementInDb,
+  deleteAnnouncement as deleteAnnouncementFromDb
 } from '../db/announcementDbService';
 import { 
-  createResource as createResourceToDb
+  createResource as createResourceToDb,
+  getResources as getResourcesFromDb,
+  updateResource as updateResourceInDb,
+  deleteResource as deleteResourceFromDb
 } from '../db/resourceDbService';
 import { 
   getLoginLogs as getLoginLogsFromDb,
@@ -26,8 +31,6 @@ import { NOTIFICATION_TRIGGERS, RECORD_TYPES } from '@constants';
 import logger from '@utils/logger';
 import { handleServiceError, withRetry, measurePerformance, memoize, batchOperation } from '@utils/errorHandling';
 import { validateEntity, validateBilingualField } from '@utils/validationHelpers';
-import { collection, query, orderBy, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, Timestamp } from 'firebase/firestore';
-import { db } from '../other/config';
 
 const ACTIVITY_VALIDATION_RULES = [
   { field: 'type', required: true, type: 'string', label: 'Activity type' },
@@ -93,8 +96,8 @@ export const addActivity = async (activityData) => {
     
     const activityDataWithTimestamps = {
       ...convertedData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
 
     const result = await createActivityToDb(activityDataWithTimestamps);
@@ -173,36 +176,40 @@ export const updateActivity = async (id, activityData, emailOptions = { sendEmai
     const convertedData = activityData; // No date conversion - save as-is
     logger.debug('[SERVICE] Saving data directly without conversion');
     
-    await updateDoc(doc(db, RECORD_TYPES.ACTIVITY, id), {
+    const updateData = {
       ...convertedData,
-      updatedAt: serverTimestamp()
-    });
+      updatedAt: new Date()
+    };
+
+    const result = await updateActivityInDb(id, updateData);
 
     // Send notifications for updated activity only if email is enabled
     if (activityData.classId && emailOptions.sendEmail) {
       try {
-        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', activityData.classId)));
-        const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
+        // Use enrollment service to get students
+        const { getStudentsByClass } = await import('./enrollmentService');
+        const studentsResult = await getStudentsByClass(activityData.classId);
         
-        for (const studentId of studentIds) {
-          const { data: student } = await getUserById(studentId);
-          if (student && student.email) {
-            await notificationGateway.send(NOTIFICATION_TRIGGERS.ACTIVITY_UPDATED, {
-              userId: studentId,
-              role: 'student',
-              classId: activityData.classId,
-              title: 'Activity Updated',
-              message: `Activity "${activityData.title_en || activityData.title}" has been updated.`,
-              email: student.email,
-              activityId: id,
-              type: activityData.type,
-              variables: {
-                activityTitle: activityData.title_en || activityData.title,
-                activityType: activityData.type,
-                dueDate: activityData.dueDate,
-                classId: activityData.classId
-              }
-            });
+        if (studentsResult.success) {
+          for (const student of studentsResult.data) {
+            if (student.email) {
+              await notificationGateway.send(NOTIFICATION_TRIGGERS.ACTIVITY_UPDATED, {
+                userId: student.id,
+                role: 'student',
+                classId: activityData.classId,
+                title: 'Activity Updated',
+                message: `Activity "${activityData.title_en || activityData.title}" has been updated.`,
+                email: student.email,
+                activityId: id,
+                type: activityData.type,
+                variables: {
+                  activityTitle: activityData.title_en || activityData.title,
+                  activityType: activityData.type,
+                  dueDate: activityData.dueDate,
+                  classId: activityData.classId
+                }
+              });
+            }
           }
         }
       } catch (notificationError) {
@@ -210,7 +217,7 @@ export const updateActivity = async (id, activityData, emailOptions = { sendEmai
       }
     }
 
-    return { success: true };
+    return result;
   } catch (error) {
     logger.error("Error updating activity:", error);
     return { success: false, error: error.message };
@@ -221,10 +228,10 @@ export const deleteActivity = async (id, activityData = null) => {
   try {
     logger.info('ACTIVITY: Deleting activity', { activityId: id, hasActivityData: !!activityData });
     
-    await deleteDoc(doc(db, RECORD_TYPES.ACTIVITY, id));
+    const result = await deleteActivityFromDb(id);
     
     // Log activity deletion if activity data is provided
-    if (activityData) {
+    if (activityData && result.success) {
       try {
         await logActivity(ACTIVITY_LOG_TYPES.ACTIVITY_DELETED, {
           activityId: id,
@@ -237,7 +244,7 @@ export const deleteActivity = async (id, activityData = null) => {
     }
     
     logger.info('ACTIVITY: Successfully deleted activity', { activityId: id });
-    return { success: true };
+    return result;
   } catch (error) {
     logger.error('ACTIVITY: Failed to delete activity', { error: error.message, activityId: id });
     logger.error("Error deleting activity:", error);
@@ -289,27 +296,29 @@ export const addAnnouncement = async (announcementData) => {
     // Send notifications for new announcement
     if (announcementData.classId) {
       try {
-        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', announcementData.classId)));
-        const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
+        // Use enrollment service to get students
+        const { getStudentsByClass } = await import('./enrollmentService');
+        const studentsResult = await getStudentsByClass(announcementData.classId);
         
-        for (const studentId of studentIds) {
-          const { data: student } = await getUserById(studentId);
-          if (student && student.email) {
-            await notificationGateway.send(NOTIFICATION_TRIGGERS.ANNOUNCEMENT_NEW, {
-              userId: studentId,
-              role: 'student',
-              classId: announcementData.classId,
-              title: 'New Announcement',
-              message: announcementData.title,
-              type: 'announcement',
-              email: student.email,
-              templateId: 'announcementNew',
-              variables: {
-                studentName: student.displayName || student.name || 'Student',
-                announcementTitle: announcementData.title,
-                announcementContent: announcementData.content
-              }
-            });
+        if (studentsResult.success) {
+          for (const student of studentsResult.data) {
+            if (student.email) {
+              await notificationGateway.send(NOTIFICATION_TRIGGERS.ANNOUNCEMENT_NEW, {
+                userId: student.id,
+                role: 'student',
+                classId: announcementData.classId,
+                title: 'New Announcement',
+                message: announcementData.title,
+                type: 'announcement',
+                email: student.email,
+                templateId: 'announcementNew',
+                variables: {
+                  studentName: student.displayName || student.name || 'Student',
+                  announcementTitle: announcementData.title,
+                  announcementContent: announcementData.content
+                }
+              });
+            }
           }
         }
       } catch (notifyError) {
@@ -317,7 +326,7 @@ export const addAnnouncement = async (announcementData) => {
       }
     }
 
-    return { success: true, id: docRef.id };
+    return { success: true, id: result.id };
   } catch (error) {
     logger.error("Error adding announcement:", error);
     return { success: false, error: error.message };
@@ -326,34 +335,39 @@ export const addAnnouncement = async (announcementData) => {
 
 export const updateAnnouncement = async (id, announcementData, emailOptions = { sendEmail: true }) => {
   try {
-    await updateDoc(doc(db, "announcements", id), {
+    // Use database service to update announcement
+    const updateData = {
       ...announcementData,
-      updatedAt: serverTimestamp()
-    });
+      updatedAt: new Date()
+    };
+    
+    const result = await updateAnnouncementInDb(id, updateData);
 
     // Send notifications for updated announcement only if email is enabled
     if (announcementData.classId && emailOptions.sendEmail) {
       try {
-        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', announcementData.classId)));
-        const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
+        // Use enrollment service to get students
+        const { getStudentsByClass } = await import('./enrollmentService');
+        const studentsResult = await getStudentsByClass(announcementData.classId);
         
-        for (const studentId of studentIds) {
-          const { data: student } = await getUserById(studentId);
-          if (student && student.email) {
-            await notificationGateway.send(NOTIFICATION_TRIGGERS.ANNOUNCEMENT_UPDATED, {
-              userId: studentId,
-              role: 'student',
-              classId: announcementData.classId,
-              title: 'Announcement Updated',
-              message: announcementData.title,
-              email: student.email,
-              announcementId: id,
-              variables: {
-                announcementTitle: announcementData.title,
-                announcementContent: announcementData.content,
-                classId: announcementData.classId
-              }
-            });
+        if (studentsResult.success) {
+          for (const student of studentsResult.data) {
+            if (student.email) {
+              await notificationGateway.send(NOTIFICATION_TRIGGERS.ANNOUNCEMENT_UPDATED, {
+                userId: student.id,
+                role: 'student',
+                classId: announcementData.classId,
+                title: 'Announcement Updated',
+                message: announcementData.title,
+                email: student.email,
+                announcementId: id,
+                variables: {
+                  announcementTitle: announcementData.title,
+                  announcementContent: announcementData.content,
+                  classId: announcementData.classId
+                }
+              });
+            }
           }
         }
       } catch (notificationError) {
@@ -361,7 +375,7 @@ export const updateAnnouncement = async (id, announcementData, emailOptions = { 
       }
     }
 
-    return { success: true };
+    return result;
   } catch (error) {
     logger.error("Error updating announcement:", error);
     return { success: false, error: error.message };
@@ -370,8 +384,9 @@ export const updateAnnouncement = async (id, announcementData, emailOptions = { 
 
 export const deleteAnnouncement = async (id) => {
   try {
-    await deleteDoc(doc(db, "announcements", id));
-    return { success: true };
+    // Use database service to delete announcement
+    const result = await deleteAnnouncementFromDb(id);
+    return result;
   } catch (error) {
     logger.error("Error deleting announcement:", error);
     return { success: false, error: error.message };
@@ -381,62 +396,20 @@ export const deleteAnnouncement = async (id) => {
 // Resources - Enhanced with filtering and pagination
 export const getResources = async (filters = {}, pagination = {}) => {
   try {
-    const {
-      programId,
-      subjectId, 
-      classId,
-      category,
-      isPublic = null // null = all, true = public only, false = assigned only
-    } = filters;
+    // Use database service to get resources with filters
+    const result = await getResourcesFromDb(filters);
+    
+    if (!result.success) {
+      return result;
+    }
     
     const {
       limit = 100,
       offset = 0
     } = pagination;
 
-    // Build query constraints
-    const constraints = [orderBy("createdAt", "desc")];
-    
-    // Add filters
-    if (programId) {
-      constraints.push(where("programId", "==", programId));
-    }
-    if (subjectId) {
-      constraints.push(where("subjectId", "==", subjectId));
-    }
-    if (classId) {
-      constraints.push(where("classId", "==", classId));
-    }
-    if (category) {
-      constraints.push(where("category", "==", category));
-    }
-    if (isPublic === true) {
-      // Public resources have no program/subject/class assignments
-      constraints.push(where("programId", "==", null));
-      constraints.push(where("subjectId", "==", null));
-      constraints.push(where("classId", "==", null));
-    } else if (isPublic === false) {
-      // Assigned resources have at least one assignment
-      constraints.push(
-        where("programId", "!=", null)
-      );
-    }
-
-    const q = query(collection(db, "resources"), ...constraints);
-    const querySnapshot = await getDocs(q);
-    
-    const resources = [];
-    querySnapshot.forEach((d) => {
-      const data = d.data();
-      resources.push({
-        id: d.id,
-        ...data,
-        createdAt: data.createdAt?.toDate(),
-        updatedAt: data.updatedAt?.toDate()
-      });
-    });
-
-    // Apply pagination in memory (Firestore doesn't support offset directly with complex queries)
+    // Apply pagination in memory
+    const resources = result.data || [];
     const startIndex = offset || 0;
     const endIndex = startIndex + (limit || resources.length);
     const paginatedResources = resources.slice(startIndex, endIndex);
@@ -456,38 +429,14 @@ export const getResources = async (filters = {}, pagination = {}) => {
 // Get resource count for analytics dashboard (optimized for performance)
 export const getResourceCount = async (filters = {}) => {
   try {
-    const {
-      programId,
-      subjectId, 
-      classId
-    } = filters;
-
-    // For counting, we need to query in parts due to Firestore limitations
-    const constraints = [];
+    // Use database service to get resource count
+    const result = await getResourcesFromDb(filters);
     
-    // Add filters
-    if (programId) {
-      constraints.push(where("programId", "==", programId));
+    if (!result.success) {
+      return { success: false, error: result.error, count: 0 };
     }
-    if (subjectId) {
-      constraints.push(where("subjectId", "==", subjectId));
-    }
-    if (classId) {
-      constraints.push(where("classId", "==", classId));
-    }
-
-    // If no filters, get total count
-    if (constraints.length === 0) {
-      const q = query(collection(db, "resources"));
-      const querySnapshot = await getDocs(q);
-      return { success: true, count: querySnapshot.size };
-    }
-
-    // With filters, apply them
-    const q = query(collection(db, "resources"), ...constraints);
-    const querySnapshot = await getDocs(q);
     
-    return { success: true, count: querySnapshot.size };
+    return { success: true, count: (result.data || []).length };
   } catch (error) {
     logger.error("Error getting resource count:", error);
     return { success: false, error: error.message, count: 0 };
@@ -506,11 +455,11 @@ export const getAllResources = async () => {
 
 export const addResource = async (resourceData) => {
   try {
-    const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], Timestamp);
+    const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], new Date());
     const resourceWithTimestamps = {
       ...convertedData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
 
     const result = await createResourceToDb(resourceWithTimestamps);
@@ -518,27 +467,29 @@ export const addResource = async (resourceData) => {
     // Send notifications for new resource
     if (resourceData.classId) {
       try {
-        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', resourceData.classId)));
-        const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
+        // Use enrollment service to get students
+        const { getStudentsByClass } = await import('./enrollmentService');
+        const studentsResult = await getStudentsByClass(resourceData.classId);
         
-        for (const studentId of studentIds) {
-          const { data: student } = await getUserById(studentId);
-          if (student && student.email) {
-            await notificationGateway.send(NOTIFICATION_TRIGGERS.RESOURCE_NEW, {
-              userId: studentId,
-              role: 'student',
-              classId: resourceData.classId,
-              title: 'New Resource Available',
-              message: `A new resource "${resourceData.title}" has been uploaded to your class.`,
-              type: RECORD_TYPES.RESOURCE || 'resource',
-              email: student.email,
-              templateId: 'resourceNew',
-              variables: {
-                studentName: student.displayName || student.name || 'Student',
-                resourceTitle: resourceData.title,
-                resourceType: resourceData.type || 'document'
-              }
-            });
+        if (studentsResult.success) {
+          for (const student of studentsResult.data) {
+            if (student.email) {
+              await notificationGateway.send(NOTIFICATION_TRIGGERS.RESOURCE_NEW, {
+                userId: student.id,
+                role: 'student',
+                classId: resourceData.classId,
+                title: 'New Resource Available',
+                message: `A new resource "${resourceData.title}" has been uploaded to your class.`,
+                type: RECORD_TYPES.RESOURCE || 'resource',
+                email: student.email,
+                templateId: 'resourceNew',
+                variables: {
+                  studentName: student.displayName || student.name || 'Student',
+                  resourceTitle: resourceData.title,
+                  resourceType: resourceData.type || 'document'
+                }
+              });
+            }
           }
         }
       } catch (notifyError) {
@@ -546,7 +497,7 @@ export const addResource = async (resourceData) => {
       }
     }
 
-    return { success: true, id: docRef.id };
+    return { success: true, id: result.id };
   } catch (error) {
     logger.error("Error adding resource:", error);
     return { success: false, error: error.message };
@@ -559,37 +510,42 @@ export const updateResource = async (id, resourceData, emailOptions = { sendEmai
       throw new Error('Resource ID is required for update');
     }
     
-    const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], Timestamp);
-    await updateDoc(doc(db, "resources", id), {
+    const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], new Date());
+    const updateData = {
       ...convertedData,
-      updatedAt: serverTimestamp()
-    });
+      updatedAt: new Date()
+    };
+    
+    // Use database service to update resource
+    const result = await updateResourceInDb(id, updateData);
 
     // Send notifications for updated resource only if email is enabled
     if (resourceData.classId && emailOptions.sendEmail) {
       try {
-        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', resourceData.classId)));
-        const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
+        // Use enrollment service to get students
+        const { getStudentsByClass } = await import('./enrollmentService');
+        const studentsResult = await getStudentsByClass(resourceData.classId);
         
-        for (const studentId of studentIds) {
-          const { data: student } = await getUserById(studentId);
-          if (student && student.email) {
-            await notificationGateway.send(NOTIFICATION_TRIGGERS.RESOURCE_UPDATED, {
-              userId: studentId,
-              role: 'student',
-              classId: resourceData.classId,
-              title: 'Resource Updated',
-              message: `Resource "${resourceData.title_en || resourceData.title}" has been updated.`,
-              email: student.email,
-              resourceId: id,
-              url: resourceData.url,
-              variables: {
-                resourceTitle: resourceData.title_en || resourceData.title,
-                resourceUrl: resourceData.url,
-                resourceDescription: resourceData.description_en || resourceData.description,
-                classId: resourceData.classId
-              }
-            });
+        if (studentsResult.success) {
+          for (const student of studentsResult.data) {
+            if (student.email) {
+              await notificationGateway.send(NOTIFICATION_TRIGGERS.RESOURCE_UPDATED, {
+                userId: student.id,
+                role: 'student',
+                classId: resourceData.classId,
+                title: 'Resource Updated',
+                message: `Resource "${resourceData.title_en || resourceData.title}" has been updated.`,
+                email: student.email,
+                resourceId: id,
+                url: resourceData.url,
+                variables: {
+                  resourceTitle: resourceData.title_en || resourceData.title,
+                  resourceUrl: resourceData.url,
+                  resourceDescription: resourceData.description_en || resourceData.description,
+                  classId: resourceData.classId
+                }
+              });
+            }
           }
         }
       } catch (notificationError) {
@@ -597,7 +553,7 @@ export const updateResource = async (id, resourceData, emailOptions = { sendEmai
       }
     }
 
-    return { success: true };
+    return result;
   } catch (error) {
     logger.error("Error updating resource:", error);
     return { success: false, error: error.message };
@@ -606,8 +562,9 @@ export const updateResource = async (id, resourceData, emailOptions = { sendEmai
 
 export const deleteResource = async (id) => {
   try {
-    await deleteDoc(doc(db, "resources", id));
-    return { success: true };
+    // Use database service to delete resource
+    const result = await deleteResourceFromDb(id);
+    return result;
   } catch (error) {
     logger.error("Error deleting resource:", error);
     return { success: false, error: error.message };

@@ -1,18 +1,4 @@
 import { 
-  collection, 
-  doc, 
-  getDocs, 
-  getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy,
-  Timestamp
-} from 'firebase/firestore';
-import { db } from '../other/config';
-import { 
   getSubjects as getSubjectsFromDb,
   getSubject as getSubjectFromDb,
   createSubject as createSubjectToDb,

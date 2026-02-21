@@ -1,16 +1,3 @@
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  collection, 
-  query, 
-  where, 
-  getDocs,
-  serverTimestamp,
-  increment
-} from 'firebase/firestore';
-import { db } from '../other/config';
 import logger from '@utils/logger';
 import { 
   getStudentProgress as getStudentProgressFromDb,
@@ -62,8 +49,8 @@ export async function getStudentProgress(userId) {
           weakTopics: []
         },
         learningTimeData: [],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
       
       await initializeStudentProgressToDb(userId);
@@ -80,12 +67,12 @@ export async function getStudentProgress(userId) {
  */
 export async function updateProgressAfterQuiz(userId, quizData) {
   try {
-    const docRef = doc(db, 'studentProgress', userId);
-    const docSnap = await getDoc(docRef);
+    // Use database service to get current progress
+    const currentResult = await getStudentProgressFromDb(userId);
     
     let currentData = {};
-    if (docSnap.exists()) {
-      currentData = docSnap.data();
+    if (currentResult.success) {
+      currentData = currentResult.data;
     }
     
     const quizStats = currentData.quizStats || {};
@@ -93,12 +80,14 @@ export async function updateProgressAfterQuiz(userId, quizData) {
     const totalPoints = (quizStats.totalPoints || 0) + quizData.score;
     const newAverage = totalPoints / totalCompleted;
     
-    await updateDoc(docRef, {
-      'quizStats.totalQuizzesCompleted': increment(1),
-      'quizStats.totalPoints': increment(quizData.score),
+    const updateData = {
+      'quizStats.totalQuizzesCompleted': (quizStats.totalQuizzesCompleted || 0) + 1,
+      'quizStats.totalPoints': (quizStats.totalPoints || 0) + quizData.score,
       'quizStats.averageScore': newAverage,
-      updatedAt: serverTimestamp()
-    });
+      updatedAt: new Date()
+    };
+    
+    const result = await updateStudentProgressInDb(userId, updateData);
     
     // Update learning streak
     await updateLearningStreak(userId);
@@ -115,12 +104,14 @@ export async function updateProgressAfterQuiz(userId, quizData) {
  */
 export async function updateLearningStreak(userId) {
   try {
-    const docRef = doc(db, 'studentProgress', userId);
-    const docSnap = await getDoc(docRef);
+    // Use database service to get current progress
+    const currentResult = await getStudentProgressFromDb(userId);
     
-    if (!docSnap.exists()) return { success: false, error: 'Progress not found' };
+    if (!currentResult.success) {
+      return { success: false, error: 'Progress not found' };
+    }
     
-    const data = docSnap.data();
+    const data = currentResult.data;
     const streak = data.learningStreak || { current: 0, longest: 0, lastActiveDate: null };
     
     const today = new Date();
@@ -128,7 +119,7 @@ export async function updateLearningStreak(userId) {
     
     let lastActive = null;
     if (streak.lastActiveDate) {
-      lastActive = streak.lastActiveDate.toDate();
+      lastActive = new Date(streak.lastActiveDate);
       lastActive.setHours(0, 0, 0, 0);
     }
     
@@ -155,12 +146,14 @@ export async function updateLearningStreak(userId) {
     
     newLongest = Math.max(newLongest, newCurrent);
     
-    await updateDoc(docRef, {
+    const updateData = {
       'learningStreak.current': newCurrent,
       'learningStreak.longest': newLongest,
-      'learningStreak.lastActiveDate': serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+      'learningStreak.lastActiveDate': new Date().toISOString(),
+      updatedAt: new Date()
+    };
+    
+    const result = await updateStudentProgressInDb(userId, updateData);
     
     return { success: true, streak: { current: newCurrent, longest: newLongest } };
   } catch (error) {
@@ -174,22 +167,22 @@ export async function updateLearningStreak(userId) {
  */
 export async function logLearningTime(userId, hours) {
   try {
-    const docRef = doc(db, 'studentProgress', userId);
-    const docSnap = await getDoc(docRef);
+    // Use database service to get current progress
+    const currentResult = await getStudentProgressFromDb(userId);
     
-    if (!docSnap.exists()) {
+    if (!currentResult.success) {
       await getStudentProgress(userId); // Initialize if doesn't exist
     }
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const data = docSnap.exists() ? docSnap.data() : {};
+    const data = currentResult.success && currentResult.data ? currentResult.data : {};
     const learningTimeData = data.learningTimeData || [];
     
     // Check if entry for today exists
     const todayEntry = learningTimeData.find(entry => {
-      const entryDate = entry.date.toDate();
+      const entryDate = new Date(entry.date);
       entryDate.setHours(0, 0, 0, 0);
       return entryDate.getTime() === today.getTime();
     });
@@ -200,7 +193,7 @@ export async function logLearningTime(userId, hours) {
     } else {
       // Add new entry
       learningTimeData.push({
-        date: serverTimestamp(),
+        date: new Date().toISOString(),
         hours
       });
     }
@@ -209,15 +202,17 @@ export async function logLearningTime(userId, hours) {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const filteredData = learningTimeData.filter(entry => {
-      const entryDate = entry.date.toDate ? entry.date.toDate() : new Date(entry.date);
+      const entryDate = new Date(entry.date);
       return entryDate >= thirtyDaysAgo;
     });
     
-    await updateDoc(docRef, {
+    const updateData = {
       learningTimeData: filteredData,
-      totalClassHours: increment(hours),
-      updatedAt: serverTimestamp()
-    });
+      totalClassHours: (data.totalClassHours || 0) + hours,
+      updatedAt: new Date()
+    };
+    
+    const result = await updateStudentProgressInDb(userId, updateData);
     
     return { success: true };
   } catch (error) {
@@ -231,15 +226,9 @@ export async function logLearningTime(userId, hours) {
  */
 export async function getAllStudentsProgress() {
   try {
-    const q = query(collection(db, 'studentProgress'));
-    const querySnapshot = await getDocs(q);
-    
-    const progressData = [];
-    querySnapshot.forEach((doc) => {
-      progressData.push({ id: doc.id, ...doc.data() });
-    });
-    
-    return { success: true, data: progressData };
+    // Use database service to get all student progress
+    const result = await getAllStudentProgressFromDb();
+    return result;
   } catch (error) {
     logger.error('Error getting all students progress:', error);
     return { success: false, error: error.message };
@@ -251,22 +240,18 @@ export async function getAllStudentsProgress() {
  */
 export async function getClassStudentsProgress(classId) {
   try {
-    // First get all students enrolled in the class
-    const enrollmentsQuery = query(
-      collection(db, 'enrollments'),
-      where('classId', '==', classId)
-    );
-    const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+    // Use enrollment service to get students in class
+    const { getStudentsByClass } = await import('./enrollmentService');
+    const studentsResult = await getStudentsByClass(classId);
     
-    const studentIds = [];
-    enrollmentsSnapshot.forEach((doc) => {
-      studentIds.push(doc.data().userId);
-    });
+    if (!studentsResult.success) {
+      return { success: false, error: studentsResult.error };
+    }
     
     // Then get progress for those students
     const progressData = [];
-    for (const userId of studentIds) {
-      const result = await getStudentProgress(userId);
+    for (const student of studentsResult.data) {
+      const result = await getStudentProgress(student.id);
       if (result.success) {
         progressData.push(result.data);
       }

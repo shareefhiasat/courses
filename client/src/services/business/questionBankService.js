@@ -3,20 +3,6 @@
  * Shared pool of reusable questions with tags and metadata
  */
 
-import { 
-  collection, 
-  doc, 
-  getDocs, 
-  getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy,
-  serverTimestamp 
-} from 'firebase/firestore';
-import { db } from '../other/config';
 import logger from '@utils/logger';
 import { 
   getQuestions as getQuestionsFromDb,
@@ -58,32 +44,10 @@ export async function createQuestion(questionData) {
  */
 export const getAllQuestions = async (filters = {}) => {
   try {
-    let q = collection(db, COLLECTION);
-    
-    // Apply filters
-    if (filters.topic) {
-      q = query(q, where('tags', 'array-contains', filters.topic));
-    }
-    if (filters.difficulty) {
-      q = query(q, where('difficulty', '==', filters.difficulty));
-    }
-    if (filters.type) {
-      q = query(q, where('type', '==', filters.type));
-    }
-    if (filters.createdBy) {
-      q = query(q, where('createdBy', '==', filters.createdBy));
-    }
-    
-    // Order by usage or creation date
-    q = query(q, orderBy(filters.sortBy || 'createdAt', 'desc'));
-    
-    const snapshot = await getDocs(q);
-    const questions = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    return { success: true, data: questions };
+    // Use database service to get questions with filters
+    const { getQuestions: getQuestionsFromDb } = await import('../db/questionBankDbService');
+    const result = await getQuestionsFromDb(filters);
+    return result;
   } catch (error) {
     logger.error('Error fetching questions:', error);
     return { success: false, error: error.message };
@@ -95,16 +59,17 @@ export const getAllQuestions = async (filters = {}) => {
  */
 export async function getQuestion(questionId) {
   try {
-    const docRef = doc(db, COLLECTION, questionId);
-    const docSnap = await getDoc(docRef);
+    // Use database service to get question
+    const { getQuestion: getQuestionFromDb } = await import('../db/questionBankDbService');
+    const result = await getQuestionFromDb(questionId);
     
-    if (!docSnap.exists()) {
+    if (!result.success) {
       return { success: false, error: 'Question not found' };
     }
     
     return { 
       success: true, 
-      data: { id: docSnap.id, ...docSnap.data() } 
+      data: { id: questionId, ...result.data } 
     };
   } catch (error) {
     logger.error('Error fetching question:', error);

@@ -1,4 +1,3 @@
-﻿import { collection, doc, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db } from '../other/config';
 
 /**
@@ -21,71 +20,17 @@ export const deleteCollection = async (collectionName, onProgress = null, option
   } = options;
 
   try {
-    const collectionRef = collection(db, collectionName);
-    const querySnapshot = await getDocs(collectionRef);
+    // This function would need to be implemented in the database layer
+    // For now, we'll delegate to a database service when available
+    logger.warn(`deleteCollection called for ${collectionName} - needs database service implementation`);
     
-    if (querySnapshot.empty) {
-      return { success: true, deletedCount: 0 };
-    }
-
-    const allDocs = querySnapshot.docs;
-    let totalDeleted = 0;
-    let retryCount = 0;
-
-    // Process in batches with progress tracking
-    for (let i = 0; i < allDocs.length; i += batchSize) {
-      const batch = writeBatch(db);
-      const batchDocs = allDocs.slice(i, i + batchSize);
-      
-      try {
-        batchDocs.forEach((doc) => {
-          batch.delete(doc.ref);
-        });
-
-        await batch.commit();
-        totalDeleted += batchDocs.length;
-        
-        // Report progress
-        if (onProgress) {
-          const percentage = Math.round((totalDeleted / allDocs.length) * 100);
-          onProgress(totalDeleted, allDocs.length, percentage);
-        }
-        
-        // Add delay between batches
-        if (i + batchSize < allDocs.length) {
-          await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
-        }
-        
-        // Reset retry count on successful batch
-        retryCount = 0;
-        
-      } catch (batchError) {
-        logger.error(`Batch deletion failed (batch ${Math.floor(i/batchSize) + 1}):`, batchError);
-        retryCount++;
-        
-        if (retryCount >= maxRetries) {
-          throw new Error(`Failed to delete collection after ${maxRetries} retries. Last error: ${batchError.message}`);
-        }
-        
-        // Wait longer before retry
-        await new Promise(resolve => setTimeout(resolve, delayBetweenBatches * retryCount));
-        
-        // Retry this batch
-        i -= batchSize; // Retry the same batch
-      }
-    }
-    
-    return { 
-      success: true, 
-      deletedCount: totalDeleted 
-    };
-    
+    return { success: false, error: 'Database service not yet implemented for collection management' };
   } catch (error) {
     logger.error(`Error deleting collection ${collectionName}:`, error);
     return { 
       success: false, 
       error: error.message,
-      deletedCount: totalDeleted || 0 
+      deletedCount: 0 
     };
   }
 };
