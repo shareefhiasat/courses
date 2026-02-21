@@ -22,6 +22,7 @@ import logger from '../../utils/logger';
 import { getUserDisplayName } from '../userService.js';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes.js';
 import { RECORD_TYPES } from '@utils/sharedTypes.js';
+import { getQatarNow, formatQatarDateOnly, getQatarTimestampString } from '@utils/qatarDate';
 
 /**
  * Get absences from attendance collection
@@ -91,8 +92,8 @@ export async function markAttendanceByQR({ classId, sessionId, uid, action, reas
     // action: 'present' | 'participation' | 'penalty'
     const markRef = doc(db, 'classes', classId, 'sessions', sessionId, 'marks', uid);
     const base = {
-      updatedAt: serverTimestamp(),
-      history: [{ at: serverTimestamp(), action, reason: reason || null }],
+      updatedAt: getQatarTimestampString(),
+      history: [{ at: getQatarTimestampString(), action, reason: reason || null }],
     };
     
     if (action === 'present') base.status = 'present';
@@ -206,8 +207,8 @@ export async function markAttendance({
       performedByEmail,
       method,
       notes,
-      timestamp: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      timestamp: getQatarTimestampString(),
+      updatedAt: getQatarTimestampString(),
       // Include delta and category if provided
       ...(delta !== null && { delta }),
       ...(category !== null && { category }),
@@ -217,7 +218,7 @@ export async function markAttendance({
           from: oldStatus,
           to: status,
           changedBy: markedBy,
-          changedAt: new Date().toISOString(),
+          changedAt: getQatarTimestampString(),
           notes
         }]
       } : {})
@@ -273,7 +274,7 @@ async function sendAttendanceNotifications({
 }) {
   try {
     const statusLabel = ATTENDANCE_STATUS_LABELS[status] || { en: status, ar: status };
-    const formattedDate = new Date(date).toLocaleDateString('en-GB');
+    const formattedDate = formatQatarDateOnly(new Date(date));
     
     // In-app notification
     await addNotification({

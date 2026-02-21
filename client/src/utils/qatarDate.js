@@ -66,6 +66,62 @@ export function formatQatarStandard(date) {
 }
 
 /**
+ * Format date in FULL Qatar format with UTC offset: "February 7, 2026 at 5:01:45 PM UTC+3"
+ * This is used for storing dates in Firebase as formatted strings
+ * @param {Date|string|number} date - Date to format
+ * @returns {string} Formatted date string with UTC offset
+ */
+export function formatQatarFull(date) {
+  if (!date) return '';
+  
+  let dateObj;
+  if (typeof date === 'string') {
+    dateObj = new Date(date);
+  } else if (typeof date === 'number') {
+    // Handle Firestore timestamps (seconds) or milliseconds
+    dateObj = date < 10000000000 ? new Date(date * 1000) : new Date(date);
+  } else if (date?.toDate) {
+    // Handle Firestore Timestamp object
+    dateObj = date.toDate();
+  } else {
+    dateObj = date;
+  }
+  
+  if (isNaN(dateObj.getTime())) return '';
+  
+  // Convert to Qatar time (UTC+3)
+  const qatarTime = new Date(dateObj.getTime() + (3 * 60 * 60 * 1000));
+  
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  
+  const month = months[qatarTime.getMonth()];
+  const day = qatarTime.getDate();
+  const year = qatarTime.getFullYear();
+  
+  let hours = qatarTime.getHours();
+  const minutes = qatarTime.getMinutes();
+  const seconds = qatarTime.getSeconds();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours || 12; // 0 should be 12
+  
+  const pad = (n) => String(n).padStart(2, '0');
+  
+  return `${month} ${day}, ${year} at ${hours}:${pad(minutes)}:${pad(seconds)} ${ampm} UTC+3`;
+}
+
+/**
+ * Get current Qatari timestamp as formatted string for storage
+ * @returns {string} Current date/time in format: "February 7, 2026 at 5:01:45 PM UTC+3"
+ */
+export function getQatarTimestampString() {
+  return formatQatarFull(getQatarNow());
+}
+
+/**
  * Format date for form inputs (datetime-local)
  * Returns format: "2026-02-11T15:30"
  * @param {Date|string|number} date - Date to format

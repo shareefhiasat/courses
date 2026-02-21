@@ -10,6 +10,7 @@ import { getPerformedByFields } from '@services/business/userService';
 import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import logger from '@utils/logger';
+import { formatQatarDateOnly } from '@utils/qatarDate';
 
 /**
  * Provides inline editing actions for the Attendance tab of the Student Dashboard.
@@ -33,7 +34,7 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       const performedByFields = await getPerformedByFields(user);
       const dateStr = typeof selectedDate === 'string'
         ? selectedDate
-        : selectedDate.toISOString().split('T')[0];
+        : formatQatarDateOnly(selectedDate);
 
       const result = await markAttendance({
         classId,

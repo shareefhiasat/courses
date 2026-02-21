@@ -13,6 +13,7 @@ import { getClasses } from '@services/business/classService';
 import { getAttendanceStats, getAttendanceMarksForExport, getAllAttendanceSessions, updateAttendanceMark, getAttendanceMarksCount } from '@services/business/attendanceService';
 import { getUsers, getUserById } from '@services/business/userService';
 import { getAttendanceIcon, createAttendanceBadge } from '@constants/iconTypes';
+import { getQatarNow, formatQatarDateOnly, formatQatarStandard } from '@utils/qatarDate';
 
 const HRAttendancePage = () => {
   const { user, isHR, isAdmin, loading: authLoading } = useAuth();
@@ -334,14 +335,15 @@ const HRAttendancePage = () => {
       }
 
       // Check for expired sessions and auto-close them
-      const now = new Date();
+      const now = getQatarNow();
       const sessionDurationMinutes = 15; // Default session duration
       const expiredSessions = [];
       
       filtered.forEach(session => {
         if (session.status === 'open') {
           const createdAt = session.createdAt?.toDate ? session.createdAt.toDate() : new Date(session.createdAt || 0);
-          const elapsedMinutes = (now - createdAt) / (1000 * 60);
+          const qatarCreatedAt = new Date(createdAt.getTime() + (3 * 60 * 60 * 1000));
+          const elapsedMinutes = (now - qatarCreatedAt) / (1000 * 60);
           const duration = session.durationMinutes || sessionDurationMinutes;
           
           if (elapsedMinutes > duration) {
@@ -669,7 +671,7 @@ const HRAttendancePage = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `hr_attendance_${sessionId}_${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `hr_attendance_${sessionId}_${formatQatarDateOnly(getQatarNow())}.csv`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (e) {
@@ -987,6 +989,7 @@ const HRAttendancePage = () => {
             {sessions.map((session, idx) => {
               const className = session.className || classes.find(c => c.id === session.classId)?.name || session.classId;
               const createdAt = session.createdAt?.toDate ? session.createdAt.toDate() : new Date(session.createdAt || 0);
+              const qatarCreatedAt = new Date(createdAt.getTime() + (3 * 60 * 60 * 1000));
               const isSelected = selectedSession?.id === session.id;
               const uniqueKey = session.id || `session-${idx}`;
               return (
@@ -1095,13 +1098,13 @@ const HRAttendancePage = () => {
                     )}
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       {getThemedIcon('ui', 'calendar', 12, theme)}
-                      {createdAt.toLocaleDateString('en-GB')} {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                      {formatQatarStandard(qatarCreatedAt)}
                     </span>
                     {/* Session Duration */}
                     {(() => {
-                      const startTime = createdAt;
-                      const endTime = session.closedAt ? (session.closedAt.toDate ? session.closedAt.toDate() : new Date(session.closedAt)) : 
-                                     (session.status === 'closed' ? createdAt : new Date());
+                      const startTime = qatarCreatedAt;
+                      const endTime = session.closedAt ? (session.closedAt.toDate ? new Date(session.closedAt.toDate().getTime() + (3 * 60 * 60 * 1000)) : new Date(session.closedAt.getTime() + (3 * 60 * 60 * 1000))) : 
+                                     (session.status === 'closed' ? qatarCreatedAt : getQatarNow());
                       const durationMs = endTime - startTime;
                       const durationMinutes = Math.max(1, Math.round(durationMs / (1000 * 60)));
                       const hours = Math.floor(durationMinutes / 60);

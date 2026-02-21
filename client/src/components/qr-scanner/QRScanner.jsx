@@ -3935,7 +3935,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               </div>
           )}
 
-          <style jsx>{`
+          <style>{`
             @keyframes qr-scan-line {
               0% { transform: translateY(-100%); }
               100% { transform: translateY(100%); }

@@ -6,6 +6,7 @@ import { getUserById } from './userService';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import logger from '@utils/logger';
+import { getQatarNow, formatQatarDateOnly, getQatarTimestampString } from '@utils/qatarDate';
 import { 
   getAttendanceRecords as getAttendanceRecordsFromDb,
   getAttendanceRecord as getAttendanceRecordFromDb,
@@ -66,7 +67,7 @@ export const getAttendanceMarksForExport = async (sessionId) => {
 // Check today's attendance status for a student
 export const getTodayAttendanceStatus = async (classId, studentId) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatQatarDateOnly(getQatarNow());
     const attendanceDocId = `${classId}_${studentId}_${today}`;
     const existingRecord = await getAttendanceRecordFromDb(attendanceDocId);
     
@@ -83,7 +84,7 @@ export const getTodayAttendanceStatus = async (classId, studentId) => {
 // Check if student already marked today (by any status)
 export const isStudentMarkedToday = async (classId, studentIdentifier) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatQatarDateOnly(getQatarNow());
     const attendanceDocId = `${classId}_${studentIdentifier}_${today}`;
     const existingRecord = await getAttendanceRecordFromDb(attendanceDocId);
     
@@ -97,7 +98,7 @@ export const isStudentMarkedToday = async (classId, studentIdentifier) => {
 // Mark attendance (centralized - CONSOLIDATED from both files)
 export const markAttendance = async (attendanceData) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatQatarDateOnly(getQatarNow());
     const attendanceDocId = `${attendanceData.classId}_${attendanceData.studentNumber}_${today}`;
     
     // Check if record exists using DB service
@@ -107,7 +108,7 @@ export const markAttendance = async (attendanceData) => {
       // Update existing attendance using DB service
       const updateResult = await updateAttendanceRecordInDb(attendanceDocId, {
         ...attendanceData,
-        updatedAt: serverTimestamp()
+        updatedAt: getQatarTimestampString()
       });
       
       if (!updateResult.success) {
@@ -144,8 +145,8 @@ export const markAttendance = async (attendanceData) => {
       const createResult = await setAttendanceRecordToDb(attendanceDocId, {
         ...attendanceData,
         date: today,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        createdAt: getQatarTimestampString(),
+        updatedAt: getQatarTimestampString()
       });
       
       if (!createResult.success) {
@@ -242,7 +243,7 @@ export const quickMarkAttendance = async ({
       note,
       markedBy: user?.uid || 'system',
       markedByName: user?.displayName || 'System',
-      timestamp: new Date().toISOString()
+      timestamp: getQatarTimestampString()
     };
     
     return await markAttendance(attendanceData);
@@ -326,7 +327,7 @@ export const rosterQuickAction = async (studentId, classId, status, user, notes 
       };
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatQatarDateOnly(getQatarNow());
     const attendanceDocId = `${classId}_${studentId}_${today}`;
 
     // Check if attendance record already exists using DB service
@@ -344,7 +345,7 @@ export const rosterQuickAction = async (studentId, classId, status, user, notes 
       markedBy: user?.uid || null,
       markedByName: user?.displayName || user?.email || 'Unknown',
       markedByEmail: user?.email || null,
-      updatedAt: serverTimestamp()
+      updatedAt: getQatarTimestampString()
     };
 
     let result;
@@ -361,7 +362,7 @@ export const rosterQuickAction = async (studentId, classId, status, user, notes 
       // Create new attendance record using DB service
       const createResult = await setAttendanceRecordToDb(attendanceDocId, {
         ...attendanceData,
-        createdAt: serverTimestamp(),   // ✅ Add createdAt only for new records
+        createdAt: getQatarTimestampString(),   // ✅ Add createdAt only for new records
       });
       if (createResult.success) {
         result = { success: true, data: { id: attendanceDocId, ...attendanceData, action: 'created' } };
