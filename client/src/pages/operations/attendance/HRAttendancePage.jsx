@@ -195,13 +195,7 @@ const HRAttendancePage = () => {
       
       // Filter by year
       if (yearFilter && yearFilter !== 'all') {
-        console.log('[HRAttendance] Applying year filter:', yearFilter);
         logger.log('[HRAttendance] Applying year filter:', yearFilter);
-        logger.log('[HRAttendance] Sessions before year filter:', filtered.map(s => ({
-          id: s.id,
-          classYear: s.classYear,
-          classTerm: s.classTerm
-        })));
         
         filtered = filtered.filter(s => {
           // Check classYear field
@@ -233,38 +227,24 @@ const HRAttendancePage = () => {
         });
         logger.log('[HRAttendance] After year filter count:', filtered.length);
       } else {
-        console.log('[HRAttendance] Year filter is "all", not applying year filter');
         logger.log('[HRAttendance] Year filter is "all", not applying year filter');
       }
       
       // Filter by term
       if (termFilter && termFilter !== 'all') {
-        console.log('[HRAttendance] Applying term filter:', termFilter);
-        console.log('[HRAttendance] Sessions and their terms:', filtered.map(s => ({
-          id: s.id,
-          classTerm: s.classTerm,
-          termPart: s.classTerm ? s.classTerm.split(' ')[0] : 'null'
-        })));
         logger.log('[HRAttendance] Applying term filter:', termFilter);
-        logger.log('[HRAttendance] Sessions before term filter:', filtered.map(s => ({
-          id: s.id,
-          classTerm: s.classTerm
-        })));
         
         filtered = filtered.filter(s => {
           if (!s.classTerm) return false;
           const termPart = s.classTerm.split(' ')[0];
           const matches = termPart === termFilter;
-          console.log('[HRAttendance] Session term check:', s.id, 'classTerm:', s.classTerm, 'termPart:', termPart, 'filter:', termFilter, 'matches:', matches);
           if (matches) {
             logger.log('[HRAttendance] Session matched by term:', s.id, s.classTerm, 'termPart:', termPart);
           }
           return matches;
         });
-        console.log('[HRAttendance] After term filter count:', filtered.length);
         logger.log('[HRAttendance] After term filter count:', filtered.length);
       } else {
-        console.log('[HRAttendance] Term filter is "all", not applying term filter');
         logger.log('[HRAttendance] Term filter is "all", not applying term filter');
       }
       if (dateFrom) {
@@ -289,6 +269,58 @@ const HRAttendancePage = () => {
         logger.log('[HRAttendance] After dateTo filter count:', filtered.length);
       } else {
         logger.log('[HRAttendance] dateTo is empty, not applying dateTo filter');
+      }
+
+      // Filter by attendance status (filter sessions that contain students with the selected attendance type)
+      if (statusFilter && statusFilter !== 'all') {
+        console.log('[HRAttendance] Applying attendance status filter:', statusFilter);
+        console.log('[HRAttendance] Available sessions count:', filtered.length);
+        logger.log('[HRAttendance] Applying attendance status filter:', statusFilter);
+        
+        filtered = filtered.filter(session => {
+          // Get the attendance counts for this session
+          const counts = session.scanCounts || {};
+          
+          // Check if this session has any students with the selected status
+          let hasStatusMatch = false;
+          
+          switch (statusFilter) {
+            case ATTENDANCE_STATUS.PRESENT:
+              hasStatusMatch = (counts.present || counts.PRESENT || 0) > 0;
+              break;
+            case ATTENDANCE_STATUS.LATE:
+              hasStatusMatch = (counts.late || counts.LATE || 0) > 0;
+              break;
+            case ATTENDANCE_STATUS.ABSENT_NO_EXCUSE:
+              hasStatusMatch = ((counts.absent_no_excuse || counts.absent || 0) + (counts.ABSENT_NO_EXCUSE || 0)) > 0;
+              break;
+            case ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE:
+              hasStatusMatch = (counts.absent_with_excuse || counts.ABSENT_WITH_EXCUSE || 0) > 0;
+              break;
+            case ATTENDANCE_STATUS.EXCUSED_LEAVE:
+              hasStatusMatch = (counts.excused_leave || counts.EXCUSED_LEAVE || 0) > 0;
+              break;
+            case ATTENDANCE_STATUS.HUMAN_CASE:
+              hasStatusMatch = (counts.human_case || counts.HUMAN_CASE || 0) > 0;
+              break;
+            default:
+              hasStatusMatch = false;
+          }
+          
+          console.log('[HRAttendance] Session', session.id, 'has matching status:', hasStatusMatch, 'counts:', counts);
+          
+          if (hasStatusMatch) {
+            console.log('[HRAttendance] Session matched by attendance status:', session.id, 'statusFilter:', statusFilter);
+            logger.log('[HRAttendance] Session matched by attendance status:', session.id, 'statusFilter:', statusFilter);
+          }
+          
+          return hasStatusMatch;
+        });
+        console.log('[HRAttendance] After status filter count:', filtered.length);
+        logger.log('[HRAttendance] After status filter count:', filtered.length);
+      } else {
+        console.log('[HRAttendance] Status filter is "all", not applying status filter');
+        logger.log('[HRAttendance] Status filter is "all", not applying status filter');
       }
 
       // Check for expired sessions and auto-close them
@@ -461,7 +493,7 @@ const HRAttendancePage = () => {
     } finally {
       stopLoading();
     }
-  }, [programFilter, subjectFilter, classFilter, yearFilter, termFilter, dateFrom, dateTo, classes, subjects, startLoading, t]);
+  }, [programFilter, subjectFilter, classFilter, yearFilter, termFilter, dateFrom, dateTo, statusFilter, classes, subjects, startLoading, t]);
 
   // Load attendance sessions
   useEffect(() => {
@@ -820,7 +852,7 @@ const HRAttendancePage = () => {
                 setStatusFilter(e.target.value);
               }}
               options={[
-                { value: 'all', label: t('all_status') || 'All Status' },
+                { value: 'all', label: t('all_attendance_types') || 'All Attendance Types' },
                 { 
                   value: ATTENDANCE_STATUS.PRESENT, 
                   label: ATTENDANCE_STATUS_LABELS.present.en,
@@ -853,7 +885,7 @@ const HRAttendancePage = () => {
                 }
               ]}
               fullWidth
-              placeholder={t('all_status') || 'All Status'}
+              placeholder={t('all_attendance_types') || 'All Attendance Types'}
             />
           </div>
         </div>
