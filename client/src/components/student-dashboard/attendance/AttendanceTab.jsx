@@ -321,7 +321,7 @@ const AttendanceTab = React.memo(({
             {t('attendance.expand_all') || (lang === 'ar' ? 'توسيع الكل' : 'Expand All')}
           </Button>
           <Button variant="ghost" size="sm" onClick={collapseAll}>
-            {t('attendance.collapse_all') || (lang === 'ar' ? 'طي الكل' : 'Collapse All')}
+            {t('attendance.collapse_all')}
           </Button>
         </div>
       </div>

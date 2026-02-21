@@ -175,7 +175,7 @@ const StudentRosterHistory = ({
             }}
             title={(() => {
               const allExpanded = groupedLogs.every(log => expandedDays.has(log.date));
-              return allExpanded ? (t('collapse_all') || 'Collapse All') : (t('expand_all') || 'Expand All');
+              return allExpanded ? (t('collapse_all')) : (t('expand_all'));
             })()}
           >
             {(() => {

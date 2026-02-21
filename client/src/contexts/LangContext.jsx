@@ -732,14 +732,14 @@ const DICT = {
     'attendance.excused': 'Excused',
     'attendance.rate': 'Rate',
     'attendance.select_date': 'Select Date',
-    'attendance.expand_all': 'Expand All',
-    'attendance.collapse_all': 'Collapse All',
+    'attendance.expand_all': '',
+    'attendance.collapse_all': '',
     'attendance.no_records': 'No records found',
 
     // Additional attendance translations
     'attendance.no_history_available': 'No history available',
-    'attendance.expand_all': 'Expand All',
-    'attendance.collapse_all': 'Collapse All',
+    'attendance.expand_all': '',
+    'attendance.collapse_all': '',
     'attendance.view_by_day': 'View by Day',
     'attendance.view_by_month': 'View by Month',
     'attendance.monthly_summary': 'Monthly Summary',
@@ -3721,8 +3721,8 @@ const DICT = {
     'attendance.excused': 'معذور',
     'attendance.rate': 'النسبة',
     'attendance.select_date': 'اختر التاريخ',
-    'attendance.expand_all': 'توسيع الكل',
-    'attendance.collapse_all': 'طي الكل',
+    'attendance.expand_all': '',
+    'attendance.collapse_all': '',
     'attendance.no_records': 'لا توجد سجلات',
 
     // Additional attendance translations (Arabic)

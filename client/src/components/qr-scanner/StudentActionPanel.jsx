@@ -2297,12 +2297,12 @@ export default function StudentActionPanel({
                           cursor: 'pointer',
                           transition: 'all 0.2s'
                         }}
-                        title={expandedDays.size === memoizedGroupedLogs.length ? (t('collapse_all') || 'Collapse All') : (t('expand_all') || 'Expand All')}
+                        title={expandedDays.size === memoizedGroupedLogs.length ? (t('collapse_all')) : (t('expand_all'))}
                     >
                       {expandedDays.size === memoizedGroupedLogs.length ? (
                           <>
                             <ChevronDown style={{ width: '14px', height: '14px', transform: 'rotate(180deg)' }} />
-                            {t('collapse_all') || 'Collapse All'}
+                            {t('collapse_all')}
                           </>
                       ) : (
                           <>
