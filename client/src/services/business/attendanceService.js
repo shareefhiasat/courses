@@ -4,6 +4,7 @@ import { getUserById } from './userService';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import logger from '@utils/logger';
+import { formatQatarDateOnly, getQatarNow, getQatarTimestampString } from '@utils/qatarDate';
 import { 
   getAttendanceRecords as getAttendanceRecordsFromDb,
   getAttendanceRecord as getAttendanceRecordFromDb,

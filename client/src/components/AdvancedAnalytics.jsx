@@ -139,7 +139,7 @@ export default function AdvancedAnalytics({
 
   // ── Local global filters (merged with externalFilters) ────────────────────
   const [localFilters, setLocalFilters] = useState({
-    classId: '', term: '', year: '', programId: '', subjectId: '', semester: ''
+    classId: '', term: '', year: '', programId: '', subjectId: '', semester: '', studentId: '', instructorId: ''
   });
 
   const mergedFilters = { ...localFilters, ...externalFilters };
@@ -282,7 +282,7 @@ export default function AdvancedAnalytics({
 
       {/* ── Global Filters (hidden when externalFilters lock them) ── */}
       {!externalFilters.studentId && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: '1.25rem' }}>
           <Select
             value={localFilters.programId}
             onChange={e => setLocalFilters(f => ({ ...f, programId: e.target.value, subjectId: '' }))}
@@ -350,6 +350,30 @@ export default function AdvancedAnalytics({
             includeAll
             allValue=""
             allLabel={t('all_years') || 'All Years'}
+            searchable
+            fullWidth
+          />
+          <Select
+            value={localFilters.studentId}
+            onChange={e => setLocalFilters(f => ({ ...f, studentId: e.target.value }))}
+            options={[
+              { value: '', label: t('all_students') || 'All Students' },
+              ...(rawData.users || [])
+                .filter(u => u.isStudent)
+                .map(u => ({ value: u.id, label: u.realName || u.displayName || u.email || u.id }))
+            ]}
+            searchable
+            fullWidth
+          />
+          <Select
+            value={localFilters.instructorId}
+            onChange={e => setLocalFilters(f => ({ ...f, instructorId: e.target.value }))}
+            options={[
+              { value: '', label: t('all_instructors') || 'All Instructors' },
+              ...(rawData.users || [])
+                .filter(u => u.isInstructor)
+                .map(u => ({ value: u.id, label: u.realName || u.displayName || u.email || u.id }))
+            ]}
             searchable
             fullWidth
           />

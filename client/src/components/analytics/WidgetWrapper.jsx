@@ -47,6 +47,19 @@ const WidgetWrapper = ({
   const [isMaximized, setIsMaximized] = useState(false);
   const toggleMaximize = useCallback(() => setIsMaximized(v => !v), []);
 
+  // Helper to get localized date range label
+  const getDateRangeLabel = useCallback((dateRange) => {
+    const labels = {
+      all: t('all_time') || 'All Time',
+      today: t('today') || 'Today',
+      last7: t('last_7_days') || 'Last 7 Days',
+      last30: t('last_30_days') || 'Last 30 Days',
+      last90: t('last_90_days') || 'Last 90 Days',
+      custom: t('custom_range') || 'Custom Range'
+    };
+    return labels[dateRange] || dateRange;
+  }, [t]);
+
   const headerActions = (
     <div
       className="widget-actions"
@@ -145,6 +158,16 @@ const WidgetWrapper = ({
               }}
             >
               {widget.title}
+              {widget.dateRange && (
+                <span style={{ 
+                  fontSize: 12, 
+                  color: 'var(--muted)', 
+                  fontWeight: 500, 
+                  marginInlineStart: 6 
+                }}>
+                  ({getDateRangeLabel(widget.dateRange)})
+                </span>
+              )}
               {isRecentlyRefreshed && (
                 <span style={{ color: '#10b981', fontSize: 13, marginInlineStart: 6 }}>✓</span>
               )}

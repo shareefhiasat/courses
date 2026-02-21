@@ -179,6 +179,7 @@ export const ICON_TYPES = {
     delete: <Trash size={16} />,
     delete2: <Trash2 size={16} />,
     add: <Plus size={16} />,
+    plus: <Plus size={16} />,
     remove: <Minus size={16} />,
     close: <X size={16} />,
     expand: <ChevronDown size={16} />,

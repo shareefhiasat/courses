@@ -170,7 +170,6 @@ const ProfileSettingsPage = () => {
     const loadData = async () => {
       try {
         await Promise.all([
-          loadUserProfile(),
           initializeNotifications()
         ]);
       } catch (error) {
@@ -366,8 +365,10 @@ const ProfileSettingsPage = () => {
               {/* Compact Settings Row */}
               <div style={{ 
                 display: 'flex',
-                flexDirection: 'column',
-                gap: '1rem',
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '2rem',
                 padding: '1rem 0',
                 borderTop: '1px solid #e5e7eb',
                 marginTop: '1rem'
@@ -441,21 +442,74 @@ const ProfileSettingsPage = () => {
                 </div>
               )}
 
-              {/* Compact Notification Settings Row */}
+              {/* Notification Settings */}
               <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '2rem',
-                marginBottom: '1rem',
-                padding: '1rem',
-                background: '#f9fafb',
-                borderRadius: 8,
-                border: '1px solid #e5e7eb'
+                padding: '1rem', 
+                background: '#f9fafb', 
+                borderRadius: 8, 
+                border: '1px solid #e5e7eb',
+                fontSize: '0.875rem',
+                color: '#6b7280'
               }}>
-                {/* Sound Setting */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    {getThemedIcon('ui', 'volume2', 18, theme)}
+                <div style={{ 
+                  fontWeight: 600, 
+                  marginBottom: '1rem', 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  borderBottom: '1px solid #e5e7eb',
+                  paddingBottom: '0.5rem'
+                }}>
+                  <span style={{ fontSize: '0.95rem', color: '#374151' }}>
+                    {t('notification_settings') || 'Notification Settings'}
+                  </span>
+                  <span style={{ 
+                    fontSize: '0.75rem', 
+                    color: '#6b7280',
+                    background: '#fff',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '12px',
+                    border: '1px solid #d1d5db'
+                  }}>
+                    {isMobile() ? <>{getThemedIcon('ui', 'smartphone', 12, theme)} Mobile</> : <>{getThemedIcon('ui', 'monitor', 12, theme)} Desktop</>}
+                  </span>
+                </div>
+                
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '0.75rem' 
+                }}>
+                  {/* Sound Setting */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.75rem',
+                    background: '#fff',
+                    borderRadius: '6px',
+                    border: '1px solid #e5e7eb',
+                    transition: 'all 0.2s ease'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      {getThemedIcon('ui', 'volume2', 18, theme)}
+                      <div>
+                        <div style={{ 
+                          color: '#374151',
+                          fontWeight: '500',
+                          fontSize: '0.9rem'
+                        }}>
+                          {t('audio_notifications') || 'Audio Notifications'}
+                        </div>
+                        <div style={{ 
+                          color: '#6b7280',
+                          fontSize: '0.8rem',
+                          marginTop: '0.1rem'
+                        }}>
+                          {notificationSettings.soundEnabled ? 'Enabled' : 'Disabled'}
+                        </div>
+                      </div>
+                    </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <ToggleSwitch
                         checked={notificationSettings.soundEnabled}
@@ -478,96 +532,212 @@ const ProfileSettingsPage = () => {
                             });
                           }}
                           title={t('test_sound') || 'Test Sound'}
+                          style={{ padding: '0.25rem' }}
                         >
-                          {getThemedIcon('ui', 'volume2', 16, theme)}
+                          {getThemedIcon('ui', 'volume2', 14, theme)}
                         </Button>
                       )}
                     </div>
                   </div>
 
-                {/* Vibration Setting */}
-                {checkSupport().vibration && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    {getThemedIcon('ui', 'vibrate', 18, theme)}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <ToggleSwitch
-                        checked={notificationSettings.vibrationEnabled}
-                        onChange={async (checked) => {
-                          const success = await updateSetting('vibrationEnabled', checked);
-                          if (success) {
-                            toast.success(checked 
-                              ? (t('vibration_enabled') || 'Vibration enabled') 
-                              : (t('vibration_disabled') || 'Vibration disabled'));
-                          }
-                        }}
-                      />
-                      {notificationSettings.vibrationEnabled && (
+                  {/* Vibration Setting */}
+                  {checkSupport().vibration && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.75rem',
+                      background: '#fff',
+                      borderRadius: '6px',
+                      border: '1px solid #e5e7eb',
+                      transition: 'all 0.2s ease'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        {getThemedIcon('ui', 'vibrate', 18, theme)}
+                        <div>
+                          <div style={{ 
+                            color: '#374151',
+                            fontWeight: '500',
+                            fontSize: '0.9rem'
+                          }}>
+                            {t('vibration') || 'Vibration'}
+                          </div>
+                          <div style={{ 
+                            color: '#6b7280',
+                            fontSize: '0.8rem',
+                            marginTop: '0.1rem'
+                          }}>
+                            {notificationSettings.vibrationEnabled ? 'Enabled' : 'Disabled'}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <ToggleSwitch
+                          checked={notificationSettings.vibrationEnabled}
+                          onChange={async (checked) => {
+                            const success = await updateSetting('vibrationEnabled', checked);
+                            if (success) {
+                              toast.success(checked 
+                                ? (t('vibration_enabled') || 'Vibration enabled') 
+                                : (t('vibration_disabled') || 'Vibration disabled'));
+                            }
+                          }}
+                        />
+                        {notificationSettings.vibrationEnabled && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              import('@utils/notifications').then(({ default: nm }) => {
+                                nm.vibrate('default');
+                              });
+                            }}
+                            title={t('test_vibration') || 'Test Vibration'}
+                            style={{ padding: '0.25rem' }}
+                          >
+                            {getThemedIcon('ui', 'vibrate', 14, theme)}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Browser Notifications Setting */}
+                  {checkSupport().notification && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.75rem',
+                      background: '#fff',
+                      borderRadius: '6px',
+                      border: '1px solid #e5e7eb',
+                      transition: 'all 0.2s ease'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        {getThemedIcon('ui', 'bell', 18, theme)}
+                        <div>
+                          <div style={{ 
+                            color: '#374151',
+                            fontWeight: '500',
+                            fontSize: '0.9rem'
+                          }}>
+                            {t('browser_notifications') || 'Browser Notifications'}
+                          </div>
+                          <div style={{ 
+                            color: '#6b7280',
+                            fontSize: '0.8rem',
+                            marginTop: '0.1rem'
+                          }}>
+                            {notificationSettings.browserNotificationsEnabled ? 'Enabled' : 'Disabled'}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <ToggleSwitch
+                          checked={notificationSettings.browserNotificationsEnabled}
+                          onChange={async (checked) => {
+                            const success = await updateSetting('browserNotificationsEnabled', checked);
+                            if (success) {
+                              toast.success(checked 
+                                ? (t('browser_notifications_enabled') || 'Browser notifications enabled') 
+                                : (t('browser_notifications_disabled') || 'Browser notifications disabled'));
+                            }
+                          }}
+                        />
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            import('@utils/notifications').then(({ default: nm }) => {
-                              nm.vibrate('default');
-                            });
-                          }}
-                          title={t('test_vibration') || 'Test Vibration'}
+                          onClick={handleTestBrowserNotification}
+                          title={t('test_browser_notification') || 'Test Browser Notification'}
+                          style={{ padding: '0.25rem' }}
                         >
-                          {getThemedIcon('ui', 'vibrate', 16, theme)}
+                          {getThemedIcon('ui', 'test_tube', 14, theme)}
                         </Button>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                )}
-
-                {/* Browser Notifications Setting */}
-                {checkSupport().notification && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    {getThemedIcon('ui', 'bell', 18, theme)}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <ToggleSwitch
-                        checked={notificationSettings.browserNotificationsEnabled}
-                        onChange={async (checked) => {
-                          const success = await updateSetting('browserNotificationsEnabled', checked);
-                          if (success) {
-                            toast.success(checked 
-                              ? (t('browser_notifications_enabled') || 'Browser notifications enabled') 
-                              : (t('browser_notifications_disabled') || 'Browser notifications disabled'));
-                          }
-                        }}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleTestBrowserNotification}
-                        title={t('test_browser_notification') || 'Test Browser Notification'}
-                      >
-                        {getThemedIcon('ui', 'test_tube', 16, theme)}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Support Info */}
               <div style={{ 
-                padding: '0.75rem', 
+                padding: '1rem', 
                 background: '#f9fafb', 
                 borderRadius: 8, 
                 border: '1px solid #e5e7eb',
                 fontSize: '0.875rem',
                 color: '#6b7280'
               }}>
-                <div style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>{t('supported_features') || 'Supported Features'}</span>
-                  <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                    {isMobile() ? <>{getThemedIcon('ui', 'smartphone', 14, theme)} Mobile</> : <>{getThemedIcon('ui', 'monitor', 14, theme)} Desktop</>}
+                <div style={{ 
+                  fontWeight: 600, 
+                  marginBottom: '1rem', 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  borderBottom: '1px solid #e5e7eb',
+                  paddingBottom: '0.5rem'
+                }}>
+                  <span style={{ fontSize: '0.95rem', color: '#374151' }}>
+                    {t('supported_features') || 'Supported Features'}
+                  </span>
+                  <span style={{ 
+                    fontSize: '0.75rem', 
+                    color: '#6b7280',
+                    background: '#fff',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '12px',
+                    border: '1px solid #d1d5db'
+                  }}>
+                    {isMobile() ? <>{getThemedIcon('ui', 'smartphone', 12, theme)} Mobile</> : <>{getThemedIcon('ui', 'monitor', 12, theme)} Desktop</>}
                   </span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
-                  <div>{getThemedIcon('ui', 'volume2', 16, theme)}{t('audio_notifications') || 'Audio'}: {checkSupport().audio ? '✅' : '❌'}</div>
-                  <div>{getThemedIcon('ui', 'vibrate', 16, theme)}{t('vibration') || 'Vibration'}: {checkSupport().vibration ? '✅' : '❌'}</div>
-                  <div>{getThemedIcon('ui', 'bell', 16, theme)}{t('browser_notifications') || 'Browser'}: {checkSupport().notification ? '✅' : '❌'}</div>
-                  <div>{getThemedIcon('ui', 'settings', 16, theme)}{t('service_worker') || 'Service Worker'}: {checkSupport().serviceWorker ? '✅' : '❌'}</div>
+                
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '0.75rem' 
+                }}>
+                  {[
+                    { icon: 'volume2', label: t('audio_notifications') || 'Audio Notifications', supported: checkSupport().audio },
+                    { icon: 'bell', label: t('browser_notifications') || 'Browser Notifications', supported: checkSupport().notification },
+                    { icon: 'vibrate', label: t('vibration') || 'Vibration', supported: checkSupport().vibration },
+                    { icon: 'settings', label: t('service_worker') || 'Service Worker', supported: checkSupport().serviceWorker }
+                  ].map((feature, index) => (
+                    <div key={index} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.5rem 0.75rem',
+                      background: feature.supported ? '#f0fdf4' : '#fef2f2',
+                      borderRadius: '6px',
+                      border: `1px solid ${feature.supported ? '#bbf7d0' : '#fecaca'}`
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {getThemedIcon('ui', feature.icon, 16, theme)}
+                        <span style={{ 
+                          color: feature.supported ? '#166534' : '#991b1b',
+                          fontWeight: '500'
+                        }}>
+                          {feature.label}
+                        </span>
+                      </div>
+                      <div style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: feature.supported ? '#22c55e' : '#ef4444',
+                        color: 'white',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}>
+                        {feature.supported ? '✓' : '✗'}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

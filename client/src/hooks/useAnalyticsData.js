@@ -23,7 +23,9 @@ const EMPTY_RAW = {
   subjects: [],
   penalties: [],
   absences: [],
-  studentMarks: []
+  studentMarks: [],
+  behaviors: [],
+  participations: []
 };
 
 /**
@@ -37,17 +39,33 @@ const useAnalyticsData = () => {
   const [permErrors, setPermErrors] = useState({});
 
   const loadAllData = useCallback(async () => {
+    console.log('[REFRESH DEBUG] 🔄 Starting analytics data refresh...');
     setLoading(true);
     const errors = {};
     const next = { ...EMPTY_RAW };
 
     const safeLoad = async (key, loader) => {
       try {
+        console.log(`[REFRESH DEBUG] 📥 Loading ${key}...`);
         const snap = await loader();
-        next[key] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        next[key] = data;
+        console.log(`[REFRESH DEBUG] ✅ Loaded ${key}:`, data.length, 'records');
+        
+        // Show sample data for key collections
+        if (key === 'attendance' && data.length > 0) {
+          console.log(`[REFRESH DEBUG] 📊 Attendance sample:`, data.slice(0, 2));
+          const statusCounts = {};
+          data.forEach(item => {
+            const status = item.status || 'unknown';
+            statusCounts[status] = (statusCounts[status] || 0) + 1;
+          });
+          console.log(`[REFRESH DEBUG] 📈 Attendance status distribution:`, statusCounts);
+        }
       } catch (e) {
         const code = (e?.code || e?.message || '').toString();
         if (code.includes('permission-denied')) errors[key] = 'permission-denied';
+        console.error(`[REFRESH DEBUG] ❌ Failed to load ${key}:`, e);
         logger.warn(`[useAnalyticsData] failed to load ${key}:`, e);
       }
     };
@@ -57,7 +75,7 @@ const useAnalyticsData = () => {
       safeLoad('submissions', () => getDocs(collection(db, 'submissions'))),
       safeLoad('users', () => getDocs(collection(db, 'users'))),
       safeLoad('classes', () => getDocs(collection(db, 'classes'))),
-      safeLoad('attendance', () => getDocs(collection(db, 'attendanceSessions'))),
+      safeLoad('attendance', () => getDocs(collection(db, 'attendance'))),
       safeLoad('activityLogs', () => getDocs(query(collection(db, 'activityLogs'), orderBy('when', 'desc')))),
       safeLoad('enrollments', () => getDocs(collection(db, 'enrollments'))),
       safeLoad('quizzes', () => getDocs(collection(db, 'quizzes'))),
@@ -74,9 +92,21 @@ const useAnalyticsData = () => {
       }),
       safeLoad('penalties', () => getDocs(collection(db, 'penalties'))),
       safeLoad('absences', () => getDocs(collection(db, 'absences'))),
-      safeLoad('studentMarks', () => getDocs(collection(db, 'studentMarks')))
+      safeLoad('studentMarks', () => getDocs(collection(db, 'studentMarks'))),
+      safeLoad('behaviors', () => getDocs(collection(db, 'behaviors'))),
+      safeLoad('participations', () => getDocs(collection(db, 'participations')))
     ]);
 
+    console.log('[REFRESH DEBUG] 🎉 Refresh completed!');
+    console.log('[REFRESH DEBUG] 📊 Final data summary:', Object.keys(next).reduce((acc, key) => {
+      acc[key] = next[key].length;
+      return acc;
+    }, {}));
+    
+    if (Object.keys(errors).length > 0) {
+      console.log('[REFRESH DEBUG] ⚠️ Errors encountered:', errors);
+    }
+    
     setRawData(next);
     setPermErrors(errors);
     setLoading(false);
@@ -103,6 +133,43 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
   const { dataSource, groupBy, aggregation = 'count', filters = [], dateRange, customDateFrom, customDateTo } = widget;
   let dataset = rawData[dataSource] || [];
 
+  // DEBUG: Log widget processing start
+  console.log(`[WIDGET DEBUG] 🎯 Processing widget: ${widget.title || 'Untitled'}`);
+  console.log(`[WIDGET DEBUG] 📋 Widget config:`, { dataSource, groupBy, aggregation, dateRange, customDateFrom, customDateTo });
+  console.log(`[WIDGET DEBUG] 🔽 Global filters:`, globalFilters);
+  console.log(`[WIDGET DEBUG] 📊 Raw data count:`, dataset.length, 'records');
+  
+  // DEBUG: Show all status values for attendance
+  if (dataSource === 'attendance' && dataset.length > 0) {
+    const allStatuses = [...new Set(dataset.map(item => item.status))].filter(Boolean);
+    console.log(`[WIDGET DEBUG] 📋 ALL status values found:`, allStatuses);
+    
+    // Check specifically for human_case variations
+    const humanCaseVariations = ['human_case', 'human case', 'humanCase', 'Human Case', 'HUMAN_CASE'];
+    const foundHumanCases = dataset.filter(item => 
+      humanCaseVariations.some(variation => 
+        item.status && item.status.toLowerCase().includes(variation.toLowerCase())
+      )
+    );
+    if (foundHumanCases.length > 0) {
+      console.log(`[WIDGET DEBUG] 🚨 Found human case records:`, foundHumanCases.length, foundHumanCases);
+    } else {
+      console.log(`[WIDGET DEBUG] ❌ No human case records found in dataset`);
+    }
+    
+    // Show sample records with their status
+    console.log(`[WIDGET DEBUG] 📝 Sample attendance records with status:`, 
+      dataset.slice(0, 5).map(item => ({ id: item.id, status: item.status, date: item.date }))
+    );
+  }
+
+  // Guard clause: if groupBy is empty, return empty data to prevent infinite loops
+  if (!groupBy || groupBy.trim() === '') {
+    console.warn('[processWidgetData] Empty groupBy provided, returning empty data');
+    return [];
+  }
+
+  
   // --- Global filter application ---
   if (globalFilters.studentId) {
     dataset = dataset.filter(i =>
@@ -147,6 +214,14 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       (i.subjectId || i.subject || i.subject_id) === globalFilters.subjectId
     );
   }
+  if (globalFilters.instructorId) {
+    dataset = dataset.filter(i =>
+      (i.instructorId || i.createdBy || i.markedBy || i.performedBy) === globalFilters.instructorId
+    );
+  }
+
+  // DEBUG: Log after global filters
+  console.log(`[WIDGET DEBUG] 🔽 After global filters:`, dataset.length, 'records');
 
   // --- Widget-level filters ---
   filters.forEach(filter => {
@@ -176,14 +251,41 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       const rangeMs = ranges[dateRange] || 0;
       cutoff = now - rangeMs - comparisonOffset * rangeMs;
       upperBound = comparisonOffset > 0 ? now - comparisonOffset * rangeMs : now;
+      
+      // DEBUG: Log date filtering details
+      console.log(`[WIDGET DEBUG] 📅 Date filtering:`, {
+        dateRange,
+        rangeMs,
+        cutoff: new Date(cutoff).toLocaleDateString(),
+        upperBound: new Date(upperBound).toLocaleDateString()
+      });
     }
+    
+    const beforeDateFilter = dataset.length;
     dataset = dataset.filter(item => {
-      const ts =
-        item.when?.seconds ? item.when.seconds * 1000 :
-        item.createdAt?.seconds ? item.createdAt.seconds * 1000 :
-        item.submittedAt?.seconds ? item.submittedAt.seconds * 1000 : 0;
+      let ts = 0;
+      // For attendance records, prioritize the 'date' field (string format)
+      if (dataSource === 'attendance' && item.date) {
+        ts = new Date(item.date).getTime();
+      } else {
+        // Fallback to timestamp fields for other collections
+        ts = item.when?.seconds ? item.when.seconds * 1000 :
+             item.createdAt?.seconds ? item.createdAt.seconds * 1000 :
+             item.submittedAt?.seconds ? item.submittedAt.seconds * 1000 : 0;
+      }
       return ts >= cutoff && ts < upperBound;
     });
+    
+    // DEBUG: Log date filtering results
+    console.log(`[WIDGET DEBUG] 📅 After date filtering:`, beforeDateFilter, '->', dataset.length, 'records');
+    if (dataSource === 'attendance' && dataset.length > 0) {
+      const statusCounts = {};
+      dataset.forEach(item => {
+        const status = item.status || 'unknown';
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+      });
+      console.log(`[WIDGET DEBUG] 📊 Attendance status after filtering:`, statusCounts);
+    }
   }
 
   // --- Group & aggregate ---
@@ -221,6 +323,27 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     if (groupBy === 'penaltyType' || (dataSource === 'penalties' && groupBy === 'type')) {
       const pt = item.type || 'Unknown';
       return PENALTY_TYPES.find(p => p.id === pt)?.label_en || pt;
+    }
+    if (groupBy === 'attendanceType' || (dataSource === 'attendance' && groupBy === 'status')) {
+      const status = item.status || 'Unknown';
+      // Map attendance status to proper labels
+      const statusMap = {
+        'present': 'Present',
+        'late': 'Late',
+        'absent_with_excuse': 'Absent (Excused)',
+        'absent': 'Absent (No Excuse)',
+        'absent_no_excuse': 'Absent (No Excuse)',
+        'excused_leave': 'Excused Leave',
+        'human_case': 'Human Case',
+        'human case': 'Human Case',
+        'humanCase': 'Human Case',
+        'Human Case': 'Human Case',
+        'HUMAN_CASE': 'Human Case',
+        'closed': 'Closed', // For session status
+        'open': 'Open',
+        'active': 'Active'
+      };
+      return statusMap[status] || status;
     }
     if (groupBy === 'absenceType' || (dataSource === 'absences' && groupBy === 'type')) {
       const at = item.type || 'Unknown';
@@ -314,6 +437,11 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
   });
 
   chartData.sort((a, b) => b.value - a.value);
+  
+  // DEBUG: Log final results
+  console.log(`[WIDGET DEBUG] 🎉 Final chart data:`, chartData);
+  console.log(`[WIDGET DEBUG] 📈 Grouped data:`, grouped);
+  
   return chartData;
 };
 

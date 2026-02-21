@@ -4,7 +4,7 @@ import React from 'react';
  * Custom Area Chart Component (Pure React/SVG)
  * Stacked or grouped area charts
  */
-export default function AreaChart({ data = [], width = 400, height = 300, colors = ['#800020', '#10b981', '#f59e0b'], showGrid = true, stacked = false }) {
+export default function AreaChart({ data = [], width = 400, height = 300, accentColor = '#800020', colors, showGrid = true, stacked = false }) {
   if (!data || data.length === 0) {
     return <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No data</div>;
   }
@@ -15,6 +15,11 @@ export default function AreaChart({ data = [], width = 400, height = 300, colors
   
   // Assume data is array of {label, values: [v1, v2, v3...]}
   const seriesCount = data[0]?.values?.length || 0;
+  
+  // Use accentColor as first color if colors not provided
+  if (!colors) {
+    colors = [accentColor, '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+  }
   
   let maxValue = 0;
   if (stacked) {

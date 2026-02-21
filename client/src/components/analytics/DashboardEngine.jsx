@@ -155,6 +155,17 @@ const DashboardEngine = ({
     setTimeout(() => setRecentlyRefreshed(prev => ({ ...prev, [id]: false })), 1400);
   }, []);
 
+  // ── Pre-compute chart data for all widgets (memoized) ────────────────────
+  // This is the key fix for infinite re-renders: processWidgetData runs once
+  // per rawData/globalFilters/widgets change, not on every render.
+  const chartDataMap = useMemo(() => {
+    const map = {};
+    sortedWidgets.forEach(w => {
+      map[w.id] = processWidgetData(w, rawData, globalFilters);
+    });
+    return map;
+  }, [sortedWidgets, rawData, globalFilters]);
+
   // ── Chart rendering ───────────────────────────────────────────────────────
   const handleChartClick = useCallback((widget, dataPoint) => {
     const filtered = (rawData[widget.dataSource] || []).filter(
@@ -164,22 +175,22 @@ const DashboardEngine = ({
   }, [rawData]);
 
   const renderChart = useCallback((widget, size) => {
-    const data = processWidgetData(widget, rawData, globalFilters);
+    const data = chartDataMap[widget.id] || [];
     const w = Math.max(100, Math.floor(size?.width || 0));
     const h = Math.max(140, Math.floor(size?.height || 0));
-    const props = { data, width: w, height: h, showGrid: true, onPointClick: (dp) => handleChartClick(widget, dp) };
+    const props = { data, width: w, height: h, showGrid: true, accentColor, onPointClick: (dp) => handleChartClick(widget, dp) };
 
     switch (widget.chartType) {
       case 'bar':  return <BarChart {...props} />;
       case 'line': return <LineChart {...props} />;
       case 'pie': {
         const s = Math.max(140, Math.floor(Math.min(size?.width || 0, size?.height || 0)) - 16);
-        return <PieChart data={data} size={s} donut />;
+        return <PieChart data={data} size={s} donut accentColor={accentColor} />;
       }
       case 'area': return <AreaChart {...props} />;
       default:     return <BarChart {...props} />;
     }
-  }, [rawData, globalFilters, handleChartClick]);
+  }, [chartDataMap, handleChartClick, accentColor]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -219,7 +230,7 @@ const DashboardEngine = ({
             boxShadow: `0 2px 8px ${accentColor}44`
           }}
         >
-          {getThemedIcon('ui', 'plus', 16, theme)}
+          {getThemedIcon('ui', 'plus', 16, theme) || '+'}
           {t('add_widget') || 'Add Widget'}
         </button>
       </div>

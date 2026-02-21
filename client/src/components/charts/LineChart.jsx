@@ -8,7 +8,7 @@ import React from 'react';
  * @param {String} color - Line color
  * @param {Boolean} showArea - Fill area under line
  */
-export default function LineChart({ data = [], width = 400, height = 300, color = '#800020', showArea = true, showPoints = true, showGrid = true }) {
+export default function LineChart({ data = [], width = 400, height = 300, accentColor = '#800020', showArea = true, showPoints = true, showGrid = true }) {
   if (!data || data.length === 0) {
     return <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No data</div>;
   }
@@ -74,7 +74,7 @@ export default function LineChart({ data = [], width = 400, height = 300, color 
       {showArea && (
         <path
           d={areaPath}
-          fill={color}
+          fill={accentColor}
           fillOpacity="0.2"
         />
       )}
@@ -83,7 +83,7 @@ export default function LineChart({ data = [], width = 400, height = 300, color 
       <path
         d={linePath}
         fill="none"
-        stroke={color}
+        stroke={accentColor}
         strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -97,7 +97,7 @@ export default function LineChart({ data = [], width = 400, height = 300, color 
             cy={p.y}
             r="5"
             fill="white"
-            stroke={color}
+            stroke={accentColor}
             strokeWidth="3"
           >
             <title>{`${p.label}: ${p.value}`}</title>

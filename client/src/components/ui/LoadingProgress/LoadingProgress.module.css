@@ -16,7 +16,7 @@
   width: 0%;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   background: linear-gradient(90deg, 
-    #FFD700 0%, /* Bright gold for testing */
+    #FFD700 0%, /* Bright gold */
     #FFA500 50%, /* Orange gold */
     #FFD700 100%
   );
@@ -29,7 +29,7 @@
   top: 0;
   width: 30px; /* Increased size */
   height: 100%;
-  background: #FFD700; /* Bright gold for testing */
+  background: #FFD700; /* Bright gold */
   border-radius: 50%;
   filter: blur(12px); /* Increased blur for more glow */
   opacity: 1; /* Full opacity for testing */
@@ -100,7 +100,7 @@
   }
   
   .progressBar {
-    background: var(--color-primary, var(--primary-maroon, #800020));
+    background: #FFD700;
   }
 }
 

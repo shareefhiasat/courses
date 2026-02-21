@@ -18,13 +18,15 @@ export const DATA_SOURCES = [
   { value: 'enrollments',      labelKey: 'ds_enrollments',      groupBy: ['status', 'classId', 'programId', 'subjectId', 'semester', 'year'] },
   { value: 'quizzes',          labelKey: 'ds_quizzes',          groupBy: ['type', 'difficulty', 'classId', 'programId', 'subjectId'] },
   { value: 'quizSubmissions',  labelKey: 'ds_quiz_submissions', groupBy: ['status', 'classId', 'userId', 'date'] },
-  { value: 'attendance',       labelKey: 'ds_attendance',       groupBy: ['status', 'classId', 'programId', 'date', 'term', 'semester'] },
+  { value: 'attendance',       labelKey: 'ds_attendance',       groupBy: ['attendanceType', 'status', 'classId', 'programId', 'date', 'term', 'semester'] },
   { value: 'penalties',        labelKey: 'ds_penalties',        groupBy: ['penaltyType', 'classId', 'userId', 'date'] },
   { value: 'absences',         labelKey: 'ds_absences',         groupBy: ['absenceType', 'classId', 'userId', 'date'] },
   { value: 'notifications',    labelKey: 'ds_notifications',    groupBy: ['type', 'status', 'date'] },
   { value: 'studentMarks',     labelKey: 'ds_student_marks',    groupBy: ['markType', 'classId', 'userId', 'programId', 'subjectId'] },
   { value: 'activityLogs',     labelKey: 'ds_activity_logs',    groupBy: ['type', 'userId', 'date'] },
   { value: 'emailLogs',        labelKey: 'ds_email_logs',       groupBy: ['status', 'type', 'date'] },
+  { value: 'behaviors',        labelKey: 'ds_behaviors',        groupBy: ['type', 'classId', 'studentId', 'programId', 'subjectId', 'date'] },
+  { value: 'participations',   labelKey: 'ds_participations',   groupBy: ['type', 'classId', 'studentId', 'programId', 'subjectId', 'date'] },
 ];
 
 const GROUP_BY_KEYS = {
@@ -32,7 +34,8 @@ const GROUP_BY_KEYS = {
   subjectId: 'gb_subject', userId: 'gb_user', date: 'gb_date', semester: 'gb_semester',
   term: 'gb_term', year: 'gb_year', role: 'gb_role', difficulty: 'gb_difficulty',
   penaltyType: 'gb_penalty_type', absenceType: 'gb_absence_type',
-  attendanceStatus: 'gb_status', markType: 'gb_mark_type',
+  attendanceStatus: 'gb_status', attendanceType: 'gb_attendance_type', markType: 'gb_mark_type',
+  studentId: 'gb_student',
 };
 
 const AGGREGATION_KEYS = [
@@ -60,6 +63,8 @@ const DATE_RANGE_KEYS = [
 export const DEFAULT_WIDGET_CONFIG = {
   id: null,
   title: '',
+  title_en: '',
+  title_ar: '',
   chartType: 'bar',
   dataSource: 'submissions',
   groupBy: 'status',
@@ -148,6 +153,30 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
               style={inputStyle}
             />
           </Field>
+
+          {/* Bilingual Titles */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label={t('title_en') || 'Title (English)'}>
+              <input
+                type="text"
+                value={config.title_en || ''}
+                onChange={e => set({ title_en: e.target.value })}
+                placeholder="e.g., Attendance by Type"
+                style={inputStyle}
+                dir="ltr"
+              />
+            </Field>
+            <Field label={t('title_ar') || 'Title (Arabic)'}>
+              <input
+                type="text"
+                value={config.title_ar || ''}
+                onChange={e => set({ title_ar: e.target.value })}
+                placeholder="مثال: الحضور حسب النوع"
+                style={inputStyle}
+                dir="rtl"
+              />
+            </Field>
+          </div>
 
           {/* Chart Type */}
           <Field label={t('chart_type') || 'Chart Type'}>

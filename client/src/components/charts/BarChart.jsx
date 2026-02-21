@@ -7,7 +7,7 @@ import React from 'react';
  * @param {Number} height - Chart height
  * @param {Boolean} horizontal - Horizontal bars
  */
-export default function BarChart({ data = [], width = 400, height = 300, horizontal = false, showValues = true, showGrid = true }) {
+export default function BarChart({ data = [], width = 400, height = 300, horizontal = false, showValues = true, showGrid = true, accentColor = '#800020' }) {
   if (!data || data.length === 0) {
     return <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No data</div>;
   }
@@ -60,7 +60,7 @@ export default function BarChart({ data = [], width = 400, height = 300, horizon
         const barHeight = (value / maxValue) * chartHeight;
         const x = padding.left + idx * barWidth + barGap / 2;
         const y = padding.top + chartHeight - barHeight;
-        const color = item.color || '#800020';
+        const color = item.color || accentColor;
 
         return (
           <g key={idx}>
