@@ -485,7 +485,7 @@ const HelpDrawer = () => {
                 }}
               >
                 {getThemedIcon('ui', 'chevrons_up_down', 14)}
-                <span>{t('collapse_all', 'Collapse All')}</span>
+                <span>{t('collapse_all')}</span>
               </button>
             </div>
           </div>

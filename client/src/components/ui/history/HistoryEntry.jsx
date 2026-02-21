@@ -26,46 +26,32 @@ export const HistoryEntry = ({
     try {
       if (log.time?.toDate) {
         const date = log.time.toDate();
+        
         if (isNaN(date.getTime())) {
           logger.log('🔧 HistoryEntry - invalid Firestore timestamp:', { time: log.time, logId: log.id });
           return '--:--';
         }
         const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-        logger.log('🔧 HistoryEntry - Firestore time converted:', { 
-          time: log.time, 
-          date: date, 
-          timeStr,
-          logId: log.id 
-        });
         return timeStr;
       } else if (log.time) {
         const date = new Date(log.time);
+        
         if (isNaN(date.getTime())) {
           logger.log('🔧 HistoryEntry - invalid date string:', { time: log.time, logId: log.id });
           return '--:--';
         }
         const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-        logger.log('🔧 HistoryEntry - date string converted:', { 
-          time: log.time, 
-          date: date, 
-          timeStr,
-          logId: log.id 
-        });
         return timeStr;
       }
-      logger.log('🔧 HistoryEntry - no time field:', { logId: log.id });
       return '--:--';
     } catch (error) {
-      logger.log('🔧 HistoryEntry - time display error:', { 
-        time: log.time, 
-        error: error.message,
-        logId: log.id 
-      });
       return '--:--';
     }
   };
 
-  return (
+  const timeDisplay = getTimeDisplay();
+
+    return (
     <div style={{ 
       display: 'flex', 
       alignItems: 'center', 
@@ -80,7 +66,7 @@ export const HistoryEntry = ({
         minWidth: isMobile ? '50px' : '70px', 
         fontSize: isMobile ? '0.65rem' : '0.75rem' 
       }}>
-        {getTimeDisplay()}
+        {timeDisplay}
       </span>
       
       {icon && (
@@ -111,7 +97,27 @@ export const HistoryEntry = ({
             fontSize: isMobile ? '0.6rem' : '0.7rem',
             marginLeft: '0.5rem'
           }}>
-            ({studentName})
+            {studentName.displayName || studentName.name || studentName}
+            {studentName.email && studentName.displayName && (
+              <span style={{ color: '#374151', fontWeight: 500 }}>
+                ({studentName.email})
+              </span>
+            )}
+            {studentName.studentNumber && (
+              <span style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '0.125rem',
+                marginLeft: '0.25rem',
+                padding: '0.125rem 0.25rem',
+                background: '#f3f4f6',
+                borderRadius: '0.25rem',
+                fontSize: '0.625rem'
+              }}>
+                {getThemedIcon('ui', 'user', 10, '#6b7280')}
+                {studentName.studentNumber}
+              </span>
+            )}
           </span>
         )}
       </span>

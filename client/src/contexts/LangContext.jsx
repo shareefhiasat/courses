@@ -733,13 +733,13 @@ const DICT = {
     'attendance.rate': 'Rate',
     'attendance.select_date': 'Select Date',
     'attendance.expand_all': '',
-    'attendance.collapse_all': '',
+    'attendance.collapse_all': ' ',
     'attendance.no_records': 'No records found',
 
     // Additional attendance translations
     'attendance.no_history_available': 'No history available',
     'attendance.expand_all': '',
-    'attendance.collapse_all': '',
+    'attendance.collapse_all': ' ',
     'attendance.view_by_day': 'View by Day',
     'attendance.view_by_month': 'View by Month',
     'attendance.monthly_summary': 'Monthly Summary',
@@ -971,7 +971,7 @@ const DICT = {
     start_activity: 'Start Activity',
     // UI Elements
     help: 'Help',
-    collapse_all: '',
+    collapse_all: ' ',
     section_content: 'Content',
     logs: 'Logs',
     
@@ -3806,13 +3806,13 @@ const DICT = {
     'attendance.rate': 'النسبة',
     'attendance.select_date': 'اختر التاريخ',
     'attendance.expand_all': '',
-    'attendance.collapse_all': '',
+    'attendance.collapse_all': ' ',
     'attendance.no_records': 'لا توجد سجلات',
 
     // Additional attendance translations (Arabic)
     'attendance.no_history_available': 'لا توجد سجلات',
     'attendance.expand_all': 'توسيع الكل',
-    'attendance.collapse_all': 'طي الكل',
+    'attendance.collapse_all': ' ',
     'attendance.view_by_day': 'عرض باليوم',
     'attendance.view_by_month': 'عرض بالشهر',
     'attendance.monthly_summary': 'ملخص شهري',
@@ -4082,7 +4082,7 @@ const DICT = {
     start_activity: 'بدأ النشاط',
     // UI Elements
     help: 'مساعدة',
-    collapse_all: '',
+    collapse_all: ' ',
     expand_all: 'توسيع الكل',
     section_content: 'المحتوى',
     logs: 'السجلات',

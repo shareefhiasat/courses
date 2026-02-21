@@ -186,7 +186,7 @@ const StudentRosterHistory = ({
                   <svg style={{ width: '14px', height: '14px', transform: 'rotate(180deg)' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
-                  {t('collapse_all') || 'Collapse All'}
+                  {t('collapse_all')}
                 </>
               ) : (
                 <>

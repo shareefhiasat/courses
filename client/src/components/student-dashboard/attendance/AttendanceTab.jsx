@@ -3,6 +3,7 @@ import { EmptyState } from '@ui';
 import { StudentRosterHistory } from '@components/ui/history';
 import useStudentAttendanceActions from '@hooks/useStudentAttendanceActions';
 import { PARTICIPATION_TYPES, BEHAVIOR_TYPES, PENALTY_TYPES } from '@constants';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import logger from '@utils/logger';
 import styles from './AttendanceTab.module.css';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -18,6 +19,7 @@ const AttendanceTab = React.memo(({
   participations = [],
   penalties = [],
   behaviors = [],
+  students = [],
   canDeleteRecords = false,
   onRefresh,
   t,
@@ -33,6 +35,8 @@ const AttendanceTab = React.memo(({
   const [expandedSections, setExpandedSections] = useState({
     participation: false, behavior: false, penalty: false,
   });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteModalData, setDeleteModalData] = useState({ type: '', id: '', studentId: '' });
 
   useEffect(() => {
     logger.log('[AttendanceTab] Data received:', {
@@ -41,12 +45,21 @@ const AttendanceTab = React.memo(({
       participationsCount: participations.length,
       penaltiesCount: penalties.length,
       behaviorsCount: behaviors.length,
+      studentsCount: students.length,
     });
-  }, [studentId, classId, attendance, participations, penalties, behaviors]);
+  }, [studentId, classId, attendance, participations, penalties, behaviors, students]);
 
   const actions = useStudentAttendanceActions({ classId, onRefresh });
 
   const stats = useMemo(() => {
+    logger.log('🔧 AttendanceTab - calculating stats:', {
+      attendanceCount: attendance.length,
+      penaltiesCount: penalties.length,
+      behaviorsCount: behaviors.length,
+      participationsCount: participations.length,
+      studentId
+    });
+
     const present = attendance.filter(a => a.status === 'present').length;
     const late = attendance.filter(a => a.status === 'late').length;
     const absentNoExcuse = attendance.filter(a => a.status === 'absent_no_excuse' || a.status === 'absent').length;
@@ -56,13 +69,17 @@ const AttendanceTab = React.memo(({
     const penaltyPoints = penalties.reduce((s, p) => s + (p.points || 0), 0);
     const behaviorPoints = behaviors.reduce((s, b) => s + (b.points || 0), 0);
     const participationPoints = participations.reduce((s, p) => s + (p.points || 0), 0);
-    return {
+    
+    const result = {
       present, late, absentNoExcuse, absentWithExcuse, excusedLeave, humanCase,
       penaltyCount: penalties.length, penaltyPoints,
       behaviorPoints, behaviorCount: behaviors.length,
       participationPoints, participationCount: participations.length,
     };
-  }, [attendance, penalties, behaviors, participations]);
+    
+    logger.log('🔧 AttendanceTab - stats result:', result);
+    return result;
+  }, [attendance, penalties, behaviors, participations, studentId]);
 
   // Per-type breakdown for expandable sections (images 4 & 5 style — all types shown, even zero)
   const typeBreakdown = useMemo(() => {
@@ -114,79 +131,89 @@ const AttendanceTab = React.memo(({
   }, [participations, behaviors, penalties, lang, t]);
 
   const groupedLogs = useMemo(() => {
-    logger.log('🔧 AttendanceTab - processing logs:', {
+    logger.log('🔧 AttendanceTab - START processing logs:', {
       attendanceCount: attendance.length,
       participationsCount: participations.length,
       penaltiesCount: penalties.length,
       behaviorsCount: behaviors.length,
-      studentId
+      studentId,
+      studentsCount: students.length,
+      classId
     });
 
-    // Log raw data samples
-    if (attendance.length > 0) {
-      logger.log('🔧 AttendanceTab - raw attendance sample:', attendance.slice(0, 2).map(a => ({
-        id: a.id,
-        time: a.time,
-        timestamp: a.timestamp,
-        date: a.date,
-        status: a.status,
-        timeType: typeof a.time,
-        timestampType: typeof a.timestamp
-      })));
-    }
-    if (participations.length > 0) {
-      logger.log('🔧 AttendanceTab - raw participation sample:', participations.slice(0, 2).map(p => ({
-        id: p.id,
-        time: p.time,
-        timestamp: p.timestamp,
-        date: p.date,
-        timeType: typeof p.time,
-        timestampType: typeof p.timestamp
-      })));
-    }
+    const resolveDate = (log) => {
+      // Use createdAt (Firestore timestamp) first, then date string
+      const candidates = [
+        log.createdAt?.toDate ? log.createdAt.toDate() : log.createdAt,
+        log.date,
+        log.updatedAt?.toDate ? log.updatedAt.toDate() : log.updatedAt,
+        log.time,
+        log.timestamp,
+      ];
+      for (const candidate of candidates) {
+        if (!candidate) continue;
+        if (candidate?.toDate) {
+          const d = candidate.toDate();
+          if (!isNaN(d.getTime())) return d;
+        }
+        const d = new Date(candidate);
+        if (!isNaN(d.getTime())) return d;
+      }
+      return null;
+    };
+
+    // Create a student name mapping from the students roster
+    const getStudentInfo = (studentId) => {
+      if (!studentId) return null;
+      // Look up student in the roster
+      const student = students.find(s => (s.id || s.uid) === studentId);
+      return student || { displayName: `Student ${studentId?.slice(0, 8)}...` };
+    };
 
     const allLogs = [
-      ...attendance.map(a => ({ ...a, logType: 'attendance', time: a.time || a.timestamp })),
-      ...participations.map(p => ({ ...p, logType: 'participation', time: p.time || p.timestamp })),
-      ...penalties.map(p => ({ ...p, logType: 'penalty', time: p.time || p.timestamp })),
-      ...behaviors.map(b => ({ ...b, logType: 'behavior', time: b.time || b.timestamp })),
+      ...attendance.map(a => ({ ...a, logType: RECORD_TYPES.ATTENDANCE, rawTime: a.time, time: resolveDate(a), studentName: getStudentInfo(a.studentId) })),
+      ...participations.map(p => ({ ...p, logType: RECORD_TYPES.PARTICIPATION, rawTime: p.time, time: resolveDate(p), studentName: getStudentInfo(p.studentId) })),
+      ...penalties.map(p => ({ ...p, logType: RECORD_TYPES.PENALTY, rawTime: p.time, time: resolveDate(p), studentName: getStudentInfo(p.studentId) })),
+      ...behaviors.map(b => ({ ...b, logType: RECORD_TYPES.BEHAVIOR, rawTime: b.time, time: resolveDate(b), studentName: getStudentInfo(b.studentId) })),
     ];
 
     logger.log('🔧 AttendanceTab - all logs count:', allLogs.length);
     logger.log('🔧 AttendanceTab - sample logs:', allLogs.slice(0, 5).map(log => ({
       id: log.id,
       logType: log.logType,
+      rawTime: log.rawTime,
       time: log.time,
-      timeType: typeof log.time,
-      hasToDate: !!log.time?.toDate,
-      timestamp: log.timestamp
+      timeType: typeof log.rawTime,
+      hasToDate: !!log.rawTime?.toDate,
     })));
 
     const dayMap = new Map();
     allLogs.forEach((log, index) => {
-      const dateObj = log.time?.toDate ? log.time.toDate() : new Date(log.time);
-      const dateKey = isNaN(dateObj.getTime()) ? 'unknown' : dateObj.toISOString().split('T')[0];
-      
+      const dateObj = log.time;
+      const dateKey = dateObj ? dateObj.toISOString().split('T')[0] : 'unknown';
+
       logger.log(`🔧 AttendanceTab - processing log ${index}:`, {
         logId: log.id,
         logType: log.logType,
-        time: log.time,
-        dateObj: dateObj,
-        dateKey: dateKey,
-        isValid: !isNaN(dateObj.getTime()),
-        dateObjString: dateObj.toString()
+        rawTime: log.rawTime,
+        resolvedTime: dateObj,
+        dateKey,
+        isValid: !!dateObj && !isNaN(dateObj.getTime()),
       });
-      
-      if (isNaN(dateObj.getTime())) {
-        logger.log('🔧 AttendanceTab - invalid date found:', {
+
+      if (!dateObj || isNaN(dateObj.getTime())) {
+        logger.log('🔧 AttendanceTab - invalid/unknown date found:', {
           logId: log.id,
           logType: log.logType,
-          time: log.time,
-          dateObj: dateObj,
-          dateKey: dateKey
+          rawTime: log.rawTime,
+          timestamp: log.timestamp,
+          date: log.date,
+          createdAt: log.createdAt,
+          updatedAt: log.updatedAt,
+          dateKey,
         });
       }
-      
+
       if (!dayMap.has(dateKey)) {
         dayMap.set(dateKey, { date: dateKey, attendance: [], participation: [], penalties: [], behavior: [] });
       }
@@ -196,11 +223,11 @@ const AttendanceTab = React.memo(({
       else if (log.logType === 'penalty') d.penalties.push(log);
       else if (log.logType === 'behavior') d.behavior.push(log);
     });
-    
+
     const result = Array.from(dayMap.entries())
       .sort(([a], [b]) => b.localeCompare(a))
       .map(([, data]) => data);
-    
+
     logger.log('🔧 AttendanceTab - grouped logs result:', result.map(group => ({
       date: group.date,
       attendance: group.attendance.length,
@@ -209,9 +236,9 @@ const AttendanceTab = React.memo(({
       behavior: group.behavior.length,
       totalEntries: group.attendance.length + group.participation.length + group.penalties.length + group.behavior.length
     })));
-    
+
     return result;
-  }, [attendance, participations, penalties, behaviors, studentId]);
+  }, [attendance, participations, penalties, behaviors, studentId, students]);
 
   const toggleFilter = useCallback((filter) => {
     setActiveFilters(prev => ({ ...prev, [filter]: !prev[filter] }));
@@ -238,10 +265,54 @@ const AttendanceTab = React.memo(({
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   }, []);
 
-  const handleDeleteAttendance = useCallback((sid, id) => { if (canDeleteRecords) actions.handleDeleteAttendance(sid, id); }, [canDeleteRecords, actions]);
-  const handleDeleteParticipation = useCallback((sid, id) => { if (canDeleteRecords) actions.handleDeleteParticipation(sid, id); }, [canDeleteRecords, actions]);
-  const handleDeleteBehavior = useCallback((sid, id) => { if (canDeleteRecords) actions.handleDeleteBehavior(sid, id); }, [canDeleteRecords, actions]);
-  const handleDeletePenalty = useCallback((sid, id) => { if (canDeleteRecords) actions.handleDeletePenalty(sid, id); }, [canDeleteRecords, actions]);
+  const confirmDelete = useCallback((type, id, studentId) => {
+    setDeleteModalData({ type, id, studentId });
+    setShowDeleteModal(true);
+  }, []);
+
+  const handleDeleteAttendance = useCallback((sid, id) => {
+    if (!canDeleteRecords) return;
+    confirmDelete('attendance', id, sid);
+  }, [canDeleteRecords, confirmDelete]);
+
+  const handleDeleteParticipation = useCallback((sid, id) => {
+    if (!canDeleteRecords) return;
+    confirmDelete('participation', id, sid);
+  }, [canDeleteRecords, confirmDelete]);
+
+  const handleDeleteBehavior = useCallback((sid, id) => {
+    if (!canDeleteRecords) return;
+    confirmDelete('behavior', id, sid);
+  }, [canDeleteRecords, confirmDelete]);
+
+  const handleDeletePenalty = useCallback((sid, id) => {
+    if (!canDeleteRecords) return;
+    confirmDelete('penalty', id, sid);
+  }, [canDeleteRecords, confirmDelete]);
+
+  const executeDelete = useCallback(async () => {
+    const { type, id, studentId } = deleteModalData;
+    setShowDeleteModal(false);
+    
+    try {
+      switch (type) {
+        case 'attendance':
+          await actions.handleDeleteAttendance(studentId, id);
+          break;
+        case 'participation':
+          await actions.handleDeleteParticipation(studentId, id);
+          break;
+        case 'behavior':
+          await actions.handleDeleteBehavior(studentId, id);
+          break;
+        case 'penalty':
+          await actions.handleDeletePenalty(studentId, id);
+          break;
+      }
+    } catch (error) {
+      logger.error('Delete failed:', error);
+    }
+  }, [deleteModalData, actions]);
 
   if (groupedLogs.length === 0) {
     return (
@@ -389,6 +460,82 @@ const AttendanceTab = React.memo(({
         lang={lang}
         studentName={studentName}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1004
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '0.5rem',
+            padding: '1.5rem',
+            maxWidth: '400px',
+            width: '90%',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+          }}>
+            <h3 style={{
+              margin: '0 0 1rem 0',
+              fontSize: '1.125rem',
+              fontWeight: 600,
+              color: '#111827'
+            }}>
+              {t('confirm_delete_record') || 'Delete Record'}
+            </h3>
+            <p style={{
+              margin: '0 0 1.5rem 0',
+              fontSize: '0.875rem',
+              color: '#6b7280',
+              lineHeight: '1.5'
+            }}>
+              {t('confirm_delete_message') || `Are you sure you want to delete this ${deleteModalData.type} record? This action cannot be undone.`}
+            </p>
+            <div style={{
+              display: 'flex',
+              gap: '0.75rem',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  border: '1px solid #d1d5db',
+                  background: 'white',
+                  color: '#6b7280',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {t('cancel') || 'Cancel'}
+              </button>
+              <button
+                onClick={executeDelete}
+                style={{
+                  padding: '0.5rem 1rem',
+                  border: 'none',
+                  background: '#dc2626',
+                  color: 'white',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {t('delete') || 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 });

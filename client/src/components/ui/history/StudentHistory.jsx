@@ -128,6 +128,17 @@ const StudentHistory = React.memo(({
               })));
 
               return allLogs.map((log, index) => {
+                // Check if this log type should be shown based on activeFilters
+                const shouldShow = 
+                  (log.logType === RECORD_TYPES.ATTENDANCE && activeFilters.attendance) ||
+                  (log.logType === RECORD_TYPES.PARTICIPATION && activeFilters.participation) ||
+                  (log.logType === RECORD_TYPES.BEHAVIOR && activeFilters.behavior) ||
+                  (log.logType === RECORD_TYPES.PENALTY && activeFilters.penalties);
+
+                if (!shouldShow) {
+                  return null;
+                }
+
                 // Get the appropriate icon and color based on log type
                 let icon, iconColor, borderColor, onDelete;
                 
@@ -174,21 +185,30 @@ const StudentHistory = React.memo(({
                     return null;
                 }
 
-                return (
-                  <HistoryEntry
-                    key={`${log.logType}-${log.id}-${index}`}
-                    log={log}
-                    type={log.logType}
-                    icon={icon}
-                    iconColor={iconColor}
-                    borderColor={index === allLogs.length - 1 ? 'none' : borderColor}
-                    onDelete={onDelete}
-                    t={t}
-                    isRTL={isRTL}
-                    lang={lang}
-                    studentName={studentName}
-                  />
-                );
+                logger.log('🔧 StudentHistory - rendering HistoryEntry:', {
+      logId: log.id,
+      logType: log.logType,
+      hasStudentName: !!studentName,
+      studentName,
+      logStudentName: log.studentName,
+      label: log.label
+    });
+
+    return (
+      <HistoryEntry
+        key={`${log.logType}-${log.id}-${index}`}
+        log={log}
+        type={log.logType}
+        icon={icon}
+        iconColor={iconColor}
+        borderColor={index === allLogs.length - 1 ? 'none' : borderColor}
+        onDelete={onDelete}
+        t={t}
+        isRTL={isRTL}
+        lang={lang}
+        studentName={studentName || log.studentName}
+      />
+    );
               });
             })()}
           </div>

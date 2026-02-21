@@ -24,8 +24,6 @@ import {
   PerformanceTab,
   RecordsTab,
 } from '@components/student-dashboard';
-import EnhancedStatsSection from '@components/student-dashboard/enhanced-stats/EnhancedStatsSection';
-import NetScoreAnalysis from '@components/student-dashboard/net-score-analysis/NetScoreAnalysis';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import styles from './StudentDashboardPage.module.css';
@@ -230,7 +228,6 @@ export default function StudentDashboardPage() {
     { value: 'attendance',    label: t('dashboard.attendance') || (lang === 'ar' ? 'الحضور'       : 'Attendance') },
     { value: 'marks',         label: t('dashboard.marks') || (lang === 'ar' ? 'الدرجات'      : 'Marks') },
     { value: 'performance',   label: t('dashboard.performance') || (lang === 'ar' ? 'الأداء'       : 'Performance') },
-    { value: 'netScore',      label: t('dashboard.net_score_analysis') || (lang === 'ar' ? 'تحليل الصافي' : 'Net Score Analysis') },
     { value: 'penalties',     label: t('dashboard.penalties') || (lang === 'ar' ? 'العقوبات'     : 'Penalties') },
     { value: 'participations',label: t('dashboard.participations') || (lang === 'ar' ? 'المشاركات'    : 'Participations') },
     { value: 'behaviors',     label: t('dashboard.behaviors') || (lang === 'ar' ? 'السلوك'       : 'Behaviors') },
@@ -326,16 +323,7 @@ export default function StudentDashboardPage() {
         </div>
 
         {/* ── Enhanced Stats summary bar (Class-level or Student-level) ── */}
-        {!showSelectionPrompt && !dashData.loading && (
-          <EnhancedStatsSection
-            statsData={dashData.statsData}
-            classMetrics={classMetrics.metrics}
-            isStaff={permissions.isStaff}
-            selectedStudentId={filters.selectedStudentId}
-            dashData={dashData}
-          />
-        )}
-
+        
         {/* ── Error state ── */}
         {(dashData.error || classMetrics.error) && (
           <div className={styles.errorState}>
@@ -393,6 +381,7 @@ export default function StudentDashboardPage() {
                   participations={dashData.participations}
                   penalties={dashData.penalties}
                   behaviors={dashData.behaviors}
+                  students={classEnrollments}
                   canInlineEdit={permissions.canInlineEdit}
                   canDeleteRecords={permissions.canDeleteRecords}
                   onRefresh={dashData.reload}
@@ -423,17 +412,6 @@ export default function StudentDashboardPage() {
                   canSeeClassDistributions={permissions.canSeeClassDistributions}
                   t={t}
                   lang={lang}
-                />
-              )}
-              {activeTab === 'netScore' && (
-                <NetScoreAnalysis
-                  participations={dashData.participations}
-                  penalties={dashData.penalties}
-                  behaviors={dashData.behaviors}
-                  marks={dashData.marks}
-                  quizResults={dashData.quizResults}
-                  isStaff={permissions.isStaff}
-                  selectedStudentId={filters.selectedStudentId}
                 />
               )}
               {activeTab === 'penalties' && (
