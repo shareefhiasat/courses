@@ -144,7 +144,7 @@ const EnhancedStatsSection = React.memo(({
       {/* Additional Insights Section */}
       <div className={styles.insightsSection}>
         <h3 className={styles.insightsTitle}>
-          {getThemedIcon('ui', 'bar_chart_2', 16, theme)}
+          {getThemedIcon('ui', 'bar_chart', 16, theme)}
           {t('dashboard.insights') || (lang === 'ar' ? 'رؤى تحليلية' : 'Insights')}
         </h3>
         

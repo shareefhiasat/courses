@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Minus, Maximize2, Pin, PinOff } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { formatLocalizedDateTime } from '@utils/date';
@@ -139,7 +139,7 @@ const DraggableClock = ({
             }}
             title={isPinned ? (t('unpin_from_navbar') || 'Unpin from navbar') : (t('pin_to_navbar') || 'Pin to navbar')}
           >
-            {isPinned ? <PinOff size={14} color={theme === 'light' ? 'white' : 'currentColor'} /> : <Pin size={14} color={theme === 'light' ? 'white' : 'currentColor'} />}
+            {isPinned ? getThemedIcon('ui', 'pin_off', 14) : getThemedIcon('ui', 'pin', 14)}
           </button>
           <button
             className="control-btn"
@@ -149,7 +149,7 @@ const DraggableClock = ({
             }}
             title={isMinimized ? (t('maximize') || 'Maximize') : (t('minimize') || 'Minimize')}
           >
-            {isMinimized ? <Maximize2 size={14} color={theme === 'light' ? 'white' : 'currentColor'} /> : <Minus size={14} color={theme === 'light' ? 'white' : 'currentColor'} />}
+            {isMinimized ? getThemedIcon('ui', 'maximize', 14) : getThemedIcon('ui', 'minus', 14)}
           </button>
         </div>
       </div>

@@ -1,9 +1,10 @@
 import React from 'react';
 import { useIsMobile } from '@hooks/useIsMobile';
 import { Button, InfoTooltip, PerformedBy } from '@ui';
-import { Trash2 } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants';
+import logger from '@utils/logger';
 
 export const HistoryEntry = ({ 
   log, 
@@ -15,9 +16,54 @@ export const HistoryEntry = ({
   isRTL,
   showDeleteButton = true,
   borderColor = '#f1f5f9',
-  lang = 'en'
+  lang = 'en',
+  studentName
 }) => {
   const isMobile = useIsMobile();
+
+  // Handle invalid times
+  const getTimeDisplay = () => {
+    try {
+      if (log.time?.toDate) {
+        const date = log.time.toDate();
+        if (isNaN(date.getTime())) {
+          logger.log('🔧 HistoryEntry - invalid Firestore timestamp:', { time: log.time, logId: log.id });
+          return '--:--';
+        }
+        const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        logger.log('🔧 HistoryEntry - Firestore time converted:', { 
+          time: log.time, 
+          date: date, 
+          timeStr,
+          logId: log.id 
+        });
+        return timeStr;
+      } else if (log.time) {
+        const date = new Date(log.time);
+        if (isNaN(date.getTime())) {
+          logger.log('🔧 HistoryEntry - invalid date string:', { time: log.time, logId: log.id });
+          return '--:--';
+        }
+        const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        logger.log('🔧 HistoryEntry - date string converted:', { 
+          time: log.time, 
+          date: date, 
+          timeStr,
+          logId: log.id 
+        });
+        return timeStr;
+      }
+      logger.log('🔧 HistoryEntry - no time field:', { logId: log.id });
+      return '--:--';
+    } catch (error) {
+      logger.log('🔧 HistoryEntry - time display error:', { 
+        time: log.time, 
+        error: error.message,
+        logId: log.id 
+      });
+      return '--:--';
+    }
+  };
 
   return (
     <div style={{ 
@@ -34,10 +80,7 @@ export const HistoryEntry = ({
         minWidth: isMobile ? '50px' : '70px', 
         fontSize: isMobile ? '0.65rem' : '0.75rem' 
       }}>
-        {log.time?.toDate 
-          ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) 
-          : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-        }
+        {getTimeDisplay()}
       </span>
       
       {icon && (
@@ -61,6 +104,16 @@ export const HistoryEntry = ({
         flex: 1
       }}>
         {log.label}
+        {studentName && (
+          <span style={{ 
+            color: '#6b7280', 
+            fontWeight: 400,
+            fontSize: isMobile ? '0.6rem' : '0.7rem',
+            marginLeft: '0.5rem'
+          }}>
+            ({studentName})
+          </span>
+        )}
       </span>
       
       {(() => {
@@ -185,7 +238,7 @@ export const HistoryEntry = ({
           }}
           title={t(`delete_${type}_record`) || `Delete ${type} record`}
         >
-          <Trash2 style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} />
+          {getThemedIcon('ui', 'trash2', isMobile ? 12 : 14)}
         </Button>
       )}
     </div>

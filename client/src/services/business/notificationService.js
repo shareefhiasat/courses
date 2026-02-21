@@ -1,7 +1,7 @@
 import { notificationGateway } from './notificationGateway';
 import { sendEmail } from './emailService';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
-import logger from '../../utils/logger';
+import logger from '@utils/logger';
 import { 
   getNotifications as getNotificationsFromDb,
   createNotification as createNotificationToDb,

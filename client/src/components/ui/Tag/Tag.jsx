@@ -1,5 +1,5 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Tag.module.css';
 
 /**
@@ -35,7 +35,7 @@ const Tag = ({
           onClick={onRemove}
           aria-label="Remove tag"
         >
-          <X size={14} />
+          {getThemedIcon('ui', 'close', 14)}
         </button>
       )}
     </span>

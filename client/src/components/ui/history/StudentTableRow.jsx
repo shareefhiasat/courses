@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@ui';
-import { Star, ChevronDown, ChevronRight, Trash2, SidebarOpen, QrCode, Mail, ExternalLink, Users, Trophy, AlertCircle } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import StudentRosterHistory from './StudentRosterHistory';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getAttendanceIcon } from '@constants/attendanceTypes';
@@ -184,12 +184,12 @@ const StudentTableRow = ({
             }}
           >
             {isExpanded ? (
-              <ChevronDown style={{ width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)' }} />
+              getThemedIcon('ui', 'chevron_down', 16)
             ) : (
               isRTL ? (
-                <ChevronDown style={{ width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)', transform: 'rotate(-90deg)' }} />
+                getThemedIcon('ui', 'chevron_down', 16)
               ) : (
-                <ChevronRight style={{ width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)' }} />
+                getThemedIcon('ui', 'chevron_right', 16)
               )
             )}
           </button>
@@ -208,14 +208,7 @@ const StudentTableRow = ({
                 padding: 0
               }}
             >
-              <Star 
-                style={{ 
-                  width: '1rem', 
-                  height: '1rem', 
-                  color: favoriteStudents.includes(student.id) ? '#f59e0b' : 'var(--text-muted, #d1d5db)',
-                  fill: favoriteStudents.includes(student.id) ? '#f59e0b' : 'none'
-                }} 
-              />
+              {getThemedIcon('ui', 'star', 16)}
             </button>
             <div>
               <div style={{ fontWeight: 500, color: 'var(--text, #111827)' }}>
@@ -483,7 +476,7 @@ const StudentTableRow = ({
                 onStudentSelect(student);
               }}
             >
-              <SidebarOpen style={{ width: '1rem', height: '1rem' }} />
+              {getThemedIcon('ui', 'sidebar_open', 16)}
             </Button>
             <Button 
               variant="ghost" 
@@ -497,7 +490,7 @@ const StudentTableRow = ({
               }}
               title={t('open_qr_code')}
             >
-              <QrCode style={{ width: '1rem', height: '1rem', color: '#10b981' }} />
+              {getThemedIcon('ui', 'qr_code', 16)}
             </Button>
             <Button 
               variant="ghost" 
@@ -520,7 +513,7 @@ const StudentTableRow = ({
                   animation: 'spin 1s linear infinite'
                 }} />
               ) : (
-                <Mail style={{ width: '1rem', height: '1rem' }} />
+                getThemedIcon('ui', 'mail', 16)
               )}
             </Button>
           </div>

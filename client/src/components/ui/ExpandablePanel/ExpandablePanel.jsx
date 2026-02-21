@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './ExpandablePanel.module.css';
 
 // Controlled: pass isOpen/onToggle; Uncontrolled: omit both
@@ -65,7 +65,7 @@ export default function ExpandablePanel({
         </div>
         <div className={styles.headerRight}>
           {headerRight}
-          {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          {open ? getThemedIcon('ui', 'chevron_down', 16) : getThemedIcon('ui', 'chevron_right', 16)}
         </div>
       </button>
       <div

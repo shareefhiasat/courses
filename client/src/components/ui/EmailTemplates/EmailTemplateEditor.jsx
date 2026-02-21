@@ -3,7 +3,7 @@ import { Select } from '@ui';
 import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import logger from '../../../utils/logger';
+import logger from '@utils/logger';
 import { getThemedIcon } from '@constants/iconTypes';
 import { VariableHelper } from '@ui';
 import { Modal } from '@ui';

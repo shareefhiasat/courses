@@ -19,7 +19,7 @@ import {
 import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import { addNotification } from '../notificationService.js';
 import { sendEmail } from '../emailService.js';
-import logger from '../../utils/logger';
+import logger from '@utils/logger';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes.js';
 import { RECORD_TYPES } from '@utils/sharedTypes.js';
 import { getQatarNow, formatQatarDateOnly, getQatarTimestampString } from '@utils/qatarDate';

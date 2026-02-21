@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Table.module.css';
 
 /**
@@ -126,12 +126,12 @@ const Table = ({
                     <span className={styles.sortIcon}>
                       {sortConfig.key === column.key ? (
                         sortConfig.direction === 'asc' ? (
-                          <ChevronUp size={16} />
+                          getThemedIcon('ui', 'chevron_up', 16)
                         ) : (
-                          <ChevronDown size={16} />
+                          getThemedIcon('ui', 'chevron_down', 16)
                         )
                       ) : (
-                        <ChevronsUpDown size={16} />
+                        getThemedIcon('ui', 'chevrons_up_down', 16)
                       )}
                     </span>
                   )}

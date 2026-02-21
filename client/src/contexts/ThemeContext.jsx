@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { SimpleLoading } from '@ui';
 import './ThemeContext.css';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 
 const ThemeContext = createContext({ theme: 'dark', toggleTheme: () => {} });
 

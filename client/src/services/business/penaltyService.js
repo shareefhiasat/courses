@@ -2,7 +2,7 @@ import { notificationGateway } from "./notificationGateway";
 import { NOTIFICATION_TRIGGERS } from "@constants/notificationTypes";
 import { RECORD_TYPES } from "@utils/sharedTypes";
 import { USER_ROLES } from "@constants/userRoles";
-import logger from '../../utils/logger';
+import logger from '@utils/logger';
 import { PENALTY_TYPES } from "@constants/penaltyTypes";
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import {

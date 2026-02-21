@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'react-qr-code';
-import { Download, RefreshCw, User } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import './StudentQRCodeDisplay.css';
 
 const StudentQRCodeDisplay = ({ 
@@ -67,7 +67,7 @@ const StudentQRCodeDisplay = ({
     return (
       <div className={`qr-code-display ${className}`}>
         <div className="qr-code-empty">
-          <User size={48} />
+          {getThemedIcon('ui', 'user', 48)}
           <p>No student selected</p>
         </div>
       </div>
@@ -86,7 +86,7 @@ const StudentQRCodeDisplay = ({
               className="qr-code-refresh"
               title="Refresh QR Code"
             >
-              <RefreshCw size={16} className={loading ? 'spinning' : ''} />
+              {getThemedIcon('ui', 'refresh_cw', 16)}
             </button>
           )}
           {showDownload && (
@@ -95,7 +95,7 @@ const StudentQRCodeDisplay = ({
               className="qr-code-download"
               title="Download QR Code"
             >
-              <Download size={16} />
+              {getThemedIcon('ui', 'download', 16)}
             </button>
           )}
         </div>

@@ -1,5 +1,5 @@
 import React, { forwardRef, useMemo } from 'react';
-import { Link as LinkIcon, ExternalLink, Copy, X } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './UrlInput.module.css';
 
 /**
@@ -80,7 +80,7 @@ const UrlInput = forwardRef(({
       <div className={styles.container}>
         {!value && (
           <span className={styles.prefix} aria-hidden>
-            <LinkIcon size={16} />
+            {getThemedIcon('ui', 'link', 16)}
           </span>
         )}
         <input
@@ -99,13 +99,13 @@ const UrlInput = forwardRef(({
         />
         <span className={styles.actions}>
           <button type="button" className={styles.actionBtn} onClick={handleOpen} title="Open in new tab" disabled={!value || !valid}> 
-            <ExternalLink size={14} />
+            {getThemedIcon('ui', 'external_link', 14)}
           </button>
           <button type="button" className={styles.actionBtn} onClick={handleCopy} title="Copy URL" disabled={!value}>
-            <Copy size={14} />
+            {getThemedIcon('ui', 'copy', 14)}
           </button>
           <button type="button" className={styles.actionBtn} onClick={handleClear} title="Clear">
-            <X size={14} />
+            {getThemedIcon('ui', 'close', 14)}
           </button>
         </span>
       </div>

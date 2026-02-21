@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Dropdown.module.css';
 
 /**
@@ -46,7 +46,7 @@ const Dropdown = ({
       <div className={styles.trigger} onClick={() => setIsOpen(!isOpen)}>
         {trigger || (
           <button className={styles.defaultTrigger}>
-            Menu <ChevronDown size={16} />
+            Menu {getThemedIcon('ui', 'chevron_down', 16)}
           </button>
         )}
       </div>

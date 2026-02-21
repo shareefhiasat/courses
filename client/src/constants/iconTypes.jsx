@@ -14,7 +14,7 @@ import {
   // Communication Icons
   MessageSquare, Bell, BellOff, Send, Phone, Mailbox, Megaphone, MailOpen, MousePointerClick, CornerDownLeft, Flag, ListFilter,
   // Navigation Icons
-  Home, Search, Filter, ChevronDown, ChevronUp, Link, Video, List, ExternalLink, Maximize, Square,
+  Home, Search, Filter, ChevronDown, ChevronUp, ChevronsUp, ChevronsUpDown, Link, Video, List, ExternalLink, Maximize, Square,
   // Time Icons
   Clock, Calendar,
   // UI Icons
@@ -175,6 +175,7 @@ export const ICON_TYPES = {
     filter: <Filter size={16} />,
     settings: <Settings size={16} />,
     refresh: <RefreshCw size={16} />,
+    refresh_cw: <RefreshCw size={16} />,
     edit: <Edit size={16} />,
     delete: <Trash size={16} />,
     delete2: <Trash2 size={16} />,
@@ -241,6 +242,7 @@ export const ICON_TYPES = {
     pie_chart: <PieChart size={16} />,
     trending_up: <TrendingUp size={16} />,
     save: <Save size={16} />,
+    sidebar_open: <Menu size={16} />,
     trash2: <Trash2 size={16} />,
     grip_vertical: <GripVertical size={16} />,
     zap: <Zap size={16} />,
@@ -331,6 +333,8 @@ export const ICON_TYPES = {
     alert_circle: <AlertCircle size={16} />,
     chevron_down: <ChevronDown size={16} />,
     chevron_up: <ChevronUp size={16} />,
+    chevrons_up: <ChevronsUp size={16} />,
+    chevrons_up_down: <ChevronsUpDown size={16} />,
     x: <X size={16} />,
     // Open tab icon for sticky mode
     open_tab: <LayoutGrid size={16} />,
@@ -345,7 +349,10 @@ export const ICON_TYPES = {
     bug: <AlertTriangle size={16} />,
     puzzle: <Package size={16} />,
     layers: <Layers size={16} />,
-    brain: <Monitor size={16} />
+    brain: <Monitor size={16} />,
+    // Missing icons causing console errors
+    minus: <Minus size={16} />,
+    pin_off: <Pin size={16} />
   }
 };
 

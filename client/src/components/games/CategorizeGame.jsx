@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, RotateCcw } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 
 export default function CategorizeGame({ data, settings, onComplete }) {
@@ -135,7 +135,7 @@ export default function CategorizeGame({ data, settings, onComplete }) {
 
     return (
       <div className="max-w-3xl mx-auto p-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-        <Trophy size={64} className="mx-auto text-yellow-500 mb-4" />
+        {getThemedIcon('ui', 'trophy', 64)}
         <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('categorization_complete') || 'Categorization Complete!'}</h1>
         <div className="text-5xl font-extrabold text-cyan-500 dark:text-cyan-400 mb-4">
           {score} / {totalItems}
@@ -191,7 +191,7 @@ export default function CategorizeGame({ data, settings, onComplete }) {
             onClick={handleReset}
             className="mt-8 px-8 py-4 bg-cyan-600 text-white rounded-xl font-semibold flex items-center gap-2 mx-auto hover:bg-cyan-700 transition-colors"
           >
-            <RotateCcw size={18} />
+            {getThemedIcon('ui', 'rotate_ccw', 18)}
             {t('try_again') || 'Try Again'}
           </button>
         )}

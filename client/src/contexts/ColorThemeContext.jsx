@@ -2,7 +2,7 @@ import React, { createContext, useContext, useCallback, useEffect, useState } fr
 import { useAuth } from './AuthContext';
 import { adjustColor, normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
 import '../utils/themeDebug'; // Import debug utility
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 
 const ColorThemeContext = createContext({
   primaryColor: DEFAULT_ACCENT,

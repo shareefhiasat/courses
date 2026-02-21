@@ -3,7 +3,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { signIn, signUp, resetPassword } from '@services/business/authService';
 import { useNavigate, useLocation } from 'react-router-dom';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 import { getAllowlist } from '@services/business/configService';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';

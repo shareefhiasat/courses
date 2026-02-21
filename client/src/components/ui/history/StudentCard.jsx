@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
 import { useIsMobile } from '@hooks/useIsMobile';
 import { Button } from '@ui';
-import { Star, ChevronDown, ChevronRight, Trash2, Users, Trophy, AlertCircle, Settings, BarChart3, QrCode, Mail, SidebarOpen, ExternalLink } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import StudentRosterHistory from './StudentRosterHistory';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { CircleIcon, ZapIcon } from '@utils/icons.jsx';
@@ -99,14 +99,7 @@ const StudentCard = ({
               padding: 0
             }}
           >
-            <Star 
-              style={{ 
-                width: '1rem', 
-                height: '1rem', 
-                color: favoriteStudents.includes(student.id) ? '#f59e0b' : 'var(--text-muted, #d1d5db)',
-                fill: favoriteStudents.includes(student.id) ? '#f59e0b' : 'none'
-              }} 
-            />
+            {getThemedIcon('ui', 'star', 16)}
           </button>
           <div style={{
             width: isMobile ? '2rem' : '2.5rem',
@@ -148,12 +141,12 @@ const StudentCard = ({
           }}
         >
           {isExpanded ? (
-            <ChevronDown style={{ width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)' }} />
+            getThemedIcon('ui', 'chevron_down', 16)
           ) : (
             isRTL ? (
-              <ChevronDown style={{ width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)', transform: 'rotate(-90deg)' }} />
+              getThemedIcon('ui', 'chevron_down', 16)
             ) : (
-              <ChevronRight style={{ width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)' }} />
+              getThemedIcon('ui', 'chevron_right', 16)
             )
           )}
         </button>
@@ -393,7 +386,7 @@ const StudentCard = ({
             onClick={handleStudentSelect}
             title={t('view_details') || 'View Details'}
           >
-            <SidebarOpen style={{ width: '1rem', height: '1rem' }} />
+            {getThemedIcon('ui', 'sidebar_open', 16)}
           </Button>
         )}
         <Button 
@@ -424,7 +417,7 @@ const StudentCard = ({
           onClick={handleQRNavigate}
           title={t('open_qr_code') || 'Open QR Code'}
         >
-          <QrCode style={{ width: '1rem', height: '1rem', color: '#10b981' }} />
+          {getThemedIcon('ui', 'qr_code', 16)}
         </Button>
       </div>
       

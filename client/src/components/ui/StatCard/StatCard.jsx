@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './StatCard.module.css';
 
 export default function StatCard({
@@ -17,11 +17,11 @@ export default function StatCard({
   const getTrendIcon = () => {
     switch (trend) {
       case 'up':
-        return <TrendingUp size={16} />;
+        return getThemedIcon('ui', 'trending_up', 16);
       case 'down':
-        return <TrendingDown size={16} />;
+        return getThemedIcon('ui', 'trending_down', 16);
       case 'neutral':
-        return <Minus size={16} />;
+        return getThemedIcon('ui', 'minus', 16);
       default:
         return null;
     }

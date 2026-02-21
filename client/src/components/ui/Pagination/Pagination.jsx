@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Pagination.module.css';
 
 /**
@@ -50,7 +50,7 @@ const Pagination = ({
           disabled={currentPage === 1}
           aria-label="First page"
         >
-          <ChevronsLeft size={16} />
+          {getThemedIcon('ui', 'chevrons_left', 16)}
         </button>
       )}
       
@@ -60,7 +60,7 @@ const Pagination = ({
         disabled={currentPage === 1}
         aria-label="Previous page"
       >
-        <ChevronLeft size={16} />
+        {getThemedIcon('ui', 'chevron_left', 16)}
       </button>
 
       {getPageNumbers().map((page) => (
@@ -79,7 +79,7 @@ const Pagination = ({
         disabled={currentPage === totalPages}
         aria-label="Next page"
       >
-        <ChevronRight size={16} />
+        {getThemedIcon('ui', 'chevron_right', 16)}
       </button>
 
       {showFirstLast && (
@@ -89,7 +89,7 @@ const Pagination = ({
           disabled={currentPage === totalPages}
           aria-label="Last page"
         >
-          <ChevronsRight size={16} />
+          {getThemedIcon('ui', 'chevrons_right', 16)}
         </button>
       )}
     </div>

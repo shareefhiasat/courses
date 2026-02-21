@@ -1,5 +1,5 @@
 import React from 'react';
-import { Inbox } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './EmptyState.module.css';
 
 /**
@@ -17,14 +17,14 @@ const EmptyState = ({
   // Safely render the icon
   const renderIcon = () => {
     if (!icon) {
-      return <Inbox size={64} className={styles.icon} />;
+      return <div className={styles.icon}>{getThemedIcon('ui', 'inbox', 64)}</div>;
     }
     
     if (typeof icon === 'function') {
       try {
-        return <icon size={64} className={styles.icon} />;
+        return <div className={styles.icon}>{icon({ size: 64 })}</div>;
       } catch (e) {
-        return <Inbox size={64} className={styles.icon} />;
+        return <div className={styles.icon}>{getThemedIcon('ui', 'inbox', 64)}</div>;
       }
     }
     
@@ -33,7 +33,7 @@ const EmptyState = ({
     }
     
     // Fallback for any other type
-    return <Inbox size={64} className={styles.icon} />;
+    return <div className={styles.icon}>{getThemedIcon('ui', 'inbox', 64)}</div>;
   };
 
   return (

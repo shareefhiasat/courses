@@ -1,7 +1,7 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useHelp } from '@contexts/HelpContext';
 import { useLang } from '@contexts/LangContext';
-import { X, Search, ChevronDown, ChevronUp, ChevronsUpDown, ChevronsUp } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 
 const HelpDrawer = () => {
   const { isOpen, currentHelp, closeHelp } = useHelp();
@@ -200,9 +200,9 @@ const HelpDrawer = () => {
                   alignItems: 'center'
                 }}>
                   {isExpanded ? (
-                    <ChevronUp size={18} />
+                    getThemedIcon('ui', 'chevron_up', 18)
                   ) : (
-                    <ChevronDown size={18} />
+                    getThemedIcon('ui', 'chevron_down', 18)
                   )}
                 </span>
               </h3>
@@ -292,7 +292,7 @@ const HelpDrawer = () => {
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               aria-label={t('close_help', 'Close help')}
             >
-              <X size={20} />
+              {getThemedIcon('ui', 'close', 20)}
             </button>
           </div>
         </div>
@@ -360,7 +360,7 @@ const HelpDrawer = () => {
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               aria-label={t('close_help', 'Close help')}
             >
-              <X size={20} />
+              {getThemedIcon('ui', 'close', 20)}
             </button>
           </div>
 
@@ -416,7 +416,7 @@ const HelpDrawer = () => {
                     onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     aria-label={t('clear_search', 'Clear search')}
                   >
-                    <X size={16} />
+                    {getThemedIcon('ui', 'close', 16)}
                   </button>
                 )}
               </div>
@@ -457,7 +457,7 @@ const HelpDrawer = () => {
                   e.currentTarget.borderColor = 'var(--border-color, #ddd)';
                 }}
               >
-                <ChevronsUp size={14} />
+                {getThemedIcon('ui', 'chevrons_up', 14)}
                 <span>{t('expand_all', 'Expand All')}</span>
               </button>
               <button
@@ -484,7 +484,7 @@ const HelpDrawer = () => {
                   e.currentTarget.borderColor = 'var(--border-color, #ddd)';
                 }}
               >
-                <ChevronsUpDown size={14} />
+                {getThemedIcon('ui', 'chevrons_up_down', 14)}
                 <span>{t('collapse_all', 'Collapse All')}</span>
               </button>
             </div>

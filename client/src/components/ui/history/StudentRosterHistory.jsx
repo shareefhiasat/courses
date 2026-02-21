@@ -23,7 +23,8 @@ const StudentRosterHistory = ({
   isRTL,
   groupLogsByDay,
   toggleFilter,
-  lang = 'en'
+  lang = 'en',
+  studentName
 }) => {
   const isMobile = useIsMobile();
   const groupedLogs = useMemo(
@@ -214,6 +215,7 @@ const StudentRosterHistory = ({
         isRTL={isRTL}
         studentId={student.id}
         lang={lang}
+        studentName={studentName}
       />
     </div>
   );

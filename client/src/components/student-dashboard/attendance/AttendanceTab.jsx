@@ -1,12 +1,11 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { useLang } from '@contexts/LangContext';
-import { useTheme } from '@contexts/ThemeContext';
-import { Badge, EmptyState, Button } from '@ui';
-import { getThemedIcon } from '@constants/iconTypes';
+import { EmptyState } from '@ui';
 import { StudentRosterHistory } from '@components/ui/history';
 import useStudentAttendanceActions from '@hooks/useStudentAttendanceActions';
+import { PARTICIPATION_TYPES, BEHAVIOR_TYPES, PENALTY_TYPES } from '@constants';
 import logger from '@utils/logger';
 import styles from './AttendanceTab.module.css';
+import { getThemedIcon } from '@constants/iconTypes';
 
 /**
  * Attendance Tab – shows attendance history with inline editing for staff.
@@ -19,403 +18,377 @@ const AttendanceTab = React.memo(({
   participations = [],
   penalties = [],
   behaviors = [],
-  canInlineEdit = false,
   canDeleteRecords = false,
   onRefresh,
   t,
   lang,
+  studentName,
 }) => {
-  const { theme } = useTheme();
-  const [activeFilters, setActiveFilters] = useState(['attendance', 'participation', 'behavior', 'penalty']);
-  const [expandedDays, setExpandedDays] = useState(() => new Map());
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [viewMode, setViewMode] = useState('day'); // 'day' or 'month'
+  const isRTL = lang === 'ar';
 
-  // Debug: Log what data is being passed
+  const [activeFilters, setActiveFilters] = useState({
+    attendance: true, participation: true, behavior: true, penalties: true,
+  });
+  const [expandedDays, setExpandedDays] = useState(() => new Map());
+  const [expandedSections, setExpandedSections] = useState({
+    participation: false, behavior: false, penalty: false,
+  });
+
   useEffect(() => {
     logger.log('[AttendanceTab] Data received:', {
-      studentId,
-      classId,
+      studentId, classId,
       attendanceCount: attendance.length,
       participationsCount: participations.length,
       penaltiesCount: penalties.length,
       behaviorsCount: behaviors.length,
-      canInlineEdit,
-      canDeleteRecords
     });
-    
-    // Log first few items of each array
+  }, [studentId, classId, attendance, participations, penalties, behaviors]);
+
+  const actions = useStudentAttendanceActions({ classId, onRefresh });
+
+  const stats = useMemo(() => {
+    const present = attendance.filter(a => a.status === 'present').length;
+    const late = attendance.filter(a => a.status === 'late').length;
+    const absentNoExcuse = attendance.filter(a => a.status === 'absent_no_excuse' || a.status === 'absent').length;
+    const absentWithExcuse = attendance.filter(a => a.status === 'absent_with_excuse').length;
+    const excusedLeave = attendance.filter(a => a.status === 'excused_leave').length;
+    const humanCase = attendance.filter(a => a.status === 'human_case').length;
+    const penaltyPoints = penalties.reduce((s, p) => s + (p.points || 0), 0);
+    const behaviorPoints = behaviors.reduce((s, b) => s + (b.points || 0), 0);
+    const participationPoints = participations.reduce((s, p) => s + (p.points || 0), 0);
+    return {
+      present, late, absentNoExcuse, absentWithExcuse, excusedLeave, humanCase,
+      penaltyCount: penalties.length, penaltyPoints,
+      behaviorPoints, behaviorCount: behaviors.length,
+      participationPoints, participationCount: participations.length,
+    };
+  }, [attendance, penalties, behaviors, participations]);
+
+  // Per-type breakdown for expandable sections (images 4 & 5 style — all types shown, even zero)
+  const typeBreakdown = useMemo(() => {
+    const participationBreakdown = PARTICIPATION_TYPES.map(pt => {
+      const matching = participations.filter(p => p.type === pt.id);
+      return {
+        id: pt.id,
+        label: lang === 'ar' ? pt.label_ar : pt.label_en,
+        total: matching.reduce((s, p) => s + (p.points || 0), 0),
+        count: matching.length,
+        hasEntries: matching.length > 0,
+      };
+    });
+
+    const behaviorBreakdown = BEHAVIOR_TYPES.map(bt => {
+      const matching = behaviors.filter(b => b.type === bt.id);
+      return {
+        id: bt.id,
+        label: lang === 'ar' ? bt.label_ar : bt.label_en,
+        total: matching.reduce((s, b) => s + (b.points || 0), 0),
+        count: matching.length,
+        hasEntries: matching.length > 0,
+      };
+    });
+    // Add behavior total row
+    const behaviorPoints = behaviors.reduce((s, b) => s + (b.points || 0), 0);
+    const behaviorCount = behaviors.length;
+    behaviorBreakdown.push({
+      id: '__total__',
+      label: t('behavior') || 'Behavior',
+      total: behaviorPoints,
+      count: behaviorCount,
+      hasEntries: behaviorCount > 0,
+      isTotal: true,
+    });
+
+    const penaltyBreakdown = PENALTY_TYPES.map(pt => {
+      const matching = penalties.filter(p => p.type === pt.id);
+      return {
+        id: pt.id,
+        label: lang === 'ar' ? pt.label_ar : pt.label_en,
+        total: matching.reduce((s, p) => s + (p.points || 0), 0),
+        count: matching.length,
+        hasEntries: matching.length > 0,
+      };
+    });
+
+    return { participationBreakdown, behaviorBreakdown, penaltyBreakdown };
+  }, [participations, behaviors, penalties, lang, t]);
+
+  const groupedLogs = useMemo(() => {
+    logger.log('🔧 AttendanceTab - processing logs:', {
+      attendanceCount: attendance.length,
+      participationsCount: participations.length,
+      penaltiesCount: penalties.length,
+      behaviorsCount: behaviors.length,
+      studentId
+    });
+
+    // Log raw data samples
     if (attendance.length > 0) {
-      logger.log('[AttendanceTab] Sample attendance data:', attendance.slice(0, 2));
+      logger.log('🔧 AttendanceTab - raw attendance sample:', attendance.slice(0, 2).map(a => ({
+        id: a.id,
+        time: a.time,
+        timestamp: a.timestamp,
+        date: a.date,
+        status: a.status,
+        timeType: typeof a.time,
+        timestampType: typeof a.timestamp
+      })));
     }
     if (participations.length > 0) {
-      logger.log('[AttendanceTab] Sample participation data:', participations.slice(0, 2));
+      logger.log('🔧 AttendanceTab - raw participation sample:', participations.slice(0, 2).map(p => ({
+        id: p.id,
+        time: p.time,
+        timestamp: p.timestamp,
+        date: p.date,
+        timeType: typeof p.time,
+        timestampType: typeof p.timestamp
+      })));
     }
-    if (penalties.length > 0) {
-      logger.log('[AttendanceTab] Sample penalty data:', penalties.slice(0, 2));
-    }
-    if (behaviors.length > 0) {
-      logger.log('[AttendanceTab] Sample behavior data:', behaviors.slice(0, 2));
-    }
-  }, [studentId, classId, attendance, participations, penalties, behaviors, canInlineEdit, canDeleteRecords]);
 
-  const actions = useStudentAttendanceActions({
-    classId,
-    selectedDate,
-    onRefresh,
-  });
-
-  // Merge all log types for the history component
-  const studentHistory = useMemo(() => ({
-    attendance,
-    participations,
-    penalties,
-    behaviors,
-  }), [attendance, participations, penalties, behaviors]);
-
-  // Group logs by date or month based on view mode
-  const groupedLogs = useMemo(() => {
     const allLogs = [
-      ...attendance.map(a => ({ ...a, logType: 'attendance', date: a.date || a.timestamp })),
-      ...participations.map(p => ({ ...p, logType: 'participation', date: p.date || p.timestamp })),
-      ...penalties.map(p => ({ ...p, logType: 'penalty', date: p.date || p.timestamp })),
-      ...behaviors.map(b => ({ ...b, logType: 'behavior', date: b.date || b.timestamp })),
+      ...attendance.map(a => ({ ...a, logType: 'attendance', time: a.time || a.timestamp })),
+      ...participations.map(p => ({ ...p, logType: 'participation', time: p.time || p.timestamp })),
+      ...penalties.map(p => ({ ...p, logType: 'penalty', time: p.time || p.timestamp })),
+      ...behaviors.map(b => ({ ...b, logType: 'behavior', time: b.time || b.timestamp })),
     ];
 
-    if (viewMode === 'month') {
-      // Group by month for monthly view
-      const monthMap = new Map();
-      allLogs.forEach(log => {
-        const date = new Date(log.date);
-        const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-        if (!monthMap.has(monthKey)) {
-          monthMap.set(monthKey, {
-            date: monthKey,
-            attendance: [],
-            participations: [],
-            penalties: [],
-            behaviors: [],
-            monthName: date.toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'long' })
-          });
-        }
-        const month = monthMap.get(monthKey);
-        if (log.logType === 'attendance') month.attendance.push(log);
-        else if (log.logType === 'participation') month.participations.push(log);
-        else if (log.logType === 'penalty') month.penalties.push(log);
-        else if (log.logType === 'behavior') month.behaviors.push(log);
+    logger.log('🔧 AttendanceTab - all logs count:', allLogs.length);
+    logger.log('🔧 AttendanceTab - sample logs:', allLogs.slice(0, 5).map(log => ({
+      id: log.id,
+      logType: log.logType,
+      time: log.time,
+      timeType: typeof log.time,
+      hasToDate: !!log.time?.toDate,
+      timestamp: log.timestamp
+    })));
+
+    const dayMap = new Map();
+    allLogs.forEach((log, index) => {
+      const dateObj = log.time?.toDate ? log.time.toDate() : new Date(log.time);
+      const dateKey = isNaN(dateObj.getTime()) ? 'unknown' : dateObj.toISOString().split('T')[0];
+      
+      logger.log(`🔧 AttendanceTab - processing log ${index}:`, {
+        logId: log.id,
+        logType: log.logType,
+        time: log.time,
+        dateObj: dateObj,
+        dateKey: dateKey,
+        isValid: !isNaN(dateObj.getTime()),
+        dateObjString: dateObj.toString()
       });
-      return Array.from(monthMap.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
-    } else {
-      // Group by day for daily view (existing logic)
-      const dayMap = new Map();
-      allLogs.forEach(log => {
-        const dateKey = typeof log.date === 'string'
-          ? log.date.split('T')[0]
-          : log.date?.toDate?.()?.toISOString?.()?.split('T')[0] || 'unknown';
-        if (!dayMap.has(dateKey)) {
-          dayMap.set(dateKey, {
-            date: dateKey,
-            attendance: [],
-            participations: [],
-            penalties: [],
-            behaviors: [],
-          });
-        }
-        const day = dayMap.get(dateKey);
-        if (log.logType === 'attendance') day.attendance.push(log);
-        else if (log.logType === 'participation') day.participations.push(log);
-        else if (log.logType === 'penalty') day.penalties.push(log);
-        else if (log.logType === 'behavior') day.behaviors.push(log);
-      });
-      return Array.from(dayMap.entries())
-        .sort(([a], [b]) => b.localeCompare(a))
-        .map(([date, data]) => ({ date, ...data }));
-    }
-  }, [attendance, participations, penalties, behaviors, viewMode, lang]);
+      
+      if (isNaN(dateObj.getTime())) {
+        logger.log('🔧 AttendanceTab - invalid date found:', {
+          logId: log.id,
+          logType: log.logType,
+          time: log.time,
+          dateObj: dateObj,
+          dateKey: dateKey
+        });
+      }
+      
+      if (!dayMap.has(dateKey)) {
+        dayMap.set(dateKey, { date: dateKey, attendance: [], participation: [], penalties: [], behavior: [] });
+      }
+      const d = dayMap.get(dateKey);
+      if (log.logType === 'attendance') d.attendance.push(log);
+      else if (log.logType === 'participation') d.participation.push(log);
+      else if (log.logType === 'penalty') d.penalties.push(log);
+      else if (log.logType === 'behavior') d.behavior.push(log);
+    });
+    
+    const result = Array.from(dayMap.entries())
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([, data]) => data);
+    
+    logger.log('🔧 AttendanceTab - grouped logs result:', result.map(group => ({
+      date: group.date,
+      attendance: group.attendance.length,
+      participation: group.participation.length,
+      penalties: group.penalties.length,
+      behavior: group.behavior.length,
+      totalEntries: group.attendance.length + group.participation.length + group.penalties.length + group.behavior.length
+    })));
+    
+    return result;
+  }, [attendance, participations, penalties, behaviors, studentId]);
 
   const toggleFilter = useCallback((filter) => {
-    setActiveFilters(prev =>
-      prev.includes(filter) ? prev.filter(f => f !== filter) : [...prev, filter]
-    );
+    setActiveFilters(prev => ({ ...prev, [filter]: !prev[filter] }));
   }, []);
 
   const toggleDay = useCallback((dateKey) => {
     setExpandedDays(prev => {
-      const newMap = new Map(prev);
-      if (newMap.has(dateKey)) {
-        newMap.delete(dateKey);
-      } else {
-        newMap.set(dateKey, true);
-      }
-      return newMap;
+      const m = new Map(prev);
+      if (m.has(dateKey)) m.delete(dateKey);
+      else m.set(dateKey, true);
+      return m;
     });
   }, []);
 
   const expandAll = useCallback(() => {
     const all = new Map();
-    groupedLogs.forEach(d => { all.set(d.date, true); });
+    groupedLogs.forEach(d => all.set(d.date, true));
     setExpandedDays(all);
   }, [groupedLogs]);
 
   const collapseAll = useCallback(() => setExpandedDays(new Map()), []);
 
-  // Attendance stats summary
-  const stats = useMemo(() => {
-    const total = attendance.length;
-    const present = attendance.filter(a => a.status === 'present').length;
-    const late = attendance.filter(a => a.status === 'late').length;
-    const absent = attendance.filter(a =>
-      a.status === 'absent_no_excuse' || a.status === 'absent'
-    ).length;
-    const excused = attendance.filter(a =>
-      a.status === 'absent_with_excuse' || a.status === 'excused_leave' || a.status === 'human_case'
-    ).length;
-    const rate = total > 0 ? ((present + late) / total) * 100 : 0;
-    return { total, present, late, absent, excused, rate };
-  }, [attendance]);
+  const toggleSection = useCallback((section) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  }, []);
 
-  // Delete handlers passed to history components
-  const handleDeleteEntry = useCallback(async (entry) => {
-    if (!canDeleteRecords) return;
-    const { logType, id } = entry;
-    if (logType === 'attendance') await actions.handleDeleteAttendance(studentId, id);
-    else if (logType === 'participation') await actions.handleDeleteParticipation(studentId, id);
-    else if (logType === 'penalty') await actions.handleDeletePenalty(studentId, id);
-    else if (logType === 'behavior') await actions.handleDeleteBehavior(studentId, id);
-  }, [canDeleteRecords, actions, studentId]);
+  const handleDeleteAttendance = useCallback((sid, id) => { if (canDeleteRecords) actions.handleDeleteAttendance(sid, id); }, [canDeleteRecords, actions]);
+  const handleDeleteParticipation = useCallback((sid, id) => { if (canDeleteRecords) actions.handleDeleteParticipation(sid, id); }, [canDeleteRecords, actions]);
+  const handleDeleteBehavior = useCallback((sid, id) => { if (canDeleteRecords) actions.handleDeleteBehavior(sid, id); }, [canDeleteRecords, actions]);
+  const handleDeletePenalty = useCallback((sid, id) => { if (canDeleteRecords) actions.handleDeletePenalty(sid, id); }, [canDeleteRecords, actions]);
 
-  const filterLabels = {
-    attendance: t('attendance.attendance') || 'Attendance',
-    participation: t('participation.participations') || 'Participations',
-    penalty: t('penalty.penalties') || 'Penalties',
-    behavior: t('behavior.behaviors') || 'Behaviors',
-  };
-
-  const filterColors = {
-    attendance: 'info',
-    participation: 'success',
-    penalty: 'danger',
-    behavior: 'warning',
-  };
-
-  if (groupedLogs.length === 0 && !canInlineEdit) {
+  if (groupedLogs.length === 0) {
     return (
-      <div>
-        <EmptyState
-          title={t('attendance.no_records_found') || (lang === 'ar' ? 'لا توجد سجلات حضور' : 'No attendance records found')}
-        />
-        {/* Debug info for development */}
-        {process.env.NODE_ENV === 'development' && (
-          <div style={{ marginTop: '1rem', padding: '1rem', background: '#fef2f2', border: '1px solid #ef4444', borderRadius: '8px', fontSize: '0.8rem' }}>
-            <strong>Debug - Attendance Tab:</strong><br/>
-          Student ID: {studentId || 'None'}<br/>
-          Class ID: {classId || 'None'}<br/>
-          Attendance Count: {attendance.length}<br/>
-          Participations Count: {participations.length}<br/>
-          Penalties Count: {penalties.length}<br/>
-          Behaviors Count: {behaviors.length}<br/>
-          Grouped Logs: {groupedLogs.length}<br/>
-          Can Inline Edit: {canInlineEdit ? 'Yes' : 'No'}<br/>
-          <details style={{ marginTop: '0.5rem' }}>
-            <summary style={{ cursor: 'pointer', fontSize: '0.7rem' }}>View Raw Data</summary>
-            <pre style={{ fontSize: '0.6rem', background: '#f8fafc', padding: '0.5rem', borderRadius: '4px', marginTop: '0.25rem' }}>
-              {JSON.stringify({
-                studentId,
-                classId,
-                attendance: attendance.slice(0, 2),
-                participations: participations.slice(0, 2),
-                penalties: penalties.slice(0, 2),
-                behaviors: behaviors.slice(0, 2)
-              }, null, 2)}
-            </pre>
-          </details>
-        </div>
-        )}
-      </div>
+      <EmptyState
+        title={t('attendance.no_records_found') || (lang === 'ar' ? 'لا توجد سجلات حضور' : 'No attendance records found')}
+      />
     );
   }
 
+  const SectionHeader = ({ label, bg, sectionKey, points, count }) => (
+    <div onClick={() => toggleSection(sectionKey)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', background: bg, borderRadius: expandedSections[sectionKey] ? '0.5rem 0.5rem 0 0' : '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
+      <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
+        {label} ({points} {t('points') || 'Points'}, {count} {t('entries') || 'entries'})
+      </span>
+      <span style={{ transform: expandedSections[sectionKey] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', flexShrink: 0, display: 'inline-flex' }}>
+        {getThemedIcon('ui', 'chevron_down', 16, 'white')}
+      </span>
+    </div>
+  );
+
+  const TypeRow = ({ item, textColor, totalBg }) => (
+    <div className={styles.sectionRow} style={{ background: item.isTotal ? totalBg : (item.hasEntries ? undefined : undefined), fontWeight: item.isTotal ? 600 : 400 }}>
+      <span style={{ color: textColor, flex: 1, fontSize: '0.8125rem' }}>{item.label}</span>
+      <span style={{ color: item.hasEntries ? textColor : '#9ca3af', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+        {t('total') || 'Total'}: {item.total >= 0 ? '+' : ''}{item.total}&nbsp;&nbsp;{t('count') || 'Count'}: ({item.count})
+      </span>
+      {item.hasEntries && canDeleteRecords && <span style={{ width: 16 }} />}
+    </div>
+  );
+
   return (
     <div className={styles.container}>
-      {/* Stats summary bar */}
-      <div className={styles.statsBar}>
-        <div className={styles.statChip} data-type="present">
-          {getThemedIcon('ui', 'check_circle', 14, theme)}
-          <span>{t('attendance.present') || 'Present'}</span>
-          <strong>{stats.present}</strong>
+      {/* Row 1: Present / Penalty / Behavior / Participation */}
+      <div className={styles.statGrid4}>
+        <div style={{ padding: '0.5rem 0.25rem', background: '#16a34a', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
+          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.present}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('present') || 'Present'}</div>
         </div>
-        <div className={styles.statChip} data-type="late">
-          {getThemedIcon('ui', 'clock', 14, theme)}
-          <span>{t('attendance.late') || 'Late'}</span>
-          <strong>{stats.late}</strong>
+        <div style={{ padding: '0.5rem 0.25rem', background: '#dc2626', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
+          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.penaltyCount}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('penalty') || 'Penalty'}</div>
         </div>
-        <div className={styles.statChip} data-type="absent">
-          {getThemedIcon('ui', 'x_circle', 14, theme)}
-          <span>{t('attendance.absent') || 'Absent'}</span>
-          <strong>{stats.absent}</strong>
+        <div style={{ padding: '0.5rem 0.25rem', background: '#f97316', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
+          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.behaviorPoints}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('behavior') || 'Behavior'}</div>
         </div>
-        <div className={styles.statChip} data-type="excused">
-          {getThemedIcon('ui', 'shield', 14, theme)}
-          <span>{t('attendance.excused') || 'Excused'}</span>
-          <strong>{stats.excused}</strong>
-        </div>
-        <div className={styles.statChip} data-type="rate">
-          {getThemedIcon('ui', 'bar_chart_2', 14, theme)}
-          <span>{t('attendance.rate') || 'Rate'}</span>
-          <strong>{stats.rate.toFixed(1)}%</strong>
+        <div style={{ padding: '0.5rem 0.25rem', background: '#3b82f6', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
+          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.participationCount}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('participation') || 'Participation'}</div>
         </div>
       </div>
 
-      {/* View mode toggle */}
-      <div className={styles.viewModeToggle}>
-        <Button
-          variant={viewMode === 'day' ? 'primary' : 'ghost'}
-          size="sm"
-          onClick={() => setViewMode('day')}
-        >
-          {getThemedIcon('ui', 'calendar', 14, theme)}
-          {t('attendance.view_by_day') || 'View by Day'}
-        </Button>
-        <Button
-          variant={viewMode === 'month' ? 'primary' : 'ghost'}
-          size="sm"
-          onClick={() => setViewMode('month')}
-        >
-          {getThemedIcon('ui', 'calendar', 14, theme)}
-          {t('attendance.view_by_month') || 'View by Month'}
-        </Button>
-      </div>
-
-      {/* Inline edit: date selector for staff */}
-      {canInlineEdit && (
-        <div className={styles.editBar}>
-          <label className={styles.dateLabel}>
-            {getThemedIcon('ui', 'calendar', 14, theme)}
-            {t('attendance.select_date') || 'Select Date'}
-          </label>
-          <input
-            type="date"
-            className={styles.dateInput}
-            value={selectedDate}
-            onChange={e => setSelectedDate(e.target.value)}
-          />
+      {/* Row 2: Late / Excused Leave / Absent(Excused) / Absent / Human Case */}
+      <div className={styles.statGrid5}>
+        <div style={{ padding: '0.5rem 0.25rem', background: '#eab308', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
+          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.late}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('late') || 'Late'}</div>
         </div>
-      )}
-
-      {/* Filter chips */}
-      <div className={styles.filterRow}>
-        {Object.entries(filterLabels).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            className={`${styles.filterChip} ${activeFilters.includes(key) ? styles.filterActive : ''}`}
-            onClick={() => toggleFilter(key)}
-            data-type={key}
-          >
-            {label}
-          </button>
-        ))}
-
-        <div className={styles.expandControls}>
-          <Button variant="ghost" size="sm" onClick={expandAll}>
-            {t('attendance.expand_all') || (lang === 'ar' ? 'توسيع الكل' : 'Expand All')}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={collapseAll}>
-            {t('attendance.collapse_all')}
-          </Button>
+        <div style={{ padding: '0.5rem 0.25rem', background: '#ef4444', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
+          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.excusedLeave}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('excused_leave') || 'Excused Leave'}</div>
+        </div>
+        <div style={{ padding: '0.5rem 0.25rem', background: '#ef4444', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
+          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.absentWithExcuse}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('absent_excused') || 'Absent (Excused)'}</div>
+        </div>
+        <div style={{ padding: '0.5rem 0.25rem', background: '#ef4444', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
+          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.absentNoExcuse}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('absent') || 'Absent'}</div>
+        </div>
+        <div style={{ padding: '0.5rem 0.25rem', background: '#8b5cf6', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
+          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.humanCase}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('human_case') || 'Human Case'}</div>
         </div>
       </div>
 
-      {/* History list */}
-      {groupedLogs.length === 0 ? (
-        <EmptyState
-          title={t('attendance.no_records') || (lang === 'ar' ? 'لا توجد سجلات' : 'No records found')}
-        />
-      ) : (
-        <StudentRosterHistory
-          student={{ id: studentId }}
-          studentHistory={{ [studentId]: groupedLogs.flatMap(day => [
-            ...day.attendance.map(a => ({ ...a, type: 'attendance', logType: 'attendance' })),
-            ...day.participations.map(p => ({ ...p, type: 'participation', logType: 'participation' })),
-            ...day.penalties.map(p => ({ ...p, type: 'penalty', logType: 'penalty' })),
-            ...day.behaviors.map(b => ({ ...b, type: 'behavior', logType: 'behavior' }))
-          ]) }}
-          expandedDays={expandedDays}
-          activeFilters={activeFilters}
-          toggleDayExpansion={toggleDay}
-          expandAllDays={expandAll}
-          collapseAllDays={collapseAll}
-          handleDeleteAttendance={canDeleteRecords ? (studentId, entryId) => handleDeleteEntry({ logType: 'attendance', id: entryId }) : undefined}
-          handleDeleteParticipation={canDeleteRecords ? (studentId, entryId) => handleDeleteEntry({ logType: 'participation', id: entryId }) : undefined}
-          handleDeleteBehavior={canDeleteRecords ? (studentId, entryId) => handleDeleteEntry({ logType: 'behavior', id: entryId }) : undefined}
-          handleDeletePenalty={canDeleteRecords ? (studentId, entryId) => handleDeleteEntry({ logType: 'penalty', id: entryId }) : undefined}
-          t={t}
-          isRTL={lang === 'ar'}
-          groupLogsByDay={(logs) => {
-            const grouped = {};
+      {/* Expandable type-breakdown sections (images 4 & 5 style) */}
+      <div className={styles.sectionsContainer}>
 
-            logs.forEach(log => {
-              const date = log.date;
-              if (!grouped[date]) {
-                grouped[date] = {
-                  date: date,
-                  attendance: [],
-                  penalties: [],
-                  participation: [],
-                  behavior: []
-                };
-              }
+        {/* Participation */}
+        <SectionHeader label={t('participation_details') || 'Participation Details'} bg="#3b82f6" sectionKey="participation" points={stats.participationPoints} count={stats.participationCount} />
+        {expandedSections.participation && (
+          <div className={styles.sectionBody} style={{ borderInlineStart: '3px solid #3b82f6', background: '#f0f7ff', borderRadius: '0 0 0.5rem 0.5rem', padding: '0.25rem 0' }}>
+            {typeBreakdown.participationBreakdown.map(item => (
+              <TypeRow key={item.id} item={item} textColor="#1e3a8a" totalBg="#dbeafe" />
+            ))}
+          </div>
+        )}
 
-              if (log.logType === 'attendance') {
-                grouped[date].attendance.push(log);
-              } else if (log.logType === 'penalty') {
-                grouped[date].penalties.push(log);
-              } else if (log.logType === 'participation') {
-                grouped[date].participation.push(log);
-              } else if (log.logType === 'behavior') {
-                grouped[date].behavior.push(log);
-              } else if (log.points > 0) {
-                // Fallback for older records
-                grouped[date].participation.push(log);
-              } else if (log.points < 0) {
-                // Fallback for older records
-                grouped[date].penalties.push(log);
-              }
-            });
+        {/* Behavior */}
+        <SectionHeader label={t('behavior_details') || 'Behavior Details'} bg="#f97316" sectionKey="behavior" points={stats.behaviorPoints} count={stats.behaviorCount} />
+        {expandedSections.behavior && (
+          <div className={styles.sectionBody} style={{ borderInlineStart: '3px solid #f97316', background: '#fff7f0', borderRadius: '0 0 0.5rem 0.5rem', padding: '0.25rem 0' }}>
+            {typeBreakdown.behaviorBreakdown.map(item => (
+              <TypeRow key={item.id} item={item} textColor="#9a3412" totalBg="#fed7aa" />
+            ))}
+          </div>
+        )}
 
-            // Sort each array by time (newest first)
-            Object.keys(grouped).forEach(date => {
-              grouped[date].attendance.sort((a, b) => {
-                const timeA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
-                const timeB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
-                return timeB - timeA;
-              });
-              grouped[date].penalties.sort((a, b) => {
-                const timeA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
-                const timeB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
-                return timeB - timeA;
-              });
-              grouped[date].participation.sort((a, b) => {
-                const timeA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
-                const timeB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
-                return timeB - timeA;
-              });
-              grouped[date].behavior.sort((a, b) => {
-                const timeA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
-                const timeB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
-                return timeB - timeA;
-              });
-            });
+        {/* Penalty */}
+        <SectionHeader label={t('penalty_details') || 'Penalty Details'} bg="#dc2626" sectionKey="penalty" points={stats.penaltyPoints} count={stats.penaltyCount} />
+        {expandedSections.penalty && (
+          <div className={styles.sectionBody} style={{ borderInlineStart: '3px solid #dc2626', background: '#fff5f5', borderRadius: '0 0 0.5rem 0.5rem', padding: '0.25rem 0' }}>
+            {typeBreakdown.penaltyBreakdown.map(item => (
+              <TypeRow key={item.id} item={item} textColor="#7f1d1d" totalBg="#fecaca" />
+            ))}
+          </div>
+        )}
+      </div>
 
-            return Object.values(grouped).sort((a, b) => {
-              // Sort days by date (newest first)
-              return new Date(b.date) - new Date(a.date);
-            });
-          }}
-          toggleFilter={toggleFilter}
-          lang={lang}
-        />
-      )}
+      {/* History timeline using StudentRosterHistory (filter bar + day-grouped entries) */}
+      <StudentRosterHistory
+        student={{ id: studentId }}
+        studentHistory={{ [studentId]: groupedLogs.flatMap(day => [
+          ...day.attendance.map(a => ({ ...a, type: 'attendance', logType: 'attendance' })),
+          ...day.participation.map(p => ({ ...p, type: 'participation', logType: 'participation' })),
+          ...day.penalties.map(p => ({ ...p, type: 'penalty', logType: 'penalty' })),
+          ...day.behavior.map(b => ({ ...b, type: 'behavior', logType: 'behavior' })),
+        ]) }}
+        expandedDays={expandedDays}
+        activeFilters={activeFilters}
+        toggleDayExpansion={toggleDay}
+        expandAllDays={expandAll}
+        collapseAllDays={collapseAll}
+        handleDeleteAttendance={canDeleteRecords ? handleDeleteAttendance : undefined}
+        handleDeleteParticipation={canDeleteRecords ? handleDeleteParticipation : undefined}
+        handleDeleteBehavior={canDeleteRecords ? handleDeleteBehavior : undefined}
+        handleDeletePenalty={canDeleteRecords ? handleDeletePenalty : undefined}
+        t={t}
+        isRTL={isRTL}
+        groupLogsByDay={(logs) => {
+          const grouped = {};
+          logs.forEach(log => {
+            const dateObj = log.time?.toDate ? log.time.toDate() : new Date(log.time);
+            const dateKey = isNaN(dateObj.getTime()) ? 'unknown' : dateObj.toISOString().split('T')[0];
+            if (!grouped[dateKey]) grouped[dateKey] = { date: dateKey, attendance: [], penalties: [], participation: [], behavior: [] };
+            if (log.logType === 'attendance') grouped[dateKey].attendance.push(log);
+            else if (log.logType === 'penalty') grouped[dateKey].penalties.push(log);
+            else if (log.logType === 'participation') grouped[dateKey].participation.push(log);
+            else if (log.logType === 'behavior') grouped[dateKey].behavior.push(log);
+          });
+          return Object.values(grouped).sort((a, b) => new Date(b.date) - new Date(a.date));
+        }}
+        toggleFilter={toggleFilter}
+        lang={lang}
+        studentName={studentName}
+      />
     </div>
   );
 });

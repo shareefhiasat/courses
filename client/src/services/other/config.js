@@ -3,7 +3,7 @@ import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence }
 import { getFirestore, connectFirestoreEmulator, initializeFirestore } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
-import logger from '../../utils/logger';
+import logger from '@utils/logger';
 import { getDatabase, connectDatabaseEmulator } from 'firebase/database';
 
 const firebaseConfig = {

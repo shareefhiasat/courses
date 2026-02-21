@@ -4,7 +4,7 @@ import { useLang } from './LangContext';
 import { ABSENCE_TYPES } from '../constants/absenceTypes';
 import { PENALTY_TYPES } from '../constants/penaltyTypes.jsx';
 import { PARTICIPATION_TYPES } from '../constants/participationTypes.jsx';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 
 const HelpContext = createContext();
 

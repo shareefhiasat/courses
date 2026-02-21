@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { X, ChevronDown, ChevronUp, Download, FileText } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './FormulaSheet.module.css';
 
 const FormulaSheet = ({ formulas = [], onClose }) => {
@@ -37,11 +37,11 @@ const FormulaSheet = ({ formulas = [], onClose }) => {
         <div className={styles.header}>
           <h3>Formula Sheet</h3>
           <button onClick={onClose} className={styles.closeBtn}>
-            <X size={18} />
+            {getThemedIcon('ui', 'close', 18)}
           </button>
         </div>
         <div className={styles.empty}>
-          <FileText size={48} />
+          {getThemedIcon('ui', 'file_text', 48)}
           <p>No formula sheet available for this quiz</p>
         </div>
       </div>
@@ -54,10 +54,10 @@ const FormulaSheet = ({ formulas = [], onClose }) => {
         <h3>Formula Sheet</h3>
         <div className={styles.headerActions}>
           <button onClick={downloadSheet} className={styles.downloadBtn} title="Download">
-            <Download size={16} />
+            {getThemedIcon('ui', 'download', 16)}
           </button>
           <button onClick={onClose} className={styles.closeBtn}>
-            <X size={18} />
+            {getThemedIcon('ui', 'close', 18)}
           </button>
         </div>
       </div>
@@ -71,9 +71,9 @@ const FormulaSheet = ({ formulas = [], onClose }) => {
             >
               <h4>{section.title}</h4>
               {expandedSections[index] ? (
-                <ChevronUp size={20} />
+                getThemedIcon('ui', 'chevron_up', 20)
               ) : (
-                <ChevronDown size={20} />
+                getThemedIcon('ui', 'chevron_down', 20)
               )}
             </button>
 

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { CheckCircle, XCircle, Clock, Award, TrendingUp, Target, RefreshCw } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { Card, CardBody, Badge, Button, Chart } from '@ui';
 import styles from './DetailedResults.module.css';
 
@@ -91,9 +91,9 @@ const DetailedResults = ({
                 <div className={styles.questionNumber}>
                   Question {index + 1}
                   {isCorrect ? (
-                    <CheckCircle size={20} className={styles.correct} />
+                    getThemedIcon('ui', 'check_circle', 20)
                   ) : (
-                    <XCircle size={20} className={styles.incorrect} />
+                    getThemedIcon('ui', 'x_circle', 20)
                   )}
                 </div>
                 <div className={styles.questionMeta}>
@@ -101,7 +101,7 @@ const DetailedResults = ({
                     {question.points || 1} {isCorrect ? 'earned' : 'missed'}
                   </Badge>
                   <span className={styles.time}>
-                    <Clock size={14} /> {timeSpent}s
+                    {getThemedIcon('ui', 'clock', 14)} {timeSpent}s
                   </span>
                 </div>
               </div>
@@ -138,8 +138,8 @@ const DetailedResults = ({
                         className={styles.optionText}
                         dangerouslySetInnerHTML={{ __html: option.text }}
                       />
-                      {isCorrectOption && <CheckCircle size={16} />}
-                      {isStudentAnswer && !isCorrectOption && <XCircle size={16} />}
+                      {isCorrectOption && getThemedIcon('ui', 'check_circle', 16)}
+                      {isStudentAnswer && !isCorrectOption && getThemedIcon('ui', 'x_circle', 16)}
                     </div>
                   );
                 })}
@@ -227,7 +227,7 @@ const DetailedResults = ({
           <CardBody>
             <div className={styles.retrySection}>
               <h3>
-                <RefreshCw size={20} />
+                {getThemedIcon('ui', 'refresh_cw', 20)}
                 Retry Incorrect Questions
               </h3>
               <p>You got {stats.incorrectQuestions.length} questions wrong. Practice these to improve!</p>
@@ -250,7 +250,7 @@ const DetailedResults = ({
         <Card>
           <CardBody>
             <div className={styles.scoreStat}>
-              <Target size={32} />
+              {getThemedIcon('ui', 'target', 32)}
               <div>
                 <div className={styles.statLabel}>Your Score</div>
                 <div className={styles.statValue}>{stats.percentage.toFixed(1)}%</div>
@@ -263,7 +263,7 @@ const DetailedResults = ({
           <Card>
             <CardBody>
               <div className={styles.scoreStat}>
-                <TrendingUp size={32} />
+                {getThemedIcon('ui', 'trending_up', 32)}
                 <div>
                   <div className={styles.statLabel}>Class Average</div>
                   <div className={styles.statValue}>{classAverage.toFixed(1)}%</div>
@@ -280,7 +280,7 @@ const DetailedResults = ({
           <Card>
             <CardBody>
               <div className={styles.scoreStat}>
-                <Award size={32} />
+                {getThemedIcon('ui', 'award', 32)}
                 <div>
                   <div className={styles.statLabel}>Top Score</div>
                   <div className={styles.statValue}>{topScore.toFixed(1)}%</div>
@@ -320,7 +320,7 @@ const DetailedResults = ({
       <div className={styles.header}>
         <h2>Quiz Results: {quiz.title}</h2>
         <Button onClick={onRetakeQuiz} variant="outline">
-          <RefreshCw size={16} /> Retake Quiz
+          {getThemedIcon('ui', 'refresh_cw', 16)} Retake Quiz
         </Button>
       </div>
 

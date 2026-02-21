@@ -1,16 +1,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { User, UserCheck, UserX, UserMinus, AlertCircle, Info } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { USER_STATUS, getStatusIconProps } from '../../../utils/userStatus';
 import styles from './StudentSelectOption.module.css';
 
 const ICON_MAP = {
-  UserCheck,
-  UserX,
-  UserMinus,
-  AlertCircle,
-  Info,
-  User
+  UserCheck: 'user_check',
+  UserX: 'user_x',
+  UserMinus: 'user_minus',
+  AlertCircle: 'alert_circle',
+  Info: 'info',
+  User: 'user'
 };
 
 const formatStatusLabel = (statusLabel, status) => {
@@ -54,7 +54,7 @@ const StudentSelectOption = ({
 }) => {
   const derivedPrimary = primaryText || name || email || 'Unknown User';
   const iconProps = getStatusIconProps(status);
-  const IconComponent = IconOverride || ICON_MAP[iconProps.name] || User;
+  const iconName = IconOverride || ICON_MAP[iconProps.name] || 'user';
   const color = iconColor || iconProps.color || '#6b7280';
   const background = iconBackground || hexToRgba(color, 0.15);
 
@@ -70,7 +70,7 @@ const StudentSelectOption = ({
           className={styles.iconBubble}
           style={{ color, backgroundColor: background }}
         >
-          <IconComponent size={18} strokeWidth={2} />
+          {getThemedIcon('ui', iconName, 18)}
         </span>
       </div>
       <div className={styles.textContent}>

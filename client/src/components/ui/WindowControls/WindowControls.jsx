@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Minus, Square, Maximize2 } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './WindowControls.module.css';
 
 const WindowControls = ({ 
@@ -41,7 +41,7 @@ const WindowControls = ({
               onClick={onMinimize}
               title="Minimize"
             >
-              <Minus size={14} />
+              {getThemedIcon('ui', 'minus', 14)}
             </button>
           )}
           
@@ -51,7 +51,7 @@ const WindowControls = ({
               onClick={onMaximize}
               title="Maximize"
             >
-              <Maximize2 size={14} />
+              {getThemedIcon('ui', 'maximize', 14)}
             </button>
           )}
           
@@ -61,7 +61,7 @@ const WindowControls = ({
               onClick={onClose}
               title="Close"
             >
-              <X size={14} />
+              {getThemedIcon('ui', 'close', 14)}
             </button>
           )}
         </div>

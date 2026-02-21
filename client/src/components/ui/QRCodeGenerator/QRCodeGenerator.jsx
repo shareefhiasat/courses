@@ -1,6 +1,6 @@
-﻿import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
-import { Download, Copy, Share2 } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 
 export default function QRCodeGenerator({ url, title = 'QR Code', size = 256 }) {
   const canvasRef = useRef(null);
@@ -95,7 +95,7 @@ export default function QRCodeGenerator({ url, title = 'QR Code', size = 256 }) 
             fontSize: 14
           }}
         >
-          <Copy size={16} />
+          {getThemedIcon('ui', 'copy', 16)}
           Copy Link
         </button>
         <button
@@ -114,7 +114,7 @@ export default function QRCodeGenerator({ url, title = 'QR Code', size = 256 }) 
             fontSize: 14
           }}
         >
-          <Download size={16} />
+          {getThemedIcon('ui', 'download', 16)}
           Download
         </button>
         <button
@@ -133,7 +133,7 @@ export default function QRCodeGenerator({ url, title = 'QR Code', size = 256 }) 
             fontSize: 14
           }}
         >
-          <Share2 size={16} />
+          {getThemedIcon('ui', 'share2', 16)}
           Share
         </button>
       </div>

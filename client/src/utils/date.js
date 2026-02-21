@@ -110,6 +110,11 @@ export const formatLocalizedDate = (date, t, lang) => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   const currentLang = lang || getCurrentLanguage(t);
   
+  // Handle invalid dates
+  if (isNaN(dateObj.getTime())) {
+    return typeof date === 'string' ? date : (currentLang === 'ar' ? 'تاريخ غير صالح' : 'Invalid Date');
+  }
+  
   // Only use Arabic month/day names if the entire language is Arabic
   // Not just based on individual words like 'الإثنين'
   const isArabicLanguage = currentLang === 'ar';
@@ -134,6 +139,16 @@ export const formatLocalizedDate = (date, t, lang) => {
 export const formatLocalizedDateTime = (date, t, lang) => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   const currentLang = lang || getCurrentLanguage(t);
+  
+  // Handle invalid dates
+  if (isNaN(dateObj.getTime())) {
+    const invalidText = typeof date === 'string' ? date : (currentLang === 'ar' ? 'تاريخ غير صالح' : 'Invalid Date');
+    return {
+      date: invalidText,
+      time: '--:--',
+      fullDateTime: invalidText
+    };
+  }
   
   const monthNames = getMonthNames(t, currentLang);
   const dayNames = getDayNames(t, currentLang);

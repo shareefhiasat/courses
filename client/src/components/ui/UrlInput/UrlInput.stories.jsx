@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import UrlInput from './UrlInput';
-import logger from '../../../utils/logger';
+import logger from '@utils/logger';
 
 export default {
   title: 'Form/UrlInput',

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Languages } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { Badge } from '@ui';
 
 export default function LanguageToggle({ value = 'en', onChange, style, className }) {
@@ -14,7 +14,7 @@ export default function LanguageToggle({ value = 'en', onChange, style, classNam
         style={{ cursor: 'pointer' }}
         onClick={() => onChange?.('en')}
       >
-        <Languages size={12} style={{ marginRight: '0.25rem' }} />
+        {getThemedIcon('ui', 'globe', 12)}
         EN
       </Badge>
       <Badge
@@ -24,7 +24,7 @@ export default function LanguageToggle({ value = 'en', onChange, style, classNam
         style={{ cursor: 'pointer' }}
         onClick={() => onChange?.('ar')}
       >
-        <Languages size={12} style={{ marginRight: '0.25rem' }} />
+        {getThemedIcon('ui', 'globe', 12)}
         AR
       </Badge>
     </div>

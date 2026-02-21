@@ -8,7 +8,7 @@ import { getUserById } from '@services/business/userService';
 import { Select, YearSelect, SimpleLoading } from '@ui';
 import useAnalyticsData, { processWidgetData } from '@hooks/useAnalyticsData';
 import DashboardEngine from './analytics/DashboardEngine';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 
 /**
  * DEFAULT_WIDGETS

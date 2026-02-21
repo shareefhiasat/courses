@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { X, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Toast.module.css';
 
@@ -74,9 +73,9 @@ export const useToast = () => {
  */
 const Toast = ({ id, message, type, onClose }) => {
   const icons = {
-    success: <CheckCircle size={20} />,
-    error: <AlertCircle size={20} />,
-    warning: <AlertTriangle size={20} />,
+    success: getThemedIcon('ui', 'check_circle', 20, 'light'),
+    error: getThemedIcon('ui', 'x_circle', 20, 'light'),
+    warning: getThemedIcon('ui', 'alert_triangle', 20, 'light'),
     info: getThemedIcon('ui', 'info', 20, 'light'),
   };
 
@@ -89,7 +88,7 @@ const Toast = ({ id, message, type, onClose }) => {
         onClick={onClose}
         aria-label="Close notification"
       >
-        <X size={16} />
+        {getThemedIcon('ui', 'close', 16, 'light')}
       </button>
     </div>
   );

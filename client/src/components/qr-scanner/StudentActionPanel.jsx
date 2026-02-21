@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
-import { X, Zap, ChevronDown, ExternalLink, Trash2 } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
 import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS } from '@constants/attendanceTypes';
@@ -1219,7 +1219,7 @@ export default function StudentActionPanel({
                 </span>
                 </div>
                 <Button variant="ghost" size="icon" onClick={onClose} title={t('close')}>
-                  <X style={{ width: '1.25rem', height: '1.25rem' }} />
+                  {getThemedIcon('ui', 'close', 20)}
                 </Button>
                 {/* <Button
                 variant="ghost"
@@ -1232,7 +1232,7 @@ export default function StudentActionPanel({
                 }}
                 title={t('open_qr_code')}
               >
-                <ExternalLink style={{ width: '1.25rem', height: '1.25rem' }} />
+                {getThemedIcon('ui', 'external_link', 20)}
               </Button> */}
               </div>
             </div>
@@ -1731,7 +1731,7 @@ export default function StudentActionPanel({
                   return PARTICIPATION_TYPES.reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
                 })()} {t('entries')})
                 </span>
-                    <ChevronDown
+                    {getThemedIcon('ui', 'chevron_down', 16)}
                         style={{
                           width: '16px',
                           height: '16px',
@@ -1814,7 +1814,7 @@ export default function StudentActionPanel({
                                           }}
                                           title={`Delete all ${type.label_en} entries`}
                                       >
-                                        <Trash2 size={14} />
+                                        {getThemedIcon('ui', 'trash2', 14)}
                                       </button>
                                   )}
                                 </div>
@@ -1887,7 +1887,7 @@ export default function StudentActionPanel({
                   return BEHAVIOR_TYPES.reduce((sum, type) => sum + (stats.behavior[type.id]?.count || 0), 0);
                 })()} {t('entries')})
                 </span>
-                    <ChevronDown
+                    {getThemedIcon('ui', 'chevron_down', 16)}
                         style={{
                           width: '16px',
                           height: '16px',
@@ -1970,7 +1970,7 @@ export default function StudentActionPanel({
                                           }}
                                           title={`Delete all ${type.label_en} entries`}
                                       >
-                                        <Trash2 size={14} />
+                                        {getThemedIcon('ui', 'trash2', 14)}
                                       </button>
                                   )}
                                 </div>
@@ -2042,7 +2042,7 @@ export default function StudentActionPanel({
                   return PENALTY_TYPES.reduce((sum, type) => sum + (stats.penalty[type.id]?.count || 0), 0);
                 })()} {t('entries')})
                 </span>
-                    <ChevronDown
+                    {getThemedIcon('ui', 'chevron_down', 16)}
                         style={{
                           width: '16px',
                           height: '16px',
@@ -2126,7 +2126,7 @@ export default function StudentActionPanel({
                                           }}
                                           title={`Delete all ${type.label_en} entries`}
                                       >
-                                        <Trash2 size={14} />
+                                        {getThemedIcon('ui', 'trash2', 14)}
                                       </button>
                                   )}
                                 </div>
@@ -2302,12 +2302,12 @@ export default function StudentActionPanel({
                     >
                       {expandedDays.size === memoizedGroupedLogs.length ? (
                           <>
-                            <ChevronDown style={{ width: '14px', height: '14px', transform: 'rotate(180deg)' }} />
+                            {getThemedIcon('ui', 'chevron_down', 16)} style={{ width: '14px', height: '14px', transform: 'rotate(180deg)' }} />
                             {t('collapse_all')}
                           </>
                       ) : (
                           <>
-                            <ChevronDown style={{ width: '14px', height: '14px' }} />
+                            {getThemedIcon('ui', 'chevron_down', 16)} style={{ width: '14px', height: '14px' }} />
                             {/*{t('expand_all') || 'Expand All'}*/}
                           </>
                       )}

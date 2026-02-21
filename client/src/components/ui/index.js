@@ -114,10 +114,7 @@ export { default as CollapsibleSideWindow } from './CollapsibleSideWindow';
 export { default as StudentQuickActionModal } from './StudentQuickActionModal';
 
 // Dashboard Components
-export { default as Leaderboard } from './Leaderboard';
-export { default as ProgressWidget } from './ProgressWidget';
 export { default as StatCard } from './StatCard';
-export { default as StreakWidget } from './StreakWidget';
 
 // Special Components
 export { default as DraggableClock } from './DraggableClock';

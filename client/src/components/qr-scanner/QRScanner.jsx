@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import logger from '../../utils/logger';
+import logger from '@utils/logger';
 import { Button } from '@ui';
 import { CollapsibleSection, PerformedBy } from '@ui';
 import jsQR from 'jsqr';

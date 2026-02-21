@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './SearchBar.module.css';
 
 /**
@@ -43,7 +43,7 @@ const SearchBar = ({
 
   return (
     <form className={searchBarClasses} onSubmit={handleSubmit}>
-      <Search className={styles.searchIcon} size={size === 'sm' ? 16 : 20} />
+      {getThemedIcon('ui', 'search', size === 'sm' ? 16 : 20)}
       <input
         type="text"
         className={styles.input}
@@ -58,7 +58,7 @@ const SearchBar = ({
           onClick={handleClear}
           aria-label="Clear search"
         >
-          <X size={16} />
+          {getThemedIcon('ui', 'close', 16)}
         </button>
       )}
     </form>

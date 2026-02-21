@@ -3,7 +3,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { subscribeToNotifications } from '@services/business/notificationService';
 import { useLang } from '@contexts/LangContext';
 import { NotificationDrawer } from '@ui';
-import { Bell } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 // import useNotifications from '@hooks/useNotifications';
 
 const NotificationBell = () => {
@@ -78,7 +78,7 @@ const NotificationBell = () => {
             transition: 'box-shadow 0.15s ease-in-out'
           }}
         >
-          <Bell size={18} color="#2E3B4E" />
+          {getThemedIcon('ui', 'bell', 18)}
           {unreadCount > 0 && (
             <span style={{
               position: 'absolute',

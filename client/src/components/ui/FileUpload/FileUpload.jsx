@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, X, File, CheckCircle, AlertCircle } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './FileUpload.module.css';
 
 /**
@@ -136,7 +136,7 @@ const FileUpload = ({
         onDrop={handleDrop}
         onClick={() => !disabled && fileInputRef.current?.click()}
       >
-        <Upload size={48} className={styles.uploadIcon} />
+        {getThemedIcon('ui', 'upload', 48)}
         <p className={styles.dropzoneText}>
           <strong>Click to upload</strong> or drag and drop
         </p>
@@ -160,7 +160,7 @@ const FileUpload = ({
           {files.map(fileObj => (
             <div key={fileObj.id} className={styles.fileItem}>
               <div className={styles.fileInfo}>
-                <File size={20} className={styles.fileIcon} />
+                {getThemedIcon('ui', 'file', 20)}
                 <div className={styles.fileDetails}>
                   <span className={styles.fileName}>{fileObj.file.name}</span>
                   <span className={styles.fileSize}>{formatFileSize(fileObj.file.size)}</span>
@@ -177,17 +177,17 @@ const FileUpload = ({
                   </div>
                 )}
                 {fileObj.status === 'success' && (
-                  <CheckCircle size={20} className={styles.successIcon} />
+                  getThemedIcon('ui', 'check_circle', 20)
                 )}
                 {fileObj.status === 'error' && (
-                  <AlertCircle size={20} className={styles.errorIcon} />
+                  getThemedIcon('ui', 'alert_circle', 20)
                 )}
                 <button
                   className={styles.removeButton}
                   onClick={() => removeFile(fileObj.id)}
                   aria-label="Remove file"
                 >
-                  <X size={16} />
+                  {getThemedIcon('ui', 'close', 16)}
                 </button>
               </div>
             </div>

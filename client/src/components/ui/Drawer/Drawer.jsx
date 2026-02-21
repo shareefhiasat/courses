@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Drawer.module.css';
 
 /**
@@ -64,7 +64,7 @@ const Drawer = ({
             onClick={onClose}
             aria-label="Close drawer"
           >
-            <X size={24} />
+            {getThemedIcon('ui', 'close', 24)}
           </button>
         </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User, CheckCircle, XCircle } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 
 const ChatGame = ({ questions, settings, onComplete }) => {
@@ -113,7 +113,7 @@ const ChatGame = ({ questions, settings, onComplete }) => {
             {/* Header */}
             <div className="bg-white dark:bg-slate-900 p-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-4 shadow-sm z-10">
                 <div className="w-12 h-12 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-violet-600 dark:text-violet-400">
-                    <Bot size={28} />
+                    {getThemedIcon('ui', 'bot', 28)}
                 </div>
                 <div>
                     <h3 className="font-bold text-lg text-slate-900 dark:text-white">{t('quizBot', 'Quiz Bot')}</h3>

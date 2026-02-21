@@ -1,16 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  ChevronDown, 
-  ChevronRight, 
-  Minimize2, 
-  Maximize2, 
-  Eye, 
-  EyeOff,
-  MoreVertical,
-  LayoutGrid,
-  List,
-  Settings
-} from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './CollapsibleDashboardSection.module.css';
 
 // Collapse modes:
@@ -100,9 +89,9 @@ const CollapsibleDashboardSection = ({
   // Collapse modes
   const getModeIcon = () => {
     switch (mode) {
-      case 'full': return <LayoutGrid size={14} />;
-      case 'minimize': return <Minimize2 size={14} />;
-      default: return <LayoutGrid size={14} />;
+      case 'full': return getThemedIcon('ui', 'layout_grid', 14);
+      case 'minimize': return getThemedIcon('ui', 'minimize', 14);
+      default: return getThemedIcon('ui', 'layout_grid', 14);
     }
   };
 
@@ -126,7 +115,7 @@ const CollapsibleDashboardSection = ({
         >
           {icon}
           <span>{title}</span>
-          <Maximize2 size={12} />
+          {getThemedIcon('ui', 'maximize', 12)}
         </button>
       </div>
     );
@@ -175,7 +164,7 @@ const CollapsibleDashboardSection = ({
               onClick={() => setIsModeMenuOpen(!isModeMenuOpen)}
               title="View options"
             >
-              <MoreVertical size={14} />
+              {getThemedIcon('ui', 'more_vertical', 14)}
             </button>
           )}
         </div>
@@ -186,14 +175,14 @@ const CollapsibleDashboardSection = ({
               onClick={() => handleModeChange('minimize')}
               className={mode === 'minimize' ? styles.active : ''}
             >
-              <Minimize2 size={14} />
+              {getThemedIcon('ui', 'minimize', 14)}
               Minimize
             </button>
             <button
               onClick={() => handleModeChange('full')}
               className={mode === 'full' ? styles.active : ''}
             >
-              <LayoutGrid size={14} />
+              {getThemedIcon('ui', 'layout_grid', 14)}
               Full View
             </button>
           </div>

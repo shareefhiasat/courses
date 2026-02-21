@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import logger from '../../../utils/logger';
+import logger from '@utils/logger';
 
 /**
  * Virtual scrolling component for large lists

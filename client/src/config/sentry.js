@@ -1,6 +1,6 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 
 /**
  * Initialize Sentry for error tracking and performance monitoring

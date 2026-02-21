@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Calendar, X } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import DatePicker from '../DatePicker/DatePicker';
 import styles from './DateRangeSlider.module.css';
 
@@ -95,7 +95,7 @@ const DateRangeSlider = ({
               disabled={disabled}
               aria-label="Clear all dates"
             >
-              <X size={14} />
+              {getThemedIcon('ui', 'close', 14)}
               Clear
             </button>
           )}
@@ -125,7 +125,7 @@ const DateRangeSlider = ({
                 disabled={disabled}
                 aria-label="Clear from date"
               >
-                <X size={14} />
+                {getThemedIcon('ui', 'close', 14)}
               </button>
             )}
           </div>
@@ -159,7 +159,7 @@ const DateRangeSlider = ({
                 disabled={disabled}
                 aria-label="Clear to date"
               >
-                <X size={14} />
+                {getThemedIcon('ui', 'close', 14)}
               </button>
             )}
           </div>

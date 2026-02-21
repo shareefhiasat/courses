@@ -20,14 +20,49 @@ const StudentHistory = React.memo(({
   t, 
   isRTL,
   studentId,
-  lang = 'en'
+  lang = 'en',
+  studentName
 }) => {
   logger.log('🔧 StudentHistory rendering with groupedLogs:', groupedLogs);
   logger.log('🔧 StudentHistory expandedDays:', expandedDays);
   logger.log('🔧 StudentHistory activeFilters:', activeFilters);
   
   return groupedLogs.map((dayGroup, dayIndex) => {
-    const dateStr = formatLocalizedDate(dayGroup.date, t);
+    logger.log('🔧 StudentHistory - processing dayGroup:', {
+      dayIndex,
+      date: dayGroup.date,
+      dateType: typeof dayGroup.date,
+      attendanceCount: dayGroup.attendance?.length || 0,
+      participationCount: dayGroup.participation?.length || 0,
+      penaltiesCount: dayGroup.penalties?.length || 0,
+      behaviorCount: dayGroup.behavior?.length || 0
+    });
+
+    // Handle invalid dates - if date is 'unknown' or invalid, show a fallback
+    let dateStr;
+    if (dayGroup.date === 'unknown') {
+      dateStr = lang === 'ar' ? 'تاريخ غير معروف' : 'Unknown Date';
+      logger.log('🔧 StudentHistory - unknown date encountered:', dayGroup.date);
+      logger.log('🔧 StudentHistory - dayGroup with unknown date:', dayGroup);
+    } else {
+      try {
+        dateStr = formatLocalizedDate(dayGroup.date, t, lang);
+        logger.log('🔧 StudentHistory - formatted date:', { 
+          original: dayGroup.date, 
+          formatted: dateStr,
+          lang,
+          dayIndex
+        });
+      } catch (error) {
+        dateStr = lang === 'ar' ? 'تاريخ غير صالح' : 'Invalid Date';
+        logger.log('🔧 StudentHistory - date formatting error:', { 
+          date: dayGroup.date, 
+          error: error.message,
+          lang,
+          dayIndex
+        });
+      }
+    }
     const isDayExpanded = expandedDays.has(dayGroup.date);
     const filteredCounts = {
       attendance: activeFilters.attendance ? dayGroup.attendance.length : 0,
@@ -151,6 +186,7 @@ const StudentHistory = React.memo(({
                     t={t}
                     isRTL={isRTL}
                     lang={lang}
+                    studentName={studentName}
                   />
                 );
               });

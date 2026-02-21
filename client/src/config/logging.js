@@ -4,7 +4,7 @@
  * Configure logging for different environments
  */
 
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 
 const isDevelopment = import.meta.env.DEV;
 const isProduction = import.meta.env.PROD;

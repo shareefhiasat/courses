@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Checkbox from './Checkbox';
-import logger from '../../../utils/logger';
+import logger from '@utils/logger';
 
 export default {
   title: 'Form/Checkbox',

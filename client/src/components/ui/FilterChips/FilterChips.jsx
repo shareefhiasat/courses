@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Award, ClipboardList, HelpCircle, Star, StarOff, Pin, Repeat, CheckCircle, Hourglass } from 'lucide-react';
 
 /**
  * Reusable filter chips component
@@ -58,20 +57,20 @@ export default function FilterChips({ filters = [], variant = 'custom', t = (key
     
     if (variant === 'type') {
       if (filter.id === 'training') return getThemedIcon('ui', 'book_open', 14, theme);
-      if (filter.id === 'homework') return <ClipboardList size={14} />;
-      if (filter.id === 'quiz') return <HelpCircle size={14} />;
+      if (filter.id === 'homework') return getThemedIcon('ui', 'clipboard_list', 14, theme);
+      if (filter.id === 'quiz') return getThemedIcon('ui', 'help_circle', 14, theme);
     }
     
     if (variant === 'level') {
-      return <Award size={14} />;
+      return getThemedIcon('ui', 'award', 14, theme);
     }
 
     if (variant === 'status') {
-      if (filter.id === 'bookmark') return filter.active ? <Star size={16} /> : <StarOff size={16} />;
-      if (filter.id === 'featured') return <Pin size={16} />;
-      if (filter.id === 'retake') return <Repeat size={16} />;
-      if (filter.id === 'graded') return <CheckCircle size={16} />;
-      if (filter.id === 'pending') return <Hourglass size={16} />;
+      if (filter.id === 'bookmark') return getThemedIcon('ui', filter.active ? 'star' : 'star_off', 16, theme);
+      if (filter.id === 'featured') return getThemedIcon('ui', 'pin', 16, theme);
+      if (filter.id === 'retake') return getThemedIcon('ui', 'repeat', 16, theme);
+      if (filter.id === 'graded') return getThemedIcon('ui', 'check_circle', 16, theme);
+      if (filter.id === 'pending') return getThemedIcon('ui', 'hourglass', 16, theme);
     }
 
     return null;

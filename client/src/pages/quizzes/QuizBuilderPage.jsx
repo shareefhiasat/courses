@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';

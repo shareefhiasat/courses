@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Steps.module.css';
 
 /**
@@ -38,7 +38,7 @@ const Steps = ({
             <div className={styles.stepIndicator}>
               <div className={styles.stepCircle}>
                 {isCompleted ? (
-                  <Check size={16} />
+                  getThemedIcon('ui', 'check', 16)
                 ) : (
                   <span>{index + 1}</span>
                 )}

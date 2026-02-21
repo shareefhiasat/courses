@@ -1,9 +1,9 @@
 import React, { forwardRef, useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Search, X, Filter } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Select.module.css';
 import { getComponentStyles, generateCSSVariables } from '@constants/uiTheme';
-import logger from '../../../utils/logger';
+import logger from '@utils/logger';
 
 /**
  * Select Component
@@ -304,7 +304,7 @@ const Select = forwardRef(({
               </option>
             ))}
           </select>
-          <ChevronDown className={styles.arrow} size={16} />
+          {getThemedIcon('ui', 'chevron_down', 16)}
         </div>
         
         {(error || helperText) && (
@@ -347,16 +347,15 @@ const Select = forwardRef(({
           </div>
           <div className={styles.icons}>
             {value && !disabled && (
-              <X
+              <button
                 className={styles.clearIcon}
-                size={16}
                 onClick={handleClear}
-              />
+                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+              >
+                {getThemedIcon('ui', 'close', 16)}
+              </button>
             )}
-            <ChevronDown
-              className={`${styles.arrow} ${isOpen ? styles.arrowUp : ''}`}
-              size={16}
-            />
+            {getThemedIcon('ui', 'chevron_down', 16)}
           </div>
         </div>
 
@@ -377,7 +376,7 @@ const Select = forwardRef(({
           >
             {searchable && (
               <div className={styles.searchContainer}>
-                <Search className={styles.searchIcon} size={16} />
+                {getThemedIcon('ui', 'search', 16)}
                 <input
                   ref={searchInputRef}
                   type="text"
