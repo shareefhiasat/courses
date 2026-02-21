@@ -55,6 +55,80 @@ export const RECORD_TYPES = {
   NOTIFICATION: 'notification'
 };
 
+// Record type labels for display
+export const RECORD_TYPE_LABELS = {
+  [RECORD_TYPES.PARTICIPATION]: {
+    en: 'Participation',
+    ar: 'مشاركة'
+  },
+  [RECORD_TYPES.BEHAVIOR]: {
+    en: 'Behavior',
+    ar: 'سلوك'
+  },
+  [RECORD_TYPES.ATTENDANCE]: {
+    en: 'Attendance',
+    ar: 'الحضور'
+  },
+  [RECORD_TYPES.PENALTY]: {
+    en: 'Penalty',
+    ar: 'عقوبة'
+  },
+  [RECORD_TYPES.ACTIVITY]: {
+    en: 'Activity',
+    ar: 'نشاط'
+  },
+  [RECORD_TYPES.RESOURCE]: {
+    en: 'Resource',
+    ar: 'مورد'
+  },
+  [RECORD_TYPES.USER]: {
+    en: 'User',
+    ar: 'مستخدم'
+  },
+  [RECORD_TYPES.PROGRAM]: {
+    en: 'Program',
+    ar: 'برنامج'
+  },
+  [RECORD_TYPES.SUBJECT]: {
+    en: 'Subject',
+    ar: 'مادة'
+  },
+  [RECORD_TYPES.CLASS]: {
+    en: 'Class',
+    ar: 'فصل'
+  },
+  [RECORD_TYPES.QUIZ]: {
+    en: 'Quiz',
+    ar: 'اختبار'
+  },
+  [RECORD_TYPES.ENROLLMENT]: {
+    en: 'Enrollment',
+    ar: 'تسجيل'
+  },
+  [RECORD_TYPES.ANNOUNCEMENT]: {
+    en: 'Announcement',
+    ar: 'إعلان'
+  },
+  [RECORD_TYPES.SUBMISSION]: {
+    en: 'Submission',
+    ar: 'تسليم'
+  },
+  [RECORD_TYPES.ASSIGNMENT]: {
+    en: 'Assignment',
+    ar: 'مهمة'
+  },
+  [RECORD_TYPES.COURSE]: {
+    en: 'Course',
+    ar: 'دورة'
+  }
+};
+
+// Helper function to get localized record type label
+export const getRecordTypeLabel = (recordType, lang = 'en') => {
+  const label = RECORD_TYPE_LABELS[recordType];
+  return label ? (lang === 'ar' ? label.ar : label.en) : recordType;
+};
+
 // General Status Constants - Phase 2
 export const GENERAL_STATUS = {
   // Basic statuses
@@ -641,6 +715,7 @@ export default {
   getAutoTypeLabel,
   getAutoTypeIcon,
   getAutoTypeColor,
+  getRecordTypeLabel,
   getStatusLabel,
   getStatusColor,
   getStatusIcon,

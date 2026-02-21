@@ -5,7 +5,7 @@
  */
 
 import { httpsCallable } from 'firebase/functions';
-import { doc, collection, query, where, getDocs, getDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { functions, db } from '../other/config.js';
 import { 
   getAttendanceRecords, 
@@ -15,16 +15,6 @@ import {
   deleteAttendanceRecord, 
   getAttendanceStats 
 } from '../db-services/attendanceDbService.js';
-import { 
-  getAttendanceSessions as getAttendanceSessionsFromDb,
-  getOpenAttendanceSessions as getOpenAttendanceSessionsFromDb,
-  getAttendanceSession as getAttendanceSessionFromDb,
-  createAttendanceSession as createAttendanceSessionToDb,
-  updateAttendanceSession as updateAttendanceSessionInDb,
-  deleteAttendanceSession as deleteAttendanceSessionFromDb,
-  closeAttendanceSession as closeAttendanceSessionInDb,
-  finalizeAttendanceSession as finalizeAttendanceSessionInDb
-} from '../db/attendanceSessionsDbService.js';
 import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import { addNotification } from '../notificationService.js';
 import { sendEmail } from '../emailService.js';

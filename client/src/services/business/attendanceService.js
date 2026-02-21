@@ -14,6 +14,9 @@ import {
   deleteAttendanceRecord as deleteAttendanceRecordFromDb,
   getAttendanceStats as getAttendanceStatsFromDb
 } from '../db/attendanceDbService';
+import {
+  getOpenAttendanceSessions as getOpenAttendanceSessionsFromDb
+} from '../db/attendanceSessionsDbService';
 
 /**
  * Centralized Attendance Service - DRY Firebase attendance operations
@@ -65,10 +68,10 @@ export const getTodayAttendanceStatus = async (classId, studentId) => {
   try {
     const today = new Date().toISOString().split('T')[0];
     const attendanceDocId = `${classId}_${studentId}_${today}`;
-    const existingDoc = await getDoc(doc(db, 'attendance', attendanceDocId));
+    const existingRecord = await getAttendanceRecordFromDb(attendanceDocId);
     
-    if (existingDoc.exists()) {
-      return { success: true, data: { id: existingDoc.id, ...existingDoc.data() } };
+    if (existingRecord.success && existingRecord.data) {
+      return existingRecord;
     }
     return { success: false, data: null };
   } catch (error) {
@@ -82,9 +85,9 @@ export const isStudentMarkedToday = async (classId, studentIdentifier) => {
   try {
     const today = new Date().toISOString().split('T')[0];
     const attendanceDocId = `${classId}_${studentIdentifier}_${today}`;
-    const existingDoc = await getDoc(doc(db, 'attendance', attendanceDocId));
+    const existingRecord = await getAttendanceRecordFromDb(attendanceDocId);
     
-    return existingDoc.exists();
+    return existingRecord.success && existingRecord.data;
   } catch (error) {
     logger.error('Error checking if student marked today:', error);
     return false;
@@ -97,15 +100,19 @@ export const markAttendance = async (attendanceData) => {
     const today = new Date().toISOString().split('T')[0];
     const attendanceDocId = `${attendanceData.classId}_${attendanceData.studentNumber}_${today}`;
     
-    const docRef = doc(db, 'attendance', attendanceDocId);
-    const existingDoc = await getDoc(docRef);
+    // Check if record exists using DB service
+    const existingRecord = await getAttendanceRecordFromDb(attendanceDocId);
     
-    if (existingDoc.exists()) {
-      // Update existing attendance
-      await updateDoc(docRef, {
+    if (existingRecord.success && existingRecord.data) {
+      // Update existing attendance using DB service
+      const updateResult = await updateAttendanceRecordInDb(attendanceDocId, {
         ...attendanceData,
         updatedAt: serverTimestamp()
       });
+      
+      if (!updateResult.success) {
+        return updateResult;
+      }
       
       // Notify via gateway on update if not present
       if (attendanceData.status !== 'present') {
@@ -133,13 +140,17 @@ export const markAttendance = async (attendanceData) => {
 
       return { success: true, id: attendanceDocId, action: 'updated' };
     } else {
-      // Create new attendance record
-      const newDocRef = await addDoc(collection(db, 'attendance'), {
+      // Create new attendance record using DB service
+      const createResult = await setAttendanceRecordToDb(attendanceDocId, {
         ...attendanceData,
         date: today,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
+      
+      if (!createResult.success) {
+        return createResult;
+      }
 
       // Notify via gateway on new record if absent/late
       if (attendanceData.status !== 'present') {
@@ -165,7 +176,7 @@ export const markAttendance = async (attendanceData) => {
         } catch (e) { logger.warn('Notify failed', e); }
       }
 
-      return { success: true, id: newDocRef.id, action: 'created' };
+      return { success: true, id: attendanceDocId, action: 'created' };
     }
   } catch (error) {
     logger.error('Error marking attendance:', error);
@@ -262,28 +273,24 @@ export const deleteAttendance = async (attendanceId) => {
 // Get attendance history for a student in a class
 export const getStudentAttendanceHistory = async (classId, studentId, limit = 30) => {
   try {
-    const attendanceRef = collection(db, 'attendance');
-    const q = query(
-      attendanceRef,
-      where('classId', '==', classId),
-      where('studentId', '==', studentId),
-      where('studentNumber', '==', studentId)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    const attendanceRecords = [];
-    querySnapshot.forEach((doc) => {
-      attendanceRecords.push({ id: doc.id, ...doc.data() });
+    // Use the DB service to get attendance records
+    const result = await getAttendanceRecordsFromDb({ 
+      classId, 
+      studentId, 
+      limit 
     });
     
-    // Sort by date descending and limit
-    attendanceRecords.sort((a, b) => {
-      const dateA = a.date?.seconds || a.date;
-      const dateB = b.date?.seconds || b.date;
-      return dateB - dateA;
-    });
-    
-    return { success: true, data: attendanceRecords.slice(0, limit) };
+    if (result.success) {
+      // Sort by date descending (the DB service should handle this, but ensure consistency)
+      const sortedData = result.data.sort((a, b) => {
+        const dateA = a.date?.seconds || a.date;
+        const dateB = b.date?.seconds || b.date;
+        return dateB - dateA;
+      });
+      
+      return { success: true, data: sortedData.slice(0, limit) };
+    }
+    return result;
   } catch (error) {
     logger.error('Error fetching attendance history:', error);
     return { success: false, error: error.message };
@@ -320,8 +327,12 @@ export const rosterQuickAction = async (studentId, classId, status, user, notes 
     }
 
     const today = new Date().toISOString().split('T')[0];
+    const attendanceDocId = `${classId}_${studentId}_${today}`;
 
-    // Create complete attendance record (same structure as manual scan)
+    // Check if attendance record already exists using DB service
+    const existingRecord = await getAttendanceRecordFromDb(attendanceDocId);
+
+    // Create complete attendance record
     const attendanceData = {
       studentId,
       studentNumber: studentId, // Add studentNumber for consistency
@@ -333,14 +344,34 @@ export const rosterQuickAction = async (studentId, classId, status, user, notes 
       markedBy: user?.uid || null,
       markedByName: user?.displayName || user?.email || 'Unknown',
       markedByEmail: user?.email || null,
-      createdAt: serverTimestamp(),   // ✅ Add missing timestamps
       updatedAt: serverTimestamp()
     };
 
-    // Use addDoc like manual scan for consistency
-    const newDocRef = await addDoc(collection(db, 'attendance'), attendanceData);
+    let result;
+    if (existingRecord.success && existingRecord.data) {
+      // Update existing attendance record using DB service
+      const updateResult = await updateAttendanceRecordInDb(attendanceDocId, attendanceData);
+      if (updateResult.success) {
+        result = { success: true, data: { id: attendanceDocId, ...attendanceData, action: 'updated' } };
+        logger.log('Updated existing attendance record:', attendanceDocId);
+      } else {
+        result = updateResult;
+      }
+    } else {
+      // Create new attendance record using DB service
+      const createResult = await setAttendanceRecordToDb(attendanceDocId, {
+        ...attendanceData,
+        createdAt: serverTimestamp(),   // ✅ Add createdAt only for new records
+      });
+      if (createResult.success) {
+        result = { success: true, data: { id: attendanceDocId, ...attendanceData, action: 'created' } };
+        logger.log('Created new attendance record:', attendanceDocId);
+      } else {
+        result = createResult;
+      }
+    }
 
-    return { success: true, data: { id: newDocRef.id, ...attendanceData } };
+    return result;
   } catch (error) {
     logger.error('Error in roster quick action:', error);
     return { success: false, error: error.message };
@@ -362,36 +393,25 @@ export const getAbsences = async (
   semester = null
 ) => {
   try {
-    let q;
-    const conditions = [];
-
-    if (studentId) {
-      conditions.push(where("studentId", "==", studentId));
+    // Use the DB service to get attendance records with absence statuses
+    const result = await getAttendanceRecordsFromDb({
+      studentId,
+      subjectId,
+      semester,
+      status: ['absent_no_excuse', 'absent_with_excuse', 'excused_leave']
+    });
+    
+    if (result.success) {
+      // Sort by date descending
+      const sortedData = result.data.sort((a, b) => {
+        const dateA = a.date?.seconds || a.date;
+        const dateB = b.date?.seconds || b.date;
+        return dateB - dateA;
+      });
+      
+      return { success: true, data: sortedData };
     }
-    if (subjectId) {
-      conditions.push(where("subjectId", "==", subjectId));
-    }
-    if (semester) {
-      conditions.push(where("semester", "==", semester));
-    }
-
-    // Filter for absence statuses
-    conditions.push(where("status", "in", ['absent_no_excuse', 'absent_with_excuse', 'excused_leave']));
-
-    if (conditions.length > 0) {
-      q = query(
-        collection(db, "attendance"),
-        ...conditions,
-        orderBy("date", "desc")
-      );
-    } else {
-      q = query(collection(db, "attendance"), orderBy("date", "desc"));
-    }
-
-    const qs = await getDocs(q);
-    const items = [];
-    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
-    return { success: true, data: items };
+    return result;
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -427,11 +447,9 @@ export async function createSession({ classId, subjectId, scheduledAt, createdBy
  */
 export async function listOpenSessions({ classId }) {
   try {
-    const col = collection(db, 'classes', classId, 'sessions');
-    const q = query(col, where('status', '==', 'open'));
-    const snap = await getDocs(q);
-    const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    return { success: true, data: sessions };
+    // Use the DB service to get open attendance sessions
+    const result = await getOpenAttendanceSessionsFromDb(classId);
+    return result;
   } catch (error) {
     logger.error('Error listing open sessions:', error);
     return { success: false, error: error.message };

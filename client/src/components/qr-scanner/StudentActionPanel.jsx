@@ -20,7 +20,7 @@ import { useToast } from '@ui';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
-import { RECORD_TYPES } from '@utils/sharedTypes';
+import { RECORD_TYPES, getRecordTypeLabel } from '@utils/sharedTypes';
 import {ParticipationIcon, PenaltyIcon, StudentHistory, DeleteModal} from '@ui/history';
 import {CircleIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, FileIcon, HeartIcon, HelpCircleIcon, UserIcon, UserPlusIcon, ZapIcon} from "@utils/icons.jsx";
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/attendanceMethods';
@@ -373,10 +373,10 @@ export default function StudentActionPanel({
           status: record.status,  // ← Flatten status to top level
           method: record.method, // ← Include method field for attendance method display
           label: record.category === RECORD_TYPES.PARTICIPATION
-              ? 'Participation'
+              ? getRecordTypeLabel(RECORD_TYPES.PARTICIPATION, lang)
               : (record.category === RECORD_TYPES.BEHAVIOR
-                  ? 'Behavior'
-                  : (ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status || 'Unknown')),
+                  ? getRecordTypeLabel(RECORD_TYPES.BEHAVIOR, lang)
+                  : (ATTENDANCE_STATUS_LABELS[record.status]?.[lang] || record.status || t('unknown') || 'Unknown')),
           points: record.delta || 0,
           comment: record.reason || record.notes || '',
           severity: 'low',
@@ -392,7 +392,7 @@ export default function StudentActionPanel({
           date: behavior.date || (behavior.createdAt?.toDate ? behavior.createdAt.toDate().toISOString().split('T')[0] : new Date(behavior.createdAt).toISOString().split('T')[0]),
           time: behavior.createdAt,
           data: behavior,
-          label: behavior.type ? (BEHAVIOR_TYPES.find(bt => bt.id === behavior.type)?.label_en || behavior.type) : 'Behavior',
+          label: behavior.type ? (BEHAVIOR_TYPES.find(bt => bt.id === behavior.type)?.label_en || behavior.type) : getRecordTypeLabel(RECORD_TYPES.BEHAVIOR, lang),
           points: behavior.points || 0,
           comment: behavior.comment || behavior.description || behavior.reason || '',
           severity: behavior.severity || 'medium',
@@ -404,7 +404,7 @@ export default function StudentActionPanel({
           date: participation.date || (participation.createdAt?.toDate ? participation.createdAt.toDate().toISOString().split('T')[0] : new Date(participation.createdAt).toISOString().split('T')[0]),
           time: participation.createdAt,
           data: participation,
-          label: participation.type ? (PARTICIPATION_TYPES.find(pt => pt.id === participation.type)?.label_en || participation.type) : 'Participation',
+          label: participation.type ? (PARTICIPATION_TYPES.find(pt => pt.id === participation.type)?.label_en || participation.type) : getRecordTypeLabel(RECORD_TYPES.PARTICIPATION, lang),
           points: participation.points || 0,
           comment: participation.comment || participation.description || participation.reason || '',
           severity: 'low',
@@ -423,7 +423,7 @@ export default function StudentActionPanel({
             data: penalty,
             label: penaltyType
                 ? (penaltyType.label_en || penaltyType.label_ar)
-                : (penalty.reason || penalty.description || penaltyTypeId || 'Penalty'),
+                : (penalty.reason || penalty.description || penaltyTypeId || getRecordTypeLabel(RECORD_TYPES.PENALTY, lang)),
             points: penalty.points !== undefined ? -Math.abs(penalty.points) : (penaltyType ? -Math.abs(penaltyType.points) : -1), // Always negative for penalties
             comment: penalty.comment || penalty.description || penalty.reason || '',
             severity: penalty.severity || 'medium',

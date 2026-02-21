@@ -8,7 +8,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
-import { getAttendanceByStudent, rosterQuickAction } from '@services/business/attendanceService';
+import { getAttendanceByStudent, rosterQuickAction, deleteAttendance } from '@services/business/attendanceService';
 import { getPenalties } from '@services/business/penaltyService';
 import { getParticipations } from '@services/business/participationService';
 import { getBehaviors, deleteBehavior } from '@services/business/behaviorService';

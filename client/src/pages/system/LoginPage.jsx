@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
@@ -14,9 +14,33 @@ const LoginPage = () => {
   const { theme } = useTheme();
   const { t } = useLang();
   const [logoutReason, setLogoutReason] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
   const isDark = theme === 'dark';
   
   const pageClass = `${styles.loginPage} ${isDark ? styles.dark : ''}`;
+
+  // Handle post-login redirect with backUrl
+  const handlePostLoginRedirect = useCallback(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const backUrl = urlParams.get('backUrl');
+    
+    if (backUrl) {
+      // Validate the backUrl to prevent open redirects
+      try {
+        const url = new URL(backUrl, window.location.origin);
+        // Only allow same-origin redirects
+        if (url.origin === window.location.origin) {
+          return <Navigate to={backUrl} replace />;
+        }
+      } catch (error) {
+        console.warn('Invalid backUrl:', backUrl);
+      }
+    }
+    
+    // Fallback to default redirect
+    return <Navigate to="/" replace />;
+  }, [location]);
 
   // Check for logout reason on component mount
   useEffect(() => {
@@ -116,7 +140,7 @@ const LoginPage = () => {
   }
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return handlePostLoginRedirect();
   }
 
   return (
