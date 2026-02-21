@@ -37,6 +37,7 @@ const AttendanceTab = React.memo(({
   });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteModalData, setDeleteModalData] = useState({ type: '', id: '', studentId: '' });
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     logger.log('[AttendanceTab] Data received:', {
@@ -53,12 +54,20 @@ const AttendanceTab = React.memo(({
 
   const stats = useMemo(() => {
     logger.log('🔧 AttendanceTab - calculating stats:', {
+      studentId,
       attendanceCount: attendance.length,
       penaltiesCount: penalties.length,
       behaviorsCount: behaviors.length,
       participationsCount: participations.length,
-      studentId
     });
+
+    // Detailed attendance breakdown
+    const attendanceBreakdown = attendance.reduce((acc, a) => {
+      acc[a.status] = (acc[a.status] || 0) + 1;
+      return acc;
+    }, {});
+    
+    logger.log('🔧 AttendanceTab - attendance breakdown:', attendanceBreakdown);
 
     const present = attendance.filter(a => a.status === 'present').length;
     const late = attendance.filter(a => a.status === 'late').length;
@@ -77,7 +86,21 @@ const AttendanceTab = React.memo(({
       participationPoints, participationCount: participations.length,
     };
     
-    logger.log('🔧 AttendanceTab - stats result:', result);
+    logger.log('🔧 AttendanceTab - final stats result:', result);
+    logger.log('🔧 AttendanceTab - card counts verification:', {
+      'Present Card': result.present,
+      'Late Card': result.late,
+      'Penalty Card': result.penaltyCount,
+      'Behavior Card': result.behaviorPoints,
+      'Participation Card': result.participationCount,
+      'Excused Leave Card': result.excusedLeave,
+      'Absent Excused Card': result.absentWithExcuse,
+      'Absent Card': result.absentNoExcuse,
+      'Human Case Card': result.humanCase,
+      'Total Attendance Records': attendance.length,
+      'Total Calculated': present + late + absentNoExcuse + absentWithExcuse + excusedLeave + humanCase
+    });
+    
     return result;
   }, [attendance, penalties, behaviors, participations, studentId]);
 
@@ -459,6 +482,8 @@ const AttendanceTab = React.memo(({
         toggleFilter={toggleFilter}
         lang={lang}
         studentName={studentName}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
       />
 
       {/* Delete Confirmation Modal */}

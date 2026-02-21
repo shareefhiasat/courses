@@ -126,7 +126,7 @@ export const formatLocalizedDate = (date, t, lang) => {
   const day = dateObj.getDate();
   const dayName = dayNames[dateObj.getDay()];
   
-  return `${month} ${day}, ${dayName}`;
+  return `${month} ${day}, ${dayName} ${dateObj.getFullYear()}`;
 };
 
 /**
@@ -165,9 +165,9 @@ export const formatLocalizedDateTime = (date, t, lang) => {
   });
   
   return {
-    date: `${month} ${day}, ${dayName}`,
+    date: `${month} ${day}, ${dayName} ${dateObj.getFullYear()}`,
     time: time,
-    fullDateTime: `${month} ${day}, ${dayName} ${time}`
+    fullDateTime: `${month} ${day}, ${dayName} ${dateObj.getFullYear()} ${time}`
   };
 };
 

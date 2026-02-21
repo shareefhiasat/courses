@@ -24,7 +24,9 @@ const StudentRosterHistory = ({
   groupLogsByDay,
   toggleFilter,
   lang = 'en',
-  studentName
+  studentName,
+  searchQuery = '',
+  setSearchQuery = () => {}
 }) => {
   const isMobile = useIsMobile();
   const groupedLogs = useMemo(
@@ -68,7 +70,8 @@ const StudentRosterHistory = ({
           display: 'flex',
           gap: isMobile ? '0.25rem' : '0.5rem',
           flexWrap: 'wrap',
-          flex: isMobile ? '1' : 'auto'
+          flex: isMobile ? '1' : 'auto',
+          alignItems: 'center'
         }}>
           <button
             onClick={() => toggleFilter(RECORD_TYPES.ATTENDANCE)}
@@ -150,7 +153,66 @@ const StudentRosterHistory = ({
             <AlertCircleSmallIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} />
             {t('penalties')}
           </button>
+          
+          {/* Search Input */}
+          <div style={{
+            position: 'relative',
+            width: isMobile ? '200px' : '250px'
+          }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('search_placeholder') || 'Search...'}
+              style={{
+                width: '100%',
+                padding: isMobile ? '0.375rem 0.5rem 0.375rem 2rem' : '0.5rem 0.75rem 0.5rem 2.5rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: isMobile ? '0.75rem' : '0.8125rem',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                backgroundColor: 'white'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+              onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+            />
+            <div style={{
+              position: 'absolute',
+              left: isMobile ? '0.5rem' : '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#6b7280'
+            }}>
+              <svg style={{ width: isMobile ? '14px' : '16px', height: isMobile ? '14px' : '16px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+            </div>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                style={{
+                  position: 'absolute',
+                  right: isMobile ? '0.5rem' : '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  padding: '0.25rem'
+                }}
+              >
+                <svg style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
+        
         {studentHistory[student.id] && studentHistory[student.id].length > 0 && (
           <button
             onClick={() => {

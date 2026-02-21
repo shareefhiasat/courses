@@ -22,10 +22,7 @@ import {
   AttendanceTab,
   MarksTab,
   PerformanceTab,
-  RecordsTab,
 } from '@components/student-dashboard';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import styles from './StudentDashboardPage.module.css';
 
 export default function StudentDashboardPage() {
@@ -35,11 +32,9 @@ export default function StudentDashboardPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
-  const exportRef = useRef(null);
   const userSelectRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState('overview');
-  const [exporting, setExporting] = useState(false);
 
   const permissions = useStudentDashboardPermissions();
   const filters = useStudentDashboardFilters({ isStaff: permissions.isStaff });
@@ -169,54 +164,7 @@ export default function StudentDashboardPage() {
     return () => { clearTimeout(timer); safeStop(); };
   }, [authLoading, user, dashData.loading, startLoading]);
 
-  // ─── Memoized export handlers (Performance optimization) ───────────────────────
-  const handleExportPDF = useCallback(async () => {
-    setExporting(true);
-    try {
-      const canvas = await html2canvas(exportRef.current, { scale: 2, useCORS: true, logging: false, backgroundColor: theme === 'dark' ? '#111827' : '#ffffff' });
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210;
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, (canvas.height * imgWidth) / canvas.width);
-      pdf.save(`student-dashboard-${displayName}-${new Date().toISOString().split('T')[0]}.pdf`);
-      toast?.showSuccess?.(t('exported_successfully') || 'Exported successfully');
-    } catch (err) { logger.error('Export PDF failed', err); toast?.showError?.(t('export_failed') || 'Export failed'); }
-    finally { setExporting(false); }
-  }, [theme, displayName, toast, t]);
-
-  const handleExportImage = useCallback(async () => {
-    setExporting(true);
-    try {
-      const canvas = await html2canvas(exportRef.current, { scale: 2, useCORS: true, logging: false, backgroundColor: theme === 'dark' ? '#111827' : '#ffffff' });
-      canvas.toBlob(blob => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `student-dashboard-${displayName}-${new Date().toISOString().split('T')[0]}.png`;
-        a.click(); URL.revokeObjectURL(url);
-        toast?.showSuccess?.(t('exported_successfully') || 'Exported successfully');
-      });
-    } catch (err) { logger.error('Export image failed', err); toast?.showError?.(t('export_failed') || 'Export failed'); }
-    finally { setExporting(false); }
-  }, [theme, displayName, toast, t]);
-
-  const handleExportCSV = useCallback(() => {
-    const rows = dashData.enrollments.map(e => ({
-      [t('dashboard.course') || (lang === 'ar' ? 'المقرر' : 'Course')]: e.className || e.courseName || '',
-      [t('dashboard.semester') || (lang === 'ar' ? 'الفصل' : 'Semester')]: `${e.semester || ''} ${e.academicYear || e.year || ''}`.trim(),
-      [t('dashboard.attendance_rate') || (lang === 'ar' ? 'الحضور' : 'Attendance')]: `${(e.attendanceRate || 0).toFixed(1)}%`,
-      [t('dashboard.grade') || (lang === 'ar' ? 'التقدير' : 'Grade')]: e.grade || '—',
-      [t('dashboard.mark') || (lang === 'ar' ? 'الدرجة' : 'Mark')]: e.totalMarks !== undefined ? `${e.totalMarks}%` : '—',
-    }));
-    if (!rows.length) { toast?.showWarning?.(t('dashboard.no_data_to_export') || (lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export')); return; }
-    const headers = Object.keys(rows[0]);
-    const csv = [headers.join(','), ...rows.map(r => headers.map(h => `"${r[h]}"`).join(','))].join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-    a.download = `student-courses-${displayName}-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    toast?.showSuccess?.(t('exported_successfully') || 'Exported successfully');
-  }, [dashData.enrollments, displayName, lang, toast, t]);
-
-  // ─── Memoized select options (Performance optimization) ────────────────────────
+  // ─── Memoized select options
   const studentOptions = useMemo(() => [
     { value: '', label: t('filters.select_student') || (lang === 'ar' ? 'اختر طالب' : 'Select Student') },
     ...filters.filteredStudents.map(s => ({ value: s.id || s.uid, label: s.displayName || s.email || '' })),
@@ -236,7 +184,7 @@ export default function StudentDashboardPage() {
   if (authLoading) return <GlobalLoadingFallback />;
 
   return (
-    <div className={styles.dashboard} ref={exportRef}>
+    <div className={styles.dashboard}>
       <Container maxWidth="xxl">
 
         {/* ── Header ── */}
@@ -246,15 +194,7 @@ export default function StudentDashboardPage() {
               {/* Empty header - no username display */}
             </div>
             <div className={styles.headerActions}>
-              <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting || showSelectionPrompt}>
-                {getThemedIcon('ui', 'download', 16, theme)}
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleExportImage} disabled={exporting || showSelectionPrompt}>
-                {getThemedIcon('ui', 'file', 16, theme)}
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={showSelectionPrompt}>
-                {getThemedIcon('ui', 'file_text', 16, theme)}
-              </Button>
+              {/* Export buttons removed */}
             </div>
           </div>
 
@@ -289,41 +229,45 @@ export default function StudentDashboardPage() {
               />
               {/* Debug info for student filtering */}
               {process.env.NODE_ENV === 'development' && (
-                <div style={{ marginTop: '1rem', padding: '1rem', background: '#f0f9ff', border: '1px solid #3b82f6', borderRadius: '8px', fontSize: '0.8rem' }}>
-                  <strong>Debug - Student Selection:</strong><br/>
-                  Selected Class: {filters.selectedClassId || 'None'}<br/>
-                  Class Name: {filters.selectedClassId ? filters.classes.find(c => (c.id || c.docId) === filters.selectedClassId)?.name || 'Unknown' : 'N/A'}<br/>
-                  Available Students: {studentUsers.length}<br/>
-                  Filtered Students: {filters.filteredStudents.length}<br/>
-                  Class Enrollments: {classEnrollments.length} students<br/>
-                  Loading Class Enrollments: {loadingClassEnrollments ? 'Yes' : 'No'}<br/>
-                  Enrollments Count: {dashData.enrollments?.length || 0}<br/>
-                  {filters.selectedClassId && filters.selectedClassId !== 'all' && (
-                    <>
-                      Query: getStudentsByClass('{filters.selectedClassId}')<br/>
-                      Class Enrollments: {dashData.enrollments?.filter(e => e.classId === filters.selectedClassId).length || 0}<br/>
-                    </>
-                  )}
-                  {classEnrollments.length > 0 && (
-                    <details style={{ marginTop: '0.5rem' }}>
-                      <summary style={{ cursor: 'pointer', fontSize: '0.7rem' }}>View Class Students</summary>
-                      <div style={{ fontSize: '0.6rem', background: '#f8fafc', padding: '0.5rem', borderRadius: '4px', marginTop: '0.25rem', maxHeight: '100px', overflow: 'auto' }}>
-                        {classEnrollments.map(student => (
-                          <div key={student.id || student.docId}>
-                            {student.displayName || student.email} ({student.id || student.docId})
-                          </div>
-                        ))}
-                      </div>
-                    </details>
-                  )}
-                </div>
+                <details closed style={{ marginTop: '1rem' }}>
+                  <summary style={{ cursor: 'pointer', padding: '1rem', background: '#f0f9ff', border: '1px solid #3b82f6', borderRadius: '8px', fontSize: '0.8rem' }}>
+                    <strong>Debug - Student Selection</strong>
+                  </summary>
+                  <div style={{ padding: '1rem', background: '#f8fafc', border: '1px solid #3b82f6', borderTop: 'none', borderRadius: '0 0 8px 8px', fontSize: '0.8rem' }}>
+                    Selected Class: {filters.selectedClassId || 'None'}<br/>
+                    Class Name: {filters.selectedClassId ? filters.classes.find(c => (c.id || c.docId) === filters.selectedClassId)?.name || 'Unknown' : 'N/A'}<br/>
+                    Available Students: {studentUsers.length}<br/>
+                    Filtered Students: {filters.filteredStudents.length}<br/>
+                    Class Enrollments: {classEnrollments.length} students<br/>
+                    Loading Class Enrollments: {loadingClassEnrollments ? 'Yes' : 'No'}<br/>
+                    Enrollments Count: {dashData.enrollments?.length || 0}<br/>
+                    {filters.selectedClassId && filters.selectedClassId !== 'all' && (
+                      <>
+                        Query: getStudentsByClass('{filters.selectedClassId}')<br/>
+                        Class Enrollments: {dashData.enrollments?.filter(e => e.classId === filters.selectedClassId).length || 0}<br/>
+                      </>
+                    )}
+                    {classEnrollments.length > 0 && (
+                      <details closed style={{ marginTop: '0.5rem' }}>
+                        <summary style={{ cursor: 'pointer', fontSize: '0.7rem' }}>View Class Students</summary>
+                        <div style={{ fontSize: '0.6rem', background: '#f8fafc', padding: '0.5rem', borderRadius: '4px', marginTop: '0.25rem', maxHeight: '100px', overflow: 'auto' }}>
+                          {classEnrollments.map(student => (
+                            <div key={student.id || student.docId}>
+                              {student.displayName || student.email} ({student.id || student.docId})
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                </details>
               )}
             </div>
           )}
         </div>
 
         {/* ── Enhanced Stats summary bar (Class-level or Student-level) ── */}
-        
+
         {/* ── Error state ── */}
         {(dashData.error || classMetrics.error) && (
           <div className={styles.errorState}>
@@ -413,15 +357,6 @@ export default function StudentDashboardPage() {
                   t={t}
                   lang={lang}
                 />
-              )}
-              {activeTab === 'penalties' && (
-                <RecordsTab recordType="penalties" records={dashData.penalties} t={t} lang={lang} />
-              )}
-              {activeTab === 'participations' && (
-                <RecordsTab recordType="participations" records={dashData.participations} t={t} lang={lang} />
-              )}
-              {activeTab === 'behaviors' && (
-                <RecordsTab recordType="behaviors" records={dashData.behaviors} t={t} lang={lang} />
               )}
             </div>
           </div>
