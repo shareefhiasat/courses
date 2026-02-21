@@ -14,7 +14,7 @@ import { getFavoriteBehaviors, addFavoriteBehavior, removeFavoriteBehavior } fro
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
 
-export default function StudentActionPanelNew({
+export default function StudentActionZapPanel({
   student,
   onClose,
   onBehaviorSubmit,

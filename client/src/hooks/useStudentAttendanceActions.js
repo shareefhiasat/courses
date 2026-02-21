@@ -14,7 +14,7 @@ import { formatQatarDateOnly } from '@utils/qatarDate';
 
 /**
  * Provides inline editing actions for the Attendance tab of the Student Dashboard.
- * Mirrors the action logic from InstructorQRScannerPage but as a reusable hook.
+ * Mirrors the action logic from QRScannerPage but as a reusable hook.
  *
  * @param {string} classId - The class context for attendance actions.
  * @param {string} selectedDate - ISO date string (yyyy-MM-dd).

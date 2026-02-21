@@ -336,10 +336,11 @@ Three cards showing:
 - `penalties` - Penalty records
 
 ### Key Components:
-1. **InstructorQRScannerPage.jsx** - Main page container
+1. **QRScannerPage.jsx** - Main page container
 2. **QRScanner.jsx** - Camera scanning component
 3. **StudentRoster.jsx** - Sortable, searchable table
-4. **StudentActionPanel.jsx** - Behavior tracking sidebar
+4. **StudentActionStatsPanel.jsx** - Student behavior tracking sidebar
+5. **StudentActionZapPanel.jsx** - Quick student actions panel
 5. **UI Components** - Button, Input, Textarea, Dropdown
 
 ### Performance Optimizations:

@@ -6,9 +6,9 @@ Navigate to: `/instructor/qr-scanner`
 
 Or add to your routes:
 ```jsx
-import InstructorQRScannerPage from './pages/InstructorQRScannerPage';
+import QRScannerPage from './pages/QRScannerPage';
 
-<Route path="/instructor/qr-scanner" element={<InstructorQRScannerPage />} />
+<Route path="/instructor/qr-scanner" element={<QRScannerPage />} />
 ```
 
 ---

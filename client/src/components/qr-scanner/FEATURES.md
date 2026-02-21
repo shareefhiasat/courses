@@ -130,10 +130,11 @@ From `constants/behaviorParticipation.js`:
 ## 🎨 UI Components
 
 ### Main Components
-1. **InstructorQRScannerPage** - Container page
+1. **QRScannerPage** - Container page
 2. **QRScanner** - Camera and scanning logic
 3. **StudentRoster** - Table with students
-4. **StudentActionPanel** - Behavior tracking sidebar
+4. **StudentActionStatsPanel** - Student behavior tracking sidebar
+5. **StudentActionZapPanel** - Quick student actions panel
 
 ### UI Primitives (Isolated)
 1. **Button** - Multiple variants (default, ghost, outline)

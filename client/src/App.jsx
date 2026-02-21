@@ -39,7 +39,7 @@ const HRAttendancePage = lazy(() => import('./pages/operations/attendance/HRAtte
 const PenaltiesPage = lazy(() => import('./pages/operations/penalty/PenaltiesPage'));
 const ParticipationPage = lazy(() => import('./pages/operations/participation/ParticipationPage'));
 const BehaviorPage = lazy(() => import('./pages/operations/behavior/BehaviorPage'));
-const InstructorQRScannerPage = lazy(() => import('./pages/operations/attendance/InstructorQRScannerPage'));
+const QRScannerPage = lazy(() => import('./pages/operations/attendance/QRScannerPage'));
 const QRCodeDisplayPage = lazy(() => import('./pages/operations/attendance/QRCodeDisplayPage'));
 const ClassSchedulePage = lazy(() => import('./pages/academic/classes/ClassSchedulePage'));
 const ScheduleOverviewPage = lazy(() => import('./pages/academic/schedules/ScheduleOverviewPage'));
@@ -313,7 +313,7 @@ const AppContent = () => {
             path="/qr-scanner" 
             element={
               <ProtectedRoute screenId="attendance" screenName="QR Scanner">
-                <InstructorQRScannerPage />
+                <QRScannerPage />
               </ProtectedRoute>
             } 
           />

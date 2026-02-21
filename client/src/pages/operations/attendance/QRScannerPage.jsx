@@ -26,14 +26,14 @@ import { Select, DatePicker, Button, Card, CardBody } from '@ui';
 import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 import QRScanner from '@/components/qr-scanner/QRScanner';
 import StudentRoster from '@/components/qr-scanner/StudentRoster';
-import StudentActionPanel from '@/components/qr-scanner/StudentActionPanel';
-import StudentActionPanelNew from '@/components/qr-scanner/StudentActionPanelNew';
+import StudentActionStatsPanel from '@/components/qr-scanner/StudentActionStatsPanel';
+import StudentActionZapPanel from '@/components/qr-scanner/StudentActionZapPanel';
 import '@/components/qr-scanner/ui/qr-scanner-ui.css';
-import './InstructorQRScannerPage.module.css';
+import './QRScannerPage.module.css';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 
-const InstructorQRScannerPage = () => {
+const QRScannerPage = () => {
   const { user, loading: authLoading } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
@@ -351,12 +351,12 @@ const InstructorQRScannerPage = () => {
 
   // Load students when class or date changes
   useEffect(() => {
-    // console.log('🔧 InstructorQRScannerPage useEffect - selectedClassId:', selectedClassId);
+    // console.log('🔧 QRScannerPage useEffect - selectedClassId:', selectedClassId);
     if (selectedClassId && selectedClassId !== 'all') {
-      // console.log('🔧 InstructorQRScannerPage calling loadStudents for class:', selectedClassId);
+      // console.log('🔧 QRScannerPage calling loadStudents for class:', selectedClassId);
       loadStudents(selectedClassId, selectedDate);
     } else {
-      // console.log('🔧 InstructorQRScannerPage clearing students - classId is all or empty');
+      // console.log('🔧 QRScannerPage clearing students - classId is all or empty');
       setStudents([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1602,7 +1602,7 @@ const InstructorQRScannerPage = () => {
         {selectedStudent && (
           <>
             {gridLoading && <GlobalLoadingFallback />}
-            <StudentActionPanel
+            <StudentActionStatsPanel
               student={selectedStudent}
               onClose={handleClosePanel}
               onBehaviorSubmit={handleBehaviorSubmit}
@@ -1628,7 +1628,7 @@ const InstructorQRScannerPage = () => {
         {/* Student Action Panel New */}
         {selectedStudentForAction && (
           <>
-            <StudentActionPanelNew
+            <StudentActionZapPanel
               student={selectedStudentForAction}
               onClose={handleCloseActionPanel}
               onBehaviorSubmit={handleBehaviorSubmit}
@@ -1867,4 +1867,4 @@ const InstructorQRScannerPage = () => {
   );
 };
 
-export default InstructorQRScannerPage;
+export default QRScannerPage;

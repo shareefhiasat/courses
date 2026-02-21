@@ -2578,7 +2578,7 @@ const DICT = {
     student_attendance_no_camera_found: 'No camera found. Please use manual entry.',
     student_attendance_scanner_initialization_failed: 'Scanner initialization failed. Please refresh and try again.',
     
-    // InstructorQRScannerPage Additional Strings
+    // QRScannerPage Additional Strings
     instructor_qr_failed_to_save_program_id: 'Failed to save selected programId to localStorage:',
     instructor_qr_failed_to_save_subject_id: 'Failed to save selected subjectId to localStorage:',
     instructor_qr_failed_to_save_class_id: 'Failed to save selected classId to localStorage:',
@@ -6340,7 +6340,7 @@ const DICT = {
     student_attendance_no_camera_found: 'لم يتم العثور على كاميرا. يرجى استخدام الإدخال اليدوي.',
     student_attendance_scanner_initialization_failed: 'فشل في تهيئة الماسح. يرجى تحديث الصفحة والمحاولة مرة أخرى.',
     
-    // InstructorQRScannerPage Additional Strings (Arabic)
+    // QRScannerPage Additional Strings (Arabic)
     instructor_qr_failed_to_save_program_id: 'فشل في حفظ معرف البرنامج المحدد في التخزين المحلي:',
     instructor_qr_failed_to_save_subject_id: 'فشل في حفظ معرف المادة المحدد في التخزين المحلي:',
     instructor_qr_failed_to_save_class_id: 'فشل في حفظ معرف الفصل المحدد في التخزين المحلي:',

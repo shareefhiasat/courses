@@ -1,5 +1,5 @@
-// DEPRECATED: This component is deprecated. Use StudentActionPanelNew instead.
-// This file is kept for reference but should be removed in a future release.
+// Student Action Stats Panel - Shows detailed statistics and history for a student
+// This component provides comprehensive student data viewing and management capabilities
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
@@ -25,7 +25,7 @@ import {ParticipationIcon, PenaltyIcon, StudentHistory, DeleteModal} from '@ui/h
 import {CircleIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, HelpCircleIcon, UserIcon, ZapIcon} from "@utils/icons.jsx";
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/attendanceMethods';
 
-export default function StudentActionPanel({
+export default function StudentActionStatsPanel({
   student,
   onClose,
   onBehaviorSubmit,
@@ -437,15 +437,15 @@ export default function StudentActionPanel({
         return dateB - dateA; // Most recent first
       });
 
-      console.log('🔧 StudentActionPanel - total logs fetched:', logs.length);
-      console.log('🔧 StudentActionPanel - logs:', logs);
+      console.log('🔧 StudentActionStatsPanel - total logs fetched:', logs.length);
+      console.log('🔧 StudentActionStatsPanel - logs:', logs);
 
       // Filter today's logs
       const today = new Date().toISOString().split('T')[0];
       const todayLogsFiltered = logs.filter(log => log.date === today);
 
-      console.log('🔧 StudentActionPanel - today logs filtered:', todayLogsFiltered.length);
-      console.log('🔧 StudentActionPanel - historical logs to set:', logs.length);
+      console.log('🔧 StudentActionStatsPanel - today logs filtered:', todayLogsFiltered.length);
+      console.log('🔧 StudentActionStatsPanel - historical logs to set:', logs.length);
 
       // Set historicalLogs to ALL logs (including today)
       setHistoricalLogs(logs);
@@ -820,7 +820,7 @@ export default function StudentActionPanel({
     const sortedGrouped = Object.values(grouped).sort((a, b) => {
       // Sort days by date (newest first)
       const result = new Date(b.date) - new Date(a.date);
-      console.log('🔍 StudentActionPanel day sort:', {
+      console.log('🔍 StudentActionStatsPanel day sort:', {
         dayA: { date: a.date, parsedDate: new Date(a.date) },
         dayB: { date: b.date, parsedDate: new Date(b.date) },
         result
@@ -828,7 +828,7 @@ export default function StudentActionPanel({
       return result;
     });
 
-    console.log('🔍 StudentActionPanel final grouped logs:', sortedGrouped.map(g => ({ date: g.date, counts: { attendance: g.attendance.length, penalties: g.penalties.length, participation: g.participation.length, behavior: g.behavior.length } })));
+    console.log('🔍 StudentActionStatsPanel final grouped logs:', sortedGrouped.map(g => ({ date: g.date, counts: { attendance: g.attendance.length, penalties: g.penalties.length, participation: g.participation.length, behavior: g.behavior.length } })));
 
     return sortedGrouped;
   }, []);
@@ -836,9 +836,9 @@ export default function StudentActionPanel({
   // Memoized grouped logs for display
   const memoizedGroupedLogs = useMemo(() => {
     const grouped = groupLogsByDay(historicalLogs);
-    console.log('🔧 StudentActionPanel - memoizedGroupedLogs:', grouped);
-    console.log('🔧 StudentActionPanel - historicalLogs length:', historicalLogs.length);
-    console.log('🔧 StudentActionPanel - activeFilters:', activeFilters);
+    console.log('🔧 StudentActionStatsPanel - memoizedGroupedLogs:', grouped);
+    console.log('🔧 StudentActionStatsPanel - historicalLogs length:', historicalLogs.length);
+    console.log('🔧 StudentActionStatsPanel - activeFilters:', activeFilters);
 
     // Debug today's logs specifically
     const today = new Date().toISOString().split('T')[0];

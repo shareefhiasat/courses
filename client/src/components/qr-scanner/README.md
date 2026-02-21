@@ -20,7 +20,8 @@ qr-scanner/
 ├── TopBar.jsx                  # Top navigation bar
 ├── Sidebar.jsx                 # Side navigation (optional)
 ├── StudentRoster.jsx           # Student roster table
-├── StudentActionPanel.jsx      # Student behavior action panel
+├── StudentActionStatsPanel.jsx      # Student behavior action panel
+├── StudentActionZapPanel.jsx        # Quick student actions panel
 ├── mockData.js                 # Mock student data
 ├── types.js                    # Type definitions
 ├── index.js                    # Export barrel
@@ -63,7 +64,7 @@ qr-scanner/
 - Row selection with visual feedback
 - Action dropdown menu per student
 
-#### StudentActionPanel
+#### StudentActionStatsPanel & StudentActionZapPanel
 - Tabbed interface (Participation, Behavior, Penalty)
 - Behavior selection with visual icons:
   - Talking (-1 point)
@@ -80,16 +81,16 @@ qr-scanner/
 ### Basic Implementation
 
 ```jsx
-import InstructorQRScannerPage from './pages/InstructorQRScannerPage';
+import QRScannerPage from './pages/QRScannerPage';
 
 // Use in your router
-<Route path="/instructor/qr-scanner" element={<InstructorQRScannerPage />} />
+<Route path="/instructor/qr-scanner" element={<QRScannerPage />} />
 ```
 
 ### Individual Components
 
 ```jsx
-import { QRScanner, StudentRoster, StudentActionPanel } from './components/qr-scanner';
+import { QRScanner, StudentRoster, StudentActionStatsPanel, StudentActionZapPanel } from './components/qr-scanner';
 
 // Use components individually
 <QRScanner onScan={(studentId) => console.log(studentId)} />
@@ -125,9 +126,9 @@ The `mockData.js` file contains 10 sample students with:
 />
 ```
 
-### StudentActionPanel
+### StudentActionStatsPanel
 ```jsx
-<StudentActionPanel
+<StudentActionStatsPanel
   student={Student | null}
   onClose={() => void}
   onBehaviorSubmit={(studentId: string, actions: BehaviorAction[], note: string) => void}
@@ -178,7 +179,7 @@ The system is fully integrated with Firebase:
 
 **Data Flow:**
 ```jsx
-// Already implemented in InstructorQRScannerPage.jsx
+// Already implemented in QRScannerPage.jsx
 useEffect(() => {
   if (selectedClassId) {
     loadStudents(selectedClassId, selectedDate);

@@ -30,8 +30,8 @@ Status: **PRODUCTION READY** 🚀
 ```
 client/src/
 ├── pages/
-│   ├── InstructorQRScannerPage.jsx ✨ (Main page - fully functional)
-│   └── InstructorQRScannerPage.module.css
+│   ├── QRScannerPage.jsx ✨ (Main page - fully functional)
+│   └── QRScannerPage.module.css
 │
 └── components/qr-scanner/
     ├── ui/
@@ -43,7 +43,8 @@ client/src/
     │
     ├── QRScanner.jsx ✨ (Mobile/desktop camera support)
     ├── StudentRoster.jsx ✨ (Advanced table with all features)
-    ├── StudentActionPanel.jsx ✨ (Behavior tracking panel)
+    ├── StudentActionStatsPanel.jsx ✨ (Student behavior tracking panel)
+    ├── StudentActionZapPanel.jsx ✨ (Quick student actions panel)
     ├── Sidebar.jsx
     ├── TopBar.jsx
     ├── mockData.js
@@ -294,7 +295,7 @@ totalPoints = participation + behavior + penalty
 
 ### Configuration Options
 
-**In `InstructorQRScannerPage.jsx`:**
+**In `QRScannerPage.jsx`:**
 ```javascript
 // Adjust page size
 const [pageSize, setPageSize] = useState(10); // Change to 20, 50, etc.
@@ -516,7 +517,7 @@ The QR Scanner Page is **100% complete** and **production-ready**.
 
 ### For Developers
 - All code in `client/src/components/qr-scanner/`
-- Main page: `client/src/pages/InstructorQRScannerPage.jsx`
+- Main page: `client/src/pages/QRScannerPage.jsx`
 - Firebase methods used documented in code
 - jsQR library installed for QR scanning
 - CSS isolated with `qr-` prefix to prevent conflicts

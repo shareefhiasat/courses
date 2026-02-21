@@ -87,7 +87,7 @@ export const getActionButtonStyles = (action, isLoading = false, theme = 'light'
   };
 };
 
-// Activity Type Options for StudentActionPanel
+// Activity Type Options for StudentActionStatsPanel
 export const getActivityTypeOptions = () => [
   // Behavior options
   ...BEHAVIOR_TYPES.map(behavior => ({
@@ -171,8 +171,8 @@ export const INITIAL_QR_SCANNER_STATE = {
   isMinimized: false,
   showResultModal: false,
   resultModalData: { type: '', message: '' },
-  showStudentActionPanel: false,
-  showStudentActionPanelNew: false,
+  showStudentActionStatsPanel: false,
+  showStudentActionZapPanel: false,
   initialTab: 'behavior',
   selectedStudent: null,
   studentForAction: null,

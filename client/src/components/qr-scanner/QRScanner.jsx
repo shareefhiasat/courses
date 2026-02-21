@@ -20,8 +20,8 @@ import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { GENERAL_STATUS } from '@utils/sharedTypes';
-import StudentActionPanel from './StudentActionPanel';
-import StudentActionPanelNew from './StudentActionPanelNew';
+import StudentActionStatsPanel from './StudentActionStatsPanel';
+import StudentActionZapPanel from './StudentActionZapPanel';
 import { generateReferenceId } from '@utils/qrCode';
 import { getTypeColor } from '@utils/sharedTypes';
 import { PARTICIPATION_TYPES, getParticipationColor } from '@constants/participationTypes.jsx';
@@ -92,8 +92,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const scannerRef = useRef(null); // Ref for the scanner section
   const [showResultModal, setShowResultModal] = useState(false);
   const [resultModalData, setResultModalData] = useState({ type: '', message: '' });
-  const [showStudentActionPanel, setShowStudentActionPanel] = useState(false);
-  const [showStudentActionPanelNew, setShowStudentActionPanelNew] = useState(false);
+  const [showStudentActionStatsPanel, setShowStudentActionStatsPanel] = useState(false);
+  const [showStudentActionZapPanel, setShowStudentActionZapPanel] = useState(false);
   const [initialTab, setInitialTab] = useState(RECORD_TYPES.BEHAVIOR); // Track which tab to open
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentForAction, setStudentForAction] = useState(null);
@@ -822,7 +822,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         }
       });
 
-      // Success message is handled by StudentActionPanelNew
+      // Success message is handled by StudentActionZapPanel
     } catch (error) {
       logger.error('Error submitting behavior/participation:', error);
       showError('Failed to record actions');
@@ -887,7 +887,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         });
       });
 
-      // Success message is handled by StudentActionPanelNew
+      // Success message is handled by StudentActionZapPanel
     } catch (error) {
       logger.error('Error submitting penalty:', error);
       showError('Failed to record penalty');
@@ -1621,12 +1621,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     };
   }, [stopCamera]);
 
-  // Debug logging for StudentActionPanelNew rendering
+  // Debug logging for StudentActionZapPanel rendering
   useEffect(() => {
-    if (showStudentActionPanelNew && studentForAction) {
-      addDebugLog(`🎯 Rendering StudentActionPanelNew for: ${studentForAction.name || studentForAction.email}`, 'info');
+    if (showStudentActionZapPanel && studentForAction) {
+      addDebugLog(`🎯 Rendering StudentActionZapPanel for: ${studentForAction.name || studentForAction.email}`, 'info');
     }
-  }, [showStudentActionPanelNew, studentForAction, addDebugLog]);
+  }, [showStudentActionZapPanel, studentForAction, addDebugLog]);
 
   return (
       <CollapsibleSection
@@ -2833,7 +2833,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                             if (studentData) {
                               setInitialTab('penalty');
                               setStudentForAction(studentData);
-                              setShowStudentActionPanelNew(true);
+                              setShowStudentActionZapPanel(true);
                               setShowScanDialog(false);
                               addDebugLog(`✅ Found student for penalty: ${studentData.name || studentData.email}`, 'success');
                             } else {
@@ -2931,7 +2931,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                             if (studentData) {
                               setInitialTab('participation');
                               setStudentForAction(studentData);
-                              setShowStudentActionPanelNew(true);
+                              setShowStudentActionZapPanel(true);
                               setShowScanDialog(false);
                               addDebugLog(`✅ Found student for participation: ${studentData.name || studentData.email}`, 'success');
                               addDebugLog(`🔍 Setting studentForAction and showing new panel`, 'info');
@@ -3007,7 +3007,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     gap: '0.75rem',
                     marginTop: '0.5rem'
                   }}>
-                    {/* Details Button - Opens StudentActionPanel */}
+                    {/* Details Button - Opens StudentActionStatsPanel */}
                     <button
                         onClick={async () => {
                           logger.log('📋 Open student details');
@@ -3055,7 +3055,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                               const studentData = await processStudentData(studentReferenceId);
                               if (studentData) {
                                 setStudentForAction(studentData);
-                                setShowStudentActionPanel(true); // Use the OLD panel for details
+                                setShowStudentActionStatsPanel(true); // Use the Stats panel for details
                                 setShowScanDialog(false);
                                 addDebugLog(`✅ Opening details for: ${studentData.name || studentData.email || 'Unknown'} (${studentReferenceId})`, 'success');
                               } else {
@@ -3129,7 +3129,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       )}
                     </button>
 
-                    {/* Actions Button - Opens StudentActionPanelNew */}
+                    {/* Actions Button - Opens StudentActionZapPanel */}
                     <button
                         onClick={async () => {
                           logger.log('🎯 Open student actions');
@@ -3160,7 +3160,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
                             if (studentData) {
                               setStudentForAction(studentData);
-                              setShowStudentActionPanelNew(true); // Use the NEW panel for actions
+                              setShowStudentActionZapPanel(true); // Use the Zap panel for actions
                               setShowScanDialog(false);
                               addDebugLog(`✅ Opening actions for: ${studentData.name || studentData.email || 'Unknown'}`, 'success');
                             } else {
@@ -3677,11 +3677,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               </div>
           )}
 
-          {showStudentActionPanel && studentForAction && (
-              <StudentActionPanel
+          {showStudentActionStatsPanel && studentForAction && (
+              <StudentActionStatsPanel
                   student={studentForAction}
                   onClose={() => {
-                    setShowStudentActionPanel(false);
+                    setShowStudentActionStatsPanel(false);
                     setStudentForAction(null);
                   }}
                   onBehaviorSubmit={handleBehaviorSubmit}
@@ -3689,7 +3689,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   onUpdate={() => {
                     if (onActivityUpdate) {
                       onActivityUpdate(() => {
-                        logger.debug('[QR Scanner] Triggering activity refresh from StudentActionPanel');
+                        logger.debug('[QR Scanner] Triggering activity refresh from StudentActionStatsPanel');
                         fetchRecentActivity();
                       });
                     }
@@ -3697,13 +3697,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               />
           )}
 
-          {showStudentActionPanelNew && studentForAction && (
-              <StudentActionPanelNew
+          {showStudentActionZapPanel && studentForAction && (
+              <StudentActionZapPanel
                   student={studentForAction}
                   initialTab={initialTab}
                   onClose={() => {
-                    addDebugLog('🔚 Closing StudentActionPanelNew', 'info');
-                    setShowStudentActionPanelNew(false);
+                    addDebugLog('🔚 Closing StudentActionZapPanel', 'info');
+                    setShowStudentActionZapPanel(false);
                     setStudentForAction(null);
                   }}
                   onBehaviorSubmit={handleBehaviorSubmit}
@@ -3713,7 +3713,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   onUpdate={() => {
                     if (onActivityUpdate) {
                       onActivityUpdate(() => {
-                        logger.debug('[QR Scanner] Triggering activity refresh from StudentActionPanelNew');
+                        logger.debug('[QR Scanner] Triggering activity refresh from StudentActionZapPanel');
                         fetchRecentActivity();
                       });
                     }

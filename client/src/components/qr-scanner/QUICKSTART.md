@@ -17,14 +17,14 @@ All components are now ready in `client/src/components/qr-scanner/`:
   ├── TopBar.jsx
   ├── Sidebar.jsx
   ├── StudentRoster.jsx
-  └── StudentActionPanel.jsx
+  └── StudentActionStatsPanel.jsx
 
 ✓ Data & Types
   ├── mockData.js (10 sample students)
   └── types.js
 
 ✓ Updated Page
-  └── InstructorQRScannerPage.jsx (fully functional)
+  └── QRScannerPage.jsx (fully functional)
 ```
 
 ## 🚀 How to Use
@@ -33,7 +33,7 @@ All components are now ready in `client/src/components/qr-scanner/`:
 
 The page is already updated at:
 ```
-client/src/pages/InstructorQRScannerPage.jsx
+client/src/pages/QRScannerPage.jsx
 ```
 
 ### 2. Add to Your Router
@@ -41,10 +41,10 @@ client/src/pages/InstructorQRScannerPage.jsx
 If not already in your routing configuration, add:
 
 ```jsx
-import InstructorQRScannerPage from './pages/InstructorQRScannerPage';
+import QRScannerPage from './pages/QRScannerPage';
 
 // In your routes
-<Route path="/instructor/qr-scanner" element={<InstructorQRScannerPage />} />
+<Route path="/instructor/qr-scanner" element={<QRScannerPage />} />
 ```
 
 ### 3. View the Page
@@ -168,7 +168,7 @@ The page adapts to different screen sizes:
 ### 1. Replace Mock Data with Real API
 
 ```jsx
-// In InstructorQRScannerPage.jsx
+// In QRScannerPage.jsx
 useEffect(() => {
   const fetchStudents = async () => {
     const response = await fetch('/api/students');
@@ -190,7 +190,7 @@ Update `QRScanner.jsx` to use real camera instead of simulation.
 
 ### 3. Save Behavior to Database
 
-Update `handleBehaviorSubmit` in `InstructorQRScannerPage.jsx` to POST to your API.
+Update `handleBehaviorSubmit` in `QRScannerPage.jsx` to POST to your API.
 
 ## ⚡ Performance Notes
 

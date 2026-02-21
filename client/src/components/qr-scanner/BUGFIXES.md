@@ -14,7 +14,7 @@ The `penalties.js` file exports `createPenalty`, not `addPenalty`.
 ### Fixes Applied:
 
 #### 1. Fixed Import Statement
-**File:** `client/src/pages/InstructorQRScannerPage.jsx`
+**File:** `client/src/pages/QRScannerPage.jsx`
 
 **Before:**
 ```javascript
