@@ -1,6 +1,20 @@
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { getProgramsSorted } from '../db/programDbService';
+import { 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  orderBy, 
+  Timestamp 
+} from 'firebase/firestore';
+import { db } from '../other/config.js';
 
 // Re-export getClasses from classService for convenience
 export { getClasses, addClass, updateClass, deleteClass, getClassById } from './classService';
