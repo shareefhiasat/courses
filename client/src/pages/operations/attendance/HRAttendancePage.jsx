@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { Button, Select, DatePicker, Tooltip, AttendanceTypeSelect } from '@ui';
+import { Button, Select, DatePicker, Tooltip, AttendanceTypeSelect, Slider } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
@@ -42,6 +42,10 @@ const HRAttendancePage = () => {
   const [yearFilter, setYearFilter] = useState('all');
   const [termFilter, setTermFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [scanFilter, setScanFilter] = useState(null);
+  const [scanFilterMode, setScanFilterMode] = useState('range'); // Always range mode
+  const [scanFrom, setScanFrom] = useState(0);
+  const [scanTo, setScanTo] = useState(50);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [classes, setClasses] = useState([]);
@@ -315,6 +319,20 @@ const HRAttendancePage = () => {
         logger.log('[HRAttendance] Status filter is "all", not applying status filter');
       }
 
+      // Filter by scan count (always range mode)
+      if (scanFrom > 0 || scanTo < 50) {
+        logger.log('[HRAttendance] Applying scan range filter:', scanFrom, 'to', scanTo);
+        
+        filtered = filtered.filter(session => {
+          const totalScans = session.scanCounts?.total || 0;
+          return totalScans >= scanFrom && totalScans <= scanTo;
+        });
+        
+        logger.log('[HRAttendance] After scan range filter count:', filtered.length);
+      } else {
+        logger.log('[HRAttendance] Scan filter is not active, not applying scan filter');
+      }
+
       // Check for expired sessions and auto-close them
       const now = new Date();
       const sessionDurationMinutes = 15; // Default session duration
@@ -485,7 +503,7 @@ const HRAttendancePage = () => {
     } finally {
       stopLoading();
     }
-  }, [programFilter, subjectFilter, classFilter, yearFilter, termFilter, dateFrom, dateTo, statusFilter, classes, subjects, startLoading, t]);
+  }, [programFilter, subjectFilter, classFilter, yearFilter, termFilter, dateFrom, dateTo, statusFilter, scanFrom, scanTo, classes, subjects, startLoading, t]);
 
   // Load attendance sessions
   useEffect(() => {
@@ -844,6 +862,86 @@ const HRAttendancePage = () => {
               }}
               fullWidth
             />
+          </div>
+        </div>
+        
+        {/* Row 3: Scan Filter */}
+        <div style={{
+          margin: '8px 0',
+          padding: '8px',
+          background: theme === 'dark' ? '#1f2937' : '#f9fafb',
+          borderRadius: '8px',
+          border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
+        }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '24px', alignItems: 'center' }}>
+            <Slider
+              mode="single"
+              min={0}
+              max={50}
+              step={1}
+              value={scanFrom}
+              onChange={(value) => {
+                logger.log('[HRAttendance] Scan from changing to:', value);
+                setScanFrom(value);
+              }}
+              // label={t('scan_from') || 'From'}
+              showValue={true}
+            />
+            <Slider
+              mode="single"
+              min={0}
+              max={50}
+              step={1}
+              value={scanTo}
+              onChange={(value) => {
+                logger.log('[HRAttendance] Scan to changing to:', value);
+                setScanTo(value);
+              }}
+              // label={t('scan_to') || 'To'}
+              showValue={true}
+            />
+            <div
+              onClick={() => {
+                logger.log('[HRAttendance] Clearing scan filter');
+                setScanFrom(0);
+                setScanTo(50);
+              }}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '8px',
+                background: scanFrom === 0 && scanTo === 50
+                  ? (theme === 'dark' ? '#374151' : '#f3f4f6')
+                  : (theme === 'dark' ? '#dc2626' : '#ef4444'),
+                border: `1px solid ${
+                  scanFrom === 0 && scanTo === 50
+                    ? (theme === 'dark' ? '#4b5563' : '#d1d5db')
+                    : (theme === 'dark' ? '#991b1b' : '#dc2626')
+                }`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: scanFrom === 0 && scanTo === 50 ? 'not-allowed' : 'pointer',
+                opacity: scanFrom === 0 && scanTo === 50 ? 0.5 : 1,
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <svg 
+                width="18" 
+                height="18" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke={scanFrom === 0 && scanTo === 50
+                  ? (theme === 'dark' ? '#6b7280' : '#9ca3af')
+                  : 'white'
+                }
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              >
+                <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14zM10 11v6M14 11v6"/>
+              </svg>
+            </div>
           </div>
         </div>
       </div>

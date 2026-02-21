@@ -6,6 +6,7 @@ export { default as Badge } from './Badge';
 export { default as Input } from './Input';
 export { default as Select } from './Select';
 export { default as AttendanceTypeSelect } from './AttendanceTypeSelect';
+export { default as Slider } from './Slider';
 export { ToastProvider, useToast } from './Toast';
 export { default as Spinner } from './Spinner';
 export { default as Modal, ConfirmModal } from './Modal';
