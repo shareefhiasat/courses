@@ -9,24 +9,36 @@ import { Select, DateRangeSlider } from '@ui';
  * Single source of truth for all available collections and their valid groupBy fields.
  */
 export const DATA_SOURCES = [
-  { value: 'submissions',      labelKey: 'ds_submissions',      groupBy: ['status', 'classId', 'programId', 'subjectId', 'userId', 'date', 'semester', 'term', 'year'] },
-  { value: 'activities',       labelKey: 'ds_activities',       groupBy: ['type', 'classId', 'programId', 'subjectId', 'userId', 'date', 'semester', 'term'] },
-  { value: 'users',            labelKey: 'ds_users',            groupBy: ['role', 'status', 'programId', 'date'] },
-  { value: 'classes',          labelKey: 'ds_classes',          groupBy: ['programId', 'term', 'year', 'semester', 'status'] },
-  { value: 'programs',         labelKey: 'ds_programs',         groupBy: ['status', 'type'] },
-  { value: 'subjects',         labelKey: 'ds_subjects',         groupBy: ['programId', 'semester', 'type'] },
-  { value: 'enrollments',      labelKey: 'ds_enrollments',      groupBy: ['status', 'classId', 'programId', 'subjectId', 'semester', 'year'] },
-  { value: 'quizzes',          labelKey: 'ds_quizzes',          groupBy: ['type', 'difficulty', 'classId', 'programId', 'subjectId'] },
-  { value: 'quizSubmissions',  labelKey: 'ds_quiz_submissions', groupBy: ['status', 'classId', 'userId', 'date'] },
-  { value: 'attendance',       labelKey: 'ds_attendance',       groupBy: ['attendanceType', 'status', 'classId', 'programId', 'date', 'term', 'semester'] },
-  { value: 'penalties',        labelKey: 'ds_penalties',        groupBy: ['penaltyType', 'classId', 'userId', 'date'] },
-  { value: 'absences',         labelKey: 'ds_absences',         groupBy: ['absenceType', 'classId', 'userId', 'date'] },
-  { value: 'notifications',    labelKey: 'ds_notifications',    groupBy: ['type', 'status', 'date'] },
-  { value: 'studentMarks',     labelKey: 'ds_student_marks',    groupBy: ['markType', 'classId', 'userId', 'programId', 'subjectId'] },
-  { value: 'activityLogs',     labelKey: 'ds_activity_logs',    groupBy: ['type', 'userId', 'date'] },
-  { value: 'emailLogs',        labelKey: 'ds_email_logs',       groupBy: ['status', 'type', 'date'] },
-  { value: 'behaviors',        labelKey: 'ds_behaviors',        groupBy: ['type', 'classId', 'studentId', 'programId', 'subjectId', 'date'] },
-  { value: 'participations',   labelKey: 'ds_participations',   groupBy: ['type', 'classId', 'studentId', 'programId', 'subjectId', 'date'] },
+  // ── Merged / virtual sources ──────────────────────────────────────────────
+  { value: 'activities,announcements,resources', labelKey: 'ds_all_activities', label: 'All Activities (merged)', groupBy: ['type', '_source', 'classId', 'programId', 'subjectId', 'userId', 'date'] },
+
+  // ── Single collections ────────────────────────────────────────────────────
+  { value: 'activities',              labelKey: 'ds_activities',               groupBy: ['type', 'classId', 'programId', 'subjectId', 'userId', 'date', 'semester', 'term'] },
+  { value: 'announcements',           labelKey: 'ds_announcements',            groupBy: ['type', 'classId', 'programId', 'userId', 'date'] },
+  { value: 'resources',               labelKey: 'ds_resources',                groupBy: ['type', 'classId', 'programId', 'subjectId', 'userId', 'date'] },
+  { value: 'submissions',             labelKey: 'ds_submissions',              groupBy: ['status', 'classId', 'programId', 'subjectId', 'userId', 'date', 'semester', 'term', 'year'] },
+  { value: 'attendance',              labelKey: 'ds_attendance',               groupBy: ['attendanceType', 'status', 'classId', 'programId', 'date', 'term', 'semester'] },
+  { value: 'attendanceSessions',      labelKey: 'ds_attendance_sessions',      groupBy: ['status', 'classId', 'programId', 'date'] },
+  { value: 'enrollments',             labelKey: 'ds_enrollments',              groupBy: ['status', 'classId', 'programId', 'subjectId', 'semester', 'year'] },
+  { value: 'users',                   labelKey: 'ds_users',                    groupBy: ['role', 'status', 'programId', 'date'] },
+  { value: 'classes',                 labelKey: 'ds_classes',                  groupBy: ['programId', 'term', 'year', 'semester', 'status'] },
+  { value: 'programs',                labelKey: 'ds_programs',                 groupBy: ['status', 'type'] },
+  { value: 'subjects',                labelKey: 'ds_subjects',                 groupBy: ['programId', 'semester', 'type'] },
+  { value: 'courses',                 labelKey: 'ds_courses',                  groupBy: ['status', 'type', 'programId'] },
+  { value: 'quizzes',                 labelKey: 'ds_quizzes',                  groupBy: ['type', 'difficulty', 'classId', 'programId', 'subjectId'] },
+  { value: 'quizSubmissions',         labelKey: 'ds_quiz_submissions',         groupBy: ['status', 'classId', 'userId', 'date'] },
+  { value: 'penalties',               labelKey: 'ds_penalties',                groupBy: ['penaltyType', 'classId', 'userId', 'date'] },
+  { value: 'absences',                labelKey: 'ds_absences',                 groupBy: ['absenceType', 'classId', 'userId', 'date'] },
+  { value: 'behaviors',               labelKey: 'ds_behaviors',                groupBy: ['type', 'classId', 'studentId', 'programId', 'subjectId', 'date'] },
+  { value: 'participations',          labelKey: 'ds_participations',           groupBy: ['type', 'classId', 'studentId', 'programId', 'subjectId', 'date'] },
+  { value: 'notifications',           labelKey: 'ds_notifications',            groupBy: ['type', 'status', 'date'] },
+  { value: 'notificationLogs',        labelKey: 'ds_notification_logs',        groupBy: ['type', 'status', 'date'] },
+  { value: 'activityLogs',            labelKey: 'ds_activity_logs',            groupBy: ['type', 'userId', 'date'] },
+  { value: 'emailLogs',               labelKey: 'ds_email_logs',               groupBy: ['status', 'type', 'date'] },
+  { value: 'studentMarks',            labelKey: 'ds_student_marks',            groupBy: ['markType', 'classId', 'userId', 'programId', 'subjectId'] },
+  { value: 'studentProgress',         labelKey: 'ds_student_progress',         groupBy: ['status', 'classId', 'userId', 'programId', 'subjectId'] },
+  { value: 'subjectMarksDistribution',labelKey: 'ds_marks_distribution',       groupBy: ['subjectId', 'programId', 'classId'] },
+  { value: 'scheduledReports',        labelKey: 'ds_scheduled_reports',        groupBy: ['status', 'type', 'date'] },
 ];
 
 const GROUP_BY_KEYS = {
@@ -35,7 +47,7 @@ const GROUP_BY_KEYS = {
   term: 'gb_term', year: 'gb_year', role: 'gb_role', difficulty: 'gb_difficulty',
   penaltyType: 'gb_penalty_type', absenceType: 'gb_absence_type',
   attendanceStatus: 'gb_status', attendanceType: 'gb_attendance_type', markType: 'gb_mark_type',
-  studentId: 'gb_student',
+  studentId: 'gb_student', _source: 'gb_source',
 };
 
 const AGGREGATION_KEYS = [
@@ -206,7 +218,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
             <Select
               value={config.dataSource}
               onChange={e => set({ dataSource: e.target.value, groupBy: DATA_SOURCES.find(s => s.value === e.target.value)?.groupBy[0] || 'status' })}
-              options={DATA_SOURCES.map(s => ({ value: s.value, label: t(s.labelKey) || s.value }))}
+              options={DATA_SOURCES.map(s => ({ value: s.value, label: t(s.labelKey) || s.label || s.value }))}
               fullWidth
             />
           </Field>

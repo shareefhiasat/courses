@@ -5,6 +5,7 @@ import { getPrograms, getSubjects } from '@services/business/programService';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
+import { ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS } from '@constants/activityTypes';
 import logger from '@utils/logger';
 
 const EMPTY_RAW = {
@@ -25,7 +26,15 @@ const EMPTY_RAW = {
   absences: [],
   studentMarks: [],
   behaviors: [],
-  participations: []
+  participations: [],
+  announcements: [],
+  resources: [],
+  courses: [],
+  scheduledReports: [],
+  studentProgress: [],
+  subjectMarksDistribution: [],
+  notificationLogs: [],
+  attendanceSessions: []
 };
 
 /**
@@ -62,6 +71,14 @@ const useAnalyticsData = () => {
           });
           console.log(`[REFRESH DEBUG] 📈 Attendance status distribution:`, statusCounts);
         }
+        
+        // Show sample data for announcements and resources
+        if ((key === 'announcements' || key === 'resources')) {
+          console.log(`[REFRESH DEBUG] 📋 ${key} loaded:`, data.length, 'records');
+          if (data.length > 0) {
+            console.log(`[REFRESH DEBUG] 📋 ${key} sample:`, data.slice(0, 2));
+          }
+        }
       } catch (e) {
         const code = (e?.code || e?.message || '').toString();
         if (code.includes('permission-denied')) errors[key] = 'permission-denied';
@@ -82,6 +99,8 @@ const useAnalyticsData = () => {
       safeLoad('quizSubmissions', () => getDocs(collection(db, 'quizSubmissions'))),
       safeLoad('notifications', () => getDocs(query(collection(db, 'notifications'), orderBy('createdAt', 'desc')))),
       safeLoad('emailLogs', () => getDocs(query(collection(db, 'emailLogs'), orderBy('timestamp', 'desc')))),
+      safeLoad('announcements', () => getDocs(collection(db, 'announcements'))),
+      safeLoad('resources', () => getDocs(collection(db, 'resources'))),
       safeLoad('programs', async () => {
         const res = await getPrograms();
         return { docs: (res.data || []).map(p => ({ id: p.docId, data: () => p })) };
@@ -94,7 +113,13 @@ const useAnalyticsData = () => {
       safeLoad('absences', () => getDocs(collection(db, 'absences'))),
       safeLoad('studentMarks', () => getDocs(collection(db, 'studentMarks'))),
       safeLoad('behaviors', () => getDocs(collection(db, 'behaviors'))),
-      safeLoad('participations', () => getDocs(collection(db, 'participations')))
+      safeLoad('participations', () => getDocs(collection(db, 'participations'))),
+      safeLoad('courses', () => getDocs(collection(db, 'courses'))),
+      safeLoad('scheduledReports', () => getDocs(collection(db, 'scheduledReports'))),
+      safeLoad('studentProgress', () => getDocs(collection(db, 'studentProgress'))),
+      safeLoad('subjectMarksDistribution', () => getDocs(collection(db, 'subjectMarksDistribution'))),
+      safeLoad('notificationLogs', () => getDocs(collection(db, 'notificationLogs'))),
+      safeLoad('attendanceSessions', () => getDocs(collection(db, 'attendanceSessions')))
     ]);
 
     console.log('[REFRESH DEBUG] 🎉 Refresh completed!');
@@ -131,13 +156,25 @@ const useAnalyticsData = () => {
  */
 export const processWidgetData = (widget, rawData, globalFilters = {}, comparisonOffset = 0) => {
   const { dataSource, groupBy, aggregation = 'count', filters = [], dateRange, customDateFrom, customDateTo } = widget;
-  let dataset = rawData[dataSource] || [];
+
+  // ── Multi-source merge: dataSource can be comma-separated e.g. "activities,announcements,resources" ──
+  let dataset;
+  if (dataSource && dataSource.includes(',')) {
+    const sources = dataSource.split(',').map(s => s.trim()).filter(Boolean);
+    dataset = sources.flatMap(src => (rawData[src] || []).map(item => ({ ...item, _source: src })));
+  } else {
+    dataset = (rawData[dataSource] || []).map(item => ({ ...item, _source: dataSource }));
+  }
 
   // DEBUG: Log widget processing start
   console.log(`[WIDGET DEBUG] 🎯 Processing widget: ${widget.title || 'Untitled'}`);
   console.log(`[WIDGET DEBUG] 📋 Widget config:`, { dataSource, groupBy, aggregation, dateRange, customDateFrom, customDateTo });
   console.log(`[WIDGET DEBUG] 🔽 Global filters:`, globalFilters);
   console.log(`[WIDGET DEBUG] 📊 Raw data count:`, dataset.length, 'records');
+  
+  // DEBUG: Show available data sources
+  const availableSources = Object.keys(rawData).filter(key => rawData[key] && rawData[key].length > 0);
+  console.log(`[WIDGET DEBUG] 📚 Available data sources with data:`, availableSources);
   
   // DEBUG: Show all status values for attendance
   if (dataSource === 'attendance' && dataset.length > 0) {
@@ -160,6 +197,65 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     // Show sample records with their status
     console.log(`[WIDGET DEBUG] 📝 Sample attendance records with status:`, 
       dataset.slice(0, 5).map(item => ({ id: item.id, status: item.status, date: item.date }))
+    );
+  }
+
+
+  // DEBUG: Show all activity types for activities
+  if (dataSource && (dataSource.includes('activities') || dataSource.includes('announcements') || dataSource.includes('resources')) && dataset.length > 0) {
+    const allTypes = [...new Set(dataset.map(item => item.type))].filter(Boolean);
+    console.log(`[WIDGET DEBUG] 📋 ALL activity types found in activities collection:`, allTypes);
+    
+    // Check specifically for announcement and resource variations
+    const announcementVariations = ['announcement', 'announcements', 'Announcement', 'Announcements', 'ANNOUNCEMENT'];
+    const resourceVariations = ['resource', 'resources', 'Resource', 'Resources', 'RESOURCE'];
+    
+    const foundAnnouncements = dataset.filter(item => 
+      announcementVariations.some(variation => 
+        item.type && item.type.toLowerCase().includes(variation.toLowerCase())
+      )
+    );
+    const foundResources = dataset.filter(item => 
+      resourceVariations.some(variation => 
+        item.type && item.type.toLowerCase().includes(variation.toLowerCase())
+      )
+    );
+    
+    console.log(`[WIDGET DEBUG] 📢 Found announcements in activities:`, foundAnnouncements.length, foundAnnouncements);
+    console.log(`[WIDGET DEBUG] 📚 Found resources in activities:`, foundResources.length, foundResources);
+    
+    // Check specifically for missing activity types using official constants
+    const expectedTypes = [
+      ACTIVITY_TYPES.QUIZ,
+      ACTIVITY_TYPES.HOMEWORK,
+      ACTIVITY_TYPES.TRAINING,
+      ACTIVITY_TYPES.LAB_AND_PROJECT,
+      ACTIVITY_TYPES.MID_EXAM,
+      ACTIVITY_TYPES.FINAL_EXAM,
+      'announcement',
+      'resource'
+    ];
+    const missingTypes = expectedTypes.filter(type => !allTypes.includes(type));
+    if (missingTypes.length > 0) {
+      console.log(`[WIDGET DEBUG] ❌ Missing expected activity types:`, missingTypes);
+    }
+    
+    // Count by type
+    const typeCounts = {};
+    dataset.forEach(item => {
+      const type = item.type || 'unknown';
+      typeCounts[type] = (typeCounts[type] || 0) + 1;
+    });
+    console.log(`[WIDGET DEBUG] 📊 Type distribution:`, typeCounts);
+    
+    // Show sample records with their type
+    console.log(`[WIDGET DEBUG] 📝 Sample activity records with type:`, 
+      dataset.slice(0, 10).map(item => ({ 
+        id: item.id, 
+        type: item.type, 
+        title: item.title || item.name || 'No title',
+        description: item.description ? item.description.substring(0, 50) + '...' : 'No description'
+      }))
     );
   }
 
@@ -354,6 +450,47 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       if (s === 'absent') s = ATTENDANCE_STATUS.ABSENT_NO_EXCUSE;
       if (s === 'excused') s = ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE;
       return s;
+    }
+    if (groupBy === '_source') {
+      const src = item._source || 'unknown';
+      const sourceLabels = {
+        'activities': 'Activities',
+        'announcements': 'Announcements',
+        'resources': 'Resources',
+        'submissions': 'Submissions',
+        'attendance': 'Attendance',
+        'enrollments': 'Enrollments',
+        'quizzes': 'Quizzes',
+        'quizSubmissions': 'Quiz Submissions',
+        'activityLogs': 'Activity Logs',
+        'behaviors': 'Behaviors',
+        'participations': 'Participations',
+        'penalties': 'Penalties',
+        'notifications': 'Notifications',
+      };
+      return sourceLabels[src] || src;
+    }
+    if (groupBy === 'type') {
+      const rawType = item.type || item._source || 'Unknown';
+      // For items from announcements/resources collections that may not have a type field,
+      // fall back to their source collection name as the type label
+      const typeMap = {
+        [ACTIVITY_TYPES.QUIZ]: ACTIVITY_TYPE_LABELS[ACTIVITY_TYPES.QUIZ],
+        [ACTIVITY_TYPES.HOMEWORK]: ACTIVITY_TYPE_LABELS[ACTIVITY_TYPES.HOMEWORK],
+        [ACTIVITY_TYPES.TRAINING]: ACTIVITY_TYPE_LABELS[ACTIVITY_TYPES.TRAINING],
+        [ACTIVITY_TYPES.LAB_AND_PROJECT]: ACTIVITY_TYPE_LABELS[ACTIVITY_TYPES.LAB_AND_PROJECT],
+        [ACTIVITY_TYPES.MID_EXAM]: ACTIVITY_TYPE_LABELS[ACTIVITY_TYPES.MID_EXAM],
+        [ACTIVITY_TYPES.FINAL_EXAM]: ACTIVITY_TYPE_LABELS[ACTIVITY_TYPES.FINAL_EXAM],
+        'announcement': 'Announcement',
+        'announcements': 'Announcement',
+        'resource': 'Resource',
+        'resources': 'Resource',
+        'assignment': 'Assignment',
+        'video': 'Video',
+        'reading': 'Reading',
+        'activity': 'Activity'
+      };
+      return typeMap[rawType] || rawType;
     }
     return String(item[groupBy] || 'Unknown');
   };

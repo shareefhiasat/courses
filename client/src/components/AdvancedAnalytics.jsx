@@ -32,7 +32,7 @@ const DEFAULT_WIDGETS = [
     id: 'w2',
     title: 'Activity Types',
     chartType: 'bar',
-    dataSource: 'activities',
+    dataSource: 'activities,announcements,resources',
     groupBy: 'type',
     aggregation: 'count',
     dateRange: 'all',
