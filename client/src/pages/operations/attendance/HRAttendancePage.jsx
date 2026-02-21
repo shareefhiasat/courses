@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { Button, Select, DatePicker, Tooltip } from '@ui';
+import { Button, Select, DatePicker, Tooltip, AttendanceTypeSelect } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
@@ -157,7 +157,6 @@ const HRAttendancePage = () => {
       
       // Apply filters
       let filtered = enriched;
-      console.log('[HRAttendance] Starting with enriched sessions count:', filtered.length);
       logger.log('[HRAttendance] Starting with enriched sessions count:', filtered.length);
       
       // Filter by program
@@ -273,8 +272,6 @@ const HRAttendancePage = () => {
 
       // Filter by attendance status (filter sessions that contain students with the selected attendance type)
       if (statusFilter && statusFilter !== 'all') {
-        console.log('[HRAttendance] Applying attendance status filter:', statusFilter);
-        console.log('[HRAttendance] Available sessions count:', filtered.length);
         logger.log('[HRAttendance] Applying attendance status filter:', statusFilter);
         
         filtered = filtered.filter(session => {
@@ -307,19 +304,14 @@ const HRAttendancePage = () => {
               hasStatusMatch = false;
           }
           
-          console.log('[HRAttendance] Session', session.id, 'has matching status:', hasStatusMatch, 'counts:', counts);
-          
           if (hasStatusMatch) {
-            console.log('[HRAttendance] Session matched by attendance status:', session.id, 'statusFilter:', statusFilter);
             logger.log('[HRAttendance] Session matched by attendance status:', session.id, 'statusFilter:', statusFilter);
           }
           
           return hasStatusMatch;
         });
-        console.log('[HRAttendance] After status filter count:', filtered.length);
         logger.log('[HRAttendance] After status filter count:', filtered.length);
       } else {
-        console.log('[HRAttendance] Status filter is "all", not applying status filter');
         logger.log('[HRAttendance] Status filter is "all", not applying status filter');
       }
 
@@ -844,48 +836,13 @@ const HRAttendancePage = () => {
             />
           </div>
           <div>
-            <Select
-              searchable
+            <AttendanceTypeSelect
               value={statusFilter}
               onChange={(e) => {
                 logger.log('[HRAttendance] Status filter changing from:', statusFilter, 'to:', e.target.value);
                 setStatusFilter(e.target.value);
               }}
-              options={[
-                { value: 'all', label: t('all_attendance_types') || 'All Attendance Types' },
-                { 
-                  value: ATTENDANCE_STATUS.PRESENT, 
-                  label: ATTENDANCE_STATUS_LABELS.present.en,
-                  icon: getThemedIcon('ui', 'check', 16, '#10b981')
-                },
-                { 
-                  value: ATTENDANCE_STATUS.LATE, 
-                  label: ATTENDANCE_STATUS_LABELS.late.en,
-                  icon: getThemedIcon('ui', 'clock', 16, '#f59e0b')
-                },
-                { 
-                  value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, 
-                  label: ATTENDANCE_STATUS_LABELS.absent_no_excuse.en,
-                  icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
-                },
-                { 
-                  value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, 
-                  label: ATTENDANCE_STATUS_LABELS.absent_with_excuse.en,
-                  icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
-                },
-                { 
-                  value: ATTENDANCE_STATUS.EXCUSED_LEAVE, 
-                  label: ATTENDANCE_STATUS_LABELS.excused_leave.en,
-                  icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
-                },
-                { 
-                  value: ATTENDANCE_STATUS.HUMAN_CASE, 
-                  label: ATTENDANCE_STATUS_LABELS.human_case.en,
-                  icon: getThemedIcon('ui', 'heart', 16, '#8b5cf6')
-                }
-              ]}
               fullWidth
-              placeholder={t('all_attendance_types') || 'All Attendance Types'}
             />
           </div>
         </div>
