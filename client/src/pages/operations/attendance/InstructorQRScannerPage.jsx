@@ -20,6 +20,7 @@ import { addNotification } from '@services/business/notificationService';
 import { sendStudentNotification } from '@services/business/notificationService';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES } from '@constants/participationTypes';
+import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Select, DatePicker, Button, Card, CardBody } from '@ui';
 import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
@@ -732,7 +733,7 @@ const InstructorQRScannerPage = () => {
     }
   }, []);
 
-  const handleMarkAttendance = useCallback(async (studentId, status, notes = '', method = 'manual_instructor') => {
+  const handleMarkAttendance = useCallback(async (studentId, status, notes = '', method = ATTENDANCE_METHODS.MANUAL_INSTRUCTOR) => {
     try {
       // Get performedBy fields using shared service
       const performedByFields = await getPerformedByFields(user);

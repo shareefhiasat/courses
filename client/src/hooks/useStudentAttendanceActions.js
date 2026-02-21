@@ -7,6 +7,7 @@ import { createParticipation, deleteParticipation } from '@services/business/par
 import { createPenalty, deletePenalty } from '@services/business/penaltyService';
 import { createBehavior, deleteBehavior } from '@services/business/behaviorService';
 import { getPerformedByFields } from '@services/business/userService';
+import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import logger from '@utils/logger';
 
@@ -23,7 +24,7 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
   const { t } = useLang();
   const toast = useToast();
 
-  const handleMarkAttendance = useCallback(async (studentId, status, notes = '', method = 'manual_instructor') => {
+  const handleMarkAttendance = useCallback(async (studentId, status, notes = '', method = ATTENDANCE_METHODS.MANUAL_INSTRUCTOR) => {
     if (!classId || !selectedDate) {
       toast?.showError?.(t('select_class_and_date') || 'Please select a class and date first');
       return { success: false };

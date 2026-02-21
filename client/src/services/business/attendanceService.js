@@ -4,6 +4,7 @@ import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { getUserById } from './userService';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import logger from '@utils/logger';
 import { 
   getAttendanceRecords as getAttendanceRecordsFromDb,
@@ -327,7 +328,7 @@ export const rosterQuickAction = async (studentId, classId, status, user, notes 
       classId,
       status,
       date: today,                    // ✅ Add missing date field
-      method: 'roster_quick_action',
+      method: ATTENDANCE_METHODS.ROSTER_QUICK_ACTION,
       notes: notes || `Quick ${status}`,
       markedBy: user?.uid || null,
       markedByName: user?.displayName || user?.email || 'Unknown',

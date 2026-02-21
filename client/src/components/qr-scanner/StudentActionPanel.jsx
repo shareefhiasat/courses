@@ -371,6 +371,7 @@ export default function StudentActionPanel({
           date: record.date || (record.timestamp?.toDate ? record.timestamp.toDate().toISOString().split('T')[0] : new Date(record.timestamp).toISOString().split('T')[0]),
           time: record.timestamp || record.date,
           status: record.status,  // ← Flatten status to top level
+          method: record.method, // ← Include method field for attendance method display
           label: record.category === RECORD_TYPES.PARTICIPATION
               ? 'Participation'
               : (record.category === RECORD_TYPES.BEHAVIOR

@@ -85,7 +85,7 @@ export const HistoryEntry = ({
         return displayComment && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <span style={{ color: '#64748b', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-              {displayComment.length > 30 && !showTooltip ? `${displayComment.substring(0, 30)}...` : displayComment}
+              {displayComment}
             </span>
             {showTooltip && (
               <InfoTooltip>

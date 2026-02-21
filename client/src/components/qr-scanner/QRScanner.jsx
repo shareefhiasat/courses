@@ -5,6 +5,7 @@ import { CollapsibleSection, PerformedBy } from '@ui';
 import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance, rosterQuickAction, markAttendance } from '@services/business/attendanceService';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
+import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import { USER_ROLES, isAdmin, isSuperAdmin, isStudent } from '@constants/userRoles';
 import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@services/business/penaltyService';
 import { createParticipation, getParticipations, getParticipationsByClassAndDate, deleteParticipation } from '@services/business/participationService';
@@ -1156,11 +1157,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           delta: recordPoints,
           points: recordPoints,
           label: finalLabel,
-          method: record.method || 'QR Scan',
+          method: record.method || ATTENDANCE_METHODS.QR_SCAN,
           performedBy: record.performedBy || user?.uid || '-',
           performedByName: record.performedByName || user?.displayName || '',
           performedByEmail: record.performedByEmail || user?.email || '',
-          scanMethod: record.scanMethod || (record.method === 'QR Scan' ? 'auto' : 'manual_instructor'),
+          scanMethod: record.scanMethod || (record.method === ATTENDANCE_METHODS.QR_SCAN ? 'auto' : ATTENDANCE_METHODS.MANUAL_INSTRUCTOR),
           subject: selectedSubjectName,
           program: selectedProgramName,
           class: selectedClassName,
@@ -1244,7 +1245,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           text: lang === 'ar' ? 'مسح QR' : 'QR Scan',
           color: '#10b981'
         };
-      case 'manual_instructor':
+      case ATTENDANCE_METHODS.MANUAL_INSTRUCTOR:
         return {
           icon: '',
           text: lang === 'ar' ? 'يدوي' : 'Manual',
@@ -1452,7 +1453,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           date: today,
           status,
           markedBy: user.uid,
-          method: 'manual_instructor',
+          method: ATTENDANCE_METHODS.MANUAL_INSTRUCTOR,
           notes: scanNotes,
           ...performedByFields
         });

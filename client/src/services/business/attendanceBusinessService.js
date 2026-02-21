@@ -25,6 +25,7 @@ import {
   closeAttendanceSession as closeAttendanceSessionInDb,
   finalizeAttendanceSession as finalizeAttendanceSessionInDb
 } from '../db/attendanceSessionsDbService.js';
+import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import { addNotification } from '../notificationService.js';
 import { sendEmail } from '../emailService.js';
 import logger from '../../utils/logger';
@@ -176,7 +177,7 @@ export async function markAttendance({
   performedBy,
   performedByName,
   performedByEmail,
-  method = 'manual', 
+  method = ATTENDANCE_METHODS.MANUAL, 
   notes = '',
   studentInfo = null,
   className = '',
