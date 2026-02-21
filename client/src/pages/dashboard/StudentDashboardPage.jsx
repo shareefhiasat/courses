@@ -24,6 +24,8 @@ import {
   PerformanceTab,
   RecordsTab,
 } from '@components/student-dashboard';
+import EnhancedStatsSection from '@components/student-dashboard/enhanced-stats/EnhancedStatsSection';
+import NetScoreAnalysis from '@components/student-dashboard/net-score-analysis/NetScoreAnalysis';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import styles from './StudentDashboardPage.module.css';
@@ -228,6 +230,7 @@ export default function StudentDashboardPage() {
     { value: 'attendance',    label: t('dashboard.attendance') || (lang === 'ar' ? 'الحضور'       : 'Attendance') },
     { value: 'marks',         label: t('dashboard.marks') || (lang === 'ar' ? 'الدرجات'      : 'Marks') },
     { value: 'performance',   label: t('dashboard.performance') || (lang === 'ar' ? 'الأداء'       : 'Performance') },
+    { value: 'netScore',      label: t('dashboard.net_score_analysis') || (lang === 'ar' ? 'تحليل الصافي' : 'Net Score Analysis') },
     { value: 'penalties',     label: t('dashboard.penalties') || (lang === 'ar' ? 'العقوبات'     : 'Penalties') },
     { value: 'participations',label: t('dashboard.participations') || (lang === 'ar' ? 'المشاركات'    : 'Participations') },
     { value: 'behaviors',     label: t('dashboard.behaviors') || (lang === 'ar' ? 'السلوك'       : 'Behaviors') },
@@ -322,61 +325,15 @@ export default function StudentDashboardPage() {
           )}
         </div>
 
-        {/* ── Stats summary bar (Class-level or Student-level) ── */}
+        {/* ── Enhanced Stats summary bar (Class-level or Student-level) ── */}
         {!showSelectionPrompt && !dashData.loading && (
-          <div className={styles.statsBar}>
-            {permissions.isStaff && !filters.selectedStudentId ? (
-              // Class-level metrics
-              <>
-                <div className={styles.statItem} data-color="blue">
-                  <span className={styles.statLabel}>{t('dashboard.total_students')}</span>
-                  <span className={styles.statValue}>{classMetrics.metrics.totalStudents}</span>
-                </div>
-                <div className={styles.statItem} data-color="green">
-                  <span className={styles.statLabel}>{t('dashboard.average_attendance')}</span>
-                  <span className={styles.statValue}>{classMetrics.metrics.averageAttendance}%</span>
-                </div>
-                <div className={styles.statItem} data-color="purple">
-                  <span className={styles.statLabel}>{t('dashboard.average_gpa')}</span>
-                  <span className={styles.statValue}>{classMetrics.metrics.averageGPA}</span>
-                </div>
-                <div className={styles.statItem} data-color="red">
-                  <span className={styles.statLabel}>{t('dashboard.total_penalties')}</span>
-                  <span className={styles.statValue}>{classMetrics.metrics.totalPenalties}</span>
-                </div>
-                <div className={styles.statItem} data-color="orange">
-                  <span className={styles.statLabel}>{t('dashboard.total_behaviors')}</span>
-                  <span className={styles.statValue}>{classMetrics.metrics.totalBehaviors}</span>
-                </div>
-              </>
-            ) : (
-              // Student-level metrics
-              <>
-                <div className={styles.statItem} data-color="purple">
-                  <span className={styles.statLabel}>{t('dashboard.gpa') || (lang === 'ar' ? 'المعدل' : 'GPA')}</span>
-                  <span className={styles.statValue}>{dashData.statsData.gpa}</span>
-                </div>
-                <div className={styles.statItem} data-color="green">
-                  <span className={styles.statLabel}>{t('dashboard.attendance') || (lang === 'ar' ? 'الحضور' : 'Attendance')}</span>
-                  <span className={styles.statValue}>{dashData.statsData.attendanceRate}%</span>
-                </div>
-                <div className={styles.statItem} data-color="blue">
-                  <span className={styles.statLabel}>{t('dashboard.participations') || (lang === 'ar' ? 'المشاركات' : 'Participations')}</span>
-                  <span className={styles.statValue}>{dashData.statsData.participations}</span>
-                </div>
-                <div className={styles.statItem} data-color="red">
-                  <span className={styles.statLabel}>{t('dashboard.penalties') || (lang === 'ar' ? 'العقوبات' : 'Penalties')}</span>
-                  <span className={styles.statValue}>{dashData.statsData.penalties}</span>
-                </div>
-                <div className={styles.statItem} data-color="orange">
-                  <span className={styles.statLabel}>{t('dashboard.net_score') || (lang === 'ar' ? 'الصافي' : 'Net Score')}</span>
-                  <span className={styles.statValue}>
-                    {dashData.statsData.netScore >= 0 ? '+' : ''}{dashData.statsData.netScore}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
+          <EnhancedStatsSection
+            statsData={dashData.statsData}
+            classMetrics={classMetrics.metrics}
+            isStaff={permissions.isStaff}
+            selectedStudentId={filters.selectedStudentId}
+            dashData={dashData}
+          />
         )}
 
         {/* ── Error state ── */}
@@ -466,6 +423,17 @@ export default function StudentDashboardPage() {
                   canSeeClassDistributions={permissions.canSeeClassDistributions}
                   t={t}
                   lang={lang}
+                />
+              )}
+              {activeTab === 'netScore' && (
+                <NetScoreAnalysis
+                  participations={dashData.participations}
+                  penalties={dashData.penalties}
+                  behaviors={dashData.behaviors}
+                  marks={dashData.marks}
+                  quizResults={dashData.quizResults}
+                  isStaff={permissions.isStaff}
+                  selectedStudentId={filters.selectedStudentId}
                 />
               )}
               {activeTab === 'penalties' && (
