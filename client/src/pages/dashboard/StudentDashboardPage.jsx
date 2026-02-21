@@ -5,7 +5,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useToast } from '@ui';
 import { useGlobalLoading, GlobalLoadingFallback } from '@contexts/GlobalLoadingContext';
-import { Container, Button, Select, UserSelect, Tabs, Skeleton } from '@ui';
+import { Container, Button, Select, UserSelect, Tabs } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { USER_ROLES } from '@constants';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
@@ -56,7 +56,8 @@ export default function StudentDashboardPage() {
   // ─── Data hooks with proper conditional loading ────────────────────────────────
   const dashData = useStudentDashboardData(
     permissions.isStaff && !filters.hasSelection ? null : displayStudentId, 
-    filters.hasSelection
+    filters.hasSelection,
+    permissions.isStaff && !filters.selectedStudentId && filters.selectedClassId ? filters.selectedClassId : null
   );
 
   // Class-level metrics for staff when no student is selected
@@ -229,7 +230,7 @@ export default function StudentDashboardPage() {
               />
               {/* Debug info for student filtering */}
               {process.env.NODE_ENV === 'development' && (
-                <details closed style={{ marginTop: '1rem' }}>
+                <details closed={true} style={{ marginTop: '1rem' }}>
                   <summary style={{ cursor: 'pointer', padding: '1rem', background: '#f0f9ff', border: '1px solid #3b82f6', borderRadius: '8px', fontSize: '0.8rem' }}>
                     <strong>Debug - Student Selection</strong>
                   </summary>
@@ -248,7 +249,7 @@ export default function StudentDashboardPage() {
                       </>
                     )}
                     {classEnrollments.length > 0 && (
-                      <details closed style={{ marginTop: '0.5rem' }}>
+                      <details closed={true} style={{ marginTop: '0.5rem' }}>
                         <summary style={{ cursor: 'pointer', fontSize: '0.7rem' }}>View Class Students</summary>
                         <div style={{ fontSize: '0.6rem', background: '#f8fafc', padding: '0.5rem', borderRadius: '4px', marginTop: '0.25rem', maxHeight: '100px', overflow: 'auto' }}>
                           {classEnrollments.map(student => (
@@ -291,10 +292,10 @@ export default function StudentDashboardPage() {
           </div>
         )}
 
-        {/* ── Loading skeleton ── */}
+        {/* ── Loading state (no skeleton) ── */}
         {(dashData.loading || classMetrics.loading) && !showSelectionPrompt && (
-          <div className={styles.skeletonGrid}>
-            {[1,2,3,4].map(i => <Skeleton key={i} height={80} borderRadius={10} />)}
+          <div className={styles.loadingState}>
+            <p>{t('common.loading') || 'Loading...'}</p>
           </div>
         )}
 

@@ -53,21 +53,86 @@ const AttendanceTab = React.memo(({
   const actions = useStudentAttendanceActions({ classId, onRefresh });
 
   const stats = useMemo(() => {
-    logger.log('🔧 AttendanceTab - calculating stats:', {
+    // Determine data scope for logging
+    const dataScope = studentId ? `SINGLE_STUDENT (${studentId})` : `ALL_STUDENTS_IN_CLASS (${classId})`;
+    const isSingleStudent = !!studentId;
+    
+    logger.log('🔧 AttendanceTab - CALCULATING STATS:', {
+      dataScope,
+      isSingleStudent,
       studentId,
+      classId,
       attendanceCount: attendance.length,
       penaltiesCount: penalties.length,
       behaviorsCount: behaviors.length,
       participationsCount: participations.length,
     });
 
-    // Detailed attendance breakdown
+    // Detailed attendance breakdown with student info
     const attendanceBreakdown = attendance.reduce((acc, a) => {
       acc[a.status] = (acc[a.status] || 0) + 1;
       return acc;
     }, {});
     
-    logger.log('🔧 AttendanceTab - attendance breakdown:', attendanceBreakdown);
+    // Log attendance records with student info for verification
+    const attendanceLog = attendance.map(a => ({
+      studentId: a.studentId,
+      status: a.status,
+      date: a.date,
+      className: a.className
+    }));
+    
+    logger.log('🔧 AttendanceTab - ATTENDANCE RECORDS VERIFICATION:', {
+      dataScope,
+      totalRecords: attendance.length,
+      records: attendanceLog,
+      breakdown: attendanceBreakdown
+    });
+
+    // Log penalties with student info
+    const penaltiesLog = penalties.map(p => ({
+      studentId: p.studentId,
+      points: p.points,
+      type: p.type,
+      date: p.date
+    }));
+    
+    logger.log('🔧 AttendanceTab - PENALTIES VERIFICATION:', {
+      dataScope,
+      totalRecords: penalties.length,
+      records: penaltiesLog,
+      totalPoints: penalties.reduce((s, p) => s + (p.points || 0), 0)
+    });
+
+    // Log behaviors with student info
+    const behaviorsLog = behaviors.map(b => ({
+      studentId: b.studentId,
+      points: b.points,
+      type: b.type,
+      date: b.date
+    }));
+    
+    logger.log('🔧 AttendanceTab - BEHAVIORS VERIFICATION:', {
+      dataScope,
+      totalRecords: behaviors.length,
+      records: behaviorsLog,
+      totalPoints: behaviors.reduce((s, b) => s + (b.points || 0), 0)
+    });
+
+    // Log participations with student info
+    const participationsLog = participations.map(p => ({
+      studentId: p.studentId,
+      points: p.points,
+      type: p.type,
+      date: p.date
+    }));
+    
+    logger.log('🔧 AttendanceTab - PARTICIPATIONS VERIFICATION:', {
+      dataScope,
+      totalRecords: participations.length,
+      records: participationsLog,
+      totalPoints: participations.reduce((s, p) => s + (p.points || 0), 0)
+    });
 
     const present = attendance.filter(a => a.status === 'present').length;
     const late = attendance.filter(a => a.status === 'late').length;
@@ -86,23 +151,42 @@ const AttendanceTab = React.memo(({
       participationPoints, participationCount: participations.length,
     };
     
-    logger.log('🔧 AttendanceTab - final stats result:', result);
-    logger.log('🔧 AttendanceTab - card counts verification:', {
-      'Present Card': result.present,
-      'Late Card': result.late,
-      'Penalty Card': result.penaltyCount,
-      'Behavior Card': result.behaviorPoints,
-      'Participation Card': result.participationCount,
-      'Excused Leave Card': result.excusedLeave,
-      'Absent Excused Card': result.absentWithExcuse,
-      'Absent Card': result.absentNoExcuse,
-      'Human Case Card': result.humanCase,
-      'Total Attendance Records': attendance.length,
-      'Total Calculated': present + late + absentNoExcuse + absentWithExcuse + excusedLeave + humanCase
+    // Final verification log
+    logger.log('🔧 AttendanceTab - FINAL CARD COUNTS VERIFICATION:', {
+      dataScope,
+      isSingleStudent,
+      '📊 CARD COUNTS': {
+        'Present Card': result.present,
+        'Late Card': result.late,
+        'Penalty Card': result.penaltyCount,
+        'Behavior Card': result.behaviorPoints,
+        'Participation Card': result.participationCount,
+        'Excused Leave Card': result.excusedLeave,
+        'Absent Excused Card': result.absentWithExcuse,
+        'Absent Card': result.absentNoExcuse,
+        'Human Case Card': result.humanCase,
+      },
+      '📈 RAW DATA COUNTS': {
+        'Attendance Records': attendance.length,
+        'Penalty Records': penalties.length,
+        'Behavior Records': behaviors.length,
+        'Participation Records': participations.length,
+      },
+      '📋 POINTS CALCULATION': {
+        'Penalty Points': result.penaltyPoints,
+        'Behavior Points': result.behaviorPoints,
+        'Participation Points': result.participationPoints,
+      },
+      '✅ INTEGRITY CHECK': {
+        'Attendance Total': attendance.length,
+        'Attendance Calculated': present + late + absentNoExcuse + absentWithExcuse + excusedLeave + humanCase,
+        'Attendance Match': attendance.length === (present + late + absentNoExcuse + absentWithExcuse + excusedLeave + humanCase),
+        'Expected Behavior': isSingleStudent ? 'Should show single student data' : 'Should show ALL students in class'
+      }
     });
     
     return result;
-  }, [attendance, penalties, behaviors, participations, studentId]);
+  }, [attendance, penalties, behaviors, participations, studentId, classId]);
 
   // Per-type breakdown for expandable sections (images 4 & 5 style — all types shown, even zero)
   const typeBreakdown = useMemo(() => {

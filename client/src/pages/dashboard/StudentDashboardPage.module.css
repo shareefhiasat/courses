@@ -359,12 +359,14 @@
   font-weight: 500;
 }
 
-/* ── Skeleton loading grid ─────────────────────────────────────────────────── */
-.skeletonGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-block-end: 2rem;
+/* ── Loading state ─────────────────────────────────────────────────────────── */
+.loadingState {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.875rem;
 }
 
 /* ── Subtitle hint ─────────────────────────────────────────────────────────── */
@@ -458,10 +460,6 @@
 
   .statValue {
     font-size: 1.25rem;
-  }
-
-  .skeletonGrid {
-    grid-template-columns: 1fr 1fr;
   }
 }
 

@@ -134,6 +134,10 @@ class Logger {
   info(...args) {
     if (this.shouldLog('info')) {
       this.originalConsole.info(...this.formatMessage('info', ...args));
+      // Always show logs in development for debugging
+      if (isDevelopment) {
+        this.originalConsole.log('🔧 [DEV-INFO]', ...args);
+      }
       // Send to Loggly if configured
       this.sendToLoggly('info', ...args);
     }
@@ -148,6 +152,10 @@ class Logger {
   log(...args) {
     if (this.shouldLog('log')) {
       this.originalConsole.log(...this.formatMessage('log', ...args));
+    }
+    // Always show logs in development for debugging
+    if (isDevelopment) {
+      this.originalConsole.log('🔧 [DEV-LOG]', ...args);
     }
   }
 

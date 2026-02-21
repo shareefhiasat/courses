@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
-import { getEnrollments } from '@services/business/enrollmentService';
+import { getEnrollments, getStudentsByClass } from '@services/business/enrollmentService';
 import { getAttendanceByStudent } from '@services/business/attendanceService';
 import { getPenalties } from '@services/business/penaltyService';
 import { getParticipations } from '@services/business/participationService';
@@ -22,8 +22,9 @@ import logger from '@utils/logger';
  *   For staff: the selected student ID, or null (no data loaded until selected).
  * @param {boolean} hasSelection - Whether a valid selection context exists.
  *   When false (staff with no selection), data is not fetched.
+ * @param {string|null} classId - The class ID to fetch data for all students when no specific student is selected.
  */
-const useStudentDashboardData = (displayStudentId, hasSelection = true) => {
+const useStudentDashboardData = (displayStudentId, hasSelection = true, classId = null) => {
   const { user } = useAuth();
   const toast = useToast();
   const { t } = useLang();
@@ -43,9 +44,10 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true) => {
   });
 
   const effectiveUserId = displayStudentId || user?.uid;
+  const isClassMode = !displayStudentId && classId && hasSelection;
 
   const loadData = useCallback(async () => {
-    if (!effectiveUserId || !hasSelection) {
+    if ((!effectiveUserId && !isClassMode) || !hasSelection) {
       setLoading(false);
       return;
     }
@@ -54,27 +56,116 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true) => {
     setError(null);
 
     try {
-      logger.info('[StudentDashboardData] Loading data', { effectiveUserId });
+      logger.info('[StudentDashboardData] Loading data', { effectiveUserId, classId, isClassMode });
 
-      const [
-        enrollmentsRes,
-        attendanceRes,
-        penaltiesRes,
-        participationsRes,
-        behaviorsRes,
-        marksRes,
-        submissionsRes,
-        quizResultsRes,
-      ] = await Promise.allSettled([
-        getEnrollments({ userId: effectiveUserId }),
-        getAttendanceByStudent(effectiveUserId),
-        getPenalties(effectiveUserId),
-        getParticipations({ studentId: effectiveUserId }),
-        getBehaviors({ studentId: effectiveUserId }),
-        getStudentMarks(effectiveUserId),
-        getSubmissionsByUser(effectiveUserId),
-        getQuizResultsByUser(effectiveUserId),
-      ]);
+      let enrollmentsRes, attendanceRes, penaltiesRes, participationsRes, behaviorsRes, marksRes, submissionsRes, quizResultsRes;
+
+      if (isClassMode) {
+        // Fetch data for ALL students in the class
+        logger.info('[StudentDashboardData] Fetching data for ALL students in class', { classId });
+        
+        // Get all students in the class first
+        const classStudents = await getStudentsByClass(classId);
+        logger.log('🔧 [StudentDashboardData] getStudentsByClass result:', {
+          classId,
+          classStudents,
+          type: typeof classStudents,
+          isArray: Array.isArray(classStudents),
+          keys: classStudents ? Object.keys(classStudents) : 'null'
+        });
+        
+        // Handle different return formats
+        let students = [];
+        if (Array.isArray(classStudents)) {
+          students = classStudents;
+        } else if (classStudents && classStudents.data && Array.isArray(classStudents.data)) {
+          students = classStudents.data;
+        } else if (classStudents && typeof classStudents === 'object') {
+          students = Object.values(classStudents).filter(s => s && (s.id || s.docId));
+        } else {
+          logger.warn('[StudentDashboardData] Unexpected format from getStudentsByClass:', classStudents);
+          students = [];
+        }
+        
+        const studentIds = students.map(s => s.id || s.docId).filter(Boolean);
+        
+        logger.log('🔧 [StudentDashboardData] Processed students:', {
+          classId,
+          studentCount: studentIds.length,
+          studentIds,
+          sampleStudents: students.slice(0, 3)
+        });
+
+        // Fetch data for all students in parallel
+        const promises = studentIds.map(studentId => 
+          Promise.allSettled([
+            getEnrollments({ userId: studentId }),
+            getAttendanceByStudent(studentId),
+            getPenalties(studentId),
+            getParticipations({ studentId }),
+            getBehaviors({ studentId }),
+            getStudentMarks(studentId),
+            getSubmissionsByUser(studentId),
+            getQuizResultsByUser(studentId),
+          ])
+        );
+
+        const results = await Promise.all(promises);
+        
+        // Aggregate results from all students
+        const aggregatedData = {
+          enrollments: [],
+          attendance: [],
+          penalties: [],
+          participations: [],
+          behaviors: [],
+          marks: [],
+          submissions: [],
+          quizResults: [],
+        };
+
+        results.forEach((studentResults, index) => {
+          const studentId = studentIds[index];
+          studentResults.forEach((result, resultIndex) => {
+            const dataKey = ['enrollments', 'attendance', 'penalties', 'participations', 'behaviors', 'marks', 'submissions', 'quizResults'][resultIndex];
+            if (result.status === 'fulfilled' && result.value?.data) {
+              aggregatedData[dataKey].push(...result.value.data);
+            }
+          });
+        });
+
+        // Set the aggregated results
+        enrollmentsRes = { status: 'fulfilled', value: { data: aggregatedData.enrollments } };
+        attendanceRes = { status: 'fulfilled', value: { data: aggregatedData.attendance } };
+        penaltiesRes = { status: 'fulfilled', value: { data: aggregatedData.penalties } };
+        participationsRes = { status: 'fulfilled', value: { data: aggregatedData.participations } };
+        behaviorsRes = { status: 'fulfilled', value: { data: aggregatedData.behaviors } };
+        marksRes = { status: 'fulfilled', value: { data: aggregatedData.marks } };
+        submissionsRes = { status: 'fulfilled', value: { data: aggregatedData.submissions } };
+        quizResultsRes = { status: 'fulfilled', value: { data: aggregatedData.quizResults } };
+
+      } else {
+        // Original single student logic
+        [
+          enrollmentsRes,
+          attendanceRes,
+          penaltiesRes,
+          participationsRes,
+          behaviorsRes,
+          marksRes,
+          submissionsRes,
+          quizResultsRes,
+        ] = await Promise.allSettled([
+          getEnrollments({ userId: effectiveUserId }),
+          getAttendanceByStudent(effectiveUserId),
+          getPenalties(effectiveUserId),
+          getParticipations({ studentId: effectiveUserId }),
+          getBehaviors({ studentId: effectiveUserId }),
+          getStudentMarks(effectiveUserId),
+          getSubmissionsByUser(effectiveUserId),
+          getQuizResultsByUser(effectiveUserId),
+        ]);
+      }
 
       const enrollments = enrollmentsRes.status === 'fulfilled' ? (enrollmentsRes.value?.data || []) : [];
       const attendance = attendanceRes.status === 'fulfilled' ? (attendanceRes.value?.data || []) : [];
@@ -99,16 +190,80 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true) => {
 
       setRawData({ enrollments, attendance, penalties, participations, behaviors, marks, activities, submissions, quizResults });
       
-      logger.log('[StudentDashboardData] Data loaded successfully:', {
-        enrollments: enrollments.length,
-        attendance: attendance.length,
-        penalties: penalties.length,
-        participations: participations.length,
-        behaviors: behaviors.length,
-        marks: marks.length,
-        activities: activities.length,
-        submissions: submissions.length,
-        quizResults: quizResults.length
+      // Comprehensive data verification logging
+      const dataScope = isClassMode ? `ALL_STUDENTS_IN_CLASS (${classId})` : `SINGLE_STUDENT (${effectiveUserId})`;
+      logger.log('🔧 [StudentDashboardData] DATA LOADED - SCOPE VERIFICATION:', {
+        effectiveUserId,
+        classId,
+        isClassMode,
+        hasSelection,
+        dataScope,
+        '📊 DATA COUNTS': {
+          enrollments: enrollments.length,
+          attendance: attendance.length,
+          penalties: penalties.length,
+          participations: participations.length,
+          behaviors: behaviors.length,
+          marks: marks.length,
+          activities: activities.length,
+          submissions: submissions.length,
+          quizResults: quizResults.length,
+        },
+        '👥 ATTENDANCE VERIFICATION': {
+          totalRecords: attendance.length,
+          uniqueStudents: [...new Set(attendance.map(a => a.studentId))].length,
+          dateRange: {
+            earliest: attendance.length > 0 ? Math.min(...attendance.map(a => new Date(a.date || a.createdAt).getTime())) : 'N/A',
+            latest: attendance.length > 0 ? Math.max(...attendance.map(a => new Date(a.date || a.createdAt).getTime())) : 'N/A',
+          },
+          statusBreakdown: attendance.reduce((acc, a) => {
+            acc[a.status] = (acc[a.status] || 0) + 1;
+            return acc;
+          }, {}),
+          sampleRecords: attendance.slice(0, 3).map(a => ({
+            studentId: a.studentId,
+            status: a.status,
+            date: a.date,
+            className: a.className
+          }))
+        },
+        '⚠️ PENALTIES VERIFICATION': {
+          totalRecords: penalties.length,
+          uniqueStudents: [...new Set(penalties.map(p => p.studentId))].length,
+          totalPoints: penalties.reduce((s, p) => s + (p.points || 0), 0),
+          sampleRecords: penalties.slice(0, 3).map(p => ({
+            studentId: p.studentId,
+            points: p.points,
+            type: p.type,
+            date: p.date
+          }))
+        },
+        '🎯 PARTICIPATIONS VERIFICATION': {
+          totalRecords: participations.length,
+          uniqueStudents: [...new Set(participations.map(p => p.studentId))].length,
+          totalPoints: participations.reduce((s, p) => s + (p.points || 0), 0),
+          sampleRecords: participations.slice(0, 3).map(p => ({
+            studentId: p.studentId,
+            points: p.points,
+            type: p.type,
+            date: p.date
+          }))
+        },
+        '🔄 BEHAVIORS VERIFICATION': {
+          totalRecords: behaviors.length,
+          uniqueStudents: [...new Set(behaviors.map(b => b.studentId))].length,
+          totalPoints: behaviors.reduce((s, b) => s + (b.points || 0), 0),
+          sampleRecords: behaviors.slice(0, 3).map(b => ({
+            studentId: b.studentId,
+            points: b.points,
+            type: b.type,
+            date: b.date
+          }))
+        },
+        '✅ EXPECTED BEHAVIOR': {
+          Description: isClassMode ? 'Should show data for ALL students in class' : 'Should show data for ONE student only',
+          Note: 'Class-level aggregation should show combined data from all students'
+        }
       });
     } catch (err) {
       logger.error('[StudentDashboardData] Failed to load dashboard data', err);
@@ -117,7 +272,7 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true) => {
     } finally {
       setLoading(false);
     }
-  }, [effectiveUserId, hasSelection, toast, t]);
+  }, [effectiveUserId, classId, isClassMode, hasSelection, toast, t]);
 
   useEffect(() => {
     loadData();
