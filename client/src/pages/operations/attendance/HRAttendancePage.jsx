@@ -12,7 +12,7 @@ import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { getAttendanceStats, getAttendanceMarksForExport, getAllAttendanceSessions, updateAttendanceMark, getAttendanceMarksCount } from '@services/business/attendanceService';
 import { getUsers, getUserById } from '@services/business/userService';
-import { getAttendanceIcon, createAttendanceBadge } from '@utils/badgeUtils';
+import { getAttendanceIcon, createAttendanceBadge } from '@constants/iconTypes';
 
 const HRAttendancePage = () => {
   const { user, isHR, isAdmin, loading: authLoading } = useAuth();

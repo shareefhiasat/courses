@@ -36,8 +36,12 @@ import {
   // Notification settings icons
   Volume2, Vibrate,
   // Additional icons for CategoriesPage
-  Cloud, Layers, Package, Bookmark
+  Cloud, Layers, Package, Bookmark,
 } from 'lucide-react';
+
+// Additional imports for UI badge functions
+import { ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
+import { Tooltip } from '@ui';
 
 // Centralized Icon Configuration
 // This is the single source of truth for all icon mappings
@@ -547,6 +551,11 @@ export const getColoredIcon = (category, type, size = 16, chipColor = null, them
   return getIconWithColor(category, type, size, derivedColor);
 };
 
+// Helper function to get icon color based on theme
+export const getIconColor = (defaultColor, theme) => {
+  return defaultColor;
+};
+
 // Derive icon color from chip color
 export const deriveIconColor = (chipColor) => {
   // If chip is orange/green/red, derive a complementary color
@@ -578,6 +587,144 @@ export const deriveIconColor = (chipColor) => {
   return '#ffffff';
 };
 
+// UI Badge Functions
+
+/**
+ * Creates a standardized attendance badge with icon and count
+ */
+export const createAttendanceBadge = (count, iconType, color, tooltipText, theme) => {
+  if (!count || count <= 0) return null;
+
+  return (
+    <span
+      style={{
+        background: `${color}15`,
+        color: color,
+        padding: '1px 4px',
+        borderRadius: 3,
+        fontWeight: 500,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '2px'
+      }}
+      title={tooltipText}
+    >
+      {getThemedIcon('ui', iconType, 10, getIconColor(color, theme))}
+      {count}
+    </span>
+  );
+};
+
+/**
+ * Creates a standardized badge for class stats (penalties, behaviors, etc.)
+ */
+export const createClassStatBadge = (count, iconType, color, tooltipText, theme) => {
+  if (!count || count <= 0) return null;
+
+  return (
+    <Tooltip content={tooltipText}>
+      <span
+        style={{
+          background: `${color}15`,
+          color: color,
+          padding: '1px 4px',
+          borderRadius: 3,
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '2px'
+        }}
+      >
+        {getThemedIcon(iconType.type, iconType.name, 10, getIconColor(color, theme))}
+        {count}
+      </span>
+    </Tooltip>
+  );
+};
+
+/**
+ * Gets attendance status color and label
+ */
+export const getAttendanceStatusInfo = (status) => {
+  const statusInfo = ATTENDANCE_STATUS_LABELS[status] || ATTENDANCE_STATUS_LABELS.present;
+  return {
+    color: statusInfo.color || '#6b7280',
+    label: statusInfo.en || status,
+    icon: getAttendanceIcon(status)
+  };
+};
+
+/**
+ * Creates attendance summary stats with icons and colors
+ */
+export const createAttendanceSummaryStats = (marks, theme) => {
+  const stats = [
+    { key: 'present', label: ATTENDANCE_STATUS_LABELS.present },
+    { key: 'late', label: ATTENDANCE_STATUS_LABELS.late },
+    { key: 'absent_no_excuse', label: ATTENDANCE_STATUS_LABELS.absent_no_excuse },
+    { key: 'absent_with_excuse', label: ATTENDANCE_STATUS_LABELS.absent_with_excuse },
+    { key: 'excused_leave', label: ATTENDANCE_STATUS_LABELS.excused_leave },
+    { key: 'human_case', label: ATTENDANCE_STATUS_LABELS.human_case }
+  ];
+
+  return stats.map(({ key, label }) => {
+    const count = marks.filter(m => {
+      const status = m.status || 'present';
+      // Handle legacy statuses
+      if (key === 'absent_no_excuse' && (status === 'absent' || status === 'absent_no_excuse')) return true;
+      if (key === 'absent_with_excuse' && status === 'absent_with_excuse') return true;
+      if (key === 'excused_leave' && (status === 'leave' || status === 'excused_leave')) return true;
+      return status === key;
+    }).length;
+    
+    const color = label.color || '#6b7280';
+    const displayLabel = label.en || key;
+    const icon = getAttendanceIcon(key);
+    
+    return {
+      key,
+      count,
+      color,
+      label: displayLabel,
+      icon
+    };
+  });
+};
+
+/**
+ * Class stat configurations for badges
+ */
+export const CLASS_STAT_CONFIGS = {
+  students: {
+    color: '#22c55e', // This will be overridden with primaryColor
+    icon: { type: 'ui', name: 'users' }
+  },
+  penalties: {
+    color: '#ef4444',
+    icon: { type: 'penalty_type', name: 'cheating' }
+  },
+  behaviors: {
+    color: '#f59e0b',
+    icon: { type: 'behavior_type', name: 'disruptive' }
+  },
+  quizzes: {
+    color: '#8b5cf6',
+    icon: { type: 'ui', name: 'file_text' }
+  },
+  activities: {
+    color: '#10b981',
+    icon: { type: 'participation_type', name: 'excellent' }
+  },
+  announcements: {
+    color: '#3b82f6',
+    icon: { type: 'ui', name: 'megaphone' }
+  },
+  resources: {
+    color: '#06b6d4',
+    icon: { type: 'ui', name: 'folder' }
+  }
+};
+
 export default {
   ICON_TYPES,
   getIcon,
@@ -594,5 +741,11 @@ export default {
   getActivityIcon,
   getUserStatusIcon,
   getUserRoleIcon,
-  deriveIconColor
+  deriveIconColor,
+  getIconColor,
+  createAttendanceBadge,
+  createClassStatBadge,
+  getAttendanceStatusInfo,
+  createAttendanceSummaryStats,
+  CLASS_STAT_CONFIGS
 };

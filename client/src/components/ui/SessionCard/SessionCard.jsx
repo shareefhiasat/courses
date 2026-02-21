@@ -9,7 +9,7 @@ import React from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { createAttendanceBadge, getAttendanceStatusInfo } from '@utils/badgeUtils';
+import { createAttendanceBadge, getAttendanceStatusInfo } from '@constants/iconTypes';
 
 const SessionCard = ({
   session,

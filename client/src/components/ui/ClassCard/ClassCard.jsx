@@ -4,7 +4,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
 import { getThemedIcon, deriveIconColor } from '@constants/iconTypes';
 import { Tooltip } from '@ui';
-import { createClassStatBadge, CLASS_STAT_CONFIGS } from '@utils/badgeUtils';
+import { createClassStatBadge, CLASS_STAT_CONFIGS } from '@constants/iconTypes';
 
 const ClassCard = ({ 
   cls, 

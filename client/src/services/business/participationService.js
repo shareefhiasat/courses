@@ -1,11 +1,19 @@
-import { doc, deleteDoc, collection, addDoc, serverTimestamp, updateDoc, getDoc, query, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '../other/config';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { USER_ROLES } from '@constants/userRoles';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
+import {
+  createParticipation as createParticipationInDb,
+  updateParticipation as updateParticipationInDb,
+  deleteParticipation as deleteParticipationInDb,
+  getParticipation as getParticipationFromDb,
+  getParticipations as getParticipationsFromDb,
+  getParticipationsByStudent as getParticipationsByStudentFromDb,
+  getParticipationsByClass as getParticipationsByClassFromDb,
+  getParticipationsByClassAndDate as getParticipationsByClassAndDateFromDb
+} from '../db/participationDbService';
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;
@@ -72,12 +80,10 @@ export async function createParticipation({
       createdBy,
       performedBy,
       performedByName,
-      performedByEmail,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      performedByEmail
     };
 
-    const docRef = await addDoc(collection(db, 'participations'), payload);
+    const result = await createParticipationInDb(payload);
 
     if (sendNotification && studentId) {
       try {
@@ -111,7 +117,7 @@ export async function createParticipation({
     // Log activity
     try {
       await logActivity(ACTIVITY_LOG_TYPES.PARTICIPATION_CREATED, {
-        participationId: docRef.id,
+        participationId: result.id,
         studentId,
         classId,
         subjectId,
@@ -121,7 +127,7 @@ export async function createParticipation({
       logger.warn('Failed to log participation creation:', logError);
     }
 
-    return { success: true, id: docRef.id };
+    return { success: true, id: result.id };
   } catch (error) {
     console.error('Error creating participation record:', error);
     return { success: false, error: error.message };
@@ -138,16 +144,13 @@ export async function updateParticipation(participationId, { updatedBy, ...updat
   try {
     logger.info('PARTICIPATION: Updating participation record', { participationId, updatedBy, updateFields: Object.keys(updateData) });
     
-    const docRef = doc(db, 'participations', participationId);
-    
-    // Get existing document to preserve history
-    const existingDoc = await getDoc(docRef);
-    const existingData = existingDoc.exists() ? existingDoc.data() : {};
+    const existingDoc = await getParticipationFromDb(participationId);
+    const existingData = existingDoc.exists ? existingDoc.data() : {};
     const existingHistory = existingData.history || [];
     
-    await updateDoc(docRef, {
+    const result = await updateParticipationInDb(participationId, {
       ...updateData,
-      updatedAt: serverTimestamp(),
+      updatedAt: new Date().toISOString(),
       updatedBy,
       // Track update history
       history: [...existingHistory, {
@@ -221,14 +224,13 @@ export async function deleteParticipation(participationId, participationData = n
     // Get document data before deletion for logging
     let dataToDelete = participationData;
     if (!dataToDelete) {
-      const docRef = doc(db, 'participations', participationId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        dataToDelete = docSnap.data();
+      const existingDoc = await getParticipationFromDb(participationId);
+      if (existingDoc.exists) {
+        dataToDelete = existingDoc.data();
       }
     }
     
-    await deleteDoc(doc(db, 'participations', participationId));
+    const result = await deleteParticipationInDb(participationId);
     logger.log('[Participation] Deleted participation record:', participationId);
     
     // Log activity
@@ -287,23 +289,8 @@ export async function deleteParticipation(participationId, participationData = n
  */
 export const getParticipationsByClassAndDate = async (classId, date) => {
   try {
-    const participationsRef = collection(db, "participations");
-    // Get all participations ordered by createdAt (no where clause to avoid index requirement)
-    const participationsQuery = query(
-      participationsRef,
-      orderBy("createdAt", "desc")
-    );
-    const participationsSnapshot = await getDocs(participationsQuery);
-    const allParticipations = participationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    
-    // Filter by classId and date in JavaScript
-    const filteredParticipations = allParticipations.filter(participation => 
-      participation.classId === classId && (
-        participation.date === date || toYmd(participation.createdAt) === date
-      )
-    );
-    
-    return { success: true, data: filteredParticipations };
+    const result = await getParticipationsByClassAndDateFromDb(classId, date);
+    return { success: true, data: result.data };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -311,18 +298,15 @@ export const getParticipationsByClassAndDate = async (classId, date) => {
 
 export const getParticipations = async () => {
   try {
-    const participationsRef = collection(db, "participations");
-    const participationsQuery = query(participationsRef, orderBy("createdAt", "desc"));
-    const snapshot = await getDocs(participationsQuery);
-    const allParticipations = snapshot.docs.map(d => ({ docId: d.id, ...d.data() }));
-    return { success: true, data: allParticipations };
+    const result = await getParticipationsFromDb();
+    return { success: true, data: result.data };
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
 /**
- * Load participations from Firestore with enrichment
+ * Load participations from database layer with enrichment
  * @param {Object} params - Parameters object
  * @param {Function} params.setParticipations - Function to set participations state
  * @param {Function} params.setPageState - Function to set page state
@@ -342,17 +326,14 @@ export async function loadParticipations({
   programs = [],
   subjects = [],
   filters = {},
-  lang = 'en' // Add lang parameter with default
+  lang = 'en'
 }) {
   try {
     setPageState('LOADING');
-    const snap = await getDocs(query(collection(db, 'participations'), orderBy('createdAt', 'desc')));
     
-    const participations = snap.docs.map(doc => ({
-      docId: doc.id,
-      id: doc.id,
-      ...doc.data()
-    }));
+    // Use database layer instead of direct Firebase calls
+    const result = await getParticipationsFromDb();
+    const participations = result.data || [];
     
     // Enrich participations with program, subject, and class names
     const enrichedParticipations = participations.map(participation => {
@@ -396,10 +377,10 @@ export async function loadParticipations({
                 logger.warn('Participation enrichment: subject missing programId', { subjectId: classItem.subjectId });
               }
             } else {
-              logger.warn('Participation enrichment: subject not found', { subjectId: classItem.subjectId });
+              logger.warn('Participation enrichment: class missing subjectId', { classId: participation.classId });
             }
           } else {
-            logger.warn('Participation enrichment: class missing subjectId', { classId: participation.classId });
+            logger.warn('Participation enrichment: missing classId', { classId: participation.classId });
           }
         } else {
           logger.warn('Participation enrichment: class not found', { classId: participation.classId });

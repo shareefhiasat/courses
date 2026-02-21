@@ -50,7 +50,6 @@ import {
   MinimizeIcon,
   VibrationIcon,
   SoundIcon,
-  DebugIcon,
   UserInputIcon,
   RefreshIcon,
   DeleteIcon,
@@ -60,7 +59,6 @@ import {
   ClockSmallIcon,
   XSmallIcon,
   CircleIcon,
-  ShieldIcon,
   ChevronDownIcon,
   TrashIcon,
   HeartIcon,
@@ -255,8 +253,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               excused_leave: 0,
               humanitarian_case: 0
             },
-            isPinned: result.data.isPinned || false,
-            referenceId: result.data.referenceId // Ensure referenceId is included
+            isPinned: result.data.isPinned || false
           };
           addDebugLog(`✅ Found student via direct lookup: ${foundStudent.name}`, 'success');
         }
@@ -318,8 +315,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   excused_leave: 0,
                   humanitarian_case: 0
                 },
-                isPinned: student.isPinned || false,
-                referenceId: student.referenceId // Ensure referenceId is included
+                isPinned: student.isPinned || false
               };
               addDebugLog(`✅ Found student via user search: ${foundStudent.name}`, 'success');
             }
@@ -959,15 +955,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       // Get today's penalties for this class
       const penaltiesResponse = await getPenaltiesByClassAndDate(classId, todayStr);
-      const penaltyRecords = penaltiesResponse.success ? penaltiesResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PENALTY })) : [];
+      const penaltyRecords = penaltiesResponse.success && penaltiesResponse.data ? penaltiesResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PENALTY })) : [];
 
       // Get today's participations for this class
       const participationsResponse = await getParticipationsByClassAndDate(classId, todayStr);
-      const participationRecords = participationsResponse.success ? participationsResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PARTICIPATION })) : [];
+      const participationRecords = participationsResponse.success && participationsResponse.data ? participationsResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PARTICIPATION })) : [];
 
       // Get today's behaviors for this class
       const behaviorsResponse = await getBehaviorsByClassAndDate(classId, todayStr);
-      const behaviorRecords = behaviorsResponse.success ? behaviorsResponse.data.map(b => ({ ...b, category: RECORD_TYPES.BEHAVIOR })) : [];
+      const behaviorRecords = behaviorsResponse.success && behaviorsResponse.data ? behaviorsResponse.data.map(b => ({ ...b, category: RECORD_TYPES.BEHAVIOR })) : [];
 
       logger.debug('[QR Scanner] Attendance records fetched:', {
         success: attendanceResponse.success,

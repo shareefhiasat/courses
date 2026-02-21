@@ -1,12 +1,3 @@
-import React from 'react';
-import {
-  Edit, Trash, MessageSquare, AlertTriangle, Clock, XCircle, Shield, Zap, 
-  UserCheck, UserX, UserMinus, Info, TrendingUp, TrendingDown, Target, 
-  Award, Star, ThumbsUp, Minus, Bed, Users, Smartphone, HelpCircle, 
-  User, AlertCircle, Crown, GraduationCap, FileText, Phone, Coffee
-} from 'lucide-react';
-import { ICON_TYPES, getIcon, getThemedIcon } from './iconTypes.jsx';
-
 // Common Page States
 export const PAGE_STATES = {
   LOADING: 'loading',
@@ -34,17 +25,79 @@ export const MODAL_TYPES = {
   INFO: 'info'
 };
 
-// Icon Mappings for Different Types - Use centralized icon system
-export const TYPE_ICONS = ICON_TYPES;
-
-// Helper function to get themed icons
-export const getThemedTypeIcon = (category, type, theme = 'light') => {
-  return getThemedIcon(category, type, 16, theme);
-};
-
-// Legacy function for backward compatibility
-export const getTypeIcon = (type, category = 'ui') => {
-  return getIcon(category, type);
+// Icon Mappings for Different Types - String names only
+export const TYPE_ICONS = {
+  // User Status Icons
+  user_status: {
+    active: 'user_check',
+    inactive: 'user_x',
+    suspended: 'user_minus',
+    pending: 'clock',
+    deleted: 'trash',
+    user_check: 'user_check'
+  },
+  
+  // User Role Icons
+  user_role: {
+    superadmin: 'crown',
+    admin: 'shield',
+    instructor: 'graduation_cap',
+    hr: 'users',
+    student: 'user'
+  },
+  
+  // Attendance Status Icons
+  attendance_status: {
+    present: 'check_circle',
+    late: 'clock',
+    absent_no_excuse: 'x_circle',
+    absent_with_excuse: 'alert_circle',
+    excused_leave: 'info',
+    human_case: 'help_circle'
+  },
+  
+  // General UI Icons
+  ui: {
+    trend_up: 'trending_up',
+    trend_down: 'trending_down',
+    target: 'target',
+    search: 'search',
+    filter: 'filter',
+    settings: 'settings',
+    refresh: 'refresh_cw',
+    edit: 'edit',
+    delete: 'trash',
+    delete2: 'trash2',
+    add: 'plus',
+    remove: 'minus',
+    close: 'x',
+    expand: 'chevron_down',
+    collapse: 'chevron_down',
+    link: 'link',
+    external_link: 'external_link',
+    maximize: 'maximize',
+    square: 'square',
+    video: 'video',
+    qr_code: 'qr_code',
+    code: 'code',
+    droplet: 'droplet',
+    key: 'key_round',
+    lock: 'lock',
+    unlock: 'key',
+    eye: 'eye',
+    eye_off: 'eye_off',
+    home: 'home',
+    calendar: 'calendar',
+    clock: 'clock',
+    bell: 'bell',
+    bell_off: 'bell_off',
+    message: 'message_square',
+    megaphone: 'megaphone',
+    users: 'users',
+    check_circle: 'check_circle',
+    x_circle: 'x_circle',
+    file_text: 'file_text'
+  }
 };
 
 // Common Grid Column Definitions

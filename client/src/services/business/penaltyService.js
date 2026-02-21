@@ -1,18 +1,3 @@
-import {
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  Timestamp,
-  serverTimestamp,
-} from "firebase/firestore";
-import { db } from '../other/config';
 import { notificationGateway } from "./notificationGateway";
 import { NOTIFICATION_TRIGGERS } from "@constants/notificationTypes";
 import { RECORD_TYPES } from "@utils/sharedTypes";
@@ -20,6 +5,16 @@ import { USER_ROLES } from "@constants/userRoles";
 import logger from '../../utils/logger';
 import { PENALTY_TYPES } from "@constants/penaltyTypes";
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
+import {
+  createPenalty as createPenaltyInDb,
+  updatePenalty as updatePenaltyInDb,
+  deletePenalty as deletePenaltyInDb,
+  getPenalty as getPenaltyFromDb,
+  getPenalties as getPenaltiesFromDb,
+  getPenaltiesByStudent as getPenaltiesByStudentFromDb,
+  getPenaltiesByClass as getPenaltiesByClassFromDb,
+  getPenaltiesByClassAndDate as getPenaltiesByClassAndDateFromDb
+} from '../db/penaltyDbService';
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;
@@ -29,115 +24,27 @@ const toYmd = (tsOrDate) => {
 };
 
 /**
- * Penalties Collection
- * Track academic penalties for students
- * Based on Arabic academic regulations
+ * Create a penalty record
+ * @param {Object} params
+ * @param {string} params.classId - Class ID
+ * @param {string} params.studentId - Student user ID
+ * @param {string} params.subjectId - Optional subject ID
+ * @param {string} params.type - Type of penalty
+ * @param {number} params.points - Penalty points (negative for penalties)
+ * @param {string} params.description - Optional description
+ * @param {string} params.createdBy - User ID who created the record
+ * @param {string} params.date - Optional date string (YYYY-MM-DD)
+ * @param {Object} params.studentInfo - Optional { email, displayName } for notifications
+ * @param {string} params.className - Optional class name for notifications
+ * @param {boolean} params.sendNotification - Whether to send notification (default: true)
  */
-
-export const getPenalties = async (studentId = null, subjectId = null) => {
-  try {
-    logger.info('PENALTIES: Fetching penalties', { studentId, subjectId });
-    
-    let q;
-    if (studentId && subjectId) {
-      // console.log('🔧 Querying with studentId and subjectId');
-      q = query(
-        collection(db, "penalties"),
-        where("studentId", "==", studentId),
-        where("subjectId", "==", subjectId),
-        orderBy("createdAt", "desc")
-      );
-    } else if (studentId) {
-      // console.log('🔧 Querying with studentId only:', studentId);
-      q = query(
-        collection(db, "penalties"),
-        where("studentId", "==", studentId)
-        // Temporarily removed orderBy to avoid index requirement
-        // orderBy("createdAt", "desc")
-      );
-    } else if (subjectId) {
-      q = query(
-        collection(db, "penalties"),
-        where("subjectId", "==", subjectId),
-        orderBy("createdAt", "desc")
-      );
-    } else {
-      // console.log('🔧 Querying all penalties');
-      q = query(collection(db, "penalties"), orderBy("createdAt", "desc"));
-    }
-    
-    const qs = await getDocs(q);
-    // console.log('🔧 Query returned', qs.docs.length, 'documents');
-    
-    const items = [];
-    qs.forEach((d) => {
-      const penalty = { docId: d.id, ...d.data() };
-      items.push(penalty);
-      // Debug log each penalty
-      // console.log('🔧 getPenalties - found penalty:', {
-      //   id: penalty.docId,
-      //   studentId: penalty.studentId,
-      //   date: penalty.date,
-      //   type: penalty.type,
-      //   points: penalty.points
-      // });
-    });
-    
-    // Sort client-side if we removed server-side orderBy
-    if (studentId && !subjectId) {
-      items.sort((a, b) => {
-        const aTime = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds || 0) * 1000;
-        const bTime = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds || 0) * 1000;
-        return bTime - aTime; // descending (newest first)
-      });
-    }
-    
-    // console.log('🔧 getPenalties - total penalties found:', items.length, 'for studentId:', studentId);
-    return { success: true, data: items };
-  } catch (error) {
-    logger.error('🔧 Error in getPenalties:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Get penalties by class and date
- * @param {string} classId - Class ID
- * @param {string} date - Date in YYYY-MM-DD format
- * @returns {Promise<{success: boolean, data: Array, error?: string}>}
- */
-export const getPenaltiesByClassAndDate = async (classId, date) => {
-  try {
-    const penaltiesRef = collection(db, "penalties");
-    // Get all penalties ordered by createdAt (no where clause to avoid index requirement)
-    const penaltiesQuery = query(
-      penaltiesRef,
-      orderBy("createdAt", "desc")
-    );
-    const penaltiesSnapshot = await getDocs(penaltiesQuery);
-    const allPenalties = penaltiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    
-    // Filter by classId and date in JavaScript
-    const filteredPenalties = allPenalties.filter(penalty => 
-      penalty.classId === classId && penalty.date === date
-    );
-    
-    return { success: true, data: filteredPenalties };
-  } catch (error) {
-    console.error('🔧 Error in getPenaltiesByClassAndDate:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-export const createPenalty = async ({
+export async function createPenalty({
   classId,
   studentId,
   subjectId = null,
   programId = null,
-  type = RECORD_TYPES.PENALTY,
-  points = 0,
-  reason = '',
-  note = '',
+  type,
+  points,
   description = '',
   createdBy,
   performedBy,
@@ -147,16 +54,16 @@ export const createPenalty = async ({
   studentInfo = null,
   className = '',
   sendNotification = true
-}) => {
+}) {
   try {
-    logger.info('PENALTIES: Creating penalty', {
+    logger.info('PENALTY: Creating penalty record', {
       classId,
       studentId,
       subjectId,
       programId,
       type,
       points,
-      reason,
+      description,
       performedBy,
       performedByName
     });
@@ -169,32 +76,28 @@ export const createPenalty = async ({
       ...(programId ? { programId } : {}),
       type,
       points,
-      reason,
-      note,
       description,
       date: todayStr,
       createdBy,
       performedBy,
       performedByName,
-      performedByEmail,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      performedByEmail
     };
 
-    const docRef = await addDoc(collection(db, "penalties"), payload);
+    const result = await createPenaltyInDb(payload);
 
-    // Send notifications if requested
     if (sendNotification && studentId) {
       try {
+        const actionLabel = points < 0 ? 'recorded' : 'added';
         const formattedDate = new Date(todayStr).toLocaleDateString('en-GB');
         
         // Use smart notification gateway
-        await notificationGateway.send(NOTIFICATION_TRIGGERS.PENALTY_ISSUED, {
+        await notificationGateway.send(NOTIFICATION_TRIGGERS.PENALTY_RECORDED, {
           userId: studentId,
           role: USER_ROLES.STUDENT,
           classId: classId,
-          title: '⚠️ Penalty Recorded',
-          message: `Penalty recorded for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
+          title: `⚠️ Penalty ${actionLabel}`,
+          message: `Penalty ${actionLabel} for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
           type: RECORD_TYPES.PENALTY,
           email: studentInfo?.email,
           templateId: 'penaltyNotification',
@@ -202,10 +105,9 @@ export const createPenalty = async ({
             studentName: studentInfo?.displayName || studentInfo?.email || 'Student',
             className: className || 'Class',
             date: formattedDate,
-            penaltyType: type,
-            points,
-            reason,
-            notes: description || note || ''
+            category: 'Penalty',
+            delta: points,
+            notes: description || ''
           }
         });
       } catch (notifyError) {
@@ -216,7 +118,7 @@ export const createPenalty = async ({
     // Log activity
     try {
       await logActivity(ACTIVITY_LOG_TYPES.PENALTY_CREATED, {
-        penaltyId: docRef.id,
+        penaltyId: result.id,
         studentId,
         classId,
         subjectId,
@@ -226,33 +128,39 @@ export const createPenalty = async ({
       logger.warn('Failed to log penalty creation:', logError);
     }
 
-    return { success: true, id: docRef.id };
+    return { success: true, id: result.id };
   } catch (error) {
-    logger.error('PENALTIES: Failed to create penalty', { error: error.message, penaltyData: { classId, studentId, type, points } });
+    console.error('Error creating penalty record:', error);
     return { success: false, error: error.message };
   }
-};
+}
 
-export const updatePenalty = async (penaltyId, data) => {
+/**
+ * Update a penalty record
+ * @param {string} penaltyId - Penalty record ID
+ * @param {Object} updateData - Data to update
+ * @param {string} updateData.updatedBy - User ID who updated the record
+ */
+export async function updatePenalty(penaltyId, { updatedBy, ...updateData }) {
   try {
-    logger.info('PENALTIES: Updating penalty', { penaltyId, updatedBy: data.updatedBy, updateFields: Object.keys(data) });
+    logger.info('PENALTY: Updating penalty record', { penaltyId, updatedBy, updateFields: Object.keys(updateData) });
     
-    const {
-      updatedBy, // User ID who updated the penalty
-      ...updateFields
-    } = data;
+    const existingDoc = await getPenaltyFromDb(penaltyId);
+    const existingData = existingDoc.exists ? existingDoc.data() : {};
+    const existingHistory = existingData.history || [];
     
-    // Get existing document for logging
-    const docRef = doc(db, "penalties", penaltyId);
-    const existingDoc = await getDoc(docRef);
-    const existingData = existingDoc.exists() ? existingDoc.data() : {};
-    
-    await updateDoc(docRef, {
-      ...updateFields,
-      updatedAt: serverTimestamp(),
-      updatedBy: updatedBy || null,
+    const result = await updatePenaltyInDb(penaltyId, {
+      ...updateData,
+      updatedAt: new Date().toISOString(),
+      updatedBy,
+      // Track update history
+      history: [...existingHistory, {
+        changedBy: updatedBy,
+        changedAt: new Date().toISOString(),
+        changes: Object.keys(updateData)
+      }]
     });
-    
+
     // Log activity
     try {
       await logActivity(ACTIVITY_LOG_TYPES.PENALTY_UPDATED, {
@@ -278,7 +186,7 @@ export const updatePenalty = async (penaltyId, data) => {
           userId: existingData.studentId,
           role: USER_ROLES.STUDENT,
           classId: existingData.classId,
-          title: '✏️ Penalty Updated',
+          title: '✏️ Penalty Record Updated',
           message: `Your penalty record has been updated on ${formattedDate}`,
           type: RECORD_TYPES.PENALTY,
           templateId: 'penaltyUpdateNotification',
@@ -286,7 +194,7 @@ export const updatePenalty = async (penaltyId, data) => {
             studentName: existingData.studentInfo?.displayName || existingData.studentInfo?.email || 'Student',
             date: formattedDate,
             penaltyType: penaltyTypeLabel,
-            updatedFields: Object.keys(updateFields).join(', '),
+            updatedFields: Object.keys(updateData).join(', '),
             className: existingData.className || 'Class'
           }
         });
@@ -294,28 +202,37 @@ export const updatePenalty = async (penaltyId, data) => {
         console.warn('Failed to send penalty update notification via gateway:', notifyError);
       }
     }
-    
+
     return { success: true };
   } catch (error) {
+    console.error('Error updating penalty record:', error);
     return { success: false, error: error.message };
   }
-};
+}
 
-export const deletePenalty = async (penaltyId, penaltyData = null) => {
+/**
+ * Delete a penalty record
+ * Note: Penalty records are stored in the penalties collection
+ */
+export async function deletePenalty(penaltyId, penaltyData = null) {
   try {
-    logger.info('PENALTIES: Deleting penalty', { penaltyId, hasPenaltyData: !!penaltyData });
+    logger.info('PENALTY: Deleting penalty record', { penaltyId, hasPenaltyData: !!penaltyData });
+    
+    if (!penaltyId) {
+      return { success: false, error: 'Penalty ID is required' };
+    }
     
     // Get document data before deletion for logging
     let dataToDelete = penaltyData;
     if (!dataToDelete) {
-      const docRef = doc(db, "penalties", penaltyId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        dataToDelete = docSnap.data();
+      const existingDoc = await getPenaltyFromDb(penaltyId);
+      if (existingDoc.exists) {
+        dataToDelete = existingDoc.data();
       }
     }
     
-    await deleteDoc(doc(db, "penalties", penaltyId));
+    const result = await deletePenaltyInDb(penaltyId);
+    logger.log('[Penalty] Deleted penalty record:', penaltyId);
     
     // Log activity
     try {
@@ -336,14 +253,13 @@ export const deletePenalty = async (penaltyId, penaltyData = null) => {
         const formattedDate = new Date().toLocaleDateString('en-GB');
         
         // Get penalty type label
-        const penaltyType = PENALTY_TYPES.find(pt => pt.id === dataToDelete.type);
-        const penaltyTypeLabel = penaltyType?.label_en || dataToDelete.type || 'penalty';
+        const penaltyTypeLabel = dataToDelete.type || 'penalty';
         
         await notificationGateway.send(NOTIFICATION_TRIGGERS.PENALTY_DELETED, {
           userId: dataToDelete.studentId,
           role: USER_ROLES.STUDENT,
           classId: dataToDelete.classId,
-          title: '🗑️ Penalty Removed',
+          title: '🗑️ Penalty Record Removed',
           message: `Your penalty record has been removed on ${formattedDate}`,
           type: RECORD_TYPES.PENALTY,
           templateId: 'penaltyDeleteNotification',
@@ -361,7 +277,156 @@ export const deletePenalty = async (penaltyId, penaltyData = null) => {
     
     return { success: true };
   } catch (error) {
+    console.error('[Penalty] Error deleting penalty record:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get penalties by class and date
+ * @param {string} classId - Class ID
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getPenaltiesByClassAndDate = async (classId, date) => {
+  try {
+    const result = await getPenaltiesByClassAndDateFromDb(classId, date);
+    return { success: true, data: result.data };
+  } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
+export const getPenalties = async () => {
+  try {
+    const result = await getPenaltiesFromDb();
+    return { success: true, data: result.data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Load penalties from database layer with enrichment
+ * @param {Object} params - Parameters object
+ * @param {Function} params.setPenalties - Function to set penalties state
+ * @param {Function} params.setPageState - Function to set page state
+ * @param {Function} params.toast - Toast function
+ * @param {Function} params.t - Translation function
+ * @param {Array} params.classes - Classes array for enrichment
+ * @param {Array} params.programs - Programs array for enrichment
+ * @param {Array} params.subjects - Subjects array for enrichment
+ * @param {Object} params.filters - Filters to apply
+ */
+export async function loadPenalties({
+  setPenalties,
+  setPageState,
+  toast,
+  t,
+  classes = [],
+  programs = [],
+  subjects = [],
+  filters = {},
+  lang = 'en'
+}) {
+  try {
+    setPageState('LOADING');
+    
+    // Use database layer instead of direct Firebase calls
+    const result = await getPenaltiesFromDb();
+    const penalties = result.data || [];
+    
+    // Enrich penalties with program, subject, and class names
+    const enrichedPenalties = penalties.map(penalty => {
+      const enriched = { ...penalty };
+      
+      // Get class information
+      if (penalty.classId) {
+        const classItem = classes.find(c => (c.id || c.docId) === penalty.classId);
+        if (classItem) {
+          enriched.className = classItem.name || classItem.code || 'N/A';
+          enriched.classTerm = classItem.term;
+          
+          // Get subject information
+          if (classItem.subjectId) {
+            const subject = subjects.find(s => (s.docId || s.id) === classItem.subjectId);
+            if (subject) {
+              // Store both name and ID for grid columns - use proper language fields
+              enriched.subjectName = lang === 'ar' 
+                ? (subject.name_ar || subject.name_en || subject.name || subject.code || 'N/A')
+                : (subject.name_en || subject.name_ar || subject.name || subject.code || 'N/A');
+              enriched.subjectName_en = subject.name_en || subject.name_ar || subject.name || subject.code || 'N/A';
+              enriched.subjectName_ar = subject.name_ar || subject.name_en || subject.name || subject.code || 'N/A';
+              enriched.subjectId = subject.docId || subject.id; // Add subject ID
+              
+              // Get program information
+              if (subject.programId) {
+                const program = programs.find(p => (p.docId || p.id) === subject.programId);
+                if (program) {
+                  // Store both name and ID for grid columns - use proper language fields
+                  enriched.programName = lang === 'ar'
+                    ? (program.name_ar || program.name_en || program.name || program.code || 'N/A')
+                    : (program.name_en || program.name_ar || program.name || program.code || 'N/A');
+                  enriched.programName_en = program.name_en || program.name_ar || program.name || program.code || 'N/A';
+                  enriched.programName_ar = program.name_ar || program.name_en || program.name || program.code || 'N/A';
+                  enriched.programId = program.docId || program.id; // Add program ID
+                  
+                } else {
+                  logger.warn('Penalty enrichment: program not found', { programId: subject.programId });
+                }
+              } else {
+                logger.warn('Penalty enrichment: subject missing programId', { subjectId: classItem.subjectId });
+              }
+            } else {
+              logger.warn('Penalty enrichment: class missing subjectId', { classId: penalty.classId });
+            }
+          } else {
+            logger.warn('Penalty enrichment: missing classId', { classId: penalty.classId });
+          }
+        } else {
+          logger.warn('Penalty enrichment: class not found', { classId: penalty.classId });
+        }
+      } else {
+        logger.warn('Penalty enrichment: missing classId', { penaltyId: penalty.docId });
+      }
+      return enriched;
+    });
+    
+    // Apply filters
+    let filtered = enrichedPenalties;
+    if (filters.programFilter) {
+      filtered = filtered.filter(p => {
+        if (p.subjectId) {
+          const subject = subjects.find(s => (s.docId || s.id) === p.subjectId);
+          return subject?.programId === filters.programFilter;
+        }
+        return false;
+      });
+    }
+    if (filters.subjectFilter) {
+      filtered = filtered.filter(p => {
+        if (p.subjectId) return p.subjectId === filters.subjectFilter;
+        if (p.classId) {
+          const classItem = classes.find(c => (c.id || c.docId) === p.classId);
+          return classItem?.subjectId === filters.subjectFilter;
+        }
+        return false;
+      });
+    }
+    if (filters.classFilter) {
+      filtered = filtered.filter(p => p.classId === filters.classFilter);
+    }
+    if (filters.typeFilter && filters.typeFilter !== 'all') {
+      filtered = filtered.filter(p => p.type === filters.typeFilter);
+    }
+    
+    setPenalties(filtered);
+    setPageState('LOADED');
+  } catch (error) {
+    logger.error('Failed to load penalties:', error);
+    toast?.error(t('failed_to_load_penalties') + ': ' + error.message);
+    setPageState('ERROR');
+  } finally {
+    setPageState('IDLE');
+  }
+};

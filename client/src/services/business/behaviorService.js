@@ -1,11 +1,19 @@
-import { doc, deleteDoc, collection, addDoc, serverTimestamp, updateDoc, getDoc, query, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '../other/config';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { USER_ROLES } from '@constants/userRoles';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
+import {
+  createBehavior as createBehaviorInDb,
+  updateBehavior as updateBehaviorInDb,
+  deleteBehavior as deleteBehaviorInDb,
+  getBehavior as getBehaviorFromDb,
+  getBehaviors as getBehaviorsFromDb,
+  getBehaviorsByStudent as getBehaviorsByStudentFromDb,
+  getBehaviorsByClass as getBehaviorsByClassFromDb,
+  getBehaviorsByClassAndDate as getBehaviorsByClassAndDateFromDb
+} from '../db/behaviorDbService';
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;
@@ -34,8 +42,8 @@ export async function createBehavior({
   studentId,
   subjectId = null,
   programId = null,
-  type = 'behavior',
-  points = 0,
+  type,
+  points,
   description = '',
   createdBy,
   performedBy,
@@ -72,24 +80,23 @@ export async function createBehavior({
       createdBy,
       performedBy,
       performedByName,
-      performedByEmail,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      performedByEmail
     };
 
-    const docRef = await addDoc(collection(db, 'behaviors'), payload);
+    const result = await createBehaviorInDb(payload);
 
     if (sendNotification && studentId) {
       try {
+        const actionLabel = points < 0 ? 'recorded' : 'added';
         const formattedDate = new Date(todayStr).toLocaleDateString('en-GB');
         
         // Use smart notification gateway
         await notificationGateway.send(NOTIFICATION_TRIGGERS.BEHAVIOR_RECORDED, {
           userId: studentId,
-          role: 'student',
+          role: USER_ROLES.STUDENT,
           classId: classId,
-          title: '⚠️ Behavior Recorded',
-          message: `Behavior recorded for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
+          title: `📋 Behavior ${actionLabel}`,
+          message: `Behavior ${actionLabel} for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
           type: RECORD_TYPES.BEHAVIOR,
           email: studentInfo?.email,
           templateId: 'behaviorNotification',
@@ -97,7 +104,7 @@ export async function createBehavior({
             studentName: studentInfo?.displayName || studentInfo?.email || 'Student',
             className: className || 'Class',
             date: formattedDate,
-            behaviorType: type,
+            category: 'Behavior',
             delta: points,
             notes: description || ''
           }
@@ -110,7 +117,7 @@ export async function createBehavior({
     // Log activity
     try {
       await logActivity(ACTIVITY_LOG_TYPES.BEHAVIOR_CREATED, {
-        behaviorId: docRef.id,
+        behaviorId: result.id,
         studentId,
         classId,
         subjectId,
@@ -120,7 +127,7 @@ export async function createBehavior({
       logger.warn('Failed to log behavior creation:', logError);
     }
 
-    return { success: true, id: docRef.id };
+    return { success: true, id: result.id };
   } catch (error) {
     console.error('Error creating behavior record:', error);
     return { success: false, error: error.message };
@@ -137,16 +144,13 @@ export async function updateBehavior(behaviorId, { updatedBy, ...updateData }) {
   try {
     logger.info('BEHAVIOR: Updating behavior record', { behaviorId, updatedBy, updateFields: Object.keys(updateData) });
     
-    const docRef = doc(db, 'behaviors', behaviorId);
-    
-    // Get existing document to preserve history
-    const existingDoc = await getDoc(docRef);
-    const existingData = existingDoc.exists() ? existingDoc.data() : {};
+    const existingDoc = await getBehaviorFromDb(behaviorId);
+    const existingData = existingDoc.exists ? existingDoc.data() : {};
     const existingHistory = existingData.history || [];
     
-    await updateDoc(docRef, {
+    const result = await updateBehaviorInDb(behaviorId, {
       ...updateData,
-      updatedAt: serverTimestamp(),
+      updatedAt: new Date().toISOString(),
       updatedBy,
       // Track update history
       history: [...existingHistory, {
@@ -179,7 +183,7 @@ export async function updateBehavior(behaviorId, { updatedBy, ...updateData }) {
         
         await notificationGateway.send(NOTIFICATION_TRIGGERS.BEHAVIOR_UPDATED, {
           userId: existingData.studentId,
-          role: 'student',
+          role: USER_ROLES.STUDENT,
           classId: existingData.classId,
           title: '✏️ Behavior Record Updated',
           message: `Your behavior record has been updated on ${formattedDate}`,
@@ -207,6 +211,7 @@ export async function updateBehavior(behaviorId, { updatedBy, ...updateData }) {
 
 /**
  * Delete a behavior record
+ * Note: Behavior records are stored in the behaviors collection
  */
 export async function deleteBehavior(behaviorId, behaviorData = null) {
   try {
@@ -219,14 +224,13 @@ export async function deleteBehavior(behaviorId, behaviorData = null) {
     // Get document data before deletion for logging
     let dataToDelete = behaviorData;
     if (!dataToDelete) {
-      const docRef = doc(db, 'behaviors', behaviorId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        dataToDelete = docSnap.data();
+      const existingDoc = await getBehaviorFromDb(behaviorId);
+      if (existingDoc.exists) {
+        dataToDelete = existingDoc.data();
       }
     }
     
-    await deleteDoc(doc(db, 'behaviors', behaviorId));
+    const result = await deleteBehaviorInDb(behaviorId);
     logger.log('[Behavior] Deleted behavior record:', behaviorId);
     
     // Log activity
@@ -252,7 +256,7 @@ export async function deleteBehavior(behaviorId, behaviorData = null) {
         
         await notificationGateway.send(NOTIFICATION_TRIGGERS.BEHAVIOR_DELETED, {
           userId: dataToDelete.studentId,
-          role: 'student',
+          role: USER_ROLES.STUDENT,
           classId: dataToDelete.classId,
           title: '🗑️ Behavior Record Removed',
           message: `Your behavior record has been removed on ${formattedDate}`,
@@ -285,23 +289,8 @@ export async function deleteBehavior(behaviorId, behaviorData = null) {
  */
 export const getBehaviorsByClassAndDate = async (classId, date) => {
   try {
-    const behaviorsRef = collection(db, "behaviors");
-    // Get all behaviors ordered by createdAt (no where clause to avoid index requirement)
-    const behaviorsQuery = query(
-      behaviorsRef,
-      orderBy("createdAt", "desc")
-    );
-    const behaviorsSnapshot = await getDocs(behaviorsQuery);
-    const allBehaviors = behaviorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    
-    // Filter by classId and date in JavaScript
-    const filteredBehaviors = allBehaviors.filter(behavior => 
-      behavior.classId === classId && (
-        behavior.date === date || toYmd(behavior.createdAt) === date
-      )
-    );
-    
-    return { success: true, data: filteredBehaviors };
+    const result = await getBehaviorsByClassAndDateFromDb(classId, date);
+    return { success: true, data: result.data };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -309,19 +298,15 @@ export const getBehaviorsByClassAndDate = async (classId, date) => {
 
 export const getBehaviors = async () => {
   try {
-    const behaviorsRef = collection(db, 'behaviors');
-    const behaviorsQuery = query(behaviorsRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(behaviorsQuery);
-    const allBehaviors = snapshot.docs.map(d => ({ docId: d.id, ...d.data() }));
-    return { success: true, data: allBehaviors };
+    const result = await getBehaviorsFromDb();
+    return { success: true, data: result.data };
   } catch (error) {
-    logger.error('BEHAVIOR_SERVICE: Error getting behaviors:', error);
     return { success: false, error: error.message };
   }
 };
 
 /**
- * Load behaviors from Firestore with enrichment
+ * Load behaviors from database layer with enrichment
  * @param {Object} params - Parameters object
  * @param {Function} params.setBehaviors - Function to set behaviors state
  * @param {Function} params.setPageState - Function to set page state
@@ -331,10 +316,6 @@ export const getBehaviors = async () => {
  * @param {Array} params.programs - Programs array for enrichment
  * @param {Array} params.subjects - Subjects array for enrichment
  * @param {Object} params.filters - Filters to apply
- * @param {Function} params.getUserById - Function to fetch user data
- * @param {Function} params.fetchClass - Function to fetch class data
- * @param {Function} params.fetchSubject - Function to fetch subject data
- * @param {Function} params.fetchProgram - Function to fetch program data
  */
 export async function loadBehaviors({
   setBehaviors,
@@ -345,113 +326,73 @@ export async function loadBehaviors({
   programs = [],
   subjects = [],
   filters = {},
-  getUserById,
-  fetchClass,
-  fetchSubject,
-  fetchProgram
+  lang = 'en'
 }) {
   try {
     setPageState('LOADING');
-    const result = await getBehaviors();
     
-    if (!result.success) {
-      throw new Error(result.error);
-    }
+    // Use database layer instead of direct Firebase calls
+    const result = await getBehaviorsFromDb();
+    const behaviors = result.data || [];
     
-    let data = result.data.map(d => ({ id: d.id, docId: d.id, ...d }));
-    
-    // Enrich with student, class, subject, program info
-    const enriched = await Promise.all(data.map(async (behavior) => {
-      const enrichedBehavior = { 
-        ...behavior,
-        id: behavior.id || behavior.docId,
-        docId: behavior.docId || behavior.id
-      };
+    // Enrich behaviors with program, subject, and class names
+    const enrichedBehaviors = behaviors.map(behavior => {
+      const enriched = { ...behavior };
       
-      try {
-        // Initialize with N/A as fallback
-        enrichedBehavior.studentName = 'N/A';
-        enrichedBehavior.className = 'N/A';
-        enrichedBehavior.subjectName = 'N/A';
-        enrichedBehavior.programName = 'N/A';
-        
-        // Get student information
-        if (enrichedBehavior.studentId) {
-          try {
-            const userResult = await getUserById(enrichedBehavior.studentId);
-            if (userResult.success && userResult.data) {
-              enrichedBehavior.studentName = userResult.data.displayName || userResult.data.email || 'N/A';
-              enrichedBehavior.studentEmail = userResult.data.email;
-            }
-          } catch (err) {
-            logger.error('Failed to fetch student:', enrichedBehavior.studentId, err);
-          }
-        }
-        
-        // Get class information
-        if (enrichedBehavior.classId) {
-          try {
-            const classData = await fetchClass(enrichedBehavior.classId);
-            if (classData && classData.success) {
-              enrichedBehavior.className = classData.data.name || classData.data.code || 'N/A';
-              enrichedBehavior.classTerm = classData.data.term;
+      // Get class information
+      if (behavior.classId) {
+        const classItem = classes.find(c => (c.id || c.docId) === behavior.classId);
+        if (classItem) {
+          enriched.className = classItem.name || classItem.code || 'N/A';
+          enriched.classTerm = classItem.term;
+          
+          // Get subject information
+          if (classItem.subjectId) {
+            const subject = subjects.find(s => (s.docId || s.id) === classItem.subjectId);
+            if (subject) {
+              // Store both name and ID for grid columns - use proper language fields
+              enriched.subjectName = lang === 'ar' 
+                ? (subject.name_ar || subject.name_en || subject.name || subject.code || 'N/A')
+                : (subject.name_en || subject.name_ar || subject.name || subject.code || 'N/A');
+              enriched.subjectName_en = subject.name_en || subject.name_ar || subject.name || subject.code || 'N/A';
+              enriched.subjectName_ar = subject.name_ar || subject.name_en || subject.name || subject.code || 'N/A';
+              enriched.subjectId = subject.docId || subject.id; // Add subject ID
               
-              // If subjectId is missing, try to get it from class
-              if (!enrichedBehavior.subjectId && classData.data.subjectId) {
-                enrichedBehavior.subjectId = classData.data.subjectId;
-              }
-            }
-          } catch (err) {
-            logger.error('Failed to fetch class:', enrichedBehavior.classId, err);
-          }
-        }
-        
-        // Get subject and program information
-        const subjectIdToLoad = enrichedBehavior.subjectId;
-        if (subjectIdToLoad) {
-          try {
-            const subjectData = await fetchSubject(subjectIdToLoad);
-            if (subjectData && subjectData.success) {
-              enrichedBehavior.subjectName = subjectData.data.name_en || subjectData.data.name_ar || subjectData.data.code || 'N/A';
-              
-              // Get program from subject
-              if (subjectData.data.programId) {
-                try {
-                  const programData = await fetchProgram(subjectData.data.programId);
-                  if (programData && programData.success) {
-                    enrichedBehavior.programName = programData.data.name_en || programData.data.name_ar || programData.data.code || 'N/A';
-                  }
-                } catch (err) {
-                  enrichedBehavior.programName = 'N/A';
+              // Get program information
+              if (subject.programId) {
+                const program = programs.find(p => (p.docId || p.id) === subject.programId);
+                if (program) {
+                  // Store both name and ID for grid columns - use proper language fields
+                  enriched.programName = lang === 'ar'
+                    ? (program.name_ar || program.name_en || program.name || program.code || 'N/A')
+                    : (program.name_en || program.name_ar || program.name || program.code || 'N/A');
+                  enriched.programName_en = program.name_en || program.name_ar || program.name || program.code || 'N/A';
+                  enriched.programName_ar = program.name_ar || program.name_en || program.name || program.code || 'N/A';
+                  enriched.programId = program.docId || program.id; // Add program ID
+                  
+                } else {
+                  logger.warn('Behavior enrichment: program not found', { programId: subject.programId });
                 }
+              } else {
+                logger.warn('Behavior enrichment: subject missing programId', { subjectId: classItem.subjectId });
               }
+            } else {
+              logger.warn('Behavior enrichment: class missing subjectId', { classId: behavior.classId });
             }
-          } catch (err) {
-            logger.error('Failed to fetch subject:', subjectIdToLoad, err);
+          } else {
+            logger.warn('Behavior enrichment: missing classId', { classId: behavior.classId });
           }
+        } else {
+          logger.warn('Behavior enrichment: class not found', { classId: behavior.classId });
         }
-        
-        // Get instructor information
-        if (enrichedBehavior.createdBy) {
-          try {
-            const instructorData = await getUserById(enrichedBehavior.createdBy);
-            if (instructorData.success && instructorData.data) {
-              enrichedBehavior.instructorName = instructorData.data.displayName || instructorData.data.email;
-            }
-          } catch (err) {
-            logger.error('Failed to fetch instructor:', enrichedBehavior.createdBy, err);
-          }
-        }
-        
-      } catch (err) {
-        logger.error('Failed to enrich behavior:', enrichedBehavior.id || enrichedBehavior.docId, err);
+      } else {
+        logger.warn('Behavior enrichment: missing classId', { behaviorId: behavior.docId });
       }
-      
-      return enrichedBehavior;
-    }));
+      return enriched;
+    });
     
     // Apply filters
-    let filtered = enriched;
+    let filtered = enrichedBehaviors;
     if (filters.programFilter) {
       filtered = filtered.filter(b => {
         if (b.subjectId) {
@@ -487,4 +428,4 @@ export async function loadBehaviors({
   } finally {
     setPageState('IDLE');
   }
-}
+};

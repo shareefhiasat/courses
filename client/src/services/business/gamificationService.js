@@ -9,8 +9,7 @@ import {
   query, 
   where, 
   orderBy,
-  Timestamp,
-  setDoc
+  Timestamp
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import { getStudentRank } from '@constants/sharedConfig';

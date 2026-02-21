@@ -1,5 +1,5 @@
 import React from 'react';
-import { getColoredIcon, getThemedIcon } from '@constants/iconTypes';
+import { getColoredIcon } from '@constants/iconTypes';
 
 /**
  * Reusable stats bar component

@@ -202,6 +202,36 @@ export const getBehaviorsByStudent = async (studentId) => {
 };
 
 /**
+ * Get all behaviors
+ * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
+ */
+export const getBehaviors = async () => {
+  try {
+    const q = query(
+      collection(db, COLLECTION),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const behaviors = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    return {
+      success: true,
+      data: behaviors
+    };
+  } catch (error) {
+    logger.error('[BehaviorDbService] Error getting behaviors:', { error: error.message });
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+/**
  * Get behaviors by class ID
  * @param {string} classId - Class document ID
  * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
@@ -226,6 +256,40 @@ export const getBehaviorsByClass = async (classId) => {
     };
   } catch (error) {
     logger.error('[BehaviorDbService] Error getting behaviors by class:', { error: error.message });
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+/**
+ * Get behaviors by class and date
+ * @param {string} classId - Class document ID
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
+ */
+export const getBehaviorsByClassAndDate = async (classId, date) => {
+  try {
+    const q = query(
+      collection(db, COLLECTION),
+      where('classId', '==', classId),
+      where('date', '==', date),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const behaviors = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    return {
+      success: true,
+      data: behaviors
+    };
+  } catch (error) {
+    logger.error('[BehaviorDbService] Error getting behaviors by class and date:', { error: error.message });
     return {
       success: false,
       error: error.message

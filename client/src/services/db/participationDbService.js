@@ -204,6 +204,36 @@ export const getParticipationsByStudent = async (studentId) => {
 };
 
 /**
+ * Get all participations
+ * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
+ */
+export const getParticipations = async () => {
+  try {
+    const q = query(
+      collection(db, COLLECTION),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const participations = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    return {
+      success: true,
+      data: participations
+    };
+  } catch (error) {
+    logger.error('[ParticipationDbService] Error getting participations:', { error: error.message });
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+/**
  * Get participations by class ID
  * @param {string} classId - Class document ID
  * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
@@ -228,6 +258,40 @@ export const getParticipationsByClass = async (classId) => {
     };
   } catch (error) {
     logger.error('Error getting participations by class:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+/**
+ * Get participations by class and date
+ * @param {string} classId - Class document ID
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
+ */
+export const getParticipationsByClassAndDate = async (classId, date) => {
+  try {
+    const q = query(
+      collection(db, COLLECTION),
+      where('classId', '==', classId),
+      where('date', '==', date),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const participations = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    return {
+      success: true,
+      data: participations
+    };
+  } catch (error) {
+    logger.error('[ParticipationDbService] Error getting participations by class and date:', { error: error.message });
     return {
       success: false,
       error: error.message

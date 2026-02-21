@@ -202,6 +202,36 @@ export const getPenaltiesByStudent = async (studentId) => {
 };
 
 /**
+ * Get all penalties
+ * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
+ */
+export const getPenalties = async () => {
+  try {
+    const q = query(
+      collection(db, COLLECTION),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const penalties = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    return {
+      success: true,
+      data: penalties
+    };
+  } catch (error) {
+    logger.error('[PenaltyDbService] Error getting penalties:', { error: error.message });
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+/**
  * Get penalties by class ID
  * @param {string} classId - Class document ID
  * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
@@ -226,6 +256,40 @@ export const getPenaltiesByClass = async (classId) => {
     };
   } catch (error) {
     logger.error('[PenaltyDbService] Error getting penalties by class:', { error: error.message });
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+/**
+ * Get penalties by class and date
+ * @param {string} classId - Class document ID
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
+ */
+export const getPenaltiesByClassAndDate = async (classId, date) => {
+  try {
+    const q = query(
+      collection(db, COLLECTION),
+      where('classId', '==', classId),
+      where('date', '==', date),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const penalties = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    return {
+      success: true,
+      data: penalties
+    };
+  } catch (error) {
+    logger.error('[PenaltyDbService] Error getting penalties by class and date:', { error: error.message });
     return {
       success: false,
       error: error.message

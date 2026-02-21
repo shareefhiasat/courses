@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
-import { X, Mail, Users, Zap, ChevronDown, ExternalLink, Trash2 } from 'lucide-react';
+import { X, Zap, ChevronDown, ExternalLink, Trash2 } from 'lucide-react';
 import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
 import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS } from '@constants/attendanceTypes';
@@ -22,7 +22,7 @@ import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { RECORD_TYPES, getRecordTypeLabel } from '@utils/sharedTypes';
 import {ParticipationIcon, PenaltyIcon, StudentHistory, DeleteModal} from '@ui/history';
-import {CircleIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, FileIcon, HeartIcon, HelpCircleIcon, UserIcon, UserPlusIcon, ZapIcon} from "@utils/icons.jsx";
+import {CircleIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, HelpCircleIcon, UserIcon, ZapIcon} from "@utils/icons.jsx";
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/attendanceMethods';
 
 export default function StudentActionPanel({
