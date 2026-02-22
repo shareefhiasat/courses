@@ -5,6 +5,7 @@ import { SimpleLoading } from '@ui';
 const BarChart = React.lazy(() => import('../charts/BarChart'));
 const LineChart = React.lazy(() => import('../charts/LineChart'));
 const PieChart = React.lazy(() => import('../charts/PieChart'));
+const ListChart = React.lazy(() => import('../charts/ListChart'));
 
 /**
  * Chart loading fallback component
@@ -38,7 +39,7 @@ const getChartTypeFromDataSource = (dataSource) => {
   } else if (dataSource === 'enrollments') {
     return 'enrollment';
   }
-  return 'pie';
+  return 'list'; // Default to list for unknown types
 };
 
 /**
@@ -49,9 +50,10 @@ const getChartTypeFromDataSource = (dataSource) => {
  * @param {Object} data - Processed widget data
  * @param {string} accentColor - Theme accent color
  * @param {Object} rawData - Raw data for unknown items details
+ * @param {Function} onPointClick - Click handler for chart points
  * @returns {React.Component} Rendered chart
  */
-const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData }) => {
+const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData, onPointClick }) => {
   const { chartType, dataSource, ...widgetProps } = widget;
 
   // Memoize chart props to prevent unnecessary re-renders
@@ -61,8 +63,9 @@ const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData 
     size,
     rawData,
     chartType: getChartTypeFromDataSource(dataSource),
+    onSliceClick: onPointClick,
     ...widgetProps
-  }), [data, accentColor, size, rawData, dataSource, widgetProps]);
+  }), [data, accentColor, size, rawData, dataSource, onPointClick, widgetProps]);
 
   // Render appropriate chart based on type
   switch (chartType) {
@@ -91,6 +94,13 @@ const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData 
       return (
         <Suspense fallback={<ChartFallback size={size} />}>
           <PieChart {...chartProps} donut={true} />
+        </Suspense>
+      );
+    
+    case 'list':
+      return (
+        <Suspense fallback={<ChartFallback size={size} />}>
+          <ListChart {...chartProps} />
         </Suspense>
       );
     

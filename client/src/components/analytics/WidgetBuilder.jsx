@@ -109,7 +109,25 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
 
   if (!isOpen) return null;
 
-  const currentSource = DATA_SOURCES.find(s => s.value === config.dataSource) || DATA_SOURCES[0];
+  const isListWidget = config.chartType === 'list';
+
+  // Restrict data sources for list widgets
+  const LIST_ALLOWED_SOURCES = [
+    'activities,announcements,resources',
+    'activities',
+    'participations',
+    'penalties',
+    'behaviors',
+    'users',
+    'enrollments',
+    'attendance'
+  ];
+
+  const availableDataSources = isListWidget
+    ? DATA_SOURCES.filter(s => LIST_ALLOWED_SOURCES.includes(s.value))
+    : DATA_SOURCES;
+
+  const currentSource = availableDataSources.find(s => s.value === config.dataSource) || availableDataSources[0];
   const groupByOptions = currentSource.groupBy.map(v => ({ value: v, label: t(GROUP_BY_KEYS[v]) || v }));
 
   const set = (partial) => onChange(partial);
@@ -119,6 +137,8 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
     { type: 'line', icon: getThemedIcon('ui', 'line_chart', 20, theme),   label: t('line') || 'Line' },
     { type: 'pie',  icon: getThemedIcon('ui', 'pie_chart', 20, theme),    label: t('pie')  || 'Pie' },
     { type: 'donut', icon: getThemedIcon('ui', 'pie_chart', 20, theme),  label: t('donut') || 'Donut' },
+    { type: 'list', icon: getThemedIcon('ui', 'list', 20, theme),        label: t('list') || 'List' },
+    { type: 'count', icon: getThemedIcon('ui', 'hash', 20, theme),       label: t('count') || 'Count' },
   ];
 
   return (
@@ -192,7 +212,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
 
           {/* Chart Type */}
           <Field label={t('chart_type') || 'Chart Type'}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
               {CHART_TYPES.map(({ type, icon, label }) => (
                 <button
                   key={type}
@@ -217,15 +237,15 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
           <Field label={t('data_source') || 'Data Source'}>
             <Select
               value={config.dataSource}
-              onChange={e => set({ dataSource: e.target.value, groupBy: DATA_SOURCES.find(s => s.value === e.target.value)?.groupBy[0] || 'status' })}
-              options={DATA_SOURCES.map(s => ({ value: s.value, label: t(s.labelKey) || s.label || s.value }))}
+              onChange={e => set({ dataSource: e.target.value, groupBy: availableDataSources.find(s => s.value === e.target.value)?.groupBy[0] || 'status' })}
+              options={availableDataSources.map(s => ({ value: s.value, label: t(s.labelKey) || s.label || s.value }))}
               fullWidth
             />
           </Field>
 
           {/* Group By + Aggregation */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label={t('group_by') || 'Group By'}>
+          <div style={{ display: 'grid', gridTemplateColumns: isListWidget ? '1fr' : '1fr 1fr', gap: 12 }}>
+            <Field label={isListWidget ? (t('prefilter_optional') || 'Prefilter (optional)') : (t('group_by') || 'Group By')}>
               <Select
                 value={config.groupBy}
                 onChange={e => set({ groupBy: e.target.value })}
@@ -233,14 +253,16 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                 fullWidth
               />
             </Field>
-            <Field label={t('aggregation') || 'Aggregation'}>
-              <Select
-                value={config.aggregation}
-                onChange={e => set({ aggregation: e.target.value })}
-                options={AGGREGATION_KEYS.map(a => ({ value: a.value, label: t(a.key) || a.value }))}
-                fullWidth
-              />
-            </Field>
+            {!isListWidget && (
+              <Field label={t('aggregation') || 'Aggregation'}>
+                <Select
+                  value={config.aggregation}
+                  onChange={e => set({ aggregation: e.target.value })}
+                  options={AGGREGATION_KEYS.map(a => ({ value: a.value, label: t(a.key) || a.value }))}
+                  fullWidth
+                />
+              </Field>
+            )}
           </div>
 
           {/* Date Range */}

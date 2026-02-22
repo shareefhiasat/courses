@@ -206,7 +206,13 @@ export const processWidgetDataOptimized = cache((widget, rawData, globalFilters)
         processedData = processEnrollmentData(widget, rawData.enrollments || [], globalFilters, rawData);
         break;
       case 'attendance':
-        processedData = processAttendanceData(widget, rawData.attendance || [], globalFilters);
+        // Combine attendance data from multiple sources
+        const attendanceData = [
+          ...(rawData.attendance || []),
+          ...(rawData.absences || []),
+          ...(rawData.attendanceSessions || [])
+        ];
+        processedData = processAttendanceData(widget, attendanceData, globalFilters);
         break;
       case 'marks':
         processedData = processMarksData(widget, rawData.marks || [], globalFilters);
@@ -402,11 +408,33 @@ function processEnrollmentData(widget, data, filters, rawData) {
 function processAttendanceData(widget, data, filters) {
   let filtered = data;
   
-  logger.log('[processAttendanceData] Processing attendance data:', {
+  const debugInfo = {
     totalRecords: data.length,
     filters: filters,
-    groupBy: widget.groupBy
-  });
+    groupBy: widget.groupBy,
+    dataSources: {
+      attendance: data.filter(item => item.status !== undefined).length,
+      absences: data.filter(item => item.absenceType !== undefined).length,
+      attendanceSessions: data.filter(item => item.sessionDate !== undefined).length
+    },
+    sampleData: data.slice(0, 3).map(item => ({
+      id: item.id,
+      hasStatus: !!item.status,
+      hasAbsenceType: !!item.absenceType,
+      hasAttendanceStatus: !!item.attendanceStatus,
+      status: item.status || item.absenceType || item.attendanceStatus || 'Unknown'
+    }))
+  };
+  
+  logger.log('[processAttendanceData] Processing attendance data:', debugInfo);
+  
+  // Log if we found data from alternative sources
+  if (debugInfo.dataSources.absences > 0 || debugInfo.dataSources.attendanceSessions > 0) {
+    console.log('🎉 Found attendance data from alternative sources:', {
+      absences: debugInfo.dataSources.absences,
+      attendanceSessions: debugInfo.dataSources.attendanceSessions
+    });
+  }
   
   if (filters.classId) {
     filtered = filtered.filter(item => item.classId === filters.classId);
@@ -423,7 +451,22 @@ function processAttendanceData(widget, data, filters) {
     const statusDistribution = {};
     
     filtered.forEach(item => {
-      const status = item.status || 'Unknown';
+      // Handle different data structures from multiple sources
+      let status = 'Unknown';
+      
+      // From attendance collection
+      if (item.status) {
+        status = item.status;
+      }
+      // From absences collection
+      else if (item.absenceType) {
+        status = item.absenceType;
+      }
+      // From attendanceSessions collection
+      else if (item.attendanceStatus) {
+        status = item.attendanceStatus;
+      }
+      
       // Clean, non-duplicate status mapping
       const statusMap = {
         'present': 'Present',
@@ -436,10 +479,16 @@ function processAttendanceData(widget, data, filters) {
         'human_case': 'Human Case',
         'closed': 'Closed',
         'open': 'Open',
-        'active': 'Active'
+        'active': 'Active',
+        // Handle absence types
+        'sick': 'Absent (Excused)',
+        'medical': 'Absent (Excused)',
+        'personal': 'Absent (Excused)',
+        'unexcused': 'Absent (No Excuse)',
+        'no_show': 'Absent (No Excuse)'
       };
       
-      const key = statusMap[status] || status;
+      const key = statusMap[status.toLowerCase()] || status;
       grouped[key] = (grouped[key] || 0) + 1;
       statusDistribution[status] = (statusDistribution[status] || 0) + 1;
     });

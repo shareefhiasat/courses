@@ -6,8 +6,7 @@ import React, { useState } from 'react';
  * @param {Number} size - Chart size
  * @param {Boolean} donut - Donut style
  */
-export default function PieChart({ data = [], size = 300, donut = false, showLabels = true, showLegend = true, accentColor = '#800020', rawData = [], chartType = 'pie' }) {
-  const [showDetails, setShowDetails] = useState(false);
+export default function PieChart({ data = [], size = 300, donut = false, showLabels = true, showLegend = true, accentColor = '#800020', rawData = [], chartType = 'pie', onSliceClick = null }) {
   
   // Handle size as object with width/height or number
   let chartWidth, chartHeight;
@@ -94,49 +93,16 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
     };
   });
 
-  // Get unknown items details
-  const getUnknownItems = () => {
-    if (!rawData || typeof rawData !== 'object') return [];
-    
-    let sourceData = [];
-    
-    // Get the appropriate data source based on chartType
-    if (chartType === 'activity') {
-      // Combine activities, announcements, and resources
-      sourceData = [
-        ...(rawData.activities || []),
-        ...(rawData.announcements || []),
-        ...(rawData.resources || [])
-      ];
-    } else if (chartType === 'attendance') {
-      sourceData = rawData.attendance || [];
-    } else if (chartType === 'enrollment') {
-      sourceData = rawData.enrollments || [];
-    } else {
-      // Default: try to find any array in rawData
-      sourceData = Object.values(rawData).find(item => Array.isArray(item)) || [];
+  const handleSliceClick = (slice) => {
+    // Call external callback if provided
+    if (onSliceClick) {
+      onSliceClick(slice);
     }
-    
-    if (!Array.isArray(sourceData)) return [];
-    
-    return sourceData.filter(item => {
-      if (chartType === 'activity') {
-        return !item.type || item.type === 'Unknown';
-      } else if (chartType === 'attendance') {
-        return !item.status || item.status === 'Unknown';
-      } else if (chartType === 'enrollment') {
-        return !item.programId || !item.programId.startsWith('xMh3Tqzg4stjRohjwCGX');
-      }
-      return false;
-    });
   };
-
-  const unknownItems = getUnknownItems();
   
   // Add logging to confirm data source
   console.log('[PieChart] Data source:', chartType, 'Raw data keys:', Object.keys(rawData || {}));
-  console.log('[PieChart] Unknown items count:', unknownItems.length);
-  console.log('[PieChart] Sample unknown items:', unknownItems.slice(0, 3));
+  console.log('[PieChart] Available slices:', data.map(d => d.label));
 
   return (
     <>
@@ -159,17 +125,13 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
                   e.currentTarget.style.opacity = '1';
                   e.currentTarget.style.transform = 'scale(1)';
                 }}
-                onClick={() => {
-                  if (unknownItems.length > 0) {
-                    setShowDetails(true);
-                  }
-                }}
+                onClick={() => handleSliceClick(slice)}
                 style={{ 
                   transition: 'all 0.3s ease', 
-                  cursor: unknownItems.length > 0 ? 'pointer' : 'default'
+                  cursor: 'pointer'
                 }}
               >
-                <title>{`${slice.label}: ${slice.value} (${slice.percentage}%)${unknownItems.length > 0 ? ' - Click to see details' : ''}`}</title>
+                <title>{`${slice.label}: ${slice.value} (${slice.percentage}%)`}</title>
               </path>
               
               {showLabels && parseFloat(slice.percentage) > 5 && (
@@ -213,14 +175,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
                 style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: 2,
-                  cursor: unknownItems.length > 0 ? 'pointer' : 'default',
-                  textDecoration: unknownItems.length > 0 ? 'underline' : 'none'
-                }}
-                onClick={() => {
-                  if (unknownItems.length > 0) {
-                    setShowDetails(true);
-                  }
+                  gap: 2
                 }}
               >
                 <div style={{ width: 8, height: 8, borderRadius: 1, background: slice.color }} />
@@ -232,187 +187,6 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
           </div>
         )}
       </div>
-
-      {/* Side Panel Dialog */}
-      {showDetails && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          width: '400px',
-          height: '100vh',
-          background: 'var(--panel)',
-          border: '1px solid var(--border)',
-          boxShadow: '-4px 0 12px rgba(0,0,0,0.1)',
-          zIndex: 1000,
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          {/* Header */}
-          <div style={{
-            padding: '1rem',
-            borderBottom: '1px solid var(--border)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>
-              Unknown Items ({unknownItems.length})
-            </h3>
-            <button
-              onClick={() => setShowDetails(false)}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontSize: '20px',
-                cursor: 'pointer',
-                color: 'var(--muted)',
-                padding: '4px'
-              }}
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Content */}
-          <div style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
-            {unknownItems.length === 0 ? (
-              <p style={{ color: 'var(--muted)', textAlign: 'center' }}>No unknown items found</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {/* Grid Header */}
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: chartType === 'activity' ? '2fr 2fr 1fr 1fr' : '1fr 1fr 1fr 1fr',
-                  gap: '8px',
-                  padding: '8px',
-                  background: 'var(--bg)',
-                  borderRadius: '6px',
-                  fontSize: '10px',
-                  fontWeight: '600',
-                  color: 'var(--muted)',
-                  borderBottom: '1px solid var(--border)'
-                }}>
-                  {chartType === 'activity' && (
-                    <>
-                      <div>Type</div>
-                      <div>Title</div>
-                      <div>ID</div>
-                      <div>Created</div>
-                    </>
-                  )}
-                  {chartType === 'attendance' && (
-                    <>
-                      <div>Status</div>
-                      <div>Date</div>
-                      <div>Student ID</div>
-                      <div>Class ID</div>
-                    </>
-                  )}
-                  {chartType === 'enrollment' && (
-                    <>
-                      <div>Program ID</div>
-                      <div>Student ID</div>
-                      <div>Class ID</div>
-                      <div>Status</div>
-                    </>
-                  )}
-                </div>
-
-                {/* Grid Content */}
-                <div style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '4px',
-                  maxHeight: '400px',
-                  overflow: 'auto'
-                }}>
-                  {unknownItems.map((item, idx) => (
-                    <div key={idx} style={{
-                      display: 'grid',
-                      gridTemplateColumns: chartType === 'activity' ? '2fr 2fr 1fr 1fr' : '1fr 1fr 1fr 1fr',
-                      gap: '8px',
-                      padding: '8px',
-                      background: idx % 2 === 0 ? 'var(--panel)' : 'var(--bg)',
-                      borderRadius: '4px',
-                      fontSize: '9px',
-                      alignItems: 'center',
-                      border: '1px solid var(--border)'
-                    }}>
-                      {chartType === 'activity' && (
-                        <>
-                          <div style={{ color: 'var(--text)', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {item.type || 'Not specified'}
-                          </div>
-                          <div style={{ color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {item.title || item.name || 'Not specified'}
-                          </div>
-                          <div style={{ color: 'var(--muted)', fontSize: '8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {(item.id || item.docId || 'Not specified').slice(0, 8)}
-                          </div>
-                          <div style={{ color: 'var(--muted)', fontSize: '8px' }}>
-                            {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
-                          </div>
-                        </>
-                      )}
-                      
-                      {chartType === 'attendance' && (
-                        <>
-                          <div style={{ color: 'var(--text)', fontWeight: '500' }}>
-                            {item.status || 'Not specified'}
-                          </div>
-                          <div style={{ color: 'var(--muted)' }}>
-                            {item.date || item.createdAt ? new Date(item.date || item.createdAt).toLocaleDateString() : 'N/A'}
-                          </div>
-                          <div style={{ color: 'var(--muted)', fontSize: '8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {(item.studentId || 'Not specified').slice(0, 8)}
-                          </div>
-                          <div style={{ color: 'var(--muted)', fontSize: '8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {(item.classId || 'Not specified').slice(0, 8)}
-                          </div>
-                        </>
-                      )}
-                      
-                      {chartType === 'enrollment' && (
-                        <>
-                          <div style={{ color: 'var(--text)', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {item.programId || 'Not specified'}
-                          </div>
-                          <div style={{ color: 'var(--muted)', fontSize: '8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {(item.studentId || 'Not specified').slice(0, 8)}
-                          </div>
-                          <div style={{ color: 'var(--muted)', fontSize: '8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {(item.classId || 'Not specified').slice(0, 8)}
-                          </div>
-                          <div style={{ color: 'var(--muted)' }}>
-                            {item.status || 'Not specified'}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Overlay */}
-      {showDetails && (
-        <div
-          onClick={() => setShowDetails(false)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            background: 'rgba(0,0,0,0.3)',
-            zIndex: 999
-          }}
-        />
-      )}
     </>
   );
 }

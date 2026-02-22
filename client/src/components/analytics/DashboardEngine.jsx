@@ -11,6 +11,7 @@ import useWidgetDashboard from '@hooks/useWidgetDashboard';
 import WidgetWrapper from './WidgetWrapper';
 import WidgetBuilder, { DEFAULT_WIDGET_CONFIG } from './WidgetBuilder';
 import OptimizedChartRenderer from '../charts/OptimizedChartRenderer';
+import { normalizeAttendanceStatus, normalizeActivityType } from '@utils/listChartResolvers';
 import logger from '@utils/logger';
 
 const ResponsiveGrid = WidthProvider(GridLayout);
@@ -61,8 +62,6 @@ const DashboardEngine = ({
   const [widgetVersions, setWidgetVersions] = useState({});   // bump → forces re-render of that chart
   const [recentlyRefreshed, setRecentlyRefreshed] = useState({});
   const [widgetUpdatedAt, setWidgetUpdatedAt] = useState({});
-
-  const [drillDownData, setDrillDownData] = useState(null);
 
   // ── Sorted widgets ─────────────────────────────────────────
   const sortedWidgets = useMemo(() => {
@@ -155,11 +154,29 @@ const DashboardEngine = ({
 
   // ── Chart rendering ───────────────────────────────────────────────────────
   const handleChartClick = useCallback((widget, dataPoint) => {
-    const filtered = (rawData[widget.dataSource] || []).filter(
-      item => (item[widget.groupBy] || 'Unknown') === dataPoint.label
-    );
-    setDrillDownData({ widget, dataPoint, items: filtered });
-  }, [rawData]);
+    // Create a new list widget based on the clicked pie chart slice
+    const newListWidget = {
+      id: 'list-' + Date.now(),
+      title: `${widget.title} - ${dataPoint.label}`,
+      chartType: 'list',
+      dataSource: widget.dataSource,
+      groupBy: widget.groupBy,
+      filterValue: dataPoint.label,
+      aggregation: 'list',
+      dateRange: widget.dateRange,
+      filters: widget.filters,
+      comparisonMode: false,
+      layout: { 
+        x: widget.layout?.x || 0, 
+        y: (widget.layout?.y || 0) + (widget.layout?.h || 4), 
+        w: widget.layout?.w || 6, 
+        h: 6 
+      }
+    };
+    
+    // Add the new list widget to the widgets list
+    setWidgets(prev => [...prev, newListWidget]);
+  }, [setWidgets]);
 
   const renderChart = useCallback((widget, size) => {
     const data = chartDataMap[widget.id] || [];
@@ -282,65 +299,6 @@ const DashboardEngine = ({
         isEditing={!!editingWidget}
         accentColor={accentColor}
       />
-
-      {/* ── Drill-Down Modal ── */}
-      {drillDownData && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}
-          onClick={() => setDrillDownData(null)}
-        >
-          <div
-            style={{ background: 'var(--panel)', color: 'var(--text)', padding: '2rem', borderRadius: 16, minWidth: 680, maxWidth: '90vw', maxHeight: '88vh', overflow: 'auto' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 18 }}>
-                {t('drill_down') || 'Drill-Down'}: <strong>{drillDownData.dataPoint.label}</strong>
-              </h2>
-              <button
-                onClick={() => setDrillDownData(null)}
-                style={{ padding: '0.4rem', background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', display: 'flex', color: 'var(--text)' }}
-              >
-                {getThemedIcon('ui', 'close', 18, theme)}
-              </button>
-            </div>
-            <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: `${accentColor}14`, borderRadius: 8 }}>
-              <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>
-                {t('showing')} <strong>{drillDownData.items.length}</strong> {t('items_for') || 'items for'} <strong>{drillDownData.dataPoint.label}</strong>
-              </p>
-            </div>
-            <div style={{ maxHeight: 380, overflow: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: 'var(--border)' }}>
-                    {[t('id') || 'ID', t('details') || 'Details', t('date') || 'Date'].map(h => (
-                      <th key={h} style={{ padding: '0.65rem 0.75rem', borderBottom: '2px solid var(--border)', textAlign: 'start', fontWeight: 700 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {drillDownData.items.slice(0, 50).map((item, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '0.6rem 0.75rem', color: 'var(--muted)' }}>{item.id || item.docId || idx + 1}</td>
-                      <td style={{ padding: '0.6rem 0.75rem' }}>{item.title || item.name || item.displayName || item.email || JSON.stringify(item).slice(0, 60)}</td>
-                      <td style={{ padding: '0.6rem 0.75rem', color: 'var(--muted)' }}>
-                        {item.when?.seconds ? new Date(item.when.seconds * 1000).toLocaleDateString('en-GB') :
-                         item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleDateString('en-GB') :
-                         item.submittedAt?.seconds ? new Date(item.submittedAt.seconds * 1000).toLocaleDateString('en-GB') : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {drillDownData.items.length > 50 && (
-                <p style={{ textAlign: 'center', marginTop: '1rem', color: 'var(--muted)', fontSize: 13 }}>
-                  {t('showing_first_50') || `Showing first 50 of ${drillDownData.items.length} items`}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

@@ -31,7 +31,7 @@ const DEFAULT_WIDGETS = [
   {
     id: 'w2',
     title: 'Activity Types',
-    chartType: 'bar',
+    chartType: 'pie',
     dataSource: 'activities,announcements,resources',
     groupBy: 'type',
     aggregation: 'count',
@@ -55,7 +55,7 @@ const DEFAULT_WIDGETS = [
   {
     id: 'w4',
     title: 'Attendance by Status',
-    chartType: 'bar',
+    chartType: 'pie',
     dataSource: 'attendance',
     groupBy: 'status',
     aggregation: 'count',
@@ -66,6 +66,18 @@ const DEFAULT_WIDGETS = [
   },
   {
     id: 'w5',
+    title: 'Recent Activities',
+    chartType: 'list',
+    dataSource: 'activities,announcements,resources',
+    groupBy: 'type',
+    aggregation: 'list',
+    dateRange: 'last30',
+    filters: [],
+    comparisonMode: false,
+    layout: { x: 6, y: 5, w: 6, h: 6 }
+  },
+  {
+    id: 'w6',
     title: 'Enrollments by Program',
     chartType: 'bar',
     dataSource: 'enrollments',
@@ -74,7 +86,7 @@ const DEFAULT_WIDGETS = [
     dateRange: 'all',
     filters: [],
     comparisonMode: false,
-    layout: { x: 6, y: 5, w: 6, h: 5 }
+    layout: { x: 0, y: 10, w: 6, h: 5 }
   }
 ];
 
