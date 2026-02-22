@@ -118,7 +118,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
     { type: 'bar',  icon: getThemedIcon('ui', 'bar_chart3', 20, theme),   label: t('bar')  || 'Bar' },
     { type: 'line', icon: getThemedIcon('ui', 'line_chart', 20, theme),   label: t('line') || 'Line' },
     { type: 'pie',  icon: getThemedIcon('ui', 'pie_chart', 20, theme),    label: t('pie')  || 'Pie' },
-    { type: 'area', icon: getThemedIcon('ui', 'trending_up', 20, theme),  label: t('area') || 'Area' },
+    { type: 'donut', icon: getThemedIcon('ui', 'pie_chart', 20, theme),  label: t('donut') || 'Donut' },
   ];
 
   return (

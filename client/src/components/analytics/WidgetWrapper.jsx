@@ -41,7 +41,7 @@ const WidgetWrapper = ({
   children
 }) => {
   const { theme } = useTheme();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [isMaximized, setIsMaximized] = useState(false);
   const toggleMaximize = useCallback(() => setIsMaximized(v => !v), []);
 
@@ -141,7 +141,7 @@ const WidgetWrapper = ({
                 textOverflow: 'ellipsis'
               }}
             >
-              {widget.title}
+              {lang === 'ar' ? (widget.title_ar || widget.title_en || widget.title) : (widget.title_en || widget.title_ar || widget.title)}
               {widget.dateRange && (
                 <span style={{ 
                   fontSize: 12, 

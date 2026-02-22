@@ -74,13 +74,6 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
         description: 'Show proportions',
         chartType: 'pie',
         icon: 'pie_chart'
-      },
-      {
-        id: 'template_area',
-        title: 'Area Chart',
-        description: 'Show cumulative trends',
-        chartType: 'area',
-        icon: 'area_chart'
       }
     ]);
   }, [selectedRole, selectedDashboard, isOpen]);

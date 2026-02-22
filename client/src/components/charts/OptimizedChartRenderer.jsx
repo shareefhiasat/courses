@@ -29,6 +29,18 @@ const ChartFallback = memo(({ size = { w: 4, h: 3 } }) => {
 });
 ChartFallback.displayName = 'ChartFallback';
 
+// Helper function to determine chart type from data source
+const getChartTypeFromDataSource = (dataSource) => {
+  if (dataSource.includes('activities') || dataSource.includes('announcements') || dataSource.includes('resources')) {
+    return 'activity';
+  } else if (dataSource === 'attendance') {
+    return 'attendance';
+  } else if (dataSource === 'enrollments') {
+    return 'enrollment';
+  }
+  return 'pie';
+};
+
 /**
  * Optimized Chart Renderer with lazy loading and memoization
  * 
@@ -36,18 +48,21 @@ ChartFallback.displayName = 'ChartFallback';
  * @param {Object} size - Widget size from grid layout
  * @param {Object} data - Processed widget data
  * @param {string} accentColor - Theme accent color
+ * @param {Object} rawData - Raw data for unknown items details
  * @returns {React.Component} Rendered chart
  */
-const OptimizedChartRenderer = memo(({ widget, size, data, accentColor }) => {
-  const { chartType, ...widgetProps } = widget;
+const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData }) => {
+  const { chartType, dataSource, ...widgetProps } = widget;
 
   // Memoize chart props to prevent unnecessary re-renders
   const chartProps = React.useMemo(() => ({
     data,
     accentColor,
     size,
+    rawData,
+    chartType: getChartTypeFromDataSource(dataSource),
     ...widgetProps
-  }), [data, accentColor, size, widgetProps]);
+  }), [data, accentColor, size, rawData, dataSource, widgetProps]);
 
   // Render appropriate chart based on type
   switch (chartType) {

@@ -170,10 +170,11 @@ const DashboardEngine = ({
         size={size}
         data={data}
         accentColor={accentColor}
+        rawData={rawData}
         onPointClick={(dp) => handleChartClick(widget, dp)}
       />
     );
-  }, [chartDataMap, handleChartClick, accentColor]);
+  }, [chartDataMap, handleChartClick, accentColor, rawData]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
