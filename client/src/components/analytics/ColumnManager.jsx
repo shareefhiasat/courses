@@ -31,6 +31,8 @@ export default function ColumnManager({
         { key: 'status', label: t('status') || 'Status', required: true },
         { key: 'date', label: t('date') || 'Date', required: true },
         { key: 'className', label: t('class_name') || 'Class Name', required: false },
+        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
+        { key: 'createdBy', label: t('created_by') || 'Created By', required: false },
         { key: 'id', label: t('id') || 'ID', required: false }
       ],
       
@@ -38,6 +40,7 @@ export default function ColumnManager({
       activity: [
         { key: 'type', label: t('type') || 'Type', required: true },
         { key: 'title', label: t('title') || 'Title', required: true },
+        { key: 'titleEn', label: t('title_english') || 'Title (EN)', required: false },
         { key: 'titleAr', label: t('title_arabic') || 'Title (AR)', required: false },
         { key: 'createdBy', label: t('created_by') || 'Created By', required: false },
         { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
@@ -52,13 +55,17 @@ export default function ColumnManager({
         { key: 'studentNumber', label: t('student_number') || 'Student Number', required: false },
         { key: 'className', label: t('class_name') || 'Class Name', required: false },
         { key: 'status', label: t('status') || 'Status', required: false },
-        { key: 'enrollmentDate', label: t('enrollment_date') || 'Enrollment Date', required: false }
+        { key: 'enrollmentDate', label: t('enrollment_date') || 'Enrollment Date', required: false },
+        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
+        { key: 'createdBy', label: t('created_by') || 'Created By', required: false }
       ],
       
       // User columns
       users: [
-        { key: 'realName', label: t('full_name') || 'Full Name', required: true },
-        { key: 'displayName', label: t('display_name') || 'Display Name', required: false },
+        { key: 'realNameEn', label: t('full_name_en') || 'Full Name (EN)', required: true },
+        { key: 'realNameAr', label: t('full_name_ar') || 'Full Name (AR)', required: true },
+        { key: 'displayNameEn', label: t('display_name_en') || 'Display Name (EN)', required: false },
+        { key: 'displayNameAr', label: t('display_name_ar') || 'Display Name (AR)', required: false },
         { key: 'email', label: t('email') || 'Email', required: false },
         { key: 'role', label: t('role') || 'Role', required: true },
         { key: 'studentNumber', label: t('student_number') || 'Student Number', required: false },
@@ -67,12 +74,13 @@ export default function ColumnManager({
       
       // Class columns
       classes: [
-        { key: 'name', label: t('class_name') || 'Class Name', required: true },
+        { key: 'nameEn', label: t('class_name_en') || 'Class Name (EN)', required: true },
+        { key: 'nameAr', label: t('class_name_ar') || 'Class Name (AR)', required: true },
         { key: 'programName', label: t('program_name') || 'Program Name', required: false },
         { key: 'instructor', label: t('instructor') || 'Instructor', required: false },
-        { key: 'semester', label: t('semester') || 'Semester', required: false },
         { key: 'term', label: t('term') || 'Term', required: false },
-        { key: 'status', label: t('status') || 'Status', required: false }
+        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
+        { key: 'createdBy', label: t('created_by') || 'Created By', required: false }
       ],
       
       // Participation columns
@@ -82,7 +90,9 @@ export default function ColumnManager({
         { key: 'date', label: t('date') || 'Date', required: true },
         { key: 'className', label: t('class_name') || 'Class Name', required: false },
         { key: 'points', label: t('points') || 'Points', required: false },
-        { key: 'notes', label: t('notes') || 'Notes', required: false }
+        { key: 'notes', label: t('notes') || 'Notes', required: false },
+        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
+        { key: 'createdBy', label: t('created_by') || 'Created By', required: false }
       ],
       
       // Penalty columns
@@ -92,7 +102,9 @@ export default function ColumnManager({
         { key: 'date', label: t('date') || 'Date', required: true },
         { key: 'className', label: t('class_name') || 'Class Name', required: false },
         { key: 'points', label: t('points') || 'Points', required: false },
-        { key: 'reason', label: t('reason') || 'Reason', required: false }
+        { key: 'reason', label: t('reason') || 'Reason', required: false },
+        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
+        { key: 'createdBy', label: t('created_by') || 'Created By', required: false }
       ],
       
       // Behavior columns
@@ -102,7 +114,29 @@ export default function ColumnManager({
         { key: 'date', label: t('date') || 'Date', required: true },
         { key: 'className', label: t('class_name') || 'Class Name', required: false },
         { key: 'severity', label: t('severity') || 'Severity', required: false },
-        { key: 'description', label: t('description') || 'Description', required: false }
+        { key: 'description', label: t('description') || 'Description', required: false },
+        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
+        { key: 'createdBy', label: t('created_by') || 'Created By', required: false }
+      ],
+      
+      // Program columns
+      programs: [
+        { key: 'nameEn', label: t('program_name_en') || 'Program Name (EN)', required: true },
+        { key: 'nameAr', label: t('program_name_ar') || 'Program Name (AR)', required: true },
+        { key: 'type', label: t('program_type') || 'Program Type', required: false },
+        { key: 'duration', label: t('program_duration') || 'Program Duration', required: false },
+        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
+        { key: 'createdBy', label: t('created_by') || 'Created By', required: false }
+      ],
+      
+      // Subject columns
+      subjects: [
+        { key: 'nameEn', label: t('subject_name_en') || 'Subject Name (EN)', required: true },
+        { key: 'nameAr', label: t('subject_name_ar') || 'Subject Name (AR)', required: true },
+        { key: 'type', label: t('subject_type') || 'Subject Type', required: false },
+        { key: 'credits', label: t('credits') || 'Credits', required: false },
+        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
+        { key: 'createdBy', label: t('created_by') || 'Created By', required: false }
       ]
     };
 
@@ -124,6 +158,10 @@ export default function ColumnManager({
       type = 'penalties';
     } else if (dataSource?.includes('behaviors')) {
       type = 'behaviors';
+    } else if (dataSource?.includes('programs')) {
+      type = 'programs';
+    } else if (dataSource?.includes('subjects')) {
+      type = 'subjects';
     }
 
     return baseColumns[type] || baseColumns.activity;
@@ -243,6 +281,33 @@ export default function ColumnManager({
             { key: 'classInstructor', label: t('class_instructor') || 'Class Instructor', relation: 'classId' }
           ]
         }
+      ],
+      
+      programs: [
+        { 
+          collection: 'users', 
+          columns: [
+            { key: 'creatorEmail', label: t('creator_email') || 'Creator Email', relation: 'createdBy' },
+            { key: 'creatorRole', label: t('creator_role') || 'Creator Role', relation: 'createdBy' }
+          ]
+        }
+      ],
+      
+      subjects: [
+        { 
+          collection: 'users', 
+          columns: [
+            { key: 'creatorEmail', label: t('creator_email') || 'Creator Email', relation: 'createdBy' },
+            { key: 'creatorRole', label: t('creator_role') || 'Creator Role', relation: 'createdBy' }
+          ]
+        },
+        { 
+          collection: 'programs', 
+          columns: [
+            { key: 'programName', label: t('program_name') || 'Program Name', relation: 'programId' },
+            { key: 'programType', label: t('program_type') || 'Program Type', relation: 'programId' }
+          ]
+        }
       ]
     };
 
@@ -260,6 +325,10 @@ export default function ColumnManager({
       type = 'penalties';
     } else if (dataSource?.includes('behaviors')) {
       type = 'behaviors';
+    } else if (dataSource?.includes('programs')) {
+      type = 'programs';
+    } else if (dataSource?.includes('subjects')) {
+      type = 'subjects';
     }
 
     return related[type] || [];

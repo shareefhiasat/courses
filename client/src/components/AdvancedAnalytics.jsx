@@ -344,16 +344,6 @@ export default function AdvancedAnalytics({
             searchable
             fullWidth
           />
-          <Select
-            value={localFilters.semester}
-            onChange={e => setLocalFilters(f => ({ ...f, semester: e.target.value }))}
-            options={[
-              { value: '', label: t('all_semesters') || 'All Semesters' },
-              ...Array.from(new Set((rawData.subjects || []).map(s => s.semester).filter(Boolean))).map(v => ({ value: v, label: v }))
-            ]}
-            searchable
-            fullWidth
-          />
           <YearSelect
             value={localFilters.year}
             onChange={e => setLocalFilters(f => ({ ...f, year: e.target.value }))}
@@ -364,6 +354,7 @@ export default function AdvancedAnalytics({
             allLabel={t('all_years') || 'All Years'}
             searchable
             fullWidth
+            label=""
           />
           <Select
             value={localFilters.studentId}

@@ -212,19 +212,39 @@ export const processWidgetDataOptimized = cache((widget, rawData, globalFilters)
           ...(rawData.absences || []),
           ...(rawData.attendanceSessions || [])
         ];
-        processedData = processAttendanceData(widget, attendanceData, globalFilters);
+        processedData = processAttendanceData(widget, attendanceData, globalFilters, rawData);
         break;
       case 'marks':
         processedData = processMarksData(widget, rawData.marks || [], globalFilters);
         break;
       case 'participations':
-        processedData = processParticipationData(widget, rawData.participations || [], globalFilters);
+        processedData = processGenericData(widget, rawData.participations || [], globalFilters, rawData, 'participations');
         break;
       case 'behaviors':
-        processedData = processBehaviorData(widget, rawData.behaviors || [], globalFilters);
+        processedData = processGenericData(widget, rawData.behaviors || [], globalFilters, rawData, 'behaviors');
         break;
       case 'penalties':
-        processedData = processPenaltyData(widget, rawData.penalties || [], globalFilters);
+        processedData = processGenericData(widget, rawData.penalties || [], globalFilters, rawData, 'penalties');
+        break;
+      case 'absences':
+        processedData = processGenericData(widget, rawData.absences || [], globalFilters, rawData, 'absences');
+        break;
+      case 'users':
+        processedData = processGenericData(widget, rawData.users || [], globalFilters, rawData, 'users');
+        break;
+      case 'classes':
+        processedData = processGenericData(widget, rawData.classes || [], globalFilters, rawData, 'classes');
+        break;
+      case 'programs':
+        processedData = processGenericData(widget, rawData.programs || [], globalFilters, rawData, 'programs');
+        break;
+      case 'subjects':
+        processedData = processGenericData(widget, rawData.subjects || [], globalFilters, rawData, 'subjects');
+        break;
+      case 'announcements':
+      case 'resources':
+      case 'activityLogs':
+        processedData = processGenericData(widget, rawData[dataSource] || [], globalFilters, rawData, dataSource);
         break;
       default:
         processedData = [];
@@ -337,6 +357,63 @@ function processMultiSourceActivityData(widget, data, filters) {
     });
     
     logger.log('[processMultiSourceActivityData] Type distribution:', typeDistribution);
+    logger.log('[processMultiSourceActivityData] Mapped grouped data:', grouped);
+    
+    const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
+    logger.log('[processMultiSourceActivityData] Final result:', result);
+    
+    return result;
+  }
+  
+  // Handle other groupBy fields
+  if (['classId', 'programId', 'subjectId', 'userId', 'createdBy', 'date'].includes(widget.groupBy)) {
+    const grouped = {};
+    const distribution = {};
+    
+    filtered.forEach(item => {
+      let key = 'Unknown';
+      
+      switch (widget.groupBy) {
+        case 'classId':
+          const classItem = rawData.classes?.find(c => c.id === item.classId);
+          key = classItem?.nameEn || classItem?.name || classItem?.className || `Class ${item.classId?.substring(0, 8)}`;
+          break;
+          
+        case 'programId':
+          const programItem = rawData.programs?.find(p => p.id === item.programId);
+          key = programItem?.nameEn || programItem?.name || programItem?.programName || `Program ${item.programId?.substring(0, 8)}`;
+          break;
+          
+        case 'subjectId':
+          const subjectItem = rawData.subjects?.find(s => s.id === item.subjectId);
+          key = subjectItem?.nameEn || subjectItem?.name || subjectItem?.subjectName || `Subject ${item.subjectId?.substring(0, 8)}`;
+          break;
+          
+        case 'userId':
+        case 'createdBy':
+          const userItem = rawData.users?.find(u => u.id === (item.userId || item.createdBy));
+          key = userItem?.realNameEn || userItem?.realName || userItem?.displayNameEn || userItem?.displayName || userItem?.name || `User ${item.userId?.substring(0, 8)}`;
+          break;
+          
+        case 'date':
+          const date = item.date || item.createdAt || item.when;
+          if (date) {
+            const dateObj = date.seconds ? new Date(date.seconds * 1000) : new Date(date);
+            key = dateObj.toLocaleDateString();
+          } else {
+            key = 'No Date';
+          }
+          break;
+          
+        default:
+          key = item[widget.groupBy] || 'Unknown';
+      }
+      
+      grouped[key] = (grouped[key] || 0) + 1;
+      distribution[key] = (distribution[key] || 0) + 1;
+    });
+    
+    logger.log(`[processMultiSourceActivityData] ${widget.groupBy} distribution:`, distribution);
     logger.log('[processMultiSourceActivityData] Mapped grouped data:', grouped);
     
     const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
@@ -502,6 +579,57 @@ function processAttendanceData(widget, data, filters) {
     return result;
   }
   
+  // Handle other groupBy fields for attendance
+  if (['classId', 'studentId', 'createdBy', 'date'].includes(widget.groupBy)) {
+    const grouped = {};
+    const distribution = {};
+    
+    filtered.forEach(item => {
+      let key = 'Unknown';
+      
+      switch (widget.groupBy) {
+        case 'classId':
+          const classItem = rawData.classes?.find(c => c.id === item.classId);
+          key = classItem?.nameEn || classItem?.name || classItem?.className || `Class ${item.classId?.substring(0, 8)}`;
+          break;
+          
+        case 'studentId':
+          const userItem = rawData.users?.find(u => u.id === item.studentId);
+          key = userItem?.realNameEn || userItem?.realName || userItem?.displayNameEn || userItem?.displayName || userItem?.name || `Student ${item.studentId?.substring(0, 8)}`;
+          break;
+          
+        case 'createdBy':
+          const creatorItem = rawData.users?.find(u => u.id === item.createdBy);
+          key = creatorItem?.realNameEn || creatorItem?.realName || creatorItem?.displayNameEn || creatorItem?.displayName || creatorItem?.name || `User ${item.createdBy?.substring(0, 8)}`;
+          break;
+          
+        case 'date':
+          const date = item.date || item.createdAt || item.when;
+          if (date) {
+            const dateObj = date.seconds ? new Date(date.seconds * 1000) : new Date(date);
+            key = dateObj.toLocaleDateString();
+          } else {
+            key = 'No Date';
+          }
+          break;
+          
+        default:
+          key = item[widget.groupBy] || 'Unknown';
+      }
+      
+      grouped[key] = (grouped[key] || 0) + 1;
+      distribution[key] = (distribution[key] || 0) + 1;
+    });
+    
+    logger.log(`[processAttendanceData] ${widget.groupBy} distribution:`, distribution);
+    logger.log('[processAttendanceData] Mapped grouped data:', grouped);
+    
+    const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
+    logger.log('[processAttendanceData] Final result:', result);
+    
+    return result;
+  }
+  
   logger.log('[processAttendanceData] No grouping, returning total count:', filtered.length);
   return [{ label: widget.title || 'Attendance', value: filtered.length }];
 }
@@ -610,19 +738,6 @@ function processBehaviorData(widget, data, filters) {
     logger.log('[processBehaviorData] Mapped grouped data:', grouped);
     
     const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
-    logger.log('[processBehaviorData] Final result:', result);
-    
-    return result;
-  }
-  
-  logger.log('[processBehaviorData] No grouping, returning total count:', filtered.length);
-  return [{ label: widget.title || 'Behaviors', value: filtered.length }];
-}
-
-function processPenaltyData(widget, data, filters) {
-  let filtered = data;
-  
-  if (filters.classId) {
     filtered = filtered.filter(item => item.classId === filters.classId);
   }
   
@@ -655,4 +770,117 @@ function processPenaltyData(widget, data, filters) {
   }
   
   return [{ label: widget.title || 'Penalties', value: filtered.length }];
+}
+
+// Generic data processing function for all data sources
+function processGenericData(widget, data, filters, rawData, dataSourceName) {
+  let filtered = data;
+  
+  logger.log(`[processGenericData] Processing ${dataSourceName} data:`, {
+    totalRecords: data.length,
+    filters: filters,
+    groupBy: widget.groupBy
+  });
+  
+  // Apply filters
+  if (filters.classId) {
+    filtered = filtered.filter(item => item.classId === filters.classId);
+  }
+  
+  if (filters.studentId) {
+    filtered = filtered.filter(item => item.studentId === filters.studentId);
+  }
+  
+  if (filters.programId) {
+    filtered = filtered.filter(item => item.programId === filters.programId);
+  }
+  
+  // Handle groupBy
+  if (widget.groupBy && widget.groupBy !== 'none') {
+    const grouped = {};
+    
+    filtered.forEach(item => {
+      let key = 'Unknown';
+      
+      switch (widget.groupBy) {
+        case 'classId':
+          const classItem = rawData.classes?.find(c => c.id === item.classId);
+          key = classItem?.nameEn || classItem?.name || classItem?.className || `Class ${item.classId?.substring(0, 8) || 'Unknown'}`;
+          break;
+          
+        case 'programId':
+          const programItem = rawData.programs?.find(p => p.id === item.programId);
+          key = programItem?.nameEn || programItem?.name || programItem?.programName || `Program ${item.programId?.substring(0, 8) || 'Unknown'}`;
+          break;
+          
+        case 'subjectId':
+          const subjectItem = rawData.subjects?.find(s => s.id === item.subjectId);
+          logger.log(`[processGenericData] Resolving subject:`, {
+            itemSubjectId: item.subjectId,
+            subjectItem: subjectItem,
+            availableSubjects: rawData.subjects?.length || 0,
+            subjectNameEn: subjectItem?.nameEn,
+            subjectName: subjectItem?.name,
+            subjectSubjectName: subjectItem?.subjectName
+          });
+          key = subjectItem?.nameEn || subjectItem?.name || subjectItem?.subjectName || `Subject ${item.subjectId?.substring(0, 8) || 'Unknown'}`;
+          break;
+          
+        case 'userId':
+        case 'createdBy':
+          const userId = item.userId || item.createdBy;
+          const userItem = rawData.users?.find(u => u.id === userId);
+          key = userItem?.realNameEn || userItem?.realName || userItem?.displayNameEn || userItem?.displayName || userItem?.name || `User ${userId?.substring(0, 8) || 'Unknown'}`;
+          break;
+          
+        case 'studentId':
+          const studentItem = rawData.users?.find(u => u.id === item.studentId);
+          key = studentItem?.realNameEn || studentItem?.realName || studentItem?.displayNameEn || studentItem?.displayName || studentItem?.name || `Student ${item.studentId?.substring(0, 8) || 'Unknown'}`;
+          break;
+          
+        case 'role':
+          key = item.role || 'Unknown Role';
+          break;
+          
+        case 'term':
+          key = item.term || 'Unknown Term';
+          break;
+          
+        case 'year':
+          key = item.year || 'Unknown Year';
+          break;
+          
+        case 'date':
+          const date = item.date || item.createdAt || item.when;
+          if (date) {
+            const dateObj = date.seconds ? new Date(date.seconds * 1000) : new Date(date);
+            key = dateObj.toLocaleDateString();
+          } else {
+            key = 'No Date';
+          }
+          break;
+          
+        case 'penaltyType':
+        case 'absenceType':
+        case 'attendanceType':
+          key = item[widget.groupBy] || item.type || 'Unknown';
+          break;
+          
+        default:
+          key = item[widget.groupBy] || 'Unknown';
+      }
+      
+      grouped[key] = (grouped[key] || 0) + 1;
+    });
+    
+    logger.log(`[processGenericData] ${widget.groupBy} distribution for ${dataSourceName}:`, grouped);
+    
+    const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
+    logger.log('[processGenericData] Final result:', result);
+    
+    return result;
+  }
+  
+  logger.log(`[processGenericData] No grouping for ${dataSourceName}, returning total count:`, filtered.length);
+  return [{ label: widget.title || dataSourceName, value: filtered.length }];
 }

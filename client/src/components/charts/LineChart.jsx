@@ -8,7 +8,20 @@ import React from 'react';
  * @param {String} color - Line color
  * @param {Boolean} showArea - Fill area under line
  */
-export default function LineChart({ data = [], width = 400, height = 300, accentColor = '#800020', showArea = true, showPoints = true, showGrid = true }) {
+export default function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor = '#800020', showArea = true, showPoints = true, showGrid = true }) {
+  // Handle size as object with width/height or legacy width/height props
+  let width, height;
+  if (typeof size === 'object' && size.width && size.height) {
+    width = size.width;
+    height = size.height;
+  } else if (typeof size === 'number') {
+    width = size;
+    height = size;
+  } else {
+    width = 400;
+    height = 300;
+  }
+  
   if (!data || data.length === 0) {
     return <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No data</div>;
   }

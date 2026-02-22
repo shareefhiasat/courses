@@ -15,6 +15,7 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
   const [pinnedIds, setPinnedIdsState] = useState([]);
   const [loading, setLoading] = useState(true);
   const saveTimerRef = useRef(null);
+  const skipSaveRef = useRef(false);
 
   // ── Load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -91,11 +92,18 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
   }, [uid, dashboardKey]);
 
   // ── Setters that also persist ─────────────────────────────────────────────
-  const setWidgets = useCallback((next) => {
+  const setWidgets = useCallback((next, skipSave = false) => {
     const resolved = typeof next === 'function' ? next(widgets) : next;
     setWidgetsState(resolved);
-    debouncedSave(resolved, pinnedIds);
+    if (!skipSave && !skipSaveRef.current) {
+      debouncedSave(resolved, pinnedIds);
+    }
   }, [widgets, pinnedIds, debouncedSave]);
+
+  // ── Control save mechanism ────────────────────────────────────────────────
+  const setSkipSave = useCallback((skip) => {
+    skipSaveRef.current = skip;
+  }, []);
 
   const setPinnedIds = useCallback((next) => {
     const resolved = typeof next === 'function' ? next(pinnedIds) : next;
@@ -103,7 +111,7 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
     debouncedSave(widgets, resolved);
   }, [widgets, pinnedIds, debouncedSave]);
 
-  return { widgets, setWidgets, pinnedIds, setPinnedIds, loading };
+  return { widgets, setWidgets, pinnedIds, setPinnedIds, loading, setSkipSave };
 };
 
 export default useWidgetDashboard;

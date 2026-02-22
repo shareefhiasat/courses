@@ -18,7 +18,7 @@ import {
   // Time Icons
   Clock, Calendar,
   // UI Icons
-  Settings, Key, Eye, EyeOff, Lock, LogIn, LogOut,
+  Settings, Key, Eye, EyeOff, Lock, LogIn, LogOut, MoreVertical,
   // Action Icons
   Edit, Trash, Trash2, RefreshCw, Plus, Minus, X, Copy, Wrench, Clipboard,
   // File Icons
@@ -26,7 +26,7 @@ import {
   // Behavior/Sleep Icons
   Bed,
   // Other Icons
-  HelpCircle, Star, StarOff, ThumbsUp, Moon, LayoutGrid, LayoutDashboard, ZoomIn, Menu, Sun, Ruler, Pin, ClipboardList, Check, Play, Download, BarChart3, LineChart, PieChart, Save, GripVertical,
+  HelpCircle, Star, StarOff, ThumbsUp, Moon, LayoutGrid, LayoutDashboard, ZoomIn, Menu, Sun, Ruler, Pin, ClipboardList, Check, Play, Download, BarChart3, LineChart, PieChart, Save, GripVertical, Hash,
   // Reaction Icons
   Smile, Frown, Mic,
   // Additional icons from dashboard and chat pages
@@ -247,6 +247,7 @@ export const ICON_TYPES = {
     grip_vertical: <GripVertical size={16} />,
     zap: <Zap size={16} />,
     list: <List size={16} />,
+    hash: <Hash size={16} />,
     // Additional UI icons needed by the application
     award: <Award size={16} />,
     trophy: <Trophy size={16} />,
@@ -301,6 +302,7 @@ export const ICON_TYPES = {
     heart: <Heart size={16} />,
     trash: <Trash size={16} />,
     copy: <Copy size={16} />,
+    more_vertical: <MoreVertical size={16} />,
     wrench: <Wrench size={16} />,
     clipboard: <Clipboard size={16} />,
     // Additional icons from dashboard and chat pages

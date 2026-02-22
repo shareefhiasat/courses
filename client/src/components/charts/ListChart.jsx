@@ -127,7 +127,7 @@ export default function ListChart({
 
   // Use centralized resolvers for consistent data mapping
 
-  // Handle size
+  // Handle size - make it adaptive to container
   let chartWidth, chartHeight;
   if (typeof size === 'object' && size.width && size.height) {
     chartWidth = size.width;
@@ -139,6 +139,10 @@ export default function ListChart({
     chartWidth = 400;
     chartHeight = 300;
   }
+  
+  // Ensure minimum height for usability
+  chartHeight = Math.max(chartHeight, 200);
+  chartWidth = Math.max(chartWidth, 300);
 
   if (items.length === 0) {
     return (
@@ -226,6 +230,7 @@ export default function ListChart({
     const labels = {
       type: t('type') || 'Type',
       title: t('title') || 'Title',
+      titleEn: t('title_english') || 'Title (EN)',
       titleAr: t('title_arabic') || 'Title (AR)',
       createdBy: t('created_by') || 'Created By',
       createdAt: t('created_date') || 'Created',
@@ -233,10 +238,13 @@ export default function ListChart({
       studentNumber: t('student_number') || 'Student Number',
       status: t('status') || 'Status',
       date: t('date') || 'Date',
-      className: t('class_name') || 'Class Name',
-      programName: t('program_name') || 'Program Name',
-      id: t('id') || 'ID',
-      name: t('name') || 'Name'
+      nameEn: t('program_name_en') || 'Program Name (EN)',
+      nameAr: t('program_name_ar') || 'Program Name (AR)',
+      realNameEn: t('full_name_en') || 'Full Name (EN)',
+      realNameAr: t('full_name_ar') || 'Full Name (AR)',
+      displayNameEn: t('display_name_en') || 'Display Name (EN)',
+      displayNameAr: t('display_name_ar') || 'Display Name (AR)',
+      id: t('id') || 'ID'
     };
     return labels[key] || key;
   };
@@ -274,6 +282,7 @@ export default function ListChart({
     const widths = {
       type: '12%',
       title: '25%',
+      titleEn: '20%',
       titleAr: '20%',
       createdBy: '15%',
       createdAt: '13%',
@@ -281,10 +290,13 @@ export default function ListChart({
       studentNumber: '15%',
       status: '15%',
       date: '15%',
-      className: '20%',
-      programName: '25%',
+      nameEn: '20%',
+      nameAr: '20%',
+      realNameEn: '20%',
+      realNameAr: '20%',
+      displayNameEn: '20%',
+      displayNameAr: '20%',
       id: '10%',
-      name: '40%',
       // Related columns
       studentEmail: '18%',
       studentPhone: '12%',
@@ -319,8 +331,11 @@ export default function ListChart({
       case 'title':
         return item.title || item.name || t('not_specified');
       
+      case 'titleEn':
+        return item.titleEn || item.title_en || item.title || '—';
+        
       case 'titleAr':
-        return item.title_ar || item.titleAr || '—';
+        return item.titleAr || item.title_ar || item.title || '—';
       
       case 'createdBy':
         const creator = resolveUser(item.createdBy, rawData.users, t);
@@ -345,13 +360,52 @@ export default function ListChart({
       case 'date':
         return formatDate(item.date?.seconds ? new Date(item.date.seconds * 1000) : item.date, t);
       
-      case 'className':
-        const classInfo = resolveClass(item.classId, rawData.classes, t);
-        return classInfo.name;
+      case 'nameEn':
+        // Handle different entity types for nameEn
+        if (item.nameEn || item.name_en) {
+          return item.nameEn || item.name_en || '—';
+        }
+        if (item.classId) {
+          const classInfoEn = resolveClass(item.classId, rawData.classes, t);
+          return classInfoEn.nameEn || classInfoEn.name || '—';
+        }
+        if (item.programId || item.id) {
+          const programEn = resolveProgram(item.programId || item.id, rawData.programs, t);
+          return programEn.nameEn || programEn.name || '—';
+        }
+        return '—';
+        
+      case 'nameAr':
+        // Handle different entity types for nameAr
+        if (item.nameAr || item.name_ar) {
+          return item.nameAr || item.name_ar || '—';
+        }
+        if (item.classId) {
+          const classInfoAr = resolveClass(item.classId, rawData.classes, t);
+          return classInfoAr.nameAr || classInfoAr.name || '—';
+        }
+        if (item.programId || item.id) {
+          const programAr = resolveProgram(item.programId || item.id, rawData.programs, t);
+          return programAr.nameAr || programAr.name || '—';
+        }
+        return '—';
       
-      case 'programName':
-        const program = resolveProgram(item.programId, rawData.programs, t);
-        return program.name;
+      case 'realNameEn':
+        const userEn = resolveUser(item.userId || item.studentId || item.id, rawData.users, t);
+        return userEn.nameEn || '—';
+        
+      case 'realNameAr':
+        const userAr = resolveUser(item.userId || item.studentId || item.id, rawData.users, t);
+        return userAr.nameAr || '—';
+        
+      case 'displayName':
+        return item.displayName || item.display_name || item.realName || '—';
+        
+      case 'displayNameEn':
+        return item.displayNameEn || item.display_name_en || item.displayName || item.realName || '—';
+        
+      case 'displayNameAr':
+        return item.displayNameAr || item.display_name_ar || item.displayName || item.realName || '—';
       
       case 'id':
         return truncateId(item.id || item.docId, 8);
@@ -377,11 +431,14 @@ export default function ListChart({
 
   return (
     <div style={{ 
-      width: chartWidth, 
-      height: chartHeight, 
+      width: '100%', 
+      height: '100%', 
+      minWidth: chartWidth,
+      minHeight: chartHeight,
       display: 'flex', 
       flexDirection: 'column',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      overflow: 'hidden'
     }}>
       {/* Header */}
       <div style={{

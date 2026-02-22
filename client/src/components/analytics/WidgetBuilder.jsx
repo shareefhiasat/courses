@@ -10,53 +10,41 @@ import { Select, DateRangeSlider } from '@ui';
  */
 export const DATA_SOURCES = [
   // ── Merged / virtual sources ──────────────────────────────────────────────
-  { value: 'activities,announcements,resources', labelKey: 'ds_all_activities', label: 'All Activities (merged)', groupBy: ['type', '_source', 'classId', 'programId', 'subjectId', 'userId', 'date'] },
+  { value: 'activities,announcements,resources', labelKey: 'all_activities', label: 'All Activities (merged)', groupBy: ['classId', 'programId', 'subjectId', 'userId', 'createdBy', 'date'] },
 
   // ── Single collections ────────────────────────────────────────────────────
-  { value: 'activities',              labelKey: 'ds_activities',               groupBy: ['type', 'classId', 'programId', 'subjectId', 'userId', 'date', 'semester', 'term'] },
-  { value: 'announcements',           labelKey: 'ds_announcements',            groupBy: ['type', 'classId', 'programId', 'userId', 'date'] },
-  { value: 'resources',               labelKey: 'ds_resources',                groupBy: ['type', 'classId', 'programId', 'subjectId', 'userId', 'date'] },
-  { value: 'submissions',             labelKey: 'ds_submissions',              groupBy: ['status', 'classId', 'programId', 'subjectId', 'userId', 'date', 'semester', 'term', 'year'] },
-  { value: 'attendance',              labelKey: 'ds_attendance',               groupBy: ['attendanceType', 'status', 'classId', 'programId', 'date', 'term', 'semester'] },
-  { value: 'attendanceSessions',      labelKey: 'ds_attendance_sessions',      groupBy: ['status', 'classId', 'programId', 'date'] },
-  { value: 'enrollments',             labelKey: 'ds_enrollments',              groupBy: ['status', 'classId', 'programId', 'subjectId', 'semester', 'year'] },
-  { value: 'users',                   labelKey: 'ds_users',                    groupBy: ['role', 'status', 'programId', 'date'] },
-  { value: 'classes',                 labelKey: 'ds_classes',                  groupBy: ['programId', 'term', 'year', 'semester', 'status'] },
-  { value: 'programs',                labelKey: 'ds_programs',                 groupBy: ['status', 'type'] },
-  { value: 'subjects',                labelKey: 'ds_subjects',                 groupBy: ['programId', 'semester', 'type'] },
-  { value: 'courses',                 labelKey: 'ds_courses',                  groupBy: ['status', 'type', 'programId'] },
-  { value: 'quizzes',                 labelKey: 'ds_quizzes',                  groupBy: ['type', 'difficulty', 'classId', 'programId', 'subjectId'] },
-  { value: 'quizSubmissions',         labelKey: 'ds_quiz_submissions',         groupBy: ['status', 'classId', 'userId', 'date'] },
-  { value: 'penalties',               labelKey: 'ds_penalties',                groupBy: ['penaltyType', 'classId', 'userId', 'date'] },
-  { value: 'absences',                labelKey: 'ds_absences',                 groupBy: ['absenceType', 'classId', 'userId', 'date'] },
-  { value: 'behaviors',               labelKey: 'ds_behaviors',                groupBy: ['type', 'classId', 'studentId', 'programId', 'subjectId', 'date'] },
-  { value: 'participations',          labelKey: 'ds_participations',           groupBy: ['type', 'classId', 'studentId', 'programId', 'subjectId', 'date'] },
-  { value: 'notifications',           labelKey: 'ds_notifications',            groupBy: ['type', 'status', 'date'] },
-  { value: 'notificationLogs',        labelKey: 'ds_notification_logs',        groupBy: ['type', 'status', 'date'] },
-  { value: 'activityLogs',            labelKey: 'ds_activity_logs',            groupBy: ['type', 'userId', 'date'] },
-  { value: 'emailLogs',               labelKey: 'ds_email_logs',               groupBy: ['status', 'type', 'date'] },
-  { value: 'studentMarks',            labelKey: 'ds_student_marks',            groupBy: ['markType', 'classId', 'userId', 'programId', 'subjectId'] },
-  { value: 'studentProgress',         labelKey: 'ds_student_progress',         groupBy: ['status', 'classId', 'userId', 'programId', 'subjectId'] },
-  { value: 'subjectMarksDistribution',labelKey: 'ds_marks_distribution',       groupBy: ['subjectId', 'programId', 'classId'] },
-  { value: 'scheduledReports',        labelKey: 'ds_scheduled_reports',        groupBy: ['status', 'type', 'date'] },
+  { value: 'announcements',           labelKey: 'announcements',            groupBy: ['classId', 'programId', 'userId', 'createdBy', 'date'] },
+  { value: 'resources',               labelKey: 'resources',                groupBy: ['classId', 'programId', 'subjectId', 'userId', 'createdBy', 'date'] },
+  { value: 'attendance',              labelKey: 'attendance',               groupBy: ['attendanceType', 'classId', 'programId', 'studentId', 'createdBy', 'date'] },
+  { value: 'enrollments',             labelKey: 'enrollments',              groupBy: ['classId', 'programId', 'subjectId', 'createdBy', 'date'] },
+  { value: 'users',                   labelKey: 'users',                    groupBy: ['role', 'programId', 'createdBy', 'date'] },
+  { value: 'classes',                 labelKey: 'classes',                  groupBy: ['programId', 'term', 'year', 'createdBy'] },
+  { value: 'programs',                labelKey: 'programs',                 groupBy: ['createdBy'] },
+  { value: 'subjects',                labelKey: 'subjects',                 groupBy: ['programId', 'createdBy'] },
+  { value: 'penalties',               labelKey: 'penalties',                groupBy: ['penaltyType', 'classId', 'userId', 'createdBy', 'date'] },
+  { value: 'absences',                labelKey: 'absences',                 groupBy: ['absenceType', 'classId', 'userId', 'createdBy', 'date'] },
+  { value: 'behaviors',               labelKey: 'behaviors',                groupBy: ['classId', 'studentId', 'programId', 'subjectId', 'createdBy', 'date'] },
+  { value: 'participations',          labelKey: 'participations',           groupBy: ['classId', 'studentId', 'programId', 'subjectId', 'createdBy', 'date'] },
+  { value: 'activityLogs',            labelKey: 'activity_logs',            groupBy: ['userId', 'createdBy', 'date'] },
 ];
 
 const GROUP_BY_KEYS = {
-  status: 'gb_status', type: 'gb_type', classId: 'gb_class', programId: 'gb_program',
-  subjectId: 'gb_subject', userId: 'gb_user', date: 'gb_date', semester: 'gb_semester',
+  status: 'gb_status', classId: 'gb_class', programId: 'gb_program',
+  subjectId: 'gb_subject', userId: 'gb_user', date: 'gb_date',
   term: 'gb_term', year: 'gb_year', role: 'gb_role', difficulty: 'gb_difficulty',
   penaltyType: 'gb_penalty_type', absenceType: 'gb_absence_type',
   attendanceStatus: 'gb_status', attendanceType: 'gb_attendance_type', markType: 'gb_mark_type',
-  studentId: 'gb_student', _source: 'gb_source',
+  studentId: 'gb_student', createdBy: 'Created By',
 };
 
 const AGGREGATION_KEYS = [
   { value: 'count',  key: 'agg_count' },
-  { value: 'sum',    key: 'agg_sum' },
-  { value: 'avg',    key: 'agg_avg' },
-  { value: 'min',    key: 'agg_min' },
-  { value: 'max',    key: 'agg_max' },
-  { value: 'median', key: 'agg_median' },
+  // TODO: Add other aggregations when needed
+  // { value: 'sum',    key: 'agg_sum' },
+  // { value: 'avg',    key: 'agg_avg' },
+  // { value: 'min',    key: 'agg_min' },
+  // { value: 'max',    key: 'agg_max' },
+  // { value: 'median', key: 'agg_median' },
 ];
 
 const DATE_RANGE_KEYS = [
@@ -144,12 +132,10 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
   return (
     <div
       style={{
-        position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.55)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 9999
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0,0,0,0.6)', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', zIndex: 9999
       }}
-      onClick={onCancel}
     >
       <div
         style={{
@@ -287,8 +273,8 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
             )}
           </Field>
 
-          {/* Comparison Mode */}
-          <Field label="">
+          {/* Comparison Mode - Deprecated */}
+          {/* <Field label="">
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
               <input
                 type="checkbox"
@@ -311,7 +297,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                 />
               </div>
             )}
-          </Field>
+          </Field> */}
 
           {/* Grid Size hint */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

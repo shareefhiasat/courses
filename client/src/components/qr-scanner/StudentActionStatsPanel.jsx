@@ -1731,14 +1731,15 @@ export default function StudentActionStatsPanel({
                   return PARTICIPATION_TYPES.reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
                 })()} {t('entries')})
                 </span>
-                    {getThemedIcon('ui', 'chevron_down', 16)}
-                        style={{
-                          width: '16px',
-                          height: '16px',
-                          transform: expandedSections.participation ? 'rotate(180deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.2s'
-                        }}
-                    />
+                    <span style={{
+                      width: '16px',
+                      height: '16px',
+                      transform: expandedSections.participation ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s',
+                      display: 'inline-block'
+                    }}>
+                      {getThemedIcon('ui', 'chevron_down', 16)}
+                    </span>
                   </div>
 
                   {expandedSections.participation && (
@@ -1887,14 +1888,15 @@ export default function StudentActionStatsPanel({
                   return BEHAVIOR_TYPES.reduce((sum, type) => sum + (stats.behavior[type.id]?.count || 0), 0);
                 })()} {t('entries')})
                 </span>
-                    {getThemedIcon('ui', 'chevron_down', 16)}
-                        style={{
-                          width: '16px',
-                          height: '16px',
-                          transform: expandedSections.behavior ? 'rotate(180deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.2s'
-                        }}
-                    />
+                    <span style={{
+                      width: '16px',
+                      height: '16px',
+                      transform: expandedSections.behavior ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s',
+                      display: 'inline-block'
+                    }}>
+                      {getThemedIcon('ui', 'chevron_down', 16)}
+                    </span>
                   </div>
 
                   {expandedSections.behavior && (
@@ -2042,14 +2044,15 @@ export default function StudentActionStatsPanel({
                   return PENALTY_TYPES.reduce((sum, type) => sum + (stats.penalty[type.id]?.count || 0), 0);
                 })()} {t('entries')})
                 </span>
-                    {getThemedIcon('ui', 'chevron_down', 16)}
-                        style={{
-                          width: '16px',
-                          height: '16px',
-                          transform: expandedSections.penalty ? 'rotate(180deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.2s'
-                        }}
-                    />
+                    <span style={{
+                      width: '16px',
+                      height: '16px',
+                      transform: expandedSections.penalty ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s',
+                      display: 'inline-block'
+                    }}>
+                      {getThemedIcon('ui', 'chevron_down', 16)}
+                    </span>
                   </div>
 
                   {expandedSections.penalty && (
@@ -2302,12 +2305,16 @@ export default function StudentActionStatsPanel({
                     >
                       {expandedDays.size === memoizedGroupedLogs.length ? (
                           <>
-                            {getThemedIcon('ui', 'chevron_down', 16)} style={{ width: '14px', height: '14px', transform: 'rotate(180deg)' }} />
+                            <span style={{ width: '14px', height: '14px', transform: 'rotate(180deg)', display: 'inline-block' }}>
+                              {getThemedIcon('ui', 'chevron_down', 16)}
+                            </span>
                             {t('collapse_all')}
                           </>
                       ) : (
                           <>
-                            {getThemedIcon('ui', 'chevron_down', 16)} style={{ width: '14px', height: '14px' }} />
+                            <span style={{ width: '14px', height: '14px', display: 'inline-block' }}>
+                              {getThemedIcon('ui', 'chevron_down', 16)}
+                            </span>
                             {/*{t('expand_all') || 'Expand All'}*/}
                           </>
                       )}

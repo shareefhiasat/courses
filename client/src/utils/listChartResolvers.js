@@ -13,13 +13,19 @@
  */
 export const resolveUser = (userId, users = [], t) => {
   const translate = t || ((key) => key);
-  if (!userId) return { name: translate('unknown_student'), number: translate('not_available'), email: '—' };
+  if (!userId) return { 
+    nameEn: translate('unknown_student'),
+    nameAr: translate('unknown_student'),
+    number: translate('not_available'), 
+    email: '—' 
+  };
   
   const user = users.find(u => u.id === userId || u.studentId === userId || u.userId === userId);
   
   if (!user) {
     return { 
-      name: translate('unknown_student'), 
+      nameEn: translate('unknown_student'),
+      nameAr: translate('unknown_student'),
       number: translate('not_available'), 
       email: '—',
       phone: '—',
@@ -29,14 +35,16 @@ export const resolveUser = (userId, users = [], t) => {
   }
   
   return {
-    name: user.realName || user.displayName || user.name || user.email || translate('unknown_student'),
+    nameEn: user.realNameEn || user.real_name_en || user.displayNameEn || user.display_name_en || user.realName || user.displayName || user.name || user.email || translate('unknown_student'),
+    nameAr: user.realNameAr || user.real_name_ar || user.displayNameAr || user.display_name_ar || user.realName || user.displayName || user.name || user.email || translate('unknown_student'),
     number: user.studentNumber || user.studentId || user.id?.substring(0, 8) || translate('not_available'),
     email: user.email || '—',
     phone: user.phone || user.phoneNumber || '—',
     address: user.address || '—',
     parentName: user.parentName || user.guardianName || '—',
     role: user.role || '—',
-    displayName: user.displayName || user.realName || '—'
+    displayNameEn: user.displayNameEn || user.display_name_en || user.displayName || user.realName || '—',
+    displayNameAr: user.displayNameAr || user.display_name_ar || user.displayName || user.realName || '—'
   };
 };
 
@@ -49,13 +57,20 @@ export const resolveUser = (userId, users = [], t) => {
  */
 export const resolveClass = (classId, classes = [], t) => {
   const translate = t || ((key) => key);
-  if (!classId) return { name: translate('not_specified'), instructor: '—', schedule: '—', room: '—' };
+  if (!classId) return { 
+    nameEn: translate('not_specified'),
+    nameAr: translate('not_specified'),
+    instructor: '—', 
+    schedule: '—', 
+    room: '—'
+  };
   
   const classItem = classes.find(c => c.id === classId || c.classId === classId);
   
   if (!classItem) {
     return { 
-      name: translate('not_specified'), 
+      nameEn: translate('not_specified'),
+      nameAr: translate('not_specified'),
       instructor: '—', 
       schedule: '—', 
       room: '—',
@@ -64,7 +79,8 @@ export const resolveClass = (classId, classes = [], t) => {
   }
   
   return {
-    name: classItem.name_en || classItem.name || classItem.className || translate('not_specified'),
+    nameEn: classItem.name_en || classItem.nameEn || classItem.name || classItem.className || translate('not_specified'),
+    nameAr: classItem.name_ar || classItem.nameAr || classItem.name || classItem.className || translate('not_specified'),
     instructor: classItem.instructor || classItem.teacherName || classItem.instructorName || '—',
     schedule: classItem.schedule || classItem.timeSlot || classItem.time || '—',
     room: classItem.room || classItem.classroom || classItem.location || '—',
@@ -81,20 +97,27 @@ export const resolveClass = (classId, classes = [], t) => {
  */
 export const resolveProgram = (programId, programs = [], t) => {
   const translate = t || ((key) => key);
-  if (!programId) return { name: translate('not_specified'), type: '—', duration: '—' };
+  if (!programId) return { 
+    nameEn: translate('not_specified'),
+    nameAr: translate('not_specified'),
+    type: '—', 
+    duration: '—' 
+  };
   
   const program = programs.find(p => p.id === programId || p.programId === programId);
   
   if (!program) {
     return { 
-      name: translate('not_specified'), 
+      nameEn: translate('not_specified'),
+      nameAr: translate('not_specified'),
       type: '—', 
       duration: '—' 
     };
   }
   
   return {
-    name: program.name_en || program.name || program.programName || translate('not_specified'),
+    nameEn: program.name_en || program.nameEn || program.name || program.programName || translate('not_specified'),
+    nameAr: program.name_ar || program.nameAr || program.name || program.programName || translate('not_specified'),
     type: program.type || program.programType || '—',
     duration: program.duration || program.programDuration || '—'
   };

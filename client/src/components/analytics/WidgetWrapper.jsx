@@ -81,10 +81,10 @@ const WidgetWrapper = ({
         {getThemedIcon('ui', isMinimized ? 'chevron_down' : 'chevron_up', 14, theme)}
       </ActionBtn>
 
-      {/* Maximize */}
-      <ActionBtn title={t('maximize') || 'Maximize'} onClick={toggleMaximize}>
+      {/* Maximize - Commented out */}
+      {/* <ActionBtn title={t('maximize') || 'Maximize'} onClick={toggleMaximize}>
         {getThemedIcon('ui', 'maximize', 14, theme)}
-      </ActionBtn>
+      </ActionBtn> */}
 
       {/* Edit */}
       <ActionBtn title={t('edit') || 'Edit'} onClick={onEdit}>
@@ -107,7 +107,7 @@ const WidgetWrapper = ({
       {/* ── Card ── */}
       <div
         style={{
-          padding: isMinimized ? '0.75rem 1.25rem' : '1.25rem 1.5rem',
+          padding: isMinimized ? '0.5rem 0.75rem' : '0.75rem 1rem',
           border: '1px solid var(--border)',
           borderRadius: 16,
           background: 'var(--panel)',
@@ -120,8 +120,8 @@ const WidgetWrapper = ({
         }}
       >
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
             {editLayout && (
               <span
                 className="drag-handle"
@@ -130,46 +130,49 @@ const WidgetWrapper = ({
                 {getThemedIcon('ui', 'grip_vertical', 18, theme)}
               </span>
             )}
-            <h3
-              style={{
-                margin: 0,
-                fontSize: 15,
-                fontWeight: 700,
-                color: 'var(--text)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}
-            >
-              {lang === 'ar' ? (widget.title_ar || widget.title_en || widget.title) : (widget.title_en || widget.title_ar || widget.title)}
-              {widget.dateRange && (
-                <span style={{ 
-                  fontSize: 12, 
-                  color: 'var(--muted)', 
-                  fontWeight: 500, 
-                  marginInlineStart: 6 
-                }}>
-                  ({getDateRangeLabel(widget.dateRange)})
+            <div>
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: 'var(--text)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
+                {lang === 'ar' ? (widget.title_ar || widget.title_en || widget.title) : (widget.title_en || widget.title_ar || widget.title)}
+                {isRecentlyRefreshed && (
+                  <span style={{ color: '#10b981', fontSize: 11, marginInlineStart: 4 }}>✓</span>
+                )}
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                {widget.dateRange && (
+                  <span style={{ 
+                    fontSize: 11, 
+                    color: 'var(--muted)', 
+                    fontWeight: 500 
+                  }}>
+                    {getDateRangeLabel(widget.dateRange)}
+                  </span>
+                )}
+                <span style={{ fontSize: 10, color: 'var(--muted)', opacity: 0.7, flexShrink: 0 }}>
+                  {lastUpdatedAt
+                    ? new Date(lastUpdatedAt).toLocaleString('en-GB', {
+                        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                      }).replace(',', '')
+                    : ''}
                 </span>
-              )}
-              {isRecentlyRefreshed && (
-                <span style={{ color: '#10b981', fontSize: 13, marginInlineStart: 6 }}>✓</span>
-              )}
-            </h3>
-            <span style={{ fontSize: 10, color: 'var(--muted)', opacity: 0.7, flexShrink: 0 }}>
-              {lastUpdatedAt
-                ? new Date(lastUpdatedAt).toLocaleString('en-GB', {
-                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
-                  }).replace(',', '')
-                : ''}
-            </span>
+              </div>
+            </div>
           </div>
           {headerActions}
         </div>
 
         {/* Body — only rendered when NOT minimized */}
         {!isMinimized && (
-          <div style={{ position: 'relative', flex: 1, minHeight: 0, marginTop: '0.75rem' }}>
+          <div style={{ position: 'relative', flex: 1, minHeight: 0, marginTop: '0.5rem' }}>
             {isLoading && (
               <div
                 style={{
@@ -195,34 +198,76 @@ const WidgetWrapper = ({
         <div
           style={{
             position: 'fixed', inset: 0,
-            background: 'rgba(0,0,0,0.6)',
+            background: 'rgba(0,0,0,0.8)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 10000
+            zIndex: 10000,
+            animation: 'fadeIn 0.2s ease-out'
           }}
-          onClick={toggleMaximize}
         >
           <div
             style={{
-              background: 'var(--panel)', borderRadius: 16, padding: '1.5rem',
-              width: '90vw', height: '85vh',
-              display: 'flex', flexDirection: 'column', overflow: 'hidden'
+              background: 'var(--panel)', borderRadius: 20, padding: '2rem',
+              width: '96vw', height: '96vh',
+              display: 'flex', flexDirection: 'column', overflow: 'hidden',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              border: '1px solid var(--border)',
+              animation: 'slideUp 0.3s ease-out'
             }}
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 20, fontWeight: 700 }}>{widget.title}</h2>
+            {/* Modal Header */}
+            <div style={{ 
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+              marginBottom: '1.5rem',
+              paddingBottom: '1rem',
+              borderBottom: '1px solid var(--border)'
+            }}>
+              <div>
+                <h2 style={{ 
+                  margin: 0, color: 'var(--text)', fontSize: 24, fontWeight: 700,
+                  marginBottom: '0.25rem'
+                }}>
+                  {widget.title}
+                </h2>
+                <p style={{ 
+                  margin: 0, color: 'var(--muted)', fontSize: 14,
+                  opacity: 0.8
+                }}>
+                  {widget.dataSource} • {widget.chartType}
+                </p>
+              </div>
               <button
                 onClick={toggleMaximize}
                 style={{
-                  padding: '0.4rem', background: 'transparent',
-                  border: '1px solid var(--border)', borderRadius: 6,
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text)'
+                  padding: '0.5rem', background: 'var(--bg)',
+                  border: '1px solid var(--border)', borderRadius: 8,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', 
+                  color: 'var(--text)', transition: 'all 0.2s',
+                  fontSize: 14, fontWeight: 500
                 }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'var(--hover)';
+                  e.target.style.borderColor = accentColor;
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'var(--bg)';
+                  e.target.style.borderColor = 'var(--border)';
+                }}
+                title={t('close') || 'Close'}
               >
-                {getThemedIcon('ui', 'close', 20, theme)}
+                {getThemedIcon('ui', 'close', 18, theme)}
+                <span style={{ marginLeft: '0.5rem' }}>{t('close') || 'Close'}</span>
               </button>
             </div>
-            <div style={{ flex: 1, minHeight: 0 }}>
+            
+            {/* Modal Content */}
+            <div style={{ 
+              flex: 1, minHeight: 0, 
+              background: 'var(--bg)',
+              borderRadius: 12,
+              padding: '1rem',
+              overflow: 'auto'
+            }}>
               <ChartSizer>{children}</ChartSizer>
             </div>
           </div>

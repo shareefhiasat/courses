@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import GridLayout, { WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import { useTheme } from '@contexts/ThemeContext';
@@ -63,6 +63,17 @@ const DashboardEngine = ({
   const [recentlyRefreshed, setRecentlyRefreshed] = useState({});
   const [widgetUpdatedAt, setWidgetUpdatedAt] = useState({});
 
+  // ── Clear problematic localStorage cache on mount ────────────────────────
+  useEffect(() => {
+    // Clear the analytics widgets cache to prevent old widget restoration
+    try {
+      localStorage.removeItem(`wdg_${storageKey}`);
+      logger.log(`[DashboardEngine] Cleared localStorage cache on mount for ${storageKey}`);
+    } catch (e) {
+      logger.warn(`[DashboardEngine] Failed to clear localStorage on mount:`, e);
+    }
+  }, [storageKey]);
+
   // ── Sorted widgets ─────────────────────────────────────────
   const sortedWidgets = useMemo(() => {
     return [...widgets].sort((a, b) => {
@@ -73,19 +84,27 @@ const DashboardEngine = ({
   }, [widgets]);
 
   // ── Grid layout — minimized widgets collapse to header height (h=1) ───────
-  const gridLayout = useMemo(() =>
-    sortedWidgets.map(w => ({
-      i: w.id,
-      x: w.layout?.x ?? w.x ?? 0,
-      y: w.layout?.y ?? w.y ?? 0,
-      w: w.layout?.w ?? w.w ?? 6,
-      h: minimizedIds[w.id] ? 1 : (w.layout?.h ?? w.h ?? 4),
-      minW: 2,
-      minH: minimizedIds[w.id] ? 1 : 3,
-      maxH: minimizedIds[w.id] ? 1 : undefined,
-      static: minimizedIds[w.id] ? false : undefined,
-    })),
-  [sortedWidgets, minimizedIds]);
+  const gridLayout = useMemo(() => {
+    const layout = sortedWidgets.map(w => {
+      const isMinimized = minimizedIds[w.id];
+      const item = {
+        i: w.id,
+        x: w.layout?.x ?? w.x ?? 0,
+        y: w.layout?.y ?? w.y ?? 0,
+        w: isMinimized ? 4 : (w.layout?.w ?? w.w ?? 3),  // Use 3 as default width
+        h: isMinimized ? 1 : (w.layout?.h ?? w.h ?? 5),  // Use 5 as default height
+        minW: isMinimized ? 4 : 2,
+        minH: isMinimized ? 1 : 2,
+        maxH: isMinimized ? 1 : undefined,
+        static: false,  // Always allow dragging, even when minimized
+        isResizable: !isMinimized  // Only allow resizing when not minimized
+      };
+      logger.log(`[gridLayout] Widget ${w.id}: minimized=${isMinimized}, w=${item.w}, h=${item.h}`);
+      return item;
+    });
+    logger.log(`[gridLayout] Total widgets in layout: ${layout.length}`);
+    return layout;
+  }, [sortedWidgets, minimizedIds]);
 
   // ── Layout change (drag/resize) ───────────────────────────────────────────
   const onLayoutChange = useCallback((newLayout) => {
@@ -122,13 +141,98 @@ const DashboardEngine = ({
 
   // ── Widget actions ────────────────────────────────────────────────────────
   const handleDelete = useCallback((id) => {
-    setWidgets(prev => prev.filter(w => w.id !== id));
-    setMinimizedIds(prev => { const n = { ...prev }; delete n[id]; return n; });
-  }, [setWidgets]);
+    logger.log(`[handleDelete] Deleting widget: ${id}`);
+    
+    // Clear any cached widget data that might interfere
+    try {
+      localStorage.removeItem(`wdg_${storageKey}`);
+      logger.log(`[handleDelete] Cleared localStorage cache for ${storageKey}`);
+    } catch (e) {
+      logger.warn(`[handleDelete] Failed to clear localStorage:`, e);
+    }
+    
+    // Remove widget from widgets array (skip save to prevent reload)
+    setWidgets(prev => {
+      const newWidgets = prev.filter(w => w.id !== id);
+      logger.log(`[handleDelete] Widgets after removal: ${newWidgets.length}`);
+      return newWidgets;
+    }, true); // Skip save to prevent Firestore reload
+    
+    // Remove from minimized state
+    setMinimizedIds(prev => {
+      const newState = { ...prev };
+      delete newState[id];
+      logger.log(`[handleDelete] MinimizedIds after removal:`, newState);
+      return newState;
+    });
+    
+    // Clean up other related state
+    setWidgetVersions(prev => {
+      const newState = { ...prev };
+      delete newState[id];
+      return newState;
+    });
+    
+    setWidgetUpdatedAt(prev => {
+      const newState = { ...prev };
+      delete newState[id];
+      return newState;
+    });
+    
+    setRecentlyRefreshed(prev => {
+      const newState = { ...prev };
+      delete newState[id];
+      return newState;
+    });
+  }, [storageKey, setWidgets]);
 
   const handleMinimize = useCallback((id) => {
-    setMinimizedIds(prev => ({ ...prev, [id]: !prev[id] }));
-  }, []);
+    logger.log(`[handleMinimize] Toggling widget: ${id}`);
+    
+    // Get current minimized state
+    const currentMinimized = minimizedIds[id];
+    const isMinimizing = !currentMinimized;
+    
+    logger.log(`[handleMinimize] ${isMinimizing ? 'Minimizing' : 'Restoring'} widget ${id}`);
+    
+    // Clear any cached widget data that might interfere
+    try {
+      localStorage.removeItem(`wdg_${storageKey}`);
+      logger.log(`[handleMinimize] Cleared localStorage cache for ${storageKey}`);
+    } catch (e) {
+      logger.warn(`[handleMinimize] Failed to clear localStorage:`, e);
+    }
+    
+    // Update minimized state
+    setMinimizedIds(prev => {
+      const newState = { ...prev, [id]: isMinimizing };
+      logger.log(`[handleMinimize] Updated minimizedIds:`, newState);
+      return newState;
+    });
+    
+    // Update the specific widget layout
+    setWidgets(prev => {
+      const updatedWidgets = prev.map(widget => {
+        if (widget.id === id) {
+          const updatedWidget = {
+            ...widget,
+            layout: {
+              ...widget.layout,
+              w: isMinimizing ? 4 : 3,  // Fixed 3 width when restored
+              h: isMinimizing ? 1 : 5,  // Fixed 5 height when restored
+              static: false,  // Always allow dragging
+              isResizable: !isMinimizing  // Allow resizing when not minimized
+            }
+          };
+          logger.log(`[handleMinimize] Updated widget ${id} layout:`, updatedWidget.layout);
+          return updatedWidget;
+        }
+        return widget;
+      });
+      logger.log(`[handleMinimize] Total widgets updated: ${updatedWidgets.length}`);
+      return updatedWidgets;
+    }, true); // Skip save to prevent Firestore reload
+  }, [minimizedIds, storageKey, setWidgets]);
 
   /**
    * Per-widget refresh: just bumps a version counter so the chart re-renders
