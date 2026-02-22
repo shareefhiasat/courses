@@ -7,18 +7,34 @@ import React from 'react';
  * @param {Boolean} donut - Donut style
  */
 export default function PieChart({ data = [], size = 300, donut = false, showLabels = true, showLegend = true, accentColor = '#800020' }) {
+  // Handle size as object with width/height or number
+  let chartWidth, chartHeight;
+  if (typeof size === 'object' && size.width && size.height) {
+    chartWidth = size.width;
+    chartHeight = size.height;
+  } else if (typeof size === 'number') {
+    chartWidth = size;
+    chartHeight = size;
+  } else {
+    chartWidth = 300;
+    chartHeight = 300;
+  }
+  
+  // Use the smaller dimension for the chart to ensure it fits
+  const chartSize = Math.min(chartWidth, chartHeight);
+  
   if (!data || data.length === 0) {
-    return <div style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No data</div>;
+    return <div style={{ width: chartWidth, height: chartHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No data</div>;
   }
 
   const total = data.reduce((sum, item) => sum + (item.value || 0), 0);
   if (total === 0) {
-    return <div style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No data</div>;
+    return <div style={{ width: chartWidth, height: chartHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No data</div>;
   }
 
-  const centerX = size / 2;
-  const centerY = size / 2;
-  const radius = Math.min(size / 2 - 40, 120);
+  const centerX = chartSize / 2;
+  const centerY = chartSize / 2;
+  const radius = Math.min(chartSize / 2 - 15, 100); // Much smaller padding
   const innerRadius = donut ? radius * 0.6 : 0;
 
   const colors = [accentColor, '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
@@ -77,8 +93,8 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-      <svg width={size} height={size} style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: chartWidth, height: chartHeight }}>
+      <svg width={chartSize} height={chartSize} style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
         {slices.map((slice, idx) => (
           <g key={idx}>
             <path
@@ -105,7 +121,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
                 x={slice.labelX}
                 y={slice.labelY}
                 textAnchor="middle"
-                fontSize="12"
+                fontSize="9"
                 fontWeight="700"
                 fill="white"
                 style={{ pointerEvents: 'none' }}
@@ -123,7 +139,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
             y={centerY}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize="24"
+            fontSize="16"
             fontWeight="800"
             fill="#374151"
           >
@@ -134,11 +150,11 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
 
       {/* Legend */}
       {showLegend && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', maxWidth: size }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', maxWidth: chartWidth }}>
           {slices.map((slice, idx) => (
-            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 12, height: 12, borderRadius: 2, background: slice.color }} />
-              <span style={{ fontSize: 13, color: '#6b7280' }}>
+            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <div style={{ width: 8, height: 8, borderRadius: 1, background: slice.color }} />
+              <span style={{ fontSize: 9, color: '#6b7280' }}>
                 {slice.label} ({slice.value})
               </span>
             </div>

@@ -12,7 +12,8 @@ export default function BarChart({ data = [], width = 400, height = 300, horizon
     return <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No data</div>;
   }
 
-  const padding = { top: 20, right: 20, bottom: 60, left: 60 };
+  // Reduced padding for less wasted space
+  const padding = { top: 15, right: 15, bottom: 45, left: 45 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
   
@@ -35,7 +36,7 @@ export default function BarChart({ data = [], width = 400, height = 300, horizon
                   y1={y}
                   x2={padding.left + chartWidth}
                   y2={y}
-                  stroke="#e5e7eb"
+                  stroke="#9ca3af" // Changed to gray
                   strokeWidth="1"
                   strokeDasharray="4,4"
                 />
@@ -43,7 +44,7 @@ export default function BarChart({ data = [], width = 400, height = 300, horizon
                   x={padding.left - 10}
                   y={y + 4}
                   textAnchor="end"
-                  fontSize="11"
+                  fontSize="10" // Smaller font
                   fill="#6b7280"
                 >
                   {Math.round(maxValue * ratio)}
@@ -82,7 +83,7 @@ export default function BarChart({ data = [], width = 400, height = 300, horizon
                 x={x + actualBarWidth / 2}
                 y={y - 5}
                 textAnchor="middle"
-                fontSize="12"
+                fontSize="11" // Smaller font
                 fontWeight="600"
                 fill="#374151"
               >
@@ -95,8 +96,8 @@ export default function BarChart({ data = [], width = 400, height = 300, horizon
               x={x + actualBarWidth / 2}
               y={height - padding.bottom + 20}
               textAnchor="middle"
-              fontSize="11"
-              fill="#6b7280"
+              fontSize="10" // Smaller font
+              fill="#000000" // Changed to black for better readability
               transform={`rotate(-45, ${x + actualBarWidth / 2}, ${height - padding.bottom + 20})`}
             >
               {item.label}
@@ -105,13 +106,13 @@ export default function BarChart({ data = [], width = 400, height = 300, horizon
         );
       })}
 
-      {/* Axes */}
+      {/* Axes - changed to gray */}
       <line
         x1={padding.left}
         y1={padding.top + chartHeight}
         x2={padding.left + chartWidth}
         y2={padding.top + chartHeight}
-        stroke="#374151"
+        stroke="#9ca3af" // Changed to gray
         strokeWidth="2"
       />
       <line
@@ -119,7 +120,7 @@ export default function BarChart({ data = [], width = 400, height = 300, horizon
         y1={padding.top}
         x2={padding.left}
         y2={padding.top + chartHeight}
-        stroke="#374151"
+        stroke="#9ca3af" // Changed to gray
         strokeWidth="2"
       />
     </svg>

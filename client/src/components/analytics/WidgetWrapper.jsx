@@ -29,9 +29,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 const WidgetWrapper = ({
   widget,
   accentColor,
-  isPinned = false,
   isMinimized = false,
-  onPin,
   onMinimize,
   onEdit,
   onDelete,
@@ -74,15 +72,6 @@ const WidgetWrapper = ({
         {getThemedIcon('ui', 'rotate_cw', 14, theme)}
       </ActionBtn>
 
-      {/* Pin */}
-      <ActionBtn
-        title={isPinned ? (t('unpin') || 'Unpin') : (t('pin') || 'Pin')}
-        onClick={onPin}
-        style={{ color: isPinned ? accentColor : 'var(--text)', borderColor: isPinned ? accentColor : undefined }}
-      >
-        {getThemedIcon('ui', 'pin', 14, theme)}
-      </ActionBtn>
-
       {/* Minimize / Restore — controlled */}
       <ActionBtn
         title={isMinimized ? (t('restore') || 'Restore') : (t('minimize') || 'Minimize')}
@@ -119,7 +108,7 @@ const WidgetWrapper = ({
       <div
         style={{
           padding: isMinimized ? '0.75rem 1.25rem' : '1.25rem 1.5rem',
-          border: isPinned ? `2px solid ${accentColor}` : '1px solid var(--border)',
+          border: '1px solid var(--border)',
           borderRadius: 16,
           background: 'var(--panel)',
           boxShadow: editLayout ? '0 4px 12px rgba(0,0,0,0.1)' : '0 2px 8px rgba(0,0,0,0.04)',
@@ -139,11 +128,6 @@ const WidgetWrapper = ({
                 style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: 'var(--muted)', flexShrink: 0 }}
               >
                 {getThemedIcon('ui', 'grip_vertical', 18, theme)}
-              </span>
-            )}
-            {isPinned && (
-              <span style={{ color: accentColor, display: 'flex', flexShrink: 0 }}>
-                {getThemedIcon('ui', 'pin', 12, theme)}
               </span>
             )}
             <h3

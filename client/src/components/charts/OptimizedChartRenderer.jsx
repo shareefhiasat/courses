@@ -5,7 +5,6 @@ import { SimpleLoading } from '@ui';
 const BarChart = React.lazy(() => import('../charts/BarChart'));
 const LineChart = React.lazy(() => import('../charts/LineChart'));
 const PieChart = React.lazy(() => import('../charts/PieChart'));
-const AreaChart = React.lazy(() => import('../charts/AreaChart'));
 
 /**
  * Chart loading fallback component
@@ -69,14 +68,14 @@ const OptimizedChartRenderer = memo(({ widget, size, data, accentColor }) => {
     case 'pie':
       return (
         <Suspense fallback={<ChartFallback size={size} />}>
-          <PieChart {...chartProps} />
+          <PieChart {...chartProps} donut={false} />
         </Suspense>
       );
     
-    case 'area':
+    case 'donut':
       return (
         <Suspense fallback={<ChartFallback size={size} />}>
-          <AreaChart {...chartProps} />
+          <PieChart {...chartProps} donut={true} />
         </Suspense>
       );
     

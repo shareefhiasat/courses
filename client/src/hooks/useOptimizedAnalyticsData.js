@@ -320,7 +320,6 @@ function processMultiSourceActivityData(widget, data, filters) {
         
         // Other types
         'reading': 'Reading',
-        'video': 'Video',
         'presentation': 'Presentation',
         'discussion': 'Discussion',
         'forum': 'Forum',

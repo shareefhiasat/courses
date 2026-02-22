@@ -48,8 +48,6 @@ const DashboardEngine = ({
   const {
     widgets,
     setWidgets,
-    pinnedIds,
-    setPinnedIds,
     loading: dashLoading
   } = useWidgetDashboard(user?.uid, storageKey, defaultWidgets);
 
@@ -66,17 +64,14 @@ const DashboardEngine = ({
 
   const [drillDownData, setDrillDownData] = useState(null);
 
-  // ── Sorted widgets (pinned first) ─────────────────────────────────────────
+  // ── Sorted widgets ─────────────────────────────────────────
   const sortedWidgets = useMemo(() => {
     return [...widgets].sort((a, b) => {
-      const aPin = pinnedIds.includes(a.id) ? 0 : 1;
-      const bPin = pinnedIds.includes(b.id) ? 0 : 1;
-      if (aPin !== bPin) return aPin - bPin;
       const ay = a.layout?.y ?? a.y ?? 0;
       const by = b.layout?.y ?? b.y ?? 0;
       return ay - by || (a.layout?.x ?? a.x ?? 0) - (b.layout?.x ?? b.x ?? 0);
     });
-  }, [widgets, pinnedIds]);
+  }, [widgets]);
 
   // ── Grid layout — minimized widgets collapse to header height (h=1) ───────
   const gridLayout = useMemo(() =>
@@ -129,15 +124,8 @@ const DashboardEngine = ({
   // ── Widget actions ────────────────────────────────────────────────────────
   const handleDelete = useCallback((id) => {
     setWidgets(prev => prev.filter(w => w.id !== id));
-    setPinnedIds(prev => prev.filter(p => p !== id));
     setMinimizedIds(prev => { const n = { ...prev }; delete n[id]; return n; });
-  }, [setWidgets, setPinnedIds]);
-
-  const handlePin = useCallback((id) => {
-    setPinnedIds(prev =>
-      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
-    );
-  }, [setPinnedIds]);
+  }, [setWidgets]);
 
   const handleMinimize = useCallback((id) => {
     setMinimizedIds(prev => ({ ...prev, [id]: !prev[id] }));
@@ -250,9 +238,7 @@ const DashboardEngine = ({
             <WidgetWrapper
               widget={widget}
               accentColor={accentColor}
-              isPinned={pinnedIds.includes(widget.id)}
               isMinimized={!!minimizedIds[widget.id]}
-              onPin={() => handlePin(widget.id)}
               onMinimize={() => handleMinimize(widget.id)}
               onEdit={() => openBuilder(widget)}
               onDelete={() => handleDelete(widget.id)}

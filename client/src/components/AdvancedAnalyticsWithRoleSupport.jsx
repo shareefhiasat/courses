@@ -124,7 +124,7 @@ export default function AdvancedAnalytics({
 
   // ── Local global filters (merged with externalFilters) ────────────────────
   const [localFilters, setLocalFilters] = useState({
-    classId: '', term: '', year: '', programId: '', subjectId: '', semester: '', studentId: '', instructorId: ''
+    classId: '', year: '', programId: '', subjectId: '', studentId: '', instructorId: ''
   });
 
   const mergedFilters = useMemo(() => {
@@ -321,29 +321,6 @@ export default function AdvancedAnalytics({
                   const label = c?.title || c?.name_en || c?.name || c?.code || `Class ${id.slice(0, 6)}`;
                   return { value: id, label };
                 })
-              ]}
-              searchable
-              fullWidth
-            />
-            <Select
-              value={localFilters.term}
-              onChange={e => setLocalFilters(f => ({ ...f, term: e.target.value }))}
-              options={[
-                { value: '', label: t('all_terms') || 'All Terms' },
-                ...Array.from(new Set((rawData.classes || []).map(c => {
-                  const m = /^(Spring|Summer|Fall|Winter)/i.exec((c?.term || '').toString());
-                  return m ? `${m[1][0].toUpperCase()}${m[1].slice(1).toLowerCase()}` : '';
-                }).filter(Boolean))).map(v => ({ value: v, label: v }))
-              ]}
-              searchable
-              fullWidth
-            />
-            <Select
-              value={localFilters.semester}
-              onChange={e => setLocalFilters(f => ({ ...f, semester: e.target.value }))}
-              options={[
-                { value: '', label: t('all_semesters') || 'All Semesters' },
-                ...Array.from(new Set((rawData.subjects || []).map(s => s.semester).filter(Boolean))).map(v => ({ value: v, label: v }))
               ]}
               searchable
               fullWidth
