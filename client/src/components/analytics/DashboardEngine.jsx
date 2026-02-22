@@ -6,13 +6,12 @@ import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { processWidgetData } from '@hooks/useAnalyticsData';
+import { processWidgetDataOptimized } from '@hooks/useOptimizedAnalyticsData';
 import useWidgetDashboard from '@hooks/useWidgetDashboard';
 import WidgetWrapper from './WidgetWrapper';
 import WidgetBuilder, { DEFAULT_WIDGET_CONFIG } from './WidgetBuilder';
-import BarChart from '../charts/BarChart';
-import LineChart from '../charts/LineChart';
-import PieChart from '../charts/PieChart';
-import AreaChart from '../charts/AreaChart';
+import OptimizedChartRenderer from '../charts/OptimizedChartRenderer';
+import logger from '@utils/logger';
 
 const ResponsiveGrid = WidthProvider(GridLayout);
 
@@ -155,13 +154,13 @@ const DashboardEngine = ({
     setTimeout(() => setRecentlyRefreshed(prev => ({ ...prev, [id]: false })), 1400);
   }, []);
 
-  // ── Pre-compute chart data for all widgets (memoized) ────────────────────
-  // This is the key fix for infinite re-renders: processWidgetData runs once
-  // per rawData/globalFilters/widgets change, not on every render.
+  // ── Pre-compute chart data for all widgets (memoized with optimization) ─────
+  // Using optimized data processor with caching
   const chartDataMap = useMemo(() => {
     const map = {};
     sortedWidgets.forEach(w => {
-      map[w.id] = processWidgetData(w, rawData, globalFilters);
+      // Use optimized processor for better performance
+      map[w.id] = processWidgetDataOptimized(w, rawData, globalFilters);
     });
     return map;
   }, [sortedWidgets, rawData, globalFilters]);
@@ -176,20 +175,16 @@ const DashboardEngine = ({
 
   const renderChart = useCallback((widget, size) => {
     const data = chartDataMap[widget.id] || [];
-    const w = Math.max(100, Math.floor(size?.width || 0));
-    const h = Math.max(140, Math.floor(size?.height || 0));
-    const props = { data, width: w, height: h, showGrid: true, accentColor, onPointClick: (dp) => handleChartClick(widget, dp) };
-
-    switch (widget.chartType) {
-      case 'bar':  return <BarChart {...props} />;
-      case 'line': return <LineChart {...props} />;
-      case 'pie': {
-        const s = Math.max(140, Math.floor(Math.min(size?.width || 0, size?.height || 0)) - 16);
-        return <PieChart data={data} size={s} donut accentColor={accentColor} />;
-      }
-      case 'area': return <AreaChart {...props} />;
-      default:     return <BarChart {...props} />;
-    }
+    
+    return (
+      <OptimizedChartRenderer 
+        widget={widget}
+        size={size}
+        data={data}
+        accentColor={accentColor}
+        onPointClick={(dp) => handleChartClick(widget, dp)}
+      />
+    );
   }, [chartDataMap, handleChartClick, accentColor]);
 
   // ── Render ────────────────────────────────────────────────────────────────

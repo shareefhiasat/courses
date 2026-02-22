@@ -177,9 +177,9 @@ export default function StudentDashboardPage() {
     { value: 'attendance',    label: t('dashboard.attendance') || (lang === 'ar' ? 'الحضور'       : 'Attendance') },
     { value: 'marks',         label: t('dashboard.marks') || (lang === 'ar' ? 'الدرجات'      : 'Marks') },
     { value: 'performance',   label: t('dashboard.performance') || (lang === 'ar' ? 'الأداء'       : 'Performance') },
-    { value: 'penalties',     label: t('dashboard.penalties') || (lang === 'ar' ? 'العقوبات'     : 'Penalties') },
+    /*{ value: 'penalties',     label: t('dashboard.penalties') || (lang === 'ar' ? 'العقوبات'     : 'Penalties') },
     { value: 'participations',label: t('dashboard.participations') || (lang === 'ar' ? 'المشاركات'    : 'Participations') },
-    { value: 'behaviors',     label: t('dashboard.behaviors') || (lang === 'ar' ? 'السلوك'       : 'Behaviors') },
+    { value: 'behaviors',     label: t('dashboard.behaviors') || (lang === 'ar' ? 'السلوك'       : 'Behaviors') },*/
   ], [lang, t]);
 
   if (authLoading) return <GlobalLoadingFallback />;
@@ -314,6 +314,10 @@ export default function StudentDashboardPage() {
                   grouping={filters.grouping}
                   canViewAllStudents={permissions.canViewAllStudents}
                   onNavigateToClass={classId => navigate(`/classes/${classId}`)}
+                  selectedClassId={filters.selectedClassId}
+                  selectedStudentId={filters.selectedStudentId}
+                  selectedProgramId={filters.selectedProgramId}
+                  selectedSubjectId={filters.selectedSubjectId}
                   t={t}
                   lang={lang}
                 />
@@ -355,6 +359,10 @@ export default function StudentDashboardPage() {
                   behaviors={dashData.behaviors}
                   statsData={dashData.statsData}
                   canSeeClassDistributions={permissions.canSeeClassDistributions}
+                  selectedClassId={filters.selectedClassId}
+                  selectedStudentId={filters.selectedStudentId}
+                  selectedProgramId={filters.selectedProgramId}
+                  selectedSubjectId={filters.selectedSubjectId}
                   t={t}
                   lang={lang}
                 />
