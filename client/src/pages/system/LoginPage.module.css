@@ -114,6 +114,6 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .loginPage {
-    background: var(--background, #0a0a0a);
+    background: #161a22;
   }
 }

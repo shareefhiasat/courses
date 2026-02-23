@@ -123,13 +123,13 @@ body.dark-mode .loginPage {
 
 [data-theme="dark"] .auth-form-container,
 body.dark-mode .auth-form-container {
-  background: var(--panel, #161a22) !important;
+  background: #161a22 !important;
 }
 
 [data-theme="dark"] .auth-form,
 body.dark-mode .auth-form {
-  background: var(--panel, #161a22) !important;
-  color: var(--text, #e6e6e6) !important;
+  background: #161a22 !important;
+  color: #e6e6e6 !important;
 }
 
 /* Override any white backgrounds in dark mode using CSS variables */
@@ -139,15 +139,15 @@ body.dark-mode .auth-form {
 body.dark-mode div[style*="background: #ffffff"],
 body.dark-mode div[style*="background: #fff"],
 body.dark-mode div[style*="background: white"] {
-  background: var(--panel, #161a22) !important;
+  background: #161a22 !important;
 }
 
 /* Dark mode for other UI components */
 [data-theme="dark"] .card,
 [data-theme="dark"] .panel {
-  background-color: var(--panel, #161a22) !important;
-  color: var(--text, #e6e6e6) !important;
-  border: 1px solid var(--border, #2a2f3a) !important;
+  background-color: #161a22 !important;
+  color: #e6e6e6 !important;
+  border: 1px solid #2a2f3a !important;
 }
 
 [data-theme="dark"] .btn {

@@ -8,11 +8,11 @@
 }
 
 [data-theme="dark"] .auth-form-container {
-  background: var(--background, #0a0a0a);
+  background: #0a0a0a;
 }
 
 .auth-form {
-  background: var(--panel, #ffffff) !important;
+  background: #ffffff !important;
   padding: 2rem;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.1);
@@ -21,26 +21,31 @@
 }
 
 [data-theme="dark"] .auth-form {
-  background: var(--panel, #1f2937) !important;
+  background: #1f2937 !important;
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
 /* Ensure white background in light mode and default */
 [data-theme="light"] .auth-form,
 .auth-form:not([data-theme="dark"]) {
-  background: var(--panel, #ffffff) !important;
+  background: #ffffff !important;
 }
 
 /* Override any potential gray backgrounds including form selector */
 body:not([data-theme="dark"]) .auth-form,
 html:not([data-theme="dark"]) .auth-form,
 form.auth-form {
-  background: var(--panel, #ffffff) !important;
+  background: #ffffff !important;
 }
 
 /* Most specific rule to override any form background */
 div.auth-form.auth-form {
-  background: var(--panel, #ffffff) !important;
+  background: #ffffff !important;
+}
+
+/* Dark mode override for the most specific rule */
+[data-theme="dark"] div.auth-form.auth-form {
+  background: #1f2937 !important;
 }
 
 /* RTL Support */
@@ -58,7 +63,7 @@ div.auth-form.auth-form {
 
 /* Dark Mode Button Fixes */
 [data-theme="dark"] .auth-button {
-  background: linear-gradient(135deg, #800020, #600018) !important;
+  background: linear-gradient(135deg, var(--color-primary, #800020), var(--color-primary-dark, #600018)) !important;
   color: #ffffff !important;
 }
 

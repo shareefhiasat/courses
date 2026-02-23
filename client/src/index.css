@@ -167,6 +167,12 @@ body {
   color: #e6e6e6 !important;
 }
 
+/* More specific body rule for dark mode */
+html[data-theme="dark"] body {
+  background: #0f1115 !important;
+  color: #e6e6e6 !important;
+}
+
 /* Advanced Analytics container background fix */
 .advanced-analytics-container {
   background: var(--bg) !important;

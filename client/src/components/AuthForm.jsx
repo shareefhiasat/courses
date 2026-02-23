@@ -588,7 +588,7 @@ const AuthForm = () => {
               });
             }}
             style={{
-              background: loading ? 'var(--text-muted, #ccc)' : `linear-gradient(135deg, ${primaryColor} 0%, ${adjustColor(primaryColor, -20)} 100%)`,
+              background: loading ? 'var(--color-primary-light, #a01234)' : `linear-gradient(135deg, ${primaryColor} 0%, ${adjustColor(primaryColor, -20)} 100%)`,
               cursor: loading ? 'not-allowed' : 'pointer'
             }}
           >

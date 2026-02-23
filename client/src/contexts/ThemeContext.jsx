@@ -11,13 +11,14 @@ export const ThemeProvider = ({ children }) => {
       const stored = localStorage.getItem('app_theme') || 'light';
       // Apply immediately to prevent flash
       document.documentElement.setAttribute('data-theme', stored);
-      // Clear any inline styles that might interfere
-      document.body.style.background = '';
-      document.body.style.color = '';
-      // Add dark mode class if needed
+      // Set proper body background based on theme
       if (stored === 'dark') {
+        document.body.style.background = '#0f1115';
+        document.body.style.color = '#e6e6e6';
         document.body.classList.add('dark-mode');
       } else {
+        document.body.style.background = '#f5f6fa';
+        document.body.style.color = '#212529';
         document.body.classList.remove('dark-mode');
       }
       return stored;
@@ -48,17 +49,17 @@ export const ThemeProvider = ({ children }) => {
     root.setAttribute('data-theme', theme);
     logger.log('📄 [ThemeContext] Set data-theme attribute to:', theme);
     
-    // Remove inline styles to let CSS variables handle theming
-    document.body.style.background = '';
-    document.body.style.color = '';
-    
-    // Force dark mode styles if needed
+    // Set proper body background based on theme
     if (theme === 'dark') {
       logger.log('🌙 [ThemeContext] Applied dark mode');
+      document.body.style.background = '#0f1115';
+      document.body.style.color = '#e6e6e6';
       // Add dark mode class to body for additional specificity
       document.body.classList.add('dark-mode');
     } else {
       logger.log('☀️ [ThemeContext] Applied light mode');
+      document.body.style.background = '#f5f6fa';
+      document.body.style.color = '#212529';
       // Remove dark mode class
       document.body.classList.remove('dark-mode');
     }
