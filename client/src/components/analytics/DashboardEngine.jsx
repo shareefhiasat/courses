@@ -59,6 +59,7 @@ const DashboardEngine = ({
 
   // Per-widget: minimized state, refresh version counter (no Firebase call needed)
   const [minimizedIds, setMinimizedIds] = useState({});
+  const [originalSizes, setOriginalSizes] = useState({}); // Store original sizes before minimize
   const [widgetVersions, setWidgetVersions] = useState({});   // bump → forces re-render of that chart
   const [recentlyRefreshed, setRecentlyRefreshed] = useState({});
   const [widgetUpdatedAt, setWidgetUpdatedAt] = useState({});
@@ -97,13 +98,14 @@ const DashboardEngine = ({
   const gridLayout = useMemo(() => {
     const layout = sortedWidgets.map(w => {
       const isMinimized = minimizedIds[w.id];
+      const originalSize = originalSizes[w.id];
       const item = {
         i: w.id,
         x: w.layout?.x ?? w.x ?? 0,
         y: w.layout?.y ?? w.y ?? 0,
-        w: isMinimized ? 4 : (w.layout?.w ?? w.w ?? 3),  // Use 3 as default width
-        h: isMinimized ? 1 : (w.layout?.h ?? w.h ?? 5),  // Use 5 as default height
-        minW: isMinimized ? 4 : 2,
+        w: isMinimized ? (originalSize?.w ?? w.layout?.w ?? w.w ?? 3) : (originalSize?.w ?? w.layout?.w ?? w.w ?? 3),  // Preserve original width
+        h: isMinimized ? 1 : (originalSize?.h ?? w.layout?.h ?? w.h ?? 5),  // Use original height when restored
+        minW: isMinimized ? (originalSize?.w ?? w.layout?.w ?? w.w ?? 3) : 2,  // Min width = original width when minimized
         minH: isMinimized ? 1 : 2,
         maxH: isMinimized ? 1 : undefined,
         static: false,  // Always allow dragging, even when minimized
@@ -111,7 +113,7 @@ const DashboardEngine = ({
       };
       // Only log in development mode
       if (process.env.NODE_ENV === 'development') {
-        logger.log(`[gridLayout] Widget ${w.id}: minimized=${isMinimized}, w=${item.w}, h=${item.h}`);
+        logger.log(`[gridLayout] Widget ${w.id}: minimized=${isMinimized}, w=${item.w}, h=${item.h}, original=${JSON.stringify(originalSize)}`);
       }
       return item;
     });
@@ -119,7 +121,7 @@ const DashboardEngine = ({
       logger.log(`[gridLayout] Total widgets in layout: ${layout.length}`);
     }
     return layout;
-  }, [sortedWidgets, minimizedIds]);
+  }, [sortedWidgets, minimizedIds, originalSizes]);
 
   // ── Layout change (drag/resize) ───────────────────────────────────────────
   const onLayoutChange = useCallback((newLayout) => {
@@ -224,6 +226,22 @@ const DashboardEngine = ({
       logger.log(`[handleMinimize] ${isMinimizing ? 'Minimizing' : 'Restoring'} widget ${id}`);
     }
     
+    // Store original size before minimizing
+    if (isMinimizing) {
+      const widget = widgets.find(w => w.id === id);
+      if (widget) {
+        const currentWidth = widget.layout?.w ?? widget.w ?? 3;
+        const currentHeight = widget.layout?.h ?? widget.h ?? 5;
+        setOriginalSizes(prev => ({
+          ...prev,
+          [id]: { w: currentWidth, h: currentHeight }
+        }));
+        if (process.env.NODE_ENV === 'development') {
+          logger.log(`[handleMinimize] Stored original size for ${id}:`, { w: currentWidth, h: currentHeight });
+        }
+      }
+    }
+    
     // Clear any cached widget data that might interfere
     try {
       localStorage.removeItem(`wdg_${storageKey}`);
@@ -249,12 +267,13 @@ const DashboardEngine = ({
     setWidgets(prev => {
       const updatedWidgets = prev.map(widget => {
         if (widget.id === id) {
+          const originalSize = originalSizes[id];
           const updatedWidget = {
             ...widget,
             layout: {
               ...widget.layout,
-              w: isMinimizing ? 4 : 3,  // Fixed 3 width when restored
-              h: isMinimizing ? 1 : 5,  // Fixed 5 height when restored
+              w: isMinimizing ? (originalSize?.w ?? widget.layout?.w ?? widget.w ?? 3) : (originalSize?.w ?? widget.layout?.w ?? widget.w ?? 3),  // Preserve original width
+              h: isMinimizing ? 1 : (originalSize?.h ?? widget.layout?.h ?? widget.h ?? 5),  // Minimized height = 1, restore original height
               static: false,  // Always allow dragging
               isResizable: !isMinimizing  // Allow resizing when not minimized
             }
@@ -271,7 +290,7 @@ const DashboardEngine = ({
       }
       return updatedWidgets;
     }, true); // Skip save to prevent Firestore reload
-  }, [minimizedIds, storageKey, setWidgets]);
+  }, [minimizedIds, originalSizes, storageKey, setWidgets, widgets]);
 
   /**
    * Per-widget refresh: just bumps a version counter so the chart re-renders
@@ -400,10 +419,10 @@ const DashboardEngine = ({
           cols={12}
           rowHeight={64}
           isDraggable={editLayout}
-          isResizable={editLayout && Object.keys(minimizedIds).filter(k => minimizedIds[k]).length === 0}
+          isResizable={editLayout}
           onLayoutChange={onLayoutChange}
           draggableHandle=".drag-handle"
-          resizeHandles={['se', 'sw', 'ne', 'nw']}
+          resizeHandles={editLayout ? ['se', 'sw', 'ne', 'nw'] : []}
           compactType="vertical"
           preventCollision={false}
           margin={[12, 12]}
