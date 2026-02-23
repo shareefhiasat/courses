@@ -71,11 +71,35 @@ const HierarchyFilters = ({
 
   const studentOptions = useMemo(() => [
     { value: 'all', label: t('all_students') || 'All Students' },
-    ...students.map(s => ({
-      value: s.id || s.docId || s.uid,
-      label: s.displayName || s.email
-    }))
-  ], [students, t]);
+    ...students
+      .filter(s => {
+        // If no filters selected, show all students
+        if (selectedClass === 'all' && selectedSubject === 'all' && selectedProgram === 'all') {
+          return true;
+        }
+        
+        // Filter by class if specified
+        if (selectedClass !== 'all') {
+          return s.enrollments?.some(e => e.classId === selectedClass) || s.classId === selectedClass;
+        }
+        
+        // Filter by subject if specified
+        if (selectedSubject !== 'all') {
+          return s.enrollments?.some(e => e.subjectId === selectedSubject) || s.subjectId === selectedSubject;
+        }
+        
+        // Filter by program if specified
+        if (selectedProgram !== 'all') {
+          return s.enrollments?.some(e => e.programId === selectedProgram) || s.programId === selectedProgram;
+        }
+        
+        return true;
+      })
+      .map(s => ({
+        value: s.id || s.docId || s.uid,
+        label: s.displayName || s.realName || s.email || `${s.firstName || ''} ${s.lastName || ''}`.trim() || 'Unknown Student'
+      }))
+  ], [students, selectedProgram, selectedSubject, selectedClass, t]);
 
   return (
     <div style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap', marginLeft: 'auto' }}>

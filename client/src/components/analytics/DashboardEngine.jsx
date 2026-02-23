@@ -109,7 +109,9 @@ const DashboardEngine = ({
         minH: isMinimized ? 1 : 2,
         maxH: isMinimized ? 1 : undefined,
         static: false,  // Always allow dragging, even when minimized
-        isResizable: !isMinimized  // Only allow resizing when not minimized
+        isResizable: !isMinimized,  // Only allow resizing when not minimized
+        // Add CSS class for animation
+        className: isMinimized ? 'minimized' : ''
       };
       // Only log in development mode
       if (process.env.NODE_ENV === 'development') {
@@ -360,11 +362,16 @@ const DashboardEngine = ({
     <>
       {/* Scoped CSS */}
       <style>{`
+        .rgl-engine .react-grid-item {
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+          transition-property: width, height, transform !important;
+        }
         .rgl-engine .react-grid-item.react-grid-placeholder {
           background: ${accentColor}33;
           border: 2px dashed ${accentColor};
           border-radius: 16px;
           opacity: 0.8;
+          transition: all 0.3s ease;
         }
         .rgl-engine .react-resizable-handle {
           background-color: ${accentColor};
@@ -374,10 +381,39 @@ const DashboardEngine = ({
         }
         .rgl-engine .react-grid-item:hover .react-resizable-handle { opacity: 0.8; }
         .rgl-engine .react-grid-item:hover .widget-actions { opacity: 1 !important; }
-        .rgl-engine .react-grid-item { transition: all 200ms ease; transition-property: left, top, width, height; }
         .rgl-engine .react-grid-item.cssTransforms { transition-property: transform, width, height; }
         .rgl-engine .react-grid-item.resizing,
-        .rgl-engine .react-grid-item.react-draggable-dragging { transition: none; z-index: 100; }
+        .rgl-engine .react-grid-item.react-draggable-dragging { 
+          transition: none !important; 
+          z-index: 100; 
+        }
+        
+        /* Smooth minimize/restore animations */
+        .rgl-engine .react-grid-item.minimizing {
+          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        
+        .rgl-engine .react-grid-item.restoring {
+          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        
+        /* Widget content animation */
+        .widget-content {
+          transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .widget-content.minimized {
+          opacity: 0;
+          transform: scaleY(0);
+          transform-origin: top;
+          height: 0 !important;
+          overflow: hidden;
+        }
+        
+        .widget-content.restored {
+          opacity: 1;
+          transform: scaleY(1);
+        }
       `}</style>
 
       {/* ── Toolbar: always-visible Add Widget button ── */}
