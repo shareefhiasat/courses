@@ -11,6 +11,7 @@ import analytics from './utils/analytics.js';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 import './styles/colors.css';
+import './styles/tokens.css';
 import './styles/theme.css';
 import './utils/userRoleManager';
 import './utils/allowlistManager';

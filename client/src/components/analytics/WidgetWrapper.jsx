@@ -67,7 +67,7 @@ const WidgetWrapper = ({
       <ActionBtn
         title={t('refresh') || 'Refresh'}
         onClick={onRefresh}
-        style={{ color: isRecentlyRefreshed ? '#10b981' : 'var(--text)' }}
+        style={{ color: isRecentlyRefreshed ? 'var(--color-success, #10b981)' : 'var(--text)' }}
       >
         {getThemedIcon('ui', 'rotate_cw', 14, theme)}
       </ActionBtn>
@@ -95,7 +95,7 @@ const WidgetWrapper = ({
       <ActionBtn
         title={t('delete') || 'Delete'}
         onClick={onDelete}
-        style={{ color: '#ef4444', borderColor: '#ef4444' }}
+        style={{ color: 'var(--color-danger, #ef4444)', borderColor: 'var(--color-danger, #ef4444)' }}
       >
         {getThemedIcon('ui', 'trash2', 14, theme)}
       </ActionBtn>
@@ -144,7 +144,7 @@ const WidgetWrapper = ({
               >
                 {lang === 'ar' ? (widget.title_ar || widget.title_en || widget.title) : (widget.title_en || widget.title_ar || widget.title)}
                 {isRecentlyRefreshed && (
-                  <span style={{ color: '#10b981', fontSize: 11, marginInlineStart: 4 }}>✓</span>
+                  <span style={{ color: 'var(--color-success, #10b981)', fontSize: 11, marginInlineStart: 4 }}>✓</span>
                 )}
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>

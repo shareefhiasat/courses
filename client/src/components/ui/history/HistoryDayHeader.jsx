@@ -20,13 +20,13 @@ export const HistoryDayHeader = ({
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: isMobile ? '0.375rem 0.5rem' : '0.5rem 0.75rem',
-        background: 'var(--background-secondary, #f9fafb)',
+        background: 'var(--panel-hover, var(--background-secondary, #f9fafb))',
         cursor: 'pointer',
-        borderBottom: isDayExpanded ? '1px solid #e5e7eb' : 'none'
+        borderBottom: isDayExpanded ? '1px solid var(--border, #e5e7eb)' : 'none'
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111827' }}>
+        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text, #111827)' }}>
           {dateStr}
         </span>
         <div style={{ 
@@ -42,11 +42,11 @@ export const HistoryDayHeader = ({
               alignItems: 'center',
               gap: '0.25rem',
               padding: isMobile ? '0.2rem 0.3rem' : '0.25rem 0.5rem',
-              background: '#f0fdf4',
-              border: '1px solid #bbf7d0',
+              background: 'var(--color-success-light, #f0fdf4)',
+              border: '1px solid var(--color-success-light, #bbf7d0)',
               borderRadius: '0.375rem',
               fontSize: '0.75rem',
-              color: '#166534',
+              color: 'var(--color-success-dark, #166534)',
               minWidth: isMobile ? 'auto' : undefined,
               flexShrink: 0
             }}>
@@ -59,11 +59,11 @@ export const HistoryDayHeader = ({
               alignItems: 'center',
               gap: '0.25rem',
               padding: isMobile ? '0.2rem 0.3rem' : '0.25rem 0.5rem',
-              background: '#eff6ff',
-              border: '1px solid #bfdbfe',
+              background: 'var(--color-info-light, #eff6ff)',
+              border: '1px solid var(--color-info-light, #bfdbfe)',
               borderRadius: '0.375rem',
               fontSize: '0.75rem',
-              color: '#1e40af',
+              color: 'var(--color-info-dark, #1e40af)',
               minWidth: isMobile ? 'auto' : undefined,
               flexShrink: 0
             }}>
@@ -76,11 +76,11 @@ export const HistoryDayHeader = ({
               alignItems: 'center',
               gap: '0.25rem',
               padding: isMobile ? '0.2rem 0.3rem' : '0.25rem 0.5rem',
-              background: '#fff7ed',
-              border: '1px solid #fed7aa',
+              background: 'var(--color-warning-light, #fff7ed)',
+              border: '1px solid var(--color-warning-light, #fed7aa)',
               borderRadius: '0.375rem',
               fontSize: '0.75rem',
-              color: '#c2410c',
+              color: 'var(--color-warning-dark, #c2410c)',
               minWidth: isMobile ? 'auto' : undefined,
               flexShrink: 0
             }}>
@@ -93,11 +93,11 @@ export const HistoryDayHeader = ({
               alignItems: 'center',
               gap: '0.25rem',
               padding: isMobile ? '0.2rem 0.3rem' : '0.25rem 0.5rem',
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
+              background: 'var(--color-danger-light, #fef2f2)',
+              border: '1px solid var(--color-danger-light, #fecaca)',
               borderRadius: '0.375rem',
               fontSize: '0.75rem',
-              color: '#b91c1c',
+              color: 'var(--color-danger-dark, #b91c1c)',
               minWidth: isMobile ? 'auto' : undefined,
               flexShrink: 0
             }}>
@@ -114,7 +114,8 @@ export const HistoryDayHeader = ({
             transform: isDayExpanded 
               ? (isRTL ? 'rotate(180deg)' : 'rotate(0deg)') 
               : (isRTL ? 'rotate(90deg)' : 'rotate(-90deg)'),
-            transition: 'transform 0.2s'
+            transition: 'transform 0.2s',
+            color: 'var(--text-muted, #6b7280)'
           }} 
           viewBox="0 0 24 24" 
           fill="none" 

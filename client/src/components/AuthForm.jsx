@@ -413,7 +413,7 @@ const AuthForm = () => {
 
   return (
     <div className="auth-form-container">
-      <div className="auth-form" style={{ backgroundColor: '#ffffff' }}>
+      <div className="auth-form">
         {/* Language and Theme Toggles */}
         <div className="auth-controls">
           <button
@@ -503,13 +503,13 @@ const AuthForm = () => {
               </div>
               <div style={{ 
                 fontSize: '0.85rem', 
-                color: '#666', 
+                color: 'var(--text-secondary, #666)', 
                 marginTop: '-8px', 
                 marginBottom: '12px',
                 padding: '8px 12px',
-                background: '#f0f8ff',
+                background: 'var(--color-info-light, rgba(23, 162, 184, 0.1))',
                 borderRadius: '6px',
-                border: '1px solid #d0e8ff'
+                border: '1px solid var(--color-info-border, rgba(23, 162, 184, 0.2))'
               }}>
                 💡 {tr('password_hint', 'Password must be at least 6 characters', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل')}
               </div>
@@ -588,7 +588,7 @@ const AuthForm = () => {
               });
             }}
             style={{
-              background: loading ? '#ccc' : `linear-gradient(135deg, ${primaryColor} 0%, ${adjustColor(primaryColor, -20)} 100%)`,
+              background: loading ? 'var(--text-muted, #ccc)' : `linear-gradient(135deg, ${primaryColor} 0%, ${adjustColor(primaryColor, -20)} 100%)`,
               cursor: loading ? 'not-allowed' : 'pointer'
             }}
           >

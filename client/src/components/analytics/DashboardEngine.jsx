@@ -151,12 +151,12 @@ const DashboardEngine = ({
       logger.warn(`[handleDelete] Failed to clear localStorage:`, e);
     }
     
-    // Remove widget from widgets array (skip save to prevent reload)
+    // Remove widget from widgets array (allow save to persist deletion)
     setWidgets(prev => {
       const newWidgets = prev.filter(w => w.id !== id);
       logger.log(`[handleDelete] Widgets after removal: ${newWidgets.length}`);
       return newWidgets;
-    }, true); // Skip save to prevent Firestore reload
+    }); // Allow save to persist deletion
     
     // Remove from minimized state
     setMinimizedIds(prev => {

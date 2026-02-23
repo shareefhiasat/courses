@@ -16,6 +16,7 @@ import eventBus, { EVENTS } from '@utils/eventBus';
 import { SimpleLoading } from '@ui';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { useToast } from '@ui';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES } from '@constants/participationTypes';
@@ -41,6 +42,7 @@ export default function StudentActionStatsPanel({
 }) {
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
+  const { theme } = useTheme();
   const { showSuccess, showError } = useToast();
   const [selectedActions, setSelectedActions] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -1144,7 +1146,7 @@ export default function StudentActionStatsPanel({
                         }} />
                             {/* Only show text for attendance status if it's not 'present' */}
                             {currentAttendanceStatus !== 'present' && (
-                                <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
                             {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
                           </span>
                             )}
@@ -1152,8 +1154,8 @@ export default function StudentActionStatsPanel({
                       ) : (
                           // Show None when no attendance status
                           <>
-                            <CircleIcon style={{ width: '14px', height: '14px', stroke: '#9ca3af' }} />
-                            <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                            <CircleIcon style={{ width: '14px', height: '14px', stroke: 'var(--text-muted, #9ca3af)' }} />
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #9ca3af)' }}>
                           {t('none') || 'None'}
                         </span>
                           </>
@@ -1183,10 +1185,10 @@ export default function StudentActionStatsPanel({
                       alignItems: 'center',
                       gap: '0.375rem',
                       padding: '0.25rem 0.5rem',
-                      background: sendNotifications ? '#f0fdf4' : '#fef2f2',
+                      background: sendNotifications ? 'var(--color-success-light, #f0fdf4)' : 'var(--color-danger-light, #fef2f2)',
                       borderRadius: '0.375rem',
                       cursor: 'pointer',
-                      border: `1px solid ${sendNotifications ? '#bbf7d0' : '#fecaca'}`,
+                      border: `1px solid ${sendNotifications ? 'var(--color-success-border, #bbf7d0)' : 'var(--color-danger-border, #fecaca)'}`,
                       transition: 'all 0.2s',
                       userSelect: 'none'
                     }}
@@ -1194,7 +1196,7 @@ export default function StudentActionStatsPanel({
                   <div style={{
                     width: '1.75rem',
                     height: '0.875rem',
-                    background: sendNotifications ? '#10b981' : '#ef4444',
+                    background: sendNotifications ? 'var(--color-success, #10b981)' : 'var(--color-danger, #ef4444)',
                     borderRadius: '1rem',
                     position: 'relative',
                     transition: 'background 0.2s'
@@ -1202,7 +1204,7 @@ export default function StudentActionStatsPanel({
                     <div style={{
                       width: '0.625rem',
                       height: '0.625rem',
-                      background: 'white',
+                      background: 'var(--toggle-knob, white)',
                       borderRadius: '50%',
                       position: 'absolute',
                       top: '0.125rem',
@@ -1213,7 +1215,7 @@ export default function StudentActionStatsPanel({
                   <span style={{
                     fontSize: '0.625rem',
                     fontWeight: 600,
-                    color: sendNotifications ? '#166534' : '#991b1b',
+                    color: sendNotifications ? 'var(--color-success-dark, #166534)' : 'var(--color-danger-dark, #991b1b)',
                   }}>
                   {t('notifs')}
                 </span>
@@ -1263,8 +1265,8 @@ export default function StudentActionStatsPanel({
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid #10b981',
-                      background: !isAttendanceNone && currentAttendanceStatus === 'present' ? '#10b981' : 'white',
-                      color: !isAttendanceNone && currentAttendanceStatus === 'present' ? 'white' : '#10b981',
+                      background: !isAttendanceNone && currentAttendanceStatus === 'present' ? 'var(--color-success, #10b981)' : 'var(--panel, white)',
+                      color: !isAttendanceNone && currentAttendanceStatus === 'present' ? 'var(--text-on-success, white)' : 'var(--color-success, #10b981)',
                       cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
                       opacity: isAttendanceNone ? 0.5 : 1,
                       display: 'flex',
@@ -1305,8 +1307,8 @@ export default function StudentActionStatsPanel({
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid #f59e0b',
-                      background: !isAttendanceNone && currentAttendanceStatus === 'late' ? '#f59e0b' : 'white',
-                      color: !isAttendanceNone && currentAttendanceStatus === 'late' ? 'white' : '#f59e0b',
+                      background: !isAttendanceNone && currentAttendanceStatus === 'late' ? 'var(--color-warning, #f59e0b)' : 'var(--panel, white)',
+                      color: !isAttendanceNone && currentAttendanceStatus === 'late' ? 'var(--text-on-success, white)' : 'var(--color-warning, #f59e0b)',
                       cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
                       opacity: isAttendanceNone ? 0.5 : 1,
                       display: 'flex',
@@ -1347,8 +1349,8 @@ export default function StudentActionStatsPanel({
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid #ef4444',
-                      background: !isAttendanceNone && currentAttendanceStatus === 'absent_no_excuse' ? '#ef4444' : 'white',
-                      color: !isAttendanceNone && currentAttendanceStatus === 'absent_no_excuse' ? 'white' : '#ef4444',
+                      background: !isAttendanceNone && currentAttendanceStatus === 'absent_no_excuse' ? 'var(--color-danger, #ef4444)' : 'var(--panel, white)',
+                      color: !isAttendanceNone && currentAttendanceStatus === 'absent_no_excuse' ? 'var(--text-on-success, white)' : 'var(--color-danger, #ef4444)',
                       cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
                       opacity: isAttendanceNone ? 0.5 : 1,
                       display: 'flex',
@@ -1389,8 +1391,8 @@ export default function StudentActionStatsPanel({
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid #ef4444',
-                      background: !isAttendanceNone && currentAttendanceStatus === 'absent_with_excuse' ? '#ef4444' : 'white',
-                      color: !isAttendanceNone && currentAttendanceStatus === 'absent_with_excuse' ? 'white' : '#ef4444',
+                      background: !isAttendanceNone && currentAttendanceStatus === 'absent_with_excuse' ? 'var(--color-danger, #ef4444)' : 'var(--panel, white)',
+                      color: !isAttendanceNone && currentAttendanceStatus === 'absent_with_excuse' ? 'var(--text-on-success, white)' : 'var(--color-danger, #ef4444)',
                       cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
                       opacity: isAttendanceNone ? 0.5 : 1,
                       display: 'flex',
@@ -1431,8 +1433,8 @@ export default function StudentActionStatsPanel({
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid #ef4444',
-                      background: !isAttendanceNone && currentAttendanceStatus === 'excused_leave' ? '#ef4444' : 'white',
-                      color: !isAttendanceNone && currentAttendanceStatus === 'excused_leave' ? 'white' : '#ef4444',
+                      background: !isAttendanceNone && currentAttendanceStatus === 'excused_leave' ? 'var(--color-danger, #ef4444)' : 'var(--panel, white)',
+                      color: !isAttendanceNone && currentAttendanceStatus === 'excused_leave' ? 'var(--text-on-success, white)' : 'var(--color-danger, #ef4444)',
                       cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
                       opacity: isAttendanceNone ? 0.5 : 1,
                       display: 'flex',
@@ -1473,8 +1475,8 @@ export default function StudentActionStatsPanel({
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid #8b5cf6',
-                      background: !isAttendanceNone && currentAttendanceStatus === 'human_case' ? '#8b5cf6' : 'white',
-                      color: !isAttendanceNone && currentAttendanceStatus === 'human_case' ? 'white' : '#8b5cf6',
+                      background: !isAttendanceNone && currentAttendanceStatus === 'human_case' ? 'var(--color-purple, #8b5cf6)' : 'var(--panel, white)',
+                      color: !isAttendanceNone && currentAttendanceStatus === 'human_case' ? 'var(--text-on-success, white)' : 'var(--color-purple, #8b5cf6)',
                       cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
                       opacity: isAttendanceNone ? 0.5 : 1,
                       display: 'flex',
@@ -1522,7 +1524,7 @@ export default function StudentActionStatsPanel({
                 {/* Total Present */}
                 <div style={{
                   padding: '0.375rem',
-                  background: '#16a34a',
+                  background: 'var(--color-success, #16a34a)',
                   borderRadius: '0.5rem',
                   textAlign: 'center',
                   display: 'flex',
@@ -1530,10 +1532,10 @@ export default function StudentActionStatsPanel({
                   justifyContent: 'center',
                   minHeight: '3rem'
                 }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
                     {totalAttendanceStats.present}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-on-success, white)', fontWeight: 500 }}>
                     {t('present')}
                   </div>
                 </div>
@@ -1541,18 +1543,18 @@ export default function StudentActionStatsPanel({
                 {/* Total Penalty */}
                 <div style={{
                   padding: '0.5rem',
-                  background: '#dc2626',
-                  borderRadius: '0.5rem',
+                  background: 'var(--color-danger, #dc2626)',
+                  borderRadius: '05rem',
                   textAlign: 'center',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'center',
                   minHeight: '3rem'
                 }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
                     {student.penalty || 0}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-on-success, white)', fontWeight: 500 }}>
                     {t('penalty')}
                   </div>
                 </div>
@@ -1560,7 +1562,7 @@ export default function StudentActionStatsPanel({
                 {/* Total Behavior */}
                 <div style={{
                   padding: '0.5rem',
-                  background: '#f97316',
+                  background: 'var(--color-warning, #f97316)',
                   borderRadius: '0.5rem',
                   textAlign: 'center',
                   display: 'flex',
@@ -1568,10 +1570,10 @@ export default function StudentActionStatsPanel({
                   justifyContent: 'center',
                   minHeight: '3rem'
                 }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
                     {student.behavior >= 0 ? '+' : ''}{student.behavior || 0}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-on-success, white)', fontWeight: 500 }}>
                     {t('behavior')}
                   </div>
                 </div>
@@ -1579,7 +1581,7 @@ export default function StudentActionStatsPanel({
                 {/* Total Participation */}
                 <div style={{
                   padding: '0.5rem',
-                  background: '#3b82f6',
+                  background: 'var(--color-info, #3b82f6)',
                   borderRadius: '0.5rem',
                   textAlign: 'center',
                   display: 'flex',
@@ -1587,10 +1589,10 @@ export default function StudentActionStatsPanel({
                   justifyContent: 'center',
                   minHeight: '3rem'
                 }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
                     {student.participation || 0}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-on-success, white)', fontWeight: 500 }}>
                     {t('participation')}
                   </div>
                 </div>
@@ -1606,7 +1608,7 @@ export default function StudentActionStatsPanel({
                 {/* Total Late */}
                 <div style={{
                   padding: '0.5rem',
-                  background: '#eab308',
+                  background: 'var(--color-warning-light, #eab308)',
                   borderRadius: '0.5rem',
                   textAlign: 'center',
                   display: 'flex',
@@ -1614,10 +1616,10 @@ export default function StudentActionStatsPanel({
                   justifyContent: 'center',
                   minHeight: '3rem'
                 }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-on-warning, white)' }}>
                     {totalAttendanceStats.late}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-on-warning, white)', fontWeight: 500 }}>
                     {t('late')}
                   </div>
                 </div>
@@ -1625,7 +1627,7 @@ export default function StudentActionStatsPanel({
                 {/* Total Excused Leave */}
                 <div style={{
                   padding: '0.5rem',
-                  background: '#ef4444',
+                  background: 'var(--color-danger, #ef4444)',
                   borderRadius: '0.5rem',
                   textAlign: 'center',
                   display: 'flex',
@@ -1633,10 +1635,10 @@ export default function StudentActionStatsPanel({
                   justifyContent: 'center',
                   minHeight: '3rem'
                 }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
                     {attendanceStats.excused_leave}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-on-success, white)', fontWeight: 500 }}>
                     {t('excused_leave')}
                   </div>
                 </div>
@@ -1644,7 +1646,7 @@ export default function StudentActionStatsPanel({
                 {/* Total Absent (Excused) */}
                 <div style={{
                   padding: '0.5rem',
-                  background: '#ef4444',
+                  background: 'var(--color-danger, #ef4444)',
                   borderRadius: '0.5rem',
                   textAlign: 'center',
                   display: 'flex',
@@ -1652,10 +1654,10 @@ export default function StudentActionStatsPanel({
                   justifyContent: 'center',
                   minHeight: '3rem'
                 }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
                     {attendanceStats.absent_with_excuse}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-on-success, white)', fontWeight: 500 }}>
                     {t('absent_excused')}
                   </div>
                 </div>
@@ -1663,7 +1665,7 @@ export default function StudentActionStatsPanel({
                 {/* Total Absent (No Excuse) */}
                 <div style={{
                   padding: '0.5rem',
-                  background: '#ef4444',
+                  background: 'var(--color-danger, #ef4444)',
                   borderRadius: '0.5rem',
                   textAlign: 'center',
                   display: 'flex',
@@ -1671,10 +1673,10 @@ export default function StudentActionStatsPanel({
                   justifyContent: 'center',
                   minHeight: '3rem'
                 }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
                     {attendanceStats.absent_no_excuse}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-on-success, white)', fontWeight: 500 }}>
                     {t('absent')}
                   </div>
                 </div>
@@ -1682,7 +1684,7 @@ export default function StudentActionStatsPanel({
                 {/* Total Human Case */}
                 <div style={{
                   padding: '0.5rem',
-                  background: '#8b5cf6',
+                  background: 'var(--color-purple, #8b5cf6)',
                   borderRadius: '0.5rem',
                   textAlign: 'center',
                   display: 'flex',
@@ -1690,10 +1692,10 @@ export default function StudentActionStatsPanel({
                   justifyContent: 'center',
                   minHeight: '3rem'
                 }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
                     {attendanceStats.human_case}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-on-success, white)', fontWeight: 500 }}>
                     {t('human_case')}
                   </div>
                 </div>
@@ -1719,13 +1721,13 @@ export default function StudentActionStatsPanel({
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.5rem',
-                        background: '#3b82f6',
+                        background: 'var(--color-info, #3b82f6)',
                         borderRadius: '0.5rem',
                         cursor: 'pointer',
                         marginBottom: '0.15rem'
                       }}
                   >
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
                   {t('participation_details')} ({student.participation || 0} {t('points')}, {(() => {
                   const stats = getDetailedStats();
                   return PARTICIPATION_TYPES.reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
@@ -1758,15 +1760,15 @@ export default function StudentActionStatsPanel({
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                   padding: '0.5rem',
-                                  background: '#dbeafe', // Light blue background
+                                  background: 'var(--color-info-light, #dbeafe)', // Light blue background
                                   borderRadius: '0.375rem',
-                                  border: '1px solid #3b82f6', // Blue border
+                                  border: '1px solid var(--color-info, #3b82f6)', // Blue border
                                   opacity: stat.count > 0 ? 1 : 0.8
                                 }}>
                                   <div style={{
                                     fontSize: '0.875rem',
                                     fontWeight: 500,
-                                    color: '#1e3a8a', // Dark blue text
+                                    color: 'var(--color-info-dark, #1e3a8a)', // Dark blue text
                                     flex: 1
                                   }}>
                                     {lang === 'ar' ? (type.label_ar || type.label_en) : type.label_en}
@@ -1774,7 +1776,7 @@ export default function StudentActionStatsPanel({
                                   <div style={{
                                     fontSize: '0.75rem',
                                     fontWeight: 500,
-                                    color: '#1e3a8a', // Dark blue text
+                                    color: 'var(--color-info-dark, #1e3a8a)', // Dark blue text
                                     minWidth: '3rem',
                                     textAlign: 'center'
                                   }}>
@@ -1782,7 +1784,7 @@ export default function StudentActionStatsPanel({
                                   </div>
                                   <div style={{
                                     fontSize: '0.75rem',
-                                    color: '#1e3a8a', // Dark blue text
+                                    color: 'var(--color-info-dark, #1e3a8a)', // Dark blue text
                                     minWidth: '3rem',
                                     textAlign: 'right'
                                   }}>
@@ -1829,15 +1831,15 @@ export default function StudentActionStatsPanel({
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '0.5rem',
-                          background: '#3b82f6',
+                          background: 'var(--color-info, #3b82f6)',
                           borderRadius: '0.375rem',
                           marginTop: '0.25rem',
-                          border: '2px solid white'
+                          border: '2px solid var(--text-on-success, white)'
                         }}>
                           <div style={{
                             fontSize: '0.875rem',
                             fontWeight: 600,
-                            color: 'white',
+                            color: 'var(--text-on-success, white)',
                             flex: 1
                           }}>
                             Participation
@@ -1845,7 +1847,7 @@ export default function StudentActionStatsPanel({
                           <div style={{
                             fontSize: '0.75rem',
                             fontWeight: 500,
-                            color: 'white',
+                            color: 'var(--text-on-success, white)',
                             minWidth: '3rem',
                             textAlign: 'center'
                           }}>
@@ -1853,7 +1855,7 @@ export default function StudentActionStatsPanel({
                           </div>
                           <div style={{
                             fontSize: '0.75rem',
-                            color: 'white',
+                            color: 'var(--text-on-success, white)',
                             minWidth: '3rem',
                             textAlign: isRTL ? 'left' : 'right'
                           }}>
@@ -1876,13 +1878,13 @@ export default function StudentActionStatsPanel({
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.5rem',
-                        background: '#f97316',
+                        background: 'var(--color-warning, #f97316)',
                         borderRadius: '0.5rem',
                         cursor: 'pointer',
                         marginBottom: '0.15rem'
                       }}
                   >
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
                   {t('behavior_details')} ({student.behavior || 0} {t('points')}, {(() => {
                   const stats = getDetailedStats();
                   return BEHAVIOR_TYPES.reduce((sum, type) => sum + (stats.behavior[type.id]?.count || 0), 0);
@@ -1915,15 +1917,15 @@ export default function StudentActionStatsPanel({
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                   padding: '0.5rem',
-                                  background: '#fed7aa', // Light orange background
+                                  background: 'var(--color-warning-light, #fed7aa)', // Light orange background
                                   borderRadius: '0.375rem',
-                                  border: '1px solid #f97316', // Orange border
+                                  border: '1px solid var(--color-warning, #f97316)', // Orange border
                                   opacity: stat.count > 0 ? 1 : 0.8
                                 }}>
                                   <div style={{
                                     fontSize: '0.875rem',
                                     fontWeight: 500,
-                                    color: '#9a3412', // Dark orange text
+                                    color: 'var(--color-warning-dark, #9a3412)', // Dark orange text
                                     flex: 1
                                   }}>
                                     {lang === 'ar' ? (type.label_ar || type.label_en) : type.label_en}
@@ -1931,7 +1933,7 @@ export default function StudentActionStatsPanel({
                                   <div style={{
                                     fontSize: '0.75rem',
                                     fontWeight: 500,
-                                    color: '#9a3412', // Dark orange text
+                                    color: 'var(--color-warning-dark, #9a3412)', // Dark orange text
                                     minWidth: '3rem',
                                     textAlign: 'center'
                                   }}>
@@ -1939,7 +1941,7 @@ export default function StudentActionStatsPanel({
                                   </div>
                                   <div style={{
                                     fontSize: '0.75rem',
-                                    color: '#9a3412', // Dark orange text
+                                    color: 'var(--color-warning-dark, #9a3412)', // Dark orange text
                                     minWidth: '3rem',
                                     textAlign: isRTL ? 'left' : 'right'
                                   }}>
@@ -1986,14 +1988,14 @@ export default function StudentActionStatsPanel({
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '0.5rem',
-                          background: '#f97316',
+                          background: 'var(--color-warning, #f97316)',
                           borderRadius: '0.375rem',
                           marginTop: '0.25rem'
                         }}>
                           <div style={{
                             fontSize: '0.875rem',
                             fontWeight: 600,
-                            color: 'white',
+                            color: 'var(--text-on-success, white)',
                             flex: 1
                           }}>
                             {t('behavior')}
@@ -2001,7 +2003,7 @@ export default function StudentActionStatsPanel({
                           <div style={{
                             fontSize: '0.75rem',
                             fontWeight: 500,
-                            color: 'white',
+                            color: 'var(--text-on-success, white)',
                             minWidth: '3rem',
                             textAlign: 'center'
                           }}>
@@ -2009,7 +2011,7 @@ export default function StudentActionStatsPanel({
                           </div>
                           <div style={{
                             fontSize: '0.75rem',
-                            color: 'white',
+                            color: 'var(--text-on-success, white)',
                             minWidth: '3rem',
                             textAlign: isRTL ? 'left' : 'right'
                           }}>
@@ -2032,13 +2034,13 @@ export default function StudentActionStatsPanel({
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.5rem',
-                        background: '#dc2626',
+                        background: 'var(--color-danger, #dc2626)',
                         borderRadius: '0.5rem',
                         cursor: 'pointer',
                         marginBottom: '0.2rem'
                       }}
                   >
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
                   {t('penalty_details')} ({student.penalty || 0} {t('points')}, {(() => {
                   const stats = getDetailedStats();
                   return PENALTY_TYPES.reduce((sum, type) => sum + (stats.penalty[type.id]?.count || 0), 0);
@@ -2072,15 +2074,15 @@ export default function StudentActionStatsPanel({
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                   padding: '0.5rem',
-                                  background: '#fee2e2',
+                                  background: 'var(--color-danger-light, #fee2e2)',
                                   borderRadius: '0.375rem',
-                                  border: '1px solid #dc2626',
+                                  border: '1px solid var(--color-danger, #dc2626)',
                                   opacity: stat.count > 0 ? 1 : 0.8
                                 }}>
                                   <div style={{
                                     fontSize: '0.875rem',
                                     fontWeight: 500,
-                                    color: '#dc2626',
+                                    color: 'var(--color-danger, #dc2626)',
                                     flex: 1
                                   }}>
                                     {lang === 'ar' ? (type.label_ar || type.label_en) : type.label_en}
@@ -2088,7 +2090,7 @@ export default function StudentActionStatsPanel({
                                   <div style={{
                                     fontSize: '0.75rem',
                                     fontWeight: 500,
-                                    color: '#991b1b',
+                                    color: 'var(--color-danger-dark, #991b1b)',
                                     minWidth: '3rem',
                                     textAlign: 'center'
                                   }}>
@@ -2096,7 +2098,7 @@ export default function StudentActionStatsPanel({
                                   </div>
                                   <div style={{
                                     fontSize: '0.75rem',
-                                    color: '#dc2626',
+                                    color: 'var(--color-danger, #dc2626)',
                                     minWidth: '3rem',
                                     textAlign: 'right'
                                   }}>
@@ -2143,14 +2145,14 @@ export default function StudentActionStatsPanel({
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '0.5rem',
-                          background: '#dc2626',
+                          background: 'var(--color-danger, #dc2626)',
                           borderRadius: '0.375rem',
                           marginTop: '0.25rem'
                         }}>
                           <div style={{
                             fontSize: '0.875rem',
                             fontWeight: 600,
-                            color: 'white',
+                            color: 'var(--text-on-success, white)',
                             flex: 1
                           }}>
                             {t('penalty')}
@@ -2158,7 +2160,7 @@ export default function StudentActionStatsPanel({
                           <div style={{
                             fontSize: '0.75rem',
                             fontWeight: 500,
-                            color: 'white',
+                            color: 'var(--text-on-success, white)',
                             minWidth: '3rem',
                             textAlign: 'center'
                           }}>
@@ -2166,7 +2168,7 @@ export default function StudentActionStatsPanel({
                           </div>
                           <div style={{
                             fontSize: '0.75rem',
-                            color: 'white',
+                            color: 'var(--text-on-success, white)',
                             minWidth: '3rem',
                             textAlign: isRTL ? 'left' : 'right'
                           }}>
@@ -2214,8 +2216,8 @@ export default function StudentActionStatsPanel({
                         fontSize: '0.75rem',
                         borderRadius: '0.375rem',
                         border: '1px solid var(--border-light, #e2e8f0)',
-                        background: activeFilters.attendance ? '#065f46' : 'var(--panel, #ffffff)',
-                        color: activeFilters.attendance ? 'white' : 'var(--text-muted, #64748b)',
+                        background: activeFilters.attendance ? 'var(--color-success, #065f46)' : 'var(--panel, #ffffff)',
+                        color: activeFilters.attendance ? 'var(--text-on-success, white)' : 'var(--text-muted, #64748b)',
                         cursor: 'pointer',
                         boxShadow: activeFilters.attendance ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                         whiteSpace: 'nowrap'
@@ -2234,8 +2236,8 @@ export default function StudentActionStatsPanel({
                         fontSize: '0.75rem',
                         borderRadius: '0.375rem',
                         border: '1px solid var(--border-light, #e2e8f0)',
-                        background: activeFilters.participation ? '#3b82f6' : 'var(--panel, #ffffff)',
-                        color: activeFilters.participation ? 'white' : 'var(--text-muted, #64748b)',
+                        background: activeFilters.participation ? 'var(--color-info, #3b82f6)' : 'var(--panel, #ffffff)',
+                        color: activeFilters.participation ? 'var(--text-on-success, white)' : 'var(--text-muted, #64748b)',
                         cursor: 'pointer',
                         boxShadow: activeFilters.participation ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                         whiteSpace: 'nowrap'
@@ -2254,8 +2256,8 @@ export default function StudentActionStatsPanel({
                         fontSize: '0.75rem',
                         borderRadius: '0.375rem',
                         border: '1px solid var(--border-light, #e2e8f0)',
-                        background: activeFilters.behavior ? '#f97316' : 'var(--panel, #ffffff)',
-                        color: activeFilters.behavior ? 'white' : 'var(--text-muted, #64748b)',
+                        background: activeFilters.behavior ? 'var(--color-warning, #f97316)' : 'var(--panel, #ffffff)',
+                        color: activeFilters.behavior ? 'var(--text-on-success, white)' : 'var(--text-muted, #64748b)',
                         cursor: 'pointer',
                         boxShadow: activeFilters.behavior ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                         whiteSpace: 'nowrap'
@@ -2274,8 +2276,8 @@ export default function StudentActionStatsPanel({
                         fontSize: '0.75rem',
                         borderRadius: '0.375rem',
                         border: '1px solid #e2e8f0',
-                        background: activeFilters.penalties ? '#dc2626' : '#ffffff',
-                        color: activeFilters.penalties ? 'white' : '#64748b',
+                        background: activeFilters.penalties ? 'var(--color-danger, #dc2626)' : 'var(--panel, #ffffff)',
+                        color: activeFilters.penalties ? 'var(--text-on-success, white)' : 'var(--text-muted, #64748b)',
                         cursor: 'pointer',
                         boxShadow: activeFilters.penalties ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                         whiteSpace: 'nowrap'

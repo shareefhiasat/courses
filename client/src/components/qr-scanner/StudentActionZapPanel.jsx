@@ -268,7 +268,7 @@ export default function StudentActionZapPanel({
         width: isMobile ? '100%' : '100%',
         maxWidth: isMobile ? '100%' : '28rem',
         height: '100%',
-        background: 'white',
+        background: 'var(--panel, white)',
         boxShadow: isRTL ? '4px 0 24px rgba(0,0,0,0.1)' : '-4px 0 24px rgba(0,0,0,0.1)',
         zIndex: 2000,
         display: 'flex',
@@ -276,7 +276,7 @@ export default function StudentActionZapPanel({
         maxHeight: '100%',
         overflow: 'hidden'
       }}>
-      <div style={{ padding: '0.8rem', borderBottom: '1px solid #e5e7eb' }}>
+      <div style={{ padding: '0.8rem', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -300,7 +300,7 @@ export default function StudentActionZapPanel({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <h3 style={{ fontWeight: 600, color: '#111827', margin: 0, fontSize: '0.75rem' }}>
+                <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '0.75rem' }}>
                   {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -313,7 +313,7 @@ export default function StudentActionZapPanel({
                         borderRadius: '9999px'
                       }} />
                       {student?.attendance !== 'present' && attendanceStatus && (
-                        <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
                           {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
                         </span>
                       )}
@@ -323,10 +323,10 @@ export default function StudentActionZapPanel({
               </div>
               <div style={{ 
                 fontSize: '0.875rem', 
-                color: '#6b7280', 
+                color: 'var(--text-muted, #6b7280)', 
                 marginTop: '0.125rem',
                 fontFamily: 'monospace',
-                background: '#f3f4f6',
+                background: 'var(--panel-hover, #f3f4f6)',
                 padding: '0.25rem 0.5rem',
                 borderRadius: '0.25rem',
                 display: 'inline-block',
@@ -345,10 +345,10 @@ export default function StudentActionZapPanel({
                 alignItems: 'center',
                 gap: '0.375rem',
                 padding: '0.25rem 0.5rem',
-                background: sendNotifications ? '#f0fdf4' : '#fef2f2',
+                background: sendNotifications ? 'var(--color-success-light, #f0fdf4)' : 'var(--color-danger-light, #fef2f2)',
                 borderRadius: '0.375rem',
                 cursor: 'pointer',
-                border: `1px solid ${sendNotifications ? '#bbf7d0' : '#fecaca'}`,
+                border: `1px solid ${sendNotifications ? 'var(--color-success-border, #bbf7d0)' : 'var(--color-danger-border, #fecaca)'}`,
                 transition: 'all 0.2s',
                 userSelect: 'none'
               }}
@@ -356,7 +356,7 @@ export default function StudentActionZapPanel({
               <div style={{
                 width: '1.75rem',
                 height: '0.875rem',
-                background: sendNotifications ? '#10b981' : '#ef4444',
+                background: sendNotifications ? 'var(--color-success, #10b981)' : 'var(--color-danger, #ef4444)',
                 borderRadius: '1rem',
                 position: 'relative',
                 transition: 'background 0.2s'
@@ -364,7 +364,7 @@ export default function StudentActionZapPanel({
                 <div style={{
                   width: '0.625rem',
                   height: '0.625rem',
-                  background: 'white',
+                  background: 'var(--toggle-knob, white)',
                   borderRadius: '50%',
                   position: 'absolute',
                   top: '0.125rem',
@@ -375,7 +375,7 @@ export default function StudentActionZapPanel({
               <span style={{ 
                 fontSize: '0.625rem', 
                 fontWeight: 600, 
-                color: sendNotifications ? '#166534' : '#991b1b',
+                color: sendNotifications ? 'var(--color-success-dark, #166534)' : 'var(--color-danger-dark, #991b1b)',
               }}>
                 {t('notifs')}
               </span>
@@ -398,9 +398,9 @@ export default function StudentActionZapPanel({
               padding: '0.5rem 0.75rem',
               fontSize: '0.8125rem',
               borderRadius: '0.375rem',
-              border: '1px solid #e2e8f0',
-              background: activeTab === RECORD_TYPES.PARTICIPATION ? '#3b82f6' : '#f8fafc',
-              color: activeTab === RECORD_TYPES.PARTICIPATION ? 'white' : '#64748b',
+              border: '1px solid var(--border, #e2e8f0)',
+              background: activeTab === RECORD_TYPES.PARTICIPATION ? 'var(--color-primary, #3b82f6)' : 'var(--panel-hover, #f8fafc)',
+              color: activeTab === RECORD_TYPES.PARTICIPATION ? 'white' : 'var(--text-muted, #64748b)',
               cursor: 'pointer',
               boxShadow: activeTab === RECORD_TYPES.PARTICIPATION ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
@@ -417,9 +417,9 @@ export default function StudentActionZapPanel({
               padding: '0.5rem 0.75rem',
               fontSize: '0.8125rem',
               borderRadius: '0.375rem',
-              border: '1px solid #e2e8f0',
-              background: activeTab === RECORD_TYPES.BEHAVIOR ? '#f97316' : '#f8fafc',
-              color: activeTab === RECORD_TYPES.BEHAVIOR ? 'white' : '#64748b',
+              border: '1px solid var(--border, #e2e8f0)',
+              background: activeTab === RECORD_TYPES.BEHAVIOR ? 'var(--color-warning, #f97316)' : 'var(--panel-hover, #f8fafc)',
+              color: activeTab === RECORD_TYPES.BEHAVIOR ? 'white' : 'var(--text-muted, #64748b)',
               cursor: 'pointer',
               boxShadow: activeTab === RECORD_TYPES.BEHAVIOR ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
@@ -436,9 +436,9 @@ export default function StudentActionZapPanel({
               padding: '0.5rem 0.75rem',
               fontSize: '0.8125rem',
               borderRadius: '0.375rem',
-              border: '1px solid #e2e8f0',
-              background: activeTab === RECORD_TYPES.PENALTY ? '#dc2626' : '#f8fafc',
-              color: activeTab === RECORD_TYPES.PENALTY ? 'white' : '#64748b',
+              border: '1px solid var(--border, #e2e8f0)',
+              background: activeTab === RECORD_TYPES.PENALTY ? 'var(--color-danger, #dc2626)' : 'var(--panel-hover, #f8fafc)',
+              color: activeTab === RECORD_TYPES.PENALTY ? 'white' : 'var(--text-muted, #64748b)',
               cursor: 'pointer',
               boxShadow: activeTab === RECORD_TYPES.PENALTY ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
@@ -456,9 +456,9 @@ export default function StudentActionZapPanel({
                 padding: '0.5rem 0.75rem',
                 fontSize: '0.8125rem',
                 borderRadius: '0.375rem',
-                border: '1px solid #e2e8f0',
-                background: '#f8fafc',
-                color: '#64748b',
+                border: '1px solid var(--border, #e2e8f0)',
+                background: 'var(--panel-hover, #f8fafc)',
+                color: 'var(--text-muted, #64748b)',
                 cursor: 'pointer',
                 boxShadow: 'none'
               }}
@@ -500,8 +500,8 @@ export default function StudentActionZapPanel({
                   style={{
                     padding: viewMode === 'grid' ? '0.5rem' : '0.375rem 0.5rem',
                     borderRadius: '0.5rem',
-                    border: `2px solid ${isSelected ? '#8b5cf6' : '#e5e7eb'}`,
-                    background: isSelected ? 'rgba(139, 92, 246, 0.05)' : 'transparent',
+                    border: `2px solid ${isSelected ? 'var(--color-purple, #8b5cf6)' : 'var(--border, #e5e7eb)'}`,
+                    background: isSelected ? 'var(--color-purple-light, rgba(139, 92, 246, 0.05))' : 'transparent',
                     transition: 'all 0.2s',
                     position: 'relative',
                     cursor: 'pointer'
@@ -532,7 +532,7 @@ export default function StudentActionZapPanel({
                     <span style={{
                       fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
                       fontWeight: 500,
-                      color: '#111827',
+                      color: 'var(--text, #111827)',
                       lineHeight: '1.2',
                       flex: 1
                     }}>
@@ -542,7 +542,7 @@ export default function StudentActionZapPanel({
                       <div style={{
                         fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
                         fontWeight: 600,
-                        color: (actionPoints[option.id] || 0) >= 0 ? '#059669' : '#dc2626',
+                        color: (actionPoints[option.id] || 0) >= 0 ? 'var(--color-success-dark, #059669)' : 'var(--color-danger-dark, #dc2626)',
                         flexShrink: 0,
                         marginLeft: '0.25rem'
                       }}>
@@ -595,9 +595,9 @@ export default function StudentActionZapPanel({
                           width: '1.5rem',
                           height: '1.5rem',
                           borderRadius: '0.375rem',
-                          border: '1px solid #ef4444',
-                          background: '#fef2f2',
-                          color: '#ef4444',
+                          border: '1px solid var(--color-danger, #ef4444)',
+                          background: 'var(--color-danger-light, #fef2f2)',
+                          color: 'var(--color-danger, #ef4444)',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -611,15 +611,15 @@ export default function StudentActionZapPanel({
                       <div style={{
                         width: '2rem',
                         height: '1.5rem',
-                        border: '1px solid #d1d5db',
+                        border: '1px solid var(--border, #d1d5db)',
                         borderRadius: '0.375rem',
-                        background: '#ffffff',
+                        background: 'var(--input-bg, #ffffff)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: '0.75rem',
                         fontWeight: '700',
-                        color: '#111827',
+                        color: 'var(--text, #111827)',
                         boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                       }}>
                         {actionPoints[option.id] || 0}
@@ -641,9 +641,9 @@ export default function StudentActionZapPanel({
                           width: '1.5rem',
                           height: '1.5rem',
                           borderRadius: '0.375rem',
-                          border: '1px solid #10b981',
-                          background: '#f0fdf4',
-                          color: '#10b981',
+                          border: '1px solid var(--color-success, #10b981)',
+                          background: 'var(--color-success-light, #f0fdf4)',
+                          color: 'var(--color-success, #10b981)',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -667,7 +667,7 @@ export default function StudentActionZapPanel({
             <h4 style={{
               fontSize: '0.875rem',
               fontWeight: 500,
-              color: '#6b7280',
+              color: 'var(--text-muted, #6b7280)',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               marginBottom: '0.75rem'
@@ -690,7 +690,7 @@ export default function StudentActionZapPanel({
       </div>
 
       {activeTab !== RECORD_TYPES.ATTENDANCE && (
-      <div style={{ padding: '1.5rem', borderTop: '1px solid #e5e7eb' }}>
+      <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border, #e5e7eb)' }}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Button
             onClick={handleSaveActions}

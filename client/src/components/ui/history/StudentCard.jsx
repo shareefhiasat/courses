@@ -411,14 +411,84 @@ const StudentCard = ({
             {t('stats')}
           </Button>
         )}
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={handleQRNavigate}
-          title={t('open_qr_code') || 'Open QR Code'}
+        <div 
+          style={{
+            position: 'relative',
+            display: 'inline-block'
+          }}
+          onMouseEnter={(e) => {
+            // Remove any existing title attribute to prevent native tooltip
+            const button = e.currentTarget.querySelector('button');
+            if (button) {
+              button.removeAttribute('title');
+            }
+            const tooltip = e.currentTarget.querySelector('[data-tooltip]');
+            if (tooltip) {
+              // Small delay to prevent conflicts
+              setTimeout(() => {
+                tooltip.style.opacity = '1';
+                tooltip.style.visibility = 'visible';
+              }, 50);
+            }
+          }}
+          onMouseLeave={(e) => {
+            const tooltip = e.currentTarget.querySelector('[data-tooltip]');
+            if (tooltip) {
+              tooltip.style.opacity = '0';
+              tooltip.style.visibility = 'hidden';
+            }
+          }}
         >
-          {getThemedIcon('ui', 'qr_code', 16)}
-        </Button>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={handleQRNavigate}
+            aria-label={t('open_qr_code') || 'Open QR Code'}
+            title=""  // Explicitly set empty title to override any default
+          >
+            {getThemedIcon('ui', 'qr_code', 16)}
+          </Button>
+          <div 
+            data-tooltip
+            style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              marginBottom: '6px',
+              padding: '6px 10px',
+              backgroundColor: '#1f2937',
+              color: 'white',
+              fontSize: '11px',
+              fontWeight: '500',
+              borderRadius: '6px',
+              whiteSpace: 'nowrap',
+              maxWidth: '200px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              opacity: 0,
+              visibility: 'hidden',
+              transition: 'opacity 0.2s ease-in-out, visibility 0.2s ease-in-out',
+              zIndex: 1000,
+              pointerEvents: 'none',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+            }}
+          >
+            {t('open_qr_code') || 'Open QR Code'}
+            <div 
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 0,
+                height: 0,
+                border: '5px solid transparent',
+                borderTopColor: '#1f2937'
+              }}
+            />
+          </div>
+        </div>
       </div>
       
       {isExpanded && studentHistory[student.id] && (

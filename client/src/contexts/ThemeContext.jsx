@@ -11,6 +11,15 @@ export const ThemeProvider = ({ children }) => {
       const stored = localStorage.getItem('app_theme') || 'light';
       // Apply immediately to prevent flash
       document.documentElement.setAttribute('data-theme', stored);
+      // Clear any inline styles that might interfere
+      document.body.style.background = '';
+      document.body.style.color = '';
+      // Add dark mode class if needed
+      if (stored === 'dark') {
+        document.body.classList.add('dark-mode');
+      } else {
+        document.body.classList.remove('dark-mode');
+      }
       return stored;
     } catch {
       return 'light';
@@ -27,6 +36,7 @@ export const ThemeProvider = ({ children }) => {
 
   useEffect(() => {
     logger.log('🎨 [ThemeContext] Theme changed to:', theme);
+    logger.log('📄 [ThemeContext] Current data-theme attribute:', document.documentElement.getAttribute('data-theme'));
     setIsThemeChanging(true);
     try {
       localStorage.setItem('app_theme', theme);
@@ -37,22 +47,31 @@ export const ThemeProvider = ({ children }) => {
     const root = document.documentElement;
     root.setAttribute('data-theme', theme);
     logger.log('📄 [ThemeContext] Set data-theme attribute to:', theme);
-    // Body background for immediate effect
-    if (theme === 'light') {
-      document.body.style.background = '#ffffff';
-      document.body.style.color = '#111';
-      logger.log('☀️ [ThemeContext] Applied light mode styles');
+    
+    // Remove inline styles to let CSS variables handle theming
+    document.body.style.background = '';
+    document.body.style.color = '';
+    
+    // Force dark mode styles if needed
+    if (theme === 'dark') {
+      logger.log('🌙 [ThemeContext] Applied dark mode');
+      // Add dark mode class to body for additional specificity
+      document.body.classList.add('dark-mode');
     } else {
-      document.body.style.background = '#0b1220';
-      document.body.style.color = '#fff';
-      logger.log('🌙 [ThemeContext] Applied dark mode styles');
+      logger.log('☀️ [ThemeContext] Applied light mode');
+      // Remove dark mode class
+      document.body.classList.remove('dark-mode');
     }
   }, [theme]);
 
   const value = useMemo(() => ({
     theme,
     isThemeChanging,
-    toggleTheme: () => setTheme(t => (t === 'dark' ? 'light' : 'dark'))
+    toggleTheme: () => {
+      const newTheme = theme === 'dark' ? 'light' : 'dark';
+      logger.log('🔄 [ThemeContext] Toggling theme from', theme, 'to', newTheme);
+      setTheme(newTheme);
+    }
   }), [theme, isThemeChanging]);
 
   return (

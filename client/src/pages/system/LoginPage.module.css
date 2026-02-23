@@ -1,6 +1,11 @@
 /* Login Page */
 .loginPage {
-  background: #ffffff;
+  background: var(--background, #ffffff);
+}
+
+/* Dark mode for login page */
+[data-theme="dark"] .loginPage {
+  background: var(--background, #0a0a0a);
 }
 
 /* Loading Wrapper */
@@ -100,7 +105,7 @@
 
 /* Dark Mode */
 .dark {
-  background: var(--background, #0b1220);
+  background: var(--background, #0a0a0a);
 }
 
 .darkHero {
@@ -108,7 +113,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .loginPage {
-    background: var(--background, #1a1a1a);
+  :root:not([data-theme="light"]) .loginPage {
+    background: var(--background, #0a0a0a);
   }
 }

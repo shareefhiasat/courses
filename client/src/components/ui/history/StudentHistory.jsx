@@ -91,7 +91,7 @@ const StudentHistory = React.memo(({
     
     return (
       <div key={dayIndex} style={{
-        border: '1px solid #e5e7eb',
+        border: '1px solid var(--border, #e5e7eb)',
         borderRadius: '0.375rem',
         overflow: 'hidden',
         marginBottom: '0.5rem'
@@ -160,25 +160,25 @@ const StudentHistory = React.memo(({
                     
                     icon = attendanceIconMap[iconName] || attendanceIconMap.HelpCircle;
                     iconColor = statusColor;
-                    borderColor = "#f1f5f9";
+                    borderColor = "var(--border-light, #f1f5f9)";
                     onDelete = (logId) => handleDeleteAttendance(studentId, logId);
                     break;
                   case RECORD_TYPES.PARTICIPATION:
                     icon = <ParticipationIcon />;
-                    iconColor = "#3b82f6";
-                    borderColor = "#e5e7eb";
+                    iconColor = "var(--color-info, #3b82f6)";
+                    borderColor = "var(--border, #e5e7eb)";
                     onDelete = (logId) => handleDeleteParticipation(studentId, logId);
                     break;
                   case RECORD_TYPES.BEHAVIOR:
                     icon = <ZapIcon />;
-                    iconColor = "#f97316";
-                    borderColor = "#fed7aa";
+                    iconColor = "var(--color-warning, #f97316)";
+                    borderColor = "var(--color-warning-border, #fed7aa)";
                     onDelete = (logId) => handleDeleteBehavior(studentId, logId);
                     break;
                   case RECORD_TYPES.PENALTY:
                     icon = <PenaltyIcon />;
-                    iconColor = "#ef4444";
-                    borderColor = "#fecaca";
+                    iconColor = "var(--color-danger, #ef4444)";
+                    borderColor = "var(--color-danger-border, #fecaca)";
                     onDelete = (logId) => handleDeletePenalty(studentId, logId);
                     break;
                   default:

@@ -242,12 +242,19 @@
   position: absolute;
   top: 50px;
   right: 0;
-  background: white;
+  background: var(--panel, #ffffff);
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.15);
   min-width: 200px;
   overflow: hidden;
   z-index: 1001;
+  border: 1px solid var(--border, #e5e7eb);
+}
+
+[data-theme="dark"] .dropdown-menu {
+  background: var(--panel, #1a1a1a);
+  border-color: var(--border, #333333);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
 }
 
 .dropdown-item {
@@ -258,17 +265,29 @@
   text-align: left;
   cursor: pointer;
   transition: background 0.2s;
-  color: #111; /* ensure readable black text */
+  color: var(--text, #111);
   font-size: 0.875rem;
 }
 
+[data-theme="dark"] .dropdown-item {
+  color: var(--text, #e5e7eb);
+}
+
 .dropdown-item:hover {
-  background: #f8f9fa;
+  background: var(--panel-hover, #f8f9fa);
+}
+
+[data-theme="dark"] .dropdown-item:hover {
+  background: var(--panel-hover, #2a2a2a);
 }
 
 .user-info {
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-light, #eee);
   cursor: default;
+}
+
+[data-theme="dark"] .user-info {
+  border-bottom-color: var(--border, #333333);
 }
 
 .user-info:hover {
@@ -277,8 +296,12 @@
 
 .user-email {
   font-weight: 600;
-  color: #333;
+  color: var(--text, #333);
   margin-bottom: 4px;
+}
+
+[data-theme="dark"] .user-email {
+  color: var(--text, #e5e7eb);
 }
 
 .admin-badge {

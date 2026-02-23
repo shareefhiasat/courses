@@ -768,9 +768,9 @@ const StudentRoster = React.memo(function StudentRoster({
             borderRadius: '0.375rem',
             fontSize: '0.75rem',
             fontWeight: 500,
-            background: '#f3f4f6',
-            color: '#9ca3af',
-            border: '1px solid #e5e7eb'
+            background: 'var(--panel-hover, #f3f4f6)',
+            color: 'var(--text-muted, #9ca3af)',
+            border: '1px solid var(--border, #e5e7eb)'
           }}>
           {t('none') || 'None'}
         </span>
@@ -785,9 +785,9 @@ const StudentRoster = React.memo(function StudentRoster({
             borderRadius: '0.375rem',
             fontSize: '0.75rem',
             fontWeight: 500,
-            background: '#f3f4f6',
-            color: '#9ca3af',
-            border: '1px solid #e5e7eb'
+            background: 'var(--panel-hover, #f3f4f6)',
+            color: 'var(--text-muted, #9ca3af)',
+            border: '1px solid var(--border, #e5e7eb)'
           }}>
           {t('none') || 'None'}
         </span>
@@ -804,9 +804,9 @@ const StudentRoster = React.memo(function StudentRoster({
             borderRadius: '0.375rem',
             fontSize: '0.75rem',
             fontWeight: 500,
-            background: '#f3f4f6',
-            color: '#9ca3af',
-            border: '1px solid #e5e7eb'
+            background: 'var(--panel-hover, #f3f4f6)',
+            color: 'var(--text-muted, #9ca3af)',
+            border: '1px solid var(--border, #e5e7eb)'
           }}>
           {t('none') || 'None'}
         </span>
@@ -821,9 +821,9 @@ const StudentRoster = React.memo(function StudentRoster({
             borderRadius: '0.375rem',
             fontSize: '0.75rem',
             fontWeight: 500,
-            background: '#16a34a', // Darker green to match other interface elements
-            color: 'white',
-            border: '1px solid #16a34a',
+            background: 'var(--color-success, #16a34a)', // Darker green to match other interface elements
+            color: 'var(--text-on-success, white)',
+            border: '1px solid var(--color-success, #16a34a)',
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.375rem'
@@ -845,7 +845,7 @@ const StudentRoster = React.memo(function StudentRoster({
           fontSize: '0.75rem',
           fontWeight: 500,
           background: statusInfo.color,
-          color: 'white',
+          color: 'var(--text-on-colored, white)',
           border: `1px solid ${statusInfo.color}`
         }}>
         {getLocalizedAttendanceLabel(status, t, lang)}

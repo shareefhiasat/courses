@@ -62,7 +62,7 @@ export const HistoryEntry = ({
       marginBottom: isMobile ? '0.0625rem' : '0.125rem'
     }}>
       <span style={{ 
-        color: '#64748b', 
+        color: 'var(--text-muted, #64748b)', 
         minWidth: isMobile ? '50px' : '70px', 
         fontSize: isMobile ? '0.65rem' : '0.75rem' 
       }}>
@@ -84,7 +84,7 @@ export const HistoryEntry = ({
       )}
       
       <span style={{ 
-        color: '#374151', 
+        color: 'var(--text-secondary, #374151)', 
         fontWeight: 500,
         fontSize: isMobile ? '0.7rem' : '0.8125rem',
         flex: 1
@@ -92,14 +92,14 @@ export const HistoryEntry = ({
         {log.label}
         {studentName && (
           <span style={{ 
-            color: '#6b7280', 
+            color: 'var(--text-muted, #6b7280)', 
             fontWeight: 400,
             fontSize: isMobile ? '0.6rem' : '0.7rem',
             marginLeft: '0.5rem'
           }}>
             {studentName.displayName || studentName.name || studentName}
             {studentName.email && studentName.displayName && (
-              <span style={{ color: '#374151', fontWeight: 500 }}>
+              <span style={{ color: 'var(--text-secondary, #374151)', fontWeight: 500 }}>
                 ({studentName.email})
               </span>
             )}
@@ -110,11 +110,11 @@ export const HistoryEntry = ({
                 gap: '0.125rem',
                 marginLeft: '0.25rem',
                 padding: '0.125rem 0.25rem',
-                background: '#f3f4f6',
+                background: 'var(--panel-hover, #f3f4f6)',
                 borderRadius: '0.25rem',
                 fontSize: '0.625rem'
               }}>
-                {getThemedIcon('ui', 'user', 10, '#6b7280')}
+                {getThemedIcon('ui', 'user', 10, 'var(--text-muted, #6b7280)')}
                 {studentName.studentNumber}
               </span>
             )}
@@ -178,8 +178,8 @@ export const HistoryEntry = ({
       {log.points !== undefined && type !== RECORD_TYPES.ATTENDANCE && (
         <span style={{ 
           padding: isMobile ? '0.0625rem 0.25rem' : '0.125rem 0.375rem',
-          background: log.points > 0 ? '#eff6ff' : '#fff7ed',
-          color: log.points > 0 ? '#1e40af' : '#c2410c',
+          background: log.points > 0 ? 'var(--color-info-light, #eff6ff)' : 'var(--color-warning-light, #fff7ed)',
+          color: log.points > 0 ? 'var(--color-info-dark, #1e40af)' : 'var(--color-warning-dark, #c2410c)',
           borderRadius: '0.25rem',
           fontSize: isMobile ? '0.7rem' : '0.75rem'
         }}>
@@ -190,8 +190,8 @@ export const HistoryEntry = ({
       {log.severity && (
         <span style={{ 
           padding: isMobile ? '0.0625rem 0.25rem' : '0.125rem 0.375rem',
-          background: '#fef2f2',
-          color: '#b91c1c',
+          background: 'var(--color-danger-light, #fef2f2)',
+          color: 'var(--color-danger-dark, #b91c1c)',
           borderRadius: '0.25rem',
           fontSize: isMobile ? '0.7rem' : '0.75rem'
         }}>
@@ -207,11 +207,11 @@ export const HistoryEntry = ({
           gap: '0.25rem',
           [isRTL ? 'marginRight' : 'marginLeft']: 'auto',
           padding: '0.125rem 0.5rem',
-          background: '#f0f9ff',
-          border: '1px solid #bae6fd',
+          background: 'var(--color-info-light, #f0f9ff)',
+          border: '1px solid var(--color-info-border, #bae6fd)',
           borderRadius: '1rem',
           fontSize: '0.625rem',
-          color: '#0369a1'
+          color: 'var(--color-info-dark, #0369a1)'
         }}>
           <PerformedBy 
             performedByName={log.performedByName}
@@ -239,7 +239,7 @@ export const HistoryEntry = ({
           }}
           style={{ 
             marginLeft: isMobile ? '0.25rem' : '0.5rem', 
-            color: '#ef4444',
+            color: 'var(--color-danger, #ef4444)',
             padding: isMobile ? '0.125rem' : '0.25rem'
           }}
           title={t(`delete_${type}_record`) || `Delete ${type} record`}

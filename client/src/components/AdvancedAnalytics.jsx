@@ -200,7 +200,7 @@ export default function AdvancedAnalytics({
   }
 
   return (
-    <div style={{ padding: '1.5rem 2rem', minHeight: '100vh', background: 'var(--bg)' }}>
+    <div className="advanced-analytics-container" style={{ padding: '1.5rem 2rem', minHeight: '100vh', background: 'var(--bg)' }}>
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: '1.5rem' }}>
@@ -243,7 +243,7 @@ export default function AdvancedAnalytics({
           {/* Refresh */}
           <button
             onClick={handleReload}
-            style={btnStyle('#6b7280')}
+            style={btnStyle('var(--text-muted, #6b7280)')}
           >
             {getThemedIcon('ui', 'rotate_cw', 16, theme)}
             {t('refresh') || 'Refresh'}
@@ -252,14 +252,14 @@ export default function AdvancedAnalytics({
           {/* Edit Layout toggle */}
           <button
             onClick={() => setEditLayout(v => !v)}
-            style={btnStyle(editLayout ? '#ef4444' : '#f97316')}
+            style={btnStyle(editLayout ? 'var(--color-danger, #ef4444)' : 'var(--color-warning, #f97316)')}
           >
             {getThemedIcon('ui', editLayout ? 'lock' : 'layout_grid', 16, theme)}
             {editLayout ? (t('exit_edit_layout') || 'Exit Edit') : (t('edit_layout') || 'Edit Layout')}
           </button>
 
           {/* Export */}
-          <button onClick={handleExport} style={btnStyle('#10b981')}>
+          <button onClick={handleExport} style={btnStyle('var(--color-success, #10b981)')}>
             {getThemedIcon('ui', 'download', 16, theme)}
             {t('export') || 'Export'}
           </button>
@@ -279,12 +279,12 @@ export default function AdvancedAnalytics({
       {Object.keys(permErrors).length > 0 && (
         <div style={{
           marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: 8,
-          border: '1px solid #F59E0B', background: 'rgba(245,158,11,0.08)', color: '#92400e'
+          border: '1px solid var(--color-warning, #F59E0B)', background: 'var(--color-warning-light, rgba(245,158,11,0.08))', color: 'var(--color-warning-dark, #92400e)'
         }}>
           <strong>{t('some_data_not_loaded_permissions') || 'Some collections could not be loaded (permissions):'}</strong>
           <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {Object.keys(permErrors).map(key => (
-              <span key={key} style={{ padding: '2px 8px', borderRadius: 999, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', fontSize: 12 }}>
+              <span key={key} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--color-warning-surface, rgba(245,158,11,0.15))', border: '1px solid var(--color-warning-border, rgba(245,158,11,0.4))', fontSize: 12 }}>
                 {key}
               </span>
             ))}

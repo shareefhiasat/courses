@@ -43,6 +43,42 @@
    --brand2: var(--color-primary-light, #600018);
    --btn: var(--color-primary, #a0002a);
 
+  /* Semantic color variables */
+  --panel-hover: #f3f4f6;
+  --text-muted: #6b7280;
+  --text-secondary: #374151;
+  --input-bg: #ffffff;
+  --background-secondary: #f9fafb;
+
+  /* Status colors - Light theme */
+  --color-success: #10b981;
+  --color-success-light: #f0fdf4;
+  --color-success-dark: #166534;
+  --color-success-border: #bbf7d0;
+
+  --color-info: #3b82f6;
+  --color-info-light: #eff6ff;
+  --color-info-dark: #1e40af;
+  --color-info-border: #bae6fd;
+
+  --color-warning: #f97316;
+  --color-warning-light: #fff7ed;
+  --color-warning-dark: #c2410c;
+  --color-warning-border: #fed7aa;
+
+  --color-danger: #ef4444;
+  --color-danger-light: #fef2f2;
+  --color-danger-dark: #b91c1c;
+  --color-danger-border: #fecaca;
+
+  --color-purple: #8b5cf6;
+  --color-purple-light: rgba(139, 92, 246, 0.05);
+
+  --toggle-knob: #ffffff;
+  --text-on-success: #ffffff;
+  --text-on-colored: #ffffff;
+  --text-on-warning: #ffffff;
+
   font-family: system-ui, Segoe UI, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.6;
   font-weight: 400;
@@ -65,6 +101,43 @@
    --brand: var(--color-primary, #a0002a);
    --brand2: var(--color-primary-light, #a0002a);
    --btn: var(--color-primary, #a0002a);
+
+  /* Semantic color variables - Dark theme */
+  --panel-hover: #1f2937;
+  --text-muted: #9ca3af;
+  --text-secondary: #d1d5db;
+  --input-bg: #1f2937;
+  --background-secondary: #1f2937;
+
+  /* Status colors - Dark theme (adjusted for dark backgrounds) */
+  --color-success: #10b981;
+  --color-success-light: rgba(16, 185, 129, 0.15);
+  --color-success-dark: #6ee7b7;
+  --color-success-border: rgba(16, 185, 129, 0.4);
+
+  --color-info: #3b82f6;
+  --color-info-light: rgba(59, 130, 246, 0.15);
+  --color-info-dark: #93c5fd;
+  --color-info-border: rgba(59, 130, 246, 0.4);
+
+  --color-warning: #f97316;
+  --color-warning-light: rgba(249, 115, 22, 0.15);
+  --color-warning-dark: #fdba74;
+  --color-warning-border: rgba(249, 115, 22, 0.4);
+
+  --color-danger: #ef4444;
+  --color-danger-light: rgba(239, 68, 68, 0.15);
+  --color-danger-dark: #fca5a5;
+  --color-danger-border: rgba(239, 68, 68, 0.4);
+
+  --color-purple: #8b5cf6;
+  --color-purple-light: rgba(139, 92, 246, 0.15);
+
+  --toggle-knob: #e5e7eb;
+  --text-on-success: #ffffff;
+  --text-on-colored: #ffffff;
+  --text-on-warning: #ffffff;
+
    color-scheme: dark;
 }
 
@@ -86,6 +159,58 @@ body {
   overflow-x: hidden; /* Prevent horizontal scroll */
   -webkit-text-size-adjust: 100%; /* Prevent iOS zoom */
   -ms-text-size-adjust: 100%; /* Prevent Windows zoom */
+}
+
+/* Ensure dark theme is applied to body */
+[data-theme="dark"] body {
+  background: #0f1115 !important;
+  color: #e6e6e6 !important;
+}
+
+/* Advanced Analytics container background fix */
+.advanced-analytics-container {
+  background: var(--bg) !important;
+}
+
+/* Ensure dark theme is applied to analytics container */
+[data-theme="dark"] .advanced-analytics-container {
+  background: #0f1115 !important;
+}
+
+/* Force panel background in dark mode for inline styles - more robust selectors */
+[data-theme="dark"] div[style*="background:"][style*="var(--panel)"] {
+  background: #161a22 !important;
+  box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 8px !important;
+}
+
+/* Also catch specific widget containers */
+[data-theme="dark"] .react-grid-item div[style*="background"] {
+  background: #161a22 !important;
+  box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 8px !important;
+}
+
+/* Aggressive rule for all divs in analytics container with background */
+[data-theme="dark"] .advanced-analytics-container div[style*="background"] {
+  background: #161a22 !important;
+  box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 8px !important;
+}
+
+/* Catch all remaining white backgrounds in dark mode */
+[data-theme="dark"] div[style*="background: white"],
+[data-theme="dark"] div[style*="background:#ffffff"],
+[data-theme="dark"] div[style*="background:#fff"],
+[data-theme="dark"] div[style*="background: rgb(255, 255, 255)"] {
+  background: #161a22 !important;
+}
+
+/* Only target specific inline styles with white fallbacks - use direct colors */
+[data-theme="dark"] div[style*="background: var(--panel, white)"] {
+  background: #161a22 !important;
+}
+
+[data-theme="dark"] header[style*="background: var(--panel, white)"] {
+  background: #161a22 !important;
+  border-bottom-color: #2a2f3a !important;
 }
 
 /* Global tab/content transition helpers */

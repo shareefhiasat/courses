@@ -17,6 +17,7 @@ import { getTodayAttendanceStatus, isStudentMarkedToday } from '@services/busine
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { useToast } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { GENERAL_STATUS } from '@utils/sharedTypes';
@@ -70,6 +71,7 @@ import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/atte
 export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, loading = false, students = [], onMinimizeChange }) {
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
+  const { theme } = useTheme();
   const { showSuccess, showError } = useToast();
   const [isScanning, setIsScanning] = useState(false);
   const [recentScans, setRecentScans] = useState(0);
