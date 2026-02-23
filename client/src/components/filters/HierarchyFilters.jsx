@@ -65,7 +65,7 @@ const HierarchyFilters = ({
       })
       .map(c => ({
         value: c.id || c.docId,
-        label: c.name || c.code
+        label: lang === 'ar' ? (c.title_ar || c.name_ar || c.title || c.name || c.code) : (c.title || c.name || c.code)
       }))
   ], [classes, selectedSubject, selectedProgram, subjects, t]);
 

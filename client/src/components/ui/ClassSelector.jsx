@@ -86,7 +86,7 @@ const ClassSelector = ({
       ...options,
       ...programs.map(program => ({
         value: program.docId || program.id,
-        label: program.name_en || program.name_ar || program.code || program.docId
+        label: lang === 'ar' ? (program.name_ar || program.name_en || program.code || program.docId) : (program.name_en || program.name_ar || program.code || program.docId)
       }))
     ];
   }, [programs, showAllOption, t]);
@@ -97,7 +97,7 @@ const ClassSelector = ({
       ...options,
       ...filteredSubjects.map(subject => ({
         value: subject.docId || subject.id,
-        label: `${subject.code || ''} - ${subject.name_en || subject.name_ar || subject.docId}`
+        label: `${subject.code || ''} - ${lang === 'ar' ? (subject.name_ar || subject.name_en || subject.docId) : (subject.name_en || subject.name_ar || subject.docId)}`
       }))
     ];
   }, [filteredSubjects, showAllOption, t]);
@@ -108,7 +108,7 @@ const ClassSelector = ({
       ...options,
       ...filteredClasses.map(cls => ({
         value: cls.id || cls.docId,
-        label: cls.name || cls.code || cls.id
+        label: lang === 'ar' ? (cls.title_ar || cls.name_ar || cls.title || cls.name || cls.code || cls.id) : (cls.title || cls.name || cls.code || cls.id)
       }))
     ];
   }, [filteredClasses, showAllOption, t]);
@@ -283,7 +283,7 @@ const ClassSelectorAdvanced = ({
       ...options,
       ...programs.map(program => ({
         value: program.docId || program.id,
-        label: program.name_en || program.name_ar || program.code || program.docId
+        label: lang === 'ar' ? (program.name_ar || program.name_en || program.code || program.docId) : (program.name_en || program.name_ar || program.code || program.docId)
       }))
     ];
   }, [programs, showAllOption, t]);
@@ -294,7 +294,7 @@ const ClassSelectorAdvanced = ({
       ...options,
       ...filteredSubjects.map(subject => ({
         value: subject.docId || subject.id,
-        label: `${subject.code || ''} - ${subject.name_en || subject.name_ar || subject.docId}`
+        label: `${subject.code || ''} - ${lang === 'ar' ? (subject.name_ar || subject.name_en || subject.docId) : (subject.name_en || subject.name_ar || subject.docId)}`
       }))
     ];
   }, [filteredSubjects, showAllOption, t]);
@@ -305,7 +305,7 @@ const ClassSelectorAdvanced = ({
       ...options,
       ...filteredClasses.map(cls => ({
         value: cls.id || cls.docId,
-        label: cls.name || cls.code || cls.id
+        label: lang === 'ar' ? (cls.title_ar || cls.name_ar || cls.title || cls.name || cls.code || cls.id) : (cls.title || cls.name || cls.code || cls.id)
       }))
     ];
   }, [filteredClasses, showAllOption, t]);

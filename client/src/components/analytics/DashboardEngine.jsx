@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useImperativeHandle, forwardRef } from 'react';
 import GridLayout, { WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import { useTheme } from '@contexts/ThemeContext';
@@ -31,7 +31,7 @@ const ResponsiveGrid = WidthProvider(GridLayout);
  *   isLoading      - bool (global loading state from useAnalyticsData)
  *   lastUpdatedAt  - timestamp ms
  */
-const DashboardEngine = ({
+const DashboardEngine = React.forwardRef(({
   rawData = {},
   globalFilters = {},
   accentColor,
@@ -40,7 +40,7 @@ const DashboardEngine = ({
   storageKey = 'main',
   isLoading = false,
   lastUpdatedAt,
-}) => {
+}, ref) => {
   const { theme } = useTheme();
   const { t } = useLang();
   const { user } = useAuth();
@@ -177,6 +177,11 @@ const DashboardEngine = ({
     setEditingWidget(null);
     setWidgetConfig(DEFAULT_WIDGET_CONFIG);
   }, []);
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    openBuilder
+  }), [openBuilder]);
 
   const handleSave = useCallback(() => {
     if (editingWidget) {
@@ -470,24 +475,6 @@ const DashboardEngine = ({
         }
       `}</style>
 
-      {/* ── Toolbar: always-visible Add Widget button ── */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-        <button
-          onClick={() => openBuilder()}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '0.6rem 1.2rem',
-            background: `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)`,
-            color: 'white', border: 'none', borderRadius: 8,
-            cursor: 'pointer', fontWeight: 700, fontSize: 14,
-            boxShadow: `0 2px 8px ${accentColor}44`
-          }}
-        >
-          {getThemedIcon('ui', 'plus', 16, theme) || '+'}
-          {t('add_widget') || 'Add Widget'}
-        </button>
-      </div>
-
       {/* ── Grid ── */}
       {/* Show loading state while widgets are being loaded from Firestore */}
       {(dashLoading || isLoading) ? (
@@ -568,6 +555,6 @@ const DashboardEngine = ({
       />
     </>
   );
-};
+});
 
 export default DashboardEngine;

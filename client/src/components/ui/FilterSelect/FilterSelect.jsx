@@ -21,7 +21,7 @@ const FilterSelect = ({
   ...props 
 }) => {
   const { theme } = useTheme();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   
   const config = FILTER_CONFIGS[filterKey];
   if (!config) {
@@ -39,7 +39,14 @@ const FilterSelect = ({
     ...data.map(item => {
       const itemValue = typeof item === 'object' ? (item.value || item.id || item.docId) : item;
       const itemLabel = typeof item === 'object' 
-        ? (item.name_en || item.name || item.label || item.title || item.code || itemValue)
+        ? (() => {
+            // Check for Arabic name first if language is Arabic
+            if (lang === 'ar') {
+              return item.name_ar || item.title_ar || item.name_en || item.name || item.label || item.title || item.code || itemValue;
+            }
+            // Default to English
+            return item.name_en || item.name || item.label || item.title || item.code || itemValue;
+          })()
         : itemValue;
       
       return {

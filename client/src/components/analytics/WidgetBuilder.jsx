@@ -95,6 +95,17 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
   const { theme } = useTheme();
   const { t } = useLang();
 
+  const getInputStyle = () => ({
+    width: '100%',
+    padding: '0.7rem 0.9rem',
+    border: '1px solid var(--border)',
+    borderRadius: 8,
+    background: 'var(--input-bg)',
+    color: theme === 'dark' ? '#ffffff' : '#212529',
+    fontSize: 14,
+    boxSizing: 'border-box'
+  });
+
   if (!isOpen) return null;
 
   const isListWidget = config.chartType === 'list';
@@ -168,7 +179,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
               value={config.title}
               onChange={e => set({ title: e.target.value })}
               placeholder={t('widget_title_placeholder') || 'e.g., Submissions by Status'}
-              style={inputStyle}
+              style={getInputStyle()}
             />
           </Field>
 
@@ -180,7 +191,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                 value={config.title_en || ''}
                 onChange={e => set({ title_en: e.target.value })}
                 placeholder="e.g., Attendance by Type"
-                style={inputStyle}
+                style={getInputStyle()}
                 dir="ltr"
               />
             </Field>
@@ -190,7 +201,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                 value={config.title_ar || ''}
                 onChange={e => set({ title_ar: e.target.value })}
                 placeholder="مثال: الحضور حسب النوع"
-                style={inputStyle}
+                style={getInputStyle()}
                 dir="rtl"
               />
             </Field>
@@ -307,7 +318,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                 min={2} max={12}
                 value={config.layout?.w ?? 6}
                 onChange={e => set({ layout: { ...(config.layout || {}), w: Number(e.target.value) } })}
-                style={inputStyle}
+                style={getInputStyle()}
               />
             </Field>
             <Field label={t('height_rows') || 'Height (rows)'}>
@@ -316,7 +327,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                 min={2} max={12}
                 value={config.layout?.h ?? 4}
                 onChange={e => set({ layout: { ...(config.layout || {}), h: Number(e.target.value) } })}
-                style={inputStyle}
+                style={getInputStyle()}
               />
             </Field>
           </div>
@@ -357,16 +368,5 @@ function Field({ label, children }) {
     </div>
   );
 }
-
-const inputStyle = {
-  width: '100%',
-  padding: '0.7rem 0.9rem',
-  border: '1px solid var(--border)',
-  borderRadius: 8,
-  background: 'var(--input-bg)',
-  color: 'var(--text)',
-  fontSize: 14,
-  boxSizing: 'border-box'
-};
 
 export default WidgetBuilder;

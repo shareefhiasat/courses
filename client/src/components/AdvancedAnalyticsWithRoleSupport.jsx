@@ -41,9 +41,37 @@ export default function AdvancedAnalytics({
   enableCustomization = true,
   showFilters = true
 }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { theme } = useTheme();
   const { user, userProfile } = useAuth();
+
+  // Helper function to get localized name
+  const getLocalizedName = (item, fallbackField = 'name') => {
+    if (!item) return '';
+    
+    // Check for Arabic name first (handle both snake_case and camelCase)
+    if (lang === 'ar') {
+      return item.name_ar || item.nameAr || item.title_ar || item.titleAr || item[fallbackField] || item.name_en || item.name || item.title || item.code || item.docId || '';
+    }
+    
+    // Default to English
+    return item.name_en || item.nameEn || item[fallbackField] || item.name || item.title || item.code || item.docId || '';
+  };
+
+  // Helper function to get localized term
+  const getLocalizedTerm = (term) => {
+    if (!term) return '';
+    
+    const termKey = term.toLowerCase();
+    const termTranslations = {
+      'spring': t('schedules_spring') || 'Spring',
+      'summer': t('schedules_summer') || 'Summer', 
+      'fall': t('schedules_fall') || 'Fall',
+      'winter': t('schedules_winter') || 'Winter'
+    };
+    
+    return termTranslations[termKey] || term;
+  };
 
   // ── State for widget assignment manager (super admin only) ─────────────────
   const [showWidgetManager, setShowWidgetManager] = useState(false);
@@ -121,6 +149,15 @@ export default function AdvancedAnalytics({
       logger.error('[AdvancedAnalytics] Error during parallel reload:', error);
     }
   }, [reload]);
+
+  // ── Widget Builder Reference ─────────────────────────────────────────────────
+  const dashboardEngineRef = React.useRef(null);
+
+  const handleAddWidget = useCallback((widget = null) => {
+    if (dashboardEngineRef.current && dashboardEngineRef.current.openBuilder) {
+      dashboardEngineRef.current.openBuilder(widget);
+    }
+  }, []);
 
   // ── Local global filters (merged with externalFilters) ────────────────────
   const [localFilters, setLocalFilters] = useState({
@@ -241,6 +278,22 @@ export default function AdvancedAnalytics({
               </button>
             )}
 
+            {/* Add Widget */}
+            <button
+              onClick={() => handleAddWidget()}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '0.55rem 1rem',
+                background: accentColor,
+                color: 'white', border: 'none', borderRadius: 8,
+                cursor: 'pointer', fontWeight: 600, fontSize: 13,
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {getThemedIcon('ui', 'plus', 16, theme)}
+              {t('add_widget') || 'Add Widget'}
+            </button>
+
             {/* Widget Assignment Manager - Super Admin only */}
             {isSuperAdmin && (
               <button
@@ -294,7 +347,7 @@ export default function AdvancedAnalytics({
               onChange={e => setLocalFilters(f => ({ ...f, programId: e.target.value, subjectId: '' }))}
               options={[
                 { value: '', label: t('all_programs') || 'All Programs' },
-                ...(rawData.programs || []).map(p => ({ value: p.docId || p.id, label: p.name_en || p.name || p.code || p.docId }))
+                ...(rawData.programs || []).map(p => ({ value: p.docId || p.id, label: getLocalizedName(p) }))
               ]}
               searchable
               fullWidth
@@ -306,7 +359,7 @@ export default function AdvancedAnalytics({
                 { value: '', label: t('all_subjects') || 'All Subjects' },
                 ...(rawData.subjects || [])
                   .filter(s => !localFilters.programId || s.programId === localFilters.programId)
-                  .map(s => ({ value: s.docId || s.id, label: `${s.code || ''} - ${s.name_en || s.name || s.docId}`.trim() }))
+                  .map(s => ({ value: s.docId || s.id, label: `${s.code || ''} - ${getLocalizedName(s)}`.trim() }))
               ]}
               searchable
               fullWidth
@@ -318,7 +371,7 @@ export default function AdvancedAnalytics({
                 { value: '', label: t('all_classes') || 'All Classes' },
                 ...(rawData.classes || []).map((c, idx) => {
                   const id = c?.id || c?.docId || `idx_${idx}`;
-                  const label = c?.title || c?.name_en || c?.name || c?.code || `Class ${id.slice(0, 6)}`;
+                  const label = getLocalizedName(c, 'title') || `Class ${id.slice(0, 6)}`;
                   return { value: id, label };
                 })
               ]}
@@ -365,6 +418,7 @@ export default function AdvancedAnalytics({
 
         {/* ── Dashboard Engine ── */}
         <DashboardEngine
+          ref={dashboardEngineRef}
           rawData={rawData}
           globalFilters={mergedFilters}
           accentColor={accentColor}
