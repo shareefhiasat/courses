@@ -148,7 +148,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
       setShowProfile(false);
     } catch (err) {
       console.error('Failed to save profile:', err);
-      alert('Failed to save profile');
+      alert(t('failed_to_save_profile') || 'Failed to save profile');
     }
   }, [user, displayName, phoneNumber, primaryColor, realName, studentNumber, notifLang, timeFormat]);
 
@@ -164,48 +164,20 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
             <button
               onClick={onToggleSidebar}
               className="navbar-hamburger"
-                style={{
-                  background: 'transparent',
-                  border: '2px solid #D4AF37',
-                  color: '#D4AF37',
-                  fontSize: '1.1rem',
-                  cursor: 'pointer',
-                  padding: '0.35rem 0.6rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 10,
-                  marginRight: lang === 'ar' ? 0 : '0.75rem',
-                  marginLeft: lang === 'ar' ? '0.75rem' : 0
-                }}
-                aria-label="Menu"
-              >
-                {getWhiteIcon('ui', 'menu', 18)}
-              </button>
+              aria-label={t('menu') || 'Menu'}
+            >
+              {getThemedIcon('ui', 'menu', 18, '#D4AF37')}
+            </button>
             )}
 
           {/* Collapse/Expand Navbar Button */}
           <button
             onClick={toggleNavbar}
             className="navbar-collapse-btn"
-            style={{
-              background: 'transparent',
-              border: '2px solid #D4AF37',
-              color: '#D4AF37',
-              cursor: 'pointer',
-              padding: '0.35rem 0.6rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 10,
-              marginRight: lang === 'ar' ? 0 : '0.75rem',
-              marginLeft: lang === 'ar' ? '0.75rem' : 0,
-              transition: 'transform 0.2s ease'
-            }}
             title={isNavbarCollapsed ? (t('expand_navbar') || 'Expand navbar') : (t('collapse_navbar') || 'Collapse navbar')}
             aria-label={isNavbarCollapsed ? (t('expand_navbar') || 'Expand navbar') : (t('collapse_navbar') || 'Collapse navbar')}
           >
-            {getWhiteIcon('ui', isNavbarCollapsed ? 'chevron_down' : 'chevron_up', 18)}
+            {getThemedIcon('ui', isNavbarCollapsed ? 'chevron_down' : 'chevron_up', 18, '#D4AF37')}
           </button>
 
           {/* Brand */}
@@ -277,7 +249,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   className="nav-icon-btn nav-help"
                   onClick={toggleLang}
                   title={lang === 'en' ? 'العربية' : 'English'}
-                  aria-label={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}
+                  aria-label={lang === 'en' ? (t('switch_to_arabic') || 'Switch to Arabic') : (t('switch_to_english') || 'Switch to English')}
                   style={{
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
                     background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
@@ -291,7 +263,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
                 >
-                  {lang === 'en' ? getThemedIcon('ui', 'globe', 16, theme === 'light' ? 'var(--text-primary)' : theme) : getThemedIcon('ui', 'globe2', 16, theme === 'light' ? 'var(--text-primary)' : theme)}
+                  {lang === 'en' ? getThemedIcon('ui', 'globe', 16, theme === 'light' ? 'var(--text-primary)' : '#fff') : getThemedIcon('ui', 'globe2', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
                 </button>
 
                 <button
@@ -306,8 +278,20 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   }}
                   title={t('help') || 'Help'}
                   aria-label={t('help') || 'Help'}
+                  style={{
+                    border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+                    background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: theme === 'light' ? 'var(--text-primary)' : '#fff'
+                  }}
                 >
-                  {getWhiteIcon('ui', 'help_circle', 16)}
+                  {getThemedIcon('ui', 'help_circle', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
                 </button>
 
                 <button
@@ -342,7 +326,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
                 >
-                  {getThemedIcon('ui', 'info', 18, theme === 'light' ? 'var(--text-primary)' : theme)}
+                  {getThemedIcon('ui', 'info', 18, theme === 'light' ? 'var(--text-primary)' : '#fff')}
                 </button>
 
                 <button

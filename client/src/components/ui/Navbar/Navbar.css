@@ -30,6 +30,43 @@
   transform: scale(0.95);
 }
 
+/* RTL support for hamburger button */
+[dir="rtl"] .navbar-hamburger {
+  margin-right: 0;
+  margin-left: 0.75rem;
+}
+
+.navbar-collapse-btn {
+  background: transparent;
+  border: 2px solid #D4AF37;
+  color: #D4AF37;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.35rem 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  margin-right: 0.75rem;
+  margin-left: 0;
+}
+
+.navbar-collapse-btn:hover {
+  background: rgba(212, 175, 55, 0.1);
+  transform: scale(1.05);
+}
+
+.navbar-collapse-btn:active {
+  transform: scale(0.95);
+}
+
+/* RTL support for navbar collapse button */
+[dir="rtl"] .navbar-collapse-btn {
+  margin-right: 0;
+  margin-left: 0.75rem;
+}
+
 .navbar-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -191,6 +228,14 @@
     width: 30px; 
     height: 30px;
     font-size: 14px;
+  }
+  .navbar-hamburger {
+    padding: 0.3rem 0.5rem;
+    font-size: 1rem;
+  }
+  .navbar-collapse-btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 1rem;
   }
   .navbar-container {
     padding: 0.4rem 0.75rem;
@@ -363,6 +408,14 @@
   .nav-icon-btn {
     width: 28px;
     height: 28px;
+  }
+  .navbar-hamburger {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.9rem;
+  }
+  .navbar-collapse-btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.9rem;
   }
   .navbar-actions-wrap {
     gap: 2px;

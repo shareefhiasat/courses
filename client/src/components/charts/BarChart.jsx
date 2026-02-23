@@ -1,4 +1,23 @@
 import React, { memo } from 'react';
+import { useLang } from '@contexts/LangContext';
+
+/**
+ * Helper function to get localized name for chart items
+ * @param {Object} item - Data item
+ * @param {string} lang - Current language ('en' or 'ar')
+ * @returns {string} Localized name
+ */
+const getLocalizedName = (item, lang) => {
+  if (!item) return '';
+  
+  // Check for Arabic name first (handle both snake_case and camelCase)
+  if (lang === 'ar') {
+    return item.localize || item.name_ar || item.nameAr || item.title_ar || item.titleAr || item.name || item.title || item.code || item.docId || '';
+  }
+  
+  // Default to English
+  return item.name_en || item.nameEn || item.name || item.title || item.code || item.docId || '';
+};
 
 /**
  * Custom Bar Chart Component (Pure React/SVG)
@@ -8,6 +27,8 @@ import React, { memo } from 'react';
  * @param {Boolean} horizontal - Horizontal bars
  */
 function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = false, showValues = true, showGrid = true, accentColor = '#800020' }) {
+  const { t, lang } = useLang();
+  
   // Handle size as object with width/height or legacy width/height props
   let width, height;
   if (typeof size === 'object' && size.width && size.height) {
@@ -22,7 +43,7 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
   }
   
   if (!data || data.length === 0) {
-    return <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No data</div>;
+    return <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>{t('no_data') || 'No data'}</div>;
   }
 
   // Reduced padding for less wasted space
@@ -75,6 +96,7 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
         const x = padding.left + idx * barWidth + barGap / 2;
         const y = padding.top + chartHeight - barHeight;
         const color = item.color || accentColor;
+        const localizedLabel = getLocalizedName(item, lang) || item.label;
 
         return (
           <g key={idx}>
@@ -87,7 +109,7 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
               rx="4"
               style={{ transition: 'all 0.3s ease' }}
             >
-              <title>{`${item.label}: ${value}`}</title>
+              <title>{`${localizedLabel}: ${value}`}</title>
             </rect>
             
             {/* Value label on top */}
@@ -113,7 +135,7 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
               fill="#000000" // Changed to black for better readability
               transform={`rotate(-45, ${x + actualBarWidth / 2}, ${height - padding.bottom + 20})`}
             >
-              {item.label}
+              {localizedLabel}
             </text>
           </g>
         );

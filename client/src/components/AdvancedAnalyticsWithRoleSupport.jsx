@@ -193,7 +193,7 @@ export default function AdvancedAnalytics({
     try {
       const saved = effectiveWidgets;
       const csv = saved.map(w => {
-        const data = processWidgetData(w, rawData, mergedFilters);
+        const data = processWidgetData(w, rawData, mergedFilters, 0, t, lang);
         return `\n${w.title}\n${data.map(d => `${d.label},${d.value}`).join('\n')}`;
       }).join('\n\n');
       const blob = new Blob([csv], { type: 'text/csv' });
@@ -206,7 +206,7 @@ export default function AdvancedAnalytics({
     } catch (e) {
       logger.warn('[AdvancedAnalytics] export failed:', e);
     }
-  }, [effectiveWidgets, rawData, mergedFilters]);
+  }, [effectiveWidgets, rawData, mergedFilters, t, lang]);
 
   // ── Handle widget assignment save ───────────────────────────────────────────
   const handleWidgetAssignmentSave = useCallback(async (config) => {
@@ -226,7 +226,13 @@ export default function AdvancedAnalytics({
 
         {/* ── Header ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginInlineStart: 'auto' }}>
+          <div style={{ 
+            display: 'flex', 
+            gap: 10, 
+            alignItems: 'center', 
+            flexWrap: 'wrap',
+            justifyContent: 'center'
+          }}>
 
             {/* Auto-refresh selector */}
             <Select
@@ -341,7 +347,13 @@ export default function AdvancedAnalytics({
 
         {/* ── Global Filters (hidden when externalFilters lock them or showFilters is false) ── */}
         {showFilters && !externalFilters.studentId && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: '1.25rem' }}>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', 
+            gap: 10, 
+            marginBottom: '1.25rem',
+            ...(lang === 'ar' ? { direction: 'rtl' } : { direction: 'ltr' })
+          }}>
             <Select
               value={localFilters.programId}
               onChange={e => setLocalFilters(f => ({ ...f, programId: e.target.value, subjectId: '' }))}

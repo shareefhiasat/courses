@@ -16,6 +16,24 @@ import {
 } from '@utils/listChartResolvers';
 
 /**
+ * Helper function to get localized name for agenda items
+ * @param {Object} item - Data item
+ * @param {string} lang - Current language ('en' or 'ar')
+ * @returns {string} Localized name
+ */
+const getLocalizedName = (item, lang) => {
+  if (!item) return '';
+  
+  // Check for Arabic name first (handle both snake_case and camelCase)
+  if (lang === 'ar') {
+    return item.localize || item.name_ar || item.nameAr || item.title_ar || item.titleAr || item.name || item.title || item.code || item.docId || '';
+  }
+  
+  // Default to English
+  return item.name_en || item.nameEn || item.name || item.title || item.code || item.docId || '';
+};
+
+/**
  * List Chart Component - Displays detailed data in a table format
  * @param {Array} data - Array of items to display
  * @param {Object} size - Widget size from grid layout
@@ -32,7 +50,7 @@ function ListChart({
   accentColor = '#800020',
   widget = {}
 }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { theme } = useTheme();
   const [showColumnManager, setShowColumnManager] = useState(false);
   const [selectedColumns, setSelectedColumns] = useState([]);
@@ -331,13 +349,13 @@ function ListChart({
         return normalizeActivityType(item.type || item.activityType, t);
       
       case 'title':
-        return item.title || item.name || t('not_specified');
+        return getLocalizedName(item, lang) || t('not_specified');
       
       case 'titleEn':
-        return item.titleEn || item.title_en || item.title || '—';
+        return item.titleEn || item.title_en || getLocalizedName(item, 'en') || '—';
         
       case 'titleAr':
-        return item.titleAr || item.title_ar || item.title || '—';
+        return item.titleAr || item.title_ar || getLocalizedName(item, 'ar') || '—';
       
       case 'createdBy':
         const creator = resolveUser(item.createdBy, rawData.users, t);
@@ -365,32 +383,32 @@ function ListChart({
       case 'nameEn':
         // Handle different entity types for nameEn
         if (item.nameEn || item.name_en) {
-          return item.nameEn || item.name_en || '—';
+          return item.nameEn || item.name_en || getLocalizedName(item, 'en') || '—';
         }
         if (item.classId) {
           const classInfoEn = resolveClass(item.classId, rawData.classes, t);
-          return classInfoEn.nameEn || classInfoEn.name || '—';
+          return classInfoEn.nameEn || classInfoEn.name || getLocalizedName(item, 'en') || '—';
         }
         if (item.programId || item.id) {
           const programEn = resolveProgram(item.programId || item.id, rawData.programs, t);
-          return programEn.nameEn || programEn.name || '—';
+          return programEn.nameEn || programEn.name || getLocalizedName(item, 'en') || '—';
         }
-        return '—';
+        return getLocalizedName(item, 'en') || '—';
         
       case 'nameAr':
         // Handle different entity types for nameAr
         if (item.nameAr || item.name_ar) {
-          return item.nameAr || item.name_ar || '—';
+          return item.nameAr || item.name_ar || getLocalizedName(item, 'ar') || '—';
         }
         if (item.classId) {
           const classInfoAr = resolveClass(item.classId, rawData.classes, t);
-          return classInfoAr.nameAr || classInfoAr.name || '—';
+          return classInfoAr.nameAr || classInfoAr.name || getLocalizedName(item, 'ar') || '—';
         }
         if (item.programId || item.id) {
           const programAr = resolveProgram(item.programId || item.id, rawData.programs, t);
-          return programAr.nameAr || programAr.name || '—';
+          return programAr.nameAr || programAr.name || getLocalizedName(item, 'ar') || '—';
         }
-        return '—';
+        return getLocalizedName(item, 'ar') || '—';
       
       case 'realNameEn':
         const userEn = resolveUser(item.userId || item.studentId || item.id, rawData.users, t);
@@ -401,13 +419,13 @@ function ListChart({
         return userAr.nameAr || '—';
         
       case 'displayName':
-        return item.displayName || item.display_name || item.realName || '—';
+        return getLocalizedName(item, lang) || item.displayName || item.display_name || item.realName || '—';
         
       case 'displayNameEn':
-        return item.displayNameEn || item.display_name_en || item.displayName || item.realName || '—';
+        return item.displayNameEn || item.display_name_en || getLocalizedName(item, 'en') || item.displayName || item.realName || '—';
         
       case 'displayNameAr':
-        return item.displayNameAr || item.display_name_ar || item.displayName || item.realName || '—';
+        return item.displayNameAr || item.display_name_ar || getLocalizedName(item, 'ar') || item.displayName || item.realName || '—';
       
       case 'id':
         return truncateId(item.id || item.docId, 8);

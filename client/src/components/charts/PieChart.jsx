@@ -1,4 +1,23 @@
 import React, { useState, useMemo } from 'react';
+import { useLang } from '@contexts/LangContext';
+
+/**
+ * Helper function to get localized name for chart items
+ * @param {Object} item - Data item
+ * @param {string} lang - Current language ('en' or 'ar')
+ * @returns {string} Localized name
+ */
+const getLocalizedName = (item, lang) => {
+  if (!item) return '';
+  
+  // Check for Arabic name first (handle both snake_case and camelCase)
+  if (lang === 'ar') {
+    return item.localize || item.name_ar || item.nameAr || item.title_ar || item.titleAr || item.name || item.title || item.code || item.docId || '';
+  }
+  
+  // Default to English
+  return item.name_en || item.nameEn || item.name || item.title || item.code || item.docId || '';
+};
 
 /**
  * Custom Pie/Donut Chart Component (Pure React/SVG)
@@ -7,6 +26,7 @@ import React, { useState, useMemo } from 'react';
  * @param {Boolean} donut - Donut style
  */
 export default function PieChart({ data = [], size = 300, donut = false, showLabels = true, showLegend = true, accentColor = '#800020', rawData = [], chartType = 'pie', onSliceClick = null }) {
+  const { t, lang } = useLang();
   
   // Handle size as object with width/height or number
   let chartWidth, chartHeight;
@@ -25,12 +45,12 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
   const chartSize = Math.min(chartWidth, chartHeight);
   
   if (!data || data.length === 0) {
-    return <div style={{ width: chartWidth, height: chartHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No data</div>;
+    return <div style={{ width: chartWidth, height: chartHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>{t('no_data') || 'No data'}</div>;
   }
 
   const total = data.reduce((sum, item) => sum + (item.value || 0), 0);
   if (total === 0) {
-    return <div style={{ width: chartWidth, height: chartHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No data</div>;
+    return <div style={{ width: chartWidth, height: chartHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>{t('no_data') || 'No data'}</div>;
   }
 
   const centerX = chartSize / 2;

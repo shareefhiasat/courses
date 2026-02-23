@@ -1,4 +1,23 @@
 import React, { memo } from 'react';
+import { useLang } from '@contexts/LangContext';
+
+/**
+ * Helper function to get localized name for chart items
+ * @param {Object} item - Data item
+ * @param {string} lang - Current language ('en' or 'ar')
+ * @returns {string} Localized name
+ */
+const getLocalizedName = (item, lang) => {
+  if (!item) return '';
+  
+  // Check for Arabic name first (handle both snake_case and camelCase)
+  if (lang === 'ar') {
+    return item.localize || item.name_ar || item.nameAr || item.title_ar || item.titleAr || item.name || item.title || item.code || item.docId || '';
+  }
+  
+  // Default to English
+  return item.name_en || item.nameEn || item.name || item.title || item.code || item.docId || '';
+};
 
 /**
  * Custom Line Chart Component (Pure React/SVG)
@@ -9,6 +28,8 @@ import React, { memo } from 'react';
  * @param {Boolean} showArea - Fill area under line
  */
 function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor = '#800020', showArea = true, showPoints = true, showGrid = true }) {
+  const { t, lang } = useLang();
+  
   // Handle size as object with width/height or legacy width/height props
   let width, height;
   if (typeof size === 'object' && size.width && size.height) {
@@ -23,7 +44,7 @@ function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor 
   }
   
   if (!data || data.length === 0) {
-    return <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No data</div>;
+    return <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>{t('no_data') || 'No data'}</div>;
   }
 
   const padding = { top: 20, right: 20, bottom: 60, left: 60 };
@@ -40,7 +61,8 @@ function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor 
   const points = data.map((item, idx) => {
     const x = padding.left + idx * stepX;
     const y = padding.top + chartHeight - ((item.value - minValue) / range) * chartHeight;
-    return { x, y, label: item.label, value: item.value };
+    const localizedLabel = getLocalizedName(item, lang) || item.label;
+    return { x, y, label: localizedLabel, value: item.value };
   });
 
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');

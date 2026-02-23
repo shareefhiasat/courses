@@ -178,7 +178,7 @@ export function useOptimizedAnalyticsData() {
 /**
  * Memoized widget data processor to avoid unnecessary recalculations
  */
-export const processWidgetDataOptimized = cache((widget, rawData, globalFilters) => {
+export const processWidgetDataOptimized = cache((widget, rawData, globalFilters, t = null, lang = 'en') => {
   const startTime = performance.now();
   
   // Process data based on widget configuration

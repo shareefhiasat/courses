@@ -42,7 +42,7 @@ const DashboardEngine = React.forwardRef(({
   lastUpdatedAt,
 }, ref) => {
   const { theme } = useTheme();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { user } = useAuth();
 
   // ── Persistent widget state (Firestore + localStorage fallback) ────────────
@@ -341,15 +341,15 @@ const DashboardEngine = React.forwardRef(({
   }, []);
 
   // ── Pre-compute chart data for all widgets (memoized with optimization) ─────
-  // Using optimized data processor with caching
+  // Using processWidgetData with translation support
   const chartDataMap = useMemo(() => {
     const map = {};
     sortedWidgets.forEach(w => {
-      // Use optimized processor for better performance
-      map[w.id] = processWidgetDataOptimized(w, rawData, globalFilters);
+      // Use processWidgetData with translation support
+      map[w.id] = processWidgetData(w, rawData, globalFilters, 0, t, lang);
     });
     return map;
-  }, [sortedWidgets.map(w => w.id).join(','), rawData?.activities?.length || 0, rawData?.attendance?.length || 0, rawData?.enrollments?.length || 0, Object.keys(globalFilters).join(',')]);
+  }, [sortedWidgets.map(w => w.id).join(','), rawData?.activities?.length || 0, rawData?.attendance?.length || 0, rawData?.enrollments?.length || 0, Object.keys(globalFilters).join(','), t, lang]);
 
   // ── Chart rendering ───────────────────────────────────────────────────────
   const handleChartClick = useCallback((widget, dataPoint) => {

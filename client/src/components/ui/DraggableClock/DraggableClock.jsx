@@ -139,7 +139,7 @@ const DraggableClock = ({
             }}
             title={isPinned ? (t('unpin_from_navbar') || 'Unpin from navbar') : (t('pin_to_navbar') || 'Pin to navbar')}
           >
-            {isPinned ? getThemedIcon('ui', 'pin_off', 14) : getThemedIcon('ui', 'pin', 14)}
+            {isPinned ? getThemedIcon('ui', 'pin_off', 14, '#fff') : getThemedIcon('ui', 'pin', 14, '#fff')}
           </button>
           <button
             className="control-btn"
@@ -149,7 +149,7 @@ const DraggableClock = ({
             }}
             title={isMinimized ? (t('maximize') || 'Maximize') : (t('minimize') || 'Minimize')}
           >
-            {isMinimized ? getThemedIcon('ui', 'maximize', 14) : getThemedIcon('ui', 'minus', 14)}
+            {isMinimized ? getThemedIcon('ui', 'maximize', 14, '#fff') : getThemedIcon('ui', 'minus', 14, '#fff')}
           </button>
         </div>
       </div>

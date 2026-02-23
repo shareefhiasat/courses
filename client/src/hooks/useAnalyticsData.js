@@ -154,7 +154,7 @@ const useAnalyticsData = () => {
  * @param {object} globalFilters - { classId, term, year, programId, subjectId, semester, studentId }
  * @param {number} comparisonOffset - 0 = current period, 1 = previous period
  */
-export const processWidgetData = (widget, rawData, globalFilters = {}, comparisonOffset = 0) => {
+export const processWidgetData = (widget, rawData, globalFilters = {}, comparisonOffset = 0, t = null, lang = 'en') => {
   const { dataSource, groupBy, aggregation = 'count', filters = [], dateRange, customDateFrom, customDateTo } = widget;
 
   // ── Multi-source merge: dataSource can be comma-separated e.g. "activities,announcements,resources" ──
@@ -422,7 +422,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     }
     if (groupBy === 'attendanceType' || (dataSource === 'attendance' && groupBy === 'status')) {
       const status = item.status || 'Unknown';
-      // Map attendance status to proper labels
+      // Always return clean English labels for grouping keys
       const statusMap = {
         'present': 'Present',
         'late': 'Late',
@@ -435,7 +435,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
         'humanCase': 'Human Case',
         'Human Case': 'Human Case',
         'HUMAN_CASE': 'Human Case',
-        'closed': 'Closed', // For session status
+        'closed': 'Closed',
         'open': 'Open',
         'active': 'Active'
       };
@@ -472,8 +472,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     }
     if (groupBy === 'type') {
       const rawType = item.type || item._source || 'Unknown';
-      // For items from announcements/resources collections that may not have a type field,
-      // fall back to their source collection name as the type label
+      // Always return clean English labels for grouping keys
       const typeMap = {
         [ACTIVITY_TYPES.QUIZ]: ACTIVITY_TYPE_LABELS[ACTIVITY_TYPES.QUIZ],
         [ACTIVITY_TYPES.HOMEWORK]: ACTIVITY_TYPE_LABELS[ACTIVITY_TYPES.HOMEWORK],
@@ -488,7 +487,9 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
         'assignment': 'Assignment',
         'video': 'Video',
         'reading': 'Reading',
-        'activity': 'Activity'
+        'activity': 'Activity',
+        'link': 'Link',
+        'unknown': 'Unknown'
       };
       return typeMap[rawType] || rawType;
     }
@@ -570,7 +571,65 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       const mid = Math.floor(sorted.length / 2);
       finalValue = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
     }
-    return { label, value: typeof finalValue === 'number' ? parseFloat(finalValue.toFixed(2)) : finalValue };
+    
+    // Apply translation to labels if translation function is available
+    let finalLabel = label;
+    if (t) {
+      // Activity type translations
+      const activityTypeKeyMap = {
+        'Quiz': 'activity_type_quiz',
+        'Homework': 'activity_type_homework',
+        'Training': 'activity_type_training',
+        'Lab & Project': 'activity_type_lab_project',
+        'Mid-Term Exam': 'activity_type_mid_exam',
+        'Final Exam': 'activity_type_final_exam',
+        'Announcement': 'activity_type_announcement',
+        'Resource': 'activity_type_resource',
+        'Assignment': 'activity_type_assignment',
+        'Video': 'activity_type_video',
+        'Reading': 'activity_type_reading',
+        'Activity': 'activity_type_activity',
+        'Link': 'activity_type_link',
+        'Unknown': 'activity_type_unknown'
+      };
+      
+      // Attendance status translations
+      const attendanceKeyMap = {
+        'Present': 'attendance_present',
+        'Late': 'attendance_late',
+        'Absent (Excused)': 'attendance_absent_excused',
+        'Absent (No Excuse)': 'attendance_absent_no_excuse',
+        'Excused Leave': 'attendance_excused_leave',
+        'Human Case': 'attendance_human_case',
+        'Closed': 'attendance_closed',
+        'Open': 'attendance_open',
+        'Active': 'attendance_active'
+      };
+      
+      // Try activity type translation first
+      let translationKey = activityTypeKeyMap[label];
+      if (translationKey) {
+        const translatedLabel = t(translationKey);
+        console.log(`[TRANSLATION DEBUG] Key: ${translationKey}, Result: "${translatedLabel}", Original: "${label}"`);
+        if (translatedLabel && translatedLabel !== translationKey) {
+          finalLabel = translatedLabel;
+        }
+      } 
+      
+      // If not translated yet, try attendance translation
+      if (finalLabel === label) {
+        translationKey = attendanceKeyMap[label];
+        if (translationKey) {
+          const translatedLabel = t(translationKey);
+          console.log(`[TRANSLATION DEBUG] Attendance Key: ${translationKey}, Result: "${translatedLabel}", Original: "${label}"`);
+          if (translatedLabel && translatedLabel !== translationKey) {
+            finalLabel = translatedLabel;
+          }
+        }
+      }
+    }
+    
+    return { label: finalLabel, value: typeof finalValue === 'number' ? parseFloat(finalValue.toFixed(2)) : finalValue };
   });
 
   chartData.sort((a, b) => b.value - a.value);

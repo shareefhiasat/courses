@@ -47,7 +47,7 @@ const Select = forwardRef(({
   const { t } = useLang();
   
   // Localize placeholder inside component body
-  const localizedPlaceholder = placeholder || t('select_an_option') || 'Select an option';
+  const localizedPlaceholder = placeholder === 'Select an option' ? (t('select_an_option') || 'Select an option') : (placeholder || t('select_an_option') || 'Select an option');
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -298,9 +298,9 @@ const Select = forwardRef(({
             required={required}
             {...rest}
           >
-            {placeholder && (
+            {localizedPlaceholder && (
               <option value="" disabled>
-                {placeholder}
+                {localizedPlaceholder}
               </option>
             )}
             {options.map((option) => (

@@ -5,7 +5,8 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
 import { getUserById } from '@services/business/userService';
-import { Select, YearSelect, SimpleLoading } from '@ui';
+import { Select, YearSelect, SimpleLoading, UserSelect } from '@ui';
+import { USER_ROLES } from '@constants/userRoles';
 import useAnalyticsData, { processWidgetData } from '@hooks/useAnalyticsData';
 import DashboardEngine from './analytics/DashboardEngine';
 import logger from '@utils/logger';
@@ -216,7 +217,7 @@ export default function AdvancedAnalytics({
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
       const csv = saved.map(w => {
-        const data = processWidgetData(w, rawData, mergedFilters);
+        const data = processWidgetData(w, rawData, mergedFilters, 0, t, lang);
         return `\n${w.title}\n${data.map(d => `${d.label},${d.value}`).join('\n')}`;
       }).join('\n\n');
       const blob = new Blob([csv], { type: 'text/csv' });
@@ -229,7 +230,7 @@ export default function AdvancedAnalytics({
     } catch (e) {
       logger.warn('[AdvancedAnalytics] export failed:', e);
     }
-  }, [rawData, mergedFilters, storageKey, processWidgetData]);
+  }, [rawData, mergedFilters, storageKey, processWidgetData, t, lang]);
 
   // ── Loading skeleton ──────────────────────────────────────────────────────
   if (loading) {
@@ -245,7 +246,13 @@ export default function AdvancedAnalytics({
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{title}</h1>
         )}
 
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginInlineStart: 'auto' }}>
+        <div style={{ 
+          display: 'flex', 
+          gap: 10, 
+          alignItems: 'center', 
+          flexWrap: 'wrap',
+          justifyContent: 'center'
+        }}>
 
           {/* Auto-refresh selector */}
           <Select
@@ -282,7 +289,7 @@ export default function AdvancedAnalytics({
             onClick={handleReload}
             style={btnStyle('var(--text-muted, #6b7280)')}
           >
-            {getThemedIcon('ui', 'rotate_cw', 16, theme)}
+            {getThemedIcon('ui', 'rotate_cw', 16, 'white')}
             {t('refresh') || 'Refresh'}
           </button>
 
@@ -291,7 +298,7 @@ export default function AdvancedAnalytics({
             onClick={() => setEditLayout(v => !v)}
             style={btnStyle(editLayout ? 'var(--color-danger, #ef4444)' : 'var(--color-warning, #f97316)')}
           >
-            {getThemedIcon('ui', editLayout ? 'lock' : 'layout_grid', 16, theme)}
+            {getThemedIcon('ui', editLayout ? 'lock' : 'layout_grid', 16, 'white')}
             {editLayout ? (t('exit_edit_layout') || 'Exit Edit') : (t('edit_layout') || 'Edit Layout')}
           </button>
 
@@ -307,13 +314,13 @@ export default function AdvancedAnalytics({
               whiteSpace: 'nowrap'
             }}
           >
-            {getThemedIcon('ui', 'plus', 16, theme)}
+            {getThemedIcon('ui', 'plus', 16, 'white')}
             {t('add_widget') || 'Add Widget'}
           </button>
 
           {/* Export */}
           <button onClick={handleExport} style={btnStyle('var(--color-success, #10b981)')}>
-            {getThemedIcon('ui', 'download', 16, theme)}
+            {getThemedIcon('ui', 'download', 16, 'white')}
             {t('export') || 'Export'}
           </button>
 
@@ -322,7 +329,7 @@ export default function AdvancedAnalytics({
             onClick={() => window.location.href = '/scheduled-reports'}
             style={btnStyle(accentColor)}
           >
-            {getThemedIcon('ui', 'calendar', 16, theme)}
+            {getThemedIcon('ui', 'calendar', 16, 'white')}
             {t('schedule_report') || 'Schedule Report'}
           </button>
         </div>
@@ -347,7 +354,13 @@ export default function AdvancedAnalytics({
 
       {/* ── Global Filters (hidden when externalFilters lock them) ── */}
       {!externalFilters.studentId && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: '1.25rem' }}>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', 
+          gap: 10, 
+          marginBottom: '1.25rem',
+          ...(lang === 'ar' ? { direction: 'rtl' } : { direction: 'ltr' })
+        }}>
           <Select
             value={localFilters.programId}
             onChange={e => setLocalFilters(f => ({ ...f, programId: e.target.value, subjectId: '' }))}
@@ -409,17 +422,20 @@ export default function AdvancedAnalytics({
             fullWidth
             label=""
           />
-          <Select
+          <UserSelect
+            users={(rawData.users || []).filter(u => 
+              u.role === USER_ROLES.STUDENT || u.isStudent
+            )}
+            enrollments={rawData.enrollments || []}
             value={localFilters.studentId}
             onChange={e => setLocalFilters(f => ({ ...f, studentId: e.target.value }))}
-            options={[
-              { value: '', label: t('all_students') || 'All Students' },
-              ...(rawData.users || [])
-                .filter(u => u.isStudent)
-                .map(u => ({ value: u.id, label: u.realName || u.displayName || u.email || u.id }))
-            ]}
-            searchable
-            fullWidth
+            placeholder={t('all_students') || 'All Students'}
+            includeAll={true}
+            showStatus={true}
+            showEnrollments={false}
+            searchable={true}
+            fullWidth={true}
+            theme={theme}
           />
           <Select
             value={localFilters.instructorId}

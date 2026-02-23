@@ -345,7 +345,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
             onClick={onSave}
             style={{ padding: '0.7rem 1.4rem', background: accentColor, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            {getThemedIcon('ui', 'save', 16, theme)}
+            {getThemedIcon('ui', 'save', 16, 'white')}
             {isEditing ? (t('update') || 'Update') : (t('create') || 'Create')}
           </button>
         </div>
