@@ -63,14 +63,24 @@ const DashboardEngine = ({
   const [recentlyRefreshed, setRecentlyRefreshed] = useState({});
   const [widgetUpdatedAt, setWidgetUpdatedAt] = useState({});
 
-  // ── Clear problematic localStorage cache on mount ────────────────────────
+  // ── Clear problematic localStorage cache on mount (only if corrupted) ───────────
   useEffect(() => {
-    // Clear the analytics widgets cache to prevent old widget restoration
+    // Only clear localStorage if it's corrupted, not on every mount
+    // This prevents the flash when loading widgets
     try {
-      localStorage.removeItem(`wdg_${storageKey}`);
-      logger.log(`[DashboardEngine] Cleared localStorage cache on mount for ${storageKey}`);
+      const saved = localStorage.getItem(`wdg_${storageKey}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Only clear if the data is corrupted (not an array)
+        if (!Array.isArray(parsed?.widgets)) {
+          localStorage.removeItem(`wdg_${storageKey}`);
+          logger.log(`[DashboardEngine] Cleared corrupted localStorage cache for ${storageKey}`);
+        }
+      }
     } catch (e) {
-      logger.warn(`[DashboardEngine] Failed to clear localStorage on mount:`, e);
+      // Only clear if there's an actual error parsing
+      localStorage.removeItem(`wdg_${storageKey}`);
+      logger.warn(`[DashboardEngine] Cleared invalid localStorage cache for ${storageKey}:`, e);
     }
   }, [storageKey]);
 
@@ -370,45 +380,60 @@ const DashboardEngine = ({
       </div>
 
       {/* ── Grid ── */}
-      <ResponsiveGrid
-        className="layout rgl-engine"
-        layout={gridLayout}
-        cols={12}
-        rowHeight={64}
-        isDraggable={editLayout}
-        isResizable={editLayout && Object.keys(minimizedIds).filter(k => minimizedIds[k]).length === 0}
-        onLayoutChange={onLayoutChange}
-        draggableHandle=".drag-handle"
-        resizeHandles={['se', 'sw', 'ne', 'nw']}
-        compactType="vertical"
-        preventCollision={false}
-        margin={[12, 12]}
-      >
-        {sortedWidgets.map(widget => (
-          <div key={widget.id} style={{ display: 'flex', flexDirection: 'column' }}>
-            <WidgetWrapper
-              widget={widget}
-              accentColor={accentColor}
-              isMinimized={!!minimizedIds[widget.id]}
-              onMinimize={() => handleMinimize(widget.id)}
-              onEdit={() => openBuilder(widget)}
-              onDelete={() => handleDelete(widget.id)}
-              onRefresh={() => handleRefreshWidget(widget.id)}
-              isLoading={isLoading}
-              isRecentlyRefreshed={!!recentlyRefreshed[widget.id]}
-              lastUpdatedAt={widgetUpdatedAt[widget.id] || lastUpdatedAt}
-              editLayout={editLayout}
-            >
-              {/* version key forces chart re-render on refresh without full data reload */}
-              {(size) => (
-                <React.Fragment key={widgetVersions[widget.id] || 0}>
-                  {renderChart(widget, size)}
-                </React.Fragment>
-              )}
-            </WidgetWrapper>
-          </div>
-        ))}
-      </ResponsiveGrid>
+      {/* Show loading state while widgets are being loaded from Firestore */}
+      {(dashLoading || isLoading) ? (
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '400px',
+          color: accentColor,
+          fontSize: '16px',
+          fontWeight: '500'
+        }}>
+          {t('loading_dashboard') || 'Loading dashboard...'}
+        </div>
+      ) : (
+        <ResponsiveGrid
+          className="layout rgl-engine"
+          layout={gridLayout}
+          cols={12}
+          rowHeight={64}
+          isDraggable={editLayout}
+          isResizable={editLayout && Object.keys(minimizedIds).filter(k => minimizedIds[k]).length === 0}
+          onLayoutChange={onLayoutChange}
+          draggableHandle=".drag-handle"
+          resizeHandles={['se', 'sw', 'ne', 'nw']}
+          compactType="vertical"
+          preventCollision={false}
+          margin={[12, 12]}
+        >
+          {sortedWidgets.map(widget => (
+            <div key={widget.id} style={{ display: 'flex', flexDirection: 'column' }}>
+              <WidgetWrapper
+                widget={widget}
+                accentColor={accentColor}
+                isMinimized={!!minimizedIds[widget.id]}
+                onMinimize={() => handleMinimize(widget.id)}
+                onEdit={() => openBuilder(widget)}
+                onDelete={() => handleDelete(widget.id)}
+                onRefresh={() => handleRefreshWidget(widget.id)}
+                isLoading={isLoading}
+                isRecentlyRefreshed={!!recentlyRefreshed[widget.id]}
+                lastUpdatedAt={widgetUpdatedAt[widget.id] || lastUpdatedAt}
+                editLayout={editLayout}
+              >
+                {/* version key forces chart re-render on refresh without full data reload */}
+                {(size) => (
+                  <React.Fragment key={widgetVersions[widget.id] || 0}>
+                    {renderChart(widget, size)}
+                  </React.Fragment>
+                )}
+              </WidgetWrapper>
+            </div>
+          ))}
+        </ResponsiveGrid>
+      )}
 
       {/* ── Empty state ── */}
       {!dashLoading && sortedWidgets.length === 0 && (

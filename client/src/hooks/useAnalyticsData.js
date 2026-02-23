@@ -139,7 +139,7 @@ const useAnalyticsData = () => {
 
   useEffect(() => {
     loadAllData();
-  }, [loadAllData]);
+  }, []); // Empty dependency array - only run once on mount
 
   return { rawData, loading, permErrors, reload: loadAllData };
 };
