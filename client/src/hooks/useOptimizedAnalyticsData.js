@@ -252,29 +252,41 @@ export const processWidgetDataOptimized = cache((widget, rawData, globalFilters)
   }
   
   const endTime = performance.now();
-  logger.log(`[processWidgetDataOptimized] Processed ${dataSource} in ${(endTime - startTime).toFixed(2)}ms`);
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log(`[processWidgetDataOptimized] Processed ${dataSource} in ${(endTime - startTime).toFixed(2)}ms`);
+  // }
   
   return processedData;
 });
 
 // Helper functions for data processing
 function processMultiSourceActivityData(widget, data, filters) {
-  logger.log('[processMultiSourceActivityData] Processing combined activity data:', {
-    totalRecords: data.length,
-    filters: filters,
-    groupBy: widget.groupBy
-  });
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log('[processMultiSourceActivityData] Processing combined activity data:', {
+  //     totalRecords: data.length,
+  //     filters: filters,
+  //     groupBy: widget.groupBy
+  //   });
+  // }
   
   let filtered = data;
   
   if (filters.classId) {
     filtered = filtered.filter(item => item.classId === filters.classId);
-    logger.log(`[processMultiSourceActivityData] Filtered by classId ${filters.classId}: ${filtered.length} records`);
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log(`[processMultiSourceActivityData] Filtered by classId ${filters.classId}: ${filtered.length} records`);
+  // }
   }
   
   if (filters.studentId) {
     filtered = filtered.filter(item => item.studentId === filters.studentId);
-    logger.log(`[processMultiSourceActivityData] Filtered by studentId ${filters.studentId}: ${filtered.length} records`);
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log(`[processMultiSourceActivityData] Filtered by studentId ${filters.studentId}: ${filtered.length} records`);
+  // }
   }
   
   if (widget.groupBy === 'type') {
@@ -356,11 +368,14 @@ function processMultiSourceActivityData(widget, data, filters) {
       grouped[key] = (grouped[key] || 0) + 1;
     });
     
-    logger.log('[processMultiSourceActivityData] Type distribution:', typeDistribution);
-    logger.log('[processMultiSourceActivityData] Mapped grouped data:', grouped);
-    
     const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
-    logger.log('[processMultiSourceActivityData] Final result:', result);
+    
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log('[processMultiSourceActivityData] Type distribution:', typeDistribution);
+  //   logger.log('[processMultiSourceActivityData] Mapped grouped data:', grouped);
+  //   logger.log('[processMultiSourceActivityData] Final result:', result);
+  // }
     
     return result;
   }
@@ -413,16 +428,21 @@ function processMultiSourceActivityData(widget, data, filters) {
       distribution[key] = (distribution[key] || 0) + 1;
     });
     
-    logger.log(`[processMultiSourceActivityData] ${widget.groupBy} distribution:`, distribution);
-    logger.log('[processMultiSourceActivityData] Mapped grouped data:', grouped);
-    
     const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
-    logger.log('[processMultiSourceActivityData] Final result:', result);
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log(`[processMultiSourceActivityData] ${widget.groupBy} distribution:`, distribution);
+  //   logger.log('[processMultiSourceActivityData] Mapped grouped data:', grouped);
+  //   logger.log('[processMultiSourceActivityData] Final result:', result);
+  // }
     
     return result;
   }
   
-  logger.log('[processMultiSourceActivityData] No grouping, returning total count:', filtered.length);
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log('[processMultiSourceActivityData] No grouping, returning total count:', filtered.length);
+  // }
   return [{ label: widget.title || 'Activities', value: filtered.length }];
 }
 
@@ -430,21 +450,30 @@ function processEnrollmentData(widget, data, filters, rawData) {
   // Apply filters and aggregations
   let filtered = data;
   
-  logger.log('[processEnrollmentData] Processing enrollment data:', {
-    totalRecords: data.length,
-    filters: filters,
-    groupBy: widget.groupBy,
-    availablePrograms: rawData.programs?.length || 0
-  });
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log('[processEnrollmentData] Processing enrollment data:', {
+  //     totalRecords: data.length,
+  //     filters: filters,
+  //     groupBy: widget.groupBy,
+  //     availablePrograms: rawData.programs?.length || 0
+  //   });
+  // }
   
   if (filters.classId) {
     filtered = filtered.filter(item => item.classId === filters.classId);
-    logger.log(`[processEnrollmentData] Filtered by classId ${filters.classId}: ${filtered.length} records`);
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log(`[processEnrollmentData] Filtered by classId ${filters.classId}: ${filtered.length} records`);
+  // }
   }
   
   if (filters.studentId) {
     filtered = filtered.filter(item => item.studentId === filters.studentId);
-    logger.log(`[processEnrollmentData] Filtered by studentId ${filters.studentId}: ${filtered.length} records`);
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log(`[processEnrollmentData] Filtered by studentId ${filters.studentId}: ${filtered.length} records`);
+  // }
   }
   
   // Group by specified field
@@ -468,16 +497,22 @@ function processEnrollmentData(widget, data, filters, rawData) {
       grouped[key] = (grouped[key] || 0) + 1;
     });
     
-    logger.log('[processEnrollmentData] Raw distribution:', rawDistribution);
-    logger.log('[processEnrollmentData] Mapped grouped data:', grouped);
-    
     const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
-    logger.log('[processEnrollmentData] Final result:', result);
+
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log('[processEnrollmentData] Raw distribution:', rawDistribution);
+  //   logger.log('[processEnrollmentData] Mapped grouped data:', grouped);
+  //   logger.log('[processEnrollmentData] Final result:', result);
+  // }
     
     return result;
   }
   
-  logger.log('[processEnrollmentData] No grouping, returning total count:', filtered.length);
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log('[processEnrollmentData] No grouping, returning total count:', filtered.length);
+  // }
   // Return count if no grouping
   return [{ label: widget.title || 'Enrollments', value: filtered.length }];
 }
@@ -503,24 +538,36 @@ function processAttendanceData(widget, data, filters) {
     }))
   };
   
-  logger.log('[processAttendanceData] Processing attendance data:', debugInfo);
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log('[processAttendanceData] Processing attendance data:', debugInfo);
+  // }
   
   // Log if we found data from alternative sources
-  if (debugInfo.dataSources.absences > 0 || debugInfo.dataSources.attendanceSessions > 0) {
-    console.log('🎉 Found attendance data from alternative sources:', {
-      absences: debugInfo.dataSources.absences,
-      attendanceSessions: debugInfo.dataSources.attendanceSessions
-    });
-  }
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   if (debugInfo.dataSources.absences > 0 || debugInfo.dataSources.attendanceSessions > 0) {
+  //     console.log('🎉 Found attendance data from alternative sources:', {
+  //       absences: debugInfo.dataSources.absences,
+  //       attendanceSessions: debugInfo.dataSources.attendanceSessions
+  //     });
+  //   }
+  // }
   
   if (filters.classId) {
     filtered = filtered.filter(item => item.classId === filters.classId);
-    logger.log(`[processAttendanceData] Filtered by classId ${filters.classId}: ${filtered.length} records`);
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log(`[processAttendanceData] Filtered by classId ${filters.classId}: ${filtered.length} records`);
+  // }
   }
   
   if (filters.studentId) {
     filtered = filtered.filter(item => item.studentId === filters.studentId);
-    logger.log(`[processAttendanceData] Filtered by studentId ${filters.studentId}: ${filtered.length} records`);
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log(`[processAttendanceData] Filtered by studentId ${filters.studentId}: ${filtered.length} records`);
+  // }
   }
   
   if (widget.groupBy === 'status' || widget.groupBy === 'attendanceType') {
@@ -570,11 +617,14 @@ function processAttendanceData(widget, data, filters) {
       statusDistribution[status] = (statusDistribution[status] || 0) + 1;
     });
     
-    logger.log('[processAttendanceData] Status distribution:', statusDistribution);
-    logger.log('[processAttendanceData] Mapped grouped data:', grouped);
-    
     const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
-    logger.log('[processAttendanceData] Final result:', result);
+
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log('[processAttendanceData] Status distribution:', statusDistribution);
+  //   logger.log('[processAttendanceData] Mapped grouped data:', grouped);
+  //   logger.log('[processAttendanceData] Final result:', result);
+  // }
     
     return result;
   }
@@ -621,16 +671,22 @@ function processAttendanceData(widget, data, filters) {
       distribution[key] = (distribution[key] || 0) + 1;
     });
     
-    logger.log(`[processAttendanceData] ${widget.groupBy} distribution:`, distribution);
-    logger.log('[processAttendanceData] Mapped grouped data:', grouped);
-    
     const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
-    logger.log('[processAttendanceData] Final result:', result);
+
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log(`[processAttendanceData] ${widget.groupBy} distribution:`, distribution);
+  //   logger.log('[processAttendanceData] Mapped grouped data:', grouped);
+  //   logger.log('[processAttendanceData] Final result:', result);
+  // }
     
     return result;
   }
   
-  logger.log('[processAttendanceData] No grouping, returning total count:', filtered.length);
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log('[processAttendanceData] No grouping, returning total count:', filtered.length);
+  // }
   return [{ label: widget.title || 'Attendance', value: filtered.length }];
 }
 
@@ -776,11 +832,14 @@ function processBehaviorData(widget, data, filters) {
 function processGenericData(widget, data, filters, rawData, dataSourceName) {
   let filtered = data;
   
-  logger.log(`[processGenericData] Processing ${dataSourceName} data:`, {
-    totalRecords: data.length,
-    filters: filters,
-    groupBy: widget.groupBy
-  });
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log(`[processGenericData] Processing ${dataSourceName} data:`, {
+  //     totalRecords: data.length,
+  //     filters: filters,
+  //     groupBy: widget.groupBy
+  //   });
+  // }
   
   // Apply filters
   if (filters.classId) {
@@ -815,14 +874,6 @@ function processGenericData(widget, data, filters, rawData, dataSourceName) {
           
         case 'subjectId':
           const subjectItem = rawData.subjects?.find(s => s.id === item.subjectId);
-          logger.log(`[processGenericData] Resolving subject:`, {
-            itemSubjectId: item.subjectId,
-            subjectItem: subjectItem,
-            availableSubjects: rawData.subjects?.length || 0,
-            subjectNameEn: subjectItem?.nameEn,
-            subjectName: subjectItem?.name,
-            subjectSubjectName: subjectItem?.subjectName
-          });
           key = subjectItem?.nameEn || subjectItem?.name || subjectItem?.subjectName || `Subject ${item.subjectId?.substring(0, 8) || 'Unknown'}`;
           break;
           
@@ -873,14 +924,20 @@ function processGenericData(widget, data, filters, rawData, dataSourceName) {
       grouped[key] = (grouped[key] || 0) + 1;
     });
     
-    logger.log(`[processGenericData] ${widget.groupBy} distribution for ${dataSourceName}:`, grouped);
-    
     const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
-    logger.log('[processGenericData] Final result:', result);
+
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log(`[processGenericData] ${widget.groupBy} distribution for ${dataSourceName}:`, grouped);
+  //   logger.log('[processGenericData] Final result:', result);
+  // }
     
     return result;
   }
   
-  logger.log(`[processGenericData] No grouping for ${dataSourceName}, returning total count:`, filtered.length);
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   logger.log(`[processGenericData] No grouping for ${dataSourceName}, returning total count:`, filtered.length);
+  // }
   return [{ label: widget.title || dataSourceName, value: filtered.length }];
 }

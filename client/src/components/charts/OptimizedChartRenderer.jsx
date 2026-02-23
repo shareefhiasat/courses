@@ -1,4 +1,4 @@
-import React, { Suspense, memo } from 'react';
+import React, { Suspense, memo, useMemo } from 'react';
 import { SimpleLoading } from '@ui';
 
 // Lazy load chart components to reduce initial bundle size
@@ -57,7 +57,7 @@ const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData,
   const { chartType, dataSource, ...widgetProps } = widget;
 
   // Memoize chart props to prevent unnecessary re-renders
-  const chartProps = React.useMemo(() => ({
+  const chartProps = useMemo(() => ({
     data,
     accentColor,
     size,
@@ -67,76 +67,82 @@ const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData,
     ...widgetProps
   }), [data, accentColor, size, rawData, dataSource, onPointClick, widgetProps]);
 
-  // Render appropriate chart based on type
-  switch (chartType) {
-    case 'bar':
-      return (
-        <Suspense fallback={<ChartFallback size={size} />}>
-          <BarChart {...chartProps} />
-        </Suspense>
-      );
-    
-    case 'line':
-      return (
-        <Suspense fallback={<ChartFallback size={size} />}>
-          <LineChart {...chartProps} />
-        </Suspense>
-      );
-    
-    case 'pie':
-      return (
-        <Suspense fallback={<ChartFallback size={size} />}>
-          <PieChart {...chartProps} donut={false} />
-        </Suspense>
-      );
-    
-    case 'donut':
-      return (
-        <Suspense fallback={<ChartFallback size={size} />}>
-          <PieChart {...chartProps} donut={true} />
-        </Suspense>
-      );
-    
-    case 'list':
-      return (
-        <Suspense fallback={<ChartFallback size={size} />}>
-          <ListChart {...chartProps} />
-        </Suspense>
-      );
-    
-    case 'count':
-      return (
-        <div style={{ 
-          padding: '2rem', 
-          textAlign: 'center', 
-          color: 'var(--text)',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '2rem',
-          fontWeight: 'bold'
-        }}>
-          {data.length > 0 ? data[0].value : 0}
-        </div>
-      );
-    
-    default:
-      console.warn(`[OptimizedChartRenderer] Unknown chart type: ${chartType}`);
-      return (
-        <div style={{ 
-          padding: '2rem', 
-          textAlign: 'center', 
-          color: 'var(--muted)',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          Unknown chart type: {chartType}
-        </div>
-      );
-  }
+  // Memoize the rendered chart to prevent unnecessary re-renders
+  const renderedChart = useMemo(() => {
+    switch (chartType) {
+      case 'bar':
+        return (
+          <Suspense fallback={<ChartFallback size={size} />}>
+            <BarChart {...chartProps} />
+          </Suspense>
+        );
+      
+      case 'line':
+        return (
+          <Suspense fallback={<ChartFallback size={size} />}>
+            <LineChart {...chartProps} />
+          </Suspense>
+        );
+      
+      case 'pie':
+        return (
+          <Suspense fallback={<ChartFallback size={size} />}>
+            <PieChart {...chartProps} donut={false} />
+          </Suspense>
+        );
+      
+      case 'donut':
+        return (
+          <Suspense fallback={<ChartFallback size={size} />}>
+            <PieChart {...chartProps} donut={true} />
+          </Suspense>
+        );
+      
+      case 'list':
+        return (
+          <Suspense fallback={<ChartFallback size={size} />}>
+            <ListChart {...chartProps} />
+          </Suspense>
+        );
+      
+      case 'count':
+        return (
+          <div style={{ 
+            padding: '2rem', 
+            textAlign: 'center', 
+            color: 'var(--text)',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '2rem',
+            fontWeight: 'bold'
+          }}>
+            {data.length > 0 ? data[0].value : 0}
+          </div>
+        );
+      
+      default:
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`[OptimizedChartRenderer] Unknown chart type: ${chartType}`);
+        }
+        return (
+          <div style={{ 
+            padding: '2rem', 
+            textAlign: 'center', 
+            color: 'var(--muted)',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            Unknown chart type: {chartType}
+          </div>
+        );
+    }
+  }, [chartType, chartProps, size, data]);
+
+  return renderedChart;
 });
 
 OptimizedChartRenderer.displayName = 'OptimizedChartRenderer';

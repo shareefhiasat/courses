@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 /**
  * Custom Line Chart Component (Pure React/SVG)
@@ -8,7 +8,7 @@ import React from 'react';
  * @param {String} color - Line color
  * @param {Boolean} showArea - Fill area under line
  */
-export default function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor = '#800020', showArea = true, showPoints = true, showGrid = true }) {
+function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor = '#800020', showArea = true, showPoints = true, showGrid = true }) {
   // Handle size as object with width/height or legacy width/height props
   let width, height;
   if (typeof size === 'object' && size.width && size.height) {
@@ -150,3 +150,7 @@ export default function LineChart({ data = [], size = { width: 400, height: 300 
     </svg>
   );
 }
+
+const LineChartMemo = memo(LineChart);
+LineChartMemo.displayName = 'LineChart';
+export default LineChartMemo;

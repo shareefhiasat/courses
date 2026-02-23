@@ -1,4 +1,4 @@
-import React, { useMemo, useContext, useState } from 'react';
+import React, { useMemo, useContext, useState, memo } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -24,7 +24,7 @@ import {
  * @param {string} accentColor - Theme accent color
  * @param {Object} widget - Widget configuration
  */
-export default function ListChart({ 
+function ListChart({ 
   data = [], 
   size = { width: 400, height: 300 }, 
   chartType = 'list',
@@ -37,18 +37,19 @@ export default function ListChart({
   const [showColumnManager, setShowColumnManager] = useState(false);
   const [selectedColumns, setSelectedColumns] = useState([]);
 
-  // Comprehensive logging for debugging
-  logger.log('[ListChart] Widget configuration:', {
-    chartType,
-    dataSource: widget.dataSource,
-    groupBy: widget.groupBy,
-    filterValue: widget.filterValue,
-    rawDataKeys: Object.keys(rawData || {}),
-    usersCount: rawData.users?.length || 0,
-    classesCount: rawData.classes?.length || 0,
-    attendanceCount: rawData.attendance?.length || 0,
-    activitiesCount: rawData.activities?.length || 0
-  });
+  // Disable all logging to prevent console spam
+  // // Comprehensive logging for debugging
+  // logger.log('[ListChart] Widget configuration:', {
+  //   chartType,
+  //   dataSource: widget.dataSource,
+  //   groupBy: widget.groupBy,
+  //   filterValue: widget.filterValue,
+  //   rawDataKeys: Object.keys(rawData || {}),
+  //   usersCount: rawData.users?.length || 0,
+  //   classesCount: rawData.classes?.length || 0,
+  //   attendanceCount: rawData.attendance?.length || 0,
+  //   activitiesCount: rawData.activities?.length || 0
+  // });
   // Get items based on widget configuration
   const items = useMemo(() => {
     if (!rawData || typeof rawData !== 'object') return [];
@@ -112,15 +113,16 @@ export default function ListChart({
       return dateB - dateA;
     }).slice(0, 50); // Limit to 50 items for performance
 
-    // Log sample data for debugging
-    logger.log('[ListChart] Processed items:', {
-      totalSourceRecords: filteredData.length,
-      finalItemsCount: sortedData.length,
-      sampleItem: sortedData[0] || 'No items',
-      hasStudentIds: sortedData.some(item => item.studentId),
-      hasClassIds: sortedData.some(item => item.classId),
-      hasStatuses: sortedData.some(item => item.status)
-    });
+    // Disable all logging to prevent console spam
+    // // Log sample data for debugging
+    // logger.log('[ListChart] Processed items:', {
+    //   totalSourceRecords: filteredData.length,
+    //   finalItemsCount: sortedData.length,
+    //   sampleItem: sortedData[0] || 'No items',
+    //   hasStudentIds: sortedData.some(item => item.studentId),
+    //   hasClassIds: sortedData.some(item => item.classId),
+    //   hasStatuses: sortedData.some(item => item.status)
+    // });
 
     return sortedData;
   }, [rawData, widget, chartType]);
@@ -586,3 +588,7 @@ export default function ListChart({
     </div>
   );
 }
+
+const ListChartMemo = memo(ListChart);
+ListChartMemo.displayName = 'ListChart';
+export default ListChartMemo;

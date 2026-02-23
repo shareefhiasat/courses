@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 /**
  * Custom Pie/Donut Chart Component (Pure React/SVG)
@@ -40,69 +40,80 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
 
   const colors = [accentColor, '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
 
-  let currentAngle = -90; // Start from top
+  // Memoize slices calculation to prevent unnecessary re-renders
+  const slices = useMemo(() => {
+    if (!data || data.length === 0 || total === 0) return [];
+    
+    let currentAngle = -90; // Start from top
+    const calculatedSlices = [];
 
-  const slices = data.map((item, idx) => {
-    const value = item.value || 0;
-    const percentage = (value / total) * 100;
-    const angle = (value / total) * 360;
-    const startAngle = currentAngle;
-    const endAngle = currentAngle + angle;
-    currentAngle = endAngle;
+    data.forEach((item, idx) => {
+      const value = item.value || 0;
+      const percentage = (value / total) * 100;
+      const angle = (value / total) * 360;
+      const startAngle = currentAngle;
+      const endAngle = currentAngle + angle;
+      currentAngle = endAngle;
 
-    const color = item.color || colors[idx % colors.length];
+      const color = item.color || colors[idx % colors.length];
 
-    // Calculate path
-    const startRad = (startAngle * Math.PI) / 180;
-    const endRad = (endAngle * Math.PI) / 180;
+      // Calculate path
+      const startRad = (startAngle * Math.PI) / 180;
+      const endRad = (endAngle * Math.PI) / 180;
 
-    const x1 = centerX + radius * Math.cos(startRad);
-    const y1 = centerY + radius * Math.sin(startRad);
-    const x2 = centerX + radius * Math.cos(endRad);
-    const y2 = centerY + radius * Math.sin(endRad);
+      const x1 = centerX + radius * Math.cos(startRad);
+      const y1 = centerY + radius * Math.sin(startRad);
+      const x2 = centerX + radius * Math.cos(endRad);
+      const y2 = centerY + radius * Math.sin(endRad);
 
-    const largeArc = angle > 180 ? 1 : 0;
+      const largeArc = angle > 180 ? 1 : 0;
 
-    let path;
-    if (donut) {
-      const ix1 = centerX + innerRadius * Math.cos(startRad);
-      const iy1 = centerY + innerRadius * Math.sin(startRad);
-      const ix2 = centerX + innerRadius * Math.cos(endRad);
-      const iy2 = centerY + innerRadius * Math.sin(endRad);
-      
-      path = `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${ix1} ${iy1} Z`;
-    } else {
-      path = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-    }
+      let path;
+      if (donut) {
+        const ix1 = centerX + innerRadius * Math.cos(startRad);
+        const iy1 = centerY + innerRadius * Math.sin(startRad);
+        const ix2 = centerX + innerRadius * Math.cos(endRad);
+        const iy2 = centerY + innerRadius * Math.sin(endRad);
+        
+        path = `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${ix1} ${iy1} Z`;
+      } else {
+        path = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+      }
 
-    // Label position
-    const labelAngle = (startAngle + endAngle) / 2;
-    const labelRad = (labelAngle * Math.PI) / 180;
-    const labelRadius = donut ? (radius + innerRadius) / 2 : radius * 0.7;
-    const labelX = centerX + labelRadius * Math.cos(labelRad);
-    const labelY = centerY + labelRadius * Math.sin(labelRad);
+      // Label position
+      const labelAngle = (startAngle + endAngle) / 2;
+      const labelRad = (labelAngle * Math.PI) / 180;
+      const labelRadius = donut ? (radius + innerRadius) / 2 : radius * 0.7;
+      const labelX = centerX + labelRadius * Math.cos(labelRad);
+      const labelY = centerY + labelRadius * Math.sin(labelRad);
 
-    return {
-      path,
-      color,
-      label: item.label,
-      value,
-      percentage: percentage.toFixed(1),
-      labelX,
-      labelY
-    };
-  });
+      calculatedSlices.push({
+        path,
+        color,
+        label: item.label,
+        value,
+        percentage: percentage.toFixed(1),
+        labelX,
+        labelY
+      });
+    });
 
-  const handleSliceClick = (slice) => {
+    return calculatedSlices;
+  }, [data, total, centerX, centerY, radius, innerRadius, donut, colors]);
+
+  // Memoize click handler
+  const handleSliceClick = useMemo(() => (slice) => {
     // Call external callback if provided
     if (onSliceClick) {
       onSliceClick(slice);
     }
-  };
+  }, [onSliceClick]);
   
-  // Add logging to confirm data source
-  console.log('[PieChart] Data source:', chartType, 'Raw data keys:', Object.keys(rawData || {}));
-  console.log('[PieChart] Available slices:', data.map(d => d.label));
+  // Disable all logging to prevent console spam
+  // if (process.env.NODE_ENV === 'development') {
+  //   console.log('[PieChart] Data source:', chartType, 'Raw data keys:', Object.keys(rawData || {}));
+  //   console.log('[PieChart] Available slices:', data.map(d => d.label));
+  // }
 
   return (
     <>
@@ -115,7 +126,10 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
                 fill={slice.color}
                 stroke="white"
                 strokeWidth="2"
-                style={{ transition: 'all 0.3s ease', cursor: 'pointer' }}
+                style={{ 
+                  transition: 'all 0.3s ease', 
+                  cursor: 'pointer'
+                }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.opacity = '0.8';
                   e.currentTarget.style.transform = 'scale(1.05)';
@@ -126,10 +140,6 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
                   e.currentTarget.style.transform = 'scale(1)';
                 }}
                 onClick={() => handleSliceClick(slice)}
-                style={{ 
-                  transition: 'all 0.3s ease', 
-                  cursor: 'pointer'
-                }}
               >
                 <title>{`${slice.label}: ${slice.value} (${slice.percentage}%)`}</title>
               </path>
