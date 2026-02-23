@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './SearchBar.module.css';
 
@@ -11,12 +12,16 @@ const SearchBar = ({
   value,
   onChange,
   onSearch,
-  placeholder = 'Search...',
+  placeholder,
   size = 'md',
   fullWidth = false,
   className = '',
 }) => {
+  const { t } = useLang();
   const [localValue, setLocalValue] = useState(value || '');
+
+  // Use localized placeholder if none provided
+  const localizedPlaceholder = placeholder || t('search') || 'Search...';
 
   const handleChange = (e) => {
     const newValue = e.target.value;
@@ -49,7 +54,7 @@ const SearchBar = ({
         className={styles.input}
         value={localValue}
         onChange={handleChange}
-        placeholder={placeholder}
+        placeholder={localizedPlaceholder}
       />
       {localValue && (
         <button

@@ -364,8 +364,8 @@ const ScheduledReportsPage = () => {
                     value={formData.reportType}
                     onChange={(e) => setFormData({ ...formData, reportType: e.target.value })}
                     options={[
-                      { value: 'analytics', label: 'Advanced Analytics', icon: <BarChart3 size={16} color="var(--text-secondary, #374151)" /> },
-                      { value: 'student-dashboard', label: 'Student Dashboard Status', icon: <Users size={16} color="var(--text-secondary, #374151)" /> }
+                      { value: 'analytics', label: t('advanced_analytics') || 'Advanced Analytics', icon: <BarChart3 size={16} color="var(--text-secondary, #374151)" /> },
+                      { value: 'student-dashboard', label: t('student_dashboard_status') || 'Student Dashboard Status', icon: <Users size={16} color="var(--text-secondary, #374151)" /> }
                     ]}
                     fullWidth
                   />
@@ -602,7 +602,7 @@ const ScheduledReportsPage = () => {
                   <div>
                     <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>Report Type</label>
                     <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>
-                      {selectedReport.reportType === 'analytics' ? 'Advanced Analytics' : 'Student Dashboard Status'}
+                      {selectedReport.reportType === 'analytics' ? (t('advanced_analytics') || 'Advanced Analytics') : (t('student_dashboard_status') || 'Student Dashboard Status')}
                     </p>
                   </div>
                   <div>

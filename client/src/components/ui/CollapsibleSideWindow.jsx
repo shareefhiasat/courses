@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
+import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Input } from '@ui';
 
@@ -14,6 +15,7 @@ const CollapsibleSideWindow = ({
   initialFilters = {}
 }) => {
   const { theme } = useTheme();
+  const { t } = useLang();
   
   const [isMinimized, setIsMinimized] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -168,7 +170,7 @@ const CollapsibleSideWindow = ({
                 <div style={{ marginBottom: '1rem' }}>
                   <Input
                     type="text"
-                    placeholder="Search..."
+                    placeholder={t('search') || 'Search...'}
                     value={searchQuery}
                     onChange={handleSearchChange}
                     icon={getThemedIcon('ui', 'search', 16, theme)}

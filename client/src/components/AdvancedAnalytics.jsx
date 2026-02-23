@@ -216,11 +216,11 @@ export default function AdvancedAnalytics({
             onChange={e => setAutoRefreshMs(Number(e.target.value))}
             options={[
               { value: 0,       label: t('auto_refresh_off') || 'Auto Refresh: Off' },
-              { value: 60000,   label: '1 min' },
-              { value: 300000,  label: '5 min' },
-              { value: 900000,  label: '15 min' },
-              { value: 1800000, label: '30 min' },
-              { value: 3600000, label: '60 min' }
+              { value: 60000,   label: `1 ${t('minute') || 'min'}` },
+              { value: 300000,  label: `5 ${t('minutes') || 'min'}` },
+              { value: 900000,  label: `15 ${t('minutes') || 'min'}` },
+              { value: 1800000, label: `30 ${t('minutes') || 'min'}` },
+              { value: 3600000, label: `60 ${t('minutes') || 'min'}` }
             ]}
             size="small"
           />

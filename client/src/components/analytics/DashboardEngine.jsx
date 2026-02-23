@@ -96,12 +96,23 @@ const DashboardEngine = ({
 
   // ── Grid layout — minimized widgets collapse to header height (h=1) ───────
   const gridLayout = useMemo(() => {
+    const isRTL = document.documentElement.getAttribute('dir') === 'rtl';
     const layout = sortedWidgets.map(w => {
       const isMinimized = minimizedIds[w.id];
       const originalSize = originalSizes[w.id];
+      
+      // Get base position
+      let x = w.layout?.x ?? w.x ?? 0;
+      let widgetWidth = w.layout?.w ?? w.w ?? 3;
+      
+      // Mirror x-coordinate for RTL (12-column grid)
+      if (isRTL) {
+        x = 12 - x - widgetWidth;
+      }
+      
       const item = {
         i: w.id,
-        x: w.layout?.x ?? w.x ?? 0,
+        x,
         y: w.layout?.y ?? w.y ?? 0,
         w: isMinimized ? (originalSize?.w ?? w.layout?.w ?? w.w ?? 3) : (originalSize?.w ?? w.layout?.w ?? w.w ?? 3),  // Preserve original width
         h: isMinimized ? 1 : (originalSize?.h ?? w.layout?.h ?? w.h ?? 5),  // Use original height when restored
@@ -115,12 +126,12 @@ const DashboardEngine = ({
       };
       // Only log in development mode
       if (process.env.NODE_ENV === 'development') {
-        logger.log(`[gridLayout] Widget ${w.id}: minimized=${isMinimized}, w=${item.w}, h=${item.h}, original=${JSON.stringify(originalSize)}`);
+        logger.log(`[gridLayout] Widget ${w.id}: minimized=${isMinimized}, w=${item.w}, h=${item.h}, original=${JSON.stringify(originalSize)}, RTL=${isRTL}, x=${x}`);
       }
       return item;
     });
     if (process.env.NODE_ENV === 'development') {
-      logger.log(`[gridLayout] Total widgets in layout: ${layout.length}`);
+      logger.log(`[gridLayout] Total widgets in layout: ${layout.length}, RTL=${isRTL}`);
     }
     return layout;
   }, [sortedWidgets, minimizedIds, originalSizes]);
@@ -128,10 +139,29 @@ const DashboardEngine = ({
   // ── Layout change (drag/resize) ───────────────────────────────────────────
   const onLayoutChange = useCallback((newLayout) => {
     if (!editLayout) return;
+    
+    const isRTL = document.documentElement.getAttribute('dir') === 'rtl';
+    
     setWidgets(prev => prev.map(widget => {
       const li = newLayout.find(l => l.i === widget.id);
       if (!li) return widget;
-      return { ...widget, layout: { ...(widget.layout || {}), x: li.x, y: li.y, w: li.w, h: li.h } };
+      
+      // Mirror x-coordinate back for RTL when saving
+      let x = li.x;
+      if (isRTL) {
+        x = 12 - li.x - li.w;
+      }
+      
+      return { 
+        ...widget, 
+        layout: { 
+          ...(widget.layout || {}), 
+          x, 
+          y: li.y, 
+          w: li.w, 
+          h: li.h 
+        } 
+      };
     }));
   }, [editLayout, setWidgets]);
 
@@ -388,6 +418,19 @@ const DashboardEngine = ({
           z-index: 100; 
         }
         
+        /* RTL Support */
+        [dir="rtl"] .rgl-engine {
+          direction: ltr; /* Keep grid layout LTR for positioning */
+        }
+        
+        [dir="rtl"] .rgl-engine .react-grid-item {
+          direction: rtl; /* Make content RTL */
+        }
+        
+        [dir="rtl"] .rgl-engine .react-grid-placeholder {
+          direction: ltr; /* Keep placeholder LTR */
+        }
+        
         /* Smooth minimize/restore animations */
         .rgl-engine .react-grid-item.minimizing {
           transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -413,6 +456,17 @@ const DashboardEngine = ({
         .widget-content.restored {
           opacity: 1;
           transform: scaleY(1);
+        }
+        
+        /* RTL-specific widget adjustments */
+        [dir="rtl"] .widget-actions {
+          left: 8px;
+          right: auto;
+        }
+        
+        [dir="rtl"] .drag-handle {
+          right: 8px;
+          left: auto;
         }
       `}</style>
 

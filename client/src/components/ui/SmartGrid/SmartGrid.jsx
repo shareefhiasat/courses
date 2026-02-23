@@ -13,7 +13,7 @@ const SmartGrid = React.memo(({
   onDelete, 
   onAdd,
   title = "Data Grid",
-  searchPlaceholder = "Search...",
+  searchPlaceholder,
   pageSize = 10,
   allowEdit = true,
   allowDelete = true,
@@ -266,7 +266,7 @@ const SmartGrid = React.memo(({
         <div className="smart-grid-actions">
           <input
             type="text"
-            placeholder={searchPlaceholder}
+            placeholder={searchPlaceholder || t('search') || 'Search...'}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"

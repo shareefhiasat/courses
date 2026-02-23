@@ -1,5 +1,6 @@
 import React, { forwardRef, useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Select.module.css';
 import { getComponentStyles, generateCSSVariables } from '@constants/uiTheme';
@@ -43,6 +44,7 @@ const Select = forwardRef(({
   theme = 'light',
   ...rest
 }, ref) => {
+  const { t } = useLang();
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -381,7 +383,7 @@ const Select = forwardRef(({
                   ref={searchInputRef}
                   type="text"
                   className={styles.searchInput}
-                  placeholder="      Search..."
+                  placeholder={`      ${t('search') || 'Search...'}`}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value || '')}
                   onClick={(e) => e.stopPropagation()}

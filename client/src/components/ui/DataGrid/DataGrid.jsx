@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
+import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { SimpleLoading } from '@ui';
 import styles from './DataGrid.module.css';
@@ -24,6 +25,7 @@ const DataGrid = ({
   className = '',
 }) => {
   const { theme } = useTheme();
+  const { t } = useLang();
   
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [filters, setFilters] = useState({});
@@ -136,7 +138,7 @@ const DataGrid = ({
           {getThemedIcon('ui', 'search', 18, theme)}
           <input
             type="text"
-            placeholder="Search..."
+            placeholder={t('search') || 'Search...'}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
