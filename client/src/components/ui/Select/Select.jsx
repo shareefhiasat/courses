@@ -45,6 +45,9 @@ const Select = forwardRef(({
   ...rest
 }, ref) => {
   const { t } = useLang();
+  
+  // Localize placeholder inside component body
+  const localizedPlaceholder = placeholder || t('select_an_option') || 'Select an option';
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -177,8 +180,8 @@ const Select = forwardRef(({
     ? (selectedOption.displayLabel ??
         (typeof selectedOption.label === 'string'
           ? selectedOption.label
-          : (selectedOption.text || selectedOption.value || placeholder)))
-    : placeholder;
+          : (selectedOption.text || selectedOption.value || localizedPlaceholder)))
+    : localizedPlaceholder;
 
   const handleSelect = (optionValue) => {
     logger.log('🔵 [Select] handleSelect called with:', optionValue);
@@ -393,7 +396,7 @@ const Select = forwardRef(({
             
             <div className={styles.optionsList}>
               {filteredOptions.length === 0 ? (
-                <div className={styles.noOptions}>No options found</div>
+                <div className={styles.noOptions}>{t('no_options_found') || 'No options found'}</div>
               ) : (
                 filteredOptions.map((option, index) => {
                   const optionClasses = [

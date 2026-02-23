@@ -190,7 +190,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                 type="text"
                 value={config.title_en || ''}
                 onChange={e => set({ title_en: e.target.value })}
-                placeholder="e.g., Attendance by Type"
+                placeholder={t('widget_title_en_placeholder') || 'e.g., Attendance by Type'}
                 style={getInputStyle()}
                 dir="ltr"
               />
@@ -200,7 +200,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                 type="text"
                 value={config.title_ar || ''}
                 onChange={e => set({ title_ar: e.target.value })}
-                placeholder="مثال: الحضور حسب النوع"
+                placeholder={t('widget_title_ar_placeholder') || 'مثال: الحضور حسب النوع'}
                 style={getInputStyle()}
                 dir="rtl"
               />
