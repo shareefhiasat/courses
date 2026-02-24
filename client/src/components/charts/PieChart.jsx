@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
 
 /**
@@ -95,9 +95,33 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
         const ix2 = centerX + innerRadius * Math.cos(endRad);
         const iy2 = centerY + innerRadius * Math.sin(endRad);
         
-        path = `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${ix1} ${iy1} Z`;
+        // Special case for 360° full circle donut - use two semicircles
+        if (angle >= 359.9) {
+          path = `
+            M ${centerX + radius} ${centerY}
+            A ${radius} ${radius} 0 1 1 ${centerX - radius} ${centerY}
+            A ${radius} ${radius} 0 1 1 ${centerX + radius} ${centerY}
+            M ${centerX + innerRadius} ${centerY}
+            A ${innerRadius} ${innerRadius} 0 1 0 ${centerX - innerRadius} ${centerY}
+            A ${innerRadius} ${innerRadius} 0 1 0 ${centerX + innerRadius} ${centerY}
+            Z
+          `.replace(/\s+/g, ' ').trim();
+        } else {
+          path = `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${ix1} ${iy1} Z`;
+        }
       } else {
-        path = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+        // Special case for 360° full circle pie
+        if (angle >= 359.9) {
+          path = `
+            M ${centerX} ${centerY}
+            L ${centerX + radius} ${centerY}
+            A ${radius} ${radius} 0 1 1 ${centerX - radius} ${centerY}
+            A ${radius} ${radius} 0 1 1 ${centerX + radius} ${centerY}
+            Z
+          `.replace(/\s+/g, ' ').trim();
+        } else {
+          path = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+        }
       }
 
       // Label position
@@ -122,7 +146,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
   }, [data, total, centerX, centerY, radius, innerRadius, donut, colors]);
 
   // Memoize click handler
-  const handleSliceClick = useMemo(() => (slice) => {
+  const handleSliceClick = useCallback((slice) => {
     // Call external callback if provided
     if (onSliceClick) {
       onSliceClick(slice);

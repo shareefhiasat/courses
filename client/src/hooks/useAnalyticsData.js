@@ -162,101 +162,39 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
   if (dataSource && dataSource.includes(',')) {
     const sources = dataSource.split(',').map(s => s.trim()).filter(Boolean);
     dataset = sources.flatMap(src => (rawData[src] || []).map(item => ({ ...item, _source: src })));
+  } else if (dataSource === 'absences') {
+    // Special case: absences are stored in attendance collection with absence-related statuses
+    dataset = (rawData.attendance || [])
+      .filter(item => {
+        const status = item.status || '';
+        return status.includes('absent') || status.includes('excused') || status.includes('bereavement');
+      })
+      .map(item => ({ ...item, _source: 'attendance', type: item.status }));
   } else {
     dataset = (rawData[dataSource] || []).map(item => ({ ...item, _source: dataSource }));
   }
 
-  // DEBUG: Log widget processing start
-  console.log(`[WIDGET DEBUG] 🎯 Processing widget: ${widget.title || 'Untitled'}`);
-  console.log(`[WIDGET DEBUG] 📋 Widget config:`, { dataSource, groupBy, aggregation, dateRange, customDateFrom, customDateTo });
-  console.log(`[WIDGET DEBUG] 🔽 Global filters:`, globalFilters);
-  console.log(`[WIDGET DEBUG] 📊 Raw data count:`, dataset.length, 'records');
+  // DEBUG: Log widget processing start (minimal)
+  console.log(`[WIDGET DEBUG] 🎯 Processing: ${widget.title || 'Untitled'} (${dataSource})`);
   
-  // DEBUG: Show available data sources
-  const availableSources = Object.keys(rawData).filter(key => rawData[key] && rawData[key].length > 0);
-  console.log(`[WIDGET DEBUG] 📚 Available data sources with data:`, availableSources);
+  // DEBUG: Show absences filtering info
+  if (dataSource === 'absences') {
+    const totalAttendance = (rawData.attendance || []).length;
+    console.log(`[WIDGET DEBUG] 📊 Absences: ${dataset.length} records filtered from ${totalAttendance} attendance records`);
+    if (dataset.length > 0) {
+      const statusCounts = {};
+      dataset.forEach(item => {
+        const status = item.status;
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+      });
+      console.log(`[WIDGET DEBUG] 📈 Absence status breakdown:`, statusCounts);
+    }
+  }
   
-  // DEBUG: Show all status values for attendance
+  // DEBUG: Show all status values for attendance (only for attendance)
   if (dataSource === 'attendance' && dataset.length > 0) {
     const allStatuses = [...new Set(dataset.map(item => item.status))].filter(Boolean);
-    console.log(`[WIDGET DEBUG] 📋 ALL status values found:`, allStatuses);
-    
-    // Check specifically for human_case variations
-    const humanCaseVariations = ['human_case', 'human case', 'humanCase', 'Human Case', 'HUMAN_CASE'];
-    const foundHumanCases = dataset.filter(item => 
-      humanCaseVariations.some(variation => 
-        item.status && item.status.toLowerCase().includes(variation.toLowerCase())
-      )
-    );
-    if (foundHumanCases.length > 0) {
-      console.log(`[WIDGET DEBUG] 🚨 Found human case records:`, foundHumanCases.length, foundHumanCases);
-    } else {
-      console.log(`[WIDGET DEBUG] ❌ No human case records found in dataset`);
-    }
-    
-    // Show sample records with their status
-    console.log(`[WIDGET DEBUG] 📝 Sample attendance records with status:`, 
-      dataset.slice(0, 5).map(item => ({ id: item.id, status: item.status, date: item.date }))
-    );
-  }
-
-
-  // DEBUG: Show all activity types for activities
-  if (dataSource && (dataSource.includes('activities') || dataSource.includes('announcements') || dataSource.includes('resources')) && dataset.length > 0) {
-    const allTypes = [...new Set(dataset.map(item => item.type))].filter(Boolean);
-    console.log(`[WIDGET DEBUG] 📋 ALL activity types found in activities collection:`, allTypes);
-    
-    // Check specifically for announcement and resource variations
-    const announcementVariations = ['announcement', 'announcements', 'Announcement', 'Announcements', 'ANNOUNCEMENT'];
-    const resourceVariations = ['resource', 'resources', 'Resource', 'Resources', 'RESOURCE'];
-    
-    const foundAnnouncements = dataset.filter(item => 
-      announcementVariations.some(variation => 
-        item.type && item.type.toLowerCase().includes(variation.toLowerCase())
-      )
-    );
-    const foundResources = dataset.filter(item => 
-      resourceVariations.some(variation => 
-        item.type && item.type.toLowerCase().includes(variation.toLowerCase())
-      )
-    );
-    
-    console.log(`[WIDGET DEBUG] 📢 Found announcements in activities:`, foundAnnouncements.length, foundAnnouncements);
-    console.log(`[WIDGET DEBUG] 📚 Found resources in activities:`, foundResources.length, foundResources);
-    
-    // Check specifically for missing activity types using official constants
-    const expectedTypes = [
-      ACTIVITY_TYPES.QUIZ,
-      ACTIVITY_TYPES.HOMEWORK,
-      ACTIVITY_TYPES.TRAINING,
-      ACTIVITY_TYPES.LAB_AND_PROJECT,
-      ACTIVITY_TYPES.MID_EXAM,
-      ACTIVITY_TYPES.FINAL_EXAM,
-      'announcement',
-      'resource'
-    ];
-    const missingTypes = expectedTypes.filter(type => !allTypes.includes(type));
-    if (missingTypes.length > 0) {
-      console.log(`[WIDGET DEBUG] ❌ Missing expected activity types:`, missingTypes);
-    }
-    
-    // Count by type
-    const typeCounts = {};
-    dataset.forEach(item => {
-      const type = item.type || 'unknown';
-      typeCounts[type] = (typeCounts[type] || 0) + 1;
-    });
-    console.log(`[WIDGET DEBUG] 📊 Type distribution:`, typeCounts);
-    
-    // Show sample records with their type
-    console.log(`[WIDGET DEBUG] 📝 Sample activity records with type:`, 
-      dataset.slice(0, 10).map(item => ({ 
-        id: item.id, 
-        type: item.type, 
-        title: item.title || item.name || 'No title',
-        description: item.description ? item.description.substring(0, 50) + '...' : 'No description'
-      }))
-    );
+    console.log(`[WIDGET DEBUG] 📋 Status values:`, allStatuses);
   }
 
   // Guard clause: if groupBy is empty, return empty data to prevent infinite loops
@@ -316,8 +254,10 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     );
   }
 
-  // DEBUG: Log after global filters
-  console.log(`[WIDGET DEBUG] 🔽 After global filters:`, dataset.length, 'records');
+  // DEBUG: Log after global filters (only if data was filtered out)
+  if (dataset.length === 0) {
+    console.log(`[WIDGET DEBUG] ❌ No data after filters`);
+  }
 
   // --- Widget-level filters ---
   filters.forEach(filter => {
@@ -348,14 +288,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       cutoff = now - rangeMs - comparisonOffset * rangeMs;
       upperBound = comparisonOffset > 0 ? now - comparisonOffset * rangeMs : now;
       
-      // DEBUG: Log date filtering details
-      console.log(`[WIDGET DEBUG] 📅 Date filtering:`, {
-        dateRange,
-        rangeMs,
-        cutoff: new Date(cutoff).toLocaleDateString(),
-        upperBound: new Date(upperBound).toLocaleDateString()
-      });
-    }
+      }
     
     const beforeDateFilter = dataset.length;
     dataset = dataset.filter(item => {
@@ -372,15 +305,9 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       return ts >= cutoff && ts < upperBound;
     });
     
-    // DEBUG: Log date filtering results
-    console.log(`[WIDGET DEBUG] 📅 After date filtering:`, beforeDateFilter, '->', dataset.length, 'records');
-    if (dataSource === 'attendance' && dataset.length > 0) {
-      const statusCounts = {};
-      dataset.forEach(item => {
-        const status = item.status || 'unknown';
-        statusCounts[status] = (statusCounts[status] || 0) + 1;
-      });
-      console.log(`[WIDGET DEBUG] 📊 Attendance status after filtering:`, statusCounts);
+    // DEBUG: Log only if date filtering removed data
+    if (beforeDateFilter > dataset.length) {
+      console.log(`[WIDGET DEBUG] 📅 Date filter: ${beforeDateFilter} → ${dataset.length}`);
     }
   }
 
@@ -402,6 +329,27 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       }
       const prog = (rawData.programs || []).find(p => (p.id || p.docId) === pId);
       return prog ? (prog.name_en || prog.name || prog.code || pId) : pId;
+    }
+    if (groupBy === 'classId' || groupBy === 'class') {
+      const cId = item.classId || item.class || item.class_id;
+      if (!cId) return 'Unknown';
+      const cls = (rawData.classes || []).find(c => (c.id || c.docId) === cId);
+      if (cls) {
+        return cls.name_en || cls.name || cls.code || cId;
+      }
+      // Try to find class by program and subject if direct match fails
+      const sId = item.subjectId || item.subject || item.subject_id;
+      const pId = item.programId || item.program;
+      if (sId && pId) {
+        const matchingClass = (rawData.classes || []).find(c => 
+          (c.subjectId === sId || c.subject === sId) && 
+          (c.programId === pId || c.program === pId)
+        );
+        if (matchingClass) {
+          return matchingClass.name_en || matchingClass.name || matchingClass.code || cId;
+        }
+      }
+      return cId;
     }
     if (groupBy === 'subjectId' || groupBy === 'subject') {
       const sId = item.subjectId || item.subject || item.subject_id || 'Unknown';
@@ -442,8 +390,19 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       return statusMap[status] || status;
     }
     if (groupBy === 'absenceType' || (dataSource === 'absences' && groupBy === 'type')) {
-      const at = item.type || 'Unknown';
-      return ABSENCE_TYPES.find(a => a.id === at)?.label_en || at;
+      const status = item.status || item.type || 'Unknown';
+      // Map attendance statuses to absence types
+      const statusToAbsenceType = {
+        'absent_with_excuse': 'with_excuse',
+        'absent': 'without_excuse', 
+        'absent_no_excuse': 'without_excuse',
+        'excused_leave': 'with_excuse',
+        'human_case': 'beyond_control',
+        'bereavement': 'bereavement'
+      };
+      const absenceTypeId = statusToAbsenceType[status] || status;
+      const absenceType = ABSENCE_TYPES.find(a => a.id === absenceTypeId);
+      return absenceType ? absenceType.label_en : status;
     }
     if (groupBy === 'status' && dataSource === 'attendance') {
       let s = item.status || 'unknown';
@@ -610,7 +569,6 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       let translationKey = activityTypeKeyMap[label];
       if (translationKey) {
         const translatedLabel = t(translationKey);
-        console.log(`[TRANSLATION DEBUG] Key: ${translationKey}, Result: "${translatedLabel}", Original: "${label}"`);
         if (translatedLabel && translatedLabel !== translationKey) {
           finalLabel = translatedLabel;
         }
@@ -621,7 +579,6 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
         translationKey = attendanceKeyMap[label];
         if (translationKey) {
           const translatedLabel = t(translationKey);
-          console.log(`[TRANSLATION DEBUG] Attendance Key: ${translationKey}, Result: "${translatedLabel}", Original: "${label}"`);
           if (translatedLabel && translatedLabel !== translationKey) {
             finalLabel = translatedLabel;
           }
@@ -634,9 +591,10 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
 
   chartData.sort((a, b) => b.value - a.value);
   
-  // DEBUG: Log final results
-  console.log(`[WIDGET DEBUG] 🎉 Final chart data:`, chartData);
-  console.log(`[WIDGET DEBUG] 📈 Grouped data:`, grouped);
+  // DEBUG: Log final results (only if there are issues)
+  if (chartData.length === 0 && dataset.length > 0) {
+    console.log(`[WIDGET DEBUG] ⚠️ No chart data from ${dataset.length} records`);
+  }
   
   return chartData;
 };

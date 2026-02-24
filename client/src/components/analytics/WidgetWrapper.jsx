@@ -33,6 +33,7 @@ const WidgetWrapper = ({
   onMinimize,
   onEdit,
   onDelete,
+  onDuplicate,
   onRefresh,
   isLoading = false,
   isRecentlyRefreshed = false,
@@ -48,12 +49,12 @@ const WidgetWrapper = ({
   // Helper to get localized date range label
   const getDateRangeLabel = useCallback((dateRange) => {
     const labels = {
-      all: t('all_time') || 'All Time',
+      all: t('all_time') || 'All',
       today: t('today') || 'Today',
       last7: t('last_7_days') || 'Last 7 Days',
       last30: t('last_30_days') || 'Last 30 Days',
       last90: t('last_90_days') || 'Last 90 Days',
-      custom: t('custom_range') || 'Custom Range'
+      custom: t('custom_range') || 'Custom'
     };
     return labels[dateRange] || dateRange;
   }, [t]);
@@ -89,6 +90,11 @@ const WidgetWrapper = ({
       {/* Edit */}
       <ActionBtn title={t('edit') || 'Edit'} onClick={onEdit}>
         {getThemedIcon('ui', 'edit', 14, theme)}
+      </ActionBtn>
+
+      {/* Duplicate */}
+      <ActionBtn title={t('duplicate') || 'Duplicate'} onClick={onDuplicate}>
+        {getThemedIcon('ui', 'copy', 14, theme)}
       </ActionBtn>
 
       {/* Delete */}

@@ -10,7 +10,7 @@ import { Select, DateRangeSlider } from '@ui';
  */
 export const DATA_SOURCES = [
   // ── Merged / virtual sources ──────────────────────────────────────────────
-  { value: 'activities,announcements,resources', labelKey: 'all_activities', label: 'All Activities (merged)', groupBy: ['classId', 'programId', 'subjectId', 'userId', 'createdBy', 'date'] },
+  { value: 'activities,announcements,resources', labelKey: 'all_activities', label: 'Activities (merged)', groupBy: ['classId', 'programId', 'subjectId', 'userId', 'createdBy', 'date'] },
 
   // ── Single collections ────────────────────────────────────────────────────
   { value: 'announcements',           labelKey: 'announcements',            groupBy: ['classId', 'programId', 'userId', 'createdBy', 'date'] },

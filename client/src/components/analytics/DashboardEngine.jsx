@@ -333,14 +333,33 @@ const DashboardEngine = React.forwardRef(({
    * Per-widget refresh: just bumps a version counter so the chart re-renders
    * from the already-loaded rawData. No Firebase call needed — rawData is live.
    */
+  const handleDuplicate = useCallback((id) => {
+    const widgetToDuplicate = widgets.find(w => w.id === id);
+    if (!widgetToDuplicate) return;
+
+    // Create a duplicate with a new ID and updated title
+    const duplicatedWidget = {
+      ...widgetToDuplicate,
+      id: 'w' + Date.now(),
+      title: `${widgetToDuplicate.title} (${t('copy') || 'Copy'})`,
+      layout: {
+        x: (widgetToDuplicate.layout?.x || 0) + 1, // Offset position slightly
+        y: (widgetToDuplicate.layout?.y || 0) + 1,
+        w: widgetToDuplicate.layout?.w || widgetToDuplicate.w || 3,
+        h: widgetToDuplicate.layout?.h || widgetToDuplicate.h || 5
+      }
+    };
+
+    // Add the duplicated widget to the widgets list
+    setWidgets(prev => [...prev, duplicatedWidget]);
+  }, [widgets, setWidgets, t]);
+
   const handleRefreshWidget = useCallback((id) => {
     setWidgetVersions(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
     setWidgetUpdatedAt(prev => ({ ...prev, [id]: Date.now() }));
     setRecentlyRefreshed(prev => ({ ...prev, [id]: true }));
     setTimeout(() => setRecentlyRefreshed(prev => ({ ...prev, [id]: false })), 1400);
   }, []);
-
-  // ── Pre-compute chart data for all widgets (memoized with optimization) ─────
   // Using processWidgetData with translation support
   const chartDataMap = useMemo(() => {
     const map = {};
@@ -349,7 +368,7 @@ const DashboardEngine = React.forwardRef(({
       map[w.id] = processWidgetData(w, rawData, globalFilters, 0, t, lang);
     });
     return map;
-  }, [sortedWidgets.map(w => w.id).join(','), rawData?.activities?.length || 0, rawData?.attendance?.length || 0, rawData?.enrollments?.length || 0, Object.keys(globalFilters).join(','), t, lang]);
+  }, [sortedWidgets.map(w => `${w.id}:${w.dataSource}:${w.groupBy}:${w.aggregation}:${w.dateRange}:${w.filters?.join(',')}:${w.filterValue || ''}`).join('|'), rawData?.activities?.length || 0, rawData?.attendance?.length || 0, rawData?.enrollments?.length || 0, rawData?.penalties?.length || 0, rawData?.announcements?.length || 0, rawData?.resources?.length || 0, rawData?.users?.length || 0, rawData?.classes?.length || 0, rawData?.programs?.length || 0, rawData?.subjects?.length || 0, Object.keys(globalFilters).join(','), Object.values(globalFilters).join(','), t, lang]);
 
   // ── Chart rendering ───────────────────────────────────────────────────────
   const handleChartClick = useCallback((widget, dataPoint) => {
@@ -513,6 +532,7 @@ const DashboardEngine = React.forwardRef(({
                 onMinimize={() => handleMinimize(widget.id)}
                 onEdit={() => openBuilder(widget)}
                 onDelete={() => handleDelete(widget.id)}
+                onDuplicate={() => handleDuplicate(widget.id)}
                 onRefresh={() => handleRefreshWidget(widget.id)}
                 isLoading={isLoading}
                 isRecentlyRefreshed={!!recentlyRefreshed[widget.id]}
