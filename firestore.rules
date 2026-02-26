@@ -82,7 +82,8 @@ service cloud.firestore {
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bookmarks', 'lastBookmarkUpdate']) ||
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['resourceProgress']) ||
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['enrolledClasses']) ||
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bookmarks', 'lastBookmarkUpdate', 'resourceProgress', 'enrolledClasses']))
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messageColor']) ||
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bookmarks', 'lastBookmarkUpdate', 'resourceProgress', 'enrolledClasses', 'messageColor']))
       ) || isAdmin();
 
       // Subcollection: badges under user (used by StudentDashboard achievements)
@@ -111,6 +112,11 @@ service cloud.firestore {
         );
         allow delete: if isAdmin();
       }
+    }
+
+    // Allow listing users for authenticated users
+    match /users {
+      allow list: if isSignedIn();
     }
 
     // Leaderboard: public read; only signed-in can write
@@ -151,6 +157,57 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.senderId);
     }
 
+    // Allow listing messages with query-based filtering
+    match /messages {
+      allow list: if isSignedIn();
+    }
+
+    // Chat messages collection (alternative name used by chatDbService)
+    match /chatMessages/{messageId} {
+      // Read: global messages for everyone, class messages for class members, DM messages for participants
+      allow read: if isSignedIn() && (
+        resource.data.type == 'global' ||
+        isClassMember(resource.data.classId) ||
+        (resource.data.type == 'dm' && request.auth.uid in get(/databases/$(database)/documents/directRooms/$(resource.data.roomId)).data.participants) ||
+        isAdmin()
+      );
+
+      // Create: any signed-in user can create messages
+      allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+
+      // Update rules:
+      // - Sender or admin can update any fields.
+      // - Any signed-in user may update only pollVotes, reactions, and readBy (to allow voting/reactions/receipts).
+      allow update: if isSignedIn() && (
+        resource.data.senderId == request.auth.uid ||
+        isAdmin() ||
+        request.resource.data.diff(resource.data).changedKeys().hasOnly(['pollVotes', 'reactions', 'readBy'])
+      );
+
+      // Delete: only admin or message sender
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.senderId);
+    }
+
+    // Allow listing chat messages with query-based filtering
+    match /chatMessages {
+      allow list: if isSignedIn();
+    }
+
+    // Chat rooms collection
+    match /chatRooms/{roomId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid in resource.data.participants || isAdmin()
+      );
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
+      allow update: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow delete: if isAdmin();
+    }
+
+    // Allow listing chat rooms for authenticated users
+    match /chatRooms {
+      allow list: if isSignedIn();
+    }
+
     // Email logs (admin only)
     match /emailLogs/{logId} {
       allow read, write: if isAdmin();
@@ -165,6 +222,11 @@ service cloud.firestore {
     match /classes/{classId} {
       allow read: if isSignedIn();
       allow write: if isAdmin() || (isSignedIn() && request.auth.token.instructor == true);
+    }
+
+    // Allow listing classes for authenticated users
+    match /classes {
+      allow list: if isSignedIn();
     }
 
     // Enrollments: Admin write, user can read their own enrollment, instructors can read all
@@ -182,6 +244,11 @@ service cloud.firestore {
          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['marks', 'updatedAt']) ||
           // Or allow full update if admin
           isAdmin()));
+    }
+
+    // Allow listing enrollments for authenticated users
+    match /enrollments {
+      allow list: if isSignedIn();
     }
 
     // Homework Submissions: tracks metadata about uploaded files
@@ -228,6 +295,11 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
       allow update: if isSignedIn() && request.auth.uid in resource.data.participants;
       allow delete: if isAdmin();
+    }
+
+    // Allow listing direct rooms for authenticated users
+    match /directRooms {
+      allow list: if isSignedIn();
     }
 
     // Attendance sessions

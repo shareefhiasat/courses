@@ -703,11 +703,12 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
             top: isMobile ? '15px' : '20px',
             right: isMobile ? '15px' : '20px',
             zIndex: 1000,
-            background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.8)',
+            background: theme === 'light' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0,0,0,0.8)',
+            backdropFilter: 'saturate(150%) blur(8px)',
             border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
             borderRadius: '50%',
-            width: isMobile ? '40px' : '48px',
-            height: isMobile ? '40px' : '48px',
+            width: isMobile ? '32px' : '36px',
+            height: isMobile ? '32px' : '36px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -731,7 +732,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               : '0 4px 6px rgba(0, 0, 0, 0.3)';
           }}
         >
-          {getThemedIcon('ui', 'chevron_down', isMobile ? 18 : 20, theme)}
+          {getThemedIcon('ui', 'chevron_down', isMobile ? 14 : 16, theme)}
         </button>
       )}
     </>

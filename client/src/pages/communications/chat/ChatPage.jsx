@@ -1450,9 +1450,10 @@ const ChatPage = memo(() => {
                         {instructor.docId !== user.uid && (
                           <button
                             onClick={(e) => { e.stopPropagation(); openDMWith(instructor); }}
-                            style={{ padding: '2px 8px', borderRadius: 6, border: 'none', background: getUserThemeColor(), color: 'white', cursor: 'pointer', fontSize: 12 }}
+                            style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32 }}
+                            title="Contact"
                           >
-                            Contact
+                            {getThemedIcon('ui', 'message_square', 16, theme)}
                           </button>
                         )}
                       </div>
@@ -1672,116 +1673,144 @@ const ChatPage = memo(() => {
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <div>
-            <h3 style={{ margin: 0 }}>
-              {selectedClass === 'global' ? t('global_chat') :
-               (selectedClass?.startsWith('dm:')
-                 ? (()=>{ 
-                    const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
-                    const otherId=(room?.participants||[]).find(p=>p!==user.uid); 
-                    const other=allUsers.find(u=>u.docId===otherId); 
-                    return other?.email || 'Direct Message';
-                  })()
-                 : (classes.find(c => c.docId === selectedClass)?.name || selectedClassName || 'Chat')
-               )}
-            </h3>
-            {/* Display name for DM conversations */}
+          {/* Left Container (flex: 1) */}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {/* Title */}
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>
+                {selectedClass === 'global' ? t('global_chat') :
+                 (selectedClass?.startsWith('dm:')
+                   ? (()=>{ 
+                      const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
+                      const otherId=(room?.participants||[]).find(p=>p!==user.uid); 
+                      const other=allUsers.find(u=>u.docId===otherId); 
+                      return other?.email || 'Direct Message';
+                    })()
+                   : (classes.find(c => c.docId === selectedClass)?.name || selectedClassName || 'Chat')
+                 )}
+              </h3>
+              {/* Display name for DM conversations */}
+              {selectedClass?.startsWith('dm:') && (()=>{ 
+                const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
+                const otherId=(room?.participants||[]).find(p=>p!==user.uid); 
+                const other=allUsers.find(u=>u.docId===otherId); 
+                const displayName = other?.displayName;
+                const studentNumber = other?.studentNumber;
+                if (displayName) {
+                  return (
+                    <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem', fontWeight: 500 }}>
+                      {displayName}
+                      {studentNumber && (
+                        <span style={{ fontSize: '0.8rem', color: '#888', marginLeft: '0.25rem' }}>
+                          ({studentNumber})
+                        </span>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+            </div>
+            
+            {/* Class Badge */}
+            <span style={{
+              fontSize: '0.75rem',
+              background: selectedClass === 'global' ? '#e3f2fd' : (selectedClass?.startsWith('dm:') ? '#fff3e0' : '#e8f5e9'),
+              color: selectedClass === 'global' ? '#1976d2' : (selectedClass?.startsWith('dm:') ? '#ef6c00' : '#2e7d32'),
+              padding: '2px 8px',
+              borderRadius: '12px',
+              fontWeight: 600
+            }}>
+              {selectedClass === 'global' ? 'Global' : (selectedClass?.startsWith('dm:') ? 'DM' : 'Class')}
+            </span>
+            
+            {/* Messages Count */}
+            <span style={{ fontSize: '0.9rem', color: '#666' }}>
+              {messages.length} {t('messages')}
+            </span>
+            
+            {/* DM Name (if any) - shown for DM conversations */}
             {selectedClass?.startsWith('dm:') && (()=>{ 
               const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
               const otherId=(room?.participants||[]).find(p=>p!==user.uid); 
               const other=allUsers.find(u=>u.docId===otherId); 
-              const displayName = other?.displayName;
-              const studentNumber = other?.studentNumber;
-              if (displayName) {
-                return (
-                  <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem', fontWeight: 500 }}>
-                    {displayName}
-                    {studentNumber && (
-                      <span style={{ fontSize: '0.8rem', color: '#888', marginLeft: '0.25rem' }}>
-                        ({studentNumber})
-                      </span>
-                    )}
-                  </div>
-                );
-              }
-              return null;
-            })()}
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.25rem' }}>
-              <span style={{
-                fontSize: '0.75rem',
-                background: selectedClass === 'global' ? '#e3f2fd' : (selectedClass?.startsWith('dm:') ? '#fff3e0' : '#e8f5e9'),
-                color: selectedClass === 'global' ? '#1976d2' : (selectedClass?.startsWith('dm:') ? '#ef6c00' : '#2e7d32'),
-                padding: '2px 8px',
-                borderRadius: '12px',
-                fontWeight: 600
-              }}>
-                {selectedClass === 'global' ? 'Global' : (selectedClass?.startsWith('dm:') ? 'DM' : 'Class')}
+              return other?.displayName || other?.email;
+            })() && (
+              <span style={{ fontSize: '0.9rem', color: '#666', fontWeight: 500 }}>
+                {(()=>{ 
+                  const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
+                  const otherId=(room?.participants||[]).find(p=>p!==user.uid); 
+                  const other=allUsers.find(u=>u.docId===otherId); 
+                  return other?.displayName || other?.email;
+                })()}
               </span>
-              <span style={{ fontSize: '0.9rem', color: '#666' }}>
-                {messages.length} {t('messages')}
-              </span>
-              <button
-                type="button"
-                onClick={() => { setShowSearch(!showSearch); if (!showSearch) setTimeout(() => document.getElementById('msg-search')?.focus(), 100); }}
-                title={t('search_messages') || 'Search messages'}
-                style={{ 
-                  marginLeft: 'auto', 
-                  background:'transparent', 
-                  border:'1px solid var(--border)',
-                  borderRadius: 8,
-                  cursor:'pointer', 
-                  fontSize:'1rem', 
-                  color:'var(--muted)',
-                  padding: '0.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 32,
-                  height: 32,
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
-                onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
-              >
-                {getThemedIcon('ui', 'search', 16, theme)}
-              </button>
-            </div>
-            {/* Search input - collapsible */}
-            {showSearch && (
-              <div style={{ 
-                padding: '0.75rem 1rem', 
-                borderBottom: '1px solid var(--border)',
-                background: 'var(--panel)',
-                borderRadius: 8,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-              }}>
-                <input
-                  value={msgQuery}
-                  onChange={(e)=>setMsgQuery(e.target.value)}
-                  onBlur={() => { if (!msgQuery.trim()) setShowSearch(false); }}
-                  onKeyDown={(e) => { if (e.key === 'Escape') { setMsgQuery(''); setShowSearch(false); } }}
-                  id="msg-search"
-                  placeholder={t('chat_search_messages')}
-                  style={{ 
-                    width:'100%', 
-                    padding:'0.625rem 0.875rem', 
-                    border:'1px solid var(--border)', 
-                    borderRadius:8, 
-                    background:'var(--panel)', 
-                    color:'var(--text)',
-                    fontSize:'0.9rem'
-                  }}
-                />
-              </div>
             )}
           </div>
           
-          {classMembers.length > 0 && !selectedClass?.startsWith('dm:') && (
-            <div onClick={() => setShowMembers(true)} style={{ fontSize: '0.9rem', color: '#666', cursor: 'pointer', textDecoration: 'underline' }}>
+          {/* Search Button */}
+          <div>
+            <button
+              type="button"
+              onClick={() => { setShowSearch(!showSearch); if (!showSearch) setTimeout(() => document.getElementById('msg-search')?.focus(), 100); }}
+              title={t('search_messages') || 'Search messages'}
+              style={{ 
+                background:'transparent', 
+                border:'1px solid var(--border)',
+                borderRadius: 8,
+                cursor:'pointer', 
+                fontSize:'1rem', 
+                color:'var(--muted)',
+                padding: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
+              onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
+            >
+              {getThemedIcon('ui', 'search', 16, theme)}
+            </button>
+          </div>
+        </div>
+
+        {/* Search input - collapsible */}
+        {showSearch && (
+          <div style={{ 
+            padding: '0.75rem 1.5rem', 
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--panel)'
+          }}>
+            <input
+              value={msgQuery}
+              onChange={(e)=>setMsgQuery(e.target.value)}
+              onBlur={() => { if (!msgQuery.trim()) setShowSearch(false); }}
+              onKeyDown={(e) => { if (e.key === 'Escape') { setMsgQuery(''); setShowSearch(false); } }}
+              id="msg-search"
+              placeholder={t('chat_search_messages')}
+              style={{ 
+                width:'100%', 
+                padding:'0.625rem 0.875rem', 
+                border:'1px solid var(--border)', 
+                borderRadius:8, 
+                background:'var(--panel)', 
+                color:'var(--text)',
+                fontSize:'0.9rem'
+              }}
+            />
+          </div>
+        )}
+
+        {/* Members button - moved to separate row */}
+        {classMembers.length > 0 && !selectedClass?.startsWith('dm:') && (
+          <div style={{ padding: '0.5rem 1.5rem', background: 'var(--panel)', borderBottom: '1px solid var(--border)' }}>
+            <div onClick={() => setShowMembers(true)} style={{ fontSize: '0.9rem', color: '#666', cursor: 'pointer', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {getThemedIcon('ui', 'users', 16, theme)} {classMembers.length} {t('chat_members')}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Messages */}
         <div ref={scrollContainerRef} style={{
@@ -3248,7 +3277,28 @@ const ChatPage = memo(() => {
                       <div style={{ fontSize: 12, color: '#666' }}>{m.email}</div>
                     </div>
                   </div>
-                  <button onClick={()=>openDMWith(m)} style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: getUserThemeColor(), color: 'white', cursor: 'pointer' }}>Start DM</button>
+                  {m.docId !== user.uid && (
+                    <button 
+                      onClick={()=>openDMWith(m)} 
+                      style={{ 
+                        padding: '6px 10px', 
+                        borderRadius: 6, 
+                        border: '1px solid var(--border)', 
+                        background: 'transparent', 
+                        color: 'var(--text)', 
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 32,
+                        height: 32,
+                        fontSize: 16
+                      }}
+                      title="Start DM"
+                    >
+                      {getThemedIcon('ui', 'message_square', 16, theme)}
+                    </button>
+                  )}
                 </div>
               );
             })}

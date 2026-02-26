@@ -519,7 +519,7 @@ const DashboardEngine = React.forwardRef(({
           onLayoutChange={onLayoutChange}
           draggableHandle=".drag-handle"
           resizeHandles={editLayout ? ['se', 'sw', 'ne', 'nw'] : []}
-          compactType="vertical"
+          compactType={null}
           preventCollision={false}
           margin={[12, 12]}
         >

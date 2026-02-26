@@ -316,7 +316,7 @@ export const updateUser = async (id, userData) => {
         await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
           userId: id,
           updateFields: Object.keys(userData)
-        });
+        }, id);
       } catch (logError) {
         logger.warn('USER: Failed to log user update:', logError);
       }
@@ -344,7 +344,7 @@ export const deleteUser = async (id) => {
       try {
         await logActivity(ACTIVITY_LOG_TYPES.USER_DELETED, {
           userId: id
-        });
+        }, id);
       } catch (logError) {
         logger.warn('USER: Failed to log user deletion:', logError);
       }

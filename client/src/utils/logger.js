@@ -174,7 +174,7 @@ class Logger {
 
   // Component lifecycle logging (dev only)
   componentMount(componentName) {
-    if (isDevelopment) {
+    if (isDevelopment && componentName !== 'ChatPage') {
       this.originalConsole.log(`🟢 ${componentName} mounted`);
     }
   }

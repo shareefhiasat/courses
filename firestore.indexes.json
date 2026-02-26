@@ -97,14 +97,64 @@
           "order": "DESCENDING"
         }
       ]
-    }
-    ,{
-      "collectionGroup": "activities",
+    },
+    {
+      "collectionGroup": "chatMessages",
       "queryScope": "COLLECTION",
       "fields": [
         {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
           "fieldPath": "createdAt",
-          "order": "DESCENDING"
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "chatMessages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "classId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "chatMessages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "roomId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "chatMessages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "roomId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "ASCENDING"
         }
       ]
     }
