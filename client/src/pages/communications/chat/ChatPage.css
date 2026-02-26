@@ -58,6 +58,18 @@
   color: var(--text);
 }
 
+/* Hover effects for sidebar items */
+.chat-sidebar > div[style*="cursor: pointer"]:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+.chat-sidebar > div[style*="cursor: pointer"] {
+  transition: all 0.2s ease;
+}
+
 /* Hide scrollbar for chat sidebar content unless needed */
 .chat-sidebar > div[style*="overflow-y: auto"] {
   scrollbar-width: thin;

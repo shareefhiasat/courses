@@ -77,6 +77,7 @@ const ChatPage = memo(() => {
   const [classMembers, setClassMembers] = useState([]);
   const [showMembers, setShowMembers] = useState(false);
   const [directRooms, setDirectRooms] = useState([]);
+  const [userHasInteracted, setUserHasInteracted] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
   const [memberSearch, setMemberSearch] = useState('');
   const [studentsOnly, setStudentsOnly] = useState(false);
@@ -159,35 +160,76 @@ const ChatPage = memo(() => {
   const safeMessages = useMemo(() => (Array.isArray(messages) ? messages : []), [messages]);
 
   const loadClassMembers = useCallback(async (classId) => {
+    logger.info('loadClassMembers called', { 
+      classId, 
+      hasUser: !!user,
+      userId: user?.uid,
+      safeAllUsersLength: safeAllUsers.length
+    });
+    
     // Safety: if auth user not ready yet, bail early to avoid null uid errors
-    if (!user) return;
-    if (classId === 'global') {
-      const usersResult = await getUsers();
-      const all = usersResult.success ? (usersResult.data || []) : [];
-      // Exclude current user from members list (by both docId and email for safety)
-      setClassMembers(all.filter(u => u.docId !== user.uid && u.email !== user.email));
-      setAllUsers(all);
+    if (!user) {
+      logger.warn('loadClassMembers early return - no user');
       return;
     }
     
-    const usersResult = await getUsers();
-    const allUsers = usersResult.success ? (usersResult.data || []) : [];
+    if (classId === 'global') {
+      logger.info('Loading global chat members');
+      // Use cached allUsers if available to avoid unnecessary API calls
+      if (safeAllUsers.length > 0) {
+        logger.info('Using cached allUsers for global chat', { count: safeAllUsers.length });
+        setClassMembers(safeAllUsers.filter(u => u.docId !== user.uid && u.email !== user.email));
+      } else {
+        logger.info('Fetching allUsers for global chat');
+        const usersResult = await getUsers();
+        const all = usersResult.success ? (usersResult.data || []) : [];
+        logger.info('Fetched allUsers', { count: all.length, success: usersResult.success });
+        setAllUsers(all);
+        setClassMembers(all.filter(u => u.docId !== user.uid && u.email !== user.email));
+      }
+      return;
+    }
+    
+    logger.info('Loading class members', { classId });
+    
+    // Use cached allUsers if available
+    const allUsersToUse = safeAllUsers.length > 0 ? safeAllUsers : 
+      (() => {
+        logger.info('Fetching allUsers for class members');
+        const result = getUsers();
+        return result.success ? (result.data || []) : [];
+      })();
+    
     // Prefer users who have this class id in enrolledClasses
-    let members = allUsers.filter(u => Array.isArray(u.enrolledClasses) && u.enrolledClasses.includes(classId) && u.docId !== user.uid && u.email !== user.email);
+    let members = allUsersToUse.filter(u => Array.isArray(u.enrolledClasses) && u.enrolledClasses.includes(classId) && u.docId !== user.uid && u.email !== user.email);
+    
     // Ensure instructor/owner is included at top
     try {
       const cls = safeClasses.find(c => c.docId === classId);
-      const instructor = cls?.instructorId ? safeAllUsers.find(u => u.docId === cls.instructorId)
-                        : safeAllUsers.find(u => u.email === cls?.ownerEmail);
+      const instructor = cls?.instructorId ? allUsersToUse.find(u => u.docId === cls.instructorId)
+                        : allUsersToUse.find(u => u.email === cls?.ownerEmail);
       if (instructor && instructor.docId !== user.uid && instructor.email !== user.email && !members.some(m => m.docId === instructor.docId)) {
         members = [instructor, ...members];
       }
     } catch {}
+    
     // Optionally include platform admins so students can DM an admin (but not self)
-    const admins = safeAllUsers.filter(u => u.role === USER_ROLES.ADMIN && u.docId !== user.uid && u.email !== user.email);
+    const admins = allUsersToUse.filter(u => u.role === USER_ROLES.ADMIN && u.docId !== user.uid && u.email !== user.email);
     admins.forEach(a => { if (!members.some(m => m.docId === a.docId)) members.push(a); });
+    
+    logger.info('Setting class members', { 
+      classId, 
+      membersCount: members.length,
+      adminsCount: admins.length
+    });
+    
     setClassMembers(members);
-    setAllUsers(allUsers);
+    
+    // Update allUsers if it was empty
+    if (safeAllUsers.length === 0) {
+      logger.info('Updating allUsers cache', { count: allUsersToUse.length });
+      setAllUsers(allUsersToUse);
+    }
   }, [user, safeClasses, safeAllUsers]);
 
   const loadMessages = useCallback(() => {
@@ -604,9 +646,16 @@ const ChatPage = memo(() => {
         const unsub = chatService.subscribeToClasses((all) => {
           setClasses(all);
           
-          // Auto-select first class for students if needed
-          if (!selectedClass || selectedClass === 'global') {
+          // Auto-select first class for students if needed (only if no user interaction)
+          if (!userHasInteracted && (!selectedClass || selectedClass === 'global')) {
             if (all.length > 0) {
+              logger.info('Auto-selecting first class', { 
+                reason: 'student_auto_select',
+                currentSelectedClass: selectedClass,
+                firstClassId: all[0].docId,
+                firstClassName: all[0].name,
+                userHasInteracted
+              });
               setSelectedClass(all[0].docId);
               setSelectedClassName(all[0].name || '');
               loadClassMembers(all[0].docId);
@@ -851,7 +900,15 @@ const ChatPage = memo(() => {
         try {
           const params = new URLSearchParams(location.search);
           const dest = params.get('dest');
-          if (!dest && (!selectedClass || selectedClass === 'global') && mineClasses.length > 0) {
+          if (!dest && !userHasInteracted && (!selectedClass || selectedClass === 'global') && mineClasses.length > 0) {
+            logger.info('Auto-selecting first class (location check)', { 
+              reason: 'location_dest_check',
+              currentSelectedClass: selectedClass,
+              firstClassId: mineClasses[0].docId,
+              firstClassName: mineClasses[0].name,
+              hasDest: !!dest,
+              userHasInteracted
+            });
             setSelectedClass(mineClasses[0].docId);
             setSelectedClassName(mineClasses[0].name || '');
             await loadClassMembers(mineClasses[0].docId);
@@ -1243,9 +1300,26 @@ const ChatPage = memo(() => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleClassChange = async (classId) => {
+  const handleClassChange = (classId) => {
+    logger.info('handleClassChange called', { 
+      classId, 
+      previousClassId: selectedClass,
+      isDM: classId?.startsWith('dm:'),
+      isGlobal: classId === 'global'
+    });
+    
+    // Mark that user has interacted to prevent auto-selection
+    setUserHasInteracted(true);
+    
     setSelectedClass(classId);
-    await loadClassMembers(classId);
+    // Load members asynchronously without blocking UI
+    loadClassMembers(classId);
+    
+    logger.info('handleClassChange completed', { 
+      newClassId: classId,
+      selectedClassSet: classId,
+      userHasInteracted: true
+    });
   };
 
   const toggleSidebar = () => {
@@ -1256,27 +1330,100 @@ const ChatPage = memo(() => {
 
   // Create or open a DM room with another user
   const openDMWith = async (otherUser) => {
-    if (!otherUser?.docId || otherUser.docId === user.uid) return;
+    logger.info('openDMWith called', { 
+      otherUserId: otherUser?.docId, 
+      otherUserEmail: otherUser?.email,
+      currentUserId: user?.uid,
+      otherUserName: otherUser?.displayName || otherUser?.email,
+      otherUserFields: Object.keys(otherUser || {})
+    });
+    
+    // Try different ID field names that might be used
+    const otherUserId = otherUser?.docId || otherUser?.id || otherUser?.uid;
+    
+    if (!otherUserId || otherUserId === user.uid) {
+      logger.warn('openDMWith validation failed', { 
+        hasDocId: !!otherUser?.docId,
+        hasId: !!otherUser?.id,
+        hasUid: !!otherUser?.uid,
+        resolvedUserId: otherUserId,
+        isSelf: otherUserId === user.uid,
+        otherUserId: otherUserId,
+        currentUserId: user?.uid,
+        otherUserEmail: otherUser?.email
+      });
+      return;
+    }
+    
     try {
-      const roomId = await chatService.createDMRoom(user.uid, otherUser.docId);
+      logger.info('Creating DM room...', { 
+        fromUserId: user.uid, 
+        toUserId: otherUserId,
+        otherUserEmail: otherUser?.email
+      });
+      
+      const roomId = await chatService.createDMRoom(user.uid, otherUserId);
+      
+      logger.info('DM room created successfully', { roomId });
+      
       setSelectedClass(`dm:${roomId}`);
       setShowMembers(false);
+      
+      logger.info('DM chat opened', { 
+        roomId, 
+        selectedClass: `dm:${roomId}`,
+        otherUserName: otherUser?.displayName || otherUser?.email,
+        otherUserId
+      });
+      
     } catch (err) {
-      logger.error('Open DM failed:', err);
+      logger.error('Open DM failed:', { 
+        error: err.message,
+        stack: err.stack,
+        otherUserId,
+        otherUserEmail: otherUser?.email,
+        otherUserFields: Object.keys(otherUser || {})
+      });
       toast?.showError('Failed to start conversation');
     }
   };
 
-  // Use GlobalLoading for initial data load
+  // Add logging for selectedClass changes
+  useEffect(() => {
+    logger.info('selectedClass changed', { 
+      newSelectedClass: selectedClass,
+      isGlobal: selectedClass === 'global',
+      isDM: selectedClass?.startsWith('dm:'),
+      timestamp: new Date().toISOString()
+    });
+  }, [selectedClass]);
+
+  // Use GlobalLoading for initial data load only (not for chat transitions)
   useLayoutEffect(() => {
+    logger.info('Global loading effect triggered', { 
+      authLoading, 
+      hasUser: !!user,
+      messagesLength: messages?.length || 0,
+      userId: user?.uid,
+      isInitialLoad: !messages || messages.length === 0
+    });
+    
     if (authLoading) return;
     if (!user) return;
 
+    // Only show loading for initial load, not for chat transitions
+    if (messages && messages.length > 0) {
+      logger.info('Skipping global loading - messages already loaded', { messagesLength: messages.length });
+      return;
+    }
+
     let stopped = false;
+    logger.info('Starting global loading for initial load');
     const stopGlobalLoading = startLoading();
     const safeStop = () => {
       if (stopped) return;
       stopped = true;
+      logger.info('Stopping global loading');
       stopGlobalLoading();
     };
 
@@ -1285,16 +1432,19 @@ const ChatPage = memo(() => {
         // Chat data loading is handled by the existing useEffect hooks
         // Just wait for messages to load
         if (messages && messages.length > 0) {
+          logger.info('Messages loaded, stopping global loading', { messagesLength: messages.length });
           safeStop();
         }
       } catch (error) {
         console.error('Error loading chat data:', error);
+        logger.error('Error loading chat data', { error: error.message });
         safeStop();
       }
     };
 
     // Wait a bit for messages to load, then stop loading
     const timeout = setTimeout(() => {
+      logger.info('Global loading timeout reached, stopping loading', { messagesLength: messages?.length || 0 });
       safeStop();
     }, 1000);
 
@@ -1302,7 +1452,7 @@ const ChatPage = memo(() => {
       clearTimeout(timeout);
       safeStop();
     };
-  }, [authLoading, user, messages, startLoading]);
+  }, [authLoading, user]); // Remove 'messages' from dependency array
 
   return (
     <>
@@ -1446,9 +1596,14 @@ const ChatPage = memo(() => {
                       style={{ background:'transparent', border:'none', cursor:'pointer', color:'#888' }}
                     >{archivedClasses[cls.docId] ? getThemedIcon('ui', 'upload', 16, theme) : getThemedIcon('ui', 'download', 16, theme)}</button>
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: '#666', display:'flex', justifyContent:'space-between', gap:8 }}>
-                    <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{cls.lastMessage || `${cls.term} - ${cls.code}`}</span>
-                    <span style={{ color:'#888' }}>{cls.lastMessageAt ? formatDateTime(cls.lastMessageAt) : ''}</span>
+                  <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                    <div style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{cls.lastMessage || `${cls.term} - ${cls.code}`}</div>
+                    {(cls.lastMessageAt || cls.lastMessage) && (
+                      <div style={{ display:'flex', justifyContent:'space-between', gap:8, marginTop:2 }}>
+                        <span style={{ color:'#666' }}>{cls.lastMessage || ''}</span>
+                        <span style={{ color:'#888', fontSize:'0.8rem' }}>{cls.lastMessageAt ? formatDateTime(cls.lastMessageAt) : ''}</span>
+                      </div>
+                    )}
                   </div>
                   {(() => {
                     const instructor = cls.instructorId
@@ -3302,7 +3457,17 @@ const ChatPage = memo(() => {
                   </div>
                   {m.docId !== user.uid && (
                     <button 
-                      onClick={()=>openDMWith(m)} 
+                      onClick={() => {
+                        logger.info('Member clicked for DM', { 
+                          member: m,
+                          hasDocId: !!m.docId,
+                          hasId: !!m.id,
+                          hasUid: !!m.uid,
+                          email: m.email,
+                          displayName: m.displayName
+                        });
+                        openDMWith(m);
+                      }} 
                       style={{ 
                         padding: '6px 10px', 
                         borderRadius: 6, 
