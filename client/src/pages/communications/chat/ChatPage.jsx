@@ -1365,7 +1365,7 @@ const ChatPage = memo(() => {
       )}
 
         {/* Class List */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
           {/* Global Chat */}
           {(
             <div
@@ -1379,13 +1379,13 @@ const ChatPage = memo(() => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {getThemedIcon('ui', 'globe', 24, theme)}
+                {getThemedIcon('ui', 'globe', 16, theme)}
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <div style={{ fontWeight: '600', flex:1 }}>{t('global_chat')}</div>
+                    <div style={{ fontWeight: '600', fontSize: '0.85rem', flex:1 }}>{t('global_chat')}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#666' }}>{t('all_users') || 'All users'}</div>
                     {(() => { const c = unreadCounts['global']||0; if (c>0) { return (<span style={{background:'var(--brand)',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#666' }}>{t('all_users') || 'All users'}</div>
                   {/* <div style={{ display:'flex', gap:8, marginTop:6 }}>
                     <Input
                       type="text"
@@ -1623,7 +1623,7 @@ const ChatPage = memo(() => {
           })}
         </div>
         {/* Sidebar footer: archived + favorites toggle */}
-        <div style={{ padding:'0.5rem 0.9rem', borderTop:'1px solid var(--border)', display:'flex', flexDirection:'column', gap:6 }}>
+        <div style={{ padding:'0.5rem 0.9rem', borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', gap:16 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <input id="toggle-archived" type="checkbox" checked={showArchived} onChange={(e)=>setShowArchived(e.target.checked)} />
             <label htmlFor="toggle-archived" style={{ fontSize:'0.85rem', color:'#666', cursor:'pointer' }}>{t('show_archived') || 'Show archived'}</label>

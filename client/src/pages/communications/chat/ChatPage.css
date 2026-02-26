@@ -28,9 +28,25 @@
 }
 .chat-page {
   display: flex;
-  height: calc(100vh - var(--navbar-height, 60px));
+  height: calc(97vh - var(--navbar-height, 40px));
   background: var(--bg);
   transition: height 0.3s ease;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Responsive height adjustments */
+@media (max-width: 768px) {
+  .chat-page {
+    height: calc(93vh - var(--navbar-height, 40px));
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-page {
+    height: calc(90vh - var(--navbar-height, 40px));
+  }
 }
 
 .chat-sidebar {
@@ -40,6 +56,38 @@
   display: flex;
   flex-direction: column;
   color: var(--text);
+}
+
+/* Hide scrollbar for chat sidebar content unless needed */
+.chat-sidebar > div[style*="overflow-y: auto"] {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.chat-sidebar > div[style*="overflow-y: auto"]::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-sidebar > div[style*="overflow-y: auto"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-sidebar > div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.chat-sidebar > div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Only show scrollbar on hover */
+.chat-sidebar:hover > div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.chat-sidebar:hover > div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .chat-area {
