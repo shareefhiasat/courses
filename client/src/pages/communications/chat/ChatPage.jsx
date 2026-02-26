@@ -259,6 +259,22 @@ const ChatPage = memo(() => {
       snapshot.forEach((doc) => {
         msgs.push({ id: doc.id, ...doc.data() });
       });
+      
+      logger.info('Messages loaded', { 
+        chatType, 
+        chatId, 
+        messageCount: msgs.length,
+        messageIds: msgs.map(m => ({ id: m.id, content: m.content?.substring(0, 20) }))
+      });
+      
+      // Check for duplicates
+      const duplicateIds = msgs.filter((msg, index) => msgs.findIndex(m => m.id === msg.id) !== index);
+      if (duplicateIds.length > 0) {
+        logger.warn('Duplicate messages found', { 
+          duplicateIds: duplicateIds.map(d => ({ id: d.id, content: d.content?.substring(0, 20) }))
+        });
+      }
+      
       setMessages(msgs);
 
       // memberReads now updates via user snapshots effect
@@ -1597,10 +1613,10 @@ const ChatPage = memo(() => {
                     >{archivedClasses[cls.docId] ? getThemedIcon('ui', 'upload', 16, theme) : getThemedIcon('ui', 'download', 16, theme)}</button>
                   </div>
                   <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                    <div style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{cls.lastMessage || `${cls.term} - ${cls.code}`}</div>
-                    {(cls.lastMessageAt || cls.lastMessage) && (
+                    <div style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{`${cls.term} - ${cls.code}`}</div>
+                    {cls.lastMessage && (
                       <div style={{ display:'flex', justifyContent:'space-between', gap:8, marginTop:2 }}>
-                        <span style={{ color:'#666' }}>{cls.lastMessage || ''}</span>
+                        <span style={{ color:'#666' }}>{cls.lastMessage}</span>
                         <span style={{ color:'#888', fontSize:'0.8rem' }}>{cls.lastMessageAt ? formatDateTime(cls.lastMessageAt) : ''}</span>
                       </div>
                     )}
