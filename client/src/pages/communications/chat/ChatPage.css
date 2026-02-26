@@ -28,8 +28,9 @@
 }
 .chat-page {
   display: flex;
-  height: calc(100vh - 60px);
+  height: calc(100vh - var(--navbar-height, 60px));
   background: var(--bg);
+  transition: height 0.3s ease;
 }
 
 .chat-sidebar {

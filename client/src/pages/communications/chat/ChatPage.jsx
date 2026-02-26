@@ -143,6 +143,9 @@ const ChatPage = memo(() => {
   const [showArchived, setShowArchived] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [isNavbarCollapsed, setIsNavbarCollapsed] = useState(() => {
+    try { return localStorage.getItem('navbarCollapsed') === 'true'; } catch { return false; }
+  });
   // Scroll management
   const scrollContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -161,8 +164,8 @@ const ChatPage = memo(() => {
     if (classId === 'global') {
       const usersResult = await getUsers();
       const all = usersResult.success ? (usersResult.data || []) : [];
-      // Exclude current user from members list
-      setClassMembers(all.filter(u => u.docId !== user.uid));
+      // Exclude current user from members list (by both docId and email for safety)
+      setClassMembers(all.filter(u => u.docId !== user.uid && u.email !== user.email));
       setAllUsers(all);
       return;
     }
@@ -170,18 +173,18 @@ const ChatPage = memo(() => {
     const usersResult = await getUsers();
     const allUsers = usersResult.success ? (usersResult.data || []) : [];
     // Prefer users who have this class id in enrolledClasses
-    let members = allUsers.filter(u => Array.isArray(u.enrolledClasses) && u.enrolledClasses.includes(classId) && u.docId !== user.uid);
+    let members = allUsers.filter(u => Array.isArray(u.enrolledClasses) && u.enrolledClasses.includes(classId) && u.docId !== user.uid && u.email !== user.email);
     // Ensure instructor/owner is included at top
     try {
       const cls = safeClasses.find(c => c.docId === classId);
       const instructor = cls?.instructorId ? safeAllUsers.find(u => u.docId === cls.instructorId)
                         : safeAllUsers.find(u => u.email === cls?.ownerEmail);
-      if (instructor && instructor.docId !== user.uid && !members.some(m => m.docId === instructor.docId)) {
+      if (instructor && instructor.docId !== user.uid && instructor.email !== user.email && !members.some(m => m.docId === instructor.docId)) {
         members = [instructor, ...members];
       }
     } catch {}
     // Optionally include platform admins so students can DM an admin (but not self)
-    const admins = safeAllUsers.filter(u => u.role === USER_ROLES.ADMIN && u.docId !== user.uid);
+    const admins = safeAllUsers.filter(u => u.role === USER_ROLES.ADMIN && u.docId !== user.uid && u.email !== user.email);
     admins.forEach(a => { if (!members.some(m => m.docId === a.docId)) members.push(a); });
     setClassMembers(members);
     setAllUsers(allUsers);
@@ -392,6 +395,25 @@ const ChatPage = memo(() => {
       document.removeEventListener('keydown', onKey);
     };
   }, [showEmojiPicker, reactionMenu]);
+
+  // Listen for navbar toggle events and update CSS variable
+  useEffect(() => {
+    const handleNavbarToggle = (e) => {
+      setIsNavbarCollapsed(e.detail.collapsed);
+      // Update CSS variable for dynamic height calculation
+      document.documentElement.style.setProperty('--navbar-height', e.detail.collapsed ? '0px' : '60px');
+    };
+    
+    // Set initial value
+    document.documentElement.style.setProperty('--navbar-height', isNavbarCollapsed ? '0px' : '60px');
+    
+    window.addEventListener('navbar:toggle', handleNavbarToggle);
+    return () => {
+      window.removeEventListener('navbar:toggle', handleNavbarToggle);
+      // Cleanup CSS variable on unmount
+      document.documentElement.style.removeProperty('--navbar-height');
+    };
+  }, [isNavbarCollapsed]);
 
   // Remove outer page scrollbar while on Chat
   useEffect(() => {
@@ -1284,12 +1306,7 @@ const ChatPage = memo(() => {
 
   return (
     <>
-    <div className="chat-page" data-theme={theme} style={{
-      display: 'flex',
-      height: 'calc(100vh - 60px)',
-      background: 'var(--bg)',
-      overflow: 'hidden'
-    }}>
+    <div className="chat-page" data-theme={theme}>
       {/* Sidebar */}
       <div className="chat-sidebar" style={{
         width: isSidebarCollapsed ? 0 : sidebarWidth,
@@ -1451,7 +1468,6 @@ const ChatPage = memo(() => {
                           <button
                             onClick={(e) => { e.stopPropagation(); openDMWith(instructor); }}
                             style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32 }}
-                            title="Contact"
                           >
                             {getThemedIcon('ui', 'message_square', 16, theme)}
                           </button>
@@ -2566,7 +2582,8 @@ const ChatPage = memo(() => {
           padding: '1rem',
           background: 'var(--panel)',
           borderTop: '1px solid var(--border)',
-          zIndex: 10
+          zIndex: 10,
+          overflow: 'hidden'
         }}>
           {/* File Attachment Preview */}
           {attachedFile && (
@@ -3226,7 +3243,7 @@ const ChatPage = memo(() => {
             />
             <span style={{ fontSize: '0.9rem' }}>Students only</span>
           </label>
-          <div style={{ overflowY: 'auto' }}>
+          <div style={{ flex: 1, overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
             {(() => {
               let filtered = classMembers || [];
               if (memberSearch) {
@@ -3239,6 +3256,12 @@ const ChatPage = memo(() => {
               if (studentsOnly) {
                 filtered = filtered.filter(m => m.role === USER_ROLES.STUDENT);
               }
+              // Filter out the logged-in user (by both docId and email for safety)
+              filtered = filtered.filter(m => {
+                const excludeByDocId = m.docId !== user?.uid;
+                const excludeByEmail = m.email !== user?.email;
+                return excludeByDocId && excludeByEmail;
+              });
               return filtered;
             })().map(m => {
               // For class members: show X if unenrolled from this specific class
@@ -3294,7 +3317,6 @@ const ChatPage = memo(() => {
                         height: 32,
                         fontSize: 16
                       }}
-                      title="Start DM"
                     >
                       {getThemedIcon('ui', 'message_square', 16, theme)}
                     </button>
