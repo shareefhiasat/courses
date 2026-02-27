@@ -26,6 +26,7 @@ const SubjectsManagementPage = () => {
   
   const [subjects, setSubjects] = useState([]);
   const [programs, setPrograms] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingSubject, setEditingSubject] = useState(null);
   const { deleteModal, deleteSubject: deleteSubjectModal, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
@@ -42,10 +43,10 @@ const SubjectsManagementPage = () => {
   const [formData, setFormData] = useState({
     programId: '',
     code: '',
-    name_en: '',
-    name_ar: '',
-    description_en: '',
-    description_ar: '',
+    nameEn: '',
+    nameAr: '',
+    descriptionEn: '',
+    descriptionAr: '',
     creditHours: 3,
     totalHours: 36,
     type: 'lecture', // 'lecture' | 'lab' | 'mix'
@@ -56,10 +57,10 @@ const SubjectsManagementPage = () => {
   const syncRefsToState = useCallback(() => {
     return {
       code: codeRef.current?.value ?? formData.code,
-      name_en: nameEnRef.current?.value ?? formData.name_en,
-      name_ar: nameArRef.current?.value ?? formData.name_ar,
-      description_en: descEnRef.current?.value ?? formData.description_en,
-      description_ar: descArRef.current?.value ?? formData.description_ar,
+      nameEn: nameEnRef.current?.value ?? formData.nameEn,
+      nameAr: nameArRef.current?.value ?? formData.nameAr,
+      descriptionEn: descEnRef.current?.value ?? formData.descriptionEn,
+      descriptionAr: descArRef.current?.value ?? formData.descriptionAr,
       creditHours: creditHoursRef.current?.value ? Number.parseInt(creditHoursRef.current.value) : formData.creditHours,
       totalHours: totalHoursRef.current?.value ? Number.parseInt(totalHoursRef.current.value) : formData.totalHours,
       hoursPerWeek: hoursPerWeekRef.current?.value ? Number.parseInt(hoursPerWeekRef.current.value) : formData.hoursPerWeek
@@ -69,9 +70,10 @@ const SubjectsManagementPage = () => {
   const loadData = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoading(true);
     try {
-      const [subjectsResult, programsResult] = await Promise.all([
+      const [subjectsResult, programsResult, usersResult] = await Promise.all([
         getSubjects(),
-        getPrograms()
+        getPrograms(),
+        getUsers()
       ]);
 
       if (subjectsResult.success) {
@@ -79,6 +81,9 @@ const SubjectsManagementPage = () => {
       }
       if (programsResult.success) {
         setPrograms(programsResult.data || []);
+      }
+      if (usersResult.success) {
+        setUsers(usersResult.data || []);
       }
     } catch (error) {
       toast.error(error.message);
@@ -112,10 +117,10 @@ const SubjectsManagementPage = () => {
   // Sync refs when editing an existing subject
   useEffect(() => {
     if (codeRef.current) codeRef.current.value = formData.code || '';
-    if (nameEnRef.current) nameEnRef.current.value = formData.name_en || '';
-    if (nameArRef.current) nameArRef.current.value = formData.name_ar || '';
-    if (descEnRef.current) descEnRef.current.value = formData.description_en || '';
-    if (descArRef.current) descArRef.current.value = formData.description_ar || '';
+    if (nameEnRef.current) nameEnRef.current.value = formData.nameEn || '';
+    if (nameArRef.current) nameArRef.current.value = formData.nameAr || '';
+    if (descEnRef.current) descEnRef.current.value = formData.descriptionEn || '';
+    if (descArRef.current) descArRef.current.value = formData.descriptionAr || '';
     if (creditHoursRef.current) creditHoursRef.current.value = formData.creditHours?.toString() || '3';
     if (totalHoursRef.current) totalHoursRef.current.value = formData.totalHours?.toString() || '36';
     if (hoursPerWeekRef.current) hoursPerWeekRef.current.value = formData.hoursPerWeek?.toString() || '3';
@@ -130,7 +135,7 @@ const SubjectsManagementPage = () => {
     const textValues = syncRefsToState();
     
     // Validation
-    if (!formData.programId || !formData.code || !textValues.name_en || !textValues.name_ar) {
+    if (!formData.programId || !textValues.code || !textValues.nameEn || !textValues.nameAr) {
       toast.error(t('please_fill_required_fields_subject') || 'Please fill in all required fields');
       return;
     }
@@ -154,7 +159,7 @@ const SubjectsManagementPage = () => {
         try {
           await logActivity(editingSubject ? ACTIVITY_LOG_TYPES.SUBJECT_UPDATED : ACTIVITY_LOG_TYPES.SUBJECT_CREATED, {
             subjectId: editingSubject?.docId || result.id,
-            subjectName: textValues.name_en,
+            subjectName: textValues.nameEn,
             subjectCode: formData.code,
             programId: formData.programId
           });
@@ -180,11 +185,11 @@ const SubjectsManagementPage = () => {
     setFormData({
       programId: subject.programId || '',
       code: subject.code || '',
-      name_en: subject.name_en || '',
-      name_ar: subject.name_ar || '',
+      nameEn: subject.nameEn || subject.name_en || '',
+      nameAr: subject.nameAr || subject.name_ar || '',
       requirementType: subject.requirementType || 'general_mandatory',
-      description_en: subject.description_en || '',
-      description_ar: subject.description_ar || '',
+      descriptionEn: subject.descriptionEn || subject.description_en || '',
+      descriptionAr: subject.descriptionAr || subject.description_ar || '',
       creditHours: subject.creditHours || 3,
       totalHours: subject.totalHours || 36,
       type: subject.type || 'lecture',
@@ -192,10 +197,10 @@ const SubjectsManagementPage = () => {
       classIds: subject.classIds || []
     });
     // Sync refs
-    if (nameEnRef.current) nameEnRef.current.value = subject.name_en || '';
-    if (nameArRef.current) nameArRef.current.value = subject.name_ar || '';
-    if (descEnRef.current) descEnRef.current.value = subject.description_en || '';
-    if (descArRef.current) descArRef.current.value = subject.description_ar || '';
+    if (nameEnRef.current) nameEnRef.current.value = subject.nameEn || subject.name_en || '';
+    if (nameArRef.current) nameArRef.current.value = subject.nameAr || subject.name_ar || '';
+    if (descEnRef.current) descEnRef.current.value = subject.descriptionEn || subject.description_en || '';
+    if (descArRef.current) descArRef.current.value = subject.descriptionAr || subject.description_ar || '';
   }, []);
 
   const handleDelete = useCallback((subject) => {
@@ -209,7 +214,7 @@ const SubjectsManagementPage = () => {
           try {
             await logActivity(ACTIVITY_LOG_TYPES.SUBJECT_DELETED, {
               subjectId: subject.docId,
-              subjectName: subject.name_en,
+              subjectName: subject.nameEn || subject.name_en,
               subjectCode: subject.code
             });
           } catch (e) { logger.warn('Failed to log activity:', e); }
@@ -233,10 +238,10 @@ const resetForm = () => {
     setFormData({
       programId: '',
       code: '',
-      name_en: '',
-      name_ar: '',
-      description_en: '',
-      description_ar: '',
+      nameEn: '',
+      nameAr: '',
+      descriptionEn: '',
+      descriptionAr: '',
       creditHours: 3,
       totalHours: 36,
       type: 'lecture',
@@ -262,8 +267,8 @@ const gridColumns = useMemo(() => [
         return code || '—';
       }
     },
-    { field: 'name_en', headerName: t('name_en') || 'Name (EN)', flex: 1, minWidth: 180 },
-    { field: 'name_ar', headerName: t('name_ar') || 'Name (AR)', flex: 1, minWidth: 180 },
+    { field: 'nameEn', headerName: t('name_en') || 'Name (EN)', flex: 1, minWidth: 180 },
+    { field: 'nameAr', headerName: t('name_ar') || 'Name (AR)', flex: 1, minWidth: 180 },
     { field: 'creditHours', headerName: t('credits') || 'Credits', width: 100 },
     { field: 'totalHours', headerName: t('total_hours') || 'Total Hours', width: 120 },
     {
@@ -281,29 +286,177 @@ const gridColumns = useMemo(() => [
     {
       field: 'createdAt',
       headerName: t('created_at') || 'Created At',
-      width: 150,
+      width: 180,
       valueGetter: (params) => {
         const row = params?.row || {};
         const createdAt = row.createdAt || params?.value;
         if (!createdAt) return '—';
-        // Handle both Firestore Timestamp and string formats
-        if (typeof createdAt === 'object' && createdAt.toDate) {
-          return createdAt.toDate().toLocaleDateString();
+        
+        // If it's already a formatted Qatar string, return it as-is
+        if (typeof createdAt === 'string' && createdAt.includes('UTC+3')) {
+          return createdAt;
         }
-        if (typeof createdAt === 'string') {
-          return new Date(createdAt).toLocaleDateString();
+        
+        try {
+          // Handle Firestore Timestamp
+          if (typeof createdAt === 'object' && createdAt.toDate) {
+            return createdAt.toDate().toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            });
+          }
+          
+          // Handle ISO string or timestamp string
+          if (typeof createdAt === 'string') {
+            const date = new Date(createdAt);
+            if (isNaN(date.getTime())) return createdAt; // Return original if can't parse
+            return date.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            });
+          }
+          
+          // Handle timestamp number
+          if (typeof createdAt === 'number') {
+            const date = new Date(createdAt);
+            if (isNaN(date.getTime())) return 'Invalid Date';
+            return date.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            });
+          }
+          
+          return createdAt;
+        } catch (error) {
+          console.warn('Date formatting error:', error, createdAt);
+          return createdAt || 'Invalid Date';
         }
-        return '—';
       }
     },
     {
       field: 'createdBy',
-      headerName: t('created_by') || 'Created By (UID)',
+      headerName: t('created_by') || 'Created By',
+      width: 200,
+      renderCell: (params) => {
+        const createdBy = params.value || params.row?.createdBy;
+        if (!createdBy) return '—';
+        
+        // Try to find user display name from users array
+        const user = users.find(u => (u.uid || u.id) === createdBy);
+        if (user) {
+          const displayName = user.displayName || user.name || user.email;
+          return (
+            <span title={createdBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+              {displayName || createdBy}
+            </span>
+          );
+        }
+        
+        // Fallback to UID with truncation if long
+        if (typeof createdBy === 'string' && createdBy.length > 20) {
+          return (
+            <span title={createdBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+              {`${createdBy.substring(0, 8)}...${createdBy.substring(createdBy.length - 4)}`}
+            </span>
+          );
+        }
+        
+        return (
+          <span title={createdBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+            {createdBy}
+          </span>
+        );
+      }
+    },
+    {
+      field: 'updatedBy',
+      headerName: t('updated_by') || 'Updated By',
+      width: 200,
+      renderCell: (params) => {
+        const updatedBy = params.value || params.row?.updatedBy;
+        if (!updatedBy) return '—';
+        
+        // Try to find user display name from users array
+        const user = users.find(u => (u.uid || u.id) === updatedBy);
+        if (user) {
+          const displayName = user.displayName || user.name || user.email;
+          return (
+            <span title={updatedBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+              {displayName || updatedBy}
+            </span>
+          );
+        }
+        
+        // Fallback to UID with truncation if long
+        if (typeof updatedBy === 'string' && updatedBy.length > 20) {
+          return (
+            <span title={updatedBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+              {`${updatedBy.substring(0, 8)}...${updatedBy.substring(updatedBy.length - 4)}`}
+            </span>
+          );
+        }
+        
+        return (
+          <span title={updatedBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+            {updatedBy}
+          </span>
+        );
+      }
+    },
+    {
+      field: 'updatedAt',
+      headerName: t('updated_at') || 'Updated At',
       width: 180,
       valueGetter: (params) => {
         const row = params?.row || {};
-        const createdBy = row.createdBy || params?.value;
-        return createdBy || '—';
+        const updatedAt = row.updatedAt || params?.value;
+        if (!updatedAt) return '—';
+        
+        // If it's already a formatted Qatar string, return it as-is
+        if (typeof updatedAt === 'string' && updatedAt.includes('UTC+3')) {
+          return updatedAt;
+        }
+        
+        try {
+          // Handle Firestore Timestamp
+          if (typeof updatedAt === 'object' && updatedAt.toDate) {
+            return updatedAt.toDate().toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            });
+          }
+          
+          // Handle ISO string or timestamp string
+          if (typeof updatedAt === 'string') {
+            const date = new Date(updatedAt);
+            if (isNaN(date.getTime())) return updatedAt; // Return original if can't parse
+            return date.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            });
+          }
+          
+          // Handle timestamp number
+          if (typeof updatedAt === 'number') {
+            const date = new Date(updatedAt);
+            if (isNaN(date.getTime())) return 'Invalid Date';
+            return date.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            });
+          }
+          
+          return updatedAt;
+        } catch (error) {
+          console.warn('Date formatting error:', error, updatedAt);
+          return updatedAt || 'Invalid Date';
+        }
       }
     },
     {
@@ -334,7 +487,7 @@ const gridColumns = useMemo(() => [
         </div>
       )
     }
-  ], [t, theme, handleEdit, handleDelete]);
+  ], [t, theme, handleEdit, handleDelete, users]);
 
   return (
     <div className={styles.container}>
@@ -349,12 +502,28 @@ const gridColumns = useMemo(() => [
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_subject', { subjectName: editingSubject.name_en, subjectCode: editingSubject.code || t('subjects_no_code') })}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_subject', { subjectName: editingSubject.nameEn || editingSubject.name_en, subjectCode: editingSubject.code || t('subjects_no_code') })}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="dashboard-form">
         <div className="form-row">
+          <Select
+            value={formData.programId}
+            onChange={(e) => setFormData({ ...formData, programId: e.target.value })}
+            placeholder={t('select_program') || 'Select Program *'}
+            options={[
+              { value: '', label: t('select_program') || 'Select Program', icon: getThemedIcon('ui', 'folder', 16, theme) },
+              ...programs.map(program => ({
+                value: program.docId || program.id,
+                label: lang === 'ar' 
+                  ? (program.nameAr || program.name_en || program.name || program.docId || program.id)
+                  : (program.nameEn || program.name_en || program.name || program.docId || program.id),
+                icon: getThemedIcon('ui', 'folder', 16, theme)
+              }))
+            ]}
+            required
+          />
           <Input
             ref={codeRef}
             defaultValue={formData.code}
@@ -363,13 +532,13 @@ const gridColumns = useMemo(() => [
           />
           <Input
             ref={nameEnRef}
-            defaultValue={formData.name_en}
+            defaultValue={formData.nameEn}
             placeholder={t('subject_name_en_placeholder') || 'Subject Name (English) * (e.g., Introduction to Programming)'}
             required
           />
           <Input
             ref={nameArRef}
-            defaultValue={formData.name_ar}
+            defaultValue={formData.nameAr}
             placeholder={t('subject_name_ar_placeholder') || 'Subject Name (Arabic) * (e.g., مقدمة في البرمجة)'}
             required
             dir="rtl"
@@ -388,7 +557,7 @@ const gridColumns = useMemo(() => [
             defaultValue={formData.totalHours}
             placeholder={t('total_hours_subject') || 'Total Hours'}
             min={1}
-            helperText={t('total_hours_helper') || 'Total hours for the entire course'}
+            // helperText={t('total_hours_helper') || 'Total hours for the entire course'}
           />
           <Select
             value={formData.type}
@@ -421,6 +590,19 @@ const gridColumns = useMemo(() => [
             max={20}
             step={0.5}
             helperTextInfo={t('weekly_contact_hours') || 'Weekly contact hours'}
+          />
+        </div>
+        <div className="form-row">
+          <Input
+            ref={descEnRef}
+            defaultValue={formData.descriptionEn}
+            placeholder={t('description_en_placeholder') || 'Description (English)'}
+          />
+          <Input
+            ref={descArRef}
+            defaultValue={formData.descriptionAr}
+            placeholder={t('description_ar_placeholder') || 'Description (Arabic) - وصف المادة'}
+            dir="rtl"
           />
         </div>
         <div className="form-actions">

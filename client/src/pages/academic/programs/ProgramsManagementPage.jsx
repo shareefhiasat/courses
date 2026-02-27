@@ -526,16 +526,15 @@ const ProgramsManagementPage = () => {
             required
             dir="rtl"
           />
-          <input
+          <Input
             ref={durationRef}
             type="number"
             defaultValue={formData.durationYears}
             placeholder={t('duration_years_placeholder') || 'Duration (Years)'}
             min={1}
             max={10}
-            className="dashboard-input"
           />
-          <input
+          <Input
             ref={minGPARef}
             type="number"
             defaultValue={formData.minGPA}
@@ -543,15 +542,13 @@ const ProgramsManagementPage = () => {
             min={0}
             max={4}
             step={0.1}
-            className="dashboard-input"
           />
-          <input
+          <Input
             ref={creditHoursRef}
             type="number"
             defaultValue={formData.totalCreditHours}
             placeholder={t('total_credit_hours_placeholder') || 'Total Credit Hours'}
             min={1}
-            className="dashboard-input"
           />
         </div>
         <div className="form-row">
