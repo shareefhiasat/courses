@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { signIn, signUp, resetPassword } from '@services/business/authService';
+import { verifyTurnstileToken } from '@services/business/turnstileService';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logger from '@utils/logger';
 import { getAllowlist } from '@services/business/configService';
@@ -13,6 +14,7 @@ import { useToast } from '@ui';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import { ToggleSwitch } from '@ui';
 import { usePostHog } from 'posthog-js/react';
+import TurnstileWidget from '@components/security/TurnstileWidget';
 import './AuthForm.css';
 
 // Helper function to translate Firebase errors to user-friendly messages
@@ -75,6 +77,7 @@ const AuthForm = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { t, lang, toggleLang } = useLang?.() || {};
@@ -195,6 +198,14 @@ const AuthForm = () => {
         timestamp: new Date().toISOString()
       });
       
+      return;
+    }
+
+    // Verify Turnstile token for all modes (login, signup, reset)
+    const captchaResult = await verifyTurnstileToken(turnstileToken, mode);
+    if (!captchaResult.success) {
+      setError(tr('captcha_failed', 'Please complete the security check.', 'يرجى إكمال التحقق الأمني.'));
+      setLoading(false);
       return;
     }
 
@@ -616,6 +627,11 @@ const AuthForm = () => {
             {tr('back_to_login', 'Back to Login', 'العودة لتسجيل الدخول')}
           </button>
         )}
+
+        <TurnstileWidget
+          action={mode}
+          onVerify={setTurnstileToken}
+        />
 
         {error && <div className="error-message">{error}</div>}
         {message && <div className="success-message">{message}</div>}

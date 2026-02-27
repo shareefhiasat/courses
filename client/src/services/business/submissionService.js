@@ -1,4 +1,5 @@
 import { SUBMISSION_STATUS, RECORD_TYPES } from '@utils/sharedTypes';
+import logger from '@utils/logger';
 import { 
   getSubmissionsByUser as getSubmissionsByUserFromDb,
   getSubmissionsByActivity as getSubmissionsByActivityFromDb,

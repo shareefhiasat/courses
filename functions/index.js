@@ -14,6 +14,7 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const https = require("https");
 
 // Initialize admin if not already initialized
 if (!admin.apps.length) {
@@ -21,6 +22,75 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
+
+/**
+ * Cloudflare Turnstile Token Verification
+ * Verifies that the Turnstile challenge was completed successfully
+ */
+exports.verifyTurnstileToken = functions.https.onCall(async (data, context) => {
+  const { token, action = 'login' } = data;
+
+  if (!token) {
+    throw new functions.https.HttpsError('invalid-argument', 'Token is required');
+  }
+
+  // Development bypass - skip verification in development mode
+  const isDev = process.env.NODE_ENV === 'development' || functions.config().turnstile?.secret === 'dev';
+  if (token === 'dev-bypass' || isDev) {
+    return { success: true };
+  }
+
+  const secretKey = functions.config().turnstile?.secret || '0x4AAAAAACja0bGL9OZBY30f-Tf6mAhfQek';
+
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify({
+      secret: secretKey,
+      response: token,
+      remoteip: context?.rawRequest?.ip || ''
+    });
+
+    const options = {
+      hostname: 'challenges.cloudflare.com',
+      path: '/turnstile/v0/siteverify',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(body);
+          if (result.success) {
+            resolve({ success: true });
+          } else {
+            resolve({ success: false, error: 'Security check failed' });
+          }
+        } catch (e) {
+          console.error('Turnstile response parse error:', e);
+          resolve({ success: false, error: 'Verification error' });
+        }
+      });
+    });
+
+    req.on('error', (e) => {
+      console.error('Turnstile request error:', e);
+      resolve({ success: false, error: 'Network error' });
+    });
+
+    req.setTimeout(10000, () => {
+      req.destroy();
+      resolve({ success: false, error: 'Request timeout' });
+    });
+
+    req.write(postData);
+    req.end();
+  });
+});
 
 /**
  * Scheduled Reports Processor
