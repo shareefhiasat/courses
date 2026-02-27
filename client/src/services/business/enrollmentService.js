@@ -1,6 +1,7 @@
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { notificationGateway } from './notificationGateway';
 import logger from '@utils/logger';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import { 
   getEnrollments as getEnrollmentsFromDb,
   getEnrollmentsByUser as getEnrollmentsByUserFromDb,
@@ -37,7 +38,7 @@ export const getEnrollments = async () => {
 };
 
 // Add new enrollment
-export const addEnrollment = async (data) => {
+export const addEnrollment = async (data, user) => {
   try {
     const { userId, classId } = data || {};
     if (!userId || !classId)
@@ -45,9 +46,10 @@ export const addEnrollment = async (data) => {
     const detId = `${userId}_${classId}`;
     
     // Use database service to set enrollment
+    const auditData = getCreateAuditData(user);
     const enrollmentData = {
       ...data,
-      createdAt: new Date()
+      ...auditData
     };
     const result = await setEnrollmentToDb(detId, enrollmentData);
     

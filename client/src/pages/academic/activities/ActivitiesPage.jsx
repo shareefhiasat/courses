@@ -245,7 +245,7 @@ const ActivitiesPage = () => {
       }
 
       if (editingActivity && editingActivity.docId && editingActivity.docId !== 'new') {
-        await updateActivity(editingActivity.docId, activityData, emailOptions);
+        await updateActivity(editingActivity.docId, activityData, user, emailOptions);
         toast?.showSuccess(t('activities_updated_successfully'));
         
         // Update local activities array instead of reloading
@@ -255,11 +255,7 @@ const ActivitiesPage = () => {
             : a
         ));
       } else {
-        activityData.createdAt = getQatarNow(); // Qatar timestamp
-        activityData.updatedAt = getQatarNow(); // Qatar timestamp
-        activityData.createdBy = user?.id || t('activities_unknown_user');
-        
-        const result = await addActivity(activityData);
+        const result = await addActivity(activityData, user);
         
         logger.log('[FORM] addActivity result:', JSON.stringify(result, null, 2));
         

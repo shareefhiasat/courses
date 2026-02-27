@@ -4,6 +4,7 @@ import { RECORD_TYPES } from '@utils/sharedTypes';
 import { USER_ROLES } from '@constants/userRoles';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import {
   createBehavior as createBehaviorInDb,
   updateBehavior as updateBehaviorInDb,
@@ -31,7 +32,7 @@ const toYmd = (tsOrDate) => {
  * @param {string} params.type - Type of behavior
  * @param {number} params.points - Behavior points (negative for behavior issues)
  * @param {string} params.description - Optional description
- * @param {string} params.createdBy - User ID who created the record
+ * @param {Object} params.user - User object who created the record
  * @param {string} params.date - Optional date string (YYYY-MM-DD)
  * @param {Object} params.studentInfo - Optional { email, displayName } for notifications
  * @param {string} params.className - Optional class name for notifications
@@ -45,7 +46,7 @@ export async function createBehavior({
   type,
   points,
   description = '',
-  createdBy,
+  user,
   performedBy,
   performedByName,
   performedByEmail,
@@ -68,6 +69,7 @@ export async function createBehavior({
     });
     const todayStr = date || toYmd(new Date());
 
+    const auditData = getCreateAuditData(user);
     const payload = {
       classId,
       studentId,
@@ -77,10 +79,10 @@ export async function createBehavior({
       points,
       description,
       date: todayStr,
-      createdBy,
       performedBy,
       performedByName,
-      performedByEmail
+      performedByEmail,
+      ...auditData
     };
 
     const result = await createBehaviorInDb(payload);
@@ -138,23 +140,23 @@ export async function createBehavior({
  * Update a behavior record
  * @param {string} behaviorId - Behavior record ID
  * @param {Object} updateData - Data to update
- * @param {string} updateData.updatedBy - User ID who updated the record
+ * @param {Object} user - User object who updated the record
  */
-export async function updateBehavior(behaviorId, { updatedBy, ...updateData }) {
+export async function updateBehavior(behaviorId, updateData, user) {
   try {
-    logger.info('BEHAVIOR: Updating behavior record', { behaviorId, updatedBy, updateFields: Object.keys(updateData) });
+    logger.info('BEHAVIOR: Updating behavior record', { behaviorId, userId: user?.uid, updateFields: Object.keys(updateData) });
     
     const existingDoc = await getBehaviorFromDb(behaviorId);
     const existingData = existingDoc.exists ? existingDoc.data() : {};
     const existingHistory = existingData.history || [];
     
+    const auditData = getUpdateAuditData(user);
     const result = await updateBehaviorInDb(behaviorId, {
       ...updateData,
-      updatedAt: new Date().toISOString(),
-      updatedBy,
+      ...auditData,
       // Track update history
       history: [...existingHistory, {
-        changedBy: updatedBy,
+        changedBy: user?.uid,
         changedAt: new Date().toISOString(),
         changes: Object.keys(updateData)
       }]

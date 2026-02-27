@@ -1,9 +1,11 @@
 import { getUserById } from './userService';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
-import { convertDatesToTimestamps, COMMON_DATE_FIELDS } from '@utils/date.js';
+import { RECORD_TYPES } from '@utils/sharedTypes';
+import { USER_ROLES } from '@constants/userRoles';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import { handleServiceError, withRetry } from '@utils/errorHandling';
 import { validateEntity, validateBilingualField } from '@utils/validationHelpers';
 import {
@@ -72,7 +74,7 @@ export const getResourcesByClass = async (classId) => {
 };
 
 // Add a new resource
-export const addResource = async (resourceData) => {
+export const addResource = async (resourceData, user) => {
   try {
     logger.info('RESOURCE: Creating new resource', {
       title: resourceData.title_en || resourceData.title,
@@ -91,10 +93,10 @@ export const addResource = async (resourceData) => {
     }
     
     const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], new Date());
+    const auditData = getCreateAuditData(user);
     const resourceWithTimestamps = {
       ...convertedData,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      ...auditData
     };
 
     const result = await createResourceToDb(resourceWithTimestamps);
@@ -132,7 +134,7 @@ export const addResource = async (resourceData) => {
 };
 
 // Update a resource
-export const updateResource = async (id, resourceData, emailOptions = { sendEmail: true }) => {
+export const updateResource = async (id, resourceData, user, emailOptions = { sendEmail: true }) => {
   try {
     if (!id) {
       return { success: false, error: 'Resource ID is required for update' };
@@ -148,9 +150,10 @@ export const updateResource = async (id, resourceData, emailOptions = { sendEmai
     }
     
     const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], new Date());
+    const auditData = getUpdateAuditData(user);
     const resourceWithTimestamps = {
       ...convertedData,
-      updatedAt: new Date()
+      ...auditData
     };
 
     const result = await updateResourceInDb(id, resourceWithTimestamps);

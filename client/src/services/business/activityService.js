@@ -31,6 +31,7 @@ import { NOTIFICATION_TRIGGERS, RECORD_TYPES } from '@constants';
 import logger from '@utils/logger';
 import { handleServiceError, withRetry, measurePerformance, memoize, batchOperation } from '@utils/errorHandling';
 import { validateEntity, validateBilingualField } from '@utils/validationHelpers';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 
 const ACTIVITY_VALIDATION_RULES = [
   { field: 'type', required: true, type: 'string', label: 'Activity type' },
@@ -72,7 +73,7 @@ export const getActivities = async () => {
   }
 };
 
-export const addActivity = async (activityData) => {
+export const addActivity = async (activityData, user) => {
   try {
     logger.info('ACTIVITY: Creating new activity', {
       title: activityData.title_en,
@@ -104,14 +105,9 @@ export const addActivity = async (activityData) => {
     
     const convertedData = activityData; // No date conversion - save as-is
     logger.debug('[SERVICE] Saving data directly without conversion');
-    
-    const activityDataWithTimestamps = {
-      ...convertedData,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
 
-    const result = await createActivityToDb(activityDataWithTimestamps);
+    const auditData = getCreateAuditData(user);
+    const result = await createActivityToDb(convertedData, auditData);
 
     if (!result.success) {
       logger.error('ACTIVITY: Database operation failed:', result.error);
@@ -163,7 +159,7 @@ export const addActivity = async (activityData) => {
   }
 };
 
-export const updateActivity = async (id, activityData, emailOptions = { sendEmail: true }) => {
+export const updateActivity = async (id, activityData, user, emailOptions = { sendEmail: true }) => {
   try {
     logger.info('ACTIVITY: Updating activity', {
       activityId: id,
@@ -198,13 +194,9 @@ export const updateActivity = async (id, activityData, emailOptions = { sendEmai
     
     const convertedData = activityData; // No date conversion - save as-is
     logger.debug('[SERVICE] Saving data directly without conversion');
-    
-    const updateData = {
-      ...convertedData,
-      updatedAt: new Date()
-    };
 
-    const result = await updateActivityInDb(id, updateData);
+    const auditData = getUpdateAuditData(user);
+    const result = await updateActivityInDb(id, convertedData, auditData);
 
     // Send notifications for updated activity only if email is enabled
     if (activityData.classId && emailOptions.sendEmail) {

@@ -150,7 +150,7 @@ const EnrollmentsManagementPage = () => {
     setLoading(true);
     try {
       const { addEnrollment } = await import('@services/business/enrollmentService');
-      const result = await addEnrollment(enrollmentForm);
+      const result = await addEnrollment(enrollmentForm, user);
       if (result.success) {
         // Log activity
         try {
