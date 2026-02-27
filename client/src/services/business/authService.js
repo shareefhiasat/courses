@@ -72,6 +72,13 @@ export const signUp = async (email, password, displayName) => {
 
 export const signOutUser = async (user = null) => {
   try {
+    const logoutReason = sessionStorage.getItem('logoutReason');
+    const logoutTimestamp = sessionStorage.getItem('logoutTimestamp');
+    const sessionTimeoutUser = sessionStorage.getItem('sessionTimeoutUser');
+    
+    logger.log(`[Auth] signOutUser called - Reason: ${logoutReason}, Timestamp: ${logoutTimestamp}`);
+    logger.log(`[Auth] User provided: ${user ? user.email : 'null'}, Session user: ${sessionTimeoutUser}`);
+    
     // Reset session flag immediately when logout is initiated
     sessionStorage.removeItem('hasLoggedInThisSession');
     sessionStorage.removeItem('sessionStart');
@@ -80,20 +87,38 @@ export const signOutUser = async (user = null) => {
     if (!sessionStorage.getItem('logoutReason')) {
       sessionStorage.setItem('logoutReason', 'manual_logout');
       sessionStorage.setItem('logoutTimestamp', Date.now().toString());
+      logger.log('[Auth] Manual logout detected');
     }
     
     // Log logout activity before signing out
     if (user) {
       try {
+        logger.log(`[Auth] Attempting to log logout activity for user: ${user.email}`);
         await ActivityLogger.logout();
+        logger.log('[Auth] Logout activity logged successfully');
       } catch (error) {
         logger.warn('Failed to log logout activity:', error);
       }
+    } else {
+      logger.warn('[Auth] No user provided to signOutUser, trying session timeout user');
+      // Try to use session timeout user if available
+      if (sessionTimeoutUser) {
+        try {
+          const timeoutUser = JSON.parse(sessionTimeoutUser);
+          logger.log(`[Auth] Using session timeout user for logout: ${timeoutUser.email}`);
+          await ActivityLogger.logout();
+        } catch (error) {
+          logger.warn('Failed to log logout with session timeout user:', error);
+        }
+      }
     }
     
+    logger.log('[Auth] Calling Firebase signOut...');
     await signOut(auth);
+    logger.log('[Auth] Firebase signOut completed successfully');
     return { success: true };
   } catch (error) {
+    logger.error('[Auth] Error in signOutUser:', error);
     return { success: false, error: error.message };
   }
 };

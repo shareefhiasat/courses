@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Activity Logger - Centralized activity tracking
  * Logs all user activities with display names (not emails)
  */
@@ -158,8 +158,41 @@ export async function logActivity(type, details = {}, userId = null) {
     );
     const currentUser = userId || userProfile.uid;
 
+    // Additional debug info for session timeout issues
+    const logoutReason = sessionStorage.getItem('logoutReason');
+    const sessionTimeoutUser = sessionStorage.getItem('sessionTimeoutUser');
+    const logoutTimestamp = sessionStorage.getItem('logoutTimestamp');
+    
     if (!currentUser) {
       logger.warn("[Activity Logger] No user ID available");
+      logger.log(`[Activity Logger] Debug info - Type: ${type}, Logout reason: ${logoutReason}, Session user: ${sessionTimeoutUser}, Timestamp: ${logoutTimestamp}`);
+      logger.log(`[Activity Logger] Session storage contents: hasLoggedInThisSession: ${sessionStorage.getItem('hasLoggedInThisSession')}, sessionStart: ${sessionStorage.getItem('sessionStart')}`);
+      
+      // For session timeout, try to use the stored user info
+      if (type === ACTIVITY_LOG_TYPES.SESSION_TIMEOUT && sessionTimeoutUser) {
+        try {
+          const timeoutUser = JSON.parse(sessionTimeoutUser);
+          logger.log(`[Activity Logger] Using session timeout user: ${timeoutUser.email}`);
+          
+          const activityData = {
+            type,
+            userId: timeoutUser.uid,
+            userName: timeoutUser.email?.split("@")[0] || "Unknown",
+            userEmail: timeoutUser.email || null,
+            timestamp: serverTimestamp(),
+            details: { ...details, fallbackUser: true },
+            userAgent: navigator.userAgent,
+            url: window.location.pathname,
+          };
+
+          await addDoc(collection(db, "activityLogs"), activityData);
+          logger.log("[Activity Logger] Session timeout logged with fallback user");
+          return { success: true };
+        } catch (parseError) {
+          logger.error("[Activity Logger] Failed to parse session timeout user:", parseError);
+        }
+      }
+      
       return { success: false, error: "No user ID" };
     }
 
@@ -179,6 +212,7 @@ export async function logActivity(type, details = {}, userId = null) {
     };
 
     await addDoc(collection(db, "activityLogs"), activityData);
+    logger.log(`[Activity Logger] Activity logged: ${type} for user ${currentUser}`);
     
     return { success: true };
   } catch (error) {

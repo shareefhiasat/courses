@@ -2154,6 +2154,8 @@ const DICT = {
     announcements_error_saving: 'Error saving announcement',
     announcements_title_en_header: 'Title (EN)',
     announcements_title_ar_header: 'Title (AR)',
+    announcements_content_en_header: 'Content (EN)',
+    announcements_content_ar_header: 'Content (AR)',
     announcements_content_header: 'Content',
     announcements_no_content: 'No content',
     
@@ -5982,6 +5984,8 @@ const DICT = {
     announcements_error_saving: 'خطأ في حفظ الإعلان',
     announcements_title_en_header: 'العنوان (إنجليزي)',
     announcements_title_ar_header: 'العنوان (عربي)',
+    announcements_content_en_header: 'المحتوى (إنجليزي)',
+    announcements_content_ar_header: 'المحتوى (عربي)',
     announcements_content_header: 'المحتوى',
     announcements_no_content: 'لا يوجد محتوى',
     

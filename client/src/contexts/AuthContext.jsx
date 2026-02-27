@@ -72,14 +72,17 @@ export const AuthProvider = ({ children }) => {
     const resetTimeout = () => {
       if (timeoutId) clearTimeout(timeoutId);
       lastActivityTime = Date.now();
-      // logger.log(`[Auth] Session timeout reset - will logout at ${new Date(Date.now() + sessionTimeout).toLocaleTimeString()}`);
+      logger.log(`[Auth] Session timeout reset - will logout at ${new Date(Date.now() + sessionTimeout).toLocaleTimeString()}`);
+      logger.log(`[Auth] User: ${user.email}, UID: ${user.uid}, Last activity: ${new Date(lastActivityTime).toLocaleTimeString()}`);
       timeoutId = setTimeout(async () => {
-        // logger.log('[Auth] Session timeout reached - logging out user');
+        logger.log('[Auth] Session timeout reached - logging out user');
+        logger.log(`[Auth] Session details - User: ${user.email}, Last activity: ${new Date(lastActivityTime).toLocaleTimeString()}, Timeout duration: ${sessionTimeout/1000/60} minutes`);
         
         // Store logout reason with last activity info
         sessionStorage.setItem('logoutReason', 'session_timeout');
         sessionStorage.setItem('logoutTimestamp', Date.now().toString());
         sessionStorage.setItem('lastActivityTime', lastActivityTime.toString());
+        sessionStorage.setItem('sessionTimeoutUser', JSON.stringify({ email: user.email, uid: user.uid }));
         
         // Log session timeout
         try {
@@ -93,12 +96,13 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Set initial timeout
+    logger.log(`[Auth] Initial session timeout set for ${user.email} at ${new Date(Date.now() + sessionTimeout).toLocaleTimeString()}`);
     resetTimeout();
 
     // Reset timeout on user activity
     const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
     const handleActivity = () => {
-      // logger.log('[Auth] User activity detected - resetting session timeout');
+      logger.log('[Auth] User activity detected - resetting session timeout');
       resetTimeout();
     };
 
@@ -161,15 +165,23 @@ export const AuthProvider = ({ children }) => {
         // Only logout if this wasn't a temporary auth state change
         if (authRetryCount < maxRetries) {
           authRetryCount++;
+          const logoutReason = sessionStorage.getItem('logoutReason');
+          const logoutTimestamp = sessionStorage.getItem('logoutTimestamp');
+          const sessionTimeoutUser = sessionStorage.getItem('sessionTimeoutUser');
+          
           logger.warn(`[Auth] Temporary auth state change detected, retry ${authRetryCount}/${maxRetries}`);
+          logger.log(`[Auth] Debug info - Logout reason: ${logoutReason}, Timestamp: ${logoutTimestamp}, Session user: ${sessionTimeoutUser}`);
           
           // Check if this is actually a network issue vs real logout
           const hasRecentActivity = sessionStorage.getItem('hasLoggedInThisSession') === 'true';
           const sessionStart = sessionStorage.getItem('sessionStart');
           const recentSession = sessionStart && (Date.now() - parseInt(sessionStart)) < 5 * 60 * 1000; // 5 minutes
           
+          logger.log(`[Auth] Session analysis - Has recent activity: ${hasRecentActivity}, Recent session: ${recentSession}, Session start: ${sessionStart}`);
+          
           if (hasRecentActivity && recentSession) {
             // Wait a bit and see if auth state recovers
+            logger.log('[Auth] Waiting to see if auth state recovers...');
             await new Promise(resolve => setTimeout(resolve, 2000)); // Increased wait time
             return;
           } else {
@@ -203,6 +215,7 @@ export const AuthProvider = ({ children }) => {
         sessionStorage.removeItem('hasLoggedInThisSession');
         sessionStorage.removeItem('sessionStart');
         sessionStorage.removeItem('userProfile');
+        sessionStorage.removeItem('sessionTimeoutUser'); // Clean up session timeout user data
         authRetryCount = 0; // Reset retry count
         return;
       }

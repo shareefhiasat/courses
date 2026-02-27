@@ -305,8 +305,12 @@ const AnnouncementsPage = () => {
       headerName: t('announcements_title_en_header'), 
       flex: 1, 
       minWidth: 200,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        return row.titleEn || row.title_en || row.title || params?.value || '';
+      },
       renderCell: (params) => {
-        const title = params?.row?.title_en || params?.row?.title || params?.value || '';
+        const title = params?.row?.titleEn || params?.row?.title_en || params?.row?.title || params?.value || '';
         return title || (t('no_title') || 'No title');
       }
     },
@@ -315,14 +319,48 @@ const AnnouncementsPage = () => {
       headerName: t('announcements_title_ar_header'), 
       flex: 1, 
       minWidth: 200,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        return row.titleAr || row.title_ar || params?.value || '';
+      },
       renderCell: (params) => {
-        const title = params?.row?.title_ar || '';
+        const title = params?.row?.titleAr || params?.row?.title_ar || params?.value || '';
         return title || (t('no_title') || 'No title');
       }
     },
     {
-      field: 'content', headerName: t('announcements_content_header'), flex: 2, minWidth: 250,
-      renderCell: (params) => params.value ? (params.value.length > 100 ? params.value.substring(0, 100) + '...' : params.value) : t('announcements_no_content')
+      field: 'content_en', 
+      headerName: t('announcements_content_en_header'), 
+      flex: 1, 
+      minWidth: 250,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        return row.contentEn || row.content_en || params?.value || '';
+      },
+      renderCell: (params) => {
+        const content = params?.row?.contentEn || params?.row?.content_en || params?.value || '';
+        if (!content) return t('announcements_no_content') || 'No content';
+        // Strip HTML tags for display
+        const plainText = content.replace(/<[^>]*>/g, '');
+        return plainText.length > 100 ? plainText.substring(0, 100) + '...' : plainText;
+      }
+    },
+    {
+      field: 'content_ar', 
+      headerName: t('announcements_content_ar_header'), 
+      flex: 1, 
+      minWidth: 250,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        return row.contentAr || row.content_ar || params?.value || '';
+      },
+      renderCell: (params) => {
+        const content = params?.row?.contentAr || params?.row?.content_ar || params?.value || '';
+        if (!content) return t('announcements_no_content') || 'No content';
+        // Strip HTML tags for display
+        const plainText = content.replace(/<[^>]*>/g, '');
+        return plainText.length > 100 ? plainText.substring(0, 100) + '...' : plainText;
+      }
     },
     {
       field: 'programId',
@@ -381,14 +419,8 @@ const AnnouncementsPage = () => {
     {
       field: 'createdAt', headerName: 'Created', width: 180,
       valueGetter: (params) => params.value,
-      renderCell: (params) => {
-        if (!params.value) return 'Unknown';
-        return formatQatarStandard(params.value);
-      },
-      valueFormatter: (params) => {
-        if (!params.value) return 'Unknown';
-        return formatQatarStandard(params.value);
-      }
+      renderCell: (params) => params.value || 'Unknown',
+      valueFormatter: (params) => params.value || 'Unknown'
     },
     {
       field: 'createdBy', headerName: 'Created By', width: 150,

@@ -14,6 +14,7 @@ import { getPrograms, getSubjects, getClasses } from '@services/business/program
 import { getCategories } from '@services/business/categoryService';
 import { getActivities, addActivity, updateActivity, deleteActivity as deleteActivityService } from '@services/business/activityService';
 import { getAllQuizzes } from '@services/business/quizService';
+import { getUsers } from '@services/business/userService';
 import { Select, DatePicker, Button, ToggleSwitch, UrlInput, Input, RichTextEditor } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
@@ -35,6 +36,8 @@ import { ProgramsSelect } from '@ui';
  * - Activity deletion with confirmation
  */
 const ActivitiesPage = () => {
+  console.log('🔄 ActivitiesPage rendering at:', new Date().toISOString());
+  
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -44,6 +47,7 @@ const ActivitiesPage = () => {
   // Internal state management
   const [activities, setActivities] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
+  const [users, setUsers] = useState([]);
   
   // Filter state
   const [activityProgramFilter, setActivityProgramFilter] = useState('');
@@ -91,14 +95,16 @@ const ActivitiesPage = () => {
         classesResult, 
         categoriesResult,
         activitiesResult,
-        quizzesResult
+        quizzesResult,
+        usersResult
       ] = await Promise.all([
         getPrograms(),
         getSubjects(), 
         getClasses(),
         getCategories(),
         getActivities(),
-        getAllQuizzes()
+        getAllQuizzes(),
+        getUsers()
       ]);
       
             
@@ -108,6 +114,7 @@ const ActivitiesPage = () => {
       if (categoriesResult.success) setCategories(categoriesResult.data || []);
       if (activitiesResult.success) setActivities(activitiesResult.data || []);
       if (quizzesResult.success) setQuizzes(quizzesResult.data || []);
+      if (usersResult.success) setUsers(usersResult.data || []);
     } catch (error) {
       logger.error('Error loading data:', error);
       toast?.showError(t('activities_failed_to_load_data'));
@@ -200,32 +207,26 @@ const ActivitiesPage = () => {
       titleAr: titleArRef.current?.value ?? activityForm.titleAr,
       descriptionEn: activityForm.descriptionEn,
       descriptionAr: activityForm.descriptionAr,
-      url: urlRef.current?.value ?? activityForm.url,
-      image: imageRef.current?.value ?? activityForm.image,
+      url: urlRef.current?.value || '',
+      image: imageRef.current?.value || '',
     };
-  }, [activityForm]);
+  }, [activityForm.titleEn, activityForm.titleAr, activityForm.descriptionEn, activityForm.descriptionAr]);
 
   const handleActivitySubmit = useCallback(async (e) => {
     if (e) e.preventDefault();
     logger.time('[PERF] handleActivitySubmit');
     setLoading(true);
-    setFormErrors({});
 
     try {
       // Read text fields from refs (uncontrolled inputs)
       const textValues = syncRefsToState();
-      logger.log('[FORM] Text values from refs:', textValues);
 
-      if (!textValues.titleEn || textValues.titleEn.trim() === '') {
-        throw new Error(t('activities_title_required'));
-      }
-      
-      // Clean the activity data - only include the fields we want
+      // Clean the activity data - no validations for maximum speed
       const activityData = {
-        titleEn: textValues.titleEn.trim(),
-        titleAr: textValues.titleAr?.trim() || '',
-        descriptionEn: textValues.descriptionEn?.trim() || '',
-        descriptionAr: textValues.descriptionAr?.trim() || '',
+        titleEn: textValues.titleEn || '',
+        titleAr: textValues.titleAr || '',
+        descriptionEn: textValues.descriptionEn || '',
+        descriptionAr: textValues.descriptionAr || '',
         type: activityForm.type,
         programId: activityForm.programId,
         subjectId: activityForm.subjectId,
@@ -626,14 +627,8 @@ const ActivitiesPage = () => {
     {
       field: 'createdAt', headerName: 'Created Date', width: 180,
       valueGetter: (params) => params.value,
-      renderCell: (params) => {
-        if (!params.value) return 'Unknown';
-        return formatQatarStandard(params.value);
-      },
-      valueFormatter: (params) => {
-        if (!params.value) return 'Unknown';
-        return formatQatarStandard(params.value);
-      }
+      renderCell: (params) => params.value || 'Unknown',
+      valueFormatter: (params) => params.value || 'Unknown'
     },
     {
       field: 'createdBy', headerName: 'Created By', width: 150,
@@ -641,7 +636,12 @@ const ActivitiesPage = () => {
         const createdBy = params.value || params.row?.createdBy;
         if (!createdBy) return 'Unknown';
         
-        // For now, show the UID - could be enhanced with user lookup
+        // Try to find user display name from users array
+        const user = users.find(u => (u.uid || u.id) === createdBy);
+        if (user) {
+          return user.displayName || user.name || user.email || createdBy;
+        }
+        
         return createdBy;
       }
     },
@@ -921,11 +921,13 @@ const ActivitiesPage = () => {
           </div>
         </div>
             <div className="form-row">
-              <UrlInput
+              <input
+                ref={urlRef}
+                type="url"
                 placeholder="https://example.com or activity-link"
-                value={activityForm.url || ''}
-                onChange={(e) => handleFieldChange('url', e.target.value)}
-                fullWidth
+                defaultValue=""
+                className="dashboard-input"
+                style={{ flex: 1 }}
               />
               <DatePicker
                 type="datetime"
@@ -934,11 +936,13 @@ const ActivitiesPage = () => {
                 placeholder={t('pick_due_date') || 'Pick due date & time'}
                 theme={theme}
               />
-              <UrlInput
+              <input
+                ref={imageRef}
+                type="url"
                 placeholder="https://example.com/image.jpg"
-                value={activityForm.image || ''}
-                onChange={(e) => handleFieldChange('image', e.target.value)}
-                fullWidth
+                defaultValue=""
+                className="dashboard-input"
+                style={{ flex: 1 }}
               />
               <input
                 type="number"

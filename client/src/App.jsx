@@ -15,6 +15,7 @@ import './styles/tokens.css';
 import './styles/theme.css';
 import './utils/userRoleManager';
 import './utils/allowlistManager';
+import './utils/sessionDebug'; // Import session debug utilities
 
 // Direct imports — always-on shell components (not lazy, no barrel)
 import Navbar from '@ui/Navbar/Navbar';
