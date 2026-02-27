@@ -135,15 +135,30 @@ export const getActivity = async (activityId) => {
  */
 export const createActivity = async (activityData) => {
   try {
+    logger.debug('[ActivitiesDbService] Creating activity with data:', JSON.stringify(activityData, null, 2));
+    
     const docRef = doc(collection(db, RECORD_TYPES.ACTIVITY));
-    await setDoc(docRef, {
+    logger.debug('[ActivitiesDbService] Generated document ID:', docRef.id);
+    
+    const docData = {
       ...activityData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
-    });
+    };
+    
+    logger.debug('[ActivitiesDbService] Writing document data:', JSON.stringify(docData, null, 2));
+    
+    await setDoc(docRef, docData);
+    
+    logger.info('[ActivitiesDbService] Activity created successfully with ID:', docRef.id);
     return { success: true, id: docRef.id };
   } catch (error) {
-    logger.error('[ActivitiesDbService] Error creating activity:', error);
+    logger.error('[ActivitiesDbService] Error creating activity:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+      activityData: JSON.stringify(activityData, null, 2)
+    });
     return { success: false, error: error.message };
   }
 };

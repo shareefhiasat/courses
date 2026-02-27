@@ -236,6 +236,9 @@ const ActivitiesPage = () => {
         updatedBy: user?.id || t('activities_unknown_user')
       };
       
+      // Log the complete activity data being sent
+      logger.log('[FORM] Complete activity data being sent:', JSON.stringify(activityData, null, 2));
+      
       // Remove undefined values before saving to prevent Firebase errors
       if (activityData.dueDate === undefined) {
         delete activityData.dueDate;
@@ -258,10 +261,15 @@ const ActivitiesPage = () => {
         
         const result = await addActivity(activityData);
         
+        logger.log('[FORM] addActivity result:', JSON.stringify(result, null, 2));
+        
         if (result.success) {
           logger.log('🔍 [SAVE] Activity created successfully with ID:', result.id);
           toast?.showSuccess(t('activities_created_successfully'));
+          // Refresh the activities list to show the new activity
+          await loadData();
         } else {
+          logger.error('🔍 [SAVE] Activity creation failed:', result.error);
           throw new Error(result.error || t('activities_failed_to_create'));
         }
       }
@@ -275,13 +283,17 @@ const ActivitiesPage = () => {
       setEditingActivity(null);
       setActiveActivityFormTab('basic');
     } catch (error) {
-      logger.error('Error saving activity:', error);
+      logger.error('Error saving activity:', {
+        message: error.message,
+        stack: error.stack,
+        error: error
+      });
       toast?.showError(error.message || t('activities_error_saving'));
     } finally {
       setLoading(false);
       logger.timeEnd('[PERF] handleActivitySubmit');
     }
-  }, [activityForm, editingActivity, user, toast, syncRefsToState, resetActivityForm, t, emailOptions]);
+  }, [activityForm, editingActivity, user, toast, syncRefsToState, resetActivityForm, t, emailOptions, loadData]);
 
   const handleEditActivity = useCallback((activity) => {
     // Convert dueDate to input format for editing

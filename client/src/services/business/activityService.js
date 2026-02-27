@@ -38,10 +38,21 @@ const ACTIVITY_VALIDATION_RULES = [
   { field: 'description_en', type: 'string', label: 'Activity description' },
   { field: 'maxScore', type: 'number', positive: true, label: 'Max score' }
 ];
-const validateActivityData = (data) => [
-  ...validateBilingualField(data, 'title', 'Activity title'),
-  ...validateEntity(data, ACTIVITY_VALIDATION_RULES)
-];
+const validateActivityData = (data) => {
+  logger.debug('[VALIDATION] Starting activity data validation');
+  logger.debug('[VALIDATION] Data to validate:', JSON.stringify(data, null, 2));
+  
+  const bilingualErrors = validateBilingualField(data, 'title', 'Activity title');
+  logger.debug('[VALIDATION] Bilingual field errors:', bilingualErrors);
+  
+  const entityErrors = validateEntity(data, ACTIVITY_VALIDATION_RULES);
+  logger.debug('[VALIDATION] Entity validation errors:', entityErrors);
+  
+  const allErrors = [...bilingualErrors, ...entityErrors];
+  logger.debug('[VALIDATION] All validation errors:', allErrors);
+  
+  return allErrors;
+};
 
 // Convert date fields to timestamps for Firestore using centralized utility
 
@@ -62,7 +73,7 @@ export const getActivities = async () => {
 };
 
 export const addActivity = async (activityData) => {
-  return await withRetry(async (activityData) => {
+  try {
     logger.info('ACTIVITY: Creating new activity', {
       title: activityData.title_en,
       url: activityData.url,
@@ -72,14 +83,14 @@ export const addActivity = async (activityData) => {
       hasClass: !!activityData.classId
     });
     
+    // Log the full activity data for debugging
+    logger.debug('ACTIVITY: Full activity data being sent:', JSON.stringify(activityData, null, 2));
+    
     // Validate input data
     const validationErrors = validateActivityData(activityData);
     if (validationErrors.length > 0) {
-      logger.warn('ACTIVITY: Validation failed', { errors: validationErrors });
-      return handleServiceError(
-        new Error(validationErrors.join(', ')), 
-        { operation: 'addActivity', validationErrors }
-      );
+      logger.error('ACTIVITY: Validation failed with errors:', { errors: validationErrors, activityData });
+      return { success: false, error: validationErrors.join(', ') };
     }
     
     logger.debug('[SERVICE] Processing activity data:', {
@@ -101,6 +112,11 @@ export const addActivity = async (activityData) => {
     };
 
     const result = await createActivityToDb(activityDataWithTimestamps);
+
+    if (!result.success) {
+      logger.error('ACTIVITY: Database operation failed:', result.error);
+      return { success: false, error: result.error };
+    }
 
     logger.debug('[SERVICE] Activity saved to Firestore with ID:', result.id);
 
@@ -137,7 +153,14 @@ export const addActivity = async (activityData) => {
     // }
 
     return { success: true, id: result.id };
-  }, 3); // max 3 retries
+  } catch (error) {
+    logger.error('ACTIVITY: Unexpected error in addActivity:', {
+      message: error.message,
+      stack: error.stack,
+      activityData: JSON.stringify(activityData, null, 2)
+    });
+    return { success: false, error: error.message };
+  }
 };
 
 export const updateActivity = async (id, activityData, emailOptions = { sendEmail: true }) => {
