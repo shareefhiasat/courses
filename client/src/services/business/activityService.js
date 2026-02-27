@@ -7,8 +7,8 @@ import {
 import { 
   getAnnouncements as getAnnouncementsFromDb,
   getAnnouncement as getAnnouncementFromDb,
-  createAnnouncement as createAnnouncementToDb,
-  updateAnnouncement as updateAnnouncementInDb,
+  create as createAnnouncementToDb,
+  update as updateAnnouncementInDb,
   deleteAnnouncement as deleteAnnouncementFromDb
 } from '../db/announcementDbService';
 import { 

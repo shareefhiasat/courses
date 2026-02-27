@@ -102,15 +102,15 @@ export const getAnnouncement = async (announcementId) => {
 /**
  * Create announcement
  * @param {Object} announcementData - Announcement data
+ * @param {Object} auditData - Audit data (createdAt, updatedAt, createdBy, updatedBy)
  * @returns {Promise<{success: boolean, id?: string, error?: string}>}
  */
-export const createAnnouncement = async (announcementData) => {
+export const create = async (announcementData, auditData = {}) => {
   try {
     const docRef = doc(collection(db, 'announcements'));
     await setDoc(docRef, {
       ...announcementData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      ...auditData
     });
     return { success: true, id: docRef.id };
   } catch (error) {
@@ -123,13 +123,14 @@ export const createAnnouncement = async (announcementData) => {
  * Update announcement
  * @param {string} announcementId - Announcement ID
  * @param {Object} announcementData - Updated announcement data
+ * @param {Object} auditData - Audit data (updatedAt, updatedBy)
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const updateAnnouncement = async (announcementId, announcementData) => {
+export const update = async (announcementId, announcementData, auditData = {}) => {
   try {
     await updateDoc(doc(db, 'announcements', announcementId), {
       ...announcementData,
-      updatedAt: serverTimestamp()
+      ...auditData
     });
     return { success: true };
   } catch (error) {

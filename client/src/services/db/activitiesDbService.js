@@ -131,9 +131,10 @@ export const getActivity = async (activityId) => {
 /**
  * Create activity
  * @param {Object} activityData - Activity data
+ * @param {Object} auditData - Audit data (createdAt, updatedAt, createdBy, updatedBy)
  * @returns {Promise<{success: boolean, id?: string, error?: string}>}
  */
-export const createActivity = async (activityData) => {
+export const createActivity = async (activityData, auditData = {}) => {
   try {
     logger.debug('[ActivitiesDbService] Creating activity with data:', JSON.stringify(activityData, null, 2));
     
@@ -142,8 +143,7 @@ export const createActivity = async (activityData) => {
     
     const docData = {
       ...activityData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      ...auditData
     };
     
     logger.debug('[ActivitiesDbService] Writing document data:', JSON.stringify(docData, null, 2));
@@ -167,13 +167,14 @@ export const createActivity = async (activityData) => {
  * Update activity
  * @param {string} activityId - Activity ID
  * @param {Object} activityData - Updated activity data
+ * @param {Object} auditData - Audit data (updatedAt, updatedBy)
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const updateActivity = async (activityId, activityData) => {
+export const updateActivity = async (activityId, activityData, auditData = {}) => {
   try {
     await updateDoc(doc(db, RECORD_TYPES.ACTIVITY, activityId), {
       ...activityData,
-      updatedAt: serverTimestamp()
+      ...auditData
     });
     return { success: true };
   } catch (error) {

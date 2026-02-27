@@ -2,11 +2,12 @@ import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { handleServiceError, withRetry } from '@utils/errorHandling';
 import { validateEntity } from '@utils/validationHelpers';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import { 
   getCourses as getCoursesFromDb,
   getCourse as getCourseFromDb,
-  createCourse as createCourseToDb,
-  updateCourse as updateCourseInDb,
+  create as createCourseToDb,
+  update as updateCourseInDb,
   setCourse as setCourseToDb,
   deleteCourse as deleteCourseFromDb,
   getActiveCourses as getActiveCoursesFromDb,
@@ -46,7 +47,7 @@ export const getCourses = async () => {
 };
 
 // Set/update course with validation
-export const setCourse = async (courseId, data) => {
+export const setCourse = async (courseId, data, user) => {
   try {
     logger.info('COURSE: Setting course', { courseId });
     
@@ -57,13 +58,8 @@ export const setCourse = async (courseId, data) => {
       return { success: false, error: validationErrors.join(', ') };
     }
     
-    // Add timestamps
-    const courseData = {
-      ...data,
-      updatedAt: new Date()
-    };
-    
-    const result = await setCourseToDb(courseId, courseData);
+    const auditData = getUpdateAuditData(user);
+    const result = await setCourseToDb(courseId, data, auditData);
     
     // Log activity
     try {
@@ -151,7 +147,7 @@ export const getCourseById = async (courseId) => {
 };
 
 // Create new course
-export const createCourse = async (courseData) => {
+export const createCourse = async (courseData, user) => {
   try {
     logger.info('COURSE: Creating new course', { name: courseData.name });
     
@@ -162,15 +158,13 @@ export const createCourse = async (courseData) => {
       return { success: false, error: validationErrors.join(', ') };
     }
     
-    // Add timestamps
     const newCourseData = {
       ...courseData,
-      createdAt: new Date(),
-      updatedAt: new Date(),
       isActive: true
     };
     
-    const result = await createCourseToDb(newCourseData);
+    const auditData = getCreateAuditData(user);
+    const result = await createCourseToDb(newCourseData, auditData);
     
     if (result.success) {
       // Log activity
@@ -194,7 +188,7 @@ export const createCourse = async (courseData) => {
 };
 
 // Update course
-export const updateCourse = async (courseId, updateData) => {
+export const updateCourse = async (courseId, updateData, user) => {
   try {
     logger.info('COURSE: Updating course', { courseId });
     
@@ -209,13 +203,8 @@ export const updateCourse = async (courseId, updateData) => {
       return { success: false, error: validationErrors.join(', ') };
     }
     
-    // Add timestamp
-    const courseUpdateData = {
-      ...updateData,
-      updatedAt: new Date()
-    };
-    
-    const result = await updateCourseInDb(courseId, courseUpdateData);
+    const auditData = getUpdateAuditData(user);
+    const result = await updateCourseInDb(courseId, updateData, auditData);
     
     if (result.success) {
       // Log activity

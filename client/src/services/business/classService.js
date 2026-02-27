@@ -1,6 +1,7 @@
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
-import { getClasses as getClassesFromDb, createClass as createClassToDb, updateClass as updateClassInDb, deleteClass as deleteClassFromDb, getClass as getClassByIdFromDb } from '../db/classDbService';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
+import { getClasses as getClassesFromDb, create as createClassToDb, update as updateClassInDb, deleteClass as deleteClassFromDb, getClass as getClassByIdFromDb } from '../db/classDbService';
 
 /**
  * Class Service
@@ -18,11 +19,12 @@ export const getClasses = async () => {
 };
 
 // Add new class
-export const addClass = async (data) => {
+export const addClass = async (data, user) => {
   try {
     logger.info('CLASS: Creating new class', { className: data.name, classCode: data.code });
     
-    const result = await createClassToDb(data);
+    const auditData = getCreateAuditData(user);
+    const result = await createClassToDb(data, auditData);
     
     // Log activity
     try {
@@ -44,11 +46,12 @@ export const addClass = async (data) => {
 };
 
 // Update class
-export const updateClass = async (id, data) => {
+export const updateClass = async (id, data, user) => {
   try {
     logger.info('CLASS: Updating class', { classId: id, updateFields: Object.keys(data) });
     
-    const result = await updateClassInDb(id, data);
+    const auditData = getUpdateAuditData(user);
+    const result = await updateClassInDb(id, data, auditData);
     
     // Log activity
     try {

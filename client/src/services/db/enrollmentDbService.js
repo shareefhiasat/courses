@@ -123,13 +123,14 @@ export const setEnrollment = async (enrollmentId, enrollmentData) => {
  * Update enrollment
  * @param {string} enrollmentId - Enrollment ID
  * @param {Object} updateData - Data to update
+ * @param {Object} auditData - Audit data (updatedAt, updatedBy)
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const updateEnrollment = async (enrollmentId, updateData) => {
+export const update = async (enrollmentId, updateData, auditData = {}) => {
   try {
     await updateDoc(doc(db, 'enrollments', enrollmentId), {
       ...updateData,
-      updatedAt: serverTimestamp()
+      ...auditData
     });
     return { success: true };
   } catch (error) {

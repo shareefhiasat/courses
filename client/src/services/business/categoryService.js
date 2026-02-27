@@ -1,12 +1,12 @@
 import logger from '@utils/logger';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import { 
   getCategories as getCategoriesFromDb,
   getCategoryById as getCategoryByIdFromDb,
-  createCategory as createCategoryToDb,
-  updateCategory as updateCategoryInDb,
+  create as createCategoryToDb,
+  update as updateCategoryInDb,
   deleteCategory as deleteCategoryFromDb
 } from '../db/categoryDbService';
-import { handleServiceError, withRetry, measurePerformance } from '@utils/errorHandling';
 
 /**
  * Get all categories - with performance monitoring and memoization
@@ -79,7 +79,8 @@ export const seedDefaultCategories = async () => {
     const results = [];
     for (const category of defaultCategories) {
       try {
-        const result = await createCategoryToDb(category);
+        const auditData = getCreateAuditData({ uid: 'system' }); // System-generated default categories
+        const result = await createCategoryToDb(category, auditData);
         if (result.success) {
           logger.info('CATEGORY: Successfully seeded category', { name: category.name_en, docId: result.id });
           results.push({ action: 'created', category: category.name_en, success: true, id: result.id });

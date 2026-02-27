@@ -87,15 +87,15 @@ export const getQuiz = async (quizId) => {
 /**
  * Create quiz
  * @param {Object} quizData - Quiz data
+ * @param {Object} auditData - Audit data (createdAt, updatedAt, createdBy, updatedBy)
  * @returns {Promise<{success: boolean, id?: string, error?: string}>}
  */
-export const createQuiz = async (quizData) => {
+export const create = async (quizData, auditData = {}) => {
   try {
     const docRef = doc(collection(db, 'quizzes'));
     await setDoc(docRef, {
       ...quizData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      ...auditData
     });
     return { success: true, id: docRef.id };
   } catch (error) {
@@ -108,13 +108,14 @@ export const createQuiz = async (quizData) => {
  * Update quiz
  * @param {string} quizId - Quiz ID
  * @param {Object} quizData - Updated quiz data
+ * @param {Object} auditData - Audit data (updatedAt, updatedBy)
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const updateQuiz = async (quizId, quizData) => {
+export const update = async (quizId, quizData, auditData = {}) => {
   try {
     await updateDoc(doc(db, 'quizzes', quizId), {
       ...quizData,
-      updatedAt: serverTimestamp()
+      ...auditData
     });
     return { success: true };
   } catch (error) {

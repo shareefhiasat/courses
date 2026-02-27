@@ -1,8 +1,9 @@
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import { 
   getAnnouncements as getAnnouncementsFromDb,
-  createAnnouncement,
-  updateAnnouncement as updateAnnouncementInDb,
+  create as createAnnouncement,
+  update as updateAnnouncementInDb,
   deleteAnnouncement as deleteAnnouncementFromDb
 } from '../db/announcementDbService';
 import logger from '@utils/logger';
@@ -33,11 +34,13 @@ export const getAnnouncements = async () => {
 /**
  * Add a new announcement
  * @param {Object} announcementData - Announcement data
+ * @param {Object} user - User object
  * @returns {Promise<{success: boolean, id?: string, error?: string}>}
  */
-export const addAnnouncement = async (announcementData) => {
+export const addAnnouncement = async (announcementData, user) => {
   try {
-    const result = await createAnnouncement(announcementData);
+    const auditData = getCreateAuditData(user);
+    const result = await createAnnouncement(announcementData, auditData);
     
     if (result.success) {
       // Log announcement creation (non-blocking)
@@ -68,11 +71,13 @@ export const addAnnouncement = async (announcementData) => {
  * Update an existing announcement
  * @param {string} id - Announcement document ID
  * @param {Object} announcementData - Updated announcement data
+ * @param {Object} user - User object
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const updateAnnouncement = async (id, announcementData) => {
+export const updateAnnouncement = async (id, announcementData, user) => {
   try {
-    const result = await updateAnnouncementInDb(id, announcementData);
+    const auditData = getUpdateAuditData(user);
+    const result = await updateAnnouncementInDb(id, announcementData, auditData);
     
     if (result.success) {
       // Log announcement update

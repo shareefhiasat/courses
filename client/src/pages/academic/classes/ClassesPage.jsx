@@ -161,8 +161,8 @@ const ClassesPage = () => {
     setLoading(true);
     try {
       const result = editingClass ?
-        await updateClass(editingClass.docId, classData) :
-        await addClass(classData);
+        await updateClass(editingClass.docId, classData, user) :
+        await addClass(classData, user);
 
       if (result.success) {
         // Log activity

@@ -82,16 +82,17 @@ export const getNotification = async (notificationId) => {
 /**
  * Create notification
  * @param {Object} notificationData - Notification data
+ * @param {Object} auditData - Audit data (createdAt, updatedAt, createdBy, updatedBy)
  * @returns {Promise<{success: boolean, id?: string, error?: string}>}
  */
-export const createNotification = async (notificationData) => {
+export const create = async (notificationData, auditData = {}) => {
   try {
     const docRef = doc(collection(db, 'notifications'));
     await setDoc(docRef, {
       ...notificationData,
       read: false,
       archived: false,
-      createdAt: serverTimestamp()
+      ...auditData
     });
     return { success: true, id: docRef.id };
   } catch (error) {

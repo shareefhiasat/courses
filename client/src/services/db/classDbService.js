@@ -98,15 +98,15 @@ export const getClassesByInstructor = async (instructorId) => {
 /**
  * Create class
  * @param {Object} classData - Class data
+ * @param {Object} auditData - Audit data (createdAt, updatedAt, createdBy, updatedBy)
  * @returns {Promise<{success: boolean, id?: string, error?: string}>}
  */
-export const createClass = async (classData) => {
+export const create = async (classData, auditData = {}) => {
   try {
     const docRef = doc(collection(db, 'classes'));
     await setDoc(docRef, {
       ...classData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      ...auditData
     });
     return { success: true, id: docRef.id };
   } catch (error) {
@@ -119,13 +119,14 @@ export const createClass = async (classData) => {
  * Update class
  * @param {string} classId - Class ID
  * @param {Object} updateData - Data to update
+ * @param {Object} auditData - Audit data (updatedAt, updatedBy)
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const updateClass = async (classId, updateData) => {
+export const update = async (classId, updateData, auditData = {}) => {
   try {
     await updateDoc(doc(db, 'classes', classId), {
       ...updateData,
-      updatedAt: serverTimestamp()
+      ...auditData
     });
     return { success: true };
   } catch (error) {

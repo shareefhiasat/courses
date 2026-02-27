@@ -101,20 +101,20 @@ export const getCategoryById = async (docId) => {
 /**
  * Create a new category
  * @param {Object} categoryData - Category data
+ * @param {Object} auditData - Audit data (createdAt, updatedAt, createdBy, updatedBy)
  * @returns {Promise<{success: boolean, id: string, error?: string}>}
  */
-export const createCategory = async (categoryData) => {
+export const create = async (categoryData, auditData = {}) => {
   try {
     logger.info('CATEGORY: Creating new category', { name: categoryData.name_en });
     
     const docRef = doc(collection(db, 'categories'));
-    const categoryWithTimestamps = {
+    const categoryWithAudit = {
       ...categoryData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      ...auditData
     };
     
-    await setDoc(docRef, categoryWithTimestamps);
+    await setDoc(docRef, categoryWithAudit);
     
     logger.info('CATEGORY: Successfully created category', { docId: docRef.id });
     return { success: true, id: docRef.id };
@@ -128,16 +128,17 @@ export const createCategory = async (categoryData) => {
  * Update an existing category
  * @param {string} docId - Category document ID
  * @param {Object} categoryData - Updated category data
+ * @param {Object} auditData - Audit data (updatedAt, updatedBy)
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const updateCategory = async (docId, categoryData) => {
+export const update = async (docId, categoryData, auditData = {}) => {
   try {
     logger.info('CATEGORY: Updating category', { docId, name: categoryData.name_en });
     
     const docRef = doc(db, 'categories', docId);
     const updateData = {
       ...categoryData,
-      updatedAt: serverTimestamp()
+      ...auditData
     };
     
     await updateDoc(docRef, updateData);

@@ -310,14 +310,14 @@ export default function QuizBuilderPage() {
       let targetQuizId = quizId;
 
       if (quizId) {
-        const result = await updateQuiz(quizId, quizData);
+        const result = await updateQuiz(quizId, quizData, user);
         if (result.success) {
           toast?.showSuccess?.('Quiz updated successfully!');
         } else {
           throw new Error(result.error);
         }
       } else {
-        const result = await createQuiz(quizData, user.uid);
+        const result = await createQuiz(quizData, user);
         if (result.success) {
           targetQuizId = result.id;
           toast?.showSuccess?.('Quiz created successfully!');

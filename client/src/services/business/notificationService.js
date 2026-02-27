@@ -2,9 +2,10 @@ import { notificationGateway } from './notificationGateway';
 import { sendEmail } from './emailService';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import logger from '@utils/logger';
+import { getCreateAuditData } from '@utils/auditHelper';
 import { 
   getNotifications as getNotificationsFromDb,
-  createNotification as createNotificationToDb,
+  create as createNotificationToDb,
   markNotificationAsRead as markNotificationAsReadInDb,
   markAllNotificationsAsRead as markAllNotificationsAsReadInDb,
   archiveNotification as archiveNotificationInDb,
@@ -24,7 +25,7 @@ export const getNotifications = async (userId) => {
   }
 };
 
-export const addNotification = async (notification) => {
+export const addNotification = async (notification, user) => {
   try {
     const notificationData = {
       userId: notification.userId,
@@ -35,8 +36,7 @@ export const addNotification = async (notification) => {
       metadata: notification.metadata || {},
       deliveryStatus: 'sent', // sent, failed, pending
       read: false,
-      readAt: null,
-      createdAt: new Date() // Will be converted to Timestamp by DB service
+      readAt: null
     };
     
     // Preserve existing data field if provided
@@ -44,7 +44,8 @@ export const addNotification = async (notification) => {
       notificationData.data = notification.data;
     }
     
-    const result = await createNotificationToDb(notificationData);
+    const auditData = getCreateAuditData(user);
+    const result = await createNotificationToDb(notificationData, auditData);
     
     if (result.success) {
       // Also log to notificationLogs for analytics

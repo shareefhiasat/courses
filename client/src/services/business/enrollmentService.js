@@ -7,7 +7,7 @@ import {
   getEnrollmentsByClass as getEnrollmentsByClassFromDb,
   getEnrollment as getEnrollmentFromDb,
   setEnrollment as setEnrollmentToDb,
-  updateEnrollment as updateEnrollmentInDb,
+  update as updateEnrollmentInDb,
   deleteEnrollment as deleteEnrollmentFromDb
 } from '../db/enrollmentDbService';
 import { getUserById, updateUser } from './userService';

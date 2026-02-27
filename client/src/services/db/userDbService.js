@@ -151,14 +151,15 @@ export const getUsers = async (filters = {}) => {
  * Create or update user
  * @param {string} userId - User ID
  * @param {Object} userData - User data
+ * @param {Object} auditData - Audit data (createdAt, updatedAt, createdBy, updatedBy)
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const setUser = async (userId, userData) => {
+export const setUser = async (userId, userData, auditData = {}) => {
   try {
     const docRef = doc(db, 'users', userId);
     await setDoc(docRef, {
       ...userData,
-      updatedAt: serverTimestamp()
+      ...auditData
     }, { merge: true });
     return { success: true };
   } catch (error) {
@@ -171,9 +172,10 @@ export const setUser = async (userId, userData) => {
  * Update user
  * @param {string} userId - User ID
  * @param {Object} updateData - Data to update
+ * @param {Object} auditData - Audit data (updatedAt, updatedBy)
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const updateUser = async (userId, updateData) => {
+export const updateUser = async (userId, updateData, auditData = {}) => {
   try {
     if (!userId || typeof userId !== 'string') {
       logger.error('[UserDbService] Invalid userId provided for update:', { userId, type: typeof userId });
@@ -189,7 +191,7 @@ export const updateUser = async (userId, updateData) => {
     const docRef = doc(db, 'users', userId);
     await updateDoc(docRef, {
       ...updateData,
-      updatedAt: serverTimestamp()
+      ...auditData
     });
     logger.info('[UserDbService] Successfully updated user:', { userId });
     return { success: true };

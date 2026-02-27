@@ -18,16 +18,17 @@ import { notificationGateway } from "./notificationGateway";
 import { NOTIFICATION_TRIGGERS } from "@constants/notificationTypes";
 import { getUserById } from "./userService";
 import { RECORD_TYPES } from "@utils/sharedTypes";
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import { 
   getQuizzes as getQuizzesFromDb,
   getQuiz as getQuizFromDb,
-  createQuiz as createQuizToDb,
-  updateQuiz as updateQuizInDb,
+  create as createQuizToDb,
+  update as updateQuizInDb,
   deleteQuiz as deleteQuizFromDb
 } from '../db/quizzesDbService';
 
 // Create a new quiz
-export const createQuiz = async (quizData, userId) => {
+export const createQuiz = async (quizData, user) => {
   try {
     const quizDataWithMetadata = {
       ...quizData,
@@ -40,12 +41,10 @@ export const createQuiz = async (quizData, userId) => {
         ? [quizData.classId]
         : [],
       term: quizData?.term || null,
-      createdBy: userId,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
     };
 
-    const result = await createQuizToDb(quizDataWithMetadata);
+    const auditData = getCreateAuditData(user);
+    const result = await createQuizToDb(quizDataWithMetadata, auditData);
 
     // Notify students about new quiz availability if it's assigned to classes
     const classIds = Array.isArray(quizData?.assignedClassIds) ? quizData.assignedClassIds : (quizData?.classId ? [quizData.classId] : []);
@@ -150,16 +149,13 @@ export const getQuizzesByCreator = async (userId) => {
 };
 
 // Update a quiz and cascade update related activities
-export const updateQuiz = async (quizId, updates) => {
+export const updateQuiz = async (quizId, updates, user) => {
   try {
-    const quizRef = doc(db, "quizzes", quizId);
-
     // Build update object without undefined values
     const updatePayload = {
       ...updates,
       visibility: updates?.visibility || "private",
       allowAnonymous: updates?.allowAnonymous === true,
-      updatedAt: serverTimestamp(),
     };
 
     // Only include folderId if explicitly provided
@@ -172,7 +168,8 @@ export const updateQuiz = async (quizId, updates) => {
       updatePayload.assignedClassIds = updates.assignedClassIds;
     }
 
-    await updateDoc(quizRef, updatePayload);
+    const auditData = getUpdateAuditData(user);
+    const result = await updateQuizInDb(quizId, updatePayload, auditData);
 
     // Cascade update related activities if quiz settings changed
     try {
