@@ -22,8 +22,8 @@ const EnrollmentsManagementPage = lazy(() => import('../academic/enrollments/Enr
 const EnrollmentsPage = lazy(() => import('../academic/enrollments/EnrollmentsPage'));
 const ActivitiesPage = lazy(() => import('../academic/activities/ActivitiesPage'));
 const ScheduledReportsPage = lazy(() => import('../feedback/reports/ScheduledReportsPage'));
-const ProgramsManagementPage = lazy(() => import('../academic/programs/ProgramsManagementPage'));
-const SubjectsManagementPage = lazy(() => import('../academic/subjects/SubjectsManagementPage'));
+const ProgramsManagementPage = lazy(() => import('../academic/programs/ProgramsPage'));
+const SubjectsManagementPage = lazy(() => import('../academic/subjects/SubjectsPage'));
 const MarksPage = lazy(() => import('../academic/enrollments/grading/MarksPage'));
 const ClassSchedulePage = lazy(() => import('../academic/classes/ClassSchedulePage'));
 const PenaltiesPage = lazy(() => import('../operations/penalty/PenaltiesPage'));

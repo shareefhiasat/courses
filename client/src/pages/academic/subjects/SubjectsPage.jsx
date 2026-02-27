@@ -14,9 +14,9 @@ import { DeleteModal, useDeleteModal } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import { ACTIVITY_TYPES } from '@constants';
-import styles from './SubjectsManagementPage.module.css';
+import styles from './SubjectsPage.module.css';
 
-const SubjectsManagementPage = () => {
+const SubjectsPage = () => {
   const { isAdmin, isSuperAdmin, isInstructor, user, loading: authLoading } = useAuth();
   const { lang, t } = useLang();
   const { theme } = useTheme();
@@ -650,5 +650,5 @@ const gridColumns = useMemo(() => [
   );
 };
 
-export default SubjectsManagementPage;
+export default SubjectsPage;
 

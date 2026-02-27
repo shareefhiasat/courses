@@ -125,53 +125,73 @@ export const isProfileComplete = (userProfile) => {
 // ===== USER ROLE CHECK UTILITIES =====
 
 /**
- * Check if user is admin (helper function)
+ * Check if user is admin (helper function) - FLAG ONLY
  * @param {Object} user - User object
  * @returns {boolean} True if user is admin
  */
 export const isAdminUser = (user) => {
   if (!user) return false;
-  return user.role === USER_ROLES.ADMIN || user.role === USER_ROLES.SUPER_ADMIN || user.isAdmin === true;
+  return user.isAdmin === true || user.isSuperAdmin === true;
 };
 
 /**
- * Check if user is instructor (helper function)
+ * Check if user is instructor (helper function) - FLAG ONLY
  * @param {Object} user - User object
  * @returns {boolean} True if user is instructor
  */
 export const isInstructorUser = (user) => {
   if (!user) return false;
-  return user.role === USER_ROLES.INSTRUCTOR || user.isInstructor === true;
+  return user.isInstructor === true;
 };
 
 /**
- * Check if user is HR (helper function)
+ * Check if user is HR (helper function) - FLAG ONLY
  * @param {Object} user - User object
  * @returns {boolean} True if user is HR
  */
 export const isHRUser = (user) => {
   if (!user) return false;
-  return user.role === USER_ROLES.HR || user.isHR === true;
+  return user.isHR === true;
 };
 
 /**
- * Check if user is student (helper function)
+ * Check if user is student (helper function) - FLAG ONLY
  * @param {Object} user - User object
  * @returns {boolean} True if user is student
  */
 export const isStudentUser = (user) => {
   if (!user) return false;
-  return user.role === USER_ROLES.STUDENT || user.isStudent === true;
+  return user.isStudent === true;
 };
 
 /**
- * Check if user is super admin (helper function)
+ * Check if user is super admin (helper function) - FLAG ONLY
  * @param {Object} user - User object
  * @returns {boolean} True if user is super admin
  */
 export const isSuperAdminUser = (user) => {
   if (!user) return false;
-  return user.role === USER_ROLES.SUPER_ADMIN || user.isSuperAdmin === true;
+  return user.isSuperAdmin === true;
+};
+
+/**
+ * Check if user has any admin-level privileges (FLAG ONLY)
+ * @param {Object} user - User object
+ * @returns {boolean} True if user is admin, super admin, or HR
+ */
+export const hasAdminPrivileges = (user) => {
+  if (!user) return false;
+  return isAdminUser(user) || isHRUser(user);
+};
+
+/**
+ * Check if user can teach/instruct (FLAG ONLY)
+ * @param {Object} user - User object
+ * @returns {boolean} True if user is instructor, admin, or super admin
+ */
+export const canTeach = (user) => {
+  if (!user) return false;
+  return isInstructorUser(user) || isAdminUser(user);
 };
 
 // ===== USER PROFILE UTILITIES =====
@@ -216,12 +236,14 @@ export default {
   isValidEmail,
   isProfileComplete,
   
-  // Role check utilities
+  // Role check utilities (FLAG ONLY)
   isAdminUser,
   isInstructorUser,
   isHRUser,
   isStudentUser,
   isSuperAdminUser,
+  hasAdminPrivileges,
+  canTeach,
   
   // Profile utilities
   getUserProfile,

@@ -4,6 +4,7 @@ import { USER_ROLES } from '@constants/userRoles';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '@utils/userStatus';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getThemeColor } from '@constants/dashboardTypes';
+import { isAdminUser, isInstructorUser, isSuperAdminUser, isHRUser } from '@utils/userUtils';
 
 /**
  * UserSelect Component
@@ -66,9 +67,25 @@ const UserSelect = ({
     return iconMap[iconName] || getThemedIcon('ui', 'user', 16, theme);
   };
 
-  // Filter users by role if specified
-  const filteredUsers = roleFilter 
-    ? users.filter(u => roleFilter.includes(u.role))
+  // Filter users by role if specified (using flag-based utilities)
+  const filteredUsers = roleFilter && roleFilter.length > 0 
+    ? users.filter(u => {
+        // Check each role in roleFilter against user flags
+        return roleFilter.some(role => {
+          switch (role) {
+            case USER_ROLES.SUPER_ADMIN:
+              return isSuperAdminUser(u);
+            case USER_ROLES.ADMIN:
+              return isAdminUser(u);
+            case USER_ROLES.INSTRUCTOR:
+              return isInstructorUser(u);
+            case USER_ROLES.HR:
+              return isHRUser(u);
+            default:
+              return false;
+          }
+        });
+      })
     : users;
 
   // Generate user options with rich information
@@ -90,15 +107,40 @@ const UserSelect = ({
 
     // Add user options
     filteredUsers.forEach(u => {
-      // Get user enrollments count
-      const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
-      const enrollmentCount = userEnrollments.length;
+      // Get user enrollments count (for students) or classes taught (for instructors)
+      let enrollmentCount = 0;
+      let displayCount = '';
+      
+      if (isInstructorUser(u) || isAdminUser(u)) {
+        // For instructors: count classes they teach
+        const taughtClasses = enrollments.filter(e => 
+          e.instructorId === (u.docId || u.id) || e.ownerEmail === u.email
+        );
+        enrollmentCount = taughtClasses.length;
+        displayCount = enrollmentCount > 0 ? `${enrollmentCount} classes` : 'No classes';
+      } else {
+        // For students: count their enrollments
+        const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
+        enrollmentCount = userEnrollments.length;
+        displayCount = enrollmentCount > 0 ? `${enrollmentCount} enrollments` : 'No enrollments';
+      }
       
       // Get status information
-      const status = getUserStatus(u, userEnrollments);
-      const statusSummary = getUserStatusSummary(u, userEnrollments);
+      const status = getUserStatus(u, enrollments);
+      const statusSummary = getUserStatusSummary(u, enrollments);
       const iconProps = getStatusIconProps(status);
-      const IconComponent = getIconComponent(iconProps.name);
+      let IconComponent = getIconComponent(iconProps.name);
+      
+      // Add instructor icon if user is instructor
+      if (isInstructorUser(u) || isAdminUser(u)) {
+        const InstructorIcon = getIconComponent('BookOpen');
+        IconComponent = (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {IconComponent}
+            {InstructorIcon}
+          </div>
+        );
+      }
       
       const isDisabled = status === USER_STATUS.DELETED;
       const statusLabel = statusSummary?.label || status;
@@ -128,7 +170,7 @@ const UserSelect = ({
               }}>
                 {showStatus && statusLabel}
                 {showStatus && showEnrollments && enrollmentCount > 0 && ' • '}
-                {showEnrollments && enrollmentCount > 0 && `${enrollmentCount} enrollments`}
+                {showEnrollments && displayCount}
               </span>
             )}
           </div>

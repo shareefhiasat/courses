@@ -11,9 +11,9 @@ import { DeleteModal, useDeleteModal } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
-import styles from './ProgramsManagementPage.module.css';
+import styles from './ProgramsPage.module.css';
 
-const ProgramsManagementPage = () => {
+const ProgramsPage = () => {
   const { isAdmin, isSuperAdmin, user, loading: authLoading } = useAuth();
   const { t } = useLang();
   const { theme } = useTheme();
@@ -609,5 +609,5 @@ const ProgramsManagementPage = () => {
   );
 };
 
-export default ProgramsManagementPage;
+export default ProgramsPage;
 

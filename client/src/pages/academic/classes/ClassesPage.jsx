@@ -5,6 +5,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import logger from '@utils/logger';
+import { formatQatarStandard } from '@utils/qatarDate';
 import { addClass, updateClass, deleteClass, getClasses } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getUsers } from '@services/business/userService';
@@ -12,6 +13,8 @@ import { getEnrollments } from '@services/business/enrollmentService';
 import { getActivities } from '@services/business/activityService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger.jsx';
 import { USER_ROLES } from '@constants/userRoles';
+import { isAdminUser, isInstructorUser, isSuperAdminUser, canTeach } from '@utils/userUtils';
+import { makeCurrentUserSuperAdminAndInstructor } from '@utils/userRoleManager';
 import { 
   Button, 
   Input, 
@@ -35,6 +38,7 @@ const ClassesPage = () => {
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [users, setUsers] = useState([]);
+  const [filteredInstructorUsers, setFilteredInstructorUsers] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [activities, setActivities] = useState([]);
   
@@ -84,13 +88,39 @@ const ClassesPage = () => {
       if (subjectsRes?.success) setSubjects(subjectsRes.data || []);
       if (usersRes?.success) {
         setUsers(usersRes.data || []);
-        // Debug: Log users and their roles
-        logger.log('🔍 [ClassesPage] Loaded users:', usersRes.data?.map(u => ({
-          email: u.email,
-          displayName: u.displayName || u.name,
-          role: u.role,
-          active: u.active
-        })));
+        
+        // Filter instructor users using centralized utilities (FLAG ONLY)
+        const instructorUsers = usersRes.data?.filter(u => 
+          isSuperAdminUser(u) || isAdminUser(u) || isInstructorUser(u)
+        );
+        setFilteredInstructorUsers(instructorUsers || []);
+        
+        console.log('🔍 [ClassesPage] UserSelect Debug:', {
+          totalUsers: usersRes.data?.length,
+          instructorUsers: instructorUsers?.length,
+          currentUser: user?.email
+        });
+        
+        // Debug class data and lookup issues
+        console.log('🔍 [ClassesPage] Column Lookup Debug:', {
+          classSubjectId: classesRes?.data?.[0]?.subjectId,
+          classProgramId: classesRes?.data?.[0]?.programId,
+          foundSubject: subjects.find(s => (s.docId || s.id) === classesRes?.data?.[0]?.subjectId),
+          foundProgram: programs.find(p => (p.docId || p.id) === classesRes?.data?.[0]?.programId)
+        });
+        
+        // Make the fix function available in console for debugging
+        if (typeof window !== 'undefined') {
+          window.fixUserRole = async () => {
+            console.log('🔧 Fixing user role...');
+            const result = await makeCurrentUserSuperAdminAndInstructor();
+            console.log('🔧 Result:', result);
+            if (result.success) {
+              console.log('✅ User role fixed! Please refresh the page.');
+            }
+          };
+          console.log('🔧 Run window.fixUserRole() in console to fix your role');
+        }
       }
       if (enrollmentsRes?.success) setEnrollments(enrollmentsRes.data || []);
       if (activitiesRes?.success) setActivities(activitiesRes.data || []);
@@ -270,72 +300,68 @@ const handleCancelEdit = useCallback(() => {
       field: 'subjectId', headerName: t('subject') || 'Subject', flex: 1, minWidth: 180,
       valueGetter: (params) => {
         const row = params?.row || {};
-        const subjectId = row.subjectId || params?.value;
-        if (!subjectId) return '—';
-        const subject = subjects.find(s => (s.docId === subjectId) || (s.id === subjectId));
-        if (!subject) return '—';
-        const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : subject.name_en;
-        return subjectName || '—';
+        return row.subjectId || row.subject || params?.value || null;
       },
       renderCell: (params) => {
-        const row = params?.row || {};
-        const subjectId = row.subjectId || params?.value;
+        const subjectId = params.value || params.row?.subjectId || params.row?.subject;
         if (!subjectId) return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-            {/*{getThemedIcon('ui', 'book_open', 16, theme)}*/}
-            —
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            {t('general') || 'General'}
           </span>
         );
-        const subject = subjects.find(s => (s.docId === subjectId) || (s.id === subjectId));
+        const subject = subjects.find(s => (s.docId || s.id) === subjectId);
         if (!subject) return '—';
-        const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : subject.name_en;
+        const subjectName = lang === 'ar' 
+          ? (subject.nameAr || subject.nameEn || subject.name || subjectId) 
+          : (subject.nameEn || subject.nameAr || subject.name || subjectId);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {/*{getThemedIcon('ui', 'book_open', 16, theme)} */}
-            {subjectName || '—'}
+            {subjectName}
           </span>
         );
+      },
+      valueFormatter: (params) => {
+        if (!params.value) return t('general') || 'General';
+        const subject = subjects.find(s => (s.docId || s.id) === params.value);
+        if (!subject) return '—';
+        const subjectName = lang === 'ar' 
+          ? (subject.nameAr || subject.nameEn || subject.name || params.value) 
+          : (subject.nameEn || subject.nameAr || subject.name || params.value);
+        return subjectName;
       }
     },
     {
       field: 'programId', headerName: t('program') || 'Program', flex: 1, minWidth: 180,
       valueGetter: (params) => {
         const row = params?.row || {};
-        const programId = row.programId || params?.value;
-        if (!programId) return '—';
-        // Find program via subject
-        const subject = subjects.find(s => (s.docId === row.subjectId) || (s.id === row.subjectId));
-        if (subject && subject.programId) {
-          const program = programs.find(p => (p.docId === subject.programId) || (p.id === subject.programId));
-          if (program) {
-            const programName = lang === 'ar' ? (program.name_ar || program.name_en) : program.name_en;
-            return programName || '—';
-          }
-        }
-        return '—';
+        return row.programId || row.program || params?.value || null;
       },
       renderCell: (params) => {
-        const row = params?.row || {};
-        const programId = row.programId || params?.value;
+        const programId = params.value || params.row?.programId || params.row?.program;
         if (!programId) return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-            —
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            {t('general') || 'General'}
           </span>
         );
-        // Find program via subject
-        const subject = subjects.find(s => (s.docId === row.subjectId) || (s.id === row.subjectId));
-        if (subject && subject.programId) {
-          const program = programs.find(p => (p.docId === subject.programId) || (p.id === subject.programId));
-          if (program) {
-            const programName = lang === 'ar' ? (program.name_ar || program.name_en) : program.name_en;
-            return (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                {programName || '—'}
-              </span>
-            );
-          }
-        }
-        return '—';
+        const program = programs.find(p => (p.docId || p.id) === programId);
+        if (!program) return '—';
+        const programName = lang === 'ar' 
+          ? (program.nameAr || program.nameEn || program.name || programId) 
+          : (program.nameEn || program.nameAr || program.name || programId);
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            {programName}
+          </span>
+        );
+      },
+      valueFormatter: (params) => {
+        if (!params.value) return t('general') || 'General';
+        const program = programs.find(p => (p.docId || p.id) === params.value);
+        if (!program) return '—';
+        const programName = lang === 'ar' 
+          ? (program.nameAr || program.nameEn || program.name || params.value) 
+          : (program.nameEn || program.nameAr || program.name || params.value);
+        return programName;
       }
     },
     { 
@@ -399,29 +425,47 @@ const handleCancelEdit = useCallback(() => {
     {
       field: 'createdAt',
       headerName: t('created_at') || 'Created At',
-      width: 150,
-      valueGetter: (params) => {
-        const row = params?.row || {};
-        const createdAt = row.createdAt || params?.value;
+      width: 180,
+      valueGetter: (params) => params.value,
+      renderCell: (params) => {
+        const createdAt = params.value || params.row?.createdAt;
         if (!createdAt) return '—';
-        // Handle both Firestore Timestamp and string formats
-        if (typeof createdAt === 'object' && createdAt.toDate) {
-          return createdAt.toDate().toLocaleDateString();
+        
+        // If it's already a formatted string, display it directly
+        if (typeof createdAt === 'string' && createdAt.includes('UTC+3')) {
+          return createdAt;
         }
-        if (typeof createdAt === 'string') {
-          return new Date(createdAt).toLocaleDateString();
+        
+        // Otherwise, format it
+        return formatQatarStandard(createdAt);
+      },
+      valueFormatter: (params) => {
+        if (!params.value) return '—';
+        
+        // If it's already a formatted string, return it directly
+        if (typeof params.value === 'string' && params.value.includes('UTC+3')) {
+          return params.value;
         }
-        return '—';
+        
+        // Otherwise, format it
+        return formatQatarStandard(params.value);
       }
     },
     {
       field: 'createdBy',
-      headerName: t('created_by') || 'Created By (UID)',
+      headerName: t('created_by') || 'Created By',
       width: 180,
-      valueGetter: (params) => {
-        const row = params?.row || {};
-        const createdBy = row.createdBy || params?.value;
-        return createdBy || '—';
+      renderCell: (params) => {
+        const createdBy = params.value || params.row?.createdBy;
+        if (!createdBy) return 'Unknown';
+        
+        // Try to find user display name from users array (same as ActivitiesPage)
+        const user = users.find(u => (u.uid || u.id) === createdBy);
+        if (user) {
+          return user.displayName || user.name || user.email || createdBy;
+        }
+        
+        return createdBy;
       }
     },
     {
@@ -506,23 +550,24 @@ const handleCancelEdit = useCallback(() => {
           <ProgramsSelect
             programs={programs}
             subjects={subjects}
-            classes={classes}
+            classes={[]} // Pass empty array to hide class selection
             selectedProgram={classForm.programId}
             selectedSubject={classForm.subjectId}
-            selectedClass={classForm.classId || ''}
+            selectedClass=""
             onProgramChange={(programId) => setClassForm(prev => ({ ...prev, programId, subjectId: '', classId: '' }))}
             onSubjectChange={(subjectId) => setClassForm(prev => ({ ...prev, subjectId, classId: '' }))}
-            onClassChange={(classId) => setClassForm(prev => ({ ...prev, classId }))}
+            onClassChange={() => {}}
+            showClasses={false} // Use correct prop name
             showLabels={false}
             required
           />
           <UserSelect
-            users={users}
+            users={filteredInstructorUsers}
             enrollments={enrollments}
             value={classForm.ownerEmail}
             onChange={e => setClassForm({ ...classForm, ownerEmail: e.target.value })}
             placeholder={t('select_instructor') || 'Select Instructor'}
-            roleFilter={[USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.INSTRUCTOR]}
+            roleFilter={[]} // No filtering needed - already filtered
             includeAll={false}
             showEnrollments={false}
             showStatus={true}
@@ -619,9 +664,9 @@ const handleCancelEdit = useCallback(() => {
             onChange={(e) => setClassInstructorFilter(e.target.value)}
             options={[
               { value: '', label: lang === 'ar' ? 'جميع المدربين' : 'All Instructors', icon: getThemedIcon('ui', 'users', 16, theme) },
-              ...users.filter(u => u.isInstructor === true).map(instructor => ({
+              ...users.filter(u => isSuperAdminUser(u) || isAdminUser(u) || isInstructorUser(u)).map(instructor => ({
                   value: instructor.email,
-                  label: instructor.displayName || instructor.email,
+                  label: instructor.displayName || instructor.name || instructor.email,
                   icon: getThemedIcon('ui', 'user', 16, theme)
                 }))
             ]}
