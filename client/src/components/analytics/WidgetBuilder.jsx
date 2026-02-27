@@ -208,70 +208,431 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
           </div>
 
           {/* Chart Type */}
-          <Field label={t('chart_type') || 'Chart Type'}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
-              {CHART_TYPES.map(({ type, icon, label }) => (
-                <button
-                  key={type}
-                  onClick={() => set({ chartType: type })}
-                  style={{
-                    padding: '0.85rem 0.5rem',
-                    border: config.chartType === type ? `2px solid ${accentColor}` : '1px solid var(--border)',
-                    borderRadius: 8,
-                    background: config.chartType === type ? `${accentColor}18` : 'transparent',
-                    cursor: 'pointer',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6
-                  }}
-                >
-                  <span style={{ color: config.chartType === type ? accentColor : 'var(--text)' }}>{icon}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: config.chartType === type ? accentColor : 'var(--text)' }}>{label}</span>
-                </button>
-              ))}
-            </div>
-          </Field>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
+            {CHART_TYPES.map(({ type, icon, label }) => (
+              <div
+                key={type}
+                onClick={() => set({ chartType: type })}
+                style={{
+                  padding: '12px 8px',
+                  border: config.chartType === type ? `2px solid ${accentColor}` : '1px solid var(--border)',
+                  borderRadius: 8,
+                  background: config.chartType === type 
+                    ? `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}08 100%)` 
+                    : 'transparent',
+                  cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                  transition: 'all 0.2s ease',
+                  transform: config.chartType === type ? 'scale(1.02)' : 'scale(1)',
+                  boxShadow: config.chartType === type ? `0 1px 4px ${accentColor}20` : 'none'
+                }}
+                onMouseEnter={(e) => {
+                  if (config.chartType !== type) {
+                    e.target.style.background = 'var(--hover)';
+                    e.target.style.transform = 'scale(1.01)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (config.chartType !== type) {
+                    e.target.style.background = 'transparent';
+                    e.target.style.transform = 'scale(1)';
+                  }
+                }}
+              >
+                <span style={{ color: config.chartType === type ? accentColor : 'var(--text)' }}>{icon}</span>
+                <span style={{ fontSize: 12, fontWeight: 400, color: config.chartType === type ? accentColor : 'var(--text)' }}>{label}</span>
+              </div>
+            ))}
+          </div>
 
           {/* Data Source */}
-          <Field label={t('data_source') || 'Data Source'}>
-            <Select
-              value={config.dataSource}
-              onChange={e => set({ dataSource: e.target.value, groupBy: availableDataSources.find(s => s.value === e.target.value)?.groupBy[0] || 'status' })}
-              options={availableDataSources.map(s => ({ value: s.value, label: t(s.labelKey) || s.label || s.value }))}
-              fullWidth
-            />
-          </Field>
+          <Select
+            value={config.dataSource}
+            onChange={e => {
+              const newDataSource = e.target.value;
+              const source = availableDataSources.find(s => s.value === newDataSource);
+              // Only set groupBy if chart type is not count
+              const newGroupBy = config.chartType === 'count' ? '' : (source?.groupBy[0] || 'status');
+              set({ dataSource: newDataSource, groupBy: newGroupBy });
+            }}
+            options={availableDataSources.map(s => ({ value: s.value, label: t(s.labelKey) || s.label || s.value }))}
+            fullWidth
+          />
 
           {/* Group By + Aggregation */}
           <div style={{ display: 'grid', gridTemplateColumns: isListWidget ? '1fr' : '1fr 1fr', gap: 12 }}>
-            <Field label={isListWidget ? (t('prefilter_optional') || 'Prefilter (optional)') : (t('group_by') || 'Group By')}>
-              <Select
-                value={config.groupBy}
-                onChange={e => set({ groupBy: e.target.value })}
-                options={groupByOptions}
-                fullWidth
-              />
-            </Field>
+            {/* Group By - Hide for count charts */}
+            {!isListWidget && config.chartType !== 'count' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 4 }}>
+                {/* First Column */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {/* None option */}
+                  <div
+                    key="none"
+                    onClick={() => set({ groupBy: '' })}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      border: !config.groupBy || config.groupBy === '' ? `2px solid ${accentColor}` : '1px solid var(--border)',
+                      background: !config.groupBy || config.groupBy === '' 
+                        ? `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}08 100%)` 
+                        : 'transparent',
+                      fontSize: 12,
+                      fontWeight: 400,
+                      color: !config.groupBy || config.groupBy === '' ? accentColor : 'var(--text)',
+                      textAlign: 'center',
+                      transform: !config.groupBy || config.groupBy === '' ? 'scale(1.01)' : 'scale(1)',
+                      boxShadow: !config.groupBy || config.groupBy === '' ? `0 1px 4px ${accentColor}20` : 'none',
+                      opacity: config.chartType === 'count' ? 0.5 : 1,
+                      pointerEvents: config.chartType === 'count' ? 'none' : 'auto'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (config.groupBy && config.chartType !== 'count') {
+                        e.target.style.background = 'var(--hover)';
+                        e.target.style.transform = 'scale(1.005)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (config.groupBy && config.chartType !== 'count') {
+                        e.target.style.background = 'transparent';
+                        e.target.style.transform = 'scale(1)';
+                      }
+                    }}
+                  >
+                    {t('none') || 'None'}
+                  </div>
+                  
+                  {/* Program */}
+                  {groupByOptions.find(o => o.value === 'programId') && (
+                    <div
+                      key="programId"
+                      onClick={() => set({ groupBy: 'programId' })}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '8px 10px',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        border: config.groupBy === 'programId' ? `2px solid ${accentColor}` : '1px solid var(--border)',
+                        background: config.groupBy === 'programId' 
+                          ? `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}08 100%)` 
+                          : 'transparent',
+                        fontSize: 12,
+                        fontWeight: 400,
+                        color: config.groupBy === 'programId' ? accentColor : 'var(--text)',
+                        textAlign: 'center',
+                        transform: config.groupBy === 'programId' ? 'scale(1.01)' : 'scale(1)',
+                        boxShadow: config.groupBy === 'programId' ? `0 1px 4px ${accentColor}20` : 'none',
+                        opacity: config.chartType === 'count' ? 0.5 : 1,
+                        pointerEvents: config.chartType === 'count' ? 'none' : 'auto'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (config.groupBy !== 'programId' && config.chartType !== 'count') {
+                          e.target.style.background = 'var(--hover)';
+                          e.target.style.transform = 'scale(1.005)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (config.groupBy !== 'programId' && config.chartType !== 'count') {
+                          e.target.style.background = 'transparent';
+                          e.target.style.transform = 'scale(1)';
+                        }
+                      }}
+                    >
+                      {groupByOptions.find(o => o.value === 'programId')?.label || 'Program'}
+                    </div>
+                  )}
+                  
+                  {/* Subject */}
+                  {groupByOptions.find(o => o.value === 'subjectId') && (
+                    <div
+                      key="subjectId"
+                      onClick={() => set({ groupBy: 'subjectId' })}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '8px 10px',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        border: config.groupBy === 'subjectId' ? `2px solid ${accentColor}` : '1px solid var(--border)',
+                        background: config.groupBy === 'subjectId' 
+                          ? `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}08 100%)` 
+                          : 'transparent',
+                        fontSize: 12,
+                        fontWeight: 400,
+                        color: config.groupBy === 'subjectId' ? accentColor : 'var(--text)',
+                        textAlign: 'center',
+                        transform: config.groupBy === 'subjectId' ? 'scale(1.01)' : 'scale(1)',
+                        boxShadow: config.groupBy === 'subjectId' ? `0 1px 4px ${accentColor}20` : 'none',
+                        opacity: config.chartType === 'count' ? 0.5 : 1,
+                        pointerEvents: config.chartType === 'count' ? 'none' : 'auto'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (config.groupBy !== 'subjectId' && config.chartType !== 'count') {
+                          e.target.style.background = 'var(--hover)';
+                          e.target.style.transform = 'scale(1.005)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (config.groupBy !== 'subjectId' && config.chartType !== 'count') {
+                          e.target.style.background = 'transparent';
+                          e.target.style.transform = 'scale(1)';
+                        }
+                      }}
+                    >
+                      {groupByOptions.find(o => o.value === 'subjectId')?.label || 'Subject'}
+                    </div>
+                  )}
+                  
+                  {/* Class */}
+                  {groupByOptions.find(o => o.value === 'classId') && (
+                    <div
+                      key="classId"
+                      onClick={() => set({ groupBy: 'classId' })}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '8px 10px',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        border: config.groupBy === 'classId' ? `2px solid ${accentColor}` : '1px solid var(--border)',
+                        background: config.groupBy === 'classId' 
+                          ? `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}08 100%)` 
+                          : 'transparent',
+                        fontSize: 12,
+                        fontWeight: 400,
+                        color: config.groupBy === 'classId' ? accentColor : 'var(--text)',
+                        textAlign: 'center',
+                        transform: config.groupBy === 'classId' ? 'scale(1.01)' : 'scale(1)',
+                        boxShadow: config.groupBy === 'classId' ? `0 1px 4px ${accentColor}20` : 'none',
+                        opacity: config.chartType === 'count' ? 0.5 : 1,
+                        pointerEvents: config.chartType === 'count' ? 'none' : 'auto'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (config.groupBy !== 'classId' && config.chartType !== 'count') {
+                          e.target.style.background = 'var(--hover)';
+                          e.target.style.transform = 'scale(1.005)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (config.groupBy !== 'classId' && config.chartType !== 'count') {
+                          e.target.style.background = 'transparent';
+                          e.target.style.transform = 'scale(1)';
+                        }
+                      }}
+                    >
+                      {groupByOptions.find(o => o.value === 'classId')?.label || 'Class'}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Second Column - Other options */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {/* Activity Type option */}
+                  <div
+                    key="type"
+                    onClick={() => set({ groupBy: 'type' })}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      border: config.groupBy === 'type' ? `2px solid ${accentColor}` : '1px solid var(--border)',
+                      background: config.groupBy === 'type' 
+                        ? `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}08 100%)` 
+                        : 'transparent',
+                      fontSize: 12,
+                      fontWeight: 400,
+                      color: config.groupBy === 'type' ? accentColor : 'var(--text)',
+                      textAlign: 'center',
+                      transform: config.groupBy === 'type' ? 'scale(1.01)' : 'scale(1)',
+                      boxShadow: config.groupBy === 'type' ? `0 1px 4px ${accentColor}20` : 'none',
+                      opacity: config.chartType === 'count' ? 0.5 : 1,
+                      pointerEvents: config.chartType === 'count' ? 'none' : 'auto'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (config.groupBy !== 'type' && config.chartType !== 'count') {
+                        e.target.style.background = 'var(--hover)';
+                        e.target.style.transform = 'scale(1.005)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (config.groupBy !== 'type' && config.chartType !== 'count') {
+                        e.target.style.background = 'transparent';
+                        e.target.style.transform = 'scale(1)';
+                      }
+                    }}
+                  >
+                    {t('type') || 'Type'}
+                  </div>
+                  
+                  {groupByOptions
+                    .filter(option => !['programId', 'subjectId', 'classId', 'type'].includes(option.value))
+                    .map(option => (
+                      <div
+                        key={option.value}
+                        onClick={() => set({ groupBy: option.value })}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '8px 10px',
+                          borderRadius: 6,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          border: config.groupBy === option.value ? `2px solid ${accentColor}` : '1px solid var(--border)',
+                          background: config.groupBy === option.value 
+                            ? `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}08 100%)` 
+                            : 'transparent',
+                          fontSize: 12,
+                          fontWeight: 400,
+                          color: config.groupBy === option.value ? accentColor : 'var(--text)',
+                          textAlign: 'center',
+                          transform: config.groupBy === option.value ? 'scale(1.01)' : 'scale(1)',
+                          boxShadow: config.groupBy === option.value ? `0 1px 4px ${accentColor}20` : 'none',
+                          opacity: config.chartType === 'count' ? 0.5 : 1,
+                          pointerEvents: config.chartType === 'count' ? 'none' : 'auto'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (config.groupBy !== option.value && config.chartType !== 'count') {
+                            e.target.style.background = 'var(--hover)';
+                            e.target.style.transform = 'scale(1.005)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (config.groupBy !== option.value && config.chartType !== 'count') {
+                            e.target.style.background = 'transparent';
+                            e.target.style.transform = 'scale(1)';
+                          }
+                        }}
+                      >
+                        {option.label}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Aggregation */}
             {!isListWidget && (
-              <Field label={t('aggregation') || 'Aggregation'}>
-                <Select
-                  value={config.aggregation}
-                  onChange={e => set({ aggregation: e.target.value })}
-                  options={AGGREGATION_KEYS.map(a => ({ value: a.value, label: t(a.key) || a.value }))}
-                  fullWidth
-                />
-              </Field>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', 
+                gap: 6,
+                marginTop: 4
+              }}>
+                {AGGREGATION_KEYS.map(a => (
+                  <div
+                    key={a.value}
+                    onClick={() => {
+                      set({ aggregation: a.value });
+                      // Only clear groupBy when switching to count chart type, not just count aggregation
+                      if (config.chartType === 'count') {
+                        set({ groupBy: '' });
+                      }
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      border: config.aggregation === a.value ? `2px solid ${accentColor}` : '1px solid var(--border)',
+                      background: config.aggregation === a.value 
+                        ? `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}08 100%)` 
+                        : 'transparent',
+                      fontSize: 12,
+                      fontWeight: 400,
+                      color: config.aggregation === a.value ? accentColor : 'var(--text)',
+                      textAlign: 'center',
+                      transform: config.aggregation === a.value ? 'scale(1.01)' : 'scale(1)',
+                      boxShadow: config.aggregation === a.value ? `0 1px 4px ${accentColor}20` : 'none'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (config.aggregation !== a.value) {
+                        e.target.style.background = 'var(--hover)';
+                        e.target.style.transform = 'scale(1.005)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (config.aggregation !== a.value) {
+                        e.target.style.background = 'transparent';
+                        e.target.style.transform = 'scale(1)';
+                      }
+                    }}
+                  >
+                    {t(a.key) || a.value}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
           {/* Date Range */}
-          <Field label={t('date_range') || 'Date Range'}>
-            <Select
-              value={config.dateRange}
-              onChange={e => set({ dateRange: e.target.value, customDateFrom: '', customDateTo: '' })}
-              options={DATE_RANGE_KEYS.map(r => ({ value: r.value, label: t(r.key) || r.value }))}
-              fullWidth
-            />
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', 
+            gap: 8,
+            marginTop: 4
+          }}>
+            {DATE_RANGE_KEYS.map(r => (
+              <div
+                key={r.value}
+                onClick={() => set({ dateRange: r.value, customDateFrom: '', customDateTo: '' })}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  border: config.dateRange === r.value ? `2px solid ${accentColor}` : '1px solid var(--border)',
+                  background: config.dateRange === r.value 
+                    ? `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}08 100%)` 
+                    : 'transparent',
+                  fontSize: 13,
+                  fontWeight: 400,
+                  color: config.dateRange === r.value ? accentColor : 'var(--text)',
+                  textAlign: 'center',
+                  transform: config.dateRange === r.value ? 'scale(1.01)' : 'scale(1)',
+                  boxShadow: config.dateRange === r.value ? `0 1px 4px ${accentColor}20` : 'none'
+                }}
+                onMouseEnter={(e) => {
+                  if (config.dateRange !== r.value) {
+                    e.target.style.background = 'var(--hover)';
+                    e.target.style.transform = 'scale(1.005)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (config.dateRange !== r.value) {
+                    e.target.style.background = 'transparent';
+                    e.target.style.transform = 'scale(1)';
+                  }
+                }}
+              >
+                {t(r.key) || r.value}
+              </div>
+            ))}
+          </div>
             {config.dateRange === 'custom' && (
-              <div style={{ marginTop: 10 }}>
+              <div style={{ marginTop: 16 }}>
                 <DateRangeSlider
                   fromDate={config.customDateFrom}
                   toDate={config.customDateTo}
@@ -282,7 +643,6 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                 />
               </div>
             )}
-          </Field>
 
           {/* Comparison Mode - Deprecated */}
           {/* <Field label="">

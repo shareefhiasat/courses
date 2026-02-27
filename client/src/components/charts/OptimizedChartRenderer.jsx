@@ -73,7 +73,7 @@ const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData,
       case 'bar':
         return (
           <Suspense fallback={<ChartFallback size={size} />}>
-            <BarChart {...chartProps} />
+            <BarChart {...chartProps} showValues={false} />
           </Suspense>
         );
       
@@ -106,19 +106,61 @@ const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData,
         );
       
       case 'count':
+        // Calculate responsive font size
+        const widgetSize = Math.max(size.width, size.height) / 50; // Convert pixels to grid units (approximate)
+        const calculatedFont = Math.max(2.5, Math.min(7, widgetSize * 0.9)) + 'rem'; // Smaller font: 2.5-7rem, 0.9x scaling
+        
         return (
           <div style={{ 
-            padding: '2rem', 
+            width: '100%',
+            height: '100%',
+            padding: size.width <= 180 ? '0.1rem' : (size.height <= 100 ? '0.25rem' : '0.5rem'), // Use pixel values for padding
             textAlign: 'center', 
             color: 'var(--text)',
-            height: '100%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '2rem',
-            fontWeight: 'bold'
+            fontSize: calculatedFont, // Use the calculated font
+            fontWeight: 'normal',
+            background: `linear-gradient(135deg, ${accentColor}35 0%, ${accentColor}25 100%)`, // Even darker background
+            borderRadius: '12px',
+            border: `3px solid ${accentColor}40`, // Thicker border
+            position: 'relative',
+            overflow: 'hidden',
+            transition: 'all 0.3s ease',
+            boxSizing: 'border-box' // Ensure padding doesn't overflow
           }}>
-            {data.length > 0 ? data[0].value : 0}
+            {/* Animated background effect */}
+            <div style={{
+              position: 'absolute',
+              top: '-50%',
+              left: '-50%',
+              width: '200%',
+              height: '200%',
+              background: `radial-gradient(circle, ${accentColor}10 0%, transparent 70%)`,
+              animation: 'pulse 3s ease-in-out infinite',
+              pointerEvents: 'none'
+            }} />
+            
+            {/* Main number - perfectly centered and flexible */}
+            <div style={{
+              fontSize: 'inherit',
+              fontWeight: 'inherit',
+              color: accentColor,
+              textShadow: `0 2px 8px ${accentColor}30`,
+              position: 'relative',
+              zIndex: 1,
+              animation: 'countIn 0.6s ease-out',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: '100%',
+              flex: 1,
+              lineHeight: 1.1 // Tighter line height for better fit
+            }}>
+              {data.length > 0 ? data[0].value.toLocaleString() : 0}
+            </div>
           </div>
         );
       
@@ -146,5 +188,38 @@ const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData,
 });
 
 OptimizedChartRenderer.displayName = 'OptimizedChartRenderer';
+
+// Add CSS animations for count widget
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.3;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 0.6;
+    }
+  }
+  
+  @keyframes countIn {
+    0% {
+      transform: scale(0.8) translateY(20px);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.1) translateY(-5px);
+    }
+    100% {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+  }
+`;
+if (!document.head.querySelector('style[data-count-widget]')) {
+  style.setAttribute('data-count-widget', 'true');
+  document.head.appendChild(style);
+}
 
 export default OptimizedChartRenderer;

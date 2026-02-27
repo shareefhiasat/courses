@@ -1,18 +1,32 @@
 import logger from '@utils/logger';
+import { 
+  getCategories as getCategoriesFromDb,
+  getCategoryById as getCategoryByIdFromDb,
+  createCategory as createCategoryToDb,
+  updateCategory as updateCategoryInDb,
+  deleteCategory as deleteCategoryFromDb
+} from '../db/categoryDbService';
+import { handleServiceError, withRetry, measurePerformance } from '@utils/errorHandling';
 
 /**
  * Get all categories - with performance monitoring and memoization
  */
 export const getCategories = async () => {
   try {
-    // This function would need to be implemented in the database layer
-    // For now, we'll delegate to a database service when available
-    logger.warn('getCategories called - needs database service implementation');
+    logger.info('CATEGORY: Fetching all categories');
     
-    return { success: false, error: 'Database service not yet implemented for category management' };
+    const result = await getCategoriesFromDb();
+    
+    if (result.success) {
+      logger.info('CATEGORY: Successfully fetched categories', { count: result.data.length });
+    } else {
+      logger.warn('CATEGORY: Failed to fetch categories', { error: result.error });
+    }
+    
+    return result;
   } catch (error) {
-    console.error("Error getting categories:", error);
-    return { success: false, error: error.message };
+    logger.error('CATEGORY: Failed to fetch categories', { error: error.message });
+    return handleServiceError(error, { operation: 'getCategories' });
   }
 };
 
@@ -21,9 +35,10 @@ export const getCategories = async () => {
  */
 export const seedDefaultCategories = async () => {
   try {
+    logger.info('CATEGORY: Seeding default categories');
+    
     const defaultCategories = [
       {
-        docId: 'programming',
         name_en: 'Programming',
         name_ar: 'البرمجة',
         icon: 'code',
@@ -33,7 +48,6 @@ export const seedDefaultCategories = async () => {
         order: 1
       },
       {
-        docId: 'computing',
         name_en: 'Computing',
         name_ar: 'الحوسبة',
         icon: 'monitor',
@@ -43,7 +57,6 @@ export const seedDefaultCategories = async () => {
         order: 2
       },
       {
-        docId: 'algorithm',
         name_en: 'Algorithm',
         name_ar: 'الخوارزميات',
         icon: 'brain',
@@ -53,7 +66,6 @@ export const seedDefaultCategories = async () => {
         order: 3
       },
       {
-        docId: 'general',
         name_en: 'General',
         name_ar: 'عام',
         icon: 'folder',
@@ -67,19 +79,24 @@ export const seedDefaultCategories = async () => {
     const results = [];
     for (const category of defaultCategories) {
       try {
-        // This function would need to be implemented in the database layer
-        // For now, we'll delegate to a database service when available
-        logger.warn(`seedDefaultCategories called for ${category.docId} - needs database service implementation`);
-        results.push({ action: 'not_implemented', category: category.docId, success: false });
+        const result = await createCategoryToDb(category);
+        if (result.success) {
+          logger.info('CATEGORY: Successfully seeded category', { name: category.name_en, docId: result.id });
+          results.push({ action: 'created', category: category.name_en, success: true, id: result.id });
+        } else {
+          logger.warn('CATEGORY: Failed to seed category', { name: category.name_en, error: result.error });
+          results.push({ action: 'error', category: category.name_en, success: false, error: result.error });
+        }
       } catch (error) {
-        console.error(`Error creating category ${category.docId}:`, error);
-        results.push({ action: 'error', category: category.docId, success: false, error: error.message });
+        logger.error('CATEGORY: Error seeding category', { name: category.name_en, error: error.message });
+        results.push({ action: 'error', category: category.name_en, success: false, error: error.message });
       }
     }
 
+    logger.info('CATEGORY: Seeding completed', { total: results.length, successful: results.filter(r => r.success).length });
     return { success: true, data: results };
   } catch (error) {
-    console.error("Error seeding categories:", error);
+    logger.error('CATEGORY: Error seeding categories', { error: error.message });
     return { success: false, error: error.message };
   }
 };
@@ -89,13 +106,19 @@ export const seedDefaultCategories = async () => {
  */
 export const addCategory = async (categoryData) => {
   try {
-    // This function would need to be implemented in the database layer
-    // For now, we'll delegate to a database service when available
-    logger.warn('addCategory called - needs database service implementation');
+    logger.info('CATEGORY: Adding new category', { name: categoryData.name_en });
     
-    return { success: false, error: 'Database service not yet implemented for category management' };
+    const result = await createCategoryToDb(categoryData);
+    
+    if (result.success) {
+      logger.info('CATEGORY: Successfully added category', { name: categoryData.name_en, docId: result.id });
+    } else {
+      logger.warn('CATEGORY: Failed to add category', { name: categoryData.name_en, error: result.error });
+    }
+    
+    return result;
   } catch (error) {
-    console.error("Error adding category:", error);
+    logger.error('CATEGORY: Error adding category', { error: error.message });
     return { success: false, error: error.message };
   }
 };
@@ -105,13 +128,19 @@ export const addCategory = async (categoryData) => {
  */
 export const updateCategory = async (docId, categoryData) => {
   try {
-    // This function would need to be implemented in the database layer
-    // For now, we'll delegate to a database service when available
-    logger.warn('updateCategory called - needs database service implementation');
+    logger.info('CATEGORY: Updating category', { docId, name: categoryData.name_en });
     
-    return { success: false, error: 'Database service not yet implemented for category management' };
+    const result = await updateCategoryInDb(docId, categoryData);
+    
+    if (result.success) {
+      logger.info('CATEGORY: Successfully updated category', { docId, name: categoryData.name_en });
+    } else {
+      logger.warn('CATEGORY: Failed to update category', { docId, name: categoryData.name_en, error: result.error });
+    }
+    
+    return result;
   } catch (error) {
-    console.error("Error updating category:", error);
+    logger.error('CATEGORY: Error updating category', { docId, error: error.message });
     return { success: false, error: error.message };
   }
 };
@@ -121,13 +150,19 @@ export const updateCategory = async (docId, categoryData) => {
  */
 export const deleteCategory = async (docId) => {
   try {
-    // This function would need to be implemented in the database layer
-    // For now, we'll delegate to a database service when available
-    logger.warn('deleteCategory called - needs database service implementation');
+    logger.info('CATEGORY: Deleting category', { docId });
     
-    return { success: false, error: 'Database service not yet implemented for category management' };
+    const result = await deleteCategoryFromDb(docId);
+    
+    if (result.success) {
+      logger.info('CATEGORY: Successfully deleted category', { docId });
+    } else {
+      logger.warn('CATEGORY: Failed to delete category', { docId, error: result.error });
+    }
+    
+    return result;
   } catch (error) {
-    console.error("Error deleting category:", error);
+    logger.error('CATEGORY: Error deleting category', { docId, error: error.message });
     return { success: false, error: error.message };
   }
 };
@@ -137,18 +172,19 @@ export const deleteCategory = async (docId) => {
  */
 export const getCategoryById = async (docId) => {
   try {
-    const docSnapshot = await getDoc(doc(db, "categories", docId));
-    if (docSnapshot.exists()) {
-      const categoryData = { docId: docSnapshot.id, ...docSnapshot.data() };
-      if (categoryData.createdAt?.toDate) {
-        categoryData.createdAt = categoryData.createdAt.toDate();
-      }
-      return { success: true, data: categoryData };
+    logger.info('CATEGORY: Fetching category by ID', { docId });
+    
+    const result = await getCategoryByIdFromDb(docId);
+    
+    if (result.success) {
+      logger.info('CATEGORY: Successfully fetched category by ID', { docId });
     } else {
-      return { success: false, error: "Category not found" };
+      logger.warn('CATEGORY: Failed to fetch category by ID', { docId, error: result.error });
     }
+    
+    return result;
   } catch (error) {
-    console.error("Error getting category:", error);
+    logger.error('CATEGORY: Error fetching category by ID', { docId, error: error.message });
     return { success: false, error: error.message };
   }
 };

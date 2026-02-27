@@ -51,6 +51,10 @@ function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor 
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
   
+  // Calculate responsive font sizes based on chart dimensions
+  const axisFontSize = Math.max(9, Math.min(13, Math.min(width, height) / 22));
+  const labelFontSize = Math.max(9, Math.min(12, Math.min(width, height) / 25));
+  
   const maxValue = Math.max(...data.map(d => d.value || 0), 1);
   const minValue = Math.min(...data.map(d => d.value || 0), 0);
   const range = maxValue - minValue || 1;
@@ -76,32 +80,68 @@ function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor 
       {/* Grid lines */}
       {showGrid && (
         <g>
-          {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
-            const y = padding.top + chartHeight * (1 - ratio);
-            const value = minValue + range * ratio;
-            return (
-              <g key={i}>
-                <line
-                  x1={padding.left}
-                  y1={y}
-                  x2={padding.left + chartWidth}
-                  y2={y}
-                  stroke="#e5e7eb"
-                  strokeWidth="1"
-                  strokeDasharray="4,4"
-                />
-                <text
-                  x={padding.left - 10}
-                  y={y + 4}
-                  textAnchor="end"
-                  fontSize="11"
-                  fill="#6b7280"
-                >
-                  {Math.round(value)}
-                </text>
-              </g>
-            );
-          })}
+          {(() => {
+            // Smart grid line generation based on data range
+            const range = maxValue - minValue;
+            let gridLines = [];
+            
+            // DEBUG: Log line chart data for debugging (only once)
+            if (data.length > 0 && !window.lineChartDebugged) {
+              console.log('[LINE CHART DEBUG] Data:', data.map(d => ({ label: d.label, value: d.value })));
+              console.log('[LINE CHART DEBUG] Range:', { minValue, maxValue, range });
+              window.lineChartDebugged = true;
+            }
+            
+            if (range <= 3) {
+              // For small ranges (0-3), show all integers
+              for (let i = Math.floor(minValue); i <= Math.ceil(maxValue); i++) {
+                gridLines.push(i);
+              }
+            } else if (range <= 10) {
+              // For medium ranges (4-10), show every 1 or 2 units
+              const step = range > 6 ? 2 : 1;
+              const start = Math.floor(minValue / step) * step;
+              for (let i = start; i <= Math.ceil(maxValue); i += step) {
+                gridLines.push(i);
+              }
+            } else {
+              // For large ranges (>10), use 5-6 evenly spaced lines
+              const step = Math.ceil(range / 5);
+              const start = Math.floor(minValue / step) * step;
+              for (let i = start; i <= Math.ceil(maxValue); i += step) {
+                gridLines.push(i);
+              }
+            }
+            
+            return gridLines.map((value, i) => {
+              const ratio = range > 0 ? (value - minValue) / range : 0;
+              const y = padding.top + chartHeight * (1 - ratio);
+              
+              return (
+                <g key={i}>
+                  <line
+                    x1={padding.left}
+                    y1={y}
+                    x2={padding.left + chartWidth}
+                    y2={y}
+                    stroke="#e5e7eb"
+                    strokeWidth="1"
+                    strokeDasharray="4,4"
+                  />
+                  <text
+                    x={padding.left - 10}
+                    y={y + 4}
+                    textAnchor="end"
+                    fontSize={axisFontSize}
+                    fontWeight="bold"
+                    fill="#6b7280"
+                  >
+                    {value}
+                  </text>
+                </g>
+              );
+            });
+          })()}
         </g>
       )}
 
@@ -143,7 +183,8 @@ function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor 
             x={p.x}
             y={height - padding.bottom + 20}
             textAnchor="middle"
-            fontSize="11"
+            fontSize={labelFontSize}
+            fontWeight="bold"
             fill="#6b7280"
             transform={`rotate(-45, ${p.x}, ${height - padding.bottom + 20})`}
           >

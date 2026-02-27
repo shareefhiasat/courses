@@ -44,8 +44,13 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
   // Use the smaller dimension for the chart to ensure it fits
   const chartSize = Math.min(chartWidth, chartHeight);
   
+  // Calculate responsive font sizes based on chart size
+  const labelFontSize = Math.max(8, Math.min(14, chartSize / 20));
+  const centerFontSize = Math.max(12, Math.min(20, chartSize / 15));
+  const legendFontSize = Math.max(10, Math.min(14, chartSize / 20)); // Less aggressive scaling (was /12, max 18)
+  
   if (!data || data.length === 0) {
-    return <div style={{ width: chartWidth, height: chartHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>{t('no_data') || 'No data'}</div>;
+    return <div style={{ width: chartWidth, height: chartHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999', fontSize: legendFontSize }}>{t('no_data') || 'No data'}</div>;
   }
 
   const total = data.reduce((sum, item) => sum + (item.value || 0), 0);
@@ -55,7 +60,20 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
 
   const centerX = chartSize / 2;
   const centerY = chartSize / 2;
-  const radius = Math.min(chartSize / 2 - 15, 100); // Much smaller padding
+  
+  // Smart radius calculation based on legend presence and chart size
+  let radius;
+  if (showLegend && chartHeight < 200) {
+    // Small charts with legend - make more room for legend
+    radius = Math.min(chartSize / 2 - 20, chartSize * 0.35);
+  } else if (showLegend && chartHeight < 300) {
+    // Medium charts with legend
+    radius = Math.min(chartSize / 2 - 15, chartSize * 0.40);
+  } else {
+    // Large charts or no legend - use more space
+    radius = Math.min(chartSize / 2 - 5, chartSize * 0.45);
+  }
+  
   const innerRadius = donut ? radius * 0.6 : 0;
 
   const colors = [accentColor, '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
@@ -193,7 +211,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
                   x={slice.labelX}
                   y={slice.labelY}
                   textAnchor="middle"
-                  fontSize="9"
+                  fontSize={labelFontSize}
                   fontWeight="700"
                   fill="white"
                   style={{ pointerEvents: 'none' }}
@@ -211,7 +229,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
               y={centerY}
               textAnchor="middle"
               dominantBaseline="middle"
-              fontSize="16"
+              fontSize={centerFontSize}
               fontWeight="800"
               fill="#374151"
             >
@@ -233,7 +251,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
                 }}
               >
                 <div style={{ width: 8, height: 8, borderRadius: 1, background: slice.color }} />
-                <span style={{ fontSize: 9, color: '#6b7280' }}>
+                <span style={{ fontSize: legendFontSize, color: '#6b7280' }}>
                   {slice.label} ({slice.value})
                 </span>
               </div>

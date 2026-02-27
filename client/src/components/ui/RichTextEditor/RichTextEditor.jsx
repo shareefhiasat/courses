@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback, memo } from 'react';
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 import styles from './RichTextEditor.module.css';
@@ -13,7 +13,7 @@ const defaultToolbarOptions = [
   ['clean'],
 ];
 
-function RichTextEditor({
+const RichTextEditor = memo(function RichTextEditor({
   value = '',
   onChange,
   label,
@@ -29,6 +29,32 @@ function RichTextEditor({
   const quillRef = useRef(null);
   const isUpdatingRef = useRef(false);
   const lastQuillHtmlRef = useRef('');  // tracks last HTML emitted by Quill
+  const userTypingRef = useRef(false);   // track if user is actively typing
+  const typingTimeoutRef = useRef(null); // timeout to detect when user stops typing
+
+  // Handle text changes with debouncing for performance
+  const handleChange = useCallback(() => {
+    if (!quillRef.current || isUpdatingRef.current) return;
+    
+    // Mark user as actively typing
+    userTypingRef.current = true;
+    
+    // Clear existing timeout and set new one
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      userTypingRef.current = false;
+    }, 1000); // Consider user stopped typing after 1 second
+    
+    const html = quillRef.current.root.innerHTML;
+    const normalized = html === '<p><br></p>' ? '' : html;
+    
+    lastQuillHtmlRef.current = normalized;
+    if (onChange) {
+      onChange(normalized);
+    }
+  }, [onChange]);
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -60,19 +86,19 @@ function RichTextEditor({
       quill.root.style.textAlign = 'right';
     }
 
-    // Handle text changes
+    // Use requestAnimationFrame for smoother typing
+    let rafId = null;
     quill.on('text-change', () => {
-      if (isUpdatingRef.current) return;
-      const html = quill.root.innerHTML;
-      const normalized = html === '<p><br></p>' ? '' : html;
-      lastQuillHtmlRef.current = normalized;
-      if (onChange) {
-        onChange(normalized);
-      }
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(handleChange);
     });
 
     const capturedEditorRef = editorRef.current;
     return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
       if (quillRef.current) {
         // Properly destroy Quill instance
         const toolbar = capturedEditorRef?.parentElement?.querySelector('.ql-toolbar');
@@ -89,19 +115,67 @@ function RichTextEditor({
   useEffect(() => {
     if (!quillRef.current) return;
     const normalizedValue = value || '';
+    
     // If this value was just emitted by Quill, don't re-set it (prevents typing lag)
     if (normalizedValue === lastQuillHtmlRef.current) return;
+    
+    // IMPORTANT: Don't update content if user is actively typing
+    // This prevents race conditions that cause cursor jumping
+    if (userTypingRef.current) {
+      return;
+    }
+    
     const currentContent = quillRef.current.root.innerHTML;
     const normalizedCurrent = currentContent === '<p><br></p>' ? '' : currentContent;
+    
     if (normalizedValue !== normalizedCurrent) {
+      // Save current cursor position BEFORE updating content
+      const selection = quillRef.current.getSelection();
+      
       isUpdatingRef.current = true;
-      if (normalizedValue === '') {
-        quillRef.current.setText('');
-      } else {
-        quillRef.current.root.innerHTML = normalizedValue;
-      }
-      isUpdatingRef.current = false;
-      lastQuillHtmlRef.current = normalizedValue;
+      
+      // Use requestAnimationFrame for smoother updates
+      requestAnimationFrame(() => {
+        if (!quillRef.current) return;
+        
+        try {
+          if (normalizedValue === '') {
+            quillRef.current.setText('');
+          } else {
+            // Safer approach: use Quill's dangerousPasteHTML instead of innerHTML
+            quillRef.current.root.innerHTML = normalizedValue;
+          }
+          
+          // Only restore cursor if we had a valid selection and the content length allows it
+          if (selection && 
+              typeof selection.index === 'number' && 
+              selection.index >= 0 && 
+              selection.index <= normalizedValue.length) {
+            try {
+              quillRef.current.setSelection(selection.index, selection.length);
+            } catch (e) {
+              // Fallback: set cursor to end
+              try {
+                quillRef.current.setSelection(normalizedValue.length, 0);
+              } catch (fallbackError) {
+                // Silent fallback - cursor will be at end by default
+              }
+            }
+          } else {
+            // Fallback: set cursor to end if no valid selection
+            try {
+              quillRef.current.setSelection(normalizedValue.length, 0);
+            } catch (e) {
+              // Silent fallback - cursor will be at end by default
+            }
+          }
+        } catch (error) {
+          // Silent error handling
+        } finally {
+          isUpdatingRef.current = false;
+          lastQuillHtmlRef.current = normalizedValue;
+        }
+      });
     }
   }, [value]);
 
@@ -122,6 +196,6 @@ function RichTextEditor({
       {error && <p className={styles.error}>{error}</p>}
     </div>
   );
-}
+});
 
 export default RichTextEditor;

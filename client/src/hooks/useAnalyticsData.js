@@ -391,10 +391,11 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
   // DEBUG: Log widget processing start with more details
   console.log(`[WIDGET DEBUG] 🎯 Processing: ${widget.title || 'Untitled'} (${dataSource}) - groupBy: "${groupBy}" - aggregation: ${aggregation}`);
   
-  // Enhanced validation for groupBy
+  // Enhanced validation for groupBy - allow empty for "None" selection
   if (!groupBy || groupBy.trim() === '' || groupBy === 'undefined' || groupBy === 'null') {
-    console.warn('[processWidgetData] Invalid groupBy provided:', { groupBy, widgetTitle: widget.title, dataSource });
-    return [];
+    // For "None" groupBy, treat as a single group with all data
+    console.log('[processWidgetData] No groupBy provided, treating as single group:', { widgetTitle: widget.title, dataSource });
+    // Don't return empty array, continue processing with single group
   }
 
   // ── Multi-source merge: dataSource can be comma-separated e.g. "activities,announcements,resources" ──
@@ -549,6 +550,11 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
   const grouped = {};
 
   const resolveLabel = (item) => {
+    // Handle "None" groupBy - return single label
+    if (!groupBy || groupBy.trim() === '' || groupBy === 'undefined' || groupBy === 'null') {
+      return 'All';
+    }
+    
     if (groupBy === 'programId' || groupBy === 'program') {
       const cId = item.classId || item.class || item.class_id;
       const sId = item.subjectId || item.subject || item.subject_id;

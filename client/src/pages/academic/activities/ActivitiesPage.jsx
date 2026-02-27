@@ -168,6 +168,15 @@ const ActivitiesPage = () => {
     setEmailOptions(prev => ({ ...prev, [field]: value }));
   }, [emailOptions]);
 
+  // Optimized handlers for RichTextEditor to prevent re-renders
+  const handleDescriptionEnChange = useCallback((html) => {
+    setActivityForm(prev => ({ ...prev, description_en: html }));
+  }, []);
+
+  const handleDescriptionArChange = useCallback((html) => {
+    setActivityForm(prev => ({ ...prev, description_ar: html }));
+  }, []);
+
   // Refs for text inputs — avoids re-rendering the whole page on every keystroke
   const titleEnRef = useRef(null);
   const titleArRef = useRef(null);
@@ -868,7 +877,7 @@ const ActivitiesPage = () => {
           <div style={{ flex: 1, marginInlineEnd: '16px' }}>
             <RichTextEditor
               value={activityForm.description_en}
-              onChange={(html) => setActivityForm(prev => ({ ...prev, description_en: html }))}
+              onChange={handleDescriptionEnChange}
               placeholder={t('description_english') || 'Description (English)'}
               height={100}
               dir="ltr"
@@ -877,7 +886,7 @@ const ActivitiesPage = () => {
           <div style={{ flex: 1 }}>
             <RichTextEditor
               value={activityForm.description_ar}
-              onChange={(html) => setActivityForm(prev => ({ ...prev, description_ar: html }))}
+              onChange={handleDescriptionArChange}
               placeholder={t('description_arabic') || 'Description (Arabic)'}
               height={100}
               dir="rtl"

@@ -51,6 +51,11 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
   
+  // Calculate responsive font sizes based on chart dimensions
+  const axisFontSize = Math.max(8, Math.min(12, Math.min(width, height) / 25));
+  const valueFontSize = Math.max(9, Math.min(14, Math.min(width, height) / 20));
+  const labelFontSize = Math.max(9, Math.min(12, Math.min(width, height) / 25));
+  
   const maxValue = Math.max(...data.map(d => d.value || 0), 1);
   const barWidth = horizontal ? chartHeight / data.length : chartWidth / data.length;
   const barGap = barWidth * 0.2;
@@ -61,31 +66,52 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
       {/* Grid lines */}
       {showGrid && (
         <g>
-          {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
-            const y = padding.top + chartHeight * (1 - ratio);
-            return (
-              <g key={i}>
-                <line
-                  x1={padding.left}
-                  y1={y}
-                  x2={padding.left + chartWidth}
-                  y2={y}
-                  stroke="#9ca3af" // Changed to gray
-                  strokeWidth="1"
-                  strokeDasharray="4,4"
-                />
-                <text
-                  x={padding.left - 10}
-                  y={y + 4}
-                  textAnchor="end"
-                  fontSize="10" // Smaller font
-                  fill="#6b7280"
-                >
-                  {Math.round(maxValue * ratio)}
-                </text>
-              </g>
-            );
-          })}
+          {(() => {
+            // Generate proper y-axis labels to avoid duplicates
+            const steps = 5; // Number of grid lines
+            const stepSize = maxValue / (steps - 1);
+            const yLabels = [];
+            
+            for (let i = 0; i < steps; i++) {
+              const value = Math.round(stepSize * i);
+              if (!yLabels.includes(value)) {
+                yLabels.push(value);
+              }
+            }
+            
+            // Ensure we have the max value at the end
+            if (!yLabels.includes(maxValue)) {
+              yLabels.push(maxValue);
+            }
+            
+            return yLabels.map((value, i) => {
+              const ratio = value / maxValue;
+              const y = padding.top + chartHeight * (1 - ratio);
+              return (
+                <g key={i}>
+                  <line
+                    x1={padding.left}
+                    y1={y}
+                    x2={padding.left + chartWidth}
+                    y2={y}
+                    stroke="#9ca3af" // Changed to gray
+                    strokeWidth="1"
+                    strokeDasharray="4,4"
+                  />
+                  <text
+                    x={padding.left - 10}
+                    y={y + 4}
+                    textAnchor="end"
+                    fontSize={axisFontSize} // Responsive font
+                    fontWeight="bold"
+                    fill="#6b7280"
+                  >
+                    {value}
+                  </text>
+                </g>
+              );
+            });
+          })()}
         </g>
       )}
 
@@ -118,7 +144,7 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
                 x={x + actualBarWidth / 2}
                 y={y - 5}
                 textAnchor="middle"
-                fontSize="11" // Smaller font
+                fontSize={valueFontSize} // Responsive font
                 fontWeight="600"
                 fill="#374151"
               >
@@ -131,7 +157,8 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
               x={x + actualBarWidth / 2}
               y={height - padding.bottom + 20}
               textAnchor="middle"
-              fontSize="10" // Smaller font
+              fontSize={labelFontSize} // Responsive font
+              fontWeight="normal"
               fill="#000000" // Changed to black for better readability
               transform={`rotate(-45, ${x + actualBarWidth / 2}, ${height - padding.bottom + 20})`}
             >
