@@ -33,7 +33,7 @@ import logger from '@utils/logger';
  */
 export const getSubjects = async () => {
   try {
-    const q = query(collection(db, 'subjects'), orderBy('name_en', 'asc'));
+    const q = query(collection(db, 'subjects'), orderBy('nameEn', 'asc'));
     const querySnapshot = await getDocs(q);
     const subjects = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: subjects };
@@ -133,7 +133,7 @@ export const getSubjectsByProgram = async (programId) => {
     const q = query(
       collection(db, 'subjects'), 
       where('programId', '==', programId),
-      orderBy('name_en', 'asc')
+      orderBy('nameEn', 'asc')
     );
     const querySnapshot = await getDocs(q);
     const subjects = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
@@ -153,7 +153,7 @@ export const getActiveSubjects = async () => {
     const q = query(
       collection(db, 'subjects'), 
       where('isActive', '==', true),
-      orderBy('name_en', 'asc')
+      orderBy('nameEn', 'asc')
     );
     const querySnapshot = await getDocs(q);
     const subjects = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
@@ -179,8 +179,8 @@ export const searchSubjects = async (searchTerm) => {
     }
     
     const filteredSubjects = result.data.filter(subject => 
-      subject.name_en?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      subject.name_ar?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      subject.nameEn?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      subject.nameAr?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       subject.code?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     

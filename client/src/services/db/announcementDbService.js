@@ -27,6 +27,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { db } from '../other/config';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import logger from '@utils/logger';
 
 /**
@@ -102,15 +103,15 @@ export const getAnnouncement = async (announcementId) => {
 /**
  * Create announcement
  * @param {Object} announcementData - Announcement data
- * @param {Object} auditData - Audit data (createdAt, updatedAt, createdBy, updatedBy)
+ * @param {Object} user - User object for audit trail
  * @returns {Promise<{success: boolean, id?: string, error?: string}>}
  */
-export const create = async (announcementData, auditData = {}) => {
+export const create = async (announcementData, user = null) => {
   try {
     const docRef = doc(collection(db, 'announcements'));
     await setDoc(docRef, {
       ...announcementData,
-      ...auditData
+      ...getCreateAuditData(user || { uid: 'system' })
     });
     return { success: true, id: docRef.id };
   } catch (error) {
@@ -123,14 +124,14 @@ export const create = async (announcementData, auditData = {}) => {
  * Update announcement
  * @param {string} announcementId - Announcement ID
  * @param {Object} announcementData - Updated announcement data
- * @param {Object} auditData - Audit data (updatedAt, updatedBy)
+ * @param {Object} user - User object for audit trail
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const update = async (announcementId, announcementData, auditData = {}) => {
+export const update = async (announcementId, announcementData, user = null) => {
   try {
     await updateDoc(doc(db, 'announcements', announcementId), {
       ...announcementData,
-      ...auditData
+      ...getUpdateAuditData(user || { uid: 'system' })
     });
     return { success: true };
   } catch (error) {

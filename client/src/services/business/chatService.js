@@ -1,5 +1,4 @@
 import logger from '@utils/logger';
-import { where, orderBy } from 'firebase/firestore';
 import { 
   getChatRoom as getChatRoomFromDb,
   createChatRoom as createChatRoomToDb,
@@ -41,6 +40,7 @@ import {
   addPollVote as addPollVoteFromDb,
   subscribeToDirectRooms as subscribeToDirectRoomsFromDb
 } from '../db/chatDbService';
+import { createWhereConstraint, createOrderByConstraint } from '../db/chatDbService';
 
 // Chat Service - Centralized chat operations
 export const chatService = {
@@ -288,9 +288,9 @@ export const chatService = {
 
   async clearChatMessages(roomId, mode = 'all', userId = null) {
     try {
-      const constraints = [where('type', '==', 'dm'), where('roomId', '==', roomId)];
+      const constraints = [createWhereConstraint('type', '==', 'dm'), createWhereConstraint('roomId', '==', roomId)];
       if (mode === 'mine' && userId) {
-        constraints.push(where('senderId', '==', userId));
+        constraints.push(createWhereConstraint('senderId', '==', userId));
       }
 
       const result = await deleteMessagesByQueryFromDb(constraints);
@@ -314,7 +314,7 @@ export const chatService = {
 
   async deleteDirectRoom(roomId) {
     try {
-      await deleteMessagesByQueryFromDb([where('type', '==', 'dm'), where('roomId', '==', roomId)]);
+      await deleteMessagesByQueryFromDb([createWhereConstraint('type', '==', 'dm'), createWhereConstraint('roomId', '==', roomId)]);
       const result = await deleteDirectRoomFromDb(roomId);
       if (!result.success) {
         throw new Error(result.error);
@@ -405,12 +405,12 @@ export const chatService = {
     };
 
     const globalReadAt = chatReads['global'];
-    makeUnsub('global', [where('type', '==', 'global')], globalReadAt);
+    makeUnsub('global', [createWhereConstraint('type', '==', 'global')], globalReadAt);
 
     Object.keys(chatReads).forEach(key => {
       if (key.startsWith('class:')) {
         const classId = key.slice(6);
-        makeUnsub(classId, [where('classId', '==', classId)], chatReads[key]);
+        makeUnsub(classId, [createWhereConstraint('classId', '==', classId)], chatReads[key]);
       }
     });
 
@@ -420,7 +420,7 @@ export const chatService = {
   subscribeToClassUnreadCounts(classId, chatReads, callback) {
     const readAt = chatReads[classId] || chatReads[`class:${classId}`];
     return subscribeToMessagesWithQueryFromDb([
-      where('classId', '==', classId)
+      createWhereConstraint('classId', '==', classId)
     ], (snap) => {
       let count = 0;
       snap.forEach(d => {
@@ -438,8 +438,8 @@ export const chatService = {
     const dmKey = `dm:${room.id}`;
     const readAt = chatReads[dmKey];
     return subscribeToMessagesWithQueryFromDb([
-      where('type', '==', 'dm'),
-      where('roomId', '==', room.id)
+      createWhereConstraint('type', '==', 'dm'),
+      createWhereConstraint('roomId', '==', room.id)
     ], (snap) => {
       let count = 0;
       snap.forEach(d => {
@@ -457,19 +457,19 @@ export const chatService = {
   subscribeToMessages(chatType, chatId, callback) {
     if (chatType === 'global') {
       return subscribeToMessagesWithQueryFromDb([
-        where('type', '==', 'global'), 
-        orderBy('createdAt', 'asc')
+        createWhereConstraint('type', '==', 'global'), 
+        createOrderByConstraint('createdAt', 'asc')
       ], callback);
     } else if (chatType === 'class') {
       return subscribeToMessagesWithQueryFromDb([
-        where('classId', '==', chatId), 
-        orderBy('createdAt', 'asc')
+        createWhereConstraint('classId', '==', chatId), 
+        createOrderByConstraint('createdAt', 'asc')
       ], callback);
     } else if (chatType === 'dm') {
       return subscribeToMessagesWithQueryFromDb([
-        where('type', '==', 'dm'), 
-        where('roomId', '==', chatId), 
-        orderBy('createdAt', 'asc')
+        createWhereConstraint('type', '==', 'dm'), 
+        createWhereConstraint('roomId', '==', chatId), 
+        createOrderByConstraint('createdAt', 'asc')
       ], callback);
     }
     

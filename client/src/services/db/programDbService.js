@@ -67,7 +67,7 @@ export const getProgram = async (programId) => {
  */
 export const getProgramsSorted = async () => {
   try {
-    const q = query(collection(db, 'programs'), orderBy('name_en', 'asc'));
+    const q = query(collection(db, 'programs'), orderBy('nameEn', 'asc'));
     const querySnapshot = await getDocs(q);
     const programs = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: programs };

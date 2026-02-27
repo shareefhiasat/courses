@@ -4,8 +4,7 @@
  * Uses db-services for data access
  */
 
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../other/config.js';
+import { attendanceCreateSession } from './functionsService.js';
 import { 
   getAttendanceRecords, 
   getAttendanceRecord, 
@@ -59,23 +58,9 @@ export const getAbsences = async (
  */
 export async function createAttendanceSession({ classId, subjectId, scheduledAt, createdBy }) {
   try {
-    // Use callable backend for QR rotation/session lifecycle
-    const fn = httpsCallable(functions, 'attendanceCreateSession');
-    logger.log('[AttendanceBusinessService] calling attendanceCreateSession', { classId, subjectId });
-    
-    const res = await fn({ classId, subjectId });
-    logger.log('[AttendanceBusinessService] attendanceCreateSession result', res?.data);
-    
-    const { data } = res || {}; 
-    return { 
-      success: true, 
-      data: { 
-        id: data?.sessionId, 
-        token: data?.token, 
-        rotationSeconds: data?.rotationSeconds, 
-        endAt: data?.endAt 
-      }
-    };
+    // Use functionsService for backend QR rotation/session lifecycle
+    const result = await attendanceCreateSession({ classId, subjectId });
+    return result;
   } catch (error) {
     console.error('[AttendanceBusinessService] Error creating attendance session:', error);
     return { success: false, error: error.message };

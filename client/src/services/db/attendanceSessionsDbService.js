@@ -22,10 +22,10 @@ import {
   where, 
   getDocs,
   orderBy,
-  limit,
-  serverTimestamp
+  limit
 } from 'firebase/firestore';
 import { db } from '../other/config';
+import { getQatarTimestampString } from '@utils/qatarDate';
 import logger from '@utils/logger';
 
 /**
@@ -108,10 +108,11 @@ export const getAttendanceSession = async (classId, sessionId) => {
 export const createAttendanceSession = async (classId, sessionData) => {
   try {
     const docRef = doc(collection(db, 'classes', classId, 'sessions'));
+    const now = getQatarTimestampString();
     await setDoc(docRef, {
       ...sessionData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      createdAt: now,
+      updatedAt: now
     });
     return { success: true, id: docRef.id };
   } catch (error) {
@@ -131,7 +132,7 @@ export const updateAttendanceSession = async (classId, sessionId, updateData) =>
   try {
     await updateDoc(doc(db, 'classes', classId, 'sessions', sessionId), {
       ...updateData,
-      updatedAt: serverTimestamp()
+      updatedAt: getQatarTimestampString()
     });
     return { success: true };
   } catch (error) {
@@ -164,10 +165,11 @@ export const deleteAttendanceSession = async (classId, sessionId) => {
  */
 export const closeAttendanceSession = async (classId, sessionId) => {
   try {
+    const now = getQatarTimestampString();
     await updateDoc(doc(db, 'classes', classId, 'sessions', sessionId), {
       status: 'closed',
-      closedAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      closedAt: now,
+      updatedAt: now
     });
     return { success: true };
   } catch (error) {
@@ -239,7 +241,7 @@ export const updateAttendanceMark = async (sessionId, uid, updateData) => {
     const markRef = doc(db, 'attendanceSessions', sessionId, 'marks', uid);
     await updateDoc(markRef, {
       ...updateData,
-      updatedAt: serverTimestamp()
+      updatedAt: getQatarTimestampString()
     });
     
     return { success: true };
@@ -308,7 +310,7 @@ export const finalizeAttendanceSession = async (classId, sessionId, finalizeData
     const sessRef = doc(db, 'classes', classId, 'sessions', sessionId);
     await updateDoc(sessRef, {
       ...finalizeData,
-      updatedAt: serverTimestamp()
+      updatedAt: getQatarTimestampString()
     });
     
     return { success: true };

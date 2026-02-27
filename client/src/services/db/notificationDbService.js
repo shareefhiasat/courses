@@ -28,6 +28,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { db } from '../other/config';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import logger from '@utils/logger';
 
 /**
@@ -82,17 +83,17 @@ export const getNotification = async (notificationId) => {
 /**
  * Create notification
  * @param {Object} notificationData - Notification data
- * @param {Object} auditData - Audit data (createdAt, updatedAt, createdBy, updatedBy)
+ * @param {Object} user - User object for audit trail
  * @returns {Promise<{success: boolean, id?: string, error?: string}>}
  */
-export const create = async (notificationData, auditData = {}) => {
+export const create = async (notificationData, user = null) => {
   try {
     const docRef = doc(collection(db, 'notifications'));
     await setDoc(docRef, {
       ...notificationData,
       read: false,
       archived: false,
-      ...auditData
+      ...getCreateAuditData(user || { uid: 'system' })
     });
     return { success: true, id: docRef.id };
   } catch (error) {

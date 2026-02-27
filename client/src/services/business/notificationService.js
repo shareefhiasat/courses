@@ -2,7 +2,6 @@ import { notificationGateway } from './notificationGateway';
 import { sendEmail } from './emailService';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import logger from '@utils/logger';
-import { getCreateAuditData } from '@utils/auditHelper';
 import { 
   getNotifications as getNotificationsFromDb,
   create as createNotificationToDb,
@@ -44,8 +43,7 @@ export const addNotification = async (notification, user) => {
       notificationData.data = notification.data;
     }
     
-    const auditData = getCreateAuditData(user);
-    const result = await createNotificationToDb(notificationData, auditData);
+    const result = await createNotificationToDb(notificationData, user);
     
     if (result.success) {
       // Also log to notificationLogs for analytics

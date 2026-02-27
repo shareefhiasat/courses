@@ -76,7 +76,7 @@ export const getSubjectsByProgram = async (programId) => {
     const q = query(
       collection(db, 'subjects'), 
       where('programId', '==', programId),
-      orderBy('name_en', 'asc')
+      orderBy('nameEn', 'asc')
     );
     const qs = await getDocs(q);
     const items = [];

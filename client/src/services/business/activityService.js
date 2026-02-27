@@ -31,7 +31,6 @@ import { NOTIFICATION_TRIGGERS, RECORD_TYPES } from '@constants';
 import logger from '@utils/logger';
 import { handleServiceError, withRetry, measurePerformance, memoize, batchOperation } from '@utils/errorHandling';
 import { validateEntity, validateBilingualField } from '@utils/validationHelpers';
-import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 
 const ACTIVITY_VALIDATION_RULES = [
   { field: 'type', required: true, type: 'string', label: 'Activity type' },
@@ -106,8 +105,7 @@ export const addActivity = async (activityData, user) => {
     const convertedData = activityData; // No date conversion - save as-is
     logger.debug('[SERVICE] Saving data directly without conversion');
 
-    const auditData = getCreateAuditData(user);
-    const result = await createActivityToDb(convertedData, auditData);
+    const result = await createActivityToDb(convertedData, user);
 
     if (!result.success) {
       logger.error('ACTIVITY: Database operation failed:', result.error);
@@ -195,8 +193,7 @@ export const updateActivity = async (id, activityData, user, emailOptions = { se
     const convertedData = activityData; // No date conversion - save as-is
     logger.debug('[SERVICE] Saving data directly without conversion');
 
-    const auditData = getUpdateAuditData(user);
-    const result = await updateActivityInDb(id, convertedData, auditData);
+    const result = await updateActivityInDb(id, convertedData, user);
 
     // Send notifications for updated activity only if email is enabled
     if (activityData.classId && emailOptions.sendEmail) {

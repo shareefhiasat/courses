@@ -326,6 +326,46 @@ export const getClassEnrollments = async (classId) => {
 };
 
 /**
+ * Get enrollments by multiple class IDs
+ * @param {Array<string>} classIds - Array of class IDs
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getEnrollmentsByClassIds = async (classIds) => {
+  try {
+    const q = query(
+      collection(db, 'enrollments'),
+      where('classId', 'in', classIds)
+    );
+    const querySnapshot = await getDocs(q);
+    const enrollments = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: enrollments };
+  } catch (error) {
+    logger.error('[EnrollmentsDbService] Error getting enrollments by class IDs:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Get enrollments by user ID
+ * @param {string} userId - User ID
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getEnrollmentsByUserId = async (userId) => {
+  try {
+    const q = query(
+      collection(db, 'enrollments'),
+      where('userId', '==', userId)
+    );
+    const querySnapshot = await getDocs(q);
+    const enrollments = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: enrollments };
+  } catch (error) {
+    logger.error('[EnrollmentsDbService] Error getting enrollments by user ID:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Delete enrollment
  * @param {string} userId - User ID
  * @param {string} classId - Class ID

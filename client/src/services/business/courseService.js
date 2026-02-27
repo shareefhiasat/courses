@@ -2,7 +2,6 @@ import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { handleServiceError, withRetry } from '@utils/errorHandling';
 import { validateEntity } from '@utils/validationHelpers';
-import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import { 
   getCourses as getCoursesFromDb,
   getCourse as getCourseFromDb,
@@ -58,8 +57,7 @@ export const setCourse = async (courseId, data, user) => {
       return { success: false, error: validationErrors.join(', ') };
     }
     
-    const auditData = getUpdateAuditData(user);
-    const result = await setCourseToDb(courseId, data, auditData);
+    const result = await setCourseToDb(courseId, data, user);
     
     // Log activity
     try {
@@ -163,8 +161,7 @@ export const createCourse = async (courseData, user) => {
       isActive: true
     };
     
-    const auditData = getCreateAuditData(user);
-    const result = await createCourseToDb(newCourseData, auditData);
+    const result = await createCourseToDb(newCourseData, user);
     
     if (result.success) {
       // Log activity
@@ -203,8 +200,7 @@ export const updateCourse = async (courseId, updateData, user) => {
       return { success: false, error: validationErrors.join(', ') };
     }
     
-    const auditData = getUpdateAuditData(user);
-    const result = await updateCourseInDb(courseId, updateData, auditData);
+    const result = await updateCourseInDb(courseId, updateData, user);
     
     if (result.success) {
       // Log activity

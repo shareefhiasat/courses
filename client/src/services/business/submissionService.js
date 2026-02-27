@@ -7,8 +7,7 @@ import {
   createSubmission as createSubmissionToDb,
   updateSubmission as updateSubmissionInDb,
   deleteSubmission as deleteSubmissionFromDb,
-  getSubmissions as getSubmissionsFromDb,
-  querySubmissions as querySubmissionsFromDb
+  getSubmissions as getSubmissionsFromDb
 } from '../db/submissionsDbService';
 import { 
   getActivitiesByClass as getActivitiesByClassFromDb

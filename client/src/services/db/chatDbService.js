@@ -25,13 +25,13 @@ import {
   orderBy,
   limit,
   onSnapshot,
-  serverTimestamp,
   deleteField,
   arrayUnion,
   arrayRemove,
   addDoc
 } from 'firebase/firestore';
 import { db } from '../other/config';
+import { getQatarTimestampString } from '@utils/qatarDate';
 import logger from '@utils/logger';
 
 /**
@@ -60,10 +60,11 @@ export const getChatRoom = async (roomId) => {
 export const createChatRoom = async (roomData) => {
   try {
     const docRef = doc(collection(db, 'chatRooms'));
+    const now = getQatarTimestampString();
     await setDoc(docRef, {
       ...roomData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      createdAt: now,
+      updatedAt: now
     });
     return { success: true, id: docRef.id };
   } catch (error) {
@@ -82,7 +83,7 @@ export const updateChatRoom = async (roomId, updateData) => {
   try {
     await updateDoc(doc(db, 'chatRooms', roomId), {
       ...updateData,
-      updatedAt: serverTimestamp()
+      updatedAt: getQatarTimestampString()
     });
     return { success: true };
   } catch (error) {
@@ -146,16 +147,17 @@ export const getChatMessages = async (roomId, options = {}) => {
 export const sendChatMessage = async (messageData) => {
   try {
     const docRef = doc(collection(db, 'chatMessages'));
+    const now = getQatarTimestampString();
     await setDoc(docRef, {
       ...messageData,
-      createdAt: serverTimestamp()
+      createdAt: now
     });
     
     // Update room's last message and timestamp
     await updateChatRoom(messageData.roomId, {
       lastMessage: messageData.content,
       lastMessageBy: messageData.senderName,
-      updatedAt: serverTimestamp()
+      updatedAt: now
     });
     
     return { success: true, id: docRef.id };
@@ -570,7 +572,7 @@ export const createMessage = async (messageData) => {
   try {
     const docRef = await addDoc(collection(db, 'chatMessages'), {
       ...messageData,
-      createdAt: serverTimestamp()
+      createdAt: getQatarTimestampString()
     });
     return { success: true, id: docRef.id };
   } catch (error) {
@@ -777,3 +779,8 @@ export const subscribeToDirectRooms = (callback) => {
     return () => {};
   }
 };
+
+// Query constraint helpers for business service
+export const createWhereConstraint = (field, operator, value) => where(field, operator, value);
+export const createOrderByConstraint = (field, direction = 'asc') => orderBy(field, direction);
+export const createQueryConstraints = (constraints) => constraints;

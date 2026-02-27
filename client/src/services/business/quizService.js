@@ -1,24 +1,10 @@
-import { db } from '../other/config';
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  addDoc,
-  serverTimestamp,
-} from "firebase/firestore";
 import { canParticipate } from '@utils/userStatus';
 import { notificationGateway } from "./notificationGateway";
 import { NOTIFICATION_TRIGGERS } from "@constants/notificationTypes";
 import { getUserById } from "./userService";
 import { RECORD_TYPES } from "@utils/sharedTypes";
 import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
+import logger from '@utils/logger';
 import { 
   getQuizzes as getQuizzesFromDb,
   getQuiz as getQuizFromDb,
@@ -50,28 +36,32 @@ export const createQuiz = async (quizData, user) => {
     const classIds = Array.isArray(quizData?.assignedClassIds) ? quizData.assignedClassIds : (quizData?.classId ? [quizData.classId] : []);
     if (classIds.length > 0 && quizData?.visibility !== 'private') {
       try {
-        // Get all students in these classes
-        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', 'in', classIds)));
-        const studentIds = [...new Set(enrollmentsSnap.docs.map(d => d.data().userId))];
+        // Get all students in these classes using enrollmentsDbService
+        const { getEnrollmentsByClassIds } = await import('../db/enrollmentsDbService');
+        const enrollmentsResult = await getEnrollmentsByClassIds(classIds);
         
-        for (const studentId of studentIds) {
-          const { data: student } = await getUserById(studentId);
-          if (student && student.email) {
-            await notificationGateway.send(NOTIFICATION_TRIGGERS.QUIZ_AVAILABLE, {
-              userId: studentId,
-              role: 'student',
-              classId: classIds[0],
-              title: 'New Quiz Available',
-              message: `${quizData.title} is now available.`,
-              type: RECORD_TYPES.QUIZ || 'quiz',
-              email: student.email,
-              templateId: 'quizAvailable',
-              variables: {
-                studentName: student.displayName || student.name || 'Student',
-                quizTitle: quizData.title,
-                dueDate: quizData.settings?.dueDate ? new Date(quizData.settings.dueDate).toLocaleDateString() : 'N/A'
-              }
-            });
+        if (enrollmentsResult.success) {
+          const studentIds = [...new Set(enrollmentsResult.data.map(d => d.userId))];
+          
+          for (const studentId of studentIds) {
+            const { data: student } = await getUserById(studentId);
+            if (student && student.email) {
+              await notificationGateway.send(NOTIFICATION_TRIGGERS.QUIZ_AVAILABLE, {
+                userId: studentId,
+                role: 'student',
+                classId: classIds[0],
+                title: 'New Quiz Available',
+                message: `${quizData.title} is now available.`,
+                type: RECORD_TYPES.QUIZ || 'quiz',
+                email: student.email,
+                templateId: 'quizAvailable',
+                variables: {
+                  studentName: student.displayName || student.name || 'Student',
+                  quizTitle: quizData.title,
+                  dueDate: quizData.settings?.dueDate ? new Date(quizData.settings.dueDate).toLocaleDateString() : 'N/A'
+                }
+              });
+            }
           }
         }
       } catch (notifyError) {
@@ -79,7 +69,7 @@ export const createQuiz = async (quizData, user) => {
       }
     }
 
-    return { success: true, id: docRef.id };
+    return { success: true, id: result.id };
   } catch (error) {
     logger.error("Error creating quiz:", error);
     return { success: false, error: error.message };
@@ -89,11 +79,10 @@ export const createQuiz = async (quizData, user) => {
 // Get a quiz by ID - with performance monitoring and memoization
 export const getQuiz = async (quizId) => {
   try {
-    const quizRef = doc(db, "quizzes", quizId);
-    const quizSnap = await getDoc(quizRef);
+    const result = await getQuizFromDb(quizId);
 
-    if (quizSnap.exists()) {
-      return { success: true, data: { id: quizSnap.id, ...quizSnap.data() } };
+    if (result.success) {
+      return { success: true, data: { id: result.data.docId, ...result.data } };
     } else {
       return { success: false, error: "Quiz not found" };
     }
@@ -106,16 +95,13 @@ export const getQuiz = async (quizId) => {
 // Get all quizzes - with performance monitoring
 export const getAllQuizzes = async () => {
   try {
-    const quizzesRef = collection(db, "quizzes");
-    const q = query(quizzesRef, orderBy("createdAt", "desc"));
-    const querySnapshot = await getDocs(q);
-
-    const quizzes = [];
-    querySnapshot.forEach((doc) => {
-      quizzes.push({ id: doc.id, ...doc.data() });
-    });
-
-    return { success: true, data: quizzes };
+    const result = await getQuizzesFromDb();
+    
+    if (result.success) {
+      return { success: true, data: result.data };
+    } else {
+      return { success: false, error: result.error };
+    }
   } catch (error) {
     if (error?.code === "permission-denied") {
       return { success: false, error: "permission-denied", data: [] };
@@ -260,24 +246,25 @@ export const submitQuiz = async (submissionData) => {
       
       if (submissionData.userId && participationCheck) {
         try {
-          // Load user data
-          const userDoc = await getDoc(doc(db, "users", submissionData.userId));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
+          // Load user data using userDbService
+          const { getUserById: getUserByIdFromDb } = await import('../db/userDbService');
+          const userResult = await getUserByIdFromDb(submissionData.userId);
+          
+          if (userResult.success) {
+            const userData = userResult.data;
 
-            // Load user enrollments
+            // Load user enrollments using enrollmentsDbService
             let enrollments = [];
             try {
-              const enrollmentsSnap = await getDocs(
-                query(
-                  collection(db, "enrollments"),
-                  where("userId", "==", submissionData.userId)
-                )
-              );
-              enrollments = enrollmentsSnap.docs.map((d) => ({
-                id: d.id,
-                ...d.data(),
-              }));
+              const { getEnrollmentsByUserId } = await import('../db/enrollmentsDbService');
+              const enrollmentsResult = await getEnrollmentsByUserId(submissionData.userId);
+              
+              if (enrollmentsResult.success) {
+                enrollments = enrollmentsResult.data.map(d => ({
+                  id: d.docId,
+                  ...d,
+                }));
+              }
             } catch (e) {
               logger.warn("Failed to load enrollments for quiz check:", e);
             }
@@ -301,27 +288,25 @@ export const submitQuiz = async (submissionData) => {
     }
 
     // Check for existing submissions if retake is allowed
-    const quizDoc = await getDoc(doc(db, "quizzes", submissionData.quizId));
-    const quiz = quizDoc.exists() ? quizDoc.data() : null;
+    const quizResult = await getQuizFromDb(submissionData.quizId);
+    const quiz = quizResult.success ? quizResult.data : null;
     const allowRetake =
       quiz?.settings?.allowRetake || quiz?.allowRetake || false;
 
     if (allowRetake && submissionData.userId) {
-      // Find existing submission for this user and quiz
-      const existingSubmissionsQuery = query(
-        collection(db, "quizSubmissions"),
-        where("quizId", "==", submissionData.quizId),
-        where("userId", "==", submissionData.userId)
-      );
-      const existingSubmissionsSnap = await getDocs(existingSubmissionsQuery);
+      // Find existing submission for this user and quiz using quizSubmissionsDbService
+      const { getQuizSubmissions } = await import('../db/quizSubmissionsDbService');
+      const existingSubmissionsResult = await getQuizSubmissions({
+        quizId: submissionData.quizId,
+        userId: submissionData.userId
+      });
 
-      if (!existingSubmissionsSnap.empty) {
+      if (existingSubmissionsResult.success && existingSubmissionsResult.data.length > 0) {
         // Find the best existing submission
         let bestSubmission = null;
         let bestPercentage = -1;
 
-        existingSubmissionsSnap.forEach((doc) => {
-          const sub = doc.data();
+        existingSubmissionsResult.data.forEach((sub) => {
           const percentage =
             sub.percentage ||
             (sub.maxScore > 0
@@ -329,7 +314,7 @@ export const submitQuiz = async (submissionData) => {
               : 0);
           if (percentage > bestPercentage) {
             bestPercentage = percentage;
-            bestSubmission = { id: doc.id, ...sub };
+            bestSubmission = { docId: sub.docId, ...sub };
           }
         });
 
@@ -339,16 +324,16 @@ export const submitQuiz = async (submissionData) => {
         if (newPercentage >= bestPercentage) {
           // New score is equal or better - update the best submission
           if (bestSubmission) {
-            await updateDoc(doc(db, "quizSubmissions", bestSubmission.id), {
+            const { updateQuizSubmission } = await import('../db/quizSubmissionsDbService');
+            await updateQuizSubmission(bestSubmission.docId, {
               ...submissionData,
-              submittedAt: serverTimestamp(),
               isRetake: true,
               previousScore: bestSubmission.score,
               previousPercentage: bestPercentage,
             });
             return {
               success: true,
-              id: bestSubmission.id,
+              id: bestSubmission.docId,
               isRetake: true,
               previousScore: bestSubmission.score,
               previousPercentage: bestPercentage,
@@ -358,17 +343,16 @@ export const submitQuiz = async (submissionData) => {
           }
         } else {
           // New score is worse - still save as new submission but don't overwrite
-          const submissionsRef = collection(db, "quizSubmissions");
-          const docRef = await addDoc(submissionsRef, {
+          const { createQuizSubmission } = await import('../db/quizSubmissionsDbService');
+          const result = await createQuizSubmission({
             ...submissionData,
-            submittedAt: serverTimestamp(),
             isRetake: true,
             bestScore: bestSubmission.score,
             bestPercentage: bestPercentage,
           });
           return {
             success: true,
-            id: docRef.id,
+            id: result.id,
             isRetake: true,
             bestScore: bestSubmission.score,
             bestPercentage: bestPercentage,
@@ -381,12 +365,9 @@ export const submitQuiz = async (submissionData) => {
     }
 
     // No existing submission or retake not allowed - create new submission
-    const submissionsRef = collection(db, "quizSubmissions");
-    const docRef = await addDoc(submissionsRef, {
-      ...submissionData,
-      submittedAt: serverTimestamp(),
-    });
-    return { success: true, id: docRef.id };
+    const { createQuizSubmission } = await import('../db/quizSubmissionsDbService');
+    const result = await createQuizSubmission(submissionData);
+    return { success: true, id: result.id };
   } catch (error) {
     logger.error("Error submitting quiz:", error);
     return { success: false, error: error.message };
@@ -396,20 +377,14 @@ export const submitQuiz = async (submissionData) => {
 // Get submissions for a quiz
 export const getQuizSubmissions = async (quizId) => {
   try {
-    const submissionsRef = collection(db, "quizSubmissions");
-    const q = query(
-      submissionsRef,
-      where("quizId", "==", quizId),
-      orderBy("submittedAt", "desc")
-    );
-    const querySnapshot = await getDocs(q);
+    const { getQuizSubmissionsByQuiz } = await import('../db/quizSubmissionsDbService');
+    const result = await getQuizSubmissionsByQuiz(quizId);
 
-    const submissions = [];
-    querySnapshot.forEach((doc) => {
-      submissions.push({ id: doc.id, ...doc.data() });
-    });
-
-    return { success: true, data: submissions };
+    if (result.success) {
+      return { success: true, data: result.data };
+    } else {
+      return { success: false, error: result.error };
+    }
   } catch (error) {
     logger.error("Error getting quiz submissions:", error);
     return { success: false, error: error.message };
@@ -419,20 +394,14 @@ export const getQuizSubmissions = async (quizId) => {
 // Get submissions by student
 export const getStudentSubmissions = async (userId) => {
   try {
-    const submissionsRef = collection(db, "quizSubmissions");
-    const q = query(
-      submissionsRef,
-      where("userId", "==", userId),
-      orderBy("submittedAt", "desc")
-    );
-    const querySnapshot = await getDocs(q);
+    const { getQuizSubmissionsByUser } = await import('../db/quizSubmissionsDbService');
+    const result = await getQuizSubmissionsByUser(userId);
 
-    const submissions = [];
-    querySnapshot.forEach((doc) => {
-      submissions.push({ id: doc.id, ...doc.data() });
-    });
-
-    return { success: true, data: submissions };
+    if (result.success) {
+      return { success: true, data: result.data };
+    } else {
+      return { success: false, error: result.error };
+    }
   } catch (error) {
     logger.error("Error getting student submissions:", error);
     return { success: false, error: error.message };

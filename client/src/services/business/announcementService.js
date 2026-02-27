@@ -1,5 +1,4 @@
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
-import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import { 
   getAnnouncements as getAnnouncementsFromDb,
   create as createAnnouncement,
@@ -39,8 +38,7 @@ export const getAnnouncements = async () => {
  */
 export const addAnnouncement = async (announcementData, user) => {
   try {
-    const auditData = getCreateAuditData(user);
-    const result = await createAnnouncement(announcementData, auditData);
+    const result = await createAnnouncement(announcementData, user);
     
     if (result.success) {
       // Log announcement creation (non-blocking)
@@ -76,8 +74,7 @@ export const addAnnouncement = async (announcementData, user) => {
  */
 export const updateAnnouncement = async (id, announcementData, user) => {
   try {
-    const auditData = getUpdateAuditData(user);
-    const result = await updateAnnouncementInDb(id, announcementData, auditData);
+    const result = await updateAnnouncementInDb(id, announcementData, user);
     
     if (result.success) {
       // Log announcement update

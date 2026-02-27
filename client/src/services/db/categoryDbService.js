@@ -24,6 +24,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../other/config';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import logger from '@utils/logger';
 
 /**
@@ -101,17 +102,17 @@ export const getCategoryById = async (docId) => {
 /**
  * Create a new category
  * @param {Object} categoryData - Category data
- * @param {Object} auditData - Audit data (createdAt, updatedAt, createdBy, updatedBy)
+ * @param {Object} user - User object for audit trail
  * @returns {Promise<{success: boolean, id: string, error?: string}>}
  */
-export const create = async (categoryData, auditData = {}) => {
+export const create = async (categoryData, user = null) => {
   try {
-    logger.info('CATEGORY: Creating new category', { name: categoryData.name_en });
+    logger.info('CATEGORY: Creating new category', { name: categoryData.nameEn });
     
     const docRef = doc(collection(db, 'categories'));
     const categoryWithAudit = {
       ...categoryData,
-      ...auditData
+      ...getCreateAuditData(user || { uid: 'system' })
     };
     
     await setDoc(docRef, categoryWithAudit);
@@ -128,17 +129,17 @@ export const create = async (categoryData, auditData = {}) => {
  * Update an existing category
  * @param {string} docId - Category document ID
  * @param {Object} categoryData - Updated category data
- * @param {Object} auditData - Audit data (updatedAt, updatedBy)
+ * @param {Object} user - User object for audit trail
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const update = async (docId, categoryData, auditData = {}) => {
+export const update = async (docId, categoryData, user = null) => {
   try {
-    logger.info('CATEGORY: Updating category', { docId, name: categoryData.name_en });
+    logger.info('CATEGORY: Updating category', { docId, name: categoryData.nameEn });
     
     const docRef = doc(db, 'categories', docId);
     const updateData = {
       ...categoryData,
-      ...auditData
+      ...getUpdateAuditData(user || { uid: 'system' })
     };
     
     await updateDoc(docRef, updateData);

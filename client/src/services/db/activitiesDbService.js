@@ -27,6 +27,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import logger from '@utils/logger';
 
 /**
@@ -131,10 +132,10 @@ export const getActivity = async (activityId) => {
 /**
  * Create activity
  * @param {Object} activityData - Activity data
- * @param {Object} auditData - Audit data (createdAt, updatedAt, createdBy, updatedBy)
+ * @param {Object} user - User object for audit trail
  * @returns {Promise<{success: boolean, id?: string, error?: string}>}
  */
-export const createActivity = async (activityData, auditData = {}) => {
+export const createActivity = async (activityData, user = null) => {
   try {
     logger.debug('[ActivitiesDbService] Creating activity with data:', JSON.stringify(activityData, null, 2));
     
@@ -143,7 +144,7 @@ export const createActivity = async (activityData, auditData = {}) => {
     
     const docData = {
       ...activityData,
-      ...auditData
+      ...getCreateAuditData(user || { uid: 'system' })
     };
     
     logger.debug('[ActivitiesDbService] Writing document data:', JSON.stringify(docData, null, 2));
@@ -167,14 +168,14 @@ export const createActivity = async (activityData, auditData = {}) => {
  * Update activity
  * @param {string} activityId - Activity ID
  * @param {Object} activityData - Updated activity data
- * @param {Object} auditData - Audit data (updatedAt, updatedBy)
+ * @param {Object} user - User object for audit trail
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const updateActivity = async (activityId, activityData, auditData = {}) => {
+export const updateActivity = async (activityId, activityData, user = null) => {
   try {
     await updateDoc(doc(db, RECORD_TYPES.ACTIVITY, activityId), {
       ...activityData,
-      ...auditData
+      ...getUpdateAuditData(user || { uid: 'system' })
     });
     return { success: true };
   } catch (error) {

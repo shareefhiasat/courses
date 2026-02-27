@@ -25,6 +25,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../other/config';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import logger from '@utils/logger';
 
 /**
@@ -64,16 +65,17 @@ export const getCourse = async (courseId) => {
 /**
  * Create course
  * @param {Object} courseData - Course data
- * @param {Object} auditData - Audit data (createdAt, updatedAt, createdBy, updatedBy)
+ * @param {Object} user - User object for audit trail
  * @returns {Promise<{success: boolean, id?: string, error?: string}>}
  */
-export const create = async (courseData, auditData = {}) => {
+export const create = async (courseData, user = null) => {
   try {
     const docRef = doc(collection(db, 'courses'));
-    await setDoc(docRef, {
+    const finalData = {
       ...courseData,
-      ...auditData
-    });
+      ...getCreateAuditData(user || { uid: 'system' })
+    };
+    await setDoc(docRef, finalData);
     return { success: true, id: docRef.id };
   } catch (error) {
     logger.error('[CourseDbService] Error creating course:', error);
@@ -85,15 +87,16 @@ export const create = async (courseData, auditData = {}) => {
  * Update course
  * @param {string} courseId - Course ID
  * @param {Object} courseData - Updated course data
- * @param {Object} auditData - Audit data (updatedAt, updatedBy)
+ * @param {Object} user - User object for audit trail
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const update = async (courseId, courseData, auditData = {}) => {
+export const update = async (courseId, courseData, user = null) => {
   try {
-    await updateDoc(doc(db, 'courses', courseId), {
+    const finalData = {
       ...courseData,
-      ...auditData
-    });
+      ...getUpdateAuditData(user || { uid: 'system' })
+    };
+    await updateDoc(doc(db, 'courses', courseId), finalData);
     return { success: true };
   } catch (error) {
     logger.error('[CourseDbService] Error updating course:', error);

@@ -2,20 +2,6 @@ import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { getProgramsSorted } from '../db/programDbService';
 import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
-  Timestamp 
-} from 'firebase/firestore';
-import { db } from '../other/config.js';
 
 // Re-export getClasses from classService for convenience
 export { getClasses, addClass, updateClass, deleteClass, getClassById } from './classService';
@@ -103,25 +89,17 @@ export const deleteProgram = async (programId) => {
  */
 export const getSubjects = async (programId = null) => {
   try {
-    let q;
+    // Use subjectDbService instead of direct Firestore
+    const { getSubjects, getSubjectsByProgram } = await import('../db/subjectDbService');
+    
+    let result;
     if (programId) {
-      q = query(
-        collection(db, 'subjects'),
-        where('programId', '==', programId)
-      );
+      result = await getSubjectsByProgram(programId);
     } else {
-      q = query(collection(db, 'subjects'), orderBy('code', 'asc'));
-    }
-    const qs = await getDocs(q);
-    const items = [];
-    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
-    
-    // Sort client-side when filtering by program to avoid index requirement
-    if (programId) {
-      items.sort((a, b) => (a.code || '').localeCompare(b.code || ''));
+      result = await getSubjects();
     }
     
-    return { success: true, data: items };
+    return result;
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -129,39 +107,37 @@ export const getSubjects = async (programId = null) => {
 
 export const getSubject = async (subjectId) => {
   try {
-    const docRef = doc(db, 'subjects', subjectId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
-    }
-    return { success: false, error: 'Subject not found' };
+    // Use subjectDbService instead of direct Firestore
+    const { getSubject: getSubjectFromDb } = await import('../db/subjectDbService');
+    const result = await getSubjectFromDb(subjectId);
+    
+    return result;
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
-export const createSubject = async (data) => {
+export const createSubject = async (data, user) => {
   try {
-    const subjectData = {
-      ...data,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
-    };
-    const docRef = await addDoc(collection(db, 'subjects'), subjectData);
-    return { success: true, id: docRef.id };
+    // Use subjectDbService with proper audit data
+    const { createSubject: createSubjectToDb } = await import('../db/subjectDbService');
+    const auditData = getCreateAuditData(user);
+    const result = await createSubjectToDb(data, auditData);
+    
+    return result;
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
-export const updateSubject = async (subjectId, data) => {
+export const updateSubject = async (subjectId, data, user) => {
   try {
-    const docRef = doc(db, 'subjects', subjectId);
-    await updateDoc(docRef, {
-      ...data,
-      updatedAt: Timestamp.now()
-    });
-    return { success: true };
+    // Use subjectDbService with proper audit data
+    const { updateSubject: updateSubjectInDb } = await import('../db/subjectDbService');
+    const auditData = getUpdateAuditData(user);
+    const result = await updateSubjectInDb(subjectId, data, auditData);
+    
+    return result;
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -169,8 +145,11 @@ export const updateSubject = async (subjectId, data) => {
 
 export const deleteSubject = async (subjectId) => {
   try {
-    await deleteDoc(doc(db, 'subjects', subjectId));
-    return { success: true };
+    // Use subjectDbService instead of direct Firestore
+    const { deleteSubject: deleteSubjectFromDb } = await import('../db/subjectDbService');
+    const result = await deleteSubjectFromDb(subjectId);
+    
+    return result;
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -182,67 +161,64 @@ export const deleteSubject = async (subjectId) => {
  */
 export const getSubjectEnrollments = async (subjectId = null, studentId = null) => {
   try {
-    let q;
-    if (subjectId && studentId) {
-      q = query(
-        collection(db, 'subjectEnrollments'),
-        where('subjectId', '==', subjectId),
-        where('studentId', '==', studentId)
-      );
-    } else if (subjectId) {
-      q = query(collection(db, 'subjectEnrollments'), where('subjectId', '==', subjectId));
-    } else if (studentId) {
-      q = query(collection(db, 'subjectEnrollments'), where('studentId', '==', studentId));
-    } else {
-      q = query(collection(db, 'subjectEnrollments'));
-    }
-    const qs = await getDocs(q);
-    const items = [];
-    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
-    return { success: true, data: items };
+    // Use subjectEnrollmentsDbService instead of direct Firestore
+    const { getSubjectEnrollments: getEnrollmentsFromDb } = await import('../db/subjectEnrollmentsDbService');
+    
+    const filters = {};
+    if (subjectId) filters.subjectId = subjectId;
+    if (studentId) filters.studentId = studentId;
+    
+    const result = await getEnrollmentsFromDb(filters);
+    return result;
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
-export const enrollStudentInSubject = async (studentId, subjectId, semester, academicYear) => {
+export const enrollStudentInSubject = async (studentId, subjectId, semester, academicYear, user = null) => {
   try {
+    // Use subjectEnrollmentsDbService with proper audit data
+    const { enrollStudentInSubject: enrollStudentToDb } = await import('../db/subjectEnrollmentsDbService');
+    
     const enrollmentData = {
       studentId,
       subjectId,
       semester,
       academicYear,
-      enrolledAt: Timestamp.now(),
       status: 'active' // 'active' | 'completed' | 'withdrawn' | 'failed'
     };
-    const docRef = await addDoc(collection(db, 'subjectEnrollments'), enrollmentData);
-    return { success: true, id: docRef.id };
+    
+    const auditData = user ? getCreateAuditData(user) : null;
+    const result = await enrollStudentToDb(enrollmentData, auditData);
+    
+    return result;
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
-export const updateEnrollment = async (enrollmentId, data) => {
+export const updateEnrollment = async (enrollmentId, data, user = null) => {
   try {
-    const docRef = doc(db, 'subjectEnrollments', enrollmentId);
-    await updateDoc(docRef, {
-      ...data,
-      updatedAt: Timestamp.now()
-    });
-    return { success: true };
+    // Use subjectEnrollmentsDbService with proper audit data
+    const { updateSubjectEnrollment: updateEnrollmentInDb } = await import('../db/subjectEnrollmentsDbService');
+    
+    const auditData = user ? getUpdateAuditData(user) : null;
+    const result = await updateEnrollmentInDb(enrollmentId, data, auditData);
+    
+    return result;
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
-// Get program by ID
+// Get program by ID - using existing DB service
 export const getProgramById = async (programId) => {
   try {
-    const programDoc = await getDoc(doc(db, 'programs', programId));
-    if (programDoc.exists()) {
-      return { success: true, data: { docId: programDoc.id, ...programDoc.data() } };
-    }
-    return { success: false, error: "Program not found" };
+    // Use programDbService instead of direct Firestore
+    const { getProgram: getProgramFromDb } = await import('../db/programDbService');
+    const result = await getProgramFromDb(programId);
+    
+    return result;
   } catch (error) {
     return { success: false, error: error.message };
   }

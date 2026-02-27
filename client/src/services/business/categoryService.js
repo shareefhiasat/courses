@@ -1,5 +1,4 @@
 import logger from '@utils/logger';
-import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import { 
   getCategories as getCategoriesFromDb,
   getCategoryById as getCategoryByIdFromDb,
@@ -39,38 +38,38 @@ export const seedDefaultCategories = async () => {
     
     const defaultCategories = [
       {
-        name_en: 'Programming',
-        name_ar: 'البرمجة',
+        nameEn: 'Programming',
+        nameAr: 'البرمجة',
         icon: 'code',
-        description_en: 'Programming activities and resources',
-        description_ar: 'الأنشطة والموارد البرمجية',
+        descriptionEn: 'Programming activities and resources',
+        descriptionAr: 'الأنشطة والموارد البرمجية',
         color: '#3b82f6',
         order: 1
       },
       {
-        name_en: 'Computing',
-        name_ar: 'الحوسبة',
+        nameEn: 'Computing',
+        nameAr: 'الحوسبة',
         icon: 'monitor',
-        description_en: 'Computing fundamentals and concepts',
-        description_ar: 'أساسيات ومفاهيم الحوسبة',
+        descriptionEn: 'Computing fundamentals and concepts',
+        descriptionAr: 'أساسيات ومفاهيم الحوسبة',
         color: '#0ea5e9',
         order: 2
       },
       {
-        name_en: 'Algorithm',
-        name_ar: 'الخوارزميات',
+        nameEn: 'Algorithm',
+        nameAr: 'الخوارزميات',
         icon: 'brain',
-        description_en: 'Algorithm design and analysis',
-        description_ar: 'تصميم وتحليل الخوارزميات',
+        descriptionEn: 'Algorithm design and analysis',
+        descriptionAr: 'تصميم وتحليل الخوارزميات',
         color: '#8b5cf6',
         order: 3
       },
       {
-        name_en: 'General',
-        name_ar: 'عام',
+        nameEn: 'General',
+        nameAr: 'عام',
         icon: 'folder',
-        description_en: 'General activities and resources',
-        description_ar: 'الأنشطة والموارد العامة',
+        descriptionEn: 'General activities and resources',
+        descriptionAr: 'الأنشطة والموارد العامة',
         color: '#6b7280',
         order: 4
       }
@@ -79,18 +78,17 @@ export const seedDefaultCategories = async () => {
     const results = [];
     for (const category of defaultCategories) {
       try {
-        const auditData = getCreateAuditData({ uid: 'system' }); // System-generated default categories
-        const result = await createCategoryToDb(category, auditData);
+        const result = await createCategoryToDb(category, { uid: 'system' });
         if (result.success) {
-          logger.info('CATEGORY: Successfully seeded category', { name: category.name_en, docId: result.id });
-          results.push({ action: 'created', category: category.name_en, success: true, id: result.id });
+          logger.info('CATEGORY: Successfully seeded category', { name: category.nameEn, docId: result.id });
+          results.push({ action: 'created', category: category.nameEn, success: true, id: result.id });
         } else {
-          logger.warn('CATEGORY: Failed to seed category', { name: category.name_en, error: result.error });
-          results.push({ action: 'error', category: category.name_en, success: false, error: result.error });
+          logger.warn('CATEGORY: Failed to seed category', { name: category.nameEn, error: result.error });
+          results.push({ action: 'error', category: category.nameEn, success: false, error: result.error });
         }
       } catch (error) {
-        logger.error('CATEGORY: Error seeding category', { name: category.name_en, error: error.message });
-        results.push({ action: 'error', category: category.name_en, success: false, error: error.message });
+        logger.error('CATEGORY: Error seeding category', { name: category.nameEn, error: error.message });
+        results.push({ action: 'error', category: category.nameEn, success: false, error: error.message });
       }
     }
 
@@ -107,14 +105,14 @@ export const seedDefaultCategories = async () => {
  */
 export const addCategory = async (categoryData) => {
   try {
-    logger.info('CATEGORY: Adding new category', { name: categoryData.name_en });
+    logger.info('CATEGORY: Adding new category', { name: categoryData.nameEn });
     
     const result = await createCategoryToDb(categoryData);
     
     if (result.success) {
-      logger.info('CATEGORY: Successfully added category', { name: categoryData.name_en, docId: result.id });
+      logger.info('CATEGORY: Successfully added category', { name: categoryData.nameEn, docId: result.id });
     } else {
-      logger.warn('CATEGORY: Failed to add category', { name: categoryData.name_en, error: result.error });
+      logger.warn('CATEGORY: Failed to add category', { name: categoryData.nameEn, error: result.error });
     }
     
     return result;
@@ -129,14 +127,14 @@ export const addCategory = async (categoryData) => {
  */
 export const updateCategory = async (docId, categoryData) => {
   try {
-    logger.info('CATEGORY: Updating category', { docId, name: categoryData.name_en });
+    logger.info('CATEGORY: Updating category', { docId, name: categoryData.nameEn });
     
     const result = await updateCategoryInDb(docId, categoryData);
     
     if (result.success) {
-      logger.info('CATEGORY: Successfully updated category', { docId, name: categoryData.name_en });
+      logger.info('CATEGORY: Successfully updated category', { docId, name: categoryData.nameEn });
     } else {
-      logger.warn('CATEGORY: Failed to update category', { docId, name: categoryData.name_en, error: result.error });
+      logger.warn('CATEGORY: Failed to update category', { docId, name: categoryData.nameEn, error: result.error });
     }
     
     return result;
