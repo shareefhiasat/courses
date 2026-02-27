@@ -57,7 +57,7 @@ const ActivitiesPage = () => {
   const [activityDescriptionArFilter, setActivityDescriptionArFilter] = useState('');
   
   const [activityForm, setActivityForm] = useState({
-    id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
+    id: '', titleEn: '', titleAr: '', descriptionEn: '', descriptionAr: '',
     type: ACTIVITY_TYPES.HOMEWORK, programId: '', subjectId: '', classId: '', categoryId: null,
     difficulty: DIFFICULTY_TYPES.BEGINNER, maxScore: 100, allowRetake: false, dueDate: undefined,
     show: true, quizId: '', overrideQuizSettings: false, featured: false,
@@ -150,7 +150,7 @@ const ActivitiesPage = () => {
 
   const resetActivityForm = useCallback(() => {
     setActivityForm({
-      id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
+      id: '', titleEn: '', titleAr: '', descriptionEn: '', descriptionAr: '',
       type: ACTIVITY_TYPES.HOMEWORK, programId: '', subjectId: '', classId: '', categoryId: null,
       difficulty: DIFFICULTY_TYPES.BEGINNER, maxScore: 100, allowRetake: false, dueDate: undefined,
       show: true, quizId: '', overrideQuizSettings: false, featured: false,
@@ -170,11 +170,11 @@ const ActivitiesPage = () => {
 
   // Optimized handlers for RichTextEditor to prevent re-renders
   const handleDescriptionEnChange = useCallback((html) => {
-    setActivityForm(prev => ({ ...prev, description_en: html }));
+    setActivityForm(prev => ({ ...prev, descriptionEn: html }));
   }, []);
 
   const handleDescriptionArChange = useCallback((html) => {
-    setActivityForm(prev => ({ ...prev, description_ar: html }));
+    setActivityForm(prev => ({ ...prev, descriptionAr: html }));
   }, []);
 
   // Refs for text inputs — avoids re-rendering the whole page on every keystroke
@@ -185,8 +185,8 @@ const ActivitiesPage = () => {
 
   // Sync refs when editing an existing activity
   useEffect(() => {
-    if (titleEnRef.current) titleEnRef.current.value = activityForm.title_en || '';
-    if (titleArRef.current) titleArRef.current.value = activityForm.title_ar || '';
+    if (titleEnRef.current) titleEnRef.current.value = activityForm.titleEn || '';
+    if (titleArRef.current) titleArRef.current.value = activityForm.titleAr || '';
     if (urlRef.current) urlRef.current.value = activityForm.url || '';
     if (imageRef.current) imageRef.current.value = activityForm.image || '';
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,10 +196,10 @@ const ActivitiesPage = () => {
   // description_en and description_ar are controlled via state (WYSIWYG)
   const syncRefsToState = useCallback(() => {
     return {
-      title_en: titleEnRef.current?.value ?? activityForm.title_en,
-      title_ar: titleArRef.current?.value ?? activityForm.title_ar,
-      description_en: activityForm.description_en,
-      description_ar: activityForm.description_ar,
+      titleEn: titleEnRef.current?.value ?? activityForm.titleEn,
+      titleAr: titleArRef.current?.value ?? activityForm.titleAr,
+      descriptionEn: activityForm.descriptionEn,
+      descriptionAr: activityForm.descriptionAr,
       url: urlRef.current?.value ?? activityForm.url,
       image: imageRef.current?.value ?? activityForm.image,
     };
@@ -216,24 +216,33 @@ const ActivitiesPage = () => {
       const textValues = syncRefsToState();
       logger.log('[FORM] Text values from refs:', textValues);
 
-      if (!textValues.title_en || textValues.title_en.trim() === '') {
+      if (!textValues.titleEn || textValues.titleEn.trim() === '') {
         throw new Error(t('activities_title_required'));
       }
       
-      // Clean the activity data
+      // Clean the activity data - only include the fields we want
       const activityData = {
-        ...activityForm,
-        ...textValues,
-        title_en: textValues.title_en.trim(),
-        title_ar: textValues.title_ar?.trim() || '',
-        description_en: textValues.description_en?.trim() || '',
-        description_ar: textValues.description_ar?.trim() || '',
-        url: textValues.url?.trim() || '',
-        image: textValues.image?.trim() || '',
+        titleEn: textValues.titleEn.trim(),
+        titleAr: textValues.titleAr?.trim() || '',
+        descriptionEn: textValues.descriptionEn?.trim() || '',
+        descriptionAr: textValues.descriptionAr?.trim() || '',
+        type: activityForm.type,
+        programId: activityForm.programId,
+        subjectId: activityForm.subjectId,
+        classId: activityForm.classId,
+        categoryId: activityForm.categoryId,
+        difficulty: activityForm.difficulty,
         maxScore: activityForm.maxScore || 100,
+        allowRetake: activityForm.allowRetake,
         dueDate: activityForm.dueDate ? parseQatarFromInput(activityForm.dueDate) : undefined,
-        updatedAt: getQatarNow(),
-        updatedBy: user?.id || t('activities_unknown_user')
+        show: activityForm.show,
+        quizId: activityForm.quizId,
+        overrideQuizSettings: activityForm.overrideQuizSettings,
+        featured: activityForm.featured,
+        optional: activityForm.optional,
+        requiresSubmission: activityForm.requiresSubmission,
+        url: textValues.url?.trim() || '',
+        image: textValues.image?.trim() || ''
       };
       
       // Log the complete activity data being sent
@@ -303,10 +312,10 @@ const ActivitiesPage = () => {
     // Set basic form data first
     setActivityForm({
       id: activityForForm.id || '',
-      title_en: activityForForm.title_en || '',
-      title_ar: activityForForm.title_ar || '',
-      description_en: activityForForm.description_en || '',
-      description_ar: activityForForm.description_ar || '',
+      titleEn: activityForForm.titleEn || '',
+      titleAr: activityForForm.titleAr || '',
+      descriptionEn: activityForForm.descriptionEn || '',
+      descriptionAr: activityForForm.descriptionAr || '',
       type: activityForForm.type || t('activities_homework_type'),
       programId: activityForForm.programId || '',
       subjectId: activityForForm.subjectId || '',
@@ -383,37 +392,37 @@ const ActivitiesPage = () => {
 
   // Memoize columns to prevent re-renders
   const gridColumns = useMemo(() => [
-    { field: 'title_en', headerName: t('title_en_col'), flex: 1, minWidth: 160,
+    { field: 'titleEn', headerName: t('title_en_col'), flex: 1, minWidth: 160,
       renderCell: (params) => {
         const row = params?.row || {};
         return (
           <div style={{ display: 'flex', flexDirection: 'row', gap: '4px', alignItems: 'center' }}>
             <div style={{ color: getThemeColor('text.primary', theme) }}>
-              {row.title_en || row.title || ''}
+              {row.titleEn || row.title || ''}
             </div>
-            {row.title_en && row.title_ar && (
+            {row.titleEn && row.titleAr && (
               <span style={{ color: getThemeColor('text.secondary', theme), fontSize: '10px' }}>•</span>
             )}
             <div style={{ color: getThemeColor('text.secondary', theme), fontSize: '12px' }}>
-              {row.title_ar || ''}
+              {row.titleAr || ''}
             </div>
           </div>
         );
       }
     },
-    { field: 'title_ar', headerName: t('title_ar_col'), flex: 1, minWidth: 160,
+    { field: 'titleAr', headerName: t('title_ar_col'), flex: 1, minWidth: 160,
       renderCell: (params) => {
         const row = params?.row || {};
         return (
           <div style={{ display: 'flex', flexDirection: 'row', gap: '4px', alignItems: 'center' }}>
             <div style={{ color: getThemeColor('text.primary', theme), fontSize: '12px' }}>
-              {row.title_ar || ''}
+              {row.titleAr || ''}
             </div>
-            {row.title_ar && row.title_en && (
+            {row.titleAr && row.titleEn && (
               <span style={{ color: getThemeColor('text.secondary', theme), fontSize: '10px' }}>•</span>
             )}
             <div style={{ color: getThemeColor('text.secondary', theme), fontSize: '12px' }}>
-              {row.title_en || row.title || ''}
+              {row.titleEn || row.title || ''}
             </div>
           </div>
         );
@@ -624,6 +633,16 @@ const ActivitiesPage = () => {
       valueFormatter: (params) => {
         if (!params.value) return 'Unknown';
         return formatQatarStandard(params.value);
+      }
+    },
+    {
+      field: 'createdBy', headerName: 'Created By', width: 150,
+      renderCell: (params) => {
+        const createdBy = params.value || params.row?.createdBy;
+        if (!createdBy) return 'Unknown';
+        
+        // For now, show the UID - could be enhanced with user lookup
+        return createdBy;
       }
     },
     {
@@ -865,7 +884,7 @@ const ActivitiesPage = () => {
                   ref={titleEnRef}
                   type="text"
                   placeholder={(t('title_english') || 'Title (English)') + '*'}
-                  defaultValue={activityForm.title_en}
+                  defaultValue={activityForm.titleEn}
                   className="dashboard-input"
                   required
                 />
@@ -874,7 +893,7 @@ const ActivitiesPage = () => {
                 ref={titleArRef}
                 type="text"
                 placeholder={t('title_arabic') || 'Title (Arabic)'}
-                defaultValue={activityForm.title_ar}
+                defaultValue={activityForm.titleAr}
                 className="dashboard-input"
                 style={{ direction: 'rtl' }}
               />
@@ -884,7 +903,7 @@ const ActivitiesPage = () => {
         <div className="form-row">
           <div style={{ flex: 1, marginInlineEnd: '16px' }}>
             <RichTextEditor
-              value={activityForm.description_en}
+              value={activityForm.descriptionEn}
               onChange={handleDescriptionEnChange}
               placeholder={t('description_english') || 'Description (English)'}
               height={100}
@@ -893,7 +912,7 @@ const ActivitiesPage = () => {
           </div>
           <div style={{ flex: 1 }}>
             <RichTextEditor
-              value={activityForm.description_ar}
+              value={activityForm.descriptionAr}
               onChange={handleDescriptionArChange}
               placeholder={t('description_arabic') || 'Description (Arabic)'}
               height={100}

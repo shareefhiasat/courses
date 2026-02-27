@@ -93,13 +93,6 @@ const AnalyticsDashboardPage = memo(() => {
           getParticipations()
         ]);
         
-        logger.log('📊 [AnalyticsDashboardPage] Data loaded:', {
-          programs: programsRes.success ? (programsRes.data || []).length : 'failed',
-          subjects: subjectsRes.success ? (subjectsRes.data || []).length : 'failed',
-          classes: classesRes.success ? (classesRes.data || []).length : 'failed',
-          enrollments: enrollmentsRes.success ? (enrollmentsRes.data || []).length : 'failed'
-        });
-        
         if (programsRes.success) setPrograms(programsRes.data || []);
         if (subjectsRes.success) setSubjects(subjectsRes.data || []);
         if (classesRes.success) setClasses(classesRes.data || []);
@@ -114,7 +107,6 @@ const AnalyticsDashboardPage = memo(() => {
         
         // Mark data as loaded to prevent re-loading
         setDataLoaded(true);
-        logger.log('✅ [AnalyticsDashboardPage] Data loading completed');
         
       } catch (error) {
         logger.error('🔍 [AnalyticsDashboardPage] Error loading data:', error);
@@ -143,7 +135,6 @@ const AnalyticsDashboardPage = memo(() => {
         const result = await getResourceCount(filters);
         if (result.success) {
           setResourceCount(result.count);
-          logger.log('🔍 [AnalyticsDashboardPage] Server-side resource count:', result.count);
         } else {
           logger.error('🔍 [AnalyticsDashboardPage] Error fetching resource count:', result.error);
           setResourceCount(0);
@@ -170,10 +161,7 @@ const AnalyticsDashboardPage = memo(() => {
       classesCount: classes.length,
       programFilter: enrollmentProgramFilter,
       subjectFilter: enrollmentSubjectFilter,
-      classFilter: enrollmentClassFilter,
-      sampleProgram: safePrograms[0],
-      sampleSubject: subjects[0],
-      sampleClass: classes[0]
+      classFilter: enrollmentClassFilter
     });
   }
 

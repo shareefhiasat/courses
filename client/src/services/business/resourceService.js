@@ -8,6 +8,7 @@ import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import { handleServiceError, withRetry } from '@utils/errorHandling';
 import { validateEntity, validateBilingualField } from '@utils/validationHelpers';
+import { convertDatesToTimestamps, COMMON_DATE_FIELDS } from '@utils/date.js';
 import {
   getResources as getResourcesFromDb,
   getResource as getResourceFromDb,
@@ -106,7 +107,7 @@ export const addResource = async (resourceData, user) => {
       try {
         await logActivity(ACTIVITY_LOG_TYPES.RESOURCE_CREATED, {
           resourceId: result.id,
-          title: resourceData.title_en || resourceData.title,
+          title: resourceData.titleEn || resourceData.title,
           type: resourceData.type
         });
       } catch (logError) {
@@ -163,7 +164,7 @@ export const updateResource = async (id, resourceData, user, emailOptions = { se
       try {
         await logActivity(ACTIVITY_LOG_TYPES.RESOURCE_UPDATED, {
           resourceId: id,
-          title: resourceData.title_en || resourceData.title
+          title: resourceData.titleEn || resourceData.title
         });
       } catch (logError) {
         logger.warn('RESOURCE: Failed to log resource update:', logError);

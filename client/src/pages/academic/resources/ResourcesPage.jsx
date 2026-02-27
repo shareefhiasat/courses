@@ -64,11 +64,11 @@ const ResourcesPage = () => {
   
   const [resourceForm, setResourceForm] = useState({ 
     title: '', 
-    title_en: '',
-    title_ar: '',
+    titleEn: '',
+    titleAr: '',
     description: '', 
-    description_en: '',
-    description_ar: '',
+    descriptionEn: '',
+    descriptionAr: '',
     url: '', 
     type: 'link', 
     dueDate: '', 
@@ -77,7 +77,6 @@ const ResourcesPage = () => {
     programId: '', 
     subjectId: '', 
     classId: '', 
-    courseId: '',
     categoryId: ''
   });
   
@@ -92,8 +91,8 @@ const ResourcesPage = () => {
   
   // Sync refs when editing
   useEffect(() => {
-    if (titleEnRef.current) titleEnRef.current.value = resourceForm.title_en || '';
-    if (titleArRef.current) titleArRef.current.value = resourceForm.title_ar || '';
+    if (titleEnRef.current) titleEnRef.current.value = resourceForm.titleEn || '';
+    if (titleArRef.current) titleArRef.current.value = resourceForm.titleAr || '';
     if (urlRef.current) urlRef.current.value = resourceForm.url || '';
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingResource]);
@@ -232,10 +231,10 @@ const ResourcesPage = () => {
   // description_en and description_ar are controlled via state (WYSIWYG)
   const syncRefsToState = useCallback(() => {
     return {
-      title_en: titleEnRef.current?.value ?? resourceForm.title_en,
-      title_ar: titleArRef.current?.value ?? resourceForm.title_ar,
-      description_en: resourceForm.description_en,
-      description_ar: resourceForm.description_ar,
+      titleEn: titleEnRef.current?.value ?? resourceForm.titleEn,
+      titleAr: titleArRef.current?.value ?? resourceForm.titleAr,
+      descriptionEn: resourceForm.descriptionEn,
+      descriptionAr: resourceForm.descriptionAr,
       url: urlRef.current?.value ?? resourceForm.url,
     };
   }, [resourceForm]);
@@ -249,7 +248,7 @@ const ResourcesPage = () => {
       // Read text fields from refs
       const textValues = syncRefsToState();
       
-      if (!textValues.title_en?.trim() || !textValues.url?.trim()) {
+      if (!textValues.titleEn?.trim() || !textValues.url?.trim()) {
         toast?.showError(t('resources_title_and_url_required'));
         setLoading(false);
         return;
@@ -257,31 +256,24 @@ const ResourcesPage = () => {
 
       // Prepare resource data with program/subject/class and Qatar timestamps
       const resourceData = {
-        ...resourceForm,
-        ...textValues,
-        title: textValues.title_en.trim(),
-        title_en: textValues.title_en.trim(),
-        title_ar: textValues.title_ar?.trim() || '',
-        description: textValues.description_en?.trim() || '',
-        description_en: textValues.description_en?.trim() || '',
-        description_ar: textValues.description_ar?.trim() || '',
+        titleEn: textValues.titleEn.trim(),
+        titleAr: textValues.titleAr?.trim() || '',
+        descriptionEn: textValues.descriptionEn?.trim() || '',
+        descriptionAr: textValues.descriptionAr?.trim() || '',
         url: textValues.url.trim(),
+        type: resourceForm.type || 'link',
         programId: resourceForm.programId || null,
         subjectId: resourceForm.subjectId || null,
         classId: resourceForm.classId || null,
-        courseId: resourceForm.courseId || null,
+        categoryId: resourceForm.categoryId,
         dueDate: resourceForm.dueDate ? parseQatarFromInput(resourceForm.dueDate) : null,
-        updatedAt: getQatarNow(),
-        updatedBy: user?.id || t('resources_unknown_user')
+        optional: resourceForm.optional || false,
+        featured: resourceForm.featured || false
       };
-      if (!editingResource) {
-        resourceData.createdAt = getQatarNow();
-        resourceData.createdBy = user?.id || t('resources_unknown_user');
-      }
       
       const result = editingResource && editingResource.docId ?
-        await updateResource(editingResource.docId, resourceData, resourceEmailOptions) :
-        await addResource(resourceData);
+        await updateResource(editingResource.docId, resourceData, user, resourceEmailOptions) :
+        await addResource(resourceData, user);
 
       if (result.success) {
         const resourceId = editingResource?.docId || result?.id;
@@ -325,7 +317,7 @@ const ResourcesPage = () => {
         }
 
         await loadData();
-        setResourceForm({ title: '', title_en: '', title_ar: '', description: '', description_en: '', description_ar: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', courseId: '', categoryId: '' });
+        setResourceForm({ title: '', titleEn: '', titleAr: '', description: '', descriptionEn: '', descriptionAr: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', categoryId: '' });
         if (titleEnRef.current) titleEnRef.current.value = '';
         if (titleArRef.current) titleArRef.current.value = '';
         setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
@@ -347,11 +339,11 @@ const ResourcesPage = () => {
     setEditingResource(params.row);
     setResourceForm({
       title: params.row.title || '',
-      title_en: params.row.title_en || params.row.title || '',
-      title_ar: params.row.title_ar || '',
+      titleEn: params.row.titleEn || params.row.title || '',
+      titleAr: params.row.titleAr || '',
       description: params.row.description || '',
-      description_en: params.row.description_en || params.row.description || '',
-      description_ar: params.row.description_ar || '',
+      descriptionEn: params.row.descriptionEn || params.row.description || '',
+      descriptionAr: params.row.descriptionAr || '',
       url: params.row.url || '',
       type: params.row.type || 'link',
       dueDate: params.row.dueDate ? formatQatarForInput(params.row.dueDate) : '',
@@ -360,14 +352,13 @@ const ResourcesPage = () => {
       programId: params.row.programId || '',
       subjectId: params.row.subjectId || '',
       classId: params.row.classId || '',
-      courseId: params.row.courseId || '',
       categoryId: params.row.categoryId || ''
     });
   }, []);
 
   const handleCancelEdit = useCallback(() => {
     setEditingResource(null);
-    setResourceForm({ title: '', title_en: '', title_ar: '', description: '', description_en: '', description_ar: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', courseId: '', categoryId: '' });
+    setResourceForm({ title: '', titleEn: '', titleAr: '', description: '', descriptionEn: '', descriptionAr: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', categoryId: '' });
     if (titleEnRef.current) titleEnRef.current.value = '';
     if (titleArRef.current) titleArRef.current.value = '';
     setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
@@ -382,22 +373,22 @@ const ResourcesPage = () => {
 
   const gridColumns = useMemo(() => [
     { 
-      field: 'title_en', 
+      field: 'titleEn', 
       headerName: 'Title (EN)', 
       flex: 1, 
       minWidth: 200,
       renderCell: (params) => {
-        const title = params?.row?.title_en || params?.value || '';
+        const title = params?.row?.titleEn || params?.value || '';
         return title || (t('no_title') || 'No title');
       }
     },
     { 
-      field: 'title_ar', 
+      field: 'titleAr', 
       headerName: 'Title (AR)', 
       flex: 1, 
       minWidth: 200,
       renderCell: (params) => {
-        const title = params?.row?.title_ar || params?.value || '';
+        const title = params?.row?.titleAr || params?.value || '';
         return title || (t('no_title') || 'No title');
       }
     },
@@ -437,25 +428,37 @@ const ResourcesPage = () => {
       }
     },
     {
-      field: 'courseId', headerName: t('category') || 'Category', width: 150,
+      field: 'categoryId',
+      headerName: 'Category',
+      width: 150,
       valueGetter: (params) => {
         const row = params?.row || {};
-        return row.courseId || params?.value || null;
+        return row.categoryId || params?.value || null;
       },
       renderCell: (params) => {
-        const courseId = params.value || params.row?.courseId;
-        if (!courseId) return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-            {/*{getThemedIcon('ui', 'tag', 16, theme)} */}
-            —
-          </span>
-        );
-        const course = courses.find(c => (c.docId || c.id) === courseId);
-        if (!course) return '—';
-        const courseName = lang === 'ar' ? (course.name_ar || course.name_en) : (course.name_en || course.name_ar);
+        const categoryId = params.value || params.row?.categoryId;
+        
+        if (!categoryId) {
+          return (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
+              {getThemedIcon('ui', 'folder', 16, theme)}
+              —
+            </span>
+          );
+        }
+        
+        const category = categories.find(c => (c.docId || c.id) === categoryId);
+        
+        if (!category) {
+          return <span>{categoryId}</span>;
+        }
+        
+        const categoryName = lang === 'ar' ? (category.name_ar || category.name_en) : (category.name_en || category.name_ar);
+        
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {getThemedIcon('ui', 'tag', 16, theme)} {courseName}
+            {getThemedIcon('ui', category.icon || 'folder', 16, theme)}
+            {categoryName || categoryId}
           </span>
         );
       }
@@ -600,6 +603,21 @@ const ResourcesPage = () => {
       }
     },
     {
+      field: 'createdBy', headerName: 'Created By', width: 150,
+      renderCell: (params) => {
+        const createdBy = params.value || params.row?.createdBy;
+        if (!createdBy) return 'Unknown';
+        
+        // Try to find user display name from users array
+        const user = users.find(u => (u.uid || u.id) === createdBy);
+        if (user) {
+          return user.displayName || user.name || user.email || createdBy;
+        }
+        
+        return createdBy;
+      }
+    },
+    {
       field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
       renderCell: (params) => (
         <div style={{ display: 'flex', gap: 8 }}>
@@ -694,6 +712,9 @@ const ResourcesPage = () => {
             onClassChange={handleDropdownChange(setResourceForm, 'classId')}
             showLabels={false}
           />
+        </div>
+
+        <div className="form-row">
           <Select
             searchable
             placeholder={t('category_optional') || 'Category (Optional)'}
@@ -708,22 +729,6 @@ const ResourcesPage = () => {
               })).sort((a, b) => a.label.localeCompare(b.label))
             ]}
           />
-        </div>
-
-        <div className="form-row">
-          <Input
-            type="text"
-            placeholder={t('resource_title') + ' (EN)'}
-            ref={titleEnRef}
-            defaultValue={resourceForm.title_en || ''}
-            required
-          />
-          <Input
-            type="text"
-            placeholder={t('resource_title') + ' (AR)'}
-            ref={titleArRef}
-            defaultValue={resourceForm.title_ar || ''}
-          />
           <Select
             searchable
             placeholder={t('resource_type') || 'Resource Type'}
@@ -733,12 +738,28 @@ const ResourcesPage = () => {
           />
         </div>
 
+        <div className="form-row">
+          <Input
+            type="text"
+            placeholder={t('resource_title') + ' (EN)'}
+            ref={titleEnRef}
+            defaultValue={resourceForm.titleEn || ''}
+            required
+          />
+          <Input
+            type="text"
+            placeholder={t('resource_title') + ' (AR)'}
+            ref={titleArRef}
+            defaultValue={resourceForm.titleAr || ''}
+          />
+        </div>
+
         {/* Content Section - WYSIWYG */}
         <div className="form-row">
           <div style={{ flex: 1, marginInlineEnd: '16px' }}>
             <RichTextEditor
-              value={resourceForm.description_en}
-              onChange={(html) => setResourceForm(prev => ({ ...prev, description_en: html }))}
+              value={resourceForm.descriptionEn}
+              onChange={(html) => setResourceForm(prev => ({ ...prev, descriptionEn: html }))}
               placeholder={t('resource_description') + ' (EN)'}
               height={100}
               dir="ltr"
@@ -746,8 +767,8 @@ const ResourcesPage = () => {
           </div>
           <div style={{ flex: 1 }}>
             <RichTextEditor
-              value={resourceForm.description_ar}
-              onChange={(html) => setResourceForm(prev => ({ ...prev, description_ar: html }))}
+              value={resourceForm.descriptionAr}
+              onChange={(html) => setResourceForm(prev => ({ ...prev, descriptionAr: html }))}
               placeholder={t('resource_description') + ' (AR)'}
               height={100}
               dir="rtl"

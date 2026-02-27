@@ -287,8 +287,8 @@ export const validateEntity = (data, rules) => {
  * @returns {string[]} errors
  */
 export const validateBilingualField = (data, baseField, label) => {
-  const enValue = data[`${baseField}_en`];
-  const arValue = data[`${baseField}_ar`];
+  const enValue = data[`${baseField}En`];
+  const arValue = data[`${baseField}Ar`];
   const hasEn = enValue && typeof enValue === 'string' && enValue.trim().length > 0;
   const hasAr = arValue && typeof arValue === 'string' && arValue.trim().length > 0;
   if (!hasEn && !hasAr) {

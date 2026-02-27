@@ -9,7 +9,7 @@ import { AdvancedDataGrid } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatQatarStandard, getQatarNow } from '@utils/qatarDate';
 import { getPrograms, getSubjects, getClasses } from '@services/business/programService.js';
-import { getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement as deleteAnnouncementService } from '@services/business/activityService';
+import { getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement as deleteAnnouncementService } from '@services/business/announcementService';
 import { getUsers, getUserById } from '@services/business/userService';
 import { notificationGateway } from '@services/business/notificationGateway';
 import { getEnrollments } from '@services/business/enrollmentService';
@@ -43,9 +43,10 @@ const AnnouncementsPage = () => {
   const [classes, setClasses] = useState([]);
   const [users, setUsers] = useState([]);
   const [announcementForm, setAnnouncementForm] = useState({
-    id: '', title: '', title_en: '', title_ar: '', content: '', content_ar: '',
+    id: '', title: '', titleEn: '', titleAr: '', contentEn: '',
     target: 'global', programId: '', subjectId: '', classId: '', featured: false
   });
+  const [arabicContent, setArabicContent] = useState('');
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
@@ -135,9 +136,10 @@ const AnnouncementsPage = () => {
 
   const resetAnnouncementForm = useCallback(() => {
     setAnnouncementForm({
-      id: '', title: '', title_en: '', title_ar: '', content: '', content_ar: '',
+      id: '', title: '', titleEn: '', titleAr: '', contentEn: '',
       target: 'global', programId: '', subjectId: '', classId: '', featured: false
     });
+    setArabicContent('');
   }, []);
 
   const handleEmailOptionChange = useCallback((field, value) => {
@@ -146,23 +148,23 @@ const AnnouncementsPage = () => {
 
   // Sync refs when editing an existing announcement
   useEffect(() => {
-    if (titleRef.current) titleRef.current.value = announcementForm.title_en || announcementForm.title || '';
-    if (titleArRef.current) titleArRef.current.value = announcementForm.title_ar || '';
+    if (titleRef.current) titleRef.current.value = announcementForm.titleEn || announcementForm.title || '';
+    if (titleArRef.current) titleArRef.current.value = announcementForm.titleAr || '';
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingAnnouncement]);
 
   // Read text values from refs into form state before submit
   // content and content_ar are now controlled via state (WYSIWYG)
   const syncRefsToState = useCallback(() => {
-    const titleEn = titleRef.current?.value ?? announcementForm.title_en ?? announcementForm.title;
+    const titleEn = titleRef.current?.value ?? announcementForm.titleEn ?? announcementForm.title;
     return {
       title: titleEn,
-      title_en: titleEn,
-      title_ar: titleArRef.current?.value ?? announcementForm.title_ar,
-      content: announcementForm.content,
-      content_ar: announcementForm.content_ar,
+      titleEn: titleEn,
+      titleAr: titleArRef.current?.value ?? announcementForm.titleAr,
+      contentEn: announcementForm.contentEn,
+      contentAr: arabicContent,
     };
-  }, [announcementForm]);
+  }, [announcementForm, arabicContent]);
 
   const handleAnnouncementSubmit = useCallback(async (e) => {
     if (e) e.preventDefault();
@@ -178,19 +180,24 @@ const AnnouncementsPage = () => {
         throw new Error(t('announcements_title_required'));
       }
       
-      // Clean the announcement data
+      // Clean the announcement data - only include the fields we want
       const announcementData = {
-        ...announcementForm,
-        ...textValues,
         title: textValues.title.trim(),
-        content: textValues.content?.trim() || '',
-        content_ar: textValues.content_ar?.trim() || '',
-        updatedAt: getQatarNow(),
-        updatedBy: user?.id || t('announcements_unknown_user')
+        titleEn: textValues.titleEn,
+        titleAr: textValues.titleAr,
+        contentEn: textValues.contentEn?.trim() || '',
+        contentAr: textValues.contentAr?.trim() || '',
+        target: announcementForm.target,
+        programId: announcementForm.programId,
+        subjectId: announcementForm.subjectId,
+        classId: announcementForm.classId,
+        featured: announcementForm.featured
       };
 
+      console.log('🔍 Announcement data being sent:', announcementData);
+
       if (editingAnnouncement && editingAnnouncement.docId && editingAnnouncement.docId !== 'new') {
-        await updateAnnouncement(editingAnnouncement.docId, announcementData, emailOptions);
+        await updateAnnouncement(editingAnnouncement.docId, announcementData, user, emailOptions);
         toast?.showSuccess(t('announcements_updated_successfully'));
         
         // Update local announcements array instead of reloading
@@ -200,15 +207,20 @@ const AnnouncementsPage = () => {
             : a
         ));
       } else {
-        announcementData.createdAt = getQatarNow();
-        announcementData.updatedAt = getQatarNow();
-        announcementData.createdBy = user?.id || t('announcements_unknown_user');
-        
-        const result = await addAnnouncement(announcementData);
+        const result = await addAnnouncement(announcementData, user);
         
         if (result.success) {
           logger.log('🔍 [SAVE] Announcement created successfully with ID:', result.id);
           toast?.showSuccess(t('announcements_created_successfully'));
+          
+          // Add new announcement to local state immediately for UI feedback
+          const newAnnouncement = {
+            ...announcementData,
+            docId: result.id,
+            id: result.id
+            // Note: Audit fields will be populated when data is refreshed
+          };
+          setAnnouncements(prev => [newAnnouncement, ...prev]);
           
           // Send notifications using notification gateway (only for new announcements)
           const { programId, subjectId, classId } = announcementData;
@@ -266,17 +278,17 @@ const AnnouncementsPage = () => {
     setEditingAnnouncement(announcement);
     setAnnouncementForm({
       id: announcement.id || '',
-      title: announcement.title_en || announcement.title || '',
-      title_en: announcement.title_en || announcement.title || '',
-      title_ar: announcement.title_ar || '',
-      content: announcement.content || '',
-      content_ar: announcement.content_ar || '',
+      title: announcement.titleEn || announcement.title || '',
+      titleEn: announcement.titleEn || announcement.title || '',
+      titleAr: announcement.titleAr || '',
+      contentEn: announcement.contentEn || '',
       target: announcement.target || 'global',
       programId: announcement.programId || '',
       subjectId: announcement.subjectId || '',
       classId: announcement.classId || '',
       featured: announcement.featured || false
     });
+    setArabicContent(announcement.contentAr || '');
   }, []);
 
   const handleCancelEdit = useCallback(() => {
@@ -376,6 +388,21 @@ const AnnouncementsPage = () => {
       valueFormatter: (params) => {
         if (!params.value) return 'Unknown';
         return formatQatarStandard(params.value);
+      }
+    },
+    {
+      field: 'createdBy', headerName: 'Created By', width: 150,
+      renderCell: (params) => {
+        const createdBy = params.value || params.row?.createdBy;
+        if (!createdBy) return 'Unknown';
+        
+        // Try to find user display name from users array
+        const user = users.find(u => (u.uid || u.id) === createdBy);
+        if (user) {
+          return user.displayName || user.name || user.email || createdBy;
+        }
+        
+        return createdBy;
       }
     },
     {
@@ -498,8 +525,8 @@ const AnnouncementsPage = () => {
         <div className="form-row">
           <div style={{ flex: 1, marginInlineEnd: '16px' }}>
             <RichTextEditor
-              value={announcementForm.content}
-              onChange={(html) => setAnnouncementForm(prev => ({ ...prev, content: html }))}
+              value={announcementForm.contentEn}
+              onChange={(html) => setAnnouncementForm(prev => ({ ...prev, contentEn: html }))}
               placeholder={t('announcement_content_english') || 'Announcement Content (English)'}
               height={120}
               dir="ltr"
@@ -507,8 +534,8 @@ const AnnouncementsPage = () => {
           </div>
           <div style={{ flex: 1 }}>
             <RichTextEditor
-              value={announcementForm.content_ar}
-              onChange={(html) => setAnnouncementForm(prev => ({ ...prev, content_ar: html }))}
+              value={arabicContent}
+              onChange={setArabicContent}
               placeholder={t('announcement_content_arabic') || 'المحتوى بالعربية'}
               height={120}
               dir="rtl"
