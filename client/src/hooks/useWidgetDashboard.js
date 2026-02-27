@@ -4,6 +4,51 @@ import { db } from '@services/other/config';
 import logger from '@utils/logger';
 
 /**
+ * Migration function to fix widgets with invalid groupBy values
+ */
+const migrateWidgetConfigs = (widgets) => {
+  return widgets.map(widget => {
+    // If groupBy is empty, undefined, null, or invalid, fix it
+    if (!widget.groupBy || widget.groupBy.trim() === '' || widget.groupBy === 'undefined' || widget.groupBy === 'null') {
+      logger.warn('[useWidgetDashboard] Migrating widget with invalid groupBy:', { 
+        title: widget.title, 
+        dataSource: widget.dataSource, 
+        groupBy: widget.groupBy 
+      });
+      
+      // Set appropriate groupBy based on dataSource
+      let fixedGroupBy = 'status'; // default fallback
+      
+      if (widget.dataSource === 'activities,announcements,resources') {
+        fixedGroupBy = 'type';
+      } else if (widget.dataSource === 'activities') {
+        fixedGroupBy = 'type';
+      } else if (widget.dataSource === 'announcements') {
+        fixedGroupBy = 'classId';
+      } else if (widget.dataSource === 'resources') {
+        fixedGroupBy = 'classId';
+      } else if (widget.dataSource === 'attendance') {
+        fixedGroupBy = 'status';
+      } else if (widget.dataSource === 'enrollments') {
+        fixedGroupBy = 'programId';
+      } else if (widget.dataSource === 'users') {
+        fixedGroupBy = 'role';
+      } else if (widget.dataSource === 'classes') {
+        fixedGroupBy = 'programId';
+      } else if (widget.dataSource === 'activityLogs') {
+        fixedGroupBy = 'date';
+      }
+      
+      return {
+        ...widget,
+        groupBy: fixedGroupBy
+      };
+    }
+    return widget;
+  });
+};
+
+/**
  * useWidgetDashboard
  * Persists widget configs to Firestore: users/{uid}/preferences (field: dashboards.{dashboardKey})
  * Falls back to localStorage if user is not authenticated.
@@ -31,8 +76,31 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
           if (!cancelled && snap.exists()) {
             const prefs = snap.data()?.preferences?.dashboards?.[dashboardKey];
             if (prefs?.widgets?.length) {
-              setWidgetsState(prefs.widgets);
+              const migratedWidgets = migrateWidgetConfigs(prefs.widgets);
+              setWidgetsState(migratedWidgets);
               setPinnedIdsState(prefs.pinnedIds || []);
+              
+              // Save migrated widgets back to Firestore to prevent repeated migrations
+              if (JSON.stringify(migratedWidgets) !== JSON.stringify(prefs.widgets)) {
+                try {
+                  const ref = doc(db, 'users', uid);
+                  await setDoc(ref, {
+                    preferences: {
+                      dashboards: {
+                        [dashboardKey]: { 
+                          ...prefs, 
+                          widgets: migratedWidgets, 
+                          updatedAt: serverTimestamp() 
+                        }
+                      }
+                    }
+                  }, { merge: true });
+                  logger.log('[useWidgetDashboard] Migrated widgets saved to Firestore');
+                } catch (e) {
+                  logger.warn('[useWidgetDashboard] Failed to save migrated widgets:', e);
+                }
+              }
+              
               setLoading(false);
               return;
             }
@@ -48,8 +116,20 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
         if (saved) {
           const parsed = JSON.parse(saved);
           if (!cancelled) {
-            setWidgetsState(parsed.widgets || defaultWidgets);
+            const migratedWidgets = migrateWidgetConfigs(parsed.widgets || defaultWidgets);
+            setWidgetsState(migratedWidgets);
             setPinnedIdsState(parsed.pinnedIds || []);
+            
+            // Save migrated widgets back to localStorage to prevent repeated migrations
+            if (JSON.stringify(migratedWidgets) !== JSON.stringify(parsed.widgets || defaultWidgets)) {
+              try {
+                const payload = { widgets: migratedWidgets, pinnedIds: parsed.pinnedIds || [] };
+                localStorage.setItem(`wdg_${dashboardKey}`, JSON.stringify(payload));
+                logger.log('[useWidgetDashboard] Migrated widgets saved to localStorage');
+              } catch (e) {
+                logger.warn('[useWidgetDashboard] Failed to save migrated widgets to localStorage:', e);
+              }
+            }
           }
         }
       } catch {}

@@ -46,6 +46,12 @@ import logger from '@utils/logger';
  */
 export const getUserById = async (userId) => {
   try {
+    if (!userId || typeof userId !== 'string') {
+      logger.error('[UserDbService] Invalid userId provided:', { userId, type: typeof userId });
+      return { success: false, error: 'Invalid user ID provided' };
+    }
+    
+    logger.debug('[UserDbService] Getting user by ID:', { userId });
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (userDoc.exists()) {
       return { success: true, data: { id: userDoc.id, ...userDoc.data() } };
@@ -169,11 +175,23 @@ export const setUser = async (userId, userData) => {
  */
 export const updateUser = async (userId, updateData) => {
   try {
+    if (!userId || typeof userId !== 'string') {
+      logger.error('[UserDbService] Invalid userId provided for update:', { userId, type: typeof userId });
+      return { success: false, error: 'Invalid user ID provided for update' };
+    }
+    
+    if (!updateData || typeof updateData !== 'object') {
+      logger.error('[UserDbService] Invalid updateData provided:', { updateData });
+      return { success: false, error: 'Invalid update data provided' };
+    }
+    
+    logger.debug('[UserDbService] Updating user:', { userId, updateFields: Object.keys(updateData) });
     const docRef = doc(db, 'users', userId);
     await updateDoc(docRef, {
       ...updateData,
       updatedAt: serverTimestamp()
     });
+    logger.info('[UserDbService] Successfully updated user:', { userId });
     return { success: true };
   } catch (error) {
     logger.error('[UserDbService] Error updating user:', error);

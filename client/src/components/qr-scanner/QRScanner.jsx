@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
+import { formatQatarDateOnly, getQatarNow } from '@utils/qatarDate';
 import { Button } from '@ui';
 import { CollapsibleSection, PerformedBy } from '@ui';
 import jsQR from 'jsqr';
@@ -1381,7 +1382,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       setCurrentAction(status);
 
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = formatQatarDateOnly(getQatarNow());
+        const todayISO = getQatarNow().toISOString().split('T')[0]; // Use ISO format for database
 
         // Get the correct student ID - try multiple possible fields
         let studentId = lastScannedStudent?.id ||
@@ -1426,7 +1428,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         const result = await markAttendance({
           classId,
           studentId: studentId,
-          date: today,
+          programId: selectedProgramId,
+          subjectId: selectedSubjectId,
+          date: todayISO, // Use ISO format for database
           status,
           markedBy: user.uid,
           method: ATTENDANCE_METHODS.MANUAL_INSTRUCTOR,
@@ -1473,7 +1477,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const status = statusOrNotes;
       
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = formatQatarDateOnly(getQatarNow());
+        const todayISO = getQatarNow().toISOString().split('T')[0]; // Use ISO format for database
         
         // Get performedBy fields using shared service
         const performedByFields = await getPerformedByFields(user);
@@ -1481,7 +1486,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         await markAttendance({
           classId: selectedClassId,
           studentId,
-          date: today,
+          date: todayISO, // Use ISO format for database
           status,
           markedBy: user.uid,
           method: 'manual',
@@ -1520,7 +1525,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         selectedClassId,
         status,
         user,
-        `${t('quick') || 'Quick'} ${statusLabel}`
+        `${t('quick') || 'Quick'} ${statusLabel}`,
+        selectedProgramId,
+        selectedSubjectId,
+        getQatarNow().toISOString().split('T')[0] // Current date in ISO format
       );
 
       if (result.success) {
@@ -2400,7 +2408,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                zIndex: 1000
+                zIndex: 1000,
+                overflow: 'hidden' // Prevent scrolling
               }}>
                 <div style={{
                   background: 'white',
@@ -3331,12 +3340,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 background: '#1a1a1a',
                 border: '1px solid #333',
                 borderRadius: '0.5rem',
-                zIndex: 1001,
+                zIndex: 999, // Lower than modals
                 display: 'flex',
                 flexDirection: 'column',
                 fontFamily: 'monospace',
                 fontSize: '0.75rem',
-                maxWidth: '90vw'
+                maxWidth: '90vw',
+                overflow: 'hidden' // Prevent scrolling issues
               }}>
                 <div style={{
                   display: 'flex',

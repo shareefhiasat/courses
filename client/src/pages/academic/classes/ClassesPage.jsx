@@ -60,6 +60,12 @@ const ClassesPage = () => {
   const [loading, setLoading] = useState(false);
   const { startLoading } = useGlobalLoading();
 
+  const toast = useMemo(() => ({
+    showSuccess: uiToast.success,
+    showError: uiToast.error,
+    showInfo: uiToast.info,
+  }), [uiToast.success, uiToast.error, uiToast.info]);
+
   // Load all data
   const loadData = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoading(true);
@@ -134,12 +140,6 @@ const ClassesPage = () => {
     setClassSubjectFilter('');
     setClassFilter('');
   };
-  
-  const toast = useMemo(() => ({
-    showSuccess: uiToast.success,
-    showError: uiToast.error,
-    showInfo: uiToast.info,
-  }), [uiToast.success, uiToast.error, uiToast.info]);
 
   const handleClassSubmit = useCallback(async (e) => {
     e.preventDefault();

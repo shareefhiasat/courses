@@ -50,6 +50,37 @@ import {
   getVoiceRecordingLimits
 } from '@constants';
 
+// Chat-specific constants and utilities
+import { 
+  CHAT_TYPES, 
+  MESSAGE_TYPES, 
+  REACTION_TYPES,
+  FILE_UPLOAD_LIMITS,
+  VOICE_RECORDING_DEFAULTS,
+  CHAT_UI_STATES,
+  SIDEBAR_CONFIG,
+  SCROLL_CONFIG,
+  EMOJI_LIST,
+  ANIMATION_DURATION,
+  LOCAL_STORAGE_KEYS,
+  CHAT_ROUTES,
+  CLEAR_MESSAGE_MODES,
+  SEARCH_FILTERS,
+  VALIDATION_RULES
+} from './constants/chatConstants';
+
+import {
+  formatTime,
+  getMaxVoiceTimeDisplay
+} from './utils/chatHelpers';
+
+// Minimal state hook for gradual migration
+import { useChatStateMinimal } from './hooks/useChatStateMinimal';
+
+// Component wrappers for gradual extraction
+import MessageBubbleWrapper from './components/MessageBubbleWrapper';
+import { useChatActions } from './hooks/useChatActions';
+
 const ChatPage = memo(() => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const { t, lang } = useLang();
@@ -60,20 +91,27 @@ const ChatPage = memo(() => {
   
   logger.componentMount('ChatPage');
   
-  // Helper function to format voice time display
-  const getMaxVoiceTimeDisplay = (role) => {
-    const voiceLimits = getVoiceRecordingLimits(role);
-    const maxTime = voiceLimits.maxRecordingTime;
-    const minutes = Math.floor(maxTime / 60);
-    return `${minutes} minutes`;
-  };
+  // Initialize minimal state hook for gradual migration
+  const minimalState = useChatStateMinimal(user);
   
+  // Debug: Verify minimal state works alongside existing state
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Minimal State:', {
+      showMembers: minimalState.showMembersMinimal,
+      selectedClass: minimalState.selectedClassMinimal,
+      sidebarWidth: minimalState.sidebarWidthMinimal,
+      chatType: minimalState.chatTypeMinimal,
+      chatId: minimalState.chatIdMinimal
+    });
+  }
+  
+    
   // State
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [classes, setClasses] = useState([]);
-  const [selectedClass, setSelectedClass] = useState(t('chat_global').toLowerCase());
+  const [selectedClass, setSelectedClass] = useState(CHAT_TYPES.GLOBAL);
   const [classMembers, setClassMembers] = useState([]);
   const [showMembers, setShowMembers] = useState(false);
   const [directRooms, setDirectRooms] = useState([]);
@@ -93,11 +131,13 @@ const ChatPage = memo(() => {
   const [isUploading, setIsUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const saved = parseInt(localStorage.getItem('chatSidebarWidth') || '0', 10);
-    return Number.isFinite(saved) && saved >= 280 && saved <= 500 ? saved : 320;
+    const saved = parseInt(localStorage.getItem(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH) || '0', 10);
+    return Number.isFinite(saved) && saved >= SIDEBAR_CONFIG.MIN_WIDTH && saved <= SIDEBAR_CONFIG.MAX_WIDTH 
+      ? saved 
+      : SIDEBAR_CONFIG.DEFAULT_WIDTH;
   });
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    const saved = localStorage.getItem('chatSidebarCollapsed') === 'true';
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.SIDEBAR_COLLAPSED) === 'true';
     return saved;
   });
   const [selectedClassName, setSelectedClassName] = useState('');
@@ -115,6 +155,52 @@ const ChatPage = memo(() => {
   const [showPollModal, setShowPollModal] = useState(false);
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState(['', '']);
+  
+  // Use chat actions hook for functionality that will be moved to components
+  const {
+    sendMessage,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+    handleFileSelect,
+    openDMWith,
+    handleAddReaction,
+    handleRemoveReaction,
+    handleDeleteMessage,
+    handleSaveEdit,
+    toggleStar,
+    clearDMMessages,
+    deleteDMConversation,
+    createPollMessage
+  } = useChatActions({
+    user,
+    profileName,
+    selectedClass,
+    toast,
+    setNewMessage,
+    audioBlob,
+    setAudioBlob,
+    attachedFile,
+    setAttachedFile,
+    isUploading,
+    setIsUploading,
+    setImagePreview,
+    messages,
+    setMessages,
+    chatReads,
+    setChatReads,
+    safeClasses,
+    safeDirectRooms,
+    isAdmin,
+    t,
+    logger,
+    messageInputRef,
+    setShowEmojiPicker,
+    setPollQuestion,
+    setPollOptions,
+    pollQuestion,
+    pollOptions
+  });
   
   // Helper function to get user's theme color
   const getUserThemeColor = () => {
@@ -368,33 +454,6 @@ const ChatPage = memo(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Save edits to a message
-  const handleSaveEdit = async () => {
-    if (!editingMsg || !editingMsg.id) return setEditingMsg(null);
-    try {
-      const originalContent = (editingMsg.content || '').trim();
-      const filteredContent = filterBadWords(originalContent);
-      
-      await chatService.editMessage(editingMsg.id, filteredContent);
-
-      // Show warning if content was filtered
-      if (originalContent !== filteredContent) {
-        logger.warn('Message content filtered for inappropriate content', {
-          originalLength: originalContent.length,
-          filteredLength: filteredContent.length,
-          userId: user?.uid
-        });
-        toast?.showWarning?.(t('chat_message_filtered_inappropriate_content'));
-      }
-
-      setEditingMsg(null);
-      toast?.showSuccess(t('chat_saved'));
-    } catch (e) {
-      logger.error('Edit failed', e);
-      toast?.showError(t('chat_failed_to_save'));
-    }
-  };
-
   // Close actions menu on click-away or Escape
   useEffect(() => {
     if (!menuOpenId) return;
@@ -586,49 +645,6 @@ const ChatPage = memo(() => {
     return () => window.removeEventListener('focus', handleFocus);
   }, [user, selectedClass, chatReads]);
 
-  // Star/Unstar a DM room
-  const toggleStar = async (room) => {
-    try {
-      await chatService.toggleStarRoom(room.id, user.uid);
-    } catch (e) { /* noop */ }
-  };
-
-  // Clear messages in a DM conversation (keep the room)
-  const clearDMMessages = async (roomId, mode = 'all') => {
-    // Only admins can clear all or others' messages
-    if (!isAdmin && (mode === 'all' || mode === 'theirs')) {
-      toast?.showError(t('only_admins_can_clear') || 'Only admins can clear these messages');
-      return;
-    }
-    try {
-      const deletedCount = await chatService.clearChatMessages(roomId, mode, user.uid);
-      
-      setDmContextMenu(null);
-      const modeLabel = mode === 'all' ? (t('all_messages') || 'All messages') : mode === 'mine' ? (t('your_messages') || 'Your messages') : (t('their_messages') || 'Their messages');
-      toast?.showSuccess(`${modeLabel} ${t('cleared') || 'cleared'}`);
-    } catch (err) {
-      logger.error('Clear messages failed:', err);
-      toast?.showError(t('failed_to_clear_messages') || 'Failed to clear messages');
-    }
-  };
-
-  // Delete entire DM conversation (admin)
-  const deleteDMConversation = async () => {
-    if (!isAdmin) return;
-    try {
-      const room = safeDirectRooms.find(r => `dm:${r.id}` === selectedClass);
-      if (!room) return setShowDeleteDMConfirm(false);
-      const roomId = room.id;
-      await chatService.deleteDirectRoom(roomId);
-      setShowDeleteDMConfirm(false);
-      setSelectedClass('global');
-      toast?.showSuccess(t('conversation_deleted') || 'Conversation deleted');
-    } catch (err) {
-      logger.error('Delete conversation failed:', err);
-      toast?.showError(t('failed_to_delete_conversation') || 'Failed to delete conversation');
-    }
-  };
-
   // Load classes and setup with real-time subscriptions
   useEffect(() => {
     if (authLoading || !user) return;
@@ -819,15 +835,15 @@ const ChatPage = memo(() => {
   const onDragMove = (e) => {
     if (!resizingRef.current) return;
     const x = e.clientX;
-    const min = 280, max = 500;
+    const min = SIDEBAR_CONFIG.MIN_WIDTH, max = SIDEBAR_CONFIG.MAX_WIDTH;
     const w = Math.min(max, Math.max(min, x));
     setSidebarWidth(w);
-    try { localStorage.setItem('chatSidebarWidth', String(w)); } catch {}
+    try { localStorage.setItem(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH, String(w)); } catch {}
   };
   const onDragEnd = () => {
     resizingRef.current = false;
     document.body.style.userSelect = '';
-    try { localStorage.setItem('chatSidebarWidth', String(sidebarWidth)); } catch {}
+    try { localStorage.setItem(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH, String(sidebarWidth)); } catch {}
   };
   useEffect(() => {
     const move = (e)=>onDragMove(e);
@@ -836,39 +852,6 @@ const ChatPage = memo(() => {
     window.addEventListener('mouseup', up);
     return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
   }, [onDragEnd]);
-
-  // Delete message (admins or the original sender). Also removes attachments when present.
-  const handleDeleteMessage = async (msg) => {
-    if (!isAdmin && msg?.senderId !== user?.uid) return;
-    try {
-      // Delete storage files if any (best effort)
-      if (msg.voicePath) {
-        try { await deleteObject(ref(storage, msg.voicePath)); } catch {}
-      }
-      if (msg.filePath) {
-        try { await deleteObject(ref(storage, msg.filePath)); } catch {}
-      }
-      await chatService.deleteMessage(msg.id);
-      
-      // Update lastMessage for class if this was the last message
-      if (msg.type === 'class' && msg.classId) {
-        try {
-          await chatService.updateLastMessageAfterDeletion(msg);
-        } catch (e) {}
-      }
-      
-      // Update lastMessage for DM if this was the last message
-      if (msg.type === 'dm' && msg.roomId) {
-        try {
-          await chatService.updateLastMessageAfterDeletion(msg);
-        } catch (e) {}
-      }
-      
-      toast?.showSuccess('Message deleted');
-    } catch (err) {
-      logger.error('Delete message failed:', err);
-    }
-  };
 
   const loadClasses = async () => {
     setLoading(true);
@@ -947,464 +930,10 @@ const ChatPage = memo(() => {
     }
   };
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    
-    if (!newMessage.trim() && !audioBlob && !attachedFile || isUploading) return;
-    
-    // Set uploading state
-    setIsUploading(true);
-    
-    // Check if user can participate (not disabled/archived/deleted)
-    try {
-      const participationCheck = canParticipate(profileName || user, enrollments);
-      // Load user enrollments for status check
-      let enrollments = [];
-      try {
-        enrollments = await chatService.getUserEnrollments(user.uid);
-      } catch (e) {
-        }
-      
-      if (!isAdmin && !participationCheck) {
-        toast?.showError?.('You cannot send messages. Your account is disabled, archived, or you have no active enrollments.');
-        return;
-      }
-    } catch (error) {
-      // Continue anyway - don't block if status check fails
-    }
-    
-    try {
-      const messageData = {
-        senderId: user.uid,
-        senderName: user.displayName || profileName || user.email,
-        senderEmail: user.email,
-        type: selectedClass === 'global' ? 'global' : (selectedClass?.startsWith('dm:') ? 'dm' : 'class'),
-        classId: selectedClass && !selectedClass.startsWith('dm:') && selectedClass !== 'global' ? selectedClass : null,
-        roomId: selectedClass?.startsWith('dm:') ? selectedClass.slice(3) : null,
-        createdAt: serverTimestamp(),
-        readBy: [user.uid]
-      };
-      
-      // Handle voice message
-      if (audioBlob) {
-        try {
-          const voicePath = `voice-messages/${Date.now()}_${user.uid}.webm`;
-          const voiceRef = ref(storage, voicePath);
-          
-          // Add metadata for better upload handling - use actual blob type or fallback to webm
-          const metadata = {
-            contentType: audioBlob.type || 'audio/webm',
-            cacheControl: 'public, max-age=31536000',
-            customMetadata: {
-              uploadedBy: user.uid,
-              timestamp: Date.now().toString()
-            }
-          };
-          
-          // Try uploadBytesResumable for better CORS handling
-          const uploadTask = uploadBytesResumable(voiceRef, audioBlob, metadata);
-          
-          // Wait for upload to complete
-          await new Promise((resolve, reject) => {
-            uploadTask.on('state_changed', 
-              (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                },
-              (error) => {
-                logger.error('Upload failed:', error);
-                reject(error);
-              },
-              () => {
-                resolve();
-              }
-            );
-          });
-          
-          const voiceUrl = await getDownloadURL(voiceRef);
-          messageData.messageType = 'voice';
-          messageData.voiceUrl = voiceUrl;
-          messageData.voicePath = voicePath;
-          messageData.duration = recordingTime;
-          messageData.content = '[Voice Message]';
-        } catch (uploadError) {
-          logger.error('Voice upload failed:', {
-            error: uploadError,
-            errorCode: uploadError.code,
-            errorMessage: uploadError.message,
-            errorDetails: uploadError.details,
-            blobSize: audioBlob?.size,
-            blobType: audioBlob?.type
-          });
-          
-          // Try with a different content type as fallback
-          if (uploadError.message?.includes('contentType') || uploadError.code === 'storage/unauthorized' || uploadError.message?.includes('CORS')) {
-            try {
-              const fallbackMetadata = {
-                contentType: 'audio/webm;codecs=opus',
-                cacheControl: 'public, max-age=31536000',
-                customMetadata: {
-                  uploadedBy: user.uid,
-                  timestamp: Date.now().toString(),
-                  fallbackUpload: 'true'
-                }
-              };
-              const voicePath = `voice-messages/${Date.now()}_${user.uid}.webm`;
-              const voiceRef = ref(storage, voicePath);
-              
-              // Try with resumable upload as fallback
-              const fallbackUploadTask = uploadBytesResumable(voiceRef, audioBlob, fallbackMetadata);
-              
-              // Wait for fallback upload to complete
-              await new Promise((resolve, reject) => {
-                fallbackUploadTask.on('state_changed', 
-                  (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    },
-                  (error) => {
-                    logger.error('Fallback upload failed:', error);
-                    reject(error);
-                  },
-                  () => {
-                    resolve();
-                  }
-                );
-              });
-              
-              const voiceUrl = await getDownloadURL(voiceRef);
-              
-              messageData.messageType = 'voice';
-              messageData.voiceUrl = voiceUrl;
-              messageData.voicePath = voicePath;
-              messageData.duration = recordingTime;
-              messageData.content = '[Voice Message]';
-              
-              } catch (fallbackError) {
-              logger.error('Fallback upload also failed:', fallbackError);
-              
-              // Final fallback - try with a different file extension
-              try {
-                const finalFallbackMetadata = {
-                  contentType: 'audio/mpeg',
-                  cacheControl: 'public, max-age=31536000',
-                  customMetadata: {
-                    uploadedBy: user.uid,
-                    timestamp: Date.now().toString(),
-                    finalFallback: 'true'
-                  }
-                };
-                const voicePath = `voice-messages/${Date.now()}_${user.uid}.mp3`;
-                const voiceRef = ref(storage, voicePath);
-                
-                // Convert webm to blob and try again
-                const finalUploadTask = uploadBytesResumable(voiceRef, audioBlob, finalFallbackMetadata);
-                
-                await new Promise((resolve, reject) => {
-                  finalUploadTask.on('state_changed', 
-                    (snapshot) => {
-                      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                      },
-                    (error) => {
-                      logger.error('Final fallback upload failed:', error);
-                      reject(error);
-                    },
-                    () => {
-                      resolve();
-                    }
-                  );
-                });
-                
-                const voiceUrl = await getDownloadURL(voiceRef);
-                
-                messageData.messageType = 'voice';
-                messageData.voiceUrl = voiceUrl;
-                messageData.voicePath = voicePath;
-                messageData.duration = recordingTime;
-                messageData.content = '[Voice Message]';
-                
-                } catch (finalError) {
-                logger.error('All upload attempts failed:', finalError);
-                toast?.showError?.('Failed to upload voice message. Please check your internet connection and try again.');
-                return;
-              }
-            }
-          } else {
-            toast?.showError?.('Failed to upload voice message. Please check your connection and try again.');
-            return;
-          }
-        }
-      } else if (attachedFile) {
-        // File attachment - sanitize filename to avoid CORS/preflight issues on special characters
-        const safeName = (attachedFile.name || 'file').replace(/[^a-zA-Z0-9_.-]/g, '_');
-        const filePath = `chat-attachments/${Date.now()}_${user.uid}_${safeName}`;
-        const fileRef = ref(storage, filePath);
-        await uploadBytes(fileRef, attachedFile);
-        const fileUrl = await getDownloadURL(fileRef);
-        
-        messageData.messageType = 'file';
-        messageData.fileUrl = fileUrl;
-        messageData.filePath = filePath;
-        messageData.fileName = attachedFile.name;
-        messageData.fileSize = attachedFile.size;
-        messageData.fileType = attachedFile.type;
-        messageData.content = `[File: ${attachedFile.name}]`;
-      } else {
-        // Text message
-        const originalContent = newMessage.trim();
-        const filteredContent = filterBadWords(originalContent);
-        
-        messageData.messageType = 'text';
-        messageData.content = filteredContent;
-        
-        // Show warning if content was filtered
-        if (originalContent !== filteredContent) {
-          toast?.showWarning?.('Your message has been filtered for inappropriate content.');
-        }
-      }
-      
-      const added = await chatService.sendMessage(messageData);
-
-      // If global, notify all users except sender
-      if (messageData.type === 'global') {
-        try {
-          const preview = messageData.messageType === 'text' ? messageData.content
-            : (messageData.messageType === 'voice' ? '[Voice Message]'
-              : (messageData.messageType === 'file' ? `[File: ${messageData.fileName}]` : 'Message'));
-          const usersRes = await getUsers();
-          const others = (usersRes.data || []).filter(u => u.docId !== user.uid);
-          for (const u2 of others) {
-            await addNotification({
-              userId: u2.docId,
-              title: '💬 Global Chat',
-              message: `${(profileName || user.displayName || user.email)}: ${preview.substring(0, 120)}`,
-              type: 'chat',
-              data: { type: 'global', messageId: added.id }
-            });
-          }
-        } catch {}
-      }
-      
-      // Reset
-      setNewMessage('');
-      setAudioBlob(null);
-      setAttachedFile(null);
-      setImagePreview(null);
-      setRecordingTime(0);
-      setIsUploading(false);
-      messageInputRef.current?.focus();
-      
-    } catch (error) {
-      logger.error('Error sending message:', error);
-      toast?.showError('Failed to send message');
-      setIsUploading(false);
-    }
-  };
   
-  const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    // Get user's role-based limitations
-    const userRole = user?.role || USER_ROLES.STUDENT;
-    const canUpload = canUserUploadFile(userRole, file.size, file.type);
-    
-    if (!canUpload) {
-      const maxSize = getRoleLimit(userRole, 'chat', 'maxFileSize');
-      const maxSizeMB = maxSize / (1024 * 1024);
-      toast?.showError(`File too large. Maximum size: ${maxSizeMB}MB`);
-      e.target.value = '';
-      return;
-    }
-    
-    // Additional validation using the new system
-    const validation = validateFileUploadForRole(userRole, [file]);
-    if (!validation.isValid) {
-      toast?.showError(validation.errors.join(', '));
-      e.target.value = '';
-      return;
-    }
-    
-    setAttachedFile(file);
-    
-    // Create image preview if it's an image
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setImagePreview(null);
-    }
-    
-    const maxSize = getRoleLimit(userRole, 'chat', 'maxFileSize');
-    const maxSizeMB = maxSize / (1024 * 1024);
-    toast?.showSuccess?.(`File "${file.name}" attached (Max: ${maxSizeMB}MB)`);
-  };
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // Get user's role-based voice recording limitations
-      const userRole = user?.role || USER_ROLES.STUDENT;
-      const voiceLimits = getVoiceRecordingLimits(userRole);
-      const maxRecordingTime = voiceLimits.maxRecordingTime;
-      
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-      
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        setAudioBlob(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
-      };
-      
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingTime(0);
-      
-      // Start timer with role-based limit
-      recordingIntervalRef.current = setInterval(() => {
-        setRecordingTime(prev => {
-          const newTime = prev + 1;
-          // Auto-stop at role-based time limit
-          if (newTime >= maxRecordingTime) {
-            stopRecording();
-            toast?.showInfo(`Maximum recording time reached (${getMaxVoiceTimeDisplay(userRole)})`);
-          }
-          return newTime;
-        });
-      }, 1000);
-      
-    } catch (error) {
-      logger.error('Error starting recording:', error);
-      toast?.showError('Microphone access denied');
-    }
-  };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      clearInterval(recordingIntervalRef.current);
-    }
-  };
 
-  const cancelRecording = () => {
-    // Always clear the state regardless of media recorder state
-    setIsRecording(false);
-    setRecordingTime(0);
-    setAudioBlob(null);
-    clearInterval(recordingIntervalRef.current);
-    
-    // Stop media recorder if it's still active
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-  };
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleClassChange = (classId) => {
-    logger.info('handleClassChange called', { 
-      classId, 
-      previousClassId: selectedClass,
-      isDM: classId?.startsWith('dm:'),
-      isGlobal: classId === 'global'
-    });
-    
-    // Mark that user has interacted to prevent auto-selection
-    setUserHasInteracted(true);
-    
-    setSelectedClass(classId);
-    // Load members asynchronously without blocking UI
-    loadClassMembers(classId);
-    
-    logger.info('handleClassChange completed', { 
-      newClassId: classId,
-      selectedClassSet: classId,
-      userHasInteracted: true
-    });
-  };
-
-  const toggleSidebar = () => {
-    const newCollapsed = !isSidebarCollapsed;
-    setIsSidebarCollapsed(newCollapsed);
-    localStorage.setItem('chatSidebarCollapsed', newCollapsed.toString());
-  };
-
-  // Create or open a DM room with another user
-  const openDMWith = async (otherUser) => {
-    logger.info('openDMWith called', { 
-      otherUserId: otherUser?.docId, 
-      otherUserEmail: otherUser?.email,
-      currentUserId: user?.uid,
-      otherUserName: otherUser?.displayName || otherUser?.email,
-      otherUserFields: Object.keys(otherUser || {})
-    });
-    
-    // Try different ID field names that might be used
-    const otherUserId = otherUser?.docId || otherUser?.id || otherUser?.uid;
-    
-    if (!otherUserId || otherUserId === user.uid) {
-      logger.warn('openDMWith validation failed', { 
-        hasDocId: !!otherUser?.docId,
-        hasId: !!otherUser?.id,
-        hasUid: !!otherUser?.uid,
-        resolvedUserId: otherUserId,
-        isSelf: otherUserId === user.uid,
-        otherUserId: otherUserId,
-        currentUserId: user?.uid,
-        otherUserEmail: otherUser?.email
-      });
-      return;
-    }
-    
-    try {
-      logger.info('Creating DM room...', { 
-        fromUserId: user.uid, 
-        toUserId: otherUserId,
-        otherUserEmail: otherUser?.email
-      });
-      
-      const roomId = await chatService.createDMRoom(user.uid, otherUserId);
-      
-      logger.info('DM room created successfully', { roomId });
-      
-      setSelectedClass(`dm:${roomId}`);
-      setShowMembers(false);
-      
-      logger.info('DM chat opened', { 
-        roomId, 
-        selectedClass: `dm:${roomId}`,
-        otherUserName: otherUser?.displayName || otherUser?.email,
-        otherUserId
-      });
-      
-    } catch (err) {
-      logger.error('Open DM failed:', { 
-        error: err.message,
-        stack: err.stack,
-        otherUserId,
-        otherUserEmail: otherUser?.email,
-        otherUserFields: Object.keys(otherUser || {})
-      });
-      toast?.showError('Failed to start conversation');
-    }
-  };
-
-  // Add logging for selectedClass changes
   useEffect(() => {
     logger.info('selectedClass changed', { 
       newSelectedClass: selectedClass,
@@ -1871,7 +1400,7 @@ const ChatPage = memo(() => {
                       const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
                       const otherId=(room?.participants||[]).find(p=>p!==user.uid); 
                       const other=allUsers.find(u=>u.docId===otherId); 
-                      return other?.email || 'Direct Message';
+                      return other?.displayName || other?.realName || other?.studentNumber || other?.email || 'Direct Message';
                     })()
                    : (classes.find(c => c.docId === selectedClass)?.name || selectedClassName || 'Chat')
                  )}

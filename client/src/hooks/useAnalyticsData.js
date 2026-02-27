@@ -46,9 +46,17 @@ const useAnalyticsData = () => {
   const [loading, setLoading] = useState(true);
   const [rawData, setRawData] = useState(EMPTY_RAW);
   const [permErrors, setPermErrors] = useState({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadAllData = useCallback(async () => {
+    // Prevent multiple simultaneous refreshes
+    if (isRefreshing) {
+      console.log('[REFRESH DEBUG] ⏸️ Refresh already in progress, skipping...');
+      return;
+    }
+
     console.log('[REFRESH DEBUG] 🔄 Starting analytics data refresh...');
+    setIsRefreshing(true);
     setLoading(true);
     const errors = {};
     const next = { ...EMPTY_RAW };
@@ -60,6 +68,15 @@ const useAnalyticsData = () => {
         const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         next[key] = data;
         console.log(`[REFRESH DEBUG] ✅ Loaded ${key}:`, data.length, 'records');
+        
+        // DEBUG: Show raw Firestore data structure for classes
+        if (key === 'classes' && data.length > 0) {
+          console.log(`[CLASSES DEBUG] Raw Firestore docs:`, snap.docs.slice(0, 2).map(d => ({
+            id: d.id,
+            data: d.data()
+          })));
+          console.log(`[CLASSES DEBUG] Mapped data:`, data.slice(0, 2));
+        }
         
         // Show sample data for key collections
         if (key === 'attendance' && data.length > 0) {
@@ -79,7 +96,24 @@ const useAnalyticsData = () => {
             console.log(`[REFRESH DEBUG] 📋 ${key} sample:`, data.slice(0, 2));
           }
         }
-      } catch (e) {
+        
+        // Show sample data for students collection
+        if (key === 'students') {
+          console.log(`[REFRESH DEBUG] 👥 Students loaded:`, data.length, 'records');
+          if (data.length > 0) {
+            console.log(`[REFRESH DEBUG] 👥 Students sample:`, data.slice(0, 3).map(s => ({
+              id: s.id || s.uid,
+              displayName: s.displayName,
+              name: s.name,
+              firstName: s.firstName,
+              lastName: s.lastName,
+              studentNumber: s.studentNumber,
+              email: s.email
+            })));
+          }
+        }
+        
+              } catch (e) {
         const code = (e?.code || e?.message || '').toString();
         if (code.includes('permission-denied')) errors[key] = 'permission-denied';
         console.error(`[REFRESH DEBUG] ❌ Failed to load ${key}:`, e);
@@ -91,6 +125,7 @@ const useAnalyticsData = () => {
       safeLoad('activities', () => getDocs(collection(db, 'activities'))),
       safeLoad('submissions', () => getDocs(collection(db, 'submissions'))),
       safeLoad('users', () => getDocs(collection(db, 'users'))),
+      // students collection removed - use users collection instead to avoid permission errors
       safeLoad('classes', () => getDocs(collection(db, 'classes'))),
       safeLoad('attendance', () => getDocs(collection(db, 'attendance'))),
       safeLoad('activityLogs', () => getDocs(query(collection(db, 'activityLogs'), orderBy('when', 'desc')))),
@@ -135,13 +170,209 @@ const useAnalyticsData = () => {
     setRawData(next);
     setPermErrors(errors);
     setLoading(false);
-  }, []);
+    setIsRefreshing(false);
+  }, [isRefreshing]);
 
   useEffect(() => {
     loadAllData();
   }, []); // Empty dependency array - only run once on mount
 
-  return { rawData, loading, permErrors, reload: loadAllData };
+  const reloadWithDebug = () => {
+    console.log('[REFRESH DEBUG] 🔄 Reload function called!');
+    console.log('[REFRESH DEBUG] 🕐 Timestamp:', new Date().toISOString());
+    console.log('[REFRESH DEBUG] 📊 Current rawData keys:', Object.keys(rawData));
+    return loadAllData();
+  };
+
+  const smartReload = async (widget) => {
+    console.log('[SMART REFRESH DEBUG] 🔄 Smart reload started!');
+    console.log('[SMART REFRESH DEBUG] 📊 Widget:', widget.title || 'Untitled');
+    console.log('[SMART REFRESH DEBUG] 🕐 Timestamp:', new Date().toISOString());
+    
+    const collections = getWidgetCollections(widget);
+    console.log('[SMART REFRESH DEBUG] 📋 Collections to reload:', collections);
+    
+    const freshData = {};
+    const newPermErrors = {};
+    
+    // Local safeLoad function for smart reload - returns data instead of setting state
+    const safeLoad = async (key, loadFn) => {
+      try {
+        console.log(`[SMART REFRESH DEBUG] 📥 Loading ${key}...`);
+        const data = await loadFn();
+        
+        // Handle Firestore QuerySnapshot
+        let docs = [];
+        if (data && data.docs) {
+          // Firestore QuerySnapshot
+          docs = data.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } else if (Array.isArray(data)) {
+          // Direct array data
+          docs = data.map(doc => ({ id: doc.id || doc.uid || doc.docId, ...doc }));
+        } else if (data) {
+          // Single document or other data
+          docs = [{ id: data.id || data.uid || data.docId, ...data }];
+        }
+        
+        console.log(`[SMART REFRESH DEBUG] ✅ Loaded ${key}: ${docs.length} records`);
+        freshData[key] = docs;
+        return docs;
+      } catch (e) {
+        const code = (e?.code || e?.message || '').toString();
+        if (code.includes('permission-denied')) newPermErrors[key] = 'permission-denied';
+        console.error(`[SMART REFRESH DEBUG] ❌ Failed to load ${key}:`, e);
+        logger.warn(`[useAnalyticsData] failed to load ${key}:`, e);
+        freshData[key] = [];
+        return [];
+      }
+    };
+    
+    try {
+      const loadPromises = collections.map(async (collectionName) => {
+        console.log(`[SMART REFRESH DEBUG] 📥 Loading ${collectionName}...`);
+        
+        let loadFn;
+        switch (collectionName) {
+          case 'activities':
+            loadFn = () => getDocs(collection(db, 'activities'));
+            break;
+          case 'submissions':
+            loadFn = () => getDocs(collection(db, 'submissions'));
+            break;
+          case 'users':
+            loadFn = () => getDocs(collection(db, 'users'));
+            break;
+          // students case removed - use users collection instead
+          case 'classes':
+            loadFn = () => getDocs(collection(db, 'classes'));
+            break;
+          case 'attendance':
+            loadFn = () => getDocs(collection(db, 'attendance'));
+            break;
+          case 'activityLogs':
+            loadFn = () => getDocs(collection(db, 'activityLogs'));
+            break;
+          case 'enrollments':
+            loadFn = () => getDocs(collection(db, 'enrollments'));
+            break;
+          case 'quizzes':
+            loadFn = () => getDocs(collection(db, 'quizzes'));
+            break;
+          case 'quizSubmissions':
+            loadFn = () => getDocs(collection(db, 'quizSubmissions'));
+            break;
+          case 'notifications':
+            loadFn = () => getDocs(collection(db, 'notifications'));
+            break;
+          case 'emailLogs':
+            loadFn = () => getDocs(collection(db, 'emailLogs'));
+            break;
+          case 'announcements':
+            loadFn = () => getDocs(collection(db, 'announcements'));
+            break;
+          case 'resources':
+            loadFn = () => getDocs(collection(db, 'resources'));
+            break;
+          case 'programs':
+            loadFn = () => getProgramsSorted();
+            break;
+          case 'subjects':
+            loadFn = () => getSubjectsSorted();
+            break;
+          case 'penalties':
+            loadFn = () => getDocs(collection(db, 'penalties'));
+            break;
+          case 'absences':
+            loadFn = () => getDocs(collection(db, 'attendance')); // absences use attendance collection
+            break;
+          case 'studentMarks':
+            loadFn = () => getDocs(collection(db, 'studentMarks'));
+            break;
+          case 'behaviors':
+            loadFn = () => getDocs(collection(db, 'behaviors'));
+            break;
+          case 'participations':
+            loadFn = () => getDocs(collection(db, 'participations'));
+            break;
+          case 'courses':
+            loadFn = () => getDocs(collection(db, 'courses'));
+            break;
+          case 'scheduledReports':
+            loadFn = () => getDocs(collection(db, 'scheduledReports'));
+            break;
+          case 'studentProgress':
+            loadFn = () => getDocs(collection(db, 'studentProgress'));
+            break;
+          case 'subjectMarksDistribution':
+            loadFn = () => getDocs(collection(db, 'subjectMarksDistribution'));
+            break;
+          case 'notificationLogs':
+            loadFn = () => getDocs(collection(db, 'notificationLogs'));
+            break;
+          case 'attendanceSessions':
+            loadFn = () => getDocs(collection(db, 'attendanceSessions'));
+            break;
+          default:
+            console.warn(`[SMART REFRESH DEBUG] ⚠️ Unknown collection: ${collectionName}`);
+            return;
+        }
+        
+        return safeLoad(collectionName, loadFn);
+      });
+      
+      await Promise.all(loadPromises);
+      
+      console.log('[SMART REFRESH DEBUG] ✅ Smart reload completed successfully!');
+      
+      // Return fresh data for the widget
+      return { freshData, permErrors: newPermErrors };
+    } catch (error) {
+      console.error('[SMART REFRESH DEBUG] ❌ Smart reload failed:', error);
+      return { freshData: {}, permErrors: newPermErrors };
+    }
+  };
+
+  return { rawData, loading, permErrors, reload: reloadWithDebug, smartReload };
+};
+
+/**
+ * getWidgetCollections
+ * Determines which collections a widget needs for smart refresh
+ * @param {object} widget - Widget config
+ * @returns {array} - Array of collection names this widget depends on
+ */
+export const getWidgetCollections = (widget) => {
+  const { dataSource, groupBy } = widget;
+  const collections = new Set();
+  
+  // Add main data source(s)
+  if (dataSource) {
+    if (dataSource.includes(',')) {
+      // Multi-source widget
+      const sources = dataSource.split(',').map(s => s.trim()).filter(Boolean);
+      sources.forEach(src => collections.add(src));
+    } else if (dataSource === 'absences') {
+      // Absences use attendance collection
+      collections.add('attendance');
+    } else {
+      collections.add(dataSource);
+    }
+  }
+  
+  // Add collections needed for label resolution
+  if (groupBy === 'classId') collections.add('classes');
+  if (groupBy === 'programId') collections.add('programs');
+  if (groupBy === 'subjectId') collections.add('subjects');
+  if (groupBy === 'studentId' || groupBy === 'createdBy' || groupBy === 'performedBy') {
+    collections.add('users');
+  }
+  if (groupBy === 'instructorId') collections.add('users');
+  
+  // Always include users for name resolution (students collection has permission issues)
+  collections.add('users');
+  
+  console.log('[WIDGET DEBUG] 📋 Widget collections needed:', Array.from(collections));
+  return Array.from(collections);
 };
 
 /**
@@ -156,6 +387,15 @@ const useAnalyticsData = () => {
  */
 export const processWidgetData = (widget, rawData, globalFilters = {}, comparisonOffset = 0, t = null, lang = 'en') => {
   const { dataSource, groupBy, aggregation = 'count', filters = [], dateRange, customDateFrom, customDateTo } = widget;
+
+  // DEBUG: Log widget processing start with more details
+  console.log(`[WIDGET DEBUG] 🎯 Processing: ${widget.title || 'Untitled'} (${dataSource}) - groupBy: "${groupBy}" - aggregation: ${aggregation}`);
+  
+  // Enhanced validation for groupBy
+  if (!groupBy || groupBy.trim() === '' || groupBy === 'undefined' || groupBy === 'null') {
+    console.warn('[processWidgetData] Invalid groupBy provided:', { groupBy, widgetTitle: widget.title, dataSource });
+    return [];
+  }
 
   // ── Multi-source merge: dataSource can be comma-separated e.g. "activities,announcements,resources" ──
   let dataset;
@@ -196,14 +436,8 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     const allStatuses = [...new Set(dataset.map(item => item.status))].filter(Boolean);
     console.log(`[WIDGET DEBUG] 📋 Status values:`, allStatuses);
   }
-
-  // Guard clause: if groupBy is empty, return empty data to prevent infinite loops
-  if (!groupBy || groupBy.trim() === '') {
-    console.warn('[processWidgetData] Empty groupBy provided, returning empty data');
-    return [];
-  }
-
   
+
   // --- Global filter application ---
   if (globalFilters.studentId) {
     dataset = dataset.filter(i =>
@@ -320,24 +554,33 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       const sId = item.subjectId || item.subject || item.subject_id;
       let pId = 'Unknown';
       if (cId) {
-        const cls = (rawData.classes || []).find(c => (c.id || c.docId) === cId);
+        const cls = (rawData.classes || []).find(c => c.id === cId); // Fixed: use id instead of docId
         if (cls?.programId) pId = cls.programId;
       }
       if (pId === 'Unknown' && sId) {
-        const sub = (rawData.subjects || []).find(s => (s.id || s.docId) === sId);
+        const sub = (rawData.subjects || []).find(s => s.id === sId); // Fixed: use id instead of docId
         if (sub?.programId) pId = sub.programId;
       }
-      const prog = (rawData.programs || []).find(p => (p.id || p.docId) === pId);
+      const prog = (rawData.programs || []).find(p => p.id === pId); // Fixed: use id instead of docId
       return prog ? (prog.name_en || prog.name || prog.code || pId) : pId;
     }
     if (groupBy === 'classId' || groupBy === 'class') {
       const cId = item.classId || item.class || item.class_id;
       if (!cId) return 'Unknown';
-      const cls = (rawData.classes || []).find(c => (c.id || c.docId) === cId);
+      
+      // Try direct ID match first (for properly structured data)
+      const cls = (rawData.classes || []).find(c => 
+        c.id === cId || 
+        c.docId === cId || 
+        c.classId === cId ||
+        c._id === cId
+      );
+      
       if (cls) {
         return cls.name_en || cls.name || cls.code || cId;
       }
-      // Try to find class by program and subject if direct match fails
+      
+      // Fallback: Try to find class by program and subject (using stored values from records)
       const sId = item.subjectId || item.subject || item.subject_id;
       const pId = item.programId || item.program;
       if (sId && pId) {
@@ -349,11 +592,12 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
           return matchingClass.name_en || matchingClass.name || matchingClass.code || cId;
         }
       }
+      
       return cId;
     }
     if (groupBy === 'subjectId' || groupBy === 'subject') {
       const sId = item.subjectId || item.subject || item.subject_id || 'Unknown';
-      const sub = (rawData.subjects || []).find(s => (s.id || s.docId) === sId);
+      const sub = (rawData.subjects || []).find(s => s.id === sId); // Fixed: use id instead of docId
       return sub ? `${sub.code || ''} - ${sub.name_en || sub.name || sId}`.trim() : sId;
     }
     if (groupBy === 'date') {
@@ -409,6 +653,64 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       if (s === 'absent') s = ATTENDANCE_STATUS.ABSENT_NO_EXCUSE;
       if (s === 'excused') s = ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE;
       return s;
+    }
+    if (groupBy === 'createdBy' || groupBy === 'performedBy') {
+      const userId = item.createdBy || item.performedBy || item.markedBy;
+      if (!userId) return 'Unknown';
+      
+      // Try to find user in rawData.users
+      const user = (rawData.users || []).find(u => 
+        u.id === userId || u.uid === userId || u.docId === userId
+      );
+      
+      if (user) {
+        return user.displayName || user.name || user.email || userId;
+      }
+      
+      // Try to use performedByName if available
+      if (item.performedByName && item.performedByName !== 'Unknown') {
+        return item.performedByName;
+      }
+      
+      return userId;
+    }
+    if (groupBy === 'studentId') {
+      const studentId = item.studentId || item.userId || item.uid;
+      if (!studentId) return 'Unknown';
+      
+            
+      // Try to find student in both users and students collections
+      let student = (rawData.users || []).find(u => 
+        u.id === studentId || u.uid === studentId || u.docId === studentId
+      );
+      
+      if (!student) {
+        // Try students collection
+        student = (rawData.students || []).find(s => 
+          s.id === studentId || s.uid === studentId || s.docId === studentId
+        );
+      }
+      
+      if (student) {
+        // Try different field name combinations
+        let resolvedName = student.displayName || student.name || '';
+        
+        // If displayName is empty, try firstName + lastName
+        if (!resolvedName && (student.firstName || student.lastName)) {
+          const firstName = student.firstName || '';
+          const lastName = student.lastName || '';
+          resolvedName = `${firstName} ${lastName}`.trim();
+        }
+        
+        // Fall back to student number, email, or ID
+        if (!resolvedName) {
+          resolvedName = student.studentNumber || student.email || studentId;
+        }
+        
+                return resolvedName;
+      }
+      
+            return studentId;
     }
     if (groupBy === '_source') {
       const src = item._source || 'unknown';

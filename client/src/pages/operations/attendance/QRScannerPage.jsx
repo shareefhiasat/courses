@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
+import { formatQatarDateOnly, getQatarNow } from '@utils/qatarDate';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -110,8 +111,9 @@ const QRScannerPage = () => {
     }
   });
   const [selectedDate, setSelectedDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split('T')[0]; // Format as yyyy-MM-dd
+    // Use ISO format for database operations (Qatar time adjusted)
+    const qatarNow = getQatarNow();
+    return qatarNow.toISOString().split('T')[0]; // Format as yyyy-MM-dd
   });
   const [showFilterDialog, setShowFilterDialog] = useState(false);
   const [attendanceFilter, setAttendanceFilter] = useState('all');
@@ -375,9 +377,18 @@ const QRScannerPage = () => {
   // Listen for real-time attendance updates
   useEffect(() => {
     const unsubscribe = eventBus.on(EVENTS.ATTENDANCE_MARKED, (data) => {
-      // If the update is for the current class, refresh students
+      // If the update is for the current class, refresh students immediately
       if (data.classId === selectedClassId) {
+        logger.debug('🔄 Attendance marked event received, refreshing students for class:', selectedClassId);
+        
+        // Immediate refresh to update UI
         loadStudents(selectedClassId, selectedDate);
+        
+        // Also trigger a secondary refresh after a short delay to ensure Firebase consistency
+        setTimeout(() => {
+          logger.debug('🔄 Secondary refresh to ensure Firebase consistency');
+          loadStudents(selectedClassId, selectedDate);
+        }, 500);
       }
     });
 
@@ -544,8 +555,9 @@ const QRScannerPage = () => {
       }
 
       // Get attendance for selected date
-      const dateObj = new Date(date);
-      const dateStr = dateObj.toISOString().split('T')[0];
+      // date is already in Qatar format, use it directly
+      const dateStr = date;
+      logger.debug('[QR Scanner] Fetching attendance for date:', dateStr, '(Qatar format)');
       const attendanceResponse = await getAttendanceByClass(classId, dateStr);
       const attendance = attendanceResponse.success ? attendanceResponse.data : [];
       setAttendanceRecords(attendance);
@@ -604,9 +616,27 @@ const QRScannerPage = () => {
           console.log('🔍 [LoadStudents] Student attendance data:', {
             studentId,
             studentName,
+            searchingForDate: dateStr,
+            foundRecords: studentRecords.length,
             todayAttendance: todayAttendance?.status,
-            allRecords: studentRecords.map(r => ({ studentId: r.studentId, status: r.status, delta: r.delta }))
+            allRecords: studentRecords.map(r => ({ 
+              studentId: r.studentId, 
+              status: r.status, 
+              delta: r.delta,
+              recordDate: r.date,
+              searchingDate: dateStr,
+              dateMatch: r.date === dateStr
+            }))
           });
+          
+          // Debug: Check if we have a valid attendance record for today
+          if (!todayAttendance) {
+            console.warn('⚠️ [LoadStudents] No attendance record found for student:', studentId, 'on date:', dateStr);
+          } else if (todayAttendance.status === 'absent_no_excuse') {
+            console.warn('⚠️ [LoadStudents] Student marked as absent_no_excuse (default):', studentId);
+          } else {
+            console.log('✅ [LoadStudents] Student has valid attendance status:', studentId, todayAttendance.status);
+          }
 
           // Fetch all attendance records for this student (attendance only)
           const studentAttendanceResponse = await getAttendanceByStudent(studentId);
@@ -741,9 +771,26 @@ const QRScannerPage = () => {
       // Ensure selectedDate is a string in yyyy-MM-dd format
       const dateStr = typeof selectedDate === 'string' ? selectedDate : selectedDate.toISOString().split('T')[0];
       
+      // Get class data to extract programId and subjectId
+      const currentClass = classes.find(c => (c.id || c.docId) === selectedClassId);
+      
+      // Extract programId and subjectId with better fallback logic
+      let programId = currentClass?.programId || currentClass?.program;
+      let subjectId = currentClass?.subjectId || currentClass?.subject;
+      
+      // If still null, try the selected values (but not 'all')
+      if (!programId && selectedProgramId && selectedProgramId !== 'all') {
+        programId = selectedProgramId;
+      }
+      if (!subjectId && selectedSubjectId && selectedSubjectId !== 'all') {
+        subjectId = selectedSubjectId;
+      }
+      
       await markAttendance({
         classId: selectedClassId,
         studentId,
+        programId,
+        subjectId,
         date: dateStr,
         status,
         notes,

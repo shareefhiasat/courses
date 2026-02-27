@@ -805,17 +805,34 @@ const UsersPage = ({ isDashboardTab = false }) => {
       };
       
       if (editingUser) {
-        const result = await updateUser(editingUser.docId, submitData);
+        logger.info('USER_PAGE: Attempting to update user', {
+          timestamp: new Date().toISOString(),
+          editingUser: {
+            docId: editingUser.docId,
+            id: editingUser.id,
+            email: editingUser.email,
+            hasDocId: !!editingUser.docId,
+            docIdType: typeof editingUser.docId
+          },
+          submitDataKeys: Object.keys(submitData)
+        });
+        
+        const userId = editingUser.docId || editingUser.id;
+        if (!userId) {
+          logger.error('USER_PAGE: No valid user ID found for update', { editingUser });
+          throw new Error('No valid user ID found for update');
+        }
+        
+        const result = await updateUser(userId, submitData);
         if (!result.success) throw new Error(result.error || 'Failed to update user');
         // Log activity
         try {
           const { logActivity } = await import('@services/other/activityLogger');
           await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
-            userId: editingUser.docId,
             userEmail: submitData.email,
             userDisplayName: submitData.displayName,
             userRole: submitData.role
-          });
+          }, userId);
         } catch (e) { }
         toast?.showSuccess('User updated successfully!');
       } else {
@@ -853,7 +870,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
       if (editingUser) {
         logger.info('USER_PAGE: Calling loadData after user update', {
           timestamp: new Date().toISOString(),
-          userId: editingUser.docId
+          userId: userId
         });
         await loadData();
       }

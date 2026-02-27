@@ -44,6 +44,7 @@ const WidgetWrapper = ({
   const { theme } = useTheme();
   const { t, lang } = useLang();
   const [isMaximized, setIsMaximized] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const toggleMaximize = useCallback(() => setIsMaximized(v => !v), []);
 
   // Helper to get localized date range label
@@ -64,14 +65,39 @@ const WidgetWrapper = ({
       className="widget-actions"
       style={{ display: 'flex', gap: 4, opacity: 0, transition: 'opacity 0.2s', flexShrink: 0 }}
     >
-      {/* Refresh — local re-render only */}
-      <ActionBtn
-        title={t('refresh') || 'Refresh'}
-        onClick={onRefresh}
-        style={{ color: isRecentlyRefreshed ? 'var(--color-success, #10b981)' : 'var(--text)' }}
+      {/* Refresh — local re-render only - HIDDEN FOR NOW */}
+      {/* <ActionBtn
+        title={isRefreshing ? (t('refreshing') || 'Refreshing...') : (t('refresh') || 'Refresh')}
+        onClick={async () => {
+          console.log('[WIDGET WRAPPER DEBUG] 🔄 Refresh button clicked in wrapper!');
+          console.log('[WIDGET WRAPPER DEBUG] 📊 Widget title:', widget.title || 'Untitled');
+          
+          setIsRefreshing(true);
+          try {
+            await onRefresh();
+          } finally {
+            setIsRefreshing(false);
+          }
+        }}
+        style={{ 
+          color: isRefreshing ? 'var(--color-success, #10b981)' : (isRecentlyRefreshed ? 'var(--color-success, #10b981)' : 'var(--text)'),
+          backgroundColor: isRefreshing ? 'var(--color-success-light, #bbf7d0)' : 'transparent',
+          borderColor: isRefreshing ? 'var(--color-success, #10b981)' : 'var(--border)',
+          boxShadow: isRefreshing ? '0 0 8px rgba(16, 185, 129, 0.4)' : 'none',
+          animation: isRefreshing ? 'pulse 1.5s ease-in-out infinite' : 'none',
+          transform: isRefreshing ? 'scale(1.05)' : 'scale(1)',
+          transition: 'all 0.3s ease'
+        }}
       >
-        {getThemedIcon('ui', 'rotate_cw', 14, theme)}
-      </ActionBtn>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          animation: isRefreshing ? 'spin 1s linear infinite' : 'none'
+        }}>
+          {getThemedIcon('ui', 'rotate_cw', 14, theme)}
+        </div>
+      </ActionBtn> */}
 
       {/* Minimize / Restore — controlled */}
       <ActionBtn
@@ -333,3 +359,31 @@ function ChartSizer({ children }) {
 }
 
 export default WidgetWrapper;
+
+// Add CSS animation for spinning refresh icon
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+    }
+    50% {
+      transform: scale(1.1);
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.6);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+    }
+  }
+`;
+if (!document.head.querySelector('style[data-widget-refresh]')) {
+  style.setAttribute('data-widget-refresh', 'true');
+  document.head.appendChild(style);
+}

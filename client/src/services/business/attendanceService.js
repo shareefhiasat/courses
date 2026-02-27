@@ -101,8 +101,14 @@ export const isStudentMarkedToday = async (classId, studentIdentifier) => {
 // Mark attendance (centralized - CONSOLIDATED from both files)
 export const markAttendance = async (attendanceData) => {
   try {
-    const today = formatQatarDateOnly(getQatarNow());
+    // Use the date passed from caller, or default to today's Qatar date
+    const date = attendanceData.date || formatQatarDateOnly(getQatarNow());
+    const today = date; // Use the passed date for consistency
     const attendanceDocId = `${attendanceData.classId}_${attendanceData.studentNumber}_${today}`;
+    
+    // Ensure we have programId and subjectId from class data
+    // These should be passed from the calling code, but we validate here
+    const { programId = null, subjectId = null } = attendanceData;
     
     // Check if record exists using DB service
     const existingRecord = await getAttendanceRecordFromDb(attendanceDocId);
@@ -111,6 +117,9 @@ export const markAttendance = async (attendanceData) => {
       // Update existing attendance using DB service
       const updateResult = await updateAttendanceRecordInDb(attendanceDocId, {
         ...attendanceData,
+        programId,
+        subjectId,
+        date: date, // Use the passed date (ISO format)
         updatedAt: getQatarTimestampString()
       });
       
@@ -147,7 +156,9 @@ export const markAttendance = async (attendanceData) => {
       // Create new attendance record using DB service
       const createResult = await setAttendanceRecordToDb(attendanceDocId, {
         ...attendanceData,
-        date: today,
+        programId,
+        subjectId,
+        date: date, // Use the passed date (ISO format)
         createdAt: getQatarTimestampString(),
         updatedAt: getQatarTimestampString()
       });
@@ -233,6 +244,8 @@ export const getAttendanceStats = async (classId, startDate = null, endDate = nu
 export const quickMarkAttendance = async ({
   studentId,
   classId,
+  programId = null,
+  subjectId = null,
   status,
   note = '',
   user = null
@@ -242,10 +255,16 @@ export const quickMarkAttendance = async ({
       classId,
       studentId,
       studentNumber: studentId,
+      programId,
+      subjectId,
       status,
       note,
       markedBy: user?.uid || 'system',
       markedByName: user?.displayName || 'System',
+      createdBy: user?.uid || 'system',
+      performedBy: user?.uid || 'system',
+      performedByName: user?.displayName || user?.email || 'System',
+      performedByEmail: user?.email || null,
       timestamp: getQatarTimestampString()
     };
     
@@ -315,9 +334,11 @@ export const getClassAttendanceByDate = async (classId, date) => {
  * @param {string} status - Attendance status
  * @param {Object} user - User performing the action
  * @param {string} notes - Optional notes
+ * @param {string} programId - Program ID (optional)
+ * @param {string} subjectId - Subject ID (optional)
  * @returns {Promise<Object>} Result of the operation
  */
-export const rosterQuickAction = async (studentId, classId, status, user, notes = '') => {
+export const rosterQuickAction = async (studentId, classId, status, user, notes = '', programId = null, subjectId = null, date = null) => {
   try {
     // Import attendance types for validation
     const { ATTENDANCE_STATUS } = await import('@constants/attendanceTypes');
@@ -330,7 +351,8 @@ export const rosterQuickAction = async (studentId, classId, status, user, notes 
       };
     }
 
-    const today = formatQatarDateOnly(getQatarNow());
+    // Use the date passed from caller, or default to today's Qatar date in ISO format
+    const today = date || getQatarNow().toISOString().split('T')[0]; // ISO format
     const attendanceDocId = `${classId}_${studentId}_${today}`;
 
     // Check if attendance record already exists using DB service
@@ -341,6 +363,8 @@ export const rosterQuickAction = async (studentId, classId, status, user, notes 
       studentId,
       studentNumber: studentId, // Add studentNumber for consistency
       classId,
+      programId,
+      subjectId,
       status,
       date: today,                    // ✅ Add missing date field
       method: ATTENDANCE_METHODS.ROSTER_QUICK_ACTION,
@@ -348,6 +372,10 @@ export const rosterQuickAction = async (studentId, classId, status, user, notes 
       markedBy: user?.uid || null,
       markedByName: user?.displayName || user?.email || 'Unknown',
       markedByEmail: user?.email || null,
+      createdBy: user?.uid || null,
+      performedBy: user?.uid || null,
+      performedByName: user?.displayName || user?.email || 'Unknown',
+      performedByEmail: user?.email || null,
       updatedAt: getQatarTimestampString()
     };
 

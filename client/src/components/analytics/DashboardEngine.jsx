@@ -40,6 +40,7 @@ const DashboardEngine = React.forwardRef(({
   storageKey = 'main',
   isLoading = false,
   lastUpdatedAt,
+  onSmartReload,
 }, ref) => {
   const { theme } = useTheme();
   const { t, lang } = useLang();
@@ -63,6 +64,7 @@ const DashboardEngine = React.forwardRef(({
   const [widgetVersions, setWidgetVersions] = useState({});   // bump → forces re-render of that chart
   const [recentlyRefreshed, setRecentlyRefreshed] = useState({});
   const [widgetUpdatedAt, setWidgetUpdatedAt] = useState({});
+  const [widgetFreshData, setWidgetFreshData] = useState({}); // Store fresh data for each widget
 
   // ── Clear problematic localStorage cache on mount (only if corrupted) ───────────
   useEffect(() => {
@@ -85,9 +87,43 @@ const DashboardEngine = React.forwardRef(({
     }
   }, [storageKey]);
 
-  // ── Sorted widgets ─────────────────────────────────────────
+  // ── Sorted widgets with duplicate cleanup ─────────────────────────────────────────
   const sortedWidgets = useMemo(() => {
-    return [...widgets].sort((a, b) => {
+    const widgetsArray = [...widgets];
+    
+    // Remove duplicate widgets (same title with "(Copy)" suffix)
+    const uniqueWidgets = widgetsArray.filter((widget, index, self) => {
+      const isCopy = widget.title?.includes('(Copy)');
+      if (!isCopy) return true;
+      
+      // Find the original widget this is a copy of
+      const baseTitle = widget.title.replace(/\s*\(Copy\)(?:\s*\(\d+\))?$/, '');
+      const hasOriginal = self.some((w, wIndex) => 
+        wIndex !== index && 
+        w.title === baseTitle &&
+        w.dataSource === widget.dataSource &&
+        w.groupBy === widget.groupBy
+      );
+      
+      // Keep only the first copy of each unique widget type
+      const earlierCopyIndex = self.findIndex((w, wIndex) => 
+        wIndex < index &&
+        w.title?.includes('(Copy)') &&
+        w.title.replace(/\s*\(Copy\)(?:\s*\(\d+\))?$/, '') === baseTitle &&
+        w.dataSource === widget.dataSource &&
+        w.groupBy === widget.groupBy
+      );
+      
+      const shouldKeep = !hasOriginal && earlierCopyIndex === -1;
+      
+      if (process.env.NODE_ENV === 'development' && !shouldKeep) {
+        logger.log(`[DashboardEngine] Filtering out duplicate widget: ${widget.title}`);
+      }
+      
+      return shouldKeep;
+    });
+    
+    return uniqueWidgets.sort((a, b) => {
       const ay = a.layout?.y ?? a.y ?? 0;
       const by = b.layout?.y ?? b.y ?? 0;
       return ay - by || (a.layout?.x ?? a.x ?? 0) - (b.layout?.x ?? b.x ?? 0);
@@ -354,21 +390,94 @@ const DashboardEngine = React.forwardRef(({
     setWidgets(prev => [...prev, duplicatedWidget]);
   }, [widgets, setWidgets, t]);
 
-  const handleRefreshWidget = useCallback((id) => {
-    setWidgetVersions(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
-    setWidgetUpdatedAt(prev => ({ ...prev, [id]: Date.now() }));
+  const handleRefreshWidget = useCallback(async (id) => {
+    console.log('[WIDGET DEBUG] 🔄 Widget refresh button clicked!');
+    console.log('[WIDGET DEBUG] 📊 Widget ID:', id);
+    console.log('[WIDGET DEBUG] 🕐 Timestamp:', new Date().toISOString());
+    
+    // Find the widget configuration
+    const widget = widgets.find(w => w.id === id);
+    if (!widget) {
+      console.error('[WIDGET DEBUG] ❌ Widget not found:', id);
+      return;
+    }
+    
+    console.log('[WIDGET DEBUG] 📋 Widget config:', { title: widget.title, dataSource: widget.dataSource, groupBy: widget.groupBy });
+    
+    // Perform smart reload to get fresh data for this widget
+    let freshData = null;
+    if (onSmartReload) {
+      console.log('[WIDGET DEBUG] 🔄 Starting smart reload for widget...');
+      const result = await onSmartReload(widget);
+      freshData = result?.freshData;
+      console.log('[WIDGET DEBUG] ✅ Smart reload completed');
+      
+      // Store fresh data for this widget
+      if (freshData) {
+        setWidgetFreshData(prev => ({ ...prev, [id]: freshData }));
+        console.log('[WIDGET DEBUG] 💾 Stored fresh data for widget:', id);
+      }
+    } else {
+      console.log('[WIDGET DEBUG] ⚠️  No smart reload function provided, doing local re-render only');
+    }
+    
+    // Increment widget version to trigger re-render with fresh data
+    setWidgetVersions(prev => {
+      const newVersion = (prev[id] || 0) + 1;
+      console.log('[WIDGET DEBUG] 📈 Incrementing widget version:', { id, oldVersion: prev[id] || 0, newVersion });
+      return { ...prev, [id]: newVersion };
+    });
+    
+    // Update timestamp for this widget
+    setWidgetUpdatedAt(prev => {
+      const newTimestamp = Date.now();
+      console.log('[WIDGET DEBUG] 🕐 Updating widget timestamp:', { id, timestamp: new Date(newTimestamp).toISOString() });
+      return { ...prev, [id]: newTimestamp };
+    });
+    
+    // Show success indicator
     setRecentlyRefreshed(prev => ({ ...prev, [id]: true }));
     setTimeout(() => setRecentlyRefreshed(prev => ({ ...prev, [id]: false })), 1400);
-  }, []);
+    
+    console.log('[WIDGET DEBUG] ✅ Widget refresh completed with fresh data!');
+  }, [widgets, onSmartReload]);
   // Using processWidgetData with translation support
   const chartDataMap = useMemo(() => {
+    const startTime = performance.now();
+    console.log(`[PERF DEBUG] 🚀 Starting chart data computation for ${sortedWidgets.length} widgets`);
+    
     const map = {};
-    sortedWidgets.forEach(w => {
+    sortedWidgets.forEach((w, index) => {
+      const widgetStart = performance.now();
       // Use processWidgetData with translation support
       map[w.id] = processWidgetData(w, rawData, globalFilters, 0, t, lang);
+      const widgetEnd = performance.now();
+      
+      // Log slow widgets (>100ms)
+      if (widgetEnd - widgetStart > 100) {
+        console.log(`[PERF DEBUG] ⚠️ Slow widget: ${w.title} (${widgetEnd - widgetStart.toFixed(2)}ms)`);
+      }
     });
+    
+    const endTime = performance.now();
+    console.log(`[PERF DEBUG] ✅ Chart data computation completed in ${(endTime - startTime).toFixed(2)}ms`);
+    
     return map;
-  }, [sortedWidgets.map(w => `${w.id}:${w.dataSource}:${w.groupBy}:${w.aggregation}:${w.dateRange}:${w.filters?.join(',')}:${w.filterValue || ''}`).join('|'), rawData?.activities?.length || 0, rawData?.attendance?.length || 0, rawData?.enrollments?.length || 0, rawData?.penalties?.length || 0, rawData?.announcements?.length || 0, rawData?.resources?.length || 0, rawData?.users?.length || 0, rawData?.classes?.length || 0, rawData?.programs?.length || 0, rawData?.subjects?.length || 0, Object.keys(globalFilters).join(','), Object.values(globalFilters).join(','), t, lang]);
+  }, [
+    sortedWidgets.length, // Only recompute when number of widgets changes
+    JSON.stringify(sortedWidgets.map(w => ({ 
+      id: w.id, 
+      dataSource: w.dataSource, 
+      groupBy: w.groupBy, 
+      aggregation: w.aggregation, 
+      dateRange: w.dateRange,
+      filters: w.filters,
+      filterValue: w.filterValue
+    }))), // Widget configs
+    rawData, // Raw data changes
+    JSON.stringify(globalFilters), // Filter changes
+    t, lang // Translation changes
+  ]);
 
   // ── Chart rendering ───────────────────────────────────────────────────────
   const handleChartClick = useCallback((widget, dataPoint) => {
@@ -399,17 +508,20 @@ const DashboardEngine = React.forwardRef(({
   const renderChart = useCallback((widget, size) => {
     const data = chartDataMap[widget.id] || [];
     
+    // Use fresh data if available for this widget, otherwise fall back to global rawData
+    const widgetSpecificRawData = widgetFreshData[widget.id] || rawData;
+    
     return (
       <OptimizedChartRenderer 
         widget={widget}
         size={size}
         data={data}
         accentColor={accentColor}
-        rawData={rawData}
+        rawData={widgetSpecificRawData}
         onPointClick={(dp) => handleChartClick(widget, dp)}
       />
     );
-  }, [chartDataMap, handleChartClick, accentColor, rawData]);
+  }, [chartDataMap, handleChartClick, accentColor, rawData, widgetFreshData]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (

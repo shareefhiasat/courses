@@ -293,6 +293,17 @@ export const addUser = async (userData) => {
 // Update user function
 export const updateUser = async (id, userData) => {
   try {
+    // Validate inputs
+    if (!id || typeof id !== 'string') {
+      logger.error('USER: Invalid user ID provided for update:', { id, type: typeof id });
+      return { success: false, error: 'Invalid user ID provided' };
+    }
+    
+    if (!userData || typeof userData !== 'object') {
+      logger.error('USER: Invalid user data provided for update:', { userData });
+      return { success: false, error: 'Invalid user data provided' };
+    }
+    
     logger.info('USER: Updating user', { userId: id, updateFields: Object.keys(userData) });
     
     // Check if email is being changed

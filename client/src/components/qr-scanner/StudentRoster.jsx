@@ -597,7 +597,10 @@ const StudentRoster = React.memo(function StudentRoster({
         selectedClassId,
         status,
         enhancedUser,
-        `${t('quick') || 'Quick'} ${getLocalizedAttendanceLabel(status, t, lang)}`
+        `${t('quick') || 'Quick'} ${getLocalizedAttendanceLabel(status, t, lang)}`,
+        selectedProgramId,
+        selectedSubjectId,
+        selectedDate
       );
 
       if (result.success) {

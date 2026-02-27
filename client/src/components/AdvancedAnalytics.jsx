@@ -170,13 +170,17 @@ export default function AdvancedAnalytics({
   }, [user]);
 
   // ── Data ──────────────────────────────────────────────────────────────────
-  const { rawData, loading, permErrors, reload } = useAnalyticsData();
+  const { rawData, loading, permErrors, reload, smartReload } = useAnalyticsData();
   const [lastUpdatedAt, setLastUpdatedAt] = useState(Date.now());
 
   const handleReload = useCallback(async () => {
+    console.log('[WIDGET DEBUG] 🔄 Refresh button clicked on analytics dashboard!');
+    console.log('[WIDGET DEBUG] 🕐 Timestamp:', new Date().toISOString());
+    console.log('[WIDGET DEBUG] 📊 Current lastUpdatedAt:', new Date(lastUpdatedAt).toISOString());
     await reload();
     setLastUpdatedAt(Date.now());
-  }, [reload]);
+    console.log('[WIDGET DEBUG] ✅ Reload completed, new lastUpdatedAt:', new Date(Date.now()).toISOString());
+  }, [reload, lastUpdatedAt]);
 
   // ── Widget Builder Reference ─────────────────────────────────────────────────
   const dashboardEngineRef = React.useRef(null);
@@ -463,6 +467,7 @@ export default function AdvancedAnalytics({
         storageKey={storageKey}
         isLoading={loading}
         lastUpdatedAt={lastUpdatedAt}
+        onSmartReload={smartReload}
       />
     </div>
   );
