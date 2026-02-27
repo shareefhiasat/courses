@@ -1,6 +1,7 @@
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { getProgramsSorted } from '../db/programDbService';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import { 
   collection, 
   doc, 
@@ -46,17 +47,17 @@ export const getProgram = async (programId) => {
   }
 };
 
-export const createProgram = async (data) => {
+export const createProgram = async (data, user) => {
   try {
+    const auditData = getCreateAuditData(user);
     const programData = {
       ...data,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      ...auditData
     };
     
     // Use database service to create program
     const { createProgram: createProgramToDb } = await import('../db/programDbService');
-    const result = await createProgramToDb(programData);
+    const result = await createProgramToDb(programData, auditData);
     
     return { success: true, id: result.id };
   } catch (error) {
@@ -64,16 +65,17 @@ export const createProgram = async (data) => {
   }
 };
 
-export const updateProgram = async (programId, data) => {
+export const updateProgram = async (programId, data, user) => {
   try {
+    const auditData = getUpdateAuditData(user);
     const updateData = {
       ...data,
-      updatedAt: new Date()
+      ...auditData
     };
     
     // Use database service to update program
     const { updateProgram: updateProgramInDb } = await import('../db/programDbService');
-    const result = await updateProgramInDb(programId, updateData);
+    const result = await updateProgramInDb(programId, updateData, auditData);
     
     return result;
   } catch (error) {

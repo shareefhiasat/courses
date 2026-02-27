@@ -165,14 +165,15 @@ export async function logActivity(type, details = {}, userId = null) {
     
     if (!currentUser) {
       logger.warn("[Activity Logger] No user ID available");
-      logger.log(`[Activity Logger] Debug info - Type: ${type}, Logout reason: ${logoutReason}, Session user: ${sessionTimeoutUser}, Timestamp: ${logoutTimestamp}`);
-      logger.log(`[Activity Logger] Session storage contents: hasLoggedInThisSession: ${sessionStorage.getItem('hasLoggedInThisSession')}, sessionStart: ${sessionStorage.getItem('sessionStart')}`);
+      // Removed debug logs to reduce console noise
+      // logger.log(`[Activity Logger] Debug info - Type: ${type}, Logout reason: ${logoutReason}, Session user: ${sessionTimeoutUser}, Timestamp: ${logoutTimestamp}`);
+      // logger.log(`[Activity Logger] Session storage contents: hasLoggedInThisSession: ${sessionStorage.getItem('hasLoggedInThisSession')}, sessionStart: ${sessionStorage.getItem('sessionStart')}`);
       
       // For session timeout, try to use the stored user info
       if (type === ACTIVITY_LOG_TYPES.SESSION_TIMEOUT && sessionTimeoutUser) {
         try {
           const timeoutUser = JSON.parse(sessionTimeoutUser);
-          logger.log(`[Activity Logger] Using session timeout user: ${timeoutUser.email}`);
+          // logger.log(`[Activity Logger] Using session timeout user: ${timeoutUser.email}`); // Removed to reduce console noise
           
           const activityData = {
             type,

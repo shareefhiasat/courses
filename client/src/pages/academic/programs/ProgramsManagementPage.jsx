@@ -13,7 +13,7 @@ import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger'
 import styles from './ProgramsManagementPage.module.css';
 
 const ProgramsManagementPage = () => {
-  const { isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
+  const { isAdmin, isSuperAdmin, user, loading: authLoading } = useAuth();
   const { t } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
@@ -129,9 +129,9 @@ const ProgramsManagementPage = () => {
     try {
       let result;
       if (editingProgram) {
-        result = await updateProgram(editingProgram.docId, programData);
+        result = await updateProgram(editingProgram.docId, programData, user);
       } else {
-        result = await createProgram(programData);
+        result = await createProgram(programData, user);
       }
 
       if (result.success) {
@@ -263,6 +263,34 @@ const ProgramsManagementPage = () => {
       }
     },
     { field: 'totalCreditHours', headerName: t('credit_hours_header') || 'Credit Hours', width: 120 },
+    {
+      field: 'createdAt',
+      headerName: t('created_at') || 'Created At',
+      width: 150,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        const createdAt = row.createdAt || params?.value;
+        if (!createdAt) return '—';
+        // Handle both Firestore Timestamp and string formats
+        if (typeof createdAt === 'object' && createdAt.toDate) {
+          return createdAt.toDate().toLocaleDateString();
+        }
+        if (typeof createdAt === 'string') {
+          return new Date(createdAt).toLocaleDateString();
+        }
+        return '—';
+      }
+    },
+    {
+      field: 'createdBy',
+      headerName: t('created_by') || 'Created By (UID)',
+      width: 180,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        const createdBy = row.createdBy || params?.value;
+        return createdBy || '—';
+      }
+    },
     {
       field: 'actions',
       headerName: t('actions') || 'Actions',

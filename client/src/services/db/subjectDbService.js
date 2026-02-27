@@ -64,16 +64,20 @@ export const getSubject = async (subjectId) => {
 /**
  * Create subject
  * @param {Object} subjectData - Subject data
+ * @param {Object} auditData - Audit data from getCreateAuditData
  * @returns {Promise<{success: boolean, id?: string, error?: string}>}
  */
-export const createSubject = async (subjectData) => {
+export const createSubject = async (subjectData, auditData = null) => {
   try {
     const docRef = doc(collection(db, 'subjects'));
-    await setDoc(docRef, {
+    const finalData = {
       ...subjectData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+      ...(auditData || {
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })
+    };
+    await setDoc(docRef, finalData);
     return { success: true, id: docRef.id };
   } catch (error) {
     logger.error('[SubjectDbService] Error creating subject:', error);
@@ -85,14 +89,18 @@ export const createSubject = async (subjectData) => {
  * Update subject
  * @param {string} subjectId - Subject ID
  * @param {Object} subjectData - Updated subject data
+ * @param {Object} auditData - Audit data from getUpdateAuditData
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const updateSubject = async (subjectId, subjectData) => {
+export const updateSubject = async (subjectId, subjectData, auditData = null) => {
   try {
-    await updateDoc(doc(db, 'subjects', subjectId), {
+    const finalData = {
       ...subjectData,
-      updatedAt: serverTimestamp()
-    });
+      ...(auditData || {
+        updatedAt: serverTimestamp()
+      })
+    };
+    await updateDoc(doc(db, 'subjects', subjectId), finalData);
     return { success: true };
   } catch (error) {
     logger.error('[SubjectDbService] Error updating subject:', error);

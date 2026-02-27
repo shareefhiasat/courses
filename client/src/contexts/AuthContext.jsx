@@ -73,11 +73,12 @@ export const AuthProvider = ({ children }) => {
     const resetTimeout = () => {
       if (timeoutId) clearTimeout(timeoutId);
       lastActivityTime = Date.now();
-      logger.log(`[Auth] Session timeout reset - will logout at ${new Date(Date.now() + sessionTimeout).toLocaleTimeString()}`);
-      logger.log(`[Auth] User: ${user.email}, UID: ${user.uid}, Last activity: ${new Date(lastActivityTime).toLocaleTimeString()}`);
+      // Removed session timeout logs to reduce console noise
+      // logger.log(`[Auth] Session timeout reset - will logout at ${new Date(Date.now() + sessionTimeout).toLocaleTimeString()}`);
+      // logger.log(`[Auth] User: ${user.email}, UID: ${user.uid}, Last activity: ${new Date(lastActivityTime).toLocaleTimeString()}`);
       timeoutId = setTimeout(async () => {
-        logger.log('[Auth] Session timeout reached - logging out user');
-        logger.log(`[Auth] Session details - User: ${user.email}, Last activity: ${new Date(lastActivityTime).toLocaleTimeString()}, Timeout duration: ${sessionTimeout/1000/60} minutes`);
+        // logger.log('[Auth] Session timeout reached - logging out user');
+        // logger.log(`[Auth] Session details - User: ${user.email}, Last activity: ${new Date(lastActivityTime).toLocaleTimeString()}, Timeout duration: ${sessionTimeout/1000/60} minutes`);
         
         // Store logout reason with last activity info
         sessionStorage.setItem('logoutReason', 'session_timeout');
@@ -107,7 +108,7 @@ export const AuthProvider = ({ children }) => {
       if (debounceTimer) clearTimeout(debounceTimer);
       
       debounceTimer = setTimeout(() => {
-        logger.log('[Auth] User activity detected - resetting session timeout');
+        // logger.log('[Auth] User activity detected - resetting session timeout'); // Removed to reduce console noise
         resetTimeout();
       }, 1000); // Only process activity once per second
     };

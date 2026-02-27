@@ -17,7 +17,7 @@ import { ACTIVITY_TYPES } from '@constants';
 import styles from './SubjectsManagementPage.module.css';
 
 const SubjectsManagementPage = () => {
-  const { isAdmin, isSuperAdmin, isInstructor, loading: authLoading } = useAuth();
+  const { isAdmin, isSuperAdmin, isInstructor, user, loading: authLoading } = useAuth();
   const { lang, t } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
@@ -99,7 +99,7 @@ const SubjectsManagementPage = () => {
       await loadData(true);
       if (stopLoading) stopLoading();
       setLoading(false);
-      logActivity(ACTIVITY_LOG_TYPES.SUBJECT_VIEWED, {});
+      // logActivity(ACTIVITY_LOG_TYPES.SUBJECT_VIEWED, {}); // Removed to prevent warning logs
     };
 
     initialLoad();
@@ -144,9 +144,9 @@ const SubjectsManagementPage = () => {
     try {
       let result;
       if (editingSubject) {
-        result = await updateSubject(editingSubject.docId, subjectData);
+        result = await updateSubject(editingSubject.docId, subjectData, user);
       } else {
-        result = await createSubject(subjectData);
+        result = await createSubject(subjectData, user);
       }
 
       if (result.success) {
@@ -278,6 +278,34 @@ const gridColumns = useMemo(() => [
       }
     },
     { field: 'hoursPerWeek', headerName: t('hours_per_week') || 'Hours/Week', width: 120 },
+    {
+      field: 'createdAt',
+      headerName: t('created_at') || 'Created At',
+      width: 150,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        const createdAt = row.createdAt || params?.value;
+        if (!createdAt) return '—';
+        // Handle both Firestore Timestamp and string formats
+        if (typeof createdAt === 'object' && createdAt.toDate) {
+          return createdAt.toDate().toLocaleDateString();
+        }
+        if (typeof createdAt === 'string') {
+          return new Date(createdAt).toLocaleDateString();
+        }
+        return '—';
+      }
+    },
+    {
+      field: 'createdBy',
+      headerName: t('created_by') || 'Created By (UID)',
+      width: 180,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        const createdBy = row.createdBy || params?.value;
+        return createdBy || '—';
+      }
+    },
     {
       field: 'actions',
       headerName: t('actions') || 'Actions',

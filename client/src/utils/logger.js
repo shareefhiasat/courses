@@ -153,10 +153,10 @@ class Logger {
     if (this.shouldLog('log')) {
       this.originalConsole.log(...this.formatMessage('log', ...args));
     }
-    // Always show logs in development for debugging
-    if (isDevelopment) {
-      this.originalConsole.log('🔧 [DEV-LOG]', ...args);
-    }
+    // Removed DEV-LOG to reduce console noise
+    // if (isDevelopment) {
+    //   this.originalConsole.log('🔧 [DEV-LOG]', ...args);
+    // }
   }
 
   // Performance logging

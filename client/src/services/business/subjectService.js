@@ -8,6 +8,7 @@ import {
   getActiveSubjects as getActiveSubjectsFromDb,
   searchSubjects as searchSubjectsFromDb
 } from '../db/subjectDbService';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 
 /**
  * Subjects Collection - Academic subjects within programs
@@ -33,27 +34,28 @@ export const getSubject = async (subjectId) => {
   }
 };
 
-export const createSubject = async (data) => {
+export const createSubject = async (data, user) => {
   try {
+    const auditData = getCreateAuditData(user);
     const subjectData = {
       ...data,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      ...auditData
     };
-    const docRef = await addDoc(collection(db, 'subjects'), subjectData);
-    return { success: true, id: docRef.id };
+    const result = await createSubjectToDb(subjectData, auditData);
+    return { success: true, id: result.id };
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
-export const updateSubject = async (subjectId, data) => {
+export const updateSubject = async (subjectId, data, user) => {
   try {
+    const auditData = getUpdateAuditData(user);
     const subjectData = {
       ...data,
-      updatedAt: Timestamp.now()
+      ...auditData
     };
-    await updateDoc(doc(db, 'subjects', subjectId), subjectData);
+    const result = await updateSubjectInDb(subjectId, subjectData, auditData);
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };

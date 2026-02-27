@@ -397,6 +397,34 @@ const handleCancelEdit = useCallback(() => {
       }
     },
     {
+      field: 'createdAt',
+      headerName: t('created_at') || 'Created At',
+      width: 150,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        const createdAt = row.createdAt || params?.value;
+        if (!createdAt) return '—';
+        // Handle both Firestore Timestamp and string formats
+        if (typeof createdAt === 'object' && createdAt.toDate) {
+          return createdAt.toDate().toLocaleDateString();
+        }
+        if (typeof createdAt === 'string') {
+          return new Date(createdAt).toLocaleDateString();
+        }
+        return '—';
+      }
+    },
+    {
+      field: 'createdBy',
+      headerName: t('created_by') || 'Created By (UID)',
+      width: 180,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        const createdBy = row.createdBy || params?.value;
+        return createdBy || '—';
+      }
+    },
+    {
       field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
       renderCell: (params) => (
         <div style={{ display: 'flex', gap: 8 }}>

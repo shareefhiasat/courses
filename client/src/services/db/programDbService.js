@@ -26,6 +26,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 
 /**
  * Get all programs - with performance monitoring and memoization
@@ -95,16 +96,20 @@ export const getActivePrograms = async () => {
 /**
  * Create program
  * @param {Object} programData - Program data
+ * @param {Object} auditData - Audit data from getCreateAuditData
  * @returns {Promise<{success: boolean, id?: string, error?: string}>}
  */
-export const createProgram = async (programData) => {
+export const createProgram = async (programData, auditData = null) => {
   try {
     const docRef = doc(collection(db, 'programs'));
-    await setDoc(docRef, {
+    const finalData = {
       ...programData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+      ...(auditData || {
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })
+    };
+    await setDoc(docRef, finalData);
     return { success: true, id: docRef.id };
   } catch (error) {
     logger.error('[ProgramDbService] Error creating program:', error);
@@ -116,14 +121,18 @@ export const createProgram = async (programData) => {
  * Update program
  * @param {string} programId - Program ID
  * @param {Object} updateData - Data to update
+ * @param {Object} auditData - Audit data from getUpdateAuditData
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const updateProgram = async (programId, updateData) => {
+export const updateProgram = async (programId, updateData, auditData = null) => {
   try {
-    await updateDoc(doc(db, 'programs', programId), {
+    const finalData = {
       ...updateData,
-      updatedAt: serverTimestamp()
-    });
+      ...(auditData || {
+        updatedAt: serverTimestamp()
+      })
+    };
+    await updateDoc(doc(db, 'programs', programId), finalData);
     return { success: true };
   } catch (error) {
     logger.error('[ProgramDbService] Error updating program:', error);
