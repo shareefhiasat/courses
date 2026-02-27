@@ -4,6 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { getPrograms, createProgram, updateProgram, deleteProgram } from '@services/business/programService';
+import { getUsers } from '@services/business/userService';
 import { SimpleLoading, Button, Input, Textarea, useToast, AdvancedDataGrid } from '@ui';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { DeleteModal, useDeleteModal } from '@ui';
@@ -20,6 +21,7 @@ const ProgramsManagementPage = () => {
   const { startLoading } = useGlobalLoading();
   
   const [programs, setPrograms] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingProgram, setEditingProgram] = useState(null);
   const { deleteModal, deleteProgram: deleteProgramModal, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
@@ -34,12 +36,12 @@ const ProgramsManagementPage = () => {
   const minGPARef = useRef(null);
   const creditHoursRef = useRef(null);
   const [formData, setFormData] = useState({
-    name_en: '',
-    name_ar: '',
+    nameEn: '',
+    nameAr: '',
     code: '',
-    description_en: '',
-    description_ar: '',
-    duration_years: 2,
+    descriptionEn: '',
+    descriptionAr: '',
+    durationYears: 2,
     minGPA: 1.5,
     totalCreditHours: 70
   });
@@ -47,11 +49,11 @@ const ProgramsManagementPage = () => {
   const syncRefsToState = useCallback(() => {
     return {
       code: codeRef.current?.value ?? formData.code,
-      name_en: nameEnRef.current?.value ?? formData.name_en,
-      name_ar: nameArRef.current?.value ?? formData.name_ar,
-      description_en: descEnRef.current?.value ?? formData.description_en,
-      description_ar: descArRef.current?.value ?? formData.description_ar,
-      duration_years: durationRef.current?.value ? Number.parseInt(durationRef.current.value) : formData.duration_years,
+      nameEn: nameEnRef.current?.value ?? formData.nameEn,
+      nameAr: nameArRef.current?.value ?? formData.nameAr,
+      descriptionEn: descEnRef.current?.value ?? formData.descriptionEn,
+      descriptionAr: descArRef.current?.value ?? formData.descriptionAr,
+      durationYears: durationRef.current?.value ? Number.parseInt(durationRef.current.value) : formData.durationYears,
       minGPA: minGPARef.current?.value ? Number.parseFloat(minGPARef.current.value) : formData.minGPA,
       totalCreditHours: creditHoursRef.current?.value ? Number.parseInt(creditHoursRef.current.value) : formData.totalCreditHours
     };
@@ -60,11 +62,19 @@ const ProgramsManagementPage = () => {
   const loadPrograms = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoading(true);
     try {
-      const result = await getPrograms();
-      if (result.success) {
-        setPrograms(result.data || []);
+      const [programsResult, usersResult] = await Promise.all([
+        getPrograms(),
+        getUsers()
+      ]);
+      
+      if (programsResult.success) {
+        setPrograms(programsResult.data || []);
       } else {
-        toast.error(result.error || t('failed_to_load_programs') || 'Failed to load programs');
+        toast.error(programsResult.error || t('failed_to_load_programs') || 'Failed to load programs');
+      }
+      
+      if (usersResult.success) {
+        setUsers(usersResult.data || []);
       }
     } catch (error) {
       toast.error(error.message || t('programs_error_message', { error: error.message }));
@@ -97,11 +107,11 @@ const ProgramsManagementPage = () => {
   // Sync refs when editing an existing program
   useEffect(() => {
     if (codeRef.current) codeRef.current.value = formData.code || '';
-    if (nameEnRef.current) nameEnRef.current.value = formData.name_en || '';
-    if (nameArRef.current) nameArRef.current.value = formData.name_ar || '';
-    if (descEnRef.current) descEnRef.current.value = formData.description_en || '';
-    if (descArRef.current) descArRef.current.value = formData.description_ar || '';
-    if (durationRef.current) durationRef.current.value = formData.duration_years?.toString() || '2';
+    if (nameEnRef.current) nameEnRef.current.value = formData.nameEn || '';
+    if (nameArRef.current) nameArRef.current.value = formData.nameAr || '';
+    if (descEnRef.current) descEnRef.current.value = formData.descriptionEn || '';
+    if (descArRef.current) descArRef.current.value = formData.descriptionAr || '';
+    if (durationRef.current) durationRef.current.value = formData.durationYears?.toString() || '2';
     if (minGPARef.current) minGPARef.current.value = formData.minGPA?.toString() || '1.5';
     if (creditHoursRef.current) creditHoursRef.current.value = formData.totalCreditHours?.toString() || '70';
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,7 +125,7 @@ const ProgramsManagementPage = () => {
     const textValues = syncRefsToState();
     
     // Validation
-    if (!textValues.name_en || !textValues.name_ar || !formData.code) {
+    if (!textValues.nameEn || !textValues.nameAr || !textValues.code) {
       toast.error(t('please_fill_required_fields') || 'Please fill in all required fields');
       return;
     }
@@ -139,7 +149,7 @@ const ProgramsManagementPage = () => {
         try {
           await logActivity(editingProgram ? ACTIVITY_LOG_TYPES.PROGRAM_UPDATED : ACTIVITY_LOG_TYPES.PROGRAM_CREATED, {
             programId: editingProgram?.docId || result.id,
-            programName: textValues.name_en,
+            programName: textValues.nameEn,
             programCode: formData.code
           });
         } catch (e) { logger.warn('Failed to log activity:', e); }
@@ -162,20 +172,20 @@ const ProgramsManagementPage = () => {
   const handleEdit = useCallback((program) => {
     setEditingProgram(program);
     setFormData({
-      name_en: program.name_en || '',
-      name_ar: program.name_ar || '',
+      nameEn: program.nameEn || program.name_en || '',
+      nameAr: program.nameAr || program.name_ar || '',
       code: program.code || '',
-      description_en: program.description_en || '',
-      description_ar: program.description_ar || '',
-      duration_years: program.duration_years || 2,
+      descriptionEn: program.descriptionEn || program.description_en || '',
+      descriptionAr: program.descriptionAr || program.description_ar || '',
+      durationYears: program.durationYears || program.duration_years || 2,
       minGPA: program.minGPA ?? 1.5,
       totalCreditHours: program.totalCreditHours || 70
     });
     // Sync refs
-    if (nameEnRef.current) nameEnRef.current.value = program.name_en || '';
-    if (nameArRef.current) nameArRef.current.value = program.name_ar || '';
-    if (descEnRef.current) descEnRef.current.value = program.description_en || '';
-    if (descArRef.current) descArRef.current.value = program.description_ar || '';
+    if (nameEnRef.current) nameEnRef.current.value = program.nameEn || program.name_en || '';
+    if (nameArRef.current) nameArRef.current.value = program.nameAr || program.name_ar || '';
+    if (descEnRef.current) descEnRef.current.value = program.descriptionEn || program.description_en || '';
+    if (descArRef.current) descArRef.current.value = program.descriptionAr || program.description_ar || '';
   }, []);
 
   const handleDelete = useCallback((program) => {
@@ -190,7 +200,7 @@ const ProgramsManagementPage = () => {
           try {
             await logActivity(ACTIVITY_LOG_TYPES.PROGRAM_DELETED, {
               programId: program.docId,
-              programName: program.name_en,
+              programName: program.nameEn || program.name_en,
               programCode: program.code
             });
           } catch (e) { logger.warn('Failed to log activity:', e); }
@@ -213,12 +223,12 @@ const ProgramsManagementPage = () => {
 
   const resetForm = () => {
     setFormData({
-      name_en: '',
-      name_ar: '',
+      nameEn: '',
+      nameAr: '',
       code: '',
-      description_en: '',
-      description_ar: '',
-      duration_years: 2,
+      descriptionEn: '',
+      descriptionAr: '',
+      durationYears: 2,
       minGPA: 1.5,
       totalCreditHours: 70
     });
@@ -240,10 +250,10 @@ const ProgramsManagementPage = () => {
         return code || '—';
       }
     },
-    { field: 'name_en', headerName: t('program_name_en') || 'Name (EN)', flex: 1, minWidth: 180 },
-    { field: 'name_ar', headerName: t('program_name_ar') || 'Name (AR)', flex: 1, minWidth: 180 },
+    { field: 'nameEn', headerName: t('program_name_en') || 'Name (English)', flex: 1, minWidth: 180 },
+    { field: 'nameAr', headerName: t('program_name_ar') || 'Name (Arabic)', flex: 1, minWidth: 180 },
     {
-      field: 'duration_years',
+      field: 'durationYears',
       headerName: t('duration_years') || 'Duration (Years)',
       width: 140,
       valueGetter: (params) => `${params.value || 2} ${t('years') || 'years'}`
@@ -266,29 +276,177 @@ const ProgramsManagementPage = () => {
     {
       field: 'createdAt',
       headerName: t('created_at') || 'Created At',
-      width: 150,
+      width: 180,
       valueGetter: (params) => {
         const row = params?.row || {};
         const createdAt = row.createdAt || params?.value;
         if (!createdAt) return '—';
-        // Handle both Firestore Timestamp and string formats
-        if (typeof createdAt === 'object' && createdAt.toDate) {
-          return createdAt.toDate().toLocaleDateString();
+        
+        // If it's already a formatted Qatar string, return it as-is
+        if (typeof createdAt === 'string' && createdAt.includes('UTC+3')) {
+          return createdAt;
         }
-        if (typeof createdAt === 'string') {
-          return new Date(createdAt).toLocaleDateString();
+        
+        try {
+          // Handle Firestore Timestamp
+          if (typeof createdAt === 'object' && createdAt.toDate) {
+            return createdAt.toDate().toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            });
+          }
+          
+          // Handle ISO string or timestamp string
+          if (typeof createdAt === 'string') {
+            const date = new Date(createdAt);
+            if (isNaN(date.getTime())) return createdAt; // Return original if can't parse
+            return date.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            });
+          }
+          
+          // Handle timestamp number
+          if (typeof createdAt === 'number') {
+            const date = new Date(createdAt);
+            if (isNaN(date.getTime())) return 'Invalid Date';
+            return date.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            });
+          }
+          
+          return createdAt;
+        } catch (error) {
+          console.warn('Date formatting error:', error, createdAt);
+          return createdAt || 'Invalid Date';
         }
-        return '—';
       }
     },
     {
       field: 'createdBy',
-      headerName: t('created_by') || 'Created By (UID)',
+      headerName: t('created_by') || 'Created By',
+      width: 200,
+      renderCell: (params) => {
+        const createdBy = params.value || params.row?.createdBy;
+        if (!createdBy) return '—';
+        
+        // Try to find user display name from users array
+        const user = users.find(u => (u.uid || u.id) === createdBy);
+        if (user) {
+          const displayName = user.displayName || user.name || user.email;
+          return (
+            <span title={createdBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+              {displayName || createdBy}
+            </span>
+          );
+        }
+        
+        // Fallback to UID with truncation if long
+        if (typeof createdBy === 'string' && createdBy.length > 20) {
+          return (
+            <span title={createdBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+              {`${createdBy.substring(0, 8)}...${createdBy.substring(createdBy.length - 4)}`}
+            </span>
+          );
+        }
+        
+        return (
+          <span title={createdBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+            {createdBy}
+          </span>
+        );
+      }
+    },
+    {
+      field: 'updatedBy',
+      headerName: t('updated_by') || 'Updated By',
+      width: 200,
+      renderCell: (params) => {
+        const updatedBy = params.value || params.row?.updatedBy;
+        if (!updatedBy) return '—';
+        
+        // Try to find user display name from users array
+        const user = users.find(u => (u.uid || u.id) === updatedBy);
+        if (user) {
+          const displayName = user.displayName || user.name || user.email;
+          return (
+            <span title={updatedBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+              {displayName || updatedBy}
+            </span>
+          );
+        }
+        
+        // Fallback to UID with truncation if long
+        if (typeof updatedBy === 'string' && updatedBy.length > 20) {
+          return (
+            <span title={updatedBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+              {`${updatedBy.substring(0, 8)}...${updatedBy.substring(updatedBy.length - 4)}`}
+            </span>
+          );
+        }
+        
+        return (
+          <span title={updatedBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+            {updatedBy}
+          </span>
+        );
+      }
+    },
+    {
+      field: 'updatedAt',
+      headerName: t('updated_at') || 'Updated At',
       width: 180,
       valueGetter: (params) => {
         const row = params?.row || {};
-        const createdBy = row.createdBy || params?.value;
-        return createdBy || '—';
+        const updatedAt = row.updatedAt || params?.value;
+        if (!updatedAt) return '—';
+        
+        // If it's already a formatted Qatar string, return it as-is
+        if (typeof updatedAt === 'string' && updatedAt.includes('UTC+3')) {
+          return updatedAt;
+        }
+        
+        try {
+          // Handle Firestore Timestamp
+          if (typeof updatedAt === 'object' && updatedAt.toDate) {
+            return updatedAt.toDate().toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            });
+          }
+          
+          // Handle ISO string or timestamp string
+          if (typeof updatedAt === 'string') {
+            const date = new Date(updatedAt);
+            if (isNaN(date.getTime())) return updatedAt; // Return original if can't parse
+            return date.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            });
+          }
+          
+          // Handle timestamp number
+          if (typeof updatedAt === 'number') {
+            const date = new Date(updatedAt);
+            if (isNaN(date.getTime())) return 'Invalid Date';
+            return date.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            });
+          }
+          
+          return updatedAt;
+        } catch (error) {
+          console.warn('Date formatting error:', error, updatedAt);
+          return updatedAt || 'Invalid Date';
+        }
       }
     },
     {
@@ -319,7 +477,7 @@ const ProgramsManagementPage = () => {
         </div>
       )
     }
-  ], [t, theme, handleEdit, handleDelete]);
+  ], [t, theme, handleEdit, handleDelete, users]);
 
 
   if (authLoading) {
@@ -343,7 +501,7 @@ const ProgramsManagementPage = () => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_program', { programName: editingProgram.name_en, programCode: editingProgram.code || t('programs_no_code') })}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_program', { programName: editingProgram.nameEn || editingProgram.name_en, programCode: editingProgram.code || t('programs_no_code') })}
         </div>
       )}
 
@@ -357,13 +515,13 @@ const ProgramsManagementPage = () => {
           />
           <Input
             ref={nameEnRef}
-            defaultValue={formData.name_en}
+            defaultValue={formData.nameEn}
             placeholder={t('program_name_en_placeholder') || 'Program Name (English) * (e.g., Computer Science Diploma)'}
             required
           />
           <Input
             ref={nameArRef}
-            defaultValue={formData.name_ar}
+            defaultValue={formData.nameAr}
             placeholder={t('program_name_ar_placeholder') || 'Program Name (Arabic) * (e.g., دبلوم علوم الحاسوب)'}
             required
             dir="rtl"
@@ -371,7 +529,7 @@ const ProgramsManagementPage = () => {
           <input
             ref={durationRef}
             type="number"
-            defaultValue={formData.duration_years}
+            defaultValue={formData.durationYears}
             placeholder={t('duration_years_placeholder') || 'Duration (Years)'}
             min={1}
             max={10}
@@ -397,17 +555,15 @@ const ProgramsManagementPage = () => {
           />
         </div>
         <div className="form-row">
-          <Textarea
+          <Input
             ref={descEnRef}
-            defaultValue={formData.description_en}
+            defaultValue={formData.descriptionEn}
             placeholder={t('description_en_placeholder') || 'Description (English)'}
-            rows={2}
           />
-          <Textarea
+          <Input
             ref={descArRef}
-            defaultValue={formData.description_ar}
+            defaultValue={formData.descriptionAr}
             placeholder={t('description_ar_placeholder') || 'Description (Arabic) - وصف البرنامج بالعربية'}
-            rows={2}
             dir="rtl"
           />
         </div>

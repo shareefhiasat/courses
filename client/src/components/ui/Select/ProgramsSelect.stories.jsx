@@ -3,15 +3,15 @@ import ProgramsSelect from './ProgramsSelect';
 
 // Mock data for testing
 const mockPrograms = [
-  { docId: 'xMh3Tqzg4stjRohjwCGX', name_en: 'Information Technology Diploma', name_ar: 'دبلوم تقنية المعلومات', code: 'CS' },
-  { docId: 'abc123', name_en: 'Business Administration', name_ar: 'إدارة الأعمال', code: 'BA' },
-  { docId: 'def456', name_en: 'Computer Science', name_ar: 'علوم الحاسوب', code: 'CS' }
+  { docId: 'xMh3Tqzg4stjRohjwCGX', nameEn: 'Information Technology Diploma', nameAr: 'دبلوم تقنية المعلومات', code: 'CS' },
+  { docId: 'abc123', nameEn: 'Business Administration', nameAr: 'إدارة الأعمال', code: 'BA' },
+  { docId: 'def456', nameEn: 'Computer Science', nameAr: 'علوم الحاسوب', code: 'CS' }
 ];
 
 const mockSubjects = [
-  { docId: 'sub1', name_en: 'Database Management', name_ar: 'إدارة قواعد البيانات', programId: 'xMh3Tqzg4stjRohjwCGX' },
-  { docId: 'sub2', name_en: 'Web Development', name_ar: 'تطوير الويب', programId: 'xMh3Tqzg4stjRohjwCGX' },
-  { docId: 'sub3', name_en: 'Marketing', name_ar: 'التسويق', programId: 'abc123' }
+  { docId: 'sub1', nameEn: 'Database Management', nameAr: 'إدارة قواعد البيانات', programId: 'xMh3Tqzg4stjRohjwCGX' },
+  { docId: 'sub2', nameEn: 'Web Development', nameAr: 'تطوير الويب', programId: 'xMh3Tqzg4stjRohjwCGX' },
+  { docId: 'sub3', nameEn: 'Marketing', nameAr: 'التسويق', programId: 'abc123' }
 ];
 
 const mockClasses = [
@@ -30,7 +30,7 @@ const MockProgramsSelect = ({ programs = [], subjects = [], classes = [], onChan
     { value: '', label: 'All Programs' },
     ...programs.map(program => ({
       value: program.docId || program.id,
-      label: program.name_en || program.name || 'Unnamed Program'
+      label: program.nameEn || program.name || 'Unnamed Program'
     }))
   ];
 
@@ -40,7 +40,7 @@ const MockProgramsSelect = ({ programs = [], subjects = [], classes = [], onChan
       .filter(subject => !selectedProgram || subject.programId === selectedProgram)
       .map(subject => ({
         value: subject.docId || subject.id,
-        label: subject.name_en || subject.name || 'Unnamed Subject'
+        label: subject.nameEn || subject.name || 'Unnamed Subject'
       }))
   ];
 

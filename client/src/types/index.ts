@@ -68,16 +68,19 @@ export interface User {
 // ============================================================================
 export interface Program {
   docId: string;                  // Firestore document ID
-  name: string;                   // Program name (English)
-  nameAr?: string;                // Program name (Arabic)
+  nameEn: string;                 // Program name (English)
+  nameAr: string;                 // Program name (Arabic)
   code: string;                   // Unique program code
-  description?: string;           // Program description
-  duration?: number;              // Duration in months/years
-  credits?: number;               // Total credit hours
+  descriptionEn?: string;         // Program description (English)
+  descriptionAr?: string;         // Program description (Arabic)
+  durationYears: number;          // Duration in years
+  minGPA?: number;                 // Minimum GPA requirement
+  totalCreditHours: number;       // Total credit hours
   isActive: boolean;              // Program status
   createdAt: Timestamp;          // Creation timestamp
   updatedAt: Timestamp;          // Last update timestamp
   createdBy: string;              // Creator user ID
+  updatedBy?: string;             // Last updater user ID
 }
 
 export interface Subject {

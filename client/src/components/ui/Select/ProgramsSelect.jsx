@@ -37,7 +37,9 @@ const ProgramsSelect = ({
     { value: '', label: t('all_programs') || 'All Programs' },
     ...programs.map(program => ({
       value: program.docId || program.id,
-      label: program[`name_${lang}`] || program.name || 'Unnamed Program',
+      label: lang === 'ar' 
+        ? (program.nameAr || program[`name_${lang}`] || program.name || 'Unnamed Program')
+        : (program.nameEn || program[`name_${lang}`] || program.name || 'Unnamed Program'),
     })),
   ];
 
@@ -45,7 +47,9 @@ const ProgramsSelect = ({
     { value: '', label: t('all_subjects') || 'All Subjects' },
     ...filteredSubjects.map(subject => ({
       value: subject.docId || subject.id,
-      label: subject[`name_${lang}`] || subject.name || 'Unnamed Subject',
+      label: lang === 'ar'
+        ? (subject.nameAr || subject[`name_${lang}`] || subject.name || 'Unnamed Subject')
+        : (subject.nameEn || subject[`name_${lang}`] || subject.name || 'Unnamed Subject'),
     })),
   ];
 
@@ -119,8 +123,8 @@ ProgramsSelect.propTypes = {
     PropTypes.shape({
       docId: PropTypes.string,
       id: PropTypes.string,
-      name_en: PropTypes.string,
-      name_ar: PropTypes.string,
+      nameEn: PropTypes.string,
+      nameAr: PropTypes.string,
       name: PropTypes.string,
       code: PropTypes.string,
     })
@@ -130,8 +134,8 @@ ProgramsSelect.propTypes = {
       docId: PropTypes.string,
       id: PropTypes.string,
       programId: PropTypes.string,
-      name_en: PropTypes.string,
-      name_ar: PropTypes.string,
+      nameEn: PropTypes.string,
+      nameAr: PropTypes.string,
       name: PropTypes.string,
     })
   ),
