@@ -68,6 +68,7 @@ export const AuthProvider = ({ children }) => {
     const sessionTimeout = 30 * 60 * 1000; // 30 minutes (for testing)
     let timeoutId;
     let lastActivityTime = Date.now();
+    let debounceTimer = null;
 
     const resetTimeout = () => {
       if (timeoutId) clearTimeout(timeoutId);
@@ -99,19 +100,25 @@ export const AuthProvider = ({ children }) => {
     logger.log(`[Auth] Initial session timeout set for ${user.email} at ${new Date(Date.now() + sessionTimeout).toLocaleTimeString()}`);
     resetTimeout();
 
-    // Reset timeout on user activity
+    // Reset timeout on user activity - WITH DEBOUNCING
     const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
     const handleActivity = () => {
-      logger.log('[Auth] User activity detected - resetting session timeout');
-      resetTimeout();
+      // Debounce activity events to prevent storm
+      if (debounceTimer) clearTimeout(debounceTimer);
+      
+      debounceTimer = setTimeout(() => {
+        logger.log('[Auth] User activity detected - resetting session timeout');
+        resetTimeout();
+      }, 1000); // Only process activity once per second
     };
 
     activityEvents.forEach(event => {
-      window.addEventListener(event, handleActivity);
+      window.addEventListener(event, handleActivity, { passive: true });
     });
 
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
+      if (debounceTimer) clearTimeout(debounceTimer);
       activityEvents.forEach(event => {
         window.removeEventListener(event, handleActivity);
       });

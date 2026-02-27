@@ -7,46 +7,55 @@ import {
   createSubmission as createSubmissionToDb,
   updateSubmission as updateSubmissionInDb,
   deleteSubmission as deleteSubmissionFromDb,
-  getSubmissions as getSubmissionsFromDb
+  getSubmissions as getSubmissionsFromDb,
+  querySubmissions as querySubmissionsFromDb
 } from '../db/submissionsDbService';
+import { 
+  getActivitiesByClass as getActivitiesByClassFromDb
+} from '../db/activitiesDbService';
 
 // Submit activity completion
 export const submitActivity = async (userId, activityId, classId, data = {}) => {
   try {
-    // Check for existing submission
-    const q = query(
-      collection(db, 'submissions'),
-      where('userId', '==', userId),
-      where('activityId', '==', activityId),
-      where('classId', '==', classId)
-    );
+    // Check for existing submission using database service
+    const existingSubmissions = await getSubmissionsFromDb({
+      userId,
+      activityId,
+      classId,
+      limitCount: 1
+    });
     
-    const querySnapshot = await getDocs(q);
+    if (!existingSubmissions.success) {
+      return { success: false, error: existingSubmissions.error };
+    }
     
-    if (!querySnapshot.empty) {
+    if (existingSubmissions.data.length > 0) {
       // Update existing submission if retakes allowed
-      const submissionDoc = querySnapshot.docs[0];
-      await updateDoc(doc(db, 'submissions', submissionDoc.id), {
+      const existingSubmission = existingSubmissions.data[0];
+      const updateResult = await updateSubmissionInDb(existingSubmission.docId, {
         ...data,
         status: SUBMISSION_STATUS.COMPLETED,
-        submittedAt: serverTimestamp(),
-        retakeCount: (submissionDoc.data().retakeCount || 0) + 1
+        retakeCount: (existingSubmission.retakeCount || 0) + 1
       });
-      return { success: true, id: submissionDoc.id, message: 'Submission updated' };
+      
+      return updateResult.success 
+        ? { success: true, id: existingSubmission.docId, message: 'Submission updated' }
+        : updateResult;
     } else {
       // Create new submission
-      const docRef = await addDoc(collection(db, 'submissions'), {
+      const submissionData = {
         userId,
         activityId,
         classId,
         status: SUBMISSION_STATUS.COMPLETED,
-        submittedAt: serverTimestamp(),
         score: null, // Will be set by instructor
         feedback: '',
         retakeCount: 0,
         ...data
-      });
-      return { success: true, id: docRef.id, message: 'Activity submitted' };
+      };
+      
+      const createResult = await createSubmissionToDb(submissionData);
+      return createResult;
     }
   } catch (error) {
     logger.error('Error submitting activity:', error);
@@ -57,27 +66,13 @@ export const submitActivity = async (userId, activityId, classId, data = {}) => 
 // Get user submissions for a specific activity
 export const getUserSubmissions = async (userId, activityId = null) => {
   try {
-    let q;
+    const filters = { userId };
     if (activityId) {
-      q = query(
-        collection(db, 'submissions'),
-        where('userId', '==', userId),
-        where('activityId', '==', activityId)
-      );
-    } else {
-      q = query(
-        collection(db, 'submissions'),
-        where('userId', '==', userId)
-      );
+      filters.activityId = activityId;
     }
     
-    const querySnapshot = await getDocs(q);
-    const submissions = [];
-    querySnapshot.forEach((doc) => {
-      submissions.push({ id: doc.id, ...doc.data() });
-    });
-    
-    return { success: true, data: submissions };
+    const result = await getSubmissionsFromDb(filters);
+    return result;
   } catch (error) {
     logger.error('Error getting submissions:', error);
     return { success: false, error: error.message };
@@ -87,18 +82,8 @@ export const getUserSubmissions = async (userId, activityId = null) => {
 // Get class submissions for instructor
 export const getClassSubmissions = async (classId) => {
   try {
-    const q = query(
-      collection(db, 'submissions'),
-      where('classId', '==', classId)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    const submissions = [];
-    querySnapshot.forEach((doc) => {
-      submissions.push({ id: doc.id, ...doc.data() });
-    });
-    
-    return { success: true, data: submissions };
+    const result = await getSubmissionsFromDb({ classId });
+    return result;
   } catch (error) {
     logger.error('Error getting class submissions:', error);
     return { success: false, error: error.message };
@@ -111,19 +96,22 @@ export const gradeSubmission = async (submissionId, score, feedback = '', graded
     const update = {
       score,
       feedback,
-      gradedAt: serverTimestamp(),
       status: SUBMISSION_STATUS.GRADED,
       gradedBy
     };
 
-    // Update submission
-    await updateDoc(doc(db, 'submissions', submissionId), update);
+    // Update submission using database service
+    const updateResult = await updateSubmissionInDb(submissionId, update);
+    
+    if (!updateResult.success) {
+      return updateResult;
+    }
 
     // Auto-award points based on score
     if (score !== undefined) {
-      const submissionDoc = await getDoc(doc(db, 'submissions', submissionId));
-      if (submissionDoc.exists()) {
-        const submission = submissionDoc.data();
+      const submissionResult = await getSubmissionFromDb(submissionId);
+      if (submissionResult.success && submissionResult.data) {
+        const submission = submissionResult.data;
         const scoreNum = Number(score);
 
         // Award points based on performance
@@ -172,10 +160,8 @@ export const gradeSubmission = async (submissionId, score, feedback = '', graded
 // Get all submissions (admin function)
 export const getSubmissions = async () => {
   try {
-    const qs = await getDocs(collection(db, "submissions"));
-    const items = [];
-    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
-    return { success: true, data: items };
+    const result = await getSubmissionsFromDb({ limitCount: 1000 }); // Get all submissions with high limit
+    return result;
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -184,8 +170,8 @@ export const getSubmissions = async () => {
 // Delete submission
 export const deleteSubmission = async (id) => {
   try {
-    await deleteDoc(doc(db, "submissions", id));
-    return { success: true };
+    const result = await deleteSubmissionFromDb(id);
+    return result;
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -231,43 +217,36 @@ export const canRetakeActivity = async (userId, activityId, activity) => {
 // Get activity progress for user
 export const getActivityProgress = async (userId, classId) => {
   try {
-    // Get all activities for the class
-    const activitiesQuery = query(
-      collection(db, RECORD_TYPES.ACTIVITY),
-      where('classId', '==', classId)
-    );
+    // Get all activities for the class using database service
+    const activitiesResult = await getActivitiesByClassFromDb(classId, { limitCount: 1000 });
+    if (!activitiesResult.success) {
+      return { success: false, error: activitiesResult.error };
+    }
     
-    const activitiesSnapshot = await getDocs(activitiesQuery);
-    const activities = [];
-    activitiesSnapshot.forEach((doc) => {
-      activities.push({ id: doc.id, ...doc.data() });
-    });
+    const activities = activitiesResult.data;
     
-    // Get user submissions
-    const submissionsQuery = query(
-      collection(db, 'submissions'),
-      where('userId', '==', userId),
-      where('classId', '==', classId)
-    );
+    // Get user submissions using database service
+    const submissionsResult = await getSubmissionsFromDb({ userId, classId });
+    if (!submissionsResult.success) {
+      return { success: false, error: submissionsResult.error };
+    }
     
-    const submissionsSnapshot = await getDocs(submissionsQuery);
     const submissions = {};
-    submissionsSnapshot.forEach((doc) => {
-      const data = doc.data();
-      submissions[data.activityId] = { id: doc.id, ...data };
+    submissionsResult.data.forEach(submission => {
+      submissions[submission.activityId] = submission;
     });
     
     // Calculate progress
     const totalActivities = activities.filter(a => !a.optional).length;
     const completedActivities = activities.filter(a => 
-      !a.optional && submissions[a.id] && submissions[a.id].status === SUBMISSION_STATUS.COMPLETED
+      !a.optional && submissions[a.docId] && submissions[a.docId].status === SUBMISSION_STATUS.COMPLETED
     ).length;
     const gradedActivities = activities.filter(a => 
-      !a.optional && submissions[a.id] && submissions[a.id].status === SUBMISSION_STATUS.GRADED
+      !a.optional && submissions[a.docId] && submissions[a.docId].status === SUBMISSION_STATUS.GRADED
     ).length;
     
     const totalScore = activities.reduce((sum, activity) => {
-      const submission = submissions[activity.id];
+      const submission = submissions[activity.docId];
       if (submission && submission.score) {
         return sum + submission.score;
       }
