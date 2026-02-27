@@ -96,7 +96,7 @@ const ClassSchedulePage = () => {
       // Try to get year from separate field first, then from term string
       if (cls.year) {
         years.add(String(cls.year));
-      } else if (cls.term) {
+      } else if (cls.term && cls.term.includes(' ')) {
         const parts = cls.term.split(' ');
         if (parts.length > 1) {
           const yearPart = parts[parts.length - 1];
@@ -113,8 +113,9 @@ const ClassSchedulePage = () => {
     const terms = new Set();
     classes.forEach(cls => {
       if (cls.term) {
-        // Extract just the term part (e.g., "Fall" from "Fall 2025")
-        const termPart = cls.term.split(' ')[0];
+        // For separate term field, use it directly
+        // For combined term field, extract the first part
+        const termPart = cls.term.includes(' ') ? cls.term.split(' ')[0] : cls.term;
         if (termPart) terms.add(termPart);
       }
     });
@@ -143,7 +144,7 @@ const ClassSchedulePage = () => {
     if (yearFilter !== 'all') {
       result = result.filter(cls => {
         if (cls.year && String(cls.year) === yearFilter) return true;
-        if (cls.term) {
+        if (cls.term && cls.term.includes(' ')) {
           const parts = cls.term.split(' ');
           if (parts.length > 1) {
             const yearPart = parts[parts.length - 1];
@@ -158,7 +159,9 @@ const ClassSchedulePage = () => {
     if (termFilter !== 'all') {
       result = result.filter(cls => {
         if (!cls.term) return false;
-        const termPart = cls.term.split(' ')[0];
+        // For separate term field, use it directly
+        // For combined term field, extract the first part
+        const termPart = cls.term.includes(' ') ? cls.term.split(' ')[0] : cls.term;
         return termPart === termFilter;
       });
     }
@@ -168,7 +171,7 @@ const ClassSchedulePage = () => {
       // Extract year for comparison
       const getYear = (cls) => {
         if (cls.year) return Number(cls.year);
-        if (cls.term) {
+        if (cls.term && cls.term.includes(' ')) {
           const parts = cls.term.split(' ');
           const yearPart = parts[parts.length - 1];
           return !isNaN(yearPart) ? Number(yearPart) : 0;

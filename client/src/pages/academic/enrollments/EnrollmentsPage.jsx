@@ -40,7 +40,7 @@ const EnrollmentsPage = () => {
     classes.forEach(cls => {
       if (cls.year) {
         years.add(String(cls.year));
-      } else if (cls.term) {
+      } else if (cls.term && cls.term.includes(' ')) {
         const parts = cls.term.split(' ');
         if (parts.length > 1) {
           const yearPart = parts[parts.length - 1];
@@ -57,7 +57,9 @@ const EnrollmentsPage = () => {
     const terms = new Set();
     classes.forEach(cls => {
       if (cls.term) {
-        const termPart = cls.term.split(' ')[0];
+        // For separate term field, use it directly
+        // For combined term field, extract the first part
+        const termPart = cls.term.includes(' ') ? cls.term.split(' ')[0] : cls.term;
         if (termPart) terms.add(termPart);
       }
     });
@@ -96,7 +98,7 @@ const EnrollmentsPage = () => {
     if (yearFilter !== 'all') {
       result = result.filter(cls => {
         if (cls.year && String(cls.year) === yearFilter) return true;
-        if (cls.term) {
+        if (cls.term && cls.term.includes(' ')) {
           const parts = cls.term.split(' ');
           if (parts.length > 1 && parts[parts.length - 1] === yearFilter) return true;
         }
@@ -108,7 +110,9 @@ const EnrollmentsPage = () => {
     if (termFilter !== 'all') {
       result = result.filter(cls => {
         if (!cls.term) return false;
-        const termPart = cls.term.split(' ')[0];
+        // For separate term field, use it directly
+        // For combined term field, extract the first part
+        const termPart = cls.term.includes(' ') ? cls.term.split(' ')[0] : cls.term;
         return termPart === termFilter;
       });
     }

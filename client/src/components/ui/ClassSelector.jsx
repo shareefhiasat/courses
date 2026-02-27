@@ -230,7 +230,7 @@ const ClassSelectorAdvanced = ({
     if (yearValue && yearValue !== 'all') {
       result = result.filter(cls => {
         if (cls.year) return String(cls.year) === yearValue;
-        if (cls.term) {
+        if (cls.term && cls.term.includes(' ')) {
           const parts = cls.term.split(' ');
           if (parts.length > 1) return parts[parts.length - 1] === yearValue;
         }
@@ -241,7 +241,12 @@ const ClassSelectorAdvanced = ({
     // Filter by term
     if (termValue && termValue !== 'all') {
       result = result.filter(cls => {
-        if (cls.term) return cls.term.split(' ')[0] === termValue;
+        if (cls.term) {
+          // For separate term field, use it directly
+          // For combined term field, extract the first part
+          const termPart = cls.term.includes(' ') ? cls.term.split(' ')[0] : cls.term;
+          return termPart === termValue;
+        }
         return false;
       });
     }
@@ -314,7 +319,7 @@ const ClassSelectorAdvanced = ({
     const options = showAllOption ? [{ value: 'all', label: t('all_years') || 'All Years' }] : [];
     const uniqueYears = Array.from(new Set(classes.map(c => {
       if (c.year) return String(c.year);
-      if (c.term) {
+      if (c.term && c.term.includes(' ')) {
         const parts = c.term.split(' ');
         if (parts.length > 1) return parts[parts.length - 1];
       }
@@ -330,7 +335,11 @@ const ClassSelectorAdvanced = ({
   const termOptions = useMemo(() => {
     const options = showAllOption ? [{ value: 'all', label: t('all_terms') || 'All Terms' }] : [];
     const uniqueTerms = Array.from(new Set(classes.map(c => {
-      if (c.term) return c.term.split(' ')[0];
+      if (c.term) {
+        // For separate term field, use it directly
+        // For combined term field, extract the first part
+        return c.term.includes(' ') ? c.term.split(' ')[0] : c.term;
+      }
       return null;
     }).filter(Boolean))).sort();
     

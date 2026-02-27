@@ -1162,7 +1162,7 @@ const ActivitiesPage = () => {
       
       {/* Filters */}
       <div className="filters-container" style={{ 
-        display: 'flex', 
+        display: 'none', 
         flexDirection: 'column',
         gap: '1rem', 
         marginBottom: '1rem', 

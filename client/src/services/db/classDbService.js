@@ -126,13 +126,27 @@ export const create = async (classData, user = null) => {
  */
 export const update = async (classId, updateData, user = null) => {
   try {
+    console.log('🔧 [ClassDbService] update called:', {
+      classId,
+      updateDataKeys: Object.keys(updateData),
+      updateDataSample: updateData,
+      user: user?.email || 'unknown'
+    });
+    
     const finalData = {
       ...updateData,
       ...getUpdateAuditData(user || { uid: 'system' })
     };
+    
+    console.log('🔧 [ClassDbService] final data for Firestore:', finalData);
+    
     await updateDoc(doc(db, 'classes', classId), finalData);
+    
+    console.log('✅ [ClassDbService] Firestore update successful for classId:', classId);
+    
     return { success: true };
   } catch (error) {
+    console.error('❌ [ClassDbService] Firestore update error:', error);
     logger.error('[ClassDbService] Error updating class:', error);
     return { success: false, error: error.message };
   }

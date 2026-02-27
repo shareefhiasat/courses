@@ -29,7 +29,8 @@ export const addClass = async (data, user) => {
       await logActivity(ACTIVITY_LOG_TYPES.CLASS_CREATED, {
         classId: result.id,
         className: data.name,
-        classCode: data.code
+        classCode: data.code,
+        userId: user?.uid || user?.id || 'unknown'
       });
     } catch (logError) {
       logger.warn('CLASS: Failed to log class creation:', logError);
@@ -46,15 +47,25 @@ export const addClass = async (data, user) => {
 // Update class
 export const updateClass = async (id, data, user) => {
   try {
+    console.log('🔧 [ClassService] updateClass called:', {
+      id,
+      dataKeys: Object.keys(data),
+      dataSample: data,
+      user: user?.email || 'unknown'
+    });
+    
     logger.info('CLASS: Updating class', { classId: id, updateFields: Object.keys(data) });
     
     const result = await updateClassInDb(id, data, user);
+    
+    console.log('📋 [ClassService] updateClass DB result:', result);
     
     // Log activity
     try {
       await logActivity(ACTIVITY_LOG_TYPES.CLASS_UPDATED, {
         classId: id,
-        updateFields: Object.keys(data)
+        updateFields: Object.keys(data),
+        userId: user?.uid || user?.id || 'unknown'
       });
     } catch (logError) {
       logger.warn('CLASS: Failed to log class update:', logError);
@@ -63,6 +74,7 @@ export const updateClass = async (id, data, user) => {
     logger.info('CLASS: Successfully updated class', { classId: id });
     return result;
   } catch (error) {
+    console.error('❌ [ClassService] updateClass error:', error);
     logger.error('CLASS: Failed to update class', { error: error.message, classId: id });
     return { success: false, error: error.message };
   }
@@ -74,8 +86,8 @@ export const deleteClass = async (id) => {
     logger.info('CLASS: Deleting class', { classId: id });
     
     // Use database service for cascade delete
-    const { deleteClassCascade: deleteClassCascadeFromDb } = await import('../db/classDbService');
-    const result = await deleteClassCascadeFromDb(id);
+    const { deleteClass: deleteClassFromDb } = await import('../db/classDbService');
+    const result = await deleteClassFromDb(id);
     
     if (result.success) {
       // Log activity

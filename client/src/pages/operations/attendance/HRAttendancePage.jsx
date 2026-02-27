@@ -119,8 +119,8 @@ const HRAttendancePage = () => {
             className = classItem.name || classItem.code || session.classId;
             // Enrich with class term and year for filtering
             session.classTerm = classItem.term;
-            // Extract year from term if no separate year field exists
-            session.classYear = classItem.year || (classItem.term ? classItem.term.split(' ')[1] : undefined);
+            // Use separate year field if available, otherwise extract from combined term
+            session.classYear = classItem.year || (classItem.term && classItem.term.includes(' ') ? classItem.term.split(' ')[1] : undefined);
           }
         }
         
@@ -202,14 +202,13 @@ const HRAttendancePage = () => {
         logger.log('[HRAttendance] Applying year filter:', yearFilter);
         
         filtered = filtered.filter(s => {
-          // Check classYear field
-          if (s.classYear && String(s.classYear) === yearFilter) {
-            logger.log('[HRAttendance] Session matched by classYear:', s.id, s.classYear);
-            return true;
-          }
-          
-          // Check classTerm field for year in term like "Fall 2025"
-          if (s.classTerm) {
+          // Check classYear field first, then fallback to classTerm field
+          if (s.classYear) {
+            if (String(s.classYear) === yearFilter) {
+              logger.log('[HRAttendance] Session matched by classYear:', s.id, s.classYear);
+              return true;
+            }
+          } else if (s.classTerm && s.classTerm.includes(' ')) {
             const parts = s.classTerm.split(' ');
             if (parts.length > 1 && parts[parts.length - 1] === yearFilter) {
               logger.log('[HRAttendance] Session matched by classTerm:', s.id, s.classTerm);
@@ -240,7 +239,9 @@ const HRAttendancePage = () => {
         
         filtered = filtered.filter(s => {
           if (!s.classTerm) return false;
-          const termPart = s.classTerm.split(' ')[0];
+          // For separate term field, use it directly
+          // For combined term field, extract the first part
+          const termPart = s.classTerm.includes(' ') ? s.classTerm.split(' ')[0] : s.classTerm;
           const matches = termPart === termFilter;
           if (matches) {
             logger.log('[HRAttendance] Session matched by term:', s.id, s.classTerm, 'termPart:', termPart);
@@ -377,7 +378,7 @@ const HRAttendancePage = () => {
                   if (classItem) {
                     session.className = classItem.name || classItem.code || session.classId;
                     session.classTerm = classItem.term;
-                    session.classYear = classItem.year || (classItem.term ? classItem.term.split(' ')[1] : undefined);
+                    session.classYear = classItem.year || (classItem.term && classItem.term.includes(' ') ? classItem.term.split(' ')[1] : undefined);
                   }
                 }
                 
@@ -449,7 +450,9 @@ const HRAttendancePage = () => {
         if (termFilter && termFilter !== 'all') {
           filtered = filtered.filter(s => {
             if (!s.classTerm) return false;
-            const termPart = s.classTerm.split(' ')[0];
+            // For separate term field, use it directly
+            // For combined term field, extract the first part
+            const termPart = s.classTerm.includes(' ') ? s.classTerm.split(' ')[0] : s.classTerm;
             return termPart === termFilter;
           });
         }
@@ -801,7 +804,7 @@ const HRAttendancePage = () => {
                 { value: 'all', label: 'All Years' },
                 ...Array.from(new Set(classes.map(c => {
                   if (c.year) return String(c.year);
-                  if (c.term) {
+                  if (c.term && c.term.includes(' ')) {
                     const parts = c.term.split(' ');
                     if (parts.length > 1) return parts[parts.length - 1];
                   }
@@ -823,7 +826,11 @@ const HRAttendancePage = () => {
               options={[
                 { value: 'all', label: 'All Terms' },
                 ...Array.from(new Set(classes.map(c => {
-                  if (c.term) return c.term.split(' ')[0];
+                  if (c.term) {
+                    // For separate term field, use it directly
+                    // For combined term field, extract the first part
+                    return c.term.includes(' ') ? c.term.split(' ')[0] : c.term;
+                  }
                   return null;
                 }).filter(Boolean))).sort().map(term => ({ value: term, label: term }))
               ]}

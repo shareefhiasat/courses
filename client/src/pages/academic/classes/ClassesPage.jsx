@@ -43,7 +43,7 @@ const ClassesPage = () => {
   const [activities, setActivities] = useState([]);
   
   // Form state
-  const [classForm, setClassForm] = useState({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '', programId: '', classId: '' });
+  const [classForm, setClassForm] = useState({ id: '', name: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', ownerEmail: '', subjectId: '', programId: '', classId: '' });
   const [editingClass, setEditingClass] = useState(null);
   const { deleteModal, deleteClass: deleteClassModal, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   
@@ -51,6 +51,8 @@ const ClassesPage = () => {
   const nameRef = useRef(null);
   const nameArRef = useRef(null);
   const codeRef = useRef(null);
+  const locationEnRef = useRef(null);
+  const locationArRef = useRef(null);
   
   // Filter state
   const [classProgramFilter, setClassProgramFilter] = useState('');
@@ -160,7 +162,9 @@ const ClassesPage = () => {
     return {
       name: nameRef.current?.value ?? classForm.name,
       nameAr: nameArRef.current?.value ?? classForm.nameAr,
-      code: codeRef.current?.value ?? classForm.code
+      code: codeRef.current?.value ?? classForm.code,
+      locationEn: locationEnRef.current?.value ?? classForm.locationEn,
+      locationAr: locationArRef.current?.value ?? classForm.locationAr
     };
   }, [classForm]);
   
@@ -183,16 +187,44 @@ const ClassesPage = () => {
       return;
     }
 
+    console.log('🔍 [ClassesPage] handleClassSubmit Debug:', {
+      isEditing: !!editingClass,
+      editingClassId: editingClass?.docId,
+      editingClassData: editingClass,
+      classFormData: classForm,
+      textValues: textValues,
+      user: user?.email
+    });
+
     const classData = {
       ...classForm,
       ...textValues
     };
 
+    // Remove id field when updating to prevent creating new records
+    if (editingClass) {
+      console.log('🔧 [ClassesPage] Before cleanup - classData:', classData);
+      delete classData.id;
+      delete classData.docId; // Also remove docId if present
+      console.log('🔧 [ClassesPage] After cleanup - classData:', classData);
+    }
+
     setLoading(true);
     try {
+      console.log('🚀 [ClassesPage] Calling service:', editingClass ? 'updateClass' : 'addClass');
+      console.log('🚀 [ClassesPage] Service params:', {
+        docId: editingClass?.docId,
+        classDataKeys: Object.keys(classData),
+        userData: { email: user?.email, uid: user?.uid }
+      });
+      
       const result = editingClass ?
         await updateClass(editingClass.docId, classData, user) :
         await addClass(classData, user);
+
+      console.log('📋 [ClassesPage] Service result:', result);
+      console.log('📋 [ClassesPage] Result success:', result.success);
+      console.log('📋 [ClassesPage] Result ID:', result.id);
 
       if (result.success) {
         // Log activity
@@ -206,7 +238,7 @@ const ClassesPage = () => {
         } catch (e) { logger.warn('Failed to log activity:', e); }
         await loadData();
         setEditingClass(null);
-        setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '', programId: '', classId: '' });
+        setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', ownerEmail: '', subjectId: '', programId: '', classId: '' });
         // Clear refs
         if (nameRef.current) nameRef.current.value = '';
         if (nameArRef.current) nameArRef.current.value = '';
@@ -225,22 +257,59 @@ const ClassesPage = () => {
   }, [classForm, editingClass, toast, t, syncRefsToState, loadData]);
 
   const handleEdit = useCallback((params) => {
-    setEditingClass(params.row);
+    const row = params.row;
+    console.log('🔧 [ClassesPage] handleEdit called with:', row);
+    
+    // Set editing state FIRST
+    setEditingClass(row);
+    
+    // Split term into term and year if it's combined
+    let term = row.term || '';
+    let year = '';
+    
+    if (term && term.includes(' ')) {
+      const termParts = term.split(' ');
+      term = termParts[0] || '';
+      year = termParts[1] || '';
+    }
+    
     setClassForm({
-      id: params.row.id,
-      name: params.row.name || '',
-      nameAr: params.row.nameAr || '',
-      code: params.row.code || '',
-      term: params.row.term || '',
-      ownerEmail: params.row.ownerEmail || '',
-      subjectId: params.row.subjectId || '',
-      programId: params.row.programId || '',
-      classId: params.row.classId || ''
+      id: row.id,
+      name: row.name || '',
+      nameAr: row.nameAr || '',
+      code: row.code || '',
+      term: term,
+      year: year,
+      locationEn: row.locationEn || '',
+      locationAr: row.locationAr || '',
+      ownerEmail: row.ownerEmail || '',
+      subjectId: row.subjectId || '',
+      programId: row.programId || '',
+      classId: row.classId || ''
     });
+    
+    console.log('🔧 [ClassesPage] handleEdit - editingClass set to:', row);
+    console.log('🔧 [ClassesPage] handleEdit - classForm set to:', {
+      id: row.id,
+      name: row.name || '',
+      nameAr: row.nameAr || '',
+      code: row.code || '',
+      term: term,
+      year: year,
+      locationEn: row.locationEn || '',
+      locationAr: row.locationAr || '',
+      ownerEmail: row.ownerEmail || '',
+      subjectId: row.subjectId || '',
+      programId: row.programId || '',
+      classId: row.classId || ''
+    });
+    
     // Sync refs
-    if (nameRef.current) nameRef.current.value = params.row.name || '';
-    if (nameArRef.current) nameArRef.current.value = params.row.nameAr || '';
-    if (codeRef.current) codeRef.current.value = params.row.code || '';
+    if (nameRef.current) nameRef.current.value = row.name || '';
+    if (nameArRef.current) nameArRef.current.value = row.nameAr || '';
+    if (codeRef.current) codeRef.current.value = row.code || '';
+    if (locationEnRef.current) locationEnRef.current.value = row.locationEn || '';
+    if (locationArRef.current) locationArRef.current.value = row.locationAr || '';
   }, []);
 
   const handleDelete = useCallback((params) => {
@@ -277,7 +346,7 @@ const ClassesPage = () => {
 
 const handleCancelEdit = useCallback(() => {
     setEditingClass(null);
-    setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '', programId: '', classId: '' });
+    setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', ownerEmail: '', subjectId: '', programId: '', classId: '' });
     // Clear refs
     if (nameRef.current) nameRef.current.value = '';
     if (nameArRef.current) nameArRef.current.value = '';
@@ -368,19 +437,85 @@ const handleCancelEdit = useCallback(() => {
       field: 'term', 
       headerName: t('term') || 'Term', 
       width: 140,
+      valueGetter: (params) => {
+        const term = params.value || params.row?.term;
+        if (!term) return null;
+        // Extract term part (Fall, Spring, etc.) from "Fall 2025"
+        const termParts = term.split(' ');
+        return termParts[0] || term;
+      },
       renderCell: (params) => {
-        const term = params.value;
+        const term = params.value || params.row?.term;
         if (!term) return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
             {getThemedIcon('ui', 'calendar', 16, theme)} —
           </span>
         );
+        // Extract term part (Fall, Spring, etc.) from "Fall 2025"
+        const termParts = term.split(' ');
+        const termName = termParts[0] || term;
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {/*{getThemedIcon('ui', 'calendar', 16, theme)} */}
-            {term}
+            {getThemedIcon('ui', 'calendar', 16, theme)}
+            {termName}
           </span>
         );
+      }
+    },
+    {
+      field: 'year',
+      headerName: t('year') || 'Year', 
+      width: 100,
+      valueGetter: (params) => {
+        // Check for separate year field first
+        if (params.row?.year) return params.row.year;
+        
+        // Fallback to combined term field for backward compatibility
+        const term = params.row?.term;
+        if (!term) return null;
+        const termParts = term.split(' ');
+        return termParts[1] || null;
+      },
+      renderCell: (params) => {
+        // Check for separate year field first
+        if (params.row?.year) {
+          return (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              {params.row.year}
+            </span>
+          );
+        }
+        
+        // Fallback to combined term field for backward compatibility
+        const term = params.row?.term;
+        if (!term) return '—';
+        const termParts = term.split(' ');
+        const year = termParts[1] || '—';
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            {year}
+          </span>
+        );
+      }
+    },
+    {
+      field: 'locationEn',
+      headerName: t('location_english') || 'Location (English)',
+      flex: 1, minWidth: 150,
+      valueGetter: (params) => params.value || params.row?.locationEn || '—',
+      renderCell: (params) => {
+        const location = params.value || params.row?.locationEn;
+        return location || '—';
+      }
+    },
+    {
+      field: 'locationAr',
+      headerName: t('location_arabic') || 'Location (Arabic)',
+      flex: 1, minWidth: 150,
+      valueGetter: (params) => params.value || params.row?.locationAr || '—',
+      renderCell: (params) => {
+        const location = params.value || params.row?.locationAr;
+        return location || '—';
       }
     },
     {
@@ -543,6 +678,17 @@ const handleCancelEdit = useCallback(() => {
             placeholder={t('class_code') + ' (' + t('optional') + ')'}
             defaultValue={classForm.code}
           />
+          <Input
+            ref={locationEnRef}
+            placeholder={t('location_english') || 'Location (English)'}
+            defaultValue={classForm.locationEn || ''}
+          />
+          <Input
+            ref={locationArRef}
+            placeholder={t('location_arabic') || 'Location (Arabic)'}
+            defaultValue={classForm.locationAr || ''}
+            dir="rtl"
+          />
         </div>
 
         {/* Academic Info */}
@@ -580,11 +726,8 @@ const handleCancelEdit = useCallback(() => {
           <Select
             searchable
             placeholder={t('term')}
-            value={classForm.term?.split(' ')[0] || ''}
-            onChange={e => {
-              const year = classForm.term?.split(' ')[1] || new Date().getFullYear();
-              setClassForm({ ...classForm, term: e.target.value ? `${e.target.value} ${year}` : '' });
-            }}
+            value={classForm.term || ''}
+            onChange={e => setClassForm({ ...classForm, term: e.target.value })}
             options={[
               { value: '', label: t('term') || 'Select Term' },
               { value: 'Fall', label: t('fall') || 'Fall' },
@@ -595,14 +738,8 @@ const handleCancelEdit = useCallback(() => {
           />
           <div style={{ width: '100%' }}>
             <YearSelect
-              value={classForm.term?.split(' ')[1] || ''}
-              onChange={e => {
-                const semester = classForm.term?.split(' ')[0] || '';
-                setClassForm({
-                  ...classForm,
-                  term: semester ? `${semester} ${e.target.value}` : e.target.value
-                });
-              }}
+              value={classForm.year || ''}
+              onChange={e => setClassForm({ ...classForm, year: e.target.value })}
               startYear={2024}
               yearsAhead={5}
               label={null}
@@ -632,7 +769,7 @@ const handleCancelEdit = useCallback(() => {
 
       {/* Filters for Classes */}
       <div className="filters-container" style={{ 
-        display: 'flex', 
+        display: 'none', 
         flexDirection: 'column',
         gap: '1rem', 
         marginBottom: '1rem', 

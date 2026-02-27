@@ -178,7 +178,7 @@ const NotificationsPage = () => {
         if (classId) {
           const classItem = classes.find(c => (c.id || c.docId) === classId);
           if (classItem?.year && String(classItem.year) === filterYear) return true;
-          if (classItem?.term) {
+          if (classItem?.term && classItem.term.includes(' ')) {
             const parts = classItem.term.split(' ');
             if (parts.length > 1 && parts[parts.length - 1] === filterYear) return true;
           }
@@ -606,7 +606,7 @@ const NotificationsPage = () => {
               { value: 'all', label: 'All Years' },
               ...Array.from(new Set((classes || []).map(c => {
                 if (c.year) return String(c.year);
-                if (c.term) {
+                if (c.term && c.term.includes(' ')) {
                   const parts = c.term.split(' ');
                   if (parts.length > 1 && !isNaN(parts[parts.length - 1])) {
                     return parts[parts.length - 1];
