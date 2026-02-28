@@ -6,8 +6,9 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { ToggleSwitch } from '@ui';
 import { formatDateTime } from '@utils/date';
-import { collection, getDocs, query, orderBy, getDoc, doc, deleteDoc, addDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@services/other/config';
+import { Timestamp } from 'firebase/firestore';
+import emailDbService from '@services/business/emailDbService';
+import logger from '@utils/logger';
 
 const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   const toast = useToast();
@@ -38,21 +39,35 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
     }
   }, [highlightId, templates]);
 
-  const loadTemplates = async () => {
+  const loadTemplates = async (forceRefresh = false) => {
     setLoading(true);
     try {
-      const q = query(collection(db, 'emailTemplates'), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-
-      const templateList = [];
-      snapshot.forEach(doc => {
-        templateList.push({ id: doc.id, ...doc.data() });
-      });
-
+      // Clear templates if force refresh
+      if (forceRefresh) {
+        setTemplates([]);
+        // Small delay to ensure UI updates
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      const templateList = await emailDbService.getEmailTemplates(forceRefresh);
+      
+      // Also log to console for easy viewing
+      console.log('📋 Current Email Templates:', templateList.map(t => ({ id: t.id, name: t.name })));
+      
+      // Debug: Check specifically for password_reset_default
+      const problematicTemplate = templateList.find(t => t.id === 'password_reset_default');
+      if (problematicTemplate) {
+        console.warn('🚨 Found problematic template:', problematicTemplate);
+        logger.warn('🚨 Found problematic template in Firestore:', problematicTemplate);
+      } else {
+        console.log('✅ password_reset_default not found in Firestore');
+        logger.info('✅ password_reset_default not found in Firestore');
+      }
+      
       setTemplates(templateList);
     } catch (error) {
-      logger.error('Error loading templates:', error);
-      toast?.showError('Failed to load templates: ' + error.message);
+      logger.error('❌ Error loading templates:', error);
+      toast?.showError(error.message);
     } finally {
       setLoading(false);
     }
@@ -179,12 +194,33 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
     }
 
     try {
-      await deleteDoc(doc(db, 'emailTemplates', templateId));
+      logger.info('🗑️ Deleting template:', { templateId, templateName });
+      
+      const result = await emailDbService.deleteTemplate(templateId);
+      
+      logger.info('✅ Template deleted successfully:', { 
+        templateId: result.templateId, 
+        docId: result.docId 
+      });
+      
       toast?.showSuccess(t('template_deleted_successfully') || 'Template deleted successfully!');
-      loadTemplates();
+      
+      // Wait a moment for Firestore to sync, then refresh
+      setTimeout(async () => {
+        await loadTemplates(true); // Force refresh after deletion
+        logger.info('🔄 Template list force refreshed after deletion');
+      }, 500);
+      
     } catch (error) {
-      logger.error('Error deleting template:', error);
-      toast?.showError(t('failed_to_delete_template') + ': ' + error.message);
+      logger.error('❌ Error deleting template:', { templateId, templateName, error: error.message });
+      
+      // Provide more specific error messages
+      let errorMessage = error.message;
+      if (error.message.includes('Template not found')) {
+        errorMessage = 'Template not found. It may have already been deleted.';
+      }
+      
+      toast?.showError(t('failed_to_delete_template') + ': ' + errorMessage);
     }
   };
 
@@ -211,7 +247,8 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   const filteredTemplates = templates.filter(t =>
       t.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.type?.toLowerCase().includes(searchTerm.toLowerCase())
+      t.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.id?.toLowerCase().includes(searchTerm.toLowerCase()) // Add ID to search
   );
 
   const getTypeIcon = (type) => {
@@ -239,35 +276,84 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   return (
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <input
-              type="text"
-              placeholder={t('search_templates') || 'Search templates...'}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                padding: '10px 15px',
-                border: '1px solid #ddd',
-                borderRadius: 8,
-                width: 300,
-                fontSize: '0.95rem',
-                background: 'white'
-              }}
-          />
-          <button
-              onClick={onCreateNew}
-              style={{
-                padding: '10px 20px',
-                background: 'var(--color-primary, #800020)',
-                color: 'white',
-                border: 'none',
-                borderRadius: 8,
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.95rem'
-              }}
-          >
-            {t('create_new_template') || 'Create New Template'}
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <input
+                type="text"
+                placeholder={t('search_templates') || 'Search templates by name, subject, type, or ID...'}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  padding: '10px 15px',
+                  border: '1px solid #ddd',
+                  borderRadius: 8,
+                  width: 300,
+                  fontSize: '0.95rem',
+                  background: 'white',
+                  color: '#000'
+                }}
+            />
+            <button
+                onClick={() => loadTemplates(true)}
+                style={{
+                  padding: '10px 15px',
+                  background: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  fontSize: '0.85rem'
+                }}
+                title="Force refresh template list"
+            >
+              {getThemedIcon('ui', 'refresh', 16, theme)} Force Refresh
+            </button>
+            <button
+                onClick={async () => {
+                  const result = await emailDbService.verifyTemplateExists('password_reset_default');
+                  toast?.showInfo(`Template exists: ${result.exists}`);
+                }}
+                style={{
+                  padding: '10px 15px',
+                  background: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  fontSize: '0.85rem'
+                }}
+                title="Debug: Check if password_reset_default exists"
+            >
+              🔍 Debug
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <div style={{ 
+              background: '#f8f9fa', 
+              padding: '8px 16px', 
+              borderRadius: '20px',
+              border: '1px solid #dee2e6',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              color: '#495057'
+            }}>
+              📊 {filteredTemplates.length} of {templates.length} templates
+            </div>
+            <button
+                onClick={onCreateNew}
+                style={{
+                  padding: '10px 20px',
+                  background: 'var(--color-primary, #800020)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.95rem'
+                }}
+            >
+              {t('create_new_template') || 'Create New Template'}
+            </button>
+          </div>
         </div>
 
         {filteredTemplates.length === 0 ? (
@@ -327,10 +413,23 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
                           <div>
-                            <h3 style={{ margin: 0, color: '#333', fontSize: '1.1rem' }}>{template.name}</h3>
-                            <p style={{ margin: '0.25rem 0 0 0', color: '#999', fontSize: '0.85rem' }}>
-                              {template.type?.replace('_', ' ').toUpperCase()}
-                            </p>
+                            <h3 style={{ margin: 0, color: '#000', fontSize: '1.1rem', fontWeight: '600' }}>{template.name}</h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.25rem 0 0 0' }}>
+                              <span style={{ color: '#666', fontSize: '0.85rem', fontWeight: '500' }}>
+                                {template.type?.replace('_', ' ').toUpperCase()}
+                              </span>
+                              <span style={{ 
+                                color: '#333', 
+                                fontSize: '0.75rem', 
+                                fontFamily: 'monospace',
+                                background: '#e9ecef',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                border: '1px solid #ced4da'
+                              }}>
+                                ID: {template.id}
+                              </span>
+                            </div>
                           </div>
                           <div style={{ display: 'flex', gap: '0.5rem', alignItems:'center' }}>
                             <div style={{ display:'flex', alignItems:'center', gap:8, marginRight:12 }}>
@@ -430,12 +529,12 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                             </button>
                           </div>
                         </div>
-                        <p style={{ margin: '0.75rem 0', color: '#555', fontSize: '0.9rem' }}>
+                        <p style={{ margin: '0.75rem 0', color: '#000', fontSize: '0.9rem' }}>
                           <strong>{t('subject') || 'Subject'}:</strong> {template.subject}
                         </p>
                         {template.variables && template.variables.length > 0 && (
                             <div style={{ marginTop: '0.75rem' }}>
-                              <p style={{ margin: '0 0 0.5rem 0', color: '#666', fontSize: '0.85rem' }}>
+                              <p style={{ margin: '0 0 0.5rem 0', color: '#000', fontSize: '0.85rem', fontWeight: '500' }}>
                                 <strong>Variables:</strong>
                               </p>
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -444,10 +543,11 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                         key={variable}
                                         style={{
                                           padding: '4px 8px',
-                                          background: '#f0f0f0',
+                                          background: '#e9ecef',
                                           borderRadius: 4,
                                           fontSize: '0.75rem',
-                                          color: '#555',
+                                          color: '#000',
+                                          border: '1px solid #ced4da',
                                           fontFamily: 'monospace'
                                         }}
                                     >
@@ -455,14 +555,14 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                           </span>
                                 ))}
                                 {template.variables.length > 8 && (
-                                    <span style={{ fontSize: '0.75rem', color: '#999' }}>
+                                    <span style={{ fontSize: '0.75rem', color: '#666', fontWeight: '500' }}>
                             +{template.variables.length - 8} more
                           </span>
                                 )}
                               </div>
                             </div>
                         )}
-                        <p style={{ margin: '0.75rem 0 0 0', color: '#999', fontSize: '0.8rem' }}>
+                        <p style={{ margin: '0.75rem 0 0 0', color: '#666', fontSize: '0.8rem' }}>
                           Last updated: {template.updatedAt ? formatDateTime(template.updatedAt) : 'Unknown'}
                         </p>
                       </div>

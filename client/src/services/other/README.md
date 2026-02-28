@@ -1,97 +1,114 @@
-# Firebase Services
+# Email & Notification System
 
-This directory contains all Firebase service files and utilities that are commonly imported throughout the application using the `@firebaseServices/` alias.
+## 📧 Email System
 
-## 📁 Structure
+### Template-Only Approach
+Our email system uses **only templates** from the `emailTemplates` collection in Firestore. No raw HTML, no fallbacks - templates are mandatory.
 
-### 🔧 Core Services
-- `config.js` - Firebase configuration and initialization
-- `firestore.js` - Core Firestore utilities and helpers
-- `activityLogger.jsx` - Activity logging service
-
-### 📊 Service Modules (Service.js naming convention)
-- `authService.js` - Authentication operations
-- `userService.js` - User management operations
-- `attendanceService.js` - Attendance tracking operations
-- `notificationService.js` - Notification management
-- `penaltyService.js` - Penalty tracking
-- `participationService.js` - Participation tracking
-- `behaviorService.js` - Behavior tracking
-- `programService.js` - Program management
-- `quizService.js` - Quiz operations
-- `submissionService.js` - Assignment submissions
-- `enrollmentMarksService.js` - Enrollment and marks management
-- `badgeService.js` - Badge system
-- `studentProgressService.js` - Student progress tracking
-- `userPreferenceService.js` - User preferences
-- `quizNotifications.js` - Quiz-specific notifications
-
-## 🎯 Usage
-
-All files in this directory can be imported using the `@firebaseServices/` alias:
-
+### Usage
 ```javascript
-// Import services
-import { getUserById } from '@firebaseServices/userService';
-import { markAttendance } from '@firebaseServices/attendanceService';
-import { createQuiz } from '@firebaseServices/quizService';
+import { sendEmail } from '@services/business/emailService';
 
-// Import utilities
-import { db } from '@firebaseServices/config';
-import { logActivity } from '@firebaseServices/activityLogger.jsx';
+const result = await sendEmail({
+  to: 'user@example.com',
+  templateId: 'welcome_signup_default',
+  variables: {
+    recipientName: 'John Doe',
+    siteName: 'QAF Learning Hub'
+  }
+});
 ```
 
-## 📋 Naming Convention
+### Available Templates
+See your template management UI for the complete list. Common templates include:
+- `welcome_signup_default` - New user welcome
+- `password_default` - Password reset
+- `qr_code_student` - Student QR codes
+- `activity_default` - New activities
+- `quiz_default` - Quiz notifications
+- And more...
 
-- **Service files**: Use `Service.js` suffix (e.g., `userService.js`, `attendanceService.js`)
-- **Utility files**: Use descriptive names (e.g., `config.js`, `activityLogger.jsx`)
-- **Consistent imports**: All use the `@firebaseServices/` prefix
+### Cloud Functions
+- `sendEmailTemplate` - Main email function (template only)
+- `testEmailTemplate` - Test email templates
 
-## 🔗 Related Directories
+## 🔔 Notification Gateway
 
-- `../firebase/` - Legacy Firebase files (attendance.js, dashboard.js, etc.)
-- `../constants/` - Application constants and enums
-- `../utils/` - General utility functions
+### Centralized Notifications
+All notifications flow through the `notificationGateway` for consistent behavior across web, email, and future channels.
 
-## 🚀 Benefits
+### Usage
+```javascript
+import { notificationGateway } from '@services/business/notificationGateway';
 
-- **Clear organization**: All Firebase services in one dedicated folder
-- **Consistent aliasing**: `@firebaseServices/` matches folder name exactly
-- **Easy discovery**: Developers know where to find Firebase-related code
-- **Maintainable structure**: Logical grouping of related functionality
-- **Proper separation of concerns**: Business services use DB services, never direct Firebase
-- **Type safety**: All services use shared types from `@types/index`
-- **Consolidated architecture**: Enrollment and marks operations unified
-- **Clean naming**: Service names clearly indicate their purpose and scope
-
-## 🏗️ Recent Architecture Improvements
-
-### Service Layer Refactoring
-- **Merged services**: `marksDbService.js` + `marksDistributionDbService.js` → `enrollmentsDbService.js`
-- **Renamed services**: `gradingService.js` → `enrollmentMarksService.js`
-- **Business logic separation**: All database operations go through DB services layer
-
-### Data Flow Pattern
-```
-UI Components → Business Services → DB Services → Firestore
+await notificationGateway.send(NOTIFICATION_TRIGGERS.QUIZ_AVAILABLE, {
+  userId: 'user123',
+  role: 'student',
+  variables: { quizTitle: 'Math Quiz' },
+  templateId: 'quiz_default',
+  email: 'student@example.com'
+});
 ```
 
-### Key Principles
-- **No direct Firebase calls** in business services
-- **Shared types** for all role definitions and data structures
-- **Composite key structure** for marks lookup: `${studentId}_${classId}_${subjectId}`
-- **Error handling** with consistent ServiceResponse pattern
+### Integration Points
+The notification gateway integrates with:
+- **User Management** - Welcome emails, password resets
+- **Classes/Enrollment** - Enrollment confirmations
+- **Activities** - New activities, grading notifications
+- **Quizzes** - Quiz availability, deadlines
+- **Attendance** - Attendance records
+- **Behavior** - Behavior logging
+- **Participation** - Participation tracking
+- **Penalties** - Penalty notifications
+- **Reports** - Report generation
 
-### File Structure
-```
-📁 services/
-├── 📁 business/           # Business logic and validation
-│   ├── enrollmentMarksService.js  # Enrollment & marks management
-│   ├── attendanceService.js       # Attendance operations
-│   └── ...
-├── 📁 db/                # Direct Firestore operations only
-│   ├── enrollmentsDbService.js    # All enrollment/marks DB ops
-│   ├── userDbService.js           # User DB operations
-│   └── ...
-└── 📁 other/             # Utilities and configurations
-```
+## 🚀 Quick Start
+
+1. **Create Templates** - Use the email template manager in your UI
+2. **Use Notification Gateway** - All notifications should go through gateway
+3. **Test Templates** - Use `testEmailTemplate` function
+4. **Monitor Logs** - Check `emailLogs` collection for delivery status
+
+## 📋 Template Variables
+
+Templates use `{{variableName}}` syntax. Common variables:
+- `{{recipientName}}` - User's display name
+- `{{siteName}}` - Your site name
+- `{{currentDate}}` - Current date
+- `{{siteUrl}}` - Your site URL
+
+## 🔧 Configuration
+
+Email configuration is stored in Firestore at `config/smtp`:
+- `host` - SMTP server
+- `port` - SMTP port
+- `user` - SMTP username
+- `password` - SMTP password
+- `senderName` - Display name for emails
+
+## 📊 Monitoring
+
+- **Email Logs** - `emailLogs` collection tracks all email attempts
+- **Notification Logs** - `notificationLogs` collection tracks gateway activity
+- **Analytics** - Built-in performance tracking
+
+## 🛠 Development
+
+### Adding New Templates
+1. Create template in emailTemplates collection
+2. Add template ID to `EMAIL_TEMPLATE_TYPES` constants
+3. Update notification gateway mapping if needed
+4. Test with `testEmailTemplate`
+
+### Adding New Notification Types
+1. Add trigger to `NOTIFICATION_TRIGGERS`
+2. Update gateway mapping
+3. Create notification function if needed
+4. Test end-to-end flow
+
+## 📝 Notes
+
+- **No Raw HTML** - All emails must use templates
+- **No Fallbacks** - Templates must exist
+- **Centralized** - Use notification gateway for all notifications
+- **Bilingual** - Templates support English/Arabic variables
