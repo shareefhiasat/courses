@@ -24,13 +24,13 @@ import {
 const getLocalizedName = (item, lang) => {
   if (!item) return '';
   
-  // Check for Arabic name first (handle both snake_case and camelCase)
+  // Check for Arabic name first
   if (lang === 'ar') {
-    return item.localize || item.name_ar || item.nameAr || item.title_ar || item.titleAr || item.name || item.title || item.code || item.docId || '';
+    return item.localize || item.nameAr || item.titleAr || item.name || item.title || item.code || item.docId || '';
   }
   
   // Default to English
-  return item.name_en || item.nameEn || item.name || item.title || item.code || item.docId || '';
+  return item.nameEn || item.name || item.title || item.code || item.docId || '';
 };
 
 /**
@@ -352,10 +352,10 @@ function ListChart({
         return getLocalizedName(item, lang) || t('not_specified');
       
       case 'titleEn':
-        return item.titleEn || item.title_en || getLocalizedName(item, 'en') || '—';
+        return item.titleEn || getLocalizedName(item, 'en') || '—';
         
       case 'titleAr':
-        return item.titleAr || item.title_ar || getLocalizedName(item, 'ar') || '—';
+        return item.titleAr || getLocalizedName(item, 'ar') || '—';
       
       case 'createdBy':
         const creator = resolveUser(item.createdBy, rawData.users, t);
@@ -382,8 +382,8 @@ function ListChart({
       
       case 'nameEn':
         // Handle different entity types for nameEn
-        if (item.nameEn || item.name_en) {
-          return item.nameEn || item.name_en || getLocalizedName(item, 'en') || '—';
+        if (item.nameEn) {
+          return item.nameEn || getLocalizedName(item, 'en') || '—';
         }
         if (item.classId) {
           const classInfoEn = resolveClass(item.classId, rawData.classes, t);
@@ -397,8 +397,8 @@ function ListChart({
         
       case 'nameAr':
         // Handle different entity types for nameAr
-        if (item.nameAr || item.name_ar) {
-          return item.nameAr || item.name_ar || getLocalizedName(item, 'ar') || '—';
+        if (item.nameAr) {
+          return item.nameAr || getLocalizedName(item, 'ar') || '—';
         }
         if (item.classId) {
           const classInfoAr = resolveClass(item.classId, rawData.classes, t);

@@ -66,7 +66,7 @@ const StudentProfilePage = () => {
       .filter(prog => prog.docId || prog.id)
       .map(prog => {
         const value = prog.docId || prog.id;
-        const label = prog.name || prog.name_en || prog.name_ar || value;
+        const label = prog.name || prog.nameEn || prog.nameAr || value;
         return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
       });
     return [...opts, ...validPrograms];
@@ -85,7 +85,7 @@ const StudentProfilePage = () => {
       })
       .map(sub => {
         const value = sub.docId || sub.id;
-        const label = sub.name || sub.name_en || sub.name_ar || value;
+        const label = sub.name || sub.nameEn || sub.nameAr || value;
         return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
       });
     return [...opts, ...validSubjects];
@@ -362,18 +362,19 @@ const StudentProfilePage = () => {
 
       // Load class names and apply additional filters
       const filteredClasses = {};
+      // Get classes using service
+      const classes = await getClasses();
       for (const classId in classAttendance) {
         try {
-          const classDoc = await getDoc(doc(db, 'classes', classId));
-          if (classDoc.exists()) {
-            const classData = classDoc.data();
-            classAttendance[classId].className = classData.name || classData.name_en || classId;
-            classAttendance[classId].classData = classData;
+          const classItem = classes.find(c => (c.docId || c.id) === classId);
+          if (classItem) {
+            classAttendance[classId].className = classItem.name || classItem.nameEn || classItem.nameAr || classId;
+            classAttendance[classId].classData = classItem;
 
             // Apply year/term/semester filters
-            if (filters.year && String(classData.year || classData.academicYear) !== String(filters.year)) continue;
-            if (filters.term && (classData.term || classData.sessionTerm) !== filters.term) continue;
-            if (filters.semester && classData.semester !== filters.semester) continue;
+            if (filters.year && String(classItem.year || classItem.academicYear) !== String(filters.year)) continue;
+            if (filters.term && (classItem.term || classItem.sessionTerm) !== filters.term) continue;
+            if (filters.semester && classItem.semester !== filters.semester) continue;
 
             filteredClasses[classId] = classAttendance[classId];
           }

@@ -10,13 +10,13 @@ import { useLang } from '@contexts/LangContext';
 const getLocalizedName = (item, lang) => {
   if (!item) return '';
   
-  // Check for Arabic name first (handle both snake_case and camelCase)
+  // Check for Arabic name first
   if (lang === 'ar') {
-    return item.localize || item.name_ar || item.nameAr || item.title_ar || item.titleAr || item.name || item.title || item.code || item.docId || '';
+    return item.localize || item.nameAr || item.titleAr || item.name || item.title || item.code || item.docId || '';
   }
   
   // Default to English
-  return item.name_en || item.nameEn || item.name || item.title || item.code || item.docId || '';
+  return item.nameEn || item.name || item.title || item.code || item.docId || '';
 };
 
 /**

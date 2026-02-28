@@ -49,13 +49,13 @@ export default function AdvancedAnalytics({
   const getLocalizedName = (item, fallbackField = 'name') => {
     if (!item) return '';
     
-    // Check for Arabic name first (handle both snake_case and camelCase)
+    // Check for Arabic name first
     if (lang === 'ar') {
-      return item.name_ar || item.nameAr || item.title_ar || item.titleAr || item[fallbackField] || item.name_en || item.name || item.title || item.code || item.docId || '';
+      return item.nameAr || item.titleAr || item[fallbackField] || item.nameEn || item.name || item.title || item.code || item.docId || '';
     }
     
     // Default to English
-    return item.name_en || item.nameEn || item[fallbackField] || item.name || item.title || item.code || item.docId || '';
+    return item.nameEn || item[fallbackField] || item.name || item.title || item.code || item.docId || '';
   };
 
   // Helper function to get localized term

@@ -208,7 +208,7 @@ const ResourcesPage = () => {
   
   const handleDelete = useCallback((params) => {
     const resource = params.row;
-    const resourceName = resource.title_en || resource.title || resource.name || 'this resource';
+    const resourceName = resource.titleEn || resource.title || resource.name || 'this resource';
     
     // Store the resource to delete in state
     setResourceToDelete(resource);
@@ -453,7 +453,7 @@ const ResourcesPage = () => {
           return <span>{categoryId}</span>;
         }
         
-        const categoryName = lang === 'ar' ? (category.name_ar || category.name_en) : (category.name_en || category.name_ar);
+        const categoryName = lang === 'ar' ? (category.nameAr || category.nameEn) : (category.nameEn || category.nameAr);
         
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -481,7 +481,7 @@ const ResourcesPage = () => {
         );
         const program = programs.find(p => (p.docId || p.id) === programId);
         if (!program) return '—';
-        const programName = lang === 'ar' ? (program.nameAr || program.name_en) : (program.nameEn || program.name_ar);
+        const programName = lang === 'ar' ? (program.nameAr || program.nameEn) : (program.nameEn || program.nameAr);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             {/*{getThemedIcon('ui', 'target', 16, theme)} */}
@@ -508,7 +508,7 @@ const ResourcesPage = () => {
         );
         const subject = subjects.find(s => (s.docId || s.id) === subjectId);
         if (!subject) return '—';
-        const subjectName = lang === 'ar' ? (subject.nameAr || subject.name_en) : (subject.nameEn || subject.name_ar);
+        const subjectName = lang === 'ar' ? (subject.nameAr || subject.nameEn) : (subject.nameEn || subject.nameAr);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             {/*{getThemedIcon('ui', 'book_open', 16, theme)} */}
@@ -536,8 +536,8 @@ const ResourcesPage = () => {
         const classItem = classes.find(c => (c.docId || c.id) === classId);
         if (!classItem) return params.value;
         const className = lang === 'ar' 
-          ? (classItem.nameAr || classItem.name_en || classItem.name) 
-          : (classItem.nameEn || classItem.name_ar || classItem.name);
+          ? (classItem.nameAr || classItem.nameEn || classItem.name) 
+          : (classItem.nameEn || classItem.nameAr || classItem.name);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             {/*{getThemedIcon('ui', 'users', 16, theme)} */}
@@ -673,10 +673,10 @@ const ResourcesPage = () => {
     }
     
     // Text search filters
-    if (resourceTitleEnFilter && (!r.title_en || !r.title_en.toLowerCase().includes(resourceTitleEnFilter.toLowerCase()))) return false;
-    if (resourceTitleArFilter && (!r.title_ar || !r.title_ar.includes(resourceTitleArFilter))) return false;
-    if (resourceDescriptionEnFilter && (!r.description_en || !r.description_en.toLowerCase().includes(resourceDescriptionEnFilter.toLowerCase()))) return false;
-    if (resourceDescriptionArFilter && (!r.description_ar || !r.description_ar.includes(resourceDescriptionArFilter))) return false;
+    if (resourceTitleEnFilter && (!r.titleEn || !r.titleEn.toLowerCase().includes(resourceTitleEnFilter.toLowerCase()))) return false;
+    if (resourceTitleArFilter && (!r.titleAr || !r.titleAr.includes(resourceTitleArFilter))) return false;
+    if (resourceDescriptionEnFilter && (!r.descriptionEn || !r.descriptionEn.toLowerCase().includes(resourceDescriptionEnFilter.toLowerCase()))) return false;
+    if (resourceDescriptionArFilter && (!r.descriptionAr || !r.descriptionAr.includes(resourceDescriptionArFilter))) return false;
     
     return true;
   });
@@ -695,7 +695,7 @@ const ResourcesPage = () => {
           gap: '0.5rem',
           color: isDark ? '#fef3c7' : '#78350f'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_resource') || 'Editing Resource'}: {editingResource.title || editingResource.title_en}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_resource') || 'Editing Resource'}: {editingResource.title || editingResource.titleEn}
         </div>
       )}
 
@@ -727,7 +727,7 @@ const ResourcesPage = () => {
               { value: '', label: t('no_category') || 'No Category', icon: getThemedIcon('ui', 'folder', 16, theme) },
               ...categories.map(category => ({
                 value: category.docId,
-                label: category.name || category.name_en || 'Unnamed Category',
+                label: lang === 'ar' ? (category.nameAr || category.nameEn || category.name) : (category.nameEn || category.nameAr || category.name) || 'Unnamed Category',
                 icon: getThemedIcon('ui', category.icon || 'folder', 16, theme)
               })).sort((a, b) => a.label.localeCompare(b.label))
             ]}
@@ -874,7 +874,7 @@ const ResourcesPage = () => {
               { value: '', label: lang === 'ar' ? 'جميع الفئات' : 'All Categories', icon: getThemedIcon('ui', 'folder', 16, theme) },
               ...categories.map(category => ({
                 value: category.docId,
-                label: category.name || category.name_en || 'Unnamed Category',
+                label: lang === 'ar' ? (category.nameAr || category.nameEn || category.name) : (category.nameEn || category.nameAr || category.name) || 'Unnamed Category',
                 icon: getThemedIcon('ui', category.icon || 'folder', 16, theme)
               }))
             ]}

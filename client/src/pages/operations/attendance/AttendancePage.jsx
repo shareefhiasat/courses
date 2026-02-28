@@ -391,7 +391,7 @@ const AttendancePageEnhanced = () => {
                 { value: 'all', label: t('all_programs') || 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) },
                 ...programs.map(p => ({
                   value: p.docId || p.id,
-                  label: p.name_en || p.name_ar || p.code || p.docId,
+                  label: p.nameEn || p.nameAr || p.code || p.docId,
                   icon: getThemedIcon('ui', 'graduation_cap', 16, theme)
                 }))
               ]}
@@ -410,7 +410,7 @@ const AttendancePageEnhanced = () => {
                   .filter(s => programFilter === 'all' || s.programId === programFilter)
                   .map(s => ({
                     value: s.docId || s.id,
-                    label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`,
+                    label: `${s.code || ''} - ${s.nameEn || s.nameAr || s.docId}`,
                     icon: getThemedIcon('ui', 'book_open', 16, theme)
                   }))
               ]}

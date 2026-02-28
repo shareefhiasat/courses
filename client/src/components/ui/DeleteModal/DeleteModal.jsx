@@ -130,7 +130,7 @@ export const useDeleteModal = (t = (key) => key) => {
 
   // Convenience methods for common entity types
   const deleteActivity = useCallback((activity, onConfirm) => {
-    const activityName = activity.title_en || activity.title || activity.name || 'this activity';
+    const activityName = activity.titleEn || activity.title || activity.name || 'this activity';
     showDeleteModal(RECORD_TYPES.ACTIVITY, activityName, onConfirm);
   }, [showDeleteModal]);
 
@@ -140,32 +140,32 @@ export const useDeleteModal = (t = (key) => key) => {
   }, [showDeleteModal]);
 
   const deleteProgram = useCallback((program, onConfirm, relatedRecords) => {
-    const programName = program.name_en || program.name || 'this program';
+    const programName = program.nameEn || program.name || 'this program';
     showDeleteModal('program', programName, onConfirm, { relatedRecords });
   }, [showDeleteModal]);
 
   const deleteSubject = useCallback((subject, onConfirm, relatedRecords) => {
-    const subjectName = subject.name_en || subject.name || 'this subject';
+    const subjectName = subject.nameEn || subject.name || 'this subject';
     showDeleteModal(RECORD_TYPES.SUBJECT, subjectName, onConfirm, { relatedRecords });
   }, [showDeleteModal]);
 
   const deleteClass = useCallback((classItem, onConfirm, relatedRecords) => {
-    const className = classItem.name_en || classItem.name || 'this class';
+    const className = classItem.nameEn || classItem.name || 'this class';
     showDeleteModal(RECORD_TYPES.CLASS, className, onConfirm, { relatedRecords });
   }, [showDeleteModal]);
 
   const deleteQuiz = useCallback((quiz, onConfirm) => {
-    const quizName = quiz.title_en || quiz.title || quiz.name || 'this quiz';
+    const quizName = quiz.titleEn || quiz.title || quiz.name || 'this quiz';
     showDeleteModal(RECORD_TYPES.QUIZ, quizName, onConfirm);
   }, [showDeleteModal]);
 
   const deleteCategory = useCallback((category, onConfirm) => {
-    const categoryName = category.name_en || category.name || 'this category';
+    const categoryName = category.nameEn || category.name || 'this category';
     showDeleteModal(RECORD_TYPES.CATEGORY, categoryName, onConfirm);
   }, [showDeleteModal]);
 
   const deleteEntity = useCallback((entityType, entity, onConfirm, options = {}) => {
-    const entityName = entity.name_en || entity.name || entity.title || entity.displayName || 'this item';
+    const entityName = entity.nameEn || entity.name || entity.title || entity.displayName || 'this item';
     showDeleteModal(entityType, entityName, onConfirm, options);
   }, [showDeleteModal]);
 

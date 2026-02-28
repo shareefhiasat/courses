@@ -272,8 +272,8 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
               const subjectData = await fetchSubjectData(subjectIdToLoad);
               if (subjectData) {
                 enrichedPenalty.subjectName = lang === 'ar' 
-                  ? (subjectData.name_ar || subjectData.name_en || subjectData.code || 'N/A')
-                  : (subjectData.name_en || subjectData.name_ar || subjectData.code || 'N/A');
+                  ? (subjectData.nameAr || subjectData.nameEn || subjectData.code || 'N/A')
+                  : (subjectData.nameEn || subjectData.nameAr || subjectData.code || 'N/A');
                 
                 // Load program from subject
                 if (subjectData.programId) {
@@ -281,8 +281,8 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                     const programData = await fetchProgram(subjectData.programId);
                     if (programData) {
                       enrichedPenalty.programName = lang === 'ar'
-                        ? (programData.name_ar || programData.name_en || programData.code || 'N/A')
-                        : (programData.name_en || programData.name_ar || programData.code || 'N/A');
+                        ? (programData.nameAr || programData.nameEn || programData.code || 'N/A')
+                        : (programData.nameEn || programData.nameAr || programData.code || 'N/A');
                     }
                   } catch (err) {
                     enrichedPenalty.programName = 'N/A';
@@ -636,7 +636,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           if (subjectId) {
             const subject = subjects.find(s => (s.docId || s.id) === subjectId);
             if (subject) {
-              subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en || subject.code) : (subject.name_en || subject.name_ar || subject.code);
+              subjectName = lang === 'ar' ? (subject.nameAr || subject.nameEn || subject.code) : (subject.nameEn || subject.nameAr || subject.code);
             }
           }
         }

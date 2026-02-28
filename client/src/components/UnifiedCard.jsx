@@ -67,7 +67,7 @@ const UnifiedCard = memo(({
       flavor,
       item: {
         docId: item.docId,
-        title: item.title_en || item.title,
+        title: item.titleEn || item.title,
         featured: item.featured,
         dueDate: item.dueDate,
         estimatedTime: item.estimatedTime,
@@ -81,43 +81,43 @@ const UnifiedCard = memo(({
   const getTitle = () => {
     if (flavor === RECORD_TYPES.QUIZ) {
       return lang === 'ar'
-          ? (item.title_ar || item.title_en || item.title || item.name || 'Untitled Quiz')
-          : (item.title_en || item.title_ar || item.title || item.name || 'Untitled Quiz');
+          ? (item.titleAr || item.title || item.name || 'Untitled Quiz')
+          : (item.titleEn || item.title || item.name || 'Untitled Quiz');
     }
     if (flavor === RECORD_TYPES.RESOURCE) {
       return lang === 'ar'
-          ? (item.title_ar || item.title_en || item.title || item.id)
-          : (item.title_en || item.title_ar || item.title || item.id);
+          ? (item.titleAr || item.title || item.id)
+          : (item.titleEn || item.title || item.id);
     }
     if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
       return lang === 'ar'
-          ? (item.title_ar || item.title_en || item.title || '—')
-          : (item.title_en || item.title_ar || item.title || '—');
+          ? (item.titleAr || item.title || '—')
+          : (item.titleEn || item.title || '—');
     }
     return lang === 'ar'
-        ? (item.title_ar || item.title_en || item.id)
-        : (item.title_en || item.title_ar || item.id);
+        ? (item.titleAr || item.id)
+        : (item.titleEn || item.id);
   };
 
   const getDescription = () => {
     if (flavor === RECORD_TYPES.QUIZ) {
       return lang === 'ar'
-          ? (item.description_ar || item.description_en || item.description || '')
-          : (item.description_en || item.description_ar || item.description || '');
+          ? (item.descriptionAr || item.description || '')
+          : (item.descriptionEn || item.description || '');
     }
     if (flavor === RECORD_TYPES.RESOURCE) {
       return lang === 'ar'
-          ? (item.description_ar || item.description_en || item.description || '—')
-          : (item.description_en || item.description_ar || item.description || '—');
+          ? (item.descriptionAr || item.description || '—')
+          : (item.descriptionEn || item.description || '—');
     }
     if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
       return lang === 'ar'
-          ? (item.content_ar || item.content || item.message_ar || item.message || item.description || '')
-          : (item.content || item.content_ar || item.message || item.description || '');
+          ? (item.contentAr || item.content || item.messageAr || item.message || item.description || '')
+          : (item.content || item.contentAr || item.message || item.messageAr || item.description || '');
     }
     return lang === 'ar'
-        ? (item.description_ar || item.description_en || '—')
-        : (item.description_en || item.description_ar || '—');
+        ? (item.descriptionAr || '—')
+        : (item.descriptionEn || '—');
   };
 
   const isHtmlContent = () => {

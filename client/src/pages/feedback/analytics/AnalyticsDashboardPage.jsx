@@ -357,7 +357,7 @@ const AnalyticsDashboardPage = memo(() => {
                   if (stat.onClick) {
                     e.currentTarget.style.transform = 'none';
                     e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.borderColor = 'transparent';
+                    e.currentTarget.style.borderColor = theme === 'dark' ? '#374151' : '#e5e7eb';
                   }
                 }}
                 onClick={() => stat.onClick && stat.onClick()}
@@ -678,7 +678,7 @@ const AnalyticsDashboardPage = memo(() => {
                   if (stat.onClick) {
                     e.currentTarget.style.transform = 'none';
                     e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.borderColor = 'transparent';
+                    e.currentTarget.style.borderColor = theme === 'dark' ? '#374151' : '#e5e7eb';
                   }
                 }}
                 onClick={() => stat.onClick && stat.onClick()}

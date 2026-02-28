@@ -70,8 +70,8 @@ export default function QuizManagementPage() {
 
     return {
       id: quiz.id,
-      title: lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || t('quiz_untitled')) : (quiz.title_en || quiz.title_ar || quiz.title || t('quiz_untitled')),
-      description: lang === 'ar' ? (quiz.description_ar || quiz.description_en || quiz.description || '') : (quiz.description_en || quiz.description_ar || quiz.description || ''),
+      title: lang === 'ar' ? (quiz.titleAr || quiz.titleEn || quiz.title || t('quiz_untitled')) : (quiz.titleEn || quiz.titleAr || quiz.title || t('quiz_untitled')),
+      description: lang === 'ar' ? (quiz.descriptionAr || quiz.descriptionEn || quiz.description || '') : (quiz.descriptionEn || quiz.descriptionAr || quiz.description || ''),
       type: quiz.type || 'multiple_choice',
       difficulty: (quiz.difficulty || settings.difficulty || 'general').toLowerCase(),
       estimatedTime: Number.isFinite(quiz.estimatedTime) ? quiz.estimatedTime : (settings.timeLimit || 0),
@@ -145,7 +145,7 @@ export default function QuizManagementPage() {
       const quizSubmissions = submissionsData;
 
       // Create readable item name
-      const itemName = lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || quiz.name || t('quiz_untitled')) : (quiz.title_en || quiz.title_ar || quiz.title || quiz.name || t('quiz_untitled'));
+      const itemName = lang === 'ar' ? (quiz.titleAr || quiz.titleEn || quiz.title || quiz.name || t('quiz_untitled')) : (quiz.titleEn || quiz.titleAr || quiz.title || quiz.name || t('quiz_untitled'));
 
       setDeleteModal({
         open: true,
@@ -196,7 +196,7 @@ export default function QuizManagementPage() {
       // Still show modal but without related data
       setDeleteModal({
         open: true,
-        item: { ...quiz, _displayName: lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || quiz.name || 'Untitled Quiz') : (quiz.title_en || quiz.title_ar || quiz.title || quiz.name || 'Untitled Quiz') },
+        item: { ...quiz, _displayName: lang === 'ar' ? (quiz.titleAr || quiz.titleEn || quiz.title || quiz.name || 'Untitled Quiz') : (quiz.titleEn || quiz.titleAr || quiz.title || quiz.name || 'Untitled Quiz') },
         onConfirm: async () => {
           setDeleting(quizId);
           try {
@@ -484,14 +484,14 @@ export default function QuizManagementPage() {
                         {renderMetaChips(quiz)}
                         <h3 className={styles.quizTitle}>
                           {lang === 'ar' 
-                            ? (quiz.title_ar || quiz.title_en || quiz.title || (t('untitled_quiz') || 'Untitled Quiz'))
-                            : (quiz.title_en || quiz.title_ar || quiz.title || (t('untitled_quiz') || 'Untitled Quiz'))}
+                            ? (quiz.titleAr || quiz.titleEn || quiz.title || (t('untitled_quiz') || 'Untitled Quiz'))
+                            : (quiz.titleEn || quiz.titleAr || quiz.title || (t('untitled_quiz') || 'Untitled Quiz'))}
                         </h3>
-                        {(quiz.description_en || quiz.description_ar || quiz.description) && (
+                        {(quiz.descriptionEn || quiz.descriptionAr || quiz.description) && (
                           <p className={styles.quizDescription}>
                             {lang === 'ar'
-                              ? (quiz.description_ar || quiz.description_en || quiz.description || '')
-                              : (quiz.description_en || quiz.description_ar || quiz.description || '')}
+                              ? (quiz.descriptionAr || quiz.descriptionEn || quiz.description || '')
+                              : (quiz.descriptionEn || quiz.descriptionAr || quiz.description || '')}
                           </p>
                         )}
 

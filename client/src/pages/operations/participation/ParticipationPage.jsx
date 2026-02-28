@@ -344,16 +344,16 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
       if (!subjectDisplay || subjectDisplay === 'N/A') {
         const subject = subjects.find(s => (s.docId || s.id) === row.subjectId);
         subjectDisplay = lang === 'ar'
-          ? (subject?.name_ar || subject?.name_en || subject?.name || subject?.code || 'N/A')
-          : (subject?.name_en || subject?.name_ar || subject?.name || subject?.code || 'N/A');
+          ? (subject?.nameAr || subject?.nameEn || subject?.name || subject?.code || 'N/A')
+          : (subject?.nameEn || subject?.nameAr || subject?.name || subject?.code || 'N/A');
       }
 
       let programDisplay = programFromRow;
       if (!programDisplay || programDisplay === 'N/A') {
         const program = programs.find(p => (p.docId || p.id) === row.programId);
         programDisplay = lang === 'ar'
-          ? (program?.name_ar || program?.name_en || program?.name || program?.code || 'N/A')
-          : (program?.name_en || program?.name_ar || program?.name || program?.code || 'N/A');
+          ? (program?.nameAr || program?.nameEn || program?.name || program?.code || 'N/A')
+          : (program?.nameEn || program?.nameAr || program?.name || program?.code || 'N/A');
       }
 
       return {

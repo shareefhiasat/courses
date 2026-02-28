@@ -135,7 +135,7 @@ GenericFilters.configurations = {
         { value: 'all', label: 'All Programs' },
         ...programs.map(p => ({
           value: p.docId || p.id,
-          label: p.name_en || p.name_ar || p.code || p.docId
+          label: p.nameEn || p.nameAr || p.code || p.docId
         }))
       ]
     },
@@ -147,7 +147,7 @@ GenericFilters.configurations = {
         { value: 'all', label: 'All Subjects' },
         ...subjects.map(s => ({
           value: s.docId || s.id,
-          label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`
+          label: `${s.code || ''} - ${s.nameEn || s.nameAr || s.docId}`
         }))
       ]
     },
@@ -199,7 +199,7 @@ GenericFilters.configurations = {
         { value: 'all', label: t('all_programs') || 'All Programs' },
         ...programs.map(p => ({
           value: p.docId || p.id,
-          label: p.name_en || p.name_ar || p.code || p.docId
+          label: p.nameEn || p.nameAr || p.code || p.docId
         }))
       ]
     },
@@ -211,7 +211,7 @@ GenericFilters.configurations = {
         { value: 'all', label: t('all_subjects') || 'All Subjects' },
         ...subjects.map(s => ({
           value: s.docId || s.id,
-          label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`
+          label: `${s.code || ''} - ${s.nameEn || s.nameAr || s.docId}`
         }))
       ]
     },

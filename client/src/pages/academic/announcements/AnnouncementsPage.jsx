@@ -307,10 +307,10 @@ const AnnouncementsPage = () => {
       minWidth: 200,
       valueGetter: (params) => {
         const row = params?.row || {};
-        return row.titleEn || row.title_en || row.title || params?.value || '';
+        return row.titleEn || row.title || params?.value || '';
       },
       renderCell: (params) => {
-        const title = params?.row?.titleEn || params?.row?.title_en || params?.row?.title || params?.value || '';
+        const title = params?.row?.titleEn || params?.row?.title || params?.value || '';
         return title || (t('no_title') || 'No title');
       }
     },
@@ -321,10 +321,10 @@ const AnnouncementsPage = () => {
       minWidth: 200,
       valueGetter: (params) => {
         const row = params?.row || {};
-        return row.titleAr || row.title_ar || params?.value || '';
+        return row.titleAr || params?.value || '';
       },
       renderCell: (params) => {
-        const title = params?.row?.titleAr || params?.row?.title_ar || params?.value || '';
+        const title = params?.row?.titleAr || params?.row?.title || params?.value || '';
         return title || (t('no_title') || 'No title');
       }
     },
@@ -371,7 +371,7 @@ const AnnouncementsPage = () => {
         if (!programId) return '—';
         const program = programs.find(p => (p.docId || p.id) === programId);
         if (!program) return programId;
-        const programName = lang === 'ar' ? (program.nameAr || program.name_en) : (program.nameEn || program.name_ar);
+        const programName = lang === 'ar' ? (program.nameAr || program.nameEn) : (program.nameEn || program.nameAr);
         return programName;
       }
     },
@@ -384,7 +384,7 @@ const AnnouncementsPage = () => {
         if (!subjectId) return '—';
         const subject = subjects.find(s => (s.docId || s.id) === subjectId);
         if (!subject) return subjectId;
-        const subjectName = lang === 'ar' ? (subject.nameAr || subject.name_en) : (subject.nameEn || subject.name_ar);
+        const subjectName = lang === 'ar' ? (subject.nameAr || subject.nameEn) : (subject.nameEn || subject.nameAr);
         return subjectName;
       }
     },
@@ -398,8 +398,8 @@ const AnnouncementsPage = () => {
         const classItem = classes.find(c => (c.docId || c.id) === classId);
         if (!classItem) return classId;
         const className = lang === 'ar' 
-          ? (classItem.nameAr || classItem.name_en || classItem.name) 
-          : (classItem.nameEn || classItem.name_ar || classItem.name);
+          ? (classItem.nameAr || classItem.nameEn || classItem.name) 
+          : (classItem.nameEn || classItem.nameAr || classItem.name);
         return `${className}${classItem.code ? ` (${classItem.code})` : ''}`;
       }
     },
@@ -493,9 +493,9 @@ const AnnouncementsPage = () => {
     
     // Text search filters
     if (announcementTitleEnFilter && (!announcement.title || !announcement.title.toLowerCase().includes(announcementTitleEnFilter.toLowerCase()))) return false;
-    if (announcementTitleArFilter && (!announcement.title_ar || !announcement.title_ar.includes(announcementTitleArFilter))) return false;
+    if (announcementTitleArFilter && (!announcement.titleAr || !announcement.titleAr.includes(announcementTitleArFilter))) return false;
     if (announcementContentEnFilter && (!announcement.content || !announcement.content.toLowerCase().includes(announcementContentEnFilter.toLowerCase()))) return false;
-    if (announcementContentArFilter && (!announcement.content_ar || !announcement.content_ar.includes(announcementContentArFilter))) return false;
+    if (announcementContentArFilter && (!announcement.contentAr || !announcement.contentAr.includes(announcementContentArFilter))) return false;
     
     return true;
   });
@@ -542,7 +542,7 @@ const AnnouncementsPage = () => {
             ref={titleRef}
             type="text"
             placeholder={(t('title_english') || 'Title (English)') + '*'}
-            defaultValue={announcementForm.title_en || announcementForm.title}
+            defaultValue={announcementForm.titleEn || announcementForm.title}
             className="dashboard-input"
             required
           />
@@ -550,7 +550,7 @@ const AnnouncementsPage = () => {
             ref={titleArRef}
             type="text"
             placeholder={t('title_arabic') || 'Title (Arabic)'}
-            defaultValue={announcementForm.title_ar}
+            defaultValue={announcementForm.titleAr}
             className="dashboard-input"
             style={{ direction: 'rtl' }}
           />

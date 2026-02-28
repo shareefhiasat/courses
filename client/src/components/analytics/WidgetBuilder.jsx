@@ -188,8 +188,8 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
             <Field label={t('title_en') || 'Title (English)'}>
               <input
                 type="text"
-                value={config.title_en || ''}
-                onChange={e => set({ title_en: e.target.value })}
+                value={config.titleEn || ''}
+                onChange={e => set({ titleEn: e.target.value })}
                 placeholder={t('widget_title_en_placeholder') || 'e.g., Attendance by Type'}
                 style={getInputStyle()}
                 dir="ltr"
@@ -198,8 +198,8 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
             <Field label={t('title_ar') || 'Title (Arabic)'}>
               <input
                 type="text"
-                value={config.title_ar || ''}
-                onChange={e => set({ title_ar: e.target.value })}
+                value={config.titleAr || ''}
+                onChange={e => set({ titleAr: e.target.value })}
                 placeholder={t('widget_title_ar_placeholder') || 'مثال: الحضور حسب النوع'}
                 style={getInputStyle()}
                 dir="rtl"

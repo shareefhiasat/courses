@@ -173,14 +173,14 @@ const ScheduleOverviewPage = () => {
     if (!subjectId) return t('unknown') || 'Unknown';
     const subject = subjects.find(s => (s.docId === subjectId || s.id === subjectId));
     if (!subject) return t('unknown') || 'Unknown';
-    return lang === 'ar' ? (subject.name_ar || subject.name_en) : subject.name_en;
+    return lang === 'ar' ? (subject.nameAr || subject.nameEn) : subject.nameEn;
   }, [subjects, lang, t]);
 
   const getProgramName = useCallback((programId) => {
     if (!programId) return t('unknown') || 'Unknown';
     const program = programs.find(p => (p.docId === programId || p.id === programId));
     if (!program) return t('unknown') || 'Unknown';
-    return lang === 'ar' ? (program.name_ar || program.name_en) : program.name_en;
+    return lang === 'ar' ? (program.nameAr || program.nameEn) : program.nameEn;
   }, [programs, lang, t]);
 
   const instructorOptions = useMemo(() => {
@@ -199,7 +199,7 @@ const ScheduleOverviewPage = () => {
       { value: 'all', label: t('schedules_all_programs') },
       ...programs.map(program => ({
         value: program.docId || program.id,
-        label: lang === 'ar' ? (program.name_ar || program.name_en) : program.name_en
+        label: lang === 'ar' ? (program.nameAr || program.nameEn) : program.nameEn
       }))
     ];
   }, [programs, lang, t]);
@@ -215,7 +215,7 @@ const ScheduleOverviewPage = () => {
       { value: 'all', label: t('schedules_all_subjects') },
       ...filteredSubjects.map(subject => ({
         value: subject.docId || subject.id,
-        label: lang === 'ar' ? (subject.name_ar || subject.name_en) : subject.name_en
+        label: lang === 'ar' ? (subject.nameAr || subject.nameEn) : subject.nameEn
       }))
     ];
   }, [subjects, programFilter, lang, t]);

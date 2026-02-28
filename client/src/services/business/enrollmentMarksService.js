@@ -232,7 +232,7 @@ export const getGradeDescription = (grade, lang = "en") => {
   const scale = [...DEFAULT_GRADING_SCALE, ...RETAKE_GRADING_SCALE];
   const rule = scale.find((r) => r.grade === grade);
   if (rule) {
-    return lang === "ar" ? rule.description_ar : rule.description_en;
+    return lang === "ar" ? rule.descriptionAr : rule.descriptionEn;
   }
   return grade;
 };

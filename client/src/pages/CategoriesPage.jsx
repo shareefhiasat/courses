@@ -179,8 +179,8 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     const withIcons = categories.filter(cat => cat.icon).length;
     const withColors = categories.filter(cat => cat.color && cat.color !== '#3b82f6').length;
     const withDescriptions = categories.filter(cat => 
-      (cat.description_en && cat.description_en.trim()) || 
-      (cat.description_ar && cat.description_ar.trim())
+      (cat.descriptionEn && cat.descriptionEn.trim()) || 
+      (cat.descriptionAr && cat.descriptionAr.trim())
     ).length;
     
     return { total, withIcons, withColors, withDescriptions };
@@ -382,10 +382,18 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         const row = params?.row || {};
         const icon = row.icon || 'folder';
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '4px 8px',
+            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+            borderRadius: '4px',
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb'
+          }}>
             {getThemedIcon('ui', icon, 16, theme)}
             {icon}
-          </span>
+          </div>
         );
       }
     },
@@ -531,7 +539,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_category') || 'Editing Category'}: {editingCategory.name_en || editingCategory.name_ar || editingCategory.docId}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_category') || 'Editing Category'}: {editingCategory.nameEn || editingCategory.nameAr || editingCategory.docId}
         </div>
       )}
 
@@ -540,7 +548,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
             <input
               ref={nameEnRef}
               type="text"
-              defaultValue={formData.name_en}
+              defaultValue={formData.nameEn}
               placeholder={t('enter_name_english') || 'Enter name in English'}
               className="dashboard-input"
               required
@@ -548,7 +556,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
             <input
               ref={nameArRef}
               type="text"
-              defaultValue={formData.name_ar}
+              defaultValue={formData.nameAr}
               placeholder={t('enter_name_arabic') || 'Enter name in Arabic'}
               className="dashboard-input"
               style={{ direction: 'rtl' }}
@@ -608,14 +616,14 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
           <div className="form-row">
             <textarea
               ref={descEnRef}
-              defaultValue={formData.description_en}
+              defaultValue={formData.descriptionEn}
               placeholder={t('enter_description_english') || 'Enter description in English'}
               className="dashboard-textarea"
               rows={3}
             />
             <textarea
               ref={descArRef}
-              defaultValue={formData.description_ar}
+              defaultValue={formData.descriptionAr}
               placeholder={t('enter_description_arabic') || 'Enter description in Arabic'}
               className="dashboard-textarea"
               rows={3}

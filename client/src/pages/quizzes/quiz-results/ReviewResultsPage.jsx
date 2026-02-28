@@ -223,14 +223,14 @@ const ReviewResultsPage = () => {
         return {
           ...sub,
           id: sub.docId || sub.id,
-          activityTitle: activity ? (lang === 'ar' ? (activity.title_ar || activity.title_en) : (activity.title_en || activity.title_ar)) : 'N/A',
+          activityTitle: activity ? (lang === 'ar' ? (activity.titleAr || activity.titleEn) : (activity.titleEn || activity.titleAr)) : 'N/A',
           activityType: activity?.type || 'unknown',
           difficulty: activity?.difficulty || activity?.level || 'beginner',
           studentName: student?.displayName || student?.email || 'N/A',
           studentEmail: student?.email || null,
           className: classData ? (classData.name || classData.code) : 'N/A',
-          subjectName: subject ? (lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar)) : 'N/A',
-          programName: program ? (lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar)) : 'N/A',
+          subjectName: subject ? (lang === 'ar' ? (subject.nameAr || subject.nameEn) : (subject.nameEn || subject.nameAr)) : 'N/A',
+          programName: program ? (lang === 'ar' ? (program.nameAr || program.nameEn) : (program.nameEn || program.nameAr)) : 'N/A',
           classId: sub.classId || activity?.classId,
           subjectId: classData?.subjectId,
           programId: subject?.programId,
@@ -316,7 +316,7 @@ const ReviewResultsPage = () => {
       if (searchTerm.trim()) {
         const q = searchTerm.trim().toLowerCase();
         filtered = filtered.filter(a => {
-          const title = lang === 'ar' ? (a.title_ar || a.title_en || a.title || '') : (a.title_en || a.title_ar || a.title || '');
+          const title = lang === 'ar' ? (a.titleAr || a.titleEn || a.title || '') : (a.titleEn || a.titleAr || a.title || '');
           return title.toLowerCase().includes(q);
         });
       }
@@ -359,7 +359,7 @@ const ReviewResultsPage = () => {
       // Convert activities to submission-like objects for display
       return filtered.map(activity => ({
         id: activity.docId || activity.id,
-        activityTitle: lang === 'ar' ? (activity.title_ar || activity.title_en) : (activity.title_en || activity.title_ar),
+        activityTitle: lang === 'ar' ? (activity.titleAr || activity.titleEn) : (activity.titleEn || activity.titleAr),
         activityType: activity.type,
         activity: activity,
         studentName: 'No submissions yet',
@@ -525,7 +525,7 @@ const ReviewResultsPage = () => {
     if (searchTerm.trim()) {
       const q = searchTerm.trim().toLowerCase();
       filtered = filtered.filter(a => {
-        const title = lang === 'ar' ? (a.title_ar || a.title_en || a.title || '') : (a.title_en || a.title_ar || a.title || '');
+        const title = lang === 'ar' ? (a.titleAr || a.titleEn || a.title || '') : (a.titleEn || a.titleAr || a.title || '');
         return title.toLowerCase().includes(q);
       });
     }

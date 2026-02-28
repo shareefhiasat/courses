@@ -79,6 +79,15 @@ const HomePage = memo(() => {
   });
 
   // Help tour state
+
+  // Helper function to get localized category name
+  const getCategoryLabel = (category) => {
+    const name = lang === 'ar' 
+      ? (category.nameAr || category.nameEn || category.name || 'Unnamed Category')
+      : (category.nameEn || category.nameAr || category.name || 'Unnamed Category');
+    return name;
+  };
+
   const [runTour, setRunTour] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [announcementFullPage, setAnnouncementFullPage] = useState(false);
@@ -253,7 +262,7 @@ const HomePage = memo(() => {
         logger.debug('[HomePage] All activities data:', activitiesResult.data.map(a => ({
           id: a.docId,
           type: a.type,
-          title: a.title_en || a.title,
+          title: a.titleEn || a.title,
           featured: a.featured,
           allowRetake: a.allowRetake,
           settingsAllowRetake: a.settings?.allowRetake,
@@ -352,7 +361,7 @@ const HomePage = memo(() => {
           ...sub,
           id: sub.docId || sub.id,
           activityTitle: activity
-            ? (lang === 'ar' ? (activity.title_ar || activity.title_en) : (activity.title_en || activity.title_ar))
+            ? (lang === 'ar' ? (activity.titleAr || activity.titleEn) : (activity.titleEn || activity.titleAr))
             : 'N/A',
           activityType: activity?.type || 'unknown',
           difficulty: activity?.difficulty || activity?.level || 'beginner',
@@ -360,10 +369,10 @@ const HomePage = memo(() => {
           studentEmail: student?.email || null,
           className: classData ? (classData.name || classData.code) : 'N/A',
           subjectName: subject
-            ? (lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar))
+            ? (lang === 'ar' ? (subject.nameAr || subject.nameEn) : (subject.nameEn || subject.nameAr))
             : 'N/A',
           programName: program
-            ? (lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar))
+            ? (lang === 'ar' ? (program.nameAr || program.nameEn) : (program.nameEn || program.nameAr))
             : 'N/A',
           classId: sub.classId || activity?.classId,
           subjectId: classData?.subjectId,
@@ -480,7 +489,7 @@ const HomePage = memo(() => {
         enrolledClasses,
         canAccessSample: resources.slice(0, 3).map(r => ({
           id: r.docId || r.id,
-          title: r.title_en || r.title,
+          title: r.titleEn || r.title,
           classId: r.classId,
           category: r.category,
           categoryCheck: (r.category || '') === category,
@@ -576,7 +585,7 @@ const HomePage = memo(() => {
       initialFilteredLength: filtered.length,
       itemsSample: items.slice(0, 3).map(item => ({
         id: item.docId || item.id,
-        title: item.title_en || item.title,
+        title: item.titleEn || item.title,
         type: item.type,
         classId: item.classId
       }))
@@ -589,31 +598,31 @@ const HomePage = memo(() => {
       filtered = filtered.filter(item => {
         // Handle quizzes in activities mode
         if (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) {
-          const titleEn = (item.title_en || item.title || '').toLowerCase();
-          const titleAr = (item.title_ar || '').toLowerCase();
-          const descEn = (item.description_en || item.description || '').toLowerCase();
-          const descAr = (item.description_ar || '').toLowerCase();
+          const titleEn = (item.titleEn || item.title || '').toLowerCase();
+          const titleAr = (item.titleAr || '').toLowerCase();
+          const descEn = (item.descriptionEn || item.description || '').toLowerCase();
+          const descAr = (item.descriptionAr || '').toLowerCase();
           return titleEn.includes(q) || titleAr.includes(q) || descEn.includes(q) || descAr.includes(q);
         }
         if (mode === MODE_TYPES.RESOURCES) {
-          const titleEn = (item.title_en || item.title || '').toLowerCase();
-          const titleAr = (item.title_ar || '').toLowerCase();
-          const descEn = (item.description_en || item.description || '').toLowerCase();
-          const descAr = (item.description_ar || '').toLowerCase();
+          const titleEn = (item.titleEn || item.title || '').toLowerCase();
+          const titleAr = (item.titleAr || '').toLowerCase();
+          const descEn = (item.descriptionEn || item.description || '').toLowerCase();
+          const descAr = (item.descriptionAr || '').toLowerCase();
           return titleEn.includes(q) || titleAr.includes(q) || descEn.includes(q) || descAr.includes(q);
         }
         if (mode === MODE_TYPES.ANNOUNCEMENTS) {
-          const titleEn = (item.title_en || item.title || '').toLowerCase();
-          const titleAr = (item.title_ar || '').toLowerCase();
-          const descEn = (item.message_en || item.message || item.description_en || item.description || '').toLowerCase();
-          const descAr = (item.message_ar || item.message || item.description_ar || item.description || '').toLowerCase();
+          const titleEn = (item.titleEn || item.title || '').toLowerCase();
+          const titleAr = (item.titleAr || '').toLowerCase();
+          const descEn = (item.messageEn || item.message || item.descriptionEn || item.description || '').toLowerCase();
+          const descAr = (item.messageAr || item.message || item.descriptionAr || item.description || '').toLowerCase();
           return titleEn.includes(q) || titleAr.includes(q) || descEn.includes(q) || descAr.includes(q);
         }
         // Activities
-        const titleEn = (item.title_en || '').toLowerCase();
-        const titleAr = (item.title_ar || '').toLowerCase();
-        const descEn = (item.description_en || '').toLowerCase();
-        const descAr = (item.description_ar || '').toLowerCase();
+        const titleEn = (item.titleEn || '').toLowerCase();
+        const titleAr = (item.titleAr || '').toLowerCase();
+        const descEn = (item.descriptionEn || '').toLowerCase();
+        const descAr = (item.descriptionAr || '').toLowerCase();
         return titleEn.includes(q) || titleAr.includes(q) || descEn.includes(q) || descAr.includes(q);
       });
       console.log('[HomePage] AFTER SEARCH FILTER:', { beforeSearch, afterSearch: filtered.length });
@@ -764,7 +773,7 @@ const HomePage = memo(() => {
       finalLength: filtered.length,
       finalItemsSample: filtered.slice(0, 3).map(item => ({
         id: item.docId || item.id,
-        title: item.title_en || item.title,
+        title: item.titleEn || item.title,
         type: item.type,
         classId: item.classId
       }))
@@ -937,7 +946,7 @@ const HomePage = memo(() => {
       filteredResources: resourcesCount,
       resourcesSample: resources.slice(0, 3).map(r => ({
         id: r.docId || r.id,
-        title: r.title_en || r.title,
+        title: r.titleEn || r.title,
         classId: r.classId,
         canAccess: canUserAccessItem(r)
       }))
@@ -1353,7 +1362,7 @@ const HomePage = memo(() => {
                   const categoryActivities = filteredItems.filter(a => (a.course || 'general') === (c.docId || c.id));
                   return {
                     value: c.docId || c.id,
-                    label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId || c.id) : (c.name_en || c.name_ar || c.docId || c.id),
+                    label: getCategoryLabel(c),
                     icon: category === (c.docId || c.id) ? getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, '#ffffff') : getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, primaryColor),
                     badge: categoryActivities.length
                   };
@@ -1382,7 +1391,7 @@ const HomePage = memo(() => {
                   const categoryResources = filteredItems.filter(r => (r.course || 'general') === (c.docId || c.id));
                   return {
                     value: c.docId || c.id,
-                    label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId || c.id) : (c.name_en || c.name_ar || c.docId || c.id),
+                    label: getCategoryLabel(c),
                     icon: category === (c.docId || c.id) ? getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, '#ffffff') : getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, primaryColor),
                     badge: categoryResources.length
                   };
@@ -1706,7 +1715,7 @@ const HomePage = memo(() => {
                     // Debug logs for quiz card data
                     logger.debug('[HomePage] Quiz card data:', {
                       itemId,
-                      itemTitle: item.title_en || item.title,
+                      itemTitle: item.titleEn || item.title,
                       featured: item.featured,
                       dueDate: item.dueDate,
                       allowRetake: item.allowRetake,
@@ -1755,7 +1764,7 @@ const HomePage = memo(() => {
                           if (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) {
                             logger.debug('[HomePage] Starting quiz:', {
                               itemId,
-                              itemTitle: item.title_en || item.title,
+                              itemTitle: item.titleEn || item.title,
                               featured: item.featured,
                               dueDate: item.dueDate,
                               flavor: mode === MODE_TYPES.ACTIVITIES ? RECORD_TYPES.ACTIVITY : (mode === MODE_TYPES.RESOURCES ? RECORD_TYPES.RESOURCE : (mode === MODE_TYPES.ANNOUNCEMENTS ? RECORD_TYPES.ANNOUNCEMENT : mode))
@@ -1823,21 +1832,21 @@ const HomePage = memo(() => {
         logger.debug('[HomePage] Announcement modal data:', {
           id: selectedAnnouncement.id,
           title: selectedAnnouncement.title,
-          title_en: selectedAnnouncement.title_en,
-          title_ar: selectedAnnouncement.title_ar,
+          titleEn: selectedAnnouncement.titleEn,
+          titleAr: selectedAnnouncement.titleAr,
           content: selectedAnnouncement.content,
-          content_ar: selectedAnnouncement.content_ar,
+          contentAr: selectedAnnouncement.contentAr,
           message: selectedAnnouncement.message,
-          message_ar: selectedAnnouncement.message_ar,
+          messageAr: selectedAnnouncement.messageAr,
           description: selectedAnnouncement.description
         });
         
         const annTitle = lang === 'ar'
-          ? (selectedAnnouncement.title_ar || selectedAnnouncement.title_en || selectedAnnouncement.title || 'No Title')
-          : (selectedAnnouncement.title_en || selectedAnnouncement.title_ar || selectedAnnouncement.title || 'No Title');
+          ? (selectedAnnouncement.titleAr || selectedAnnouncement.titleEn || selectedAnnouncement.title || 'No Title')
+          : (selectedAnnouncement.titleEn || selectedAnnouncement.titleAr || selectedAnnouncement.title || 'No Title');
         const annContent = lang === 'ar'
-          ? (selectedAnnouncement.content_ar || selectedAnnouncement.content || selectedAnnouncement.message_ar || selectedAnnouncement.message || selectedAnnouncement.description || '')
-          : (selectedAnnouncement.content || selectedAnnouncement.content_ar || selectedAnnouncement.message || selectedAnnouncement.description || '');
+          ? (selectedAnnouncement.contentAr || selectedAnnouncement.content || selectedAnnouncement.messageAr || selectedAnnouncement.message || selectedAnnouncement.description || '')
+          : (selectedAnnouncement.content || selectedAnnouncement.contentAr || selectedAnnouncement.message || selectedAnnouncement.description || '');
         
         // Better HTML detection
         const isHtml = annContent && (

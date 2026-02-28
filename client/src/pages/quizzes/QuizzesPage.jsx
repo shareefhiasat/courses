@@ -181,10 +181,10 @@ export default function QuizzesPage() {
     return {
       ...defaultQuizTemplate,
       ...data,
-      title_en: data.title_en || data.title || '',
-      title_ar: data.title_ar || data.title || '',
-      description_en: data.description_en || data.description || '',
-      description_ar: data.description_ar || data.description || '',
+      titleEn: data.titleEn || data.title || '',
+      titleAr: data.titleAr || data.title || '',
+      descriptionEn: data.descriptionEn || data.description || '',
+      descriptionAr: data.descriptionAr || data.description || '',
       type: data.type || defaultQuizTemplate.type,
       difficulty: data.difficulty || defaultQuizTemplate.difficulty,
       estimatedTime: Number.isFinite(data.estimatedTime) ? data.estimatedTime : defaultQuizTemplate.estimatedTime,
@@ -266,8 +266,8 @@ export default function QuizzesPage() {
 
     return {
       id: quiz.id,
-      title: lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || t('quiz_untitled')) : (quiz.title_en || quiz.title_ar || quiz.title || t('quiz_untitled')),
-      description: lang === 'ar' ? (quiz.description_ar || quiz.description_en || quiz.description || '') : (quiz.description_en || quiz.description_ar || quiz.description || ''),
+      title: lang === 'ar' ? (quiz.titleAr || quiz.titleEn || quiz.title || t('quiz_untitled')) : (quiz.titleEn || quiz.titleAr || quiz.title || t('quiz_untitled')),
+      description: lang === 'ar' ? (quiz.descriptionAr || quiz.descriptionEn || quiz.description || '') : (quiz.descriptionEn || quiz.descriptionAr || quiz.description || ''),
       type: quiz.type || 'multiple_choice',
       difficulty: (quiz.difficulty || settings.difficulty || 'general').toLowerCase(),
       estimatedTime: Number.isFinite(quiz.estimatedTime) ? quiz.estimatedTime : (settings.timeLimit || 0),
@@ -345,8 +345,8 @@ export default function QuizzesPage() {
   }, [normalizeQuizData]);
 
   const saveQuiz = async () => {
-    const titleEn = (quizData.title_en || quizData.title || '').trim();
-    const titleAr = (quizData.title_ar || quizData.title || '').trim();
+    const titleEn = (quizData.titleEn || quizData.title || '').trim();
+    const titleAr = (quizData.titleAr || quizData.title || '').trim();
     if (!titleEn || !titleAr) {
       toast?.showError?.(t('quiz_title_required_both'));
       return;
@@ -421,10 +421,10 @@ export default function QuizzesPage() {
       // Sync to Activities collection
       if (targetQuizId) {
         const activityData = {
-          title_en: quizData.title_en || quizData.title || '',
-          title_ar: quizData.title_ar || quizData.title || '',
-          description_en: quizData.description_en || quizData.description || '',
-          description_ar: quizData.description_ar || quizData.description || '',
+          titleEn: quizData.titleEn || quizData.title || '',
+          titleAr: quizData.titleAr || quizData.title || '',
+          descriptionEn: quizData.descriptionEn || quizData.description || '',
+          descriptionAr: quizData.descriptionAr || quizData.description || '',
           type: 'quiz',
           level: quizData.difficulty,
           internalQuizId: targetQuizId,
@@ -470,12 +470,12 @@ export default function QuizzesPage() {
                   await sendQuizAvailable(
                     { 
                       id: targetQuizId, 
-                      title: quizData.title_en || quizData.title || '',
-                      title_en: quizData.title_en || quizData.title || '',
-                      title_ar: quizData.title_ar || quizData.title || '',
-                      description: quizData.description_en || quizData.description || '',
-                      description_en: quizData.description_en || quizData.description || '',
-                      description_ar: quizData.description_ar || quizData.description || '',
+                      title: quizData.titleEn || quizData.title || '',
+                      titleEn: quizData.titleEn || quizData.title || '',
+                      titleAr: quizData.titleAr || quizData.title || '',
+                      description: quizData.descriptionEn || quizData.description || '',
+                      descriptionEn: quizData.descriptionEn || quizData.description || '',
+                      descriptionAr: quizData.descriptionAr || quizData.description || '',
                       settings: quizData.settings 
                     },
                     studentsToNotify
@@ -516,7 +516,7 @@ export default function QuizzesPage() {
       const submissionsData = submissionsResult.success ? submissionsResult.data : [];
       const quizSubmissions = submissionsData;
 
-      const itemName = lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || quiz.name || t('quiz_untitled')) : (quiz.title_en || quiz.title_ar || quiz.title || quiz.name || t('quiz_untitled'));
+      const itemName = lang === 'ar' ? (quiz.titleAr || quiz.titleEn || quiz.title || quiz.name || t('quiz_untitled')) : (quiz.titleEn || quiz.titleAr || quiz.title || quiz.name || t('quiz_untitled'));
 
       setDeleteModal({
         open: true,
@@ -562,7 +562,7 @@ export default function QuizzesPage() {
       console.error('Failed to check related data:', error);
       setDeleteModal({
         open: true,
-        item: { ...quiz, _displayName: lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || quiz.name || t('quiz_untitled')) : (quiz.title_en || quiz.title_ar || quiz.title || quiz.name || t('quiz_untitled')) },
+        item: { ...quiz, _displayName: lang === 'ar' ? (quiz.titleAr || quiz.titleEn || quiz.title || quiz.name || t('quiz_untitled')) : (quiz.titleEn || quiz.titleAr || quiz.title || quiz.name || t('quiz_untitled')) },
         onConfirm: async () => {
           setDeleting(quizIdToDelete);
           try {
@@ -1166,14 +1166,14 @@ export default function QuizzesPage() {
                           {renderMetaChips(quiz)}
                           <h3 className={QuizManagementPageStyles.quizTitle}>
                             {lang === 'ar' 
-                              ? (quiz.title_ar || quiz.title_en || quiz.title || 'Untitled Quiz')
-                              : (quiz.title_en || quiz.title_ar || quiz.title || 'Untitled Quiz')}
+                              ? (quiz.titleAr || quiz.titleEn || quiz.title || 'Untitled Quiz')
+                              : (quiz.titleEn || quiz.titleAr || quiz.title || 'Untitled Quiz')}
                           </h3>
-                          {(quiz.description_en || quiz.description_ar || quiz.description) && (
+                          {(quiz.descriptionEn || quiz.descriptionAr || quiz.description) && (
                             <p className={QuizManagementPageStyles.quizDescription}>
                               {lang === 'ar'
-                                ? (quiz.description_ar || quiz.description_en || quiz.description || '')
-                                : (quiz.description_en || quiz.description_ar || quiz.description || '')}
+                                ? (quiz.descriptionAr || quiz.descriptionEn || quiz.description || '')
+                                : (quiz.descriptionEn || quiz.descriptionAr || quiz.description || '')}
                             </p>
                           )}
 
@@ -1338,14 +1338,14 @@ export default function QuizzesPage() {
                     <Input
                       placeholder={quizLang === 'en' ? 'Quiz Title (English)' : 'عنوان الاختبار (عربي)'}
                       value={quizLang === 'en'
-                        ? (quizData.title_en || quizData.title || '')
-                        : (quizData.title_ar || quizData.title || '')}
+                        ? (quizData.titleEn || quizData.title || '')
+                        : (quizData.titleAr || quizData.title || '')}
                       onChange={(e) => {
                         const value = e.target.value;
                         setQuizData(prev => ({
                           ...prev,
-                          title: quizLang === 'en' ? value : (prev.title_en || prev.title || ''),
-                          [quizLang === 'en' ? 'title_en' : 'title_ar']: value
+                          title: quizLang === 'en' ? value : (prev.titleEn || prev.title || ''),
+                          [quizLang === 'en' ? 'titleEn' : 'titleAr']: value
                         }));
                       }}
                       className={QuizBuilderPageStyles.titleInput}
@@ -1355,14 +1355,14 @@ export default function QuizzesPage() {
                     <Input
                       placeholder={quizLang === 'en' ? 'Quiz Description (optional)' : 'وصف الاختبار (اختياري)'}
                       value={quizLang === 'en'
-                        ? (quizData.description_en || quizData.description || '')
-                        : (quizData.description_ar || quizData.description || '')}
+                        ? (quizData.descriptionEn || quizData.description || '')
+                        : (quizData.descriptionAr || quizData.description || '')}
                       onChange={(e) => {
                         const value = e.target.value;
                         setQuizData(prev => ({
                           ...prev,
-                          description: quizLang === 'en' ? value : (prev.description_en || prev.description || ''),
-                          [quizLang === 'en' ? 'description_en' : 'description_ar']: value
+                          description: quizLang === 'en' ? value : (prev.descriptionEn || prev.description || ''),
+                          [quizLang === 'en' ? 'descriptionEn' : 'descriptionAr']: value
                         }));
                       }}
                       className={QuizBuilderPageStyles.descriptionInput}
@@ -1384,7 +1384,7 @@ export default function QuizzesPage() {
                     setQuizData(prev => ({ ...prev, type: selectedType }));
                     setStep('build');
                   }}
-                  disabled={!((quizData.title_en || quizData.title || '').trim() && (quizData.title_ar || quizData.title || '').trim())}
+                  disabled={!((quizData.titleEn || quizData.title || '').trim() && (quizData.titleAr || quizData.title || '').trim())}
                 >
                   Continue to Questions
                 </Button>
@@ -1408,7 +1408,7 @@ export default function QuizzesPage() {
                 </Badge>
                 <div className={QuizBuilderPageStyles.headerSummary}>
                   <h1 className={QuizBuilderPageStyles.quizTitle}>
-                    {lang === 'ar' ? (quizData.title_ar || quizData.title_en || quizData.title) : (quizData.title_en || quizData.title_ar || quizData.title)}
+                    {lang === 'ar' ? (quizData.titleAr || quizData.titleEn || quizData.title) : (quizData.titleEn || quizData.titleAr || quizData.title)}
                   </h1>
                   {renderMetaChipsForBuilder()}
                   {viewMode === 'edit' && quizId && lastSavedRef.current && (
@@ -1781,7 +1781,7 @@ export default function QuizzesPage() {
                 </Button>
                 <div className={QuizBuilderPageStyles.headerSummary}>
                   <h1 className={QuizBuilderPageStyles.quizTitle}>
-                    {lang === 'ar' ? (quizData.title_ar || quizData.title_en || quizData.title) : (quizData.title_en || quizData.title_ar || quizData.title)}
+                    {lang === 'ar' ? (quizData.titleAr || quizData.titleEn || quizData.title) : (quizData.titleEn || quizData.titleAr || quizData.title)}
                   </h1>
                   {renderMetaChipsForBuilder()}
                   {viewMode === 'edit' && quizId && lastSavedRef.current && (

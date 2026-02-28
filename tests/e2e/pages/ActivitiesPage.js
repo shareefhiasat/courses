@@ -76,8 +76,8 @@ export class ActivitiesPage {
     if (activityData.url) await this.urlInput.fill(activityData.url);
     
     // Fill descriptions
-    if (activityData.description_en) await this.descriptionEnTextarea.fill(activityData.description_en);
-    if (activityData.description_ar) await this.descriptionArTextarea.fill(activityData.description_ar);
+    if (activityData.descriptionEn) await this.descriptionEnTextarea.fill(activityData.descriptionEn);
+    if (activityData.descriptionAr) await this.descriptionArTextarea.fill(activityData.descriptionAr);
     
     // Submit
     await this.submitButton.click();

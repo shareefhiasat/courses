@@ -550,7 +550,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 { value: 'all', label: 'All Programs' },
                 ...(programs || []).map(p => ({
                   value: p.docId || p.id,
-                  label: p.name_en || p.name || p.code || p.docId
+                  label: p.nameEn || p.name || p.code || p.docId
                 }))
               ]}
               size="small"
@@ -570,7 +570,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                   .filter(s => filterProgram === 'all' || s.programId === filterProgram)
                   .map(s => ({
                     value: s.docId || s.id,
-                    label: `${s.code || ''} - ${s.name_en || s.name || s.docId}`.trim()
+                    label: `${s.code || ''} - ${s.nameEn || s.name || s.docId}`.trim()
                   }))
               ]}
               size="small"

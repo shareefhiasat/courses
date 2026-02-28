@@ -292,8 +292,8 @@ export default function QuizBuilderPage() {
   };
 
   const saveQuiz = async () => {
-    const titleEn = (quizData.title_en || quizData.title || '').trim();
-    const titleAr = (quizData.title_ar || quizData.title || '').trim();
+    const titleEn = (quizData.titleEn || quizData.title || '').trim();
+    const titleAr = (quizData.titleAr || quizData.title || '').trim();
     if (!titleEn || !titleAr) {
       toast?.showError?.(t('quiz_title_required_both'));
       return;
@@ -330,10 +330,10 @@ export default function QuizBuilderPage() {
       // Sync to Activities collection
       if (targetQuizId) {
         const activityData = {
-          title_en: quizData.title_en || quizData.title || '',
-          title_ar: quizData.title_ar || quizData.title || '',
-          description_en: quizData.description_en || quizData.description || '',
-          description_ar: quizData.description_ar || quizData.description || '',
+          titleEn: quizData.titleEn || quizData.title || '',
+          titleAr: quizData.titleAr || quizData.title || '',
+          descriptionEn: quizData.descriptionEn || quizData.description || '',
+          descriptionAr: quizData.descriptionAr || quizData.description || '',
           type: 'quiz',
           level: quizData.difficulty,
           internalQuizId: targetQuizId,
@@ -599,7 +599,7 @@ export default function QuizBuilderPage() {
                   ← Back to Edit
                 </Button>
                 <div className={styles.headerSummary}>
-                  <h1 className={styles.quizTitle}>{lang === 'ar' ? (quizData.title_ar || quizData.title) : (quizData.title_en || quizData.title)}</h1>
+                  <h1 className={styles.quizTitle}>{lang === 'ar' ? (quizData.titleAr || quizData.title) : (quizData.titleEn || quizData.title)}</h1>
                   {renderMetaChips()}
                 </div>
                 <div className={styles.previewActions}>
@@ -723,13 +723,13 @@ export default function QuizBuilderPage() {
                   <div className={styles.formField}>
                     <Input
                       placeholder={quizLang === 'en' ? "Quiz Title (English)" : "عنوان الاختبار (عربي)"}
-                      value={quizLang === 'en' ? (quizData.title_en || quizData.title || '') : (quizData.title_ar || quizData.title || '')}
+                      value={quizLang === 'en' ? (quizData.titleEn || quizData.title || '') : (quizData.titleAr || quizData.title || '')}
                       onChange={(e) => {
                         const value = e.target.value;
                         setQuizData(prev => ({
                           ...prev,
-                          title: quizLang === 'en' ? value : (prev.title_en || prev.title || ''),
-                          [quizLang === 'en' ? 'title_en' : 'title_ar']: value
+                          title: quizLang === 'en' ? value : (prev.titleEn || prev.title || ''),
+                          [quizLang === 'en' ? 'titleEn' : 'titleAr']: value
                         }));
                       }}
                       className={styles.titleInput}
@@ -738,13 +738,13 @@ export default function QuizBuilderPage() {
                   <div className={styles.formField}>
                     <Input
                       placeholder={quizLang === 'en' ? "Quiz Description (optional)" : "وصف الاختبار (اختياري)"}
-                      value={quizLang === 'en' ? (quizData.description_en || quizData.description || '') : (quizData.description_ar || quizData.description || '')}
+                      value={quizLang === 'en' ? (quizData.descriptionEn || quizData.description || '') : (quizData.descriptionAr || quizData.description || '')}
                       onChange={(e) => {
                         const value = e.target.value;
                         setQuizData(prev => ({
                           ...prev,
-                          description: quizLang === 'en' ? value : (prev.description_en || prev.description || ''),
-                          [quizLang === 'en' ? 'description_en' : 'description_ar']: value
+                          description: quizLang === 'en' ? value : (prev.descriptionEn || prev.description || ''),
+                          [quizLang === 'en' ? 'descriptionEn' : 'descriptionAr']: value
                         }));
                       }}
                       className={styles.descriptionInput}
@@ -767,7 +767,7 @@ export default function QuizBuilderPage() {
                     setQuizData(prev => ({ ...prev, type: selectedType }));
                     setStep('build');
                   }}
-                  disabled={!((quizData.title_en || quizData.title || '').trim() && (quizData.title_ar || quizData.title || '').trim())}
+                  disabled={!((quizData.titleEn || quizData.title || '').trim() && (quizData.titleAr || quizData.title || '').trim())}
                 >
                   Continue to Questions
                 </Button>
@@ -792,7 +792,7 @@ export default function QuizBuilderPage() {
               ← Back
             </Button>
             <div className={styles.headerSummary}>
-              <h1 className={styles.quizTitle}>{lang === 'ar' ? (quizData.title_ar || quizData.title) : (quizData.title_en || quizData.title)}</h1>
+              <h1 className={styles.quizTitle}>{lang === 'ar' ? (quizData.titleAr || quizData.title) : (quizData.titleEn || quizData.title)}</h1>
               {renderMetaChips()}
             </div>
           </div>
@@ -1200,7 +1200,7 @@ export default function QuizBuilderPage() {
                   ← Back to Edit
                 </Button>
                 <div>
-                  <h1 className={styles.quizTitle}>{lang === 'ar' ? (quizData.title_ar || quizData.title) : (quizData.title_en || quizData.title)}</h1>
+                  <h1 className={styles.quizTitle}>{lang === 'ar' ? (quizData.titleAr || quizData.title) : (quizData.titleEn || quizData.title)}</h1>
                   <p className={styles.quizMeta}>
                     {quizData.questions.length} questions • {quizData.estimatedTime} min • {quizData.difficulty}
                   </p>

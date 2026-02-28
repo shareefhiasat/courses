@@ -12,16 +12,7 @@ import {
  */
 export const getCategories = async () => {
   try {
-    logger.info('CATEGORY: Fetching all categories');
-    
     const result = await getCategoriesFromDb();
-    
-    if (result.success) {
-      logger.info('CATEGORY: Successfully fetched categories', { count: result.data.length });
-    } else {
-      logger.warn('CATEGORY: Failed to fetch categories', { error: result.error });
-    }
-    
     return result;
   } catch (error) {
     logger.error('CATEGORY: Failed to fetch categories', { error: error.message });
@@ -171,16 +162,7 @@ export const deleteCategory = async (docId) => {
  */
 export const getCategoryById = async (docId) => {
   try {
-    logger.info('CATEGORY: Fetching category by ID', { docId });
-    
     const result = await getCategoryByIdFromDb(docId);
-    
-    if (result.success) {
-      logger.info('CATEGORY: Successfully fetched category by ID', { docId });
-    } else {
-      logger.warn('CATEGORY: Failed to fetch category by ID', { docId, error: result.error });
-    }
-    
     return result;
   } catch (error) {
     logger.error('CATEGORY: Error fetching category by ID', { docId, error: error.message });

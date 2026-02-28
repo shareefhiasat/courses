@@ -38,7 +38,7 @@ const HierarchyFilters = ({
     { value: 'all', label: t('all_programs') || 'All Programs' },
     ...programs.map(p => ({
       value: p.docId || p.id,
-      label: lang === 'ar' ? (p.name_ar || p.name_en || p.code) : (p.name_en || p.name_ar || p.code)
+      label: lang === 'ar' ? (p.nameAr || p.nameEn || p.code) : (p.nameEn || p.nameAr || p.code)
     }))
   ], [programs, lang, t]);
 
@@ -48,7 +48,7 @@ const HierarchyFilters = ({
       .filter(s => selectedProgram === 'all' || s.programId === selectedProgram)
       .map(s => ({
         value: s.docId || s.id,
-        label: lang === 'ar' ? (s.name_ar || s.name_en || s.code) : (s.name_en || s.name_ar || s.code)
+        label: lang === 'ar' ? (s.nameAr || s.nameEn || s.code) : (s.nameEn || s.nameAr || s.code)
       }))
   ], [subjects, selectedProgram, lang, t]);
 
@@ -65,7 +65,7 @@ const HierarchyFilters = ({
       })
       .map(c => ({
         value: c.id || c.docId,
-        label: lang === 'ar' ? (c.title_ar || c.name_ar || c.title || c.name || c.code) : (c.title || c.name || c.code)
+        label: lang === 'ar' ? (c.titleAr || c.nameAr || c.title || c.name || c.code) : (c.title || c.name || c.code)
       }))
   ], [classes, selectedSubject, selectedProgram, subjects, t]);
 

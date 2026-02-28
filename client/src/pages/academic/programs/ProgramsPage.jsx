@@ -172,20 +172,20 @@ const ProgramsPage = () => {
   const handleEdit = useCallback((program) => {
     setEditingProgram(program);
     setFormData({
-      nameEn: program.nameEn || program.name_en || '',
-      nameAr: program.nameAr || program.name_ar || '',
+      nameEn: program.nameEn || '',
+      nameAr: program.nameAr || '',
       code: program.code || '',
-      descriptionEn: program.descriptionEn || program.description_en || '',
-      descriptionAr: program.descriptionAr || program.description_ar || '',
-      durationYears: program.durationYears || program.duration_years || 2,
+      descriptionEn: program.descriptionEn || '',
+      descriptionAr: program.descriptionAr || '',
+      durationYears: program.durationYears || 2,
       minGPA: program.minGPA ?? 1.5,
       totalCreditHours: program.totalCreditHours || 70
     });
     // Sync refs
-    if (nameEnRef.current) nameEnRef.current.value = program.nameEn || program.name_en || '';
-    if (nameArRef.current) nameArRef.current.value = program.nameAr || program.name_ar || '';
-    if (descEnRef.current) descEnRef.current.value = program.descriptionEn || program.description_en || '';
-    if (descArRef.current) descArRef.current.value = program.descriptionAr || program.description_ar || '';
+    if (nameEnRef.current) nameEnRef.current.value = program.nameEn || '';
+    if (nameArRef.current) nameArRef.current.value = program.nameAr || '';
+    if (descEnRef.current) descEnRef.current.value = program.descriptionEn || '';
+    if (descArRef.current) descArRef.current.value = program.descriptionAr || '';
   }, []);
 
   const handleDelete = useCallback((program) => {
@@ -200,7 +200,7 @@ const ProgramsPage = () => {
           try {
             await logActivity(ACTIVITY_LOG_TYPES.PROGRAM_DELETED, {
               programId: program.docId,
-              programName: program.nameEn || program.name_en,
+              programName: program.nameEn || program.nameAr,
               programCode: program.code
             });
           } catch (e) { logger.warn('Failed to log activity:', e); }
@@ -501,7 +501,7 @@ const ProgramsPage = () => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_program', { programName: editingProgram.nameEn || editingProgram.name_en, programCode: editingProgram.code || t('programs_no_code') })}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_program', { programName: editingProgram.nameEn || editingProgram.nameAr, programCode: editingProgram.code || t('programs_no_code') })}
         </div>
       )}
 

@@ -42,10 +42,10 @@ const FilterSelect = ({
         ? (() => {
             // Check for Arabic name first if language is Arabic
             if (lang === 'ar') {
-              return item.name_ar || item.title_ar || item.name_en || item.name || item.label || item.title || item.code || itemValue;
+              return item.nameAr || item.titleAr || item.nameEn || item.name || item.label || item.title || item.code || itemValue;
             }
             // Default to English
-            return item.name_en || item.name || item.label || item.title || item.code || itemValue;
+            return item.nameEn || item.name || item.label || item.title || item.code || itemValue;
           })()
         : itemValue;
       

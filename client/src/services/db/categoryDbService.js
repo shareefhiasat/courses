@@ -33,8 +33,6 @@ import logger from '@utils/logger';
  */
 export const getCategories = async () => {
   try {
-    logger.info('CATEGORY: Fetching all categories from database');
-    
     const q = query(
       collection(db, 'categories'),
       orderBy('order', 'asc')
@@ -47,10 +45,10 @@ export const getCategories = async () => {
         docId: doc.id, 
         ...data,
         // Always use camelCase for consistency
-        nameEn: data.nameEn || data.name_en,
-        nameAr: data.nameAr || data.name_ar,
-        descriptionEn: data.descriptionEn || data.description_en,
-        descriptionAr: data.descriptionAr || data.description_ar
+        nameEn: data.nameEn,
+        nameAr: data.nameAr,
+        descriptionEn: data.descriptionEn,
+        descriptionAr: data.descriptionAr
       };
       
       // Keep dates as strings (don't convert to Date objects)
@@ -59,7 +57,6 @@ export const getCategories = async () => {
       return category;
     });
     
-    logger.info('CATEGORY: Successfully fetched categories', { count: categories.length });
     return { success: true, data: categories };
   } catch (error) {
     logger.error('CATEGORY: Failed to fetch categories', { error: error.message });
@@ -74,8 +71,6 @@ export const getCategories = async () => {
  */
 export const getCategoryById = async (docId) => {
   try {
-    logger.info('CATEGORY: Fetching category by ID', { docId });
-    
     const docRef = doc(db, 'categories', docId);
     const docSnapshot = await getDoc(docRef);
     
@@ -85,19 +80,17 @@ export const getCategoryById = async (docId) => {
         docId: docSnapshot.id, 
         ...data,
         // Always use camelCase for consistency
-        nameEn: data.nameEn || data.name_en,
-        nameAr: data.nameAr || data.name_ar,
-        descriptionEn: data.descriptionEn || data.description_en,
-        descriptionAr: data.descriptionAr || data.description_ar
+        nameEn: data.nameEn,
+        nameAr: data.nameAr,
+        descriptionEn: data.descriptionEn,
+        descriptionAr: data.descriptionAr
       };
       
       // Keep dates as strings (don't convert to Date objects)
       // This matches Activities, Resources, and other entities
       
-      logger.info('CATEGORY: Successfully fetched category', { docId });
       return { success: true, data: categoryData };
     } else {
-      logger.warn('CATEGORY: Category not found', { docId });
       return { success: false, error: 'Category not found' };
     }
   } catch (error) {

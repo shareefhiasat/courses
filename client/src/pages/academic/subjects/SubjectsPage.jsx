@@ -185,11 +185,11 @@ const SubjectsPage = () => {
     setFormData({
       programId: subject.programId || '',
       code: subject.code || '',
-      nameEn: subject.nameEn || subject.name_en || '',
-      nameAr: subject.nameAr || subject.name_ar || '',
+      nameEn: subject.nameEn || subject.name || '',
+      nameAr: subject.nameAr || subject.name || '',
       requirementType: subject.requirementType || 'general_mandatory',
-      descriptionEn: subject.descriptionEn || subject.description_en || '',
-      descriptionAr: subject.descriptionAr || subject.description_ar || '',
+      descriptionEn: subject.descriptionEn || subject.description || '',
+      descriptionAr: subject.descriptionAr || subject.description || '',
       creditHours: subject.creditHours || 3,
       totalHours: subject.totalHours || 36,
       type: subject.type || 'lecture',
@@ -197,10 +197,10 @@ const SubjectsPage = () => {
       classIds: subject.classIds || []
     });
     // Sync refs
-    if (nameEnRef.current) nameEnRef.current.value = subject.nameEn || subject.name_en || '';
-    if (nameArRef.current) nameArRef.current.value = subject.nameAr || subject.name_ar || '';
-    if (descEnRef.current) descEnRef.current.value = subject.descriptionEn || subject.description_en || '';
-    if (descArRef.current) descArRef.current.value = subject.descriptionAr || subject.description_ar || '';
+    if (nameEnRef.current) nameEnRef.current.value = subject.nameEn || subject.name || '';
+    if (nameArRef.current) nameArRef.current.value = subject.nameAr || subject.name || '';
+    if (descEnRef.current) descEnRef.current.value = subject.descriptionEn || subject.description || '';
+    if (descArRef.current) descArRef.current.value = subject.descriptionAr || subject.description || '';
   }, []);
 
   const handleDelete = useCallback((subject) => {
@@ -214,7 +214,7 @@ const SubjectsPage = () => {
           try {
             await logActivity(ACTIVITY_LOG_TYPES.SUBJECT_DELETED, {
               subjectId: subject.docId,
-              subjectName: subject.nameEn || subject.name_en,
+              subjectName: subject.nameEn || subject.nameAr,
               subjectCode: subject.code
             });
           } catch (e) { logger.warn('Failed to log activity:', e); }
@@ -502,7 +502,7 @@ const gridColumns = useMemo(() => [
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_subject', { subjectName: editingSubject.nameEn || editingSubject.name_en, subjectCode: editingSubject.code || t('subjects_no_code') })}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_subject', { subjectName: editingSubject.nameEn || editingSubject.nameAr, subjectCode: editingSubject.code || t('subjects_no_code') })}
         </div>
       )}
 
@@ -517,8 +517,8 @@ const gridColumns = useMemo(() => [
               ...programs.map(program => ({
                 value: program.docId || program.id,
                 label: lang === 'ar' 
-                  ? (program.nameAr || program.name_en || program.name || program.docId || program.id)
-                  : (program.nameEn || program.name_en || program.name || program.docId || program.id),
+                  ? (program.nameAr || program.nameEn || program.name || program.docId || program.id)
+                  : (program.nameEn || program.nameAr || program.name || program.docId || program.id),
                 icon: getThemedIcon('ui', 'folder', 16, theme)
               }))
             ]}

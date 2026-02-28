@@ -81,27 +81,27 @@ export const HelpProvider = ({ children }) => {
         {
           title: t('penalty_rules') || 'Penalty Rules',
           items: (PENALTY_TYPES || []).map((penalty) => ({
-            text: penalty[`label_${lang}`] || penalty.label_en || penalty.id,
+            text: penalty[`label_${lang}`] || penalty.labelEn || penalty.id,
             deduction: penalty?.points 
               ? `-${penalty.points} ${t('points') || 'points'}` 
               : t('no_deduction') || 'No deduction',
-            description: penalty[`description_${lang}`] || penalty.description_en || penalty.description || t('no_description_available') || 'No description available'
+            description: penalty[`description_${lang}`] || penalty.descriptionEn || penalty.description || t('no_description_available') || 'No description available'
           }))
         },
         {
           title: t('absence_rules') || 'Absence Rules',
           items: (ABSENCE_TYPES || []).map((absence) => ({
-            text: absence[`label_${lang}`] || absence.label_en || absence.id,
+            text: absence[`label_${lang}`] || absence.labelEn || absence.id,
             deduction: absence?.deduction 
               ? `-${absence.deduction} ${t('points_per_session') || 'points per session'}` 
               : t('no_deduction') || 'No deduction',
-            description: absence[`description_${lang}`] || absence.description_en || absence.description || t('no_description_available') || 'No description available'
+            description: absence[`description_${lang}`] || absence.descriptionEn || absence.description || t('no_description_available') || 'No description available'
           }))
         },
         {
           title: t('participation_rules') || 'Participation Rules',
           items: (PARTICIPATION_TYPES || []).map((participation) => ({
-            text: participation[`label_${lang}`] || participation.label_en || participation.id,
+            text: participation[`label_${lang}`] || participation.labelEn || participation.id,
             points: `+${participation.points} ${t('points') || 'points'}`,
             description: participation[`description_${lang}`] || participation.description || t('points_awarded') || 'Points awarded for active participation'
           }))
@@ -392,27 +392,27 @@ export const HelpProvider = ({ children }) => {
         {
           title: t('penalty_rules') || 'Penalty Rules',
           items: (PENALTY_TYPES || []).map((penalty) => ({
-            text: penalty[`label_${lang}`] || penalty.label_en || penalty.id,
+            text: penalty[`label_${lang}`] || penalty.labelEn || penalty.id,
             deduction: penalty?.points 
               ? `-${penalty.points} ${t('points') || 'points'}` 
               : t('no_deduction') || 'No deduction',
-            description: penalty[`description_${lang}`] || penalty.description_en || penalty.description || t('no_description_available') || 'No description available'
+            description: penalty[`description_${lang}`] || penalty.descriptionEn || penalty.description || t('no_description_available') || 'No description available'
           }))
         },
         {
           title: t('absence_rules') || 'Absence Rules',
           items: (ABSENCE_TYPES || []).map((absence) => ({
-            text: absence[`label_${lang}`] || absence.label_en || absence.id,
+            text: absence[`label_${lang}`] || absence.labelEn || absence.id,
             deduction: absence?.deduction 
               ? `-${absence.deduction} ${t('points_per_session') || 'points per session'}` 
               : t('no_deduction') || 'No deduction',
-            description: absence[`description_${lang}`] || absence.description_en || absence.description || t('no_description_available') || 'No description available'
+            description: absence[`description_${lang}`] || absence.descriptionEn || absence.description || t('no_description_available') || 'No description available'
           }))
         },
         {
           title: t('participation_rules') || 'Participation Rules',
           items: (PARTICIPATION_TYPES || []).map((participation) => ({
-            text: participation[`label_${lang}`] || participation.label_en || participation.id,
+            text: participation[`label_${lang}`] || participation.labelEn || participation.id,
             points: `+${participation.points} ${t('points') || 'points'}`,
             description: participation[`description_${lang}`] || participation.description || t('points_awarded') || 'Points awarded for active participation'
           }))
@@ -471,7 +471,7 @@ export const HelpProvider = ({ children }) => {
         {
           title: t('participation_rules') || 'Participation Types',
           items: (PARTICIPATION_TYPES || []).map((participation) => ({
-            text: participation[`label_${lang}`] || participation.label_en || participation.id,
+            text: participation[`label_${lang}`] || participation.labelEn || participation.id,
             points: participation.points ? `+${participation.points} ${t('points') || 'points'}` : '',
             description: participation[`description_${lang}`] || participation.description || t('points_awarded') || 'Points awarded for active participation'
           }))
@@ -1054,21 +1054,21 @@ export const HelpProvider = ({ children }) => {
         {
           title: t('penalty_rules') || 'Penalty Rules',
           items: (PENALTY_TYPES || []).map((penalty) => ({
-            text: penalty[`label_${lang}`] || penalty.label_en || penalty.id,
+            text: penalty[`label_${lang}`] || penalty.labelEn || penalty.id,
             deduction: penalty?.points
               ? `-${penalty.points} ${t('points') || 'points'}`
               : t('no_deduction') || 'No deduction',
-            description: penalty[`description_${lang}`] || penalty.description_en || penalty.description || t('no_description_available') || 'No description available'
+            description: penalty[`description_${lang}`] || penalty.descriptionEn || penalty.description || t('no_description_available') || 'No description available'
           }))
         },
         {
           title: t('absence_rules') || 'Absence Rules',
           items: (ABSENCE_TYPES || []).map((absence) => ({
-            text: absence[`label_${lang}`] || absence.label_en || absence.id,
+            text: absence[`label_${lang}`] || absence.labelEn || absence.id,
             deduction: absence?.deduction
               ? `-${absence.deduction} ${t('points_per_session') || 'points per session'}`
               : t('no_deduction') || 'No deduction',
-            description: absence[`description_${lang}`] || absence.description_en || absence.description || t('no_description_available') || 'No description available'
+            description: absence[`description_${lang}`] || absence.descriptionEn || absence.description || t('no_description_available') || 'No description available'
           }))
         }
       ]
@@ -1081,7 +1081,7 @@ export const HelpProvider = ({ children }) => {
         {
           title: t('participation_rules') || 'Participation Types',
           items: (PARTICIPATION_TYPES || []).map((participation) => ({
-            text: participation[`label_${lang}`] || participation.label_en || participation.id,
+            text: participation[`label_${lang}`] || participation.labelEn || participation.id,
             points: `+${participation.points} ${t('points') || 'points'}`,
             description: participation[`description_${lang}`] || participation.description || t('points_awarded') || 'Points awarded for active participation'
           }))

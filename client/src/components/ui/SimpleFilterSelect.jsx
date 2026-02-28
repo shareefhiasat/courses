@@ -36,7 +36,7 @@ const SimpleFilterSelect = ({
     { value: 'all', label: t(`all_${filterKey}`) || `All ${filterKey}` },
     ...data.map(item => {
       const itemValue = item.id || item.docId || item.value;
-      const itemLabel = item.name_en || item.name || item.label || item.code || itemValue;
+      const itemLabel = item.nameEn || item.name || item.label || item.code || itemValue;
       return {
         value: itemValue,
         label: itemLabel

@@ -285,27 +285,27 @@ const QuizResultsPage = () => {
             }
           }
           
-          // Get subject info
+          // Get subject info using service
           if (enrichedResult.classSubjectId) {
             try {
-              const subjectDoc = await getDoc(doc(db, 'subjects', enrichedResult.classSubjectId));
-              if (subjectDoc.exists()) {
-                const subjectData = subjectDoc.data();
-                enrichedResult.subjectName = subjectData.name_en || subjectData.name_ar || subjectData.code || 'N/A';
-                enrichedResult.subjectProgramId = subjectData.programId;
+              const subjects = await getSubjects();
+              const subject = subjects.find(s => (s.docId || s.id) === enrichedResult.classSubjectId);
+              if (subject) {
+                enrichedResult.subjectName = subject.nameEn || subject.nameAr || subject.code || 'N/A';
+                enrichedResult.subjectProgramId = subject.programId;
               }
             } catch (err) {
               logger.warn('Failed to load subject:', enrichedResult.classSubjectId, err);
             }
           }
           
-          // Get program info
+          // Get program info using service
           if (enrichedResult.subjectProgramId) {
             try {
-              const programDoc = await getDoc(doc(db, 'programs', enrichedResult.subjectProgramId));
-              if (programDoc.exists()) {
-                const programData = programDoc.data();
-                enrichedResult.programName = programData.name_en || programData.name_ar || programData.code || 'N/A';
+              const programs = await getPrograms();
+              const program = programs.find(p => (p.docId || p.id) === enrichedResult.subjectProgramId);
+              if (program) {
+                enrichedResult.programName = program.nameEn || program.nameAr || program.code || 'N/A';
               }
             } catch (err) {
               logger.warn('Failed to load program:', enrichedResult.subjectProgramId, err);
@@ -929,7 +929,7 @@ const QuizResultsPage = () => {
                   { value: 'all', label: 'All Programs' },
                   ...programs.map(p => ({
                     value: p.docId || p.id,
-                    label: p.name_en || p.name_ar || p.code || p.docId
+                    label: p.nameEn || p.nameAr || p.code || p.docId
                   }))
                 ]}
                 placeholder="Filter by Program"
@@ -948,7 +948,7 @@ const QuizResultsPage = () => {
                     .filter(s => selectedProgram === 'all' || s.programId === selectedProgram)
                     .map(s => ({
                       value: s.docId || s.id,
-                      label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`.trim()
+                      label: `${s.code || ''} - ${s.nameEn || s.nameAr || s.docId}`.trim()
                     }))
                 ]}
                 placeholder="Filter by Subject"

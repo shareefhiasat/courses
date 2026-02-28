@@ -100,7 +100,7 @@ export const getPenaltyLabel = (id, lang = 'en') => {
 
 export const getPenaltyDescription = (id, lang = 'en') => {
   const type = getPenaltyTypeById(id);
-  return type ? (lang === 'ar' ? type.description_ar : type.description_en) : '';
+  return type ? (lang === 'ar' ? type.descriptionAr : type.descriptionEn) : '';
 };
 
 export const getPenaltyIcon = (id) => {

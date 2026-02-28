@@ -735,7 +735,7 @@ const HRAttendancePage = () => {
                 { value: 'all', label: 'All Programs' },
                 ...programs.map(p => ({
                   value: p.docId || p.id,
-                  label: p.name_en || p.name_ar || p.code || p.docId
+                  label: p.nameEn || p.nameAr || p.code || p.docId
                 }))
               ]}
               fullWidth
@@ -756,7 +756,7 @@ const HRAttendancePage = () => {
                   .filter(s => programFilter === 'all' || s.programId === programFilter)
                   .map(s => ({
                     value: s.docId || s.id,
-                    label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`
+                    label: `${s.code || ''} - ${s.nameEn || s.nameAr || s.docId}`
                   }))
               ]}
               fullWidth

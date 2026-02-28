@@ -188,10 +188,10 @@ const EnrollmentsManagementPage = () => {
         : null;
 
       const subjectName = subject
-        ? (subject.name_en || subject.name_ar || subject.name || subject.code || 'N/A')
+        ? (subject.nameEn || subject.nameAr || subject.name || subject.code || 'N/A')
         : 'N/A';
       const programName = program
-        ? (program.name_en || program.name_ar || program.name || program.code || 'N/A')
+        ? (program.nameEn || program.nameAr || program.name || program.code || 'N/A')
         : 'N/A';
       const className = classItem
         ? `${classItem.name || classItem.code || 'N/A'}${classItem.code ? ` (${classItem.code})` : ''}`

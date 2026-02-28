@@ -261,7 +261,7 @@ const QRScannerPage = () => {
       .filter(prog => prog.docId || prog.id)
       .map(prog => {
         const value = prog.docId || prog.id;
-        const label = lang === 'ar' ? (prog.name_ar || prog.name_en || prog.name || prog.code || value) : (prog.name_en || prog.name || prog.code || value);
+        const label = lang === 'ar' ? (prog.nameAr || prog.nameEn || prog.name || prog.code || value) : (prog.nameEn || prog.name || prog.code || value);
         return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
       });
     return [...opts, ...validPrograms];
@@ -281,7 +281,7 @@ const QRScannerPage = () => {
       .filter(sub => sub.docId || sub.id)
       .map(sub => {
         const value = sub.docId || sub.id;
-        const label = lang === 'ar' ? (sub.name_ar || sub.name_en || sub.name || sub.code || value) : (sub.name_en || sub.name || sub.code || value);
+        const label = lang === 'ar' ? (sub.nameAr || sub.nameEn || sub.name || sub.code || value) : (sub.nameEn || sub.name || sub.code || value);
         return { value, label, icon: getThemedIcon('ui', 'file_text', 16, theme) };
       });
     return [...opts, ...validSubjects];
@@ -301,7 +301,7 @@ const QRScannerPage = () => {
       .filter(cls => cls.docId || cls.id)
       .map(cls => {
         const value = cls.docId || cls.id;
-        const name = lang === 'ar' ? (cls.name_ar || cls.name) : (cls.name || cls.name_ar || t('unnamed_class'));
+        const name = lang === 'ar' ? (cls.nameAr || cls.name) : (cls.name || cls.nameAr || t('unnamed_class'));
         const label = `${name}${cls.code ? ` (${cls.code})` : ''}`;
         return { value, label, icon: getThemedIcon('ui', 'users', 16, theme) };
       });
@@ -851,7 +851,7 @@ const QRScannerPage = () => {
             variables: {
               recipientName: student.displayName || student.realName || student.name || student.email,
               className: currentClass.name || currentClass.code,
-              className_ar: currentClass.name_ar || currentClass.name || currentClass.code,
+              className_ar: currentClass.nameAr || currentClass.name || currentClass.code,
               status: label.en,
               status_ar: label.ar,
               date: dateStr,
@@ -1052,16 +1052,16 @@ const QRScannerPage = () => {
               message: t('action_logged_msg', {
                 type: t(type),
                 className: currentClass.name || currentClass.code,
-                label: lang === 'ar' ? (action.label_ar || action.label_en || action.type) : (action.label_en || action.label || action.type)
+                label: lang === 'ar' ? (action.labelAr || action.labelEn || action.type) : (action.labelEn || action.label || action.type)
               }),
               type,
               templateId,
               variables: {
                 recipientName: student.displayName || student.realName || student.name || student.email,
                 className: currentClass.name || currentClass.code,
-                className_ar: currentClass.name_ar || currentClass.name || currentClass.code,
-                label: action.label_en || action.label || action.type,
-                label_ar: action.label_ar || action.label || action.type,
+                className_ar: currentClass.nameAr || currentClass.name || currentClass.code,
+                label: action.labelEn || action.label || action.type,
+                label_ar: action.labelAr || action.label || action.type,
                 points: points >= 0 ? `+${points}` : points,
                 notes: note,
                 notes_ar: note

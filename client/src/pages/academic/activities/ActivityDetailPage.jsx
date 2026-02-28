@@ -50,7 +50,7 @@ export default function ActivityDetailPage() {
     );
   }
 
-  const title = lang === 'ar' ? (activity.title_ar || activity.title_en || activity.id) : (activity.title_en || activity.title_ar || activity.id);
+  const title = lang === 'ar' ? (activity.titleAr || activity.titleEn || activity.id) : (activity.titleEn || activity.titleAr || activity.id);
   const shareUrl = `${window.location.origin}/activity/${activityId}`;
 
   return (
@@ -60,9 +60,9 @@ export default function ActivityDetailPage() {
           <div className={styles.header}>
             <div className={styles.headerContent}>
               <h1 className={styles.title}>{title}</h1>
-              {(activity.description_en || activity.description_ar) && (
+              {(activity.descriptionEn || activity.descriptionAr) && (
                 <p className={styles.description}>
-                  {lang === 'ar' ? (activity.description_ar || activity.description_en) : (activity.description_en || activity.description_ar)}
+                  {lang === 'ar' ? (activity.descriptionAr || activity.descriptionEn) : (activity.descriptionEn || activity.descriptionAr)}
                 </p>
               )}
               <div className={styles.meta}>

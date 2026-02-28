@@ -174,7 +174,7 @@ const WidgetWrapper = ({
                   textOverflow: 'ellipsis'
                 }}
               >
-                {lang === 'ar' ? (widget.title_ar || widget.title_en || widget.title) : (widget.title_en || widget.title_ar || widget.title)}
+                {lang === 'ar' ? (widget.titleAr || widget.titleEn || widget.title) : (widget.titleEn || widget.titleAr || widget.title)}
                 {isRecentlyRefreshed && (
                   <span style={{ color: 'var(--color-success, #10b981)', fontSize: 11, marginInlineStart: 4 }}>✓</span>
                 )}

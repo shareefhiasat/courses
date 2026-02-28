@@ -59,13 +59,8 @@ const validateActivityData = (data) => {
 // Activities - with performance monitoring and error handling
 export const getActivities = async () => {
   try {
-    logger.info('ACTIVITY: Fetching all activities');
-      
-      const result = await getActivitiesFromDb();
-      if (result.success) {
-        logger.info('ACTIVITY: Successfully fetched activities', { count: result.data.length });
-      }
-      return result;
+    const result = await getActivitiesFromDb();
+    return result;
   } catch (error) {
     logger.error('ACTIVITY: Failed to fetch activities', { error: error.message });
     return handleServiceError(error, { operation: 'getActivities' });
@@ -267,15 +262,7 @@ export const deleteActivity = async (id, activityData = null) => {
 // Announcements
 export const getAnnouncements = async () => {
   try {
-    logger.info('ANNOUNCEMENT: Fetching all announcements');
-    
     const result = await getAnnouncementsFromDb();
-    
-    if (result.success) {
-      logger.info('ANNOUNCEMENT: Successfully fetched announcements', { count: result.data.length });
-    } else {
-      logger.warn('ANNOUNCEMENT: Failed to fetch announcements', { error: result.error });
-    }
     return result;
   } catch (error) {
     logger.error('ANNOUNCEMENT: Failed to fetch announcements', { error: error.message });

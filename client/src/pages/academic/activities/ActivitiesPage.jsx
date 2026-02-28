@@ -383,8 +383,8 @@ const ActivitiesPage = () => {
       .map(cat => {
         const value = cat.docId || cat.id;
         const label = lang === 'ar' 
-          ? (cat.name_ar || cat.name_en || value) 
-          : (cat.name_en || cat.name_ar || value);
+          ? (cat.nameAr || cat.nameEn || value) 
+          : (cat.nameEn || cat.nameAr || value);
         return { value, label, icon: getThemedIcon('ui', cat.icon || 'folder', 16, theme) };
       })
       .sort((a, b) => (a.label || '').localeCompare(b.label || '', undefined, { numeric: true }));
@@ -447,8 +447,8 @@ const ActivitiesPage = () => {
         const program = programs.find(p => (p.docId || p.id) === programId);
         if (!program) return '—';
         const programName = lang === 'ar' 
-          ? (program.nameAr || program.name_en || program.name || programId) 
-          : (program.nameEn || program.name_ar || program.name || programId);
+          ? (program.nameAr || program.nameEn || program.name || programId) 
+          : (program.nameEn || program.nameAr || program.name || programId);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             {programName}
@@ -460,8 +460,8 @@ const ActivitiesPage = () => {
         const program = programs.find(p => (p.docId || p.id) === params.value);
         if (!program) return '—';
         const programName = lang === 'ar' 
-          ? (program.nameAr || program.name_en || program.name || params.value) 
-          : (program.nameEn || program.name_ar || program.name || params.value);
+          ? (program.nameAr || program.nameEn || program.name || params.value) 
+          : (program.nameEn || program.nameAr || program.name || params.value);
         return programName;
       }
     },
@@ -483,8 +483,8 @@ const ActivitiesPage = () => {
         const subject = subjects.find(s => (s.docId || s.id) === subjectId);
         if (!subject) return '—';
         const subjectName = lang === 'ar' 
-          ? (subject.nameAr || subject.name_en || subject.name || subjectId) 
-          : (subject.nameEn || subject.name_ar || subject.name || subjectId);
+          ? (subject.nameAr || subject.nameEn || subject.name || subjectId) 
+          : (subject.nameEn || subject.nameAr || subject.name || subjectId);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             {subjectName}
@@ -496,8 +496,8 @@ const ActivitiesPage = () => {
         const subject = subjects.find(s => (s.docId || s.id) === params.value);
         if (!subject) return '—';
         const subjectName = lang === 'ar' 
-          ? (subject.nameAr || subject.name_en || subject.name || params.value) 
-          : (subject.nameEn || subject.name_ar || subject.name || params.value);
+          ? (subject.nameAr || subject.nameEn || subject.name || params.value) 
+          : (subject.nameEn || subject.nameAr || subject.name || params.value);
         return subjectName;
       }
     },
@@ -518,8 +518,8 @@ const ActivitiesPage = () => {
         const classItem = classes.find(c => (c.docId || c.id) === params.value);
         if (!classItem) return params.value;
         const className = lang === 'ar' 
-          ? (classItem.nameAr || classItem.name_en || classItem.name || params.value) 
-          : (classItem.nameEn || classItem.name_ar || classItem.name || params.value);
+          ? (classItem.nameAr || classItem.nameEn || classItem.name || params.value) 
+          : (classItem.nameEn || classItem.nameAr || classItem.name || params.value);
         const suffix = lang === 'ar' ? '' : (classItem.code ? ` (${classItem.code})` : '');
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -532,8 +532,8 @@ const ActivitiesPage = () => {
         const classItem = classes.find(c => (c.docId || c.id) === params.value);
         if (!classItem) return params.value;
         const className = lang === 'ar' 
-          ? (classItem.nameAr || classItem.name_en || classItem.name || params.value) 
-          : (classItem.nameEn || classItem.name_ar || classItem.name || params.value);
+          ? (classItem.nameAr || classItem.nameEn || classItem.name || params.value) 
+          : (classItem.nameEn || classItem.nameAr || classItem.name || params.value);
         const suffix = lang === 'ar' ? '' : (classItem.code ? ` (${classItem.code})` : '');
         return `${className}${suffix}`;
       }
@@ -610,8 +610,8 @@ const ActivitiesPage = () => {
         const quiz = quizzes.find(q => q.id === params.value);
         if (!quiz) return params.value;
         const quizTitle = lang === 'ar' 
-          ? (quiz.title_ar || quiz.title_en || quiz.title || 'Untitled Quiz') 
-          : (quiz.title_en || quiz.title_ar || quiz.title || 'Untitled Quiz');
+          ? (quiz.titleAr || quiz.titleEn || quiz.title || 'Untitled Quiz') 
+          : (quiz.titleEn || quiz.titleAr || quiz.title || 'Untitled Quiz');
         return quizTitle;
       }
     },
@@ -776,10 +776,10 @@ const ActivitiesPage = () => {
     if (activityDifficultyFilter && activity.difficulty !== activityDifficultyFilter) return false;
     
     // Text search filters
-    if (activityTitleEnFilter && (!activity.title_en || !activity.title_en.toLowerCase().includes(activityTitleEnFilter.toLowerCase()))) return false;
-    if (activityTitleArFilter && (!activity.title_ar || !activity.title_ar.includes(activityTitleArFilter))) return false;
-    if (activityDescriptionEnFilter && (!activity.description_en || !activity.description_en.toLowerCase().includes(activityDescriptionEnFilter.toLowerCase()))) return false;
-    if (activityDescriptionArFilter && (!activity.description_ar || !activity.description_ar.includes(activityDescriptionArFilter))) return false;
+    if (activityTitleEnFilter && (!activity.titleEn || !activity.titleEn.toLowerCase().includes(activityTitleEnFilter.toLowerCase()))) return false;
+    if (activityTitleArFilter && (!activity.titleAr || !activity.titleAr.includes(activityTitleArFilter))) return false;
+    if (activityDescriptionEnFilter && (!activity.descriptionEn || !activity.descriptionEn.toLowerCase().includes(activityDescriptionEnFilter.toLowerCase()))) return false;
+    if (activityDescriptionArFilter && (!activity.descriptionAr || !activity.descriptionAr.includes(activityDescriptionArFilter))) return false;
     
     return true;
   });
@@ -798,7 +798,7 @@ const ActivitiesPage = () => {
           gap: '0.5rem',
           color: isDark ? '#fef3c7' : '#78350f'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_activity') || 'Editing Activity'}: {editingActivity.title_en || editingActivity.title}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_activity') || 'Editing Activity'}: {editingActivity.titleEn || editingActivity.title}
         </div>
       )}
 
@@ -989,10 +989,10 @@ const ActivitiesPage = () => {
                             allowRetake: quizAllowRetake,
                             maxScore: quizMaxScore,
                             // Sync quiz title and description to activity form
-                            titleEn: selectedQuiz.titleEn || selectedQuiz.title_en || selectedQuiz.title || '',
-                            titleAr: selectedQuiz.titleAr || selectedQuiz.title_ar || '',
-                            descriptionEn: selectedQuiz.descriptionEn || selectedQuiz.description_en || '',
-                            descriptionAr: selectedQuiz.descriptionAr || selectedQuiz.description_ar || ''
+                            titleEn: selectedQuiz.titleEn || selectedQuiz.title || '',
+                            titleAr: selectedQuiz.titleAr || selectedQuiz.title || '',
+                            descriptionEn: selectedQuiz.descriptionEn || selectedQuiz.description || '',
+                            descriptionAr: selectedQuiz.descriptionAr || selectedQuiz.description || ''
                           })
                         };
                         return newForm;
@@ -1037,10 +1037,10 @@ const ActivitiesPage = () => {
                                 allowRetake: quizAllowRetake,
                                 maxScore: quizMaxScore,
                                 // Re-sync quiz title and description when disabling override
-                                title_en: selectedQuiz.title_en || selectedQuiz.title || '',
-                                title_ar: selectedQuiz.title_ar || '',
-                                description_en: selectedQuiz.description_en || '',
-                                description_ar: selectedQuiz.description_ar || ''
+                                titleEn: selectedQuiz.titleEn || selectedQuiz.title || '',
+                                titleAr: selectedQuiz.titleAr || '',
+                                descriptionEn: selectedQuiz.descriptionEn || '',
+                                descriptionAr: selectedQuiz.descriptionAr || ''
                               };
                             }
                           }
