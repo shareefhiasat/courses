@@ -173,17 +173,16 @@ export const getActivityLogsByDateRange = async (startDate, endDate, options = {
 };
 
 /**
- * Get login logs specifically
+ * Get all activity logs (for login/activity page display)
  * @param {Object} options - Query options
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
 export const getLoginLogs = async (options = {}) => {
   try {
-    const { limitCount = 100 } = options;
+    const { limitCount = 500 } = options;
     
     const q = query(
       collection(db, 'activityLogs'),
-      where('type', '==', 'login'),
       orderBy('timestamp', 'desc'),
       limit(limitCount)
     );
@@ -192,7 +191,7 @@ export const getLoginLogs = async (options = {}) => {
     const logs = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: logs };
   } catch (error) {
-    logger.error('[ActivityLogDbService] Error getting login logs:', error);
+    logger.error('[ActivityLogDbService] Error getting activity logs:', error);
     return { success: false, error: error.message };
   }
 };
