@@ -243,6 +243,8 @@ const ClassesPage = () => {
         if (nameRef.current) nameRef.current.value = '';
         if (nameArRef.current) nameArRef.current.value = '';
         if (codeRef.current) codeRef.current.value = '';
+        if (locationEnRef.current) locationEnRef.current.value = '';
+        if (locationArRef.current) locationArRef.current.value = '';
         toast?.showSuccess(editingClass ? t('classes_updated_successfully') : t('classes_created_successfully'));
       } else {
         toast?.showError(t('classes_error_saving', { error: result.error }));
@@ -265,12 +267,18 @@ const ClassesPage = () => {
     
     // Split term into term and year if it's combined
     let term = row.term || '';
-    let year = '';
+    let year = row.year || ''; // Check for separate year field first
     
-    if (term && term.includes(' ')) {
+    console.log('🔧 [ClassesPage] Edit - Raw data:', { term: row.term, year: row.year });
+    
+    // If no separate year field, try to extract from combined term
+    if (!year && term && term.includes(' ')) {
       const termParts = term.split(' ');
       term = termParts[0] || '';
       year = termParts[1] || '';
+      console.log('🔧 [ClassesPage] Edit - Extracted from combined:', { term, year });
+    } else {
+      console.log('🔧 [ClassesPage] Edit - Using separate fields:', { term, year });
     }
     
     setClassForm({
@@ -351,6 +359,8 @@ const handleCancelEdit = useCallback(() => {
     if (nameRef.current) nameRef.current.value = '';
     if (nameArRef.current) nameArRef.current.value = '';
     if (codeRef.current) codeRef.current.value = '';
+    if (locationEnRef.current) locationEnRef.current.value = '';
+    if (locationArRef.current) locationArRef.current.value = '';
   }, []);
 
   const gridColumns = useMemo(() => [

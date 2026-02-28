@@ -22,7 +22,8 @@ const CollapsibleDashboardSection = ({
   headerRight = null,
   inlineFilters = null,
   animated = true,
-  smartCollapse = false // Auto-collapse based on user behavior
+  smartCollapse = false, // Auto-collapse based on user behavior
+  onRefresh = null // Refresh callback function
 }) => {
   const [mode, setMode] = useState(defaultMode);
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
@@ -185,6 +186,18 @@ const CollapsibleDashboardSection = ({
               {getThemedIcon('ui', 'layout_grid', 14)}
               Full View
             </button>
+            {onRefresh && (
+              <button
+                onClick={() => {
+                  onRefresh();
+                  setIsModeMenuOpen(false);
+                }}
+                className={styles.refreshButton}
+              >
+                {getThemedIcon('ui', 'refresh', 14)}
+                Refresh
+              </button>
+            )}
           </div>
         )}
       </div>

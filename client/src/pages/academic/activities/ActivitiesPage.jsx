@@ -447,8 +447,8 @@ const ActivitiesPage = () => {
         const program = programs.find(p => (p.docId || p.id) === programId);
         if (!program) return '—';
         const programName = lang === 'ar' 
-          ? (program.name_ar || program.name_en || program.name || programId) 
-          : (program.name_en || program.name_ar || program.name || programId);
+          ? (program.nameAr || program.name_en || program.name || programId) 
+          : (program.nameEn || program.name_ar || program.name || programId);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             {programName}
@@ -460,8 +460,8 @@ const ActivitiesPage = () => {
         const program = programs.find(p => (p.docId || p.id) === params.value);
         if (!program) return '—';
         const programName = lang === 'ar' 
-          ? (program.name_ar || program.name_en || program.name || params.value) 
-          : (program.name_en || program.name_ar || program.name || params.value);
+          ? (program.nameAr || program.name_en || program.name || params.value) 
+          : (program.nameEn || program.name_ar || program.name || params.value);
         return programName;
       }
     },
@@ -483,8 +483,8 @@ const ActivitiesPage = () => {
         const subject = subjects.find(s => (s.docId || s.id) === subjectId);
         if (!subject) return '—';
         const subjectName = lang === 'ar' 
-          ? (subject.name_ar || subject.name_en || subject.name || subjectId) 
-          : (subject.name_en || subject.name_ar || subject.name || subjectId);
+          ? (subject.nameAr || subject.name_en || subject.name || subjectId) 
+          : (subject.nameEn || subject.name_ar || subject.name || subjectId);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             {subjectName}
@@ -496,8 +496,8 @@ const ActivitiesPage = () => {
         const subject = subjects.find(s => (s.docId || s.id) === params.value);
         if (!subject) return '—';
         const subjectName = lang === 'ar' 
-          ? (subject.name_ar || subject.name_en || subject.name || params.value) 
-          : (subject.name_en || subject.name_ar || subject.name || params.value);
+          ? (subject.nameAr || subject.name_en || subject.name || params.value) 
+          : (subject.nameEn || subject.name_ar || subject.name || params.value);
         return subjectName;
       }
     },
@@ -518,8 +518,8 @@ const ActivitiesPage = () => {
         const classItem = classes.find(c => (c.docId || c.id) === params.value);
         if (!classItem) return params.value;
         const className = lang === 'ar' 
-          ? (classItem.name_ar || classItem.name_en || classItem.name || params.value) 
-          : (classItem.name_en || classItem.name_ar || classItem.name || params.value);
+          ? (classItem.nameAr || classItem.name_en || classItem.name || params.value) 
+          : (classItem.nameEn || classItem.name_ar || classItem.name || params.value);
         const suffix = lang === 'ar' ? '' : (classItem.code ? ` (${classItem.code})` : '');
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -532,8 +532,8 @@ const ActivitiesPage = () => {
         const classItem = classes.find(c => (c.docId || c.id) === params.value);
         if (!classItem) return params.value;
         const className = lang === 'ar' 
-          ? (classItem.name_ar || classItem.name_en || classItem.name || params.value) 
-          : (classItem.name_en || classItem.name_ar || classItem.name || params.value);
+          ? (classItem.nameAr || classItem.name_en || classItem.name || params.value) 
+          : (classItem.nameEn || classItem.name_ar || classItem.name || params.value);
         const suffix = lang === 'ar' ? '' : (classItem.code ? ` (${classItem.code})` : '');
         return `${className}${suffix}`;
       }

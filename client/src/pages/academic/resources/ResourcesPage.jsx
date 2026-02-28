@@ -481,7 +481,7 @@ const ResourcesPage = () => {
         );
         const program = programs.find(p => (p.docId || p.id) === programId);
         if (!program) return '—';
-        const programName = lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
+        const programName = lang === 'ar' ? (program.nameAr || program.name_en) : (program.nameEn || program.name_ar);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             {/*{getThemedIcon('ui', 'target', 16, theme)} */}
@@ -508,7 +508,7 @@ const ResourcesPage = () => {
         );
         const subject = subjects.find(s => (s.docId || s.id) === subjectId);
         if (!subject) return '—';
-        const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
+        const subjectName = lang === 'ar' ? (subject.nameAr || subject.name_en) : (subject.nameEn || subject.name_ar);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             {/*{getThemedIcon('ui', 'book_open', 16, theme)} */}
@@ -535,10 +535,13 @@ const ResourcesPage = () => {
         );
         const classItem = classes.find(c => (c.docId || c.id) === classId);
         if (!classItem) return params.value;
+        const className = lang === 'ar' 
+          ? (classItem.nameAr || classItem.name_en || classItem.name) 
+          : (classItem.nameEn || classItem.name_ar || classItem.name);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             {/*{getThemedIcon('ui', 'users', 16, theme)} */}
-            {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
+            {className}{classItem.code ? ` (${classItem.code})` : ''}
           </span>
         );
       }

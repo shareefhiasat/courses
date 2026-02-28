@@ -371,7 +371,7 @@ const AnnouncementsPage = () => {
         if (!programId) return '—';
         const program = programs.find(p => (p.docId || p.id) === programId);
         if (!program) return programId;
-        const programName = lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
+        const programName = lang === 'ar' ? (program.nameAr || program.name_en) : (program.nameEn || program.name_ar);
         return programName;
       }
     },
@@ -384,7 +384,7 @@ const AnnouncementsPage = () => {
         if (!subjectId) return '—';
         const subject = subjects.find(s => (s.docId || s.id) === subjectId);
         if (!subject) return subjectId;
-        const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
+        const subjectName = lang === 'ar' ? (subject.nameAr || subject.name_en) : (subject.nameEn || subject.name_ar);
         return subjectName;
       }
     },
@@ -397,7 +397,10 @@ const AnnouncementsPage = () => {
         if (!classId) return '—';
         const classItem = classes.find(c => (c.docId || c.id) === classId);
         if (!classItem) return classId;
-        return `${classItem.name}${classItem.code ? ` (${classItem.code})` : ''}`;
+        const className = lang === 'ar' 
+          ? (classItem.nameAr || classItem.name_en || classItem.name) 
+          : (classItem.nameEn || classItem.name_ar || classItem.name);
+        return `${className}${classItem.code ? ` (${classItem.code})` : ''}`;
       }
     },
     {
