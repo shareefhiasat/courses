@@ -15,7 +15,7 @@ const AllowlistPage = () => {
   const { user, loading: authLoading, isSuperAdmin } = useAuth();
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
-  const [allowlist, setAllowlist] = useState({ allowedEmails: [], adminEmails: [], allowedStudents: [], superAdmins: [] });
+  const [allowlist, setAllowlist] = useState({ allowedEmails: [], adminEmails: [], allowedStudents: [], allowedInstructors: [], allowedHr: [], superAdmins: [] });
   const [saving, setSaving] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState(null);
   const [needsCleanup, setNeedsCleanup] = useState(false);
@@ -217,6 +217,12 @@ const AllowlistPage = () => {
       if (allowlistContext.allowedStudents?.includes(email)) {
         return ROLE_STRINGS.STUDENT;
       }
+      if (allowlistContext.allowedInstructors?.includes(email)) {
+        return ROLE_STRINGS.INSTRUCTOR;
+      }
+      if (allowlistContext.allowedHr?.includes(email)) {
+        return ROLE_STRINGS.HR;
+      }
       if (allowlistContext.adminEmails?.includes(email)) {
         // For emails in adminEmails without user records, we can't determine exact role
         // Could be HR, Admin, or Instructor - show as unknown until they sign up
@@ -232,6 +238,26 @@ const AllowlistPage = () => {
 
     // Process allowed students (new dedicated array)
     (allowlist.allowedStudents || []).forEach(email => {
+      const role = categorizeEmail(email, users, allowlist);
+      if (roleGroups[role]) {
+        roleGroups[role].push(email);
+      } else {
+        roleGroups.unknown.push(email);
+      }
+    });
+
+    // Process allowed instructors (new dedicated array)
+    (allowlist.allowedInstructors || []).forEach(email => {
+      const role = categorizeEmail(email, users, allowlist);
+      if (roleGroups[role]) {
+        roleGroups[role].push(email);
+      } else {
+        roleGroups.unknown.push(email);
+      }
+    });
+
+    // Process allowed HR (new dedicated array)
+    (allowlist.allowedHr || []).forEach(email => {
       const role = categorizeEmail(email, users, allowlist);
       if (roleGroups[role]) {
         roleGroups[role].push(email);
@@ -593,6 +619,8 @@ const AllowlistPage = () => {
                               onClick={() => {
                                 // Remove email from appropriate list
                                 const isAllowedStudent = allowlist.allowedStudents?.includes(email);
+                                const isAllowedInstructor = allowlist.allowedInstructors?.includes(email);
+                                const isAllowedHr = allowlist.allowedHr?.includes(email);
                                 const isLegacyStudent = allowlist.allowedEmails?.includes(email);
                                 const isAdminEmail = allowlist.adminEmails?.includes(email);
                                 const isSuperAdminEmail = allowlist.superAdmins?.includes(email);
@@ -600,24 +628,30 @@ const AllowlistPage = () => {
                                 let newAllowlist = { ...allowlist };
                                 if (isAllowedStudent) {
                                   newAllowlist.allowedStudents = allowlist.allowedStudents.filter(e => e !== email);
+                                } else if (isAllowedInstructor) {
+                                  newAllowlist.allowedInstructors = allowlist.allowedInstructors.filter(e => e !== email);
+                                } else if (isAllowedHr) {
+                                  newAllowlist.allowedHr = allowlist.allowedHr.filter(e => e !== email);
                                 } else if (isLegacyStudent) {
                                   newAllowlist.allowedEmails = allowlist.allowedEmails.filter(e => e !== email);
                                 } else if (isAdminEmail) {
                                   newAllowlist.adminEmails = allowlist.adminEmails.filter(e => e !== email);
                                 } else if (isSuperAdminEmail) {
-                                  newAllowlist.superAdmins = allowlist.superAdmins.filter(e => e !== email);
+                                  // SuperAdmins cannot be deleted from UI
+                                  return;
                                 }
                                 
                                 setAllowlist(newAllowlist);
                                 saveChanges(newAllowlist);
                               }}
                               className="remove-btn"
-                              title={t('remove_email', 'Remove email')}
+                              title={isSuperAdmin ? t('superadmin_cannot_be_removed', 'SuperAdmin cannot be removed') : t('remove_email', 'Remove email')}
+                              disabled={isSuperAdmin}
                               style={{
                                 background: 'none',
                                 border: 'none',
-                                color: '#d32f2f',
-                                cursor: 'pointer',
+                                color: isSuperAdmin ? '#ccc' : '#d32f2f',
+                                cursor: isSuperAdmin ? 'not-allowed' : 'pointer',
                                 padding: '0',
                                 fontSize: '1rem',
                                 lineHeight: '1',
@@ -630,12 +664,16 @@ const AllowlistPage = () => {
                                 justifyContent: 'center'
                               }}
                               onMouseOver={(e) => {
-                                e.target.style.background = '#d32f2f';
-                                e.target.style.color = 'white';
+                                if (!isSuperAdmin) {
+                                  e.target.style.background = '#d32f2f';
+                                  e.target.style.color = 'white';
+                                }
                               }}
                               onMouseOut={(e) => {
-                                e.target.style.background = 'none';
-                                e.target.style.color = '#d32f2f';
+                                if (!isSuperAdmin) {
+                                  e.target.style.background = 'none';
+                                  e.target.style.color = '#d32f2f';
+                                }
                               }}
                             >
                               ✕
@@ -844,21 +882,6 @@ const AllowlistPage = () => {
       {renderRoleGroups()}
       
       <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-        <div style={{ marginBottom: '1rem', fontSize: '0.875rem', color: 'var(--text-secondary, #666)' }}>
-          {saving ? (
-            <span style={{ color: 'var(--color-primary, #10b981)' }}>
-              {getThemedIcon('ui', 'save')} {t('saving', 'Saving...')}
-            </span>
-          ) : savedTimeDisplay ? (
-            <span style={{ color: 'var(--color-success, #22c55e)' }}>
-              {getThemedIcon('ui', 'check_circle')} {savedTimeDisplay}
-            </span>
-          ) : (
-            <span style={{ color: 'var(--text-muted, #9ca3af)' }}>
-              {t('ready_to_edit', 'Ready to edit')}
-            </span>
-          )}
-        </div>
         <button 
           onClick={handleAllowlistSave} 
           className="submit-btn" 

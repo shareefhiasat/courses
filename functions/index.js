@@ -391,7 +391,15 @@ const sendEmailFunctions = require('./sendEmailV2');
 exports.sendEmail = sendEmailFunctions.sendEmail;
 exports.testEmail = sendEmailFunctions.testEmail;
 
+// Export Gmail direct email function
+const gmailEmailFunctions = require('./sendGmailEmail');
+exports.sendGmailEmail = gmailEmailFunctions.sendGmailEmail;
+
 // Export QR code email function
 const qrCodeEmailFunctions = require('./sendQRCodeEmail');
 exports.sendQRCodeEmail = qrCodeEmailFunctions.sendQRCodeEmail;
+
+// Export template management function
+const templateFunctions = require('./checkAndEnableTemplates');
+exports.checkAndEnableTemplates = templateFunctions.checkAndEnableTemplates;
 

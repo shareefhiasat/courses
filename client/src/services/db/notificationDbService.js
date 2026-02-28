@@ -219,3 +219,33 @@ export const onNotificationsChange = (userId, callback) => {
     return () => {};
   }
 };
+
+/**
+ * Log notification activity for tracking and debugging
+ * @param {Object} activity - Activity data
+ * @returns {Promise<{success: boolean, logId?: string, error?: string}>}
+ */
+export const logNotificationActivity = async (activity) => {
+  try {
+    const docRef = doc(collection(db, 'notificationLogs'));
+    const logEntry = {
+      ...activity,
+      timestamp: serverTimestamp(),
+      id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    };
+    
+    await setDoc(docRef, logEntry);
+    
+    logger.info('[NotificationDbService] Notification activity logged:', {
+      trigger: activity.trigger,
+      channel: activity.channel,
+      userId: activity.userId,
+      success: activity.success
+    });
+    
+    return { success: true, logId: logEntry.id };
+  } catch (error) {
+    logger.error('[NotificationDbService] Error logging notification activity:', error);
+    return { success: false, error: error.message };
+  }
+};

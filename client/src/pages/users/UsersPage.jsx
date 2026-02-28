@@ -50,7 +50,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
   const [autoAddToAllowlist, setAutoAddToAllowlist] = useState(true);
   const [allowlist, setAllowlist] = useState(() => {
     logger.info('🔧 USER_PAGE: Initializing allowlist state', { timestamp: new Date().toISOString() });
-    return { allowedEmails: [], adminEmails: [], allowedStudents: [], superAdmins: [] };
+    return { allowedEmails: [], adminEmails: [], allowedStudents: [], allowedInstructors: [], allowedHr: [], superAdmins: [] };
   });
   
   // Quick filters
@@ -135,16 +135,73 @@ const UsersPage = ({ isDashboardTab = false }) => {
       
       // Load allowlist data
       if (allowlistResult.success) {
-        setAllowlist(allowlistResult.data || { allowedEmails: [], adminEmails: [], allowedStudents: [], superAdmins: [] });
+        setAllowlist(allowlistResult.data || { allowedEmails: [], adminEmails: [], allowedStudents: [], allowedInstructors: [], allowedHr: [], superAdmins: [] });
         logger.info('USER_PAGE: Successfully loaded allowlist', { 
           allowedEmails: allowlistResult.data?.allowedEmails?.length || 0,
           adminEmails: allowlistResult.data?.adminEmails?.length || 0,
           allowedStudents: allowlistResult.data?.allowedStudents?.length || 0,
+          allowedInstructors: allowlistResult.data?.allowedInstructors?.length || 0,
+          allowedHr: allowlistResult.data?.allowedHr?.length || 0,
           superAdmins: allowlistResult.data?.superAdmins?.length || 0
         });
+
+        // Merge actual users with invited users from allowlist
+        if (usersResult.success) {
+          const actualUsers = usersResult.data || [];
+          const allowlistData = allowlistResult.data || {};
+          
+          // Get all invited emails from allowlist
+          const invitedEmails = [
+            ...(allowlistData.allowedEmails || []),
+            ...(allowlistData.adminEmails || []),
+            ...(allowlistData.allowedStudents || []),
+            ...(allowlistData.allowedInstructors || []),
+            ...(allowlistData.allowedHr || []),
+            ...(allowlistData.superAdmins || [])
+          ];
+
+          // Find invited users who haven't signed up yet
+          const invitedUsers = invitedEmails
+            .filter(email => !actualUsers.some(user => user.email === email))
+            .map(email => {
+              // Determine role from allowlist arrays
+              let role = ROLE_STRINGS.STUDENT; // default
+              if (allowlistData.allowedStudents?.includes(email)) role = ROLE_STRINGS.STUDENT;
+              else if (allowlistData.allowedInstructors?.includes(email)) role = ROLE_STRINGS.INSTRUCTOR;
+              else if (allowlistData.allowedHr?.includes(email)) role = ROLE_STRINGS.HR;
+              else if (allowlistData.adminEmails?.includes(email)) role = ROLE_STRINGS.ADMIN;
+              else if (allowlistData.superAdmins?.includes(email)) role = ROLE_STRINGS.SUPER_ADMIN;
+              else if (allowlistData.allowedEmails?.includes(email)) role = ROLE_STRINGS.STUDENT; // legacy
+
+              return {
+                email: email,
+                role: role,
+                displayName: email.split('@')[0], // Use email prefix as display name
+                realName: '',
+                studentNumber: '',
+                order: '',
+                status: 'invited', // Custom status for invited users
+                isInvited: true, // Flag to identify invited users
+                createdAt: new Date(), // Use current time as invite time
+                disabled: false,
+                id: email, // Add unique ID for DataGrid
+                docId: email // Add docId for consistency
+              };
+            });
+
+          // Combine actual users with invited users
+          const allUsers = [...actualUsers, ...invitedUsers];
+          setUsers(allUsers);
+          
+          logger.info('USER_PAGE: Successfully loaded users with invited', { 
+            actualUsers: actualUsers.length,
+            invitedUsers: invitedUsers.length,
+            total: allUsers.length
+          });
+        }
       } else {
         logger.warn('USER_PAGE: Using empty allowlist due to load failure');
-        setAllowlist({ allowedEmails: [], adminEmails: [], allowedStudents: [], superAdmins: [] });
+        setAllowlist({ allowedEmails: [], adminEmails: [], allowedStudents: [], allowedInstructors: [], allowedHr: [], superAdmins: [] });
       }
       
       setPageState(PAGE_STATES.SUCCESS);
@@ -362,6 +419,105 @@ const UsersPage = ({ isDashboardTab = false }) => {
       }
     });
   }, [toast, t]);
+
+  const handleSendWelcomeEmail = useCallback(async (email, role, displayName) => {
+    // Show confirmation modal
+    setConfirmModal({
+      isOpen: true,
+      title: t('send_welcome_email') || 'Send Welcome Email',
+      message: t('send_welcome_email_confirmation', { email }) || `Send welcome email to ${email}?`,
+      confirmText: t('send_email') || 'Send Email',
+      variant: 'primary',
+      onConfirm: async () => {
+        try {
+          const { sendUserWelcomeEmail } = await import('@services/business/notificationService');
+          const result = await sendUserWelcomeEmail({
+            email: email,
+            role: role,
+            displayName: displayName,
+            userId: email // Use email as userId for now
+          });
+          
+          if (result.success) {
+            toast?.showSuccess(t('welcome_email_sent') || 'Welcome email sent successfully!');
+            logger.info('✅ Welcome email sent manually via consolidated service', { email, role });
+          } else {
+            toast?.showError(t('welcome_email_failed') || 'Failed to send welcome email');
+            logger.error('❌ Failed to send welcome email via consolidated service', { email, role, error: result.error });
+          }
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          logger.error('Error:', error);
+          toast?.showError(t('users_action_failed', { error: error.message }));
+        }
+      }
+    });
+  }, [toast, t]);
+
+  const handleRemoveFromAllowlist = useCallback(async (email, role) => {
+    // Show confirmation modal
+    setConfirmModal({
+      isOpen: true,
+      title: t('remove_invitation') || 'Remove Invitation',
+      message: t('remove_invitation_confirmation', { email }) || `Remove invitation for ${email}? They will no longer be able to sign up.`,
+      confirmText: t('remove') || 'Remove',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          // Import allowlist functions
+          const { getAllowlist, updateAllowlist } = await import('@services/other/config');
+          
+          // Get current allowlist
+          const allowlistResult = await getAllowlist();
+          if (!allowlistResult.success) {
+            throw new Error('Failed to load allowlist');
+          }
+          
+          const allowlistData = allowlistResult.data;
+          let newAllowlist = { ...allowlistData };
+          
+          // Remove from appropriate array based on role
+          if (role === ROLE_STRINGS.STUDENT) {
+            if (newAllowlist.allowedStudents?.includes(email)) {
+              newAllowlist.allowedStudents = newAllowlist.allowedStudents.filter(e => e !== email);
+            } else if (newAllowlist.allowedEmails?.includes(email)) {
+              newAllowlist.allowedEmails = newAllowlist.allowedEmails.filter(e => e !== email);
+            }
+          } else if (role === ROLE_STRINGS.INSTRUCTOR) {
+            newAllowlist.allowedInstructors = newAllowlist.allowedInstructors?.filter(e => e !== email) || [];
+          } else if (role === ROLE_STRINGS.HR) {
+            newAllowlist.allowedHr = newAllowlist.allowedHr?.filter(e => e !== email) || [];
+          } else if (role === ROLE_STRINGS.ADMIN) {
+            newAllowlist.adminEmails = newAllowlist.adminEmails?.filter(e => e !== email) || [];
+          } else if (role === ROLE_STRINGS.SUPER_ADMIN) {
+            // Don't allow removing SuperAdmins from allowlist
+            toast?.showError('Cannot remove SuperAdmin invitation');
+            setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            return;
+          }
+          
+          // Save updated allowlist
+          const updateResult = await updateAllowlist(newAllowlist);
+          if (updateResult.success) {
+            toast?.showSuccess(t('invitation_removed') || 'Invitation removed successfully');
+            logger.info('✅ Invitation removed successfully', { email, role });
+            
+            // Reload data to update the grid
+            loadData(true);
+          } else {
+            throw new Error(updateResult.error);
+          }
+          
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          logger.error('Error removing invitation:', error);
+          toast?.showError(t('failed_to_remove_invitation') || 'Failed to remove invitation');
+        }
+      }
+    });
+  }, [toast, t, loadData]);
 
   const openQRCodeInNewTab = useCallback((user) => {
     const qrUrl = `/qrcode/${encodeURIComponent(user.studentNumber)}`;
@@ -617,6 +773,16 @@ const UsersPage = ({ isDashboardTab = false }) => {
     {
       field: 'status', headerName: t('status_col'), width: 100,
       renderCell: (params) => {
+        // Check if this is an invited user
+        if (params.row.isInvited) {
+          return (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-warning, #f59e0b)', fontWeight: 500 }}>
+              {getThemedIcon('ui', 'mail', 14, theme)}
+              {t('status_invited') || 'Invited'}
+            </span>
+          );
+        }
+        
         const isDisabled = isUserDisabledAtUserLevel(params.row);
         if (isDisabled) {
           return (
@@ -661,118 +827,157 @@ const UsersPage = ({ isDashboardTab = false }) => {
       field: 'actions', headerName: t('actions_col'), width: 280, sortable: false, filterable: false,
       renderCell: (params) => (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {(() => {
-            const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === ROLE_STRINGS.SUPER_ADMIN;
-            const currentUserIsSuperAdmin = user?.isSuperAdmin || user?.role === ROLE_STRINGS.SUPER_ADMIN;
-            const canEdit = !isSuperAdminUser || currentUserIsSuperAdmin;
-            
-            return (
+          {params.row.isInvited ? (
+            // Invited users get limited actions
+            <>
               <Button 
                 size="sm" 
                 variant="ghost" 
-                icon={getThemedIcon('ui', 'edit', 16, theme)} 
-                onClick={() => handleEditUser(params.row)}
-                disabled={!canEdit}
-                title={canEdit ? (t('edit') || 'Edit') : 'Only Super Admin can edit Super Admin'}
-                style={{ opacity: canEdit ? 1 : 0.5 }}
+                onClick={() => handleSendWelcomeEmail(params.row.email, params.row.role, params.row.displayName)}
+                title={t('resend_welcome_email') || 'Resend Welcome Email'}
+                style={{ border: 'none' }}
               >
-                {t('edit') || 'Edit'}
+                {getThemedIcon('ui', 'mail', 16, theme)}
               </Button>
-            );
-          })()}
-          {(() => {
-            // Check if user has student role from boolean flags
-            const hasStudentRole = isStudent(params.row);
-            const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === ROLE_STRINGS.SUPER_ADMIN;
-            const isInstructorUser = params.row.isInstructor || params.row.role === ROLE_STRINGS.INSTRUCTOR;
-
-            // Show QR code for students (functional), super admins, and instructors (disabled)
-            if (params.row.studentNumber && (hasStudentRole || isSuperAdminUser || isInstructorUser)) {
-              const canUseQR = hasStudentRole;
-              let title;
-              
-              if (canUseQR) {
-                title = t('view_qr_code') || 'View QR Code';
-              } else if (isSuperAdminUser && isInstructorUser) {
-                title = 'QR Code (Student only) - Super Admin & Instructor';
-              } else if (isSuperAdminUser) {
-                title = 'QR Code (Student only) - Super Admin';
-              } else if (isInstructorUser) {
-                title = 'QR Code (Student only) - Instructor';
-              } else {
-                title = 'QR Code (Student only)';
-              }
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                onClick={() => handleRemoveFromAllowlist(params.row.email, params.row.role)}
+                title={t('remove_invitation') || 'Remove Invitation'}
+                style={{ border: 'none', color: '#dc2626' }}
+              >
+                {getThemedIcon('ui', 'x', 16, theme)}
+              </Button>
+            </>
+          ) : (
+            // Existing users get full actions - start with edit button
+            (() => {
+              const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === ROLE_STRINGS.SUPER_ADMIN;
+              const currentUserIsSuperAdmin = user?.isSuperAdmin || user?.role === ROLE_STRINGS.SUPER_ADMIN;
+              const canEdit = !isSuperAdminUser || currentUserIsSuperAdmin;
               
               return (
-                <>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => canUseQR && openQRCodeInNewTab(params.row)}
-                    title={title}
-                    disabled={!canUseQR}
-                    style={{ opacity: canUseQR ? 1 : 0.5, border: 'none' }}
-                  >
-                    {getThemedIcon('ui', 'qr_code', 16, theme)}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => canUseQR && handleSendQRCodeEmail(params.row)}
-                    title={canUseQR ? 'Send QR Code Email' : 'QR Code Email (Student only)'}
-                    disabled={!canUseQR}
-                    style={{ opacity: canUseQR ? 1 : 0.5, border: 'none' }}
-                  >
-                    {getThemedIcon('ui', 'mail', 16, theme)}
-                  </Button>
-                </>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  icon={getThemedIcon('ui', 'edit', 16, theme)} 
+                  onClick={() => handleEditUser(params.row)}
+                  disabled={!canEdit}
+                  title={canEdit ? (t('edit') || 'Edit') : 'Only Super Admin can edit Super Admin'}
+                  style={{ opacity: canEdit ? 1 : 0.5 }}
+                >
+                  {t('edit') || 'Edit'}
+                </Button>
               );
-            }
-            return null;
-          })()}
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            onClick={() => handleResetPassword(params.row.email)}
-            title={t('reset_password') || 'Reset Password'}
-            style={{ border: 'none' }}
-          >
-            {getThemedIcon('ui', 'key_round', 16, theme)}
-          </Button>
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            icon={isUserDisabledAtUserLevel(params.row) ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
-            style={{ color: isUserDisabledAtUserLevel(params.row) ? '#28a745' : '#dc2626' }}
-            onClick={() => handleToggleUserStatus(params.row)}
-            title={isUserDisabledAtUserLevel(params.row) ? 'Enable' : 'Disable'}
-            disabled={isAdminUser(params.row) && !isUserDisabledAtUserLevel(params.row)}
-          >
-            {isUserDisabledAtUserLevel(params.row) ? 'Enable' : 'Disable'}
-          </Button>
-          {(() => {
-            const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === ROLE_STRINGS.SUPER_ADMIN;
-            const currentUserIsSuperAdmin = user?.isSuperAdmin || user?.role === ROLE_STRINGS.SUPER_ADMIN;
-            const canDelete = !isSuperAdminUser || currentUserIsSuperAdmin;
-            
-            return (
+            })()
+          )}
+          {!params.row.isInvited && (
+            // Show remaining actions only for existing users (not invited)
+            <>
+              {(() => {
+                // Check if user has student role from boolean flags
+                const hasStudentRole = isStudent(params.row);
+                const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === ROLE_STRINGS.SUPER_ADMIN;
+                const isInstructorUser = params.row.isInstructor || params.row.role === ROLE_STRINGS.INSTRUCTOR;
+
+                // Show QR code for students (functional), super admins, and instructors (disabled)
+                if (params.row.studentNumber && (hasStudentRole || isSuperAdminUser || isInstructorUser)) {
+                  const canUseQR = hasStudentRole;
+                  let title;
+                  
+                  if (canUseQR) {
+                    title = t('view_qr_code') || 'View QR Code';
+                  } else if (isSuperAdminUser && isInstructorUser) {
+                    title = 'QR Code (Student only) - Super Admin & Instructor';
+                  } else if (isSuperAdminUser) {
+                    title = 'QR Code (Student only) - Super Admin';
+                  } else if (isInstructorUser) {
+                    title = 'QR Code (Student only) - Instructor';
+                  } else {
+                    title = 'QR Code (Student only)';
+                  }
+                  
+                  return (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => canUseQR && openQRCodeInNewTab(params.row)}
+                        title={title}
+                        disabled={!canUseQR}
+                        style={{ opacity: canUseQR ? 1 : 0.5, border: 'none' }}
+                      >
+                        {getThemedIcon('ui', 'qr_code', 16, theme)}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => canUseQR && handleSendQRCodeEmail(params.row)}
+                        title={canUseQR ? 'Send QR Code Email' : 'QR Code Email (Student only)'}
+                        disabled={!canUseQR}
+                        style={{ opacity: canUseQR ? 1 : 0.5, border: 'none' }}
+                      >
+                        {getThemedIcon('ui', 'mail', 16, theme)}
+                      </Button>
+                    </>
+                  );
+                }
+                return null;
+              })()}
               <Button 
                 size="sm" 
                 variant="ghost" 
-                icon={getThemedIcon('ui', 'trash', 16, theme)}
-                style={{ color: '#dc2626', opacity: canDelete ? 1 : 0.5 }}
-                onClick={() => canDelete && handleDeleteUser(params.row)}
-                disabled={!canDelete}
-                title={canDelete ? (t('delete') || 'Delete') : 'Cannot delete Super Admin'}
+                onClick={() => handleResetPassword(params.row.email)}
+                title={t('reset_password') || 'Reset Password'}
+                style={{ border: 'none' }}
               >
-                {t('delete') || 'Delete'}
+                {getThemedIcon('ui', 'key_round', 16, theme)}
               </Button>
-            );
-          })()}
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                onClick={() => handleSendWelcomeEmail(params.row.email, params.row.role, params.row.displayName)}
+                title={t('send_welcome_email') || 'Send Welcome Email'}
+                style={{ border: 'none' }}
+              >
+                {getThemedIcon('ui', 'mail', 16, theme)}
+              </Button>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                icon={isUserDisabledAtUserLevel(params.row) ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
+                style={{ color: isUserDisabledAtUserLevel(params.row) ? '#28a745' : '#dc2626' }}
+                onClick={() => handleToggleUserStatus(params.row)}
+                title={isUserDisabledAtUserLevel(params.row) ? 'Enable' : 'Disable'}
+                disabled={isAdminUser(params.row) && !isUserDisabledAtUserLevel(params.row)}
+              >
+                {isUserDisabledAtUserLevel(params.row) ? 'Enable' : 'Disable'}
+              </Button>
+              {(() => {
+                const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === ROLE_STRINGS.SUPER_ADMIN;
+                const currentUserIsSuperAdmin = user?.isSuperAdmin || user?.role === ROLE_STRINGS.SUPER_ADMIN;
+                const canDelete = !isSuperAdminUser || currentUserIsSuperAdmin;
+                
+                return (
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    icon={getThemedIcon('ui', 'trash', 16, theme)}
+                    style={{ color: '#dc2626', opacity: canDelete ? 1 : 0.5 }}
+                    onClick={() => canDelete && handleDeleteUser(params.row)}
+                    disabled={!canDelete}
+                    title={canDelete ? (t('delete') || 'Delete') : 'Cannot delete Super Admin'}
+                  >
+                    {t('delete') || 'Delete'}
+                  </Button>
+                );
+              })()}
+            </>
+          )}
         </div>
       )
     }
-  ], [t, theme, handleEditUser, openQRCodeInNewTab, handleSendQRCodeEmail, handleResetPassword, handleToggleUserStatus, handleDeleteUser, user?.isSuperAdmin, user?.role]);
+  ], [t, theme, handleEditUser, openQRCodeInNewTab, handleSendQRCodeEmail, handleResetPassword, handleSendWelcomeEmail, handleRemoveFromAllowlist, handleToggleUserStatus, handleDeleteUser, user?.isSuperAdmin, user?.role]);
 
   // Helper function to get role icon using getThemedIcon
   const getRoleIconThemed = (role) => {
@@ -932,8 +1137,24 @@ const UsersPage = ({ isDashboardTab = false }) => {
 
           const { updateAllowlist } = await import('@services/other/config');
           
-          // All non-student roles go to adminEmails, students go to allowedStudents (new structure)
-          const targetList = submitData.role === ROLE_STRINGS.STUDENT ? 'allowedStudents' : 'adminEmails';
+          // Use specific arrays for each role (new structure)
+          let targetList;
+          switch (submitData.role) {
+            case ROLE_STRINGS.STUDENT:
+              targetList = 'allowedStudents';
+              break;
+            case ROLE_STRINGS.INSTRUCTOR:
+              targetList = 'allowedInstructors';
+              break;
+            case ROLE_STRINGS.HR:
+              targetList = 'allowedHr';
+              break;
+            case ROLE_STRINGS.ADMIN:
+              targetList = 'adminEmails';
+              break;
+            default:
+              targetList = 'adminEmails'; // fallback
+          }
           const currentEmails = allowlist[targetList] || [];
 
           logger.info('🔧 USER_PAGE: Allowlist target determined', {
@@ -963,6 +1184,39 @@ const UsersPage = ({ isDashboardTab = false }) => {
                   role: submitData.role,
                   targetList: targetList
                 });
+
+                // Send welcome email
+                try {
+                  const { sendUserWelcomeEmail } = await import('@services/business/notificationService');
+                  const emailResult = await sendUserWelcomeEmail({
+                    email: submitData.email,
+                    role: submitData.role,
+                    displayName: submitData.displayName,
+                    userId: submitData.email // Use email as userId for now
+                  });
+                  
+                  if (emailResult.success) {
+                    logger.info('📧 USER_PAGE: Welcome email sent successfully via consolidated service', {
+                      email: submitData.email,
+                      role: submitData.role
+                    });
+                    toast?.showSuccess(t('user_added_and_email_sent') || 'User added and welcome email sent!');
+                  } else {
+                    logger.warn('⚠️ USER_PAGE: Welcome email failed, but user was added', {
+                      email: submitData.email,
+                      role: submitData.role,
+                      error: emailResult.error
+                    });
+                    toast?.showSuccess(t('user_added_email_failed') || 'User added, but email failed to send');
+                  }
+                } catch (emailError) {
+                  logger.error('❌ USER_PAGE: Exception sending welcome email', {
+                    email: submitData.email,
+                    role: submitData.role,
+                    error: emailError.message
+                  });
+                  toast?.showSuccess(t('user_added_email_failed') || 'User added, but email failed to send');
+                }
               } else {
                 logger.error('❌ USER_PAGE: Failed to update allowlist', {
                   error: result.error,

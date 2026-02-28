@@ -36,7 +36,7 @@ export const EMAIL_TEMPLATE_TYPES = {
   QR_CODE_STUDENT: 'qr_code_student',
   
   // Welcome Templates
-  WELCOME_DEFAULT: 'welcome_default',
+  WELCOME_DEFAULT: 'welcome_signup_default',
   
   // Chat Templates
   CHAT_DIGEST_DEFAULT: 'chat_digest_default',

@@ -1,9 +1,11 @@
 import { addNotification } from './notificationService';
 import { sendEmail } from './emailService';
+import { sendViaGmailFallback } from './emailService';
 import { NOTIFICATION_CHANNELS, NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { EMAIL_TEMPLATE_TYPES } from '@constants/templateTypes';
 import { DICT } from '@contexts/LangContext';
 import { logNotificationActivity } from './notificationService';
+import logger from '@utils/logger';
 
 /**
  * Smart Notification Gateway
@@ -86,24 +88,33 @@ export const notificationGateway = {
         const titleAr = this.getLocalizedText('ar', `notify.${trigger}.title`, details.variables) || details.title || '🎓 رمز الطالب الخاص بك';
         const messageAr = this.getLocalizedText('ar', `notify.${trigger}.message`, details.variables) || details.message || 'رمز الاستجابة السريعة جاهز! انقر على الرابط للوصول إليه فوراً.';
 
-        const emailResult = await sendEmail({
+        let emailResult;
+        // Skip template complexity - go straight to Gmail
+        emailResult = await sendViaGmailFallback({
           to: details.email,
-          templateId: templateId,
-          userId: userId, // Pass userId for Firestore rules
-          variables: {
-            ...details.variables,
-            // Bilingual content variables (camelCase) - for reference only
-            titleEn: titleEn,
-            titleAr: titleAr,
-            messageEn: messageEn,
-            messageAr: messageAr,
-            // System variables
-            siteName: 'QAF Learning Hub',
-            siteUrl: window.location.origin,
-            userLang: lang, // User's preferred language
-            createdAt: new Date().toISOString(), // Qatar timezone will be applied by server
-            updatedAt: new Date().toISOString()  // Qatar timezone will be applied by server
-          }
+          subject: titleEn || 'Welcome to QAF Learning Hub',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #4f46e5;">${titleEn || 'Welcome to QAF Learning Hub'}</h2>
+              <p>${messageEn || 'Welcome to our learning platform!'}</p>
+              <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>Your Details:</h3>
+                <p><strong>Email:</strong> ${details.email}</p>
+                <p><strong>Role:</strong> ${details.variables?.role || 'Student'}</p>
+                <p><strong>Name:</strong> ${details.variables?.displayName || details.email}</p>
+              </div>
+              <p>
+                <a href="${window.location.origin}" style="background: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                  Access QAF Learning Hub
+                </a>
+              </p>
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+              <p style="color: #6b7280; font-size: 14px;">
+                This email was sent by QAF Learning Hub. If you have questions, please contact support.
+              </p>
+            </div>
+          `,
+          text: `Welcome to QAF Learning Hub!\n\nEmail: ${details.email}\nRole: ${details.variables?.role || 'Student'}\n\nAccess the platform at: ${window.location.origin}`
         });
 
         results[NOTIFICATION_CHANNELS.EMAIL] = emailResult;
@@ -215,5 +226,40 @@ export const notificationGateway = {
       return { web: true, email: true };
     }
   },
+
+  /**
+   * Send welcome notification to a new user
+   * @param {string} email - User's email
+   * @param {string} role - User's role (student, instructor, hr, admin)
+   * @param {string} displayName - User's display name
+   * @param {string} userId - User's ID (optional)
+   * @param {string} lang - User's language (optional, defaults to 'en')
+   */
+  async sendWelcomeNotification(email, role, displayName = null, userId = null, lang = 'en') {
+    return await this.send(NOTIFICATION_TRIGGERS.WELCOME_SIGNUP, {
+      email,
+      role,
+      userId,
+      lang,
+      variables: {
+        recipientName: displayName || email.split('@')[0],
+        userEmail: email,
+        displayName: displayName || email.split('@')[0],
+        platformUrl: window.location.origin,
+        siteName: 'QAF Learning Hub',
+        currentDate: new Date().toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }),
+        // Keep legacy variables for compatibility
+        email,
+        role,
+        signupUrl: `${window.location.origin}/signup`,
+        loginUrl: `${window.location.origin}/login`,
+        siteUrl: window.location.origin
+      }
+    });
+  }
 };
 

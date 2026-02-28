@@ -9,7 +9,8 @@ import {
   markAllNotificationsAsRead as markAllNotificationsAsReadInDb,
   archiveNotification as archiveNotificationInDb,
   deleteNotification as deleteNotificationFromDb,
-  onNotificationsChange as onNotificationsChangeFromDb
+  onNotificationsChange as onNotificationsChangeFromDb,
+  logNotificationActivity as logNotificationActivityFromDb
 } from '../db/notificationDbService';
 
 // ===== Notifications =====
@@ -407,24 +408,8 @@ export async function scheduleReminders(reminders) {
  */
 export async function logNotificationActivity(activity) {
   try {
-    const logEntry = {
-      ...activity,
-      timestamp: new Date().toISOString(),
-      id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    };
-    
-    // Store in notificationLogs collection
-    await addDoc(collection(db, 'notificationLogs'), logEntry);
-    
-    logger.info('Notification Activity:', {
-      trigger: activity.trigger,
-      channel: activity.channel,
-      userId: activity.userId,
-      success: activity.success,
-      timestamp: logEntry.timestamp
-    });
-    
-    return { success: true, logId: logEntry.id };
+    // Use the database service instead of direct Firebase access
+    return await logNotificationActivityFromDb(activity);
   } catch (error) {
     logger.error('Error logging notification activity:', error);
     return { success: false, error: error.message };
@@ -662,3 +647,180 @@ function formatDate(date) {
     minute: '2-digit'
   });
 }
+
+// ===== USER NOTIFICATIONS =====
+// Centralized user notification methods using the notification gateway
+
+/**
+ * Send welcome email to a new user
+ * @param {Object} userData - User data
+ * @param {string} userData.email - User's email
+ * @param {string} userData.role - User's role
+ * @param {string} userData.displayName - User's display name
+ * @param {string} userData.userId - User's ID (optional)
+ * @param {string} userData.lang - User's language (optional, defaults to 'en')
+ */
+export const sendUserWelcomeEmail = async (userData) => {
+  const { email, role, displayName, userId, lang = 'en' } = userData;
+  
+  try {
+    logger.info('👋 Sending user welcome notification', { email, role, displayName });
+    
+    const result = await notificationGateway.sendWelcomeNotification(
+      email, 
+      role, 
+      displayName, 
+      userId, 
+      lang
+    );
+    
+    return result;
+  } catch (error) {
+    logger.error('❌ Failed to send user welcome notification', { 
+      email, 
+      role, 
+      error: error.message 
+    });
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send password reset email to user
+ * @param {Object} userData - User data
+ * @param {string} userData.email - User's email
+ * @param {string} userData.role - User's role
+ * @param {string} userData.displayName - User's display name
+ * @param {string} userData.userId - User's ID (optional)
+ * @param {string} userData.lang - User's language (optional, defaults to 'en')
+ */
+export const sendUserPasswordReset = async (userData) => {
+  const { email, role, displayName, userId, lang = 'en' } = userData;
+  
+  try {
+    logger.info('🔑 Sending user password reset notification', { email, role });
+    
+    const result = await notificationGateway.send(NOTIFICATION_TRIGGERS.PASSWORD_RESET, {
+      email,
+      role,
+      userId,
+      lang,
+      variables: {
+        email,
+        role,
+        displayName: displayName || email.split('@')[0],
+        resetUrl: `${window.location.origin}/reset-password`,
+        loginUrl: `${window.location.origin}/login`,
+        siteName: 'QAF Learning Hub',
+        siteUrl: window.location.origin
+      }
+    });
+    
+    return result;
+  } catch (error) {
+    logger.error('❌ Failed to send user password reset notification', { 
+      email, 
+      role, 
+      error: error.message 
+    });
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send QR code email to student
+ * @param {Object} userData - User data
+ * @param {string} userData.email - User's email
+ * @param {string} userData.role - User's role
+ * @param {string} userData.displayName - User's display name
+ * @param {string} userData.studentNumber - Student's number
+ * @param {string} userData.userId - User's ID (optional)
+ * @param {string} userData.lang - User's language (optional, defaults to 'en')
+ */
+export const sendUserQRCode = async (userData) => {
+  const { email, role, displayName, studentNumber, userId, lang = 'en' } = userData;
+  
+  try {
+    logger.info('📱 Sending user QR code notification', { email, role, studentNumber });
+    
+    const result = await notificationGateway.send(NOTIFICATION_TRIGGERS.QR_CODE_SENT, {
+      email,
+      role,
+      userId,
+      lang,
+      variables: {
+        email,
+        role,
+        displayName: displayName || email.split('@')[0],
+        studentNumber,
+        qrUrl: `${window.location.origin}/qrcode/${studentNumber}`,
+        loginUrl: `${window.location.origin}/login`,
+        siteName: 'QAF Learning Hub',
+        siteUrl: window.location.origin
+      }
+    });
+    
+    return result;
+  } catch (error) {
+    logger.error('❌ Failed to send user QR code notification', { 
+      email, 
+      role, 
+      studentNumber,
+      error: error.message 
+    });
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send enrollment confirmation email
+ * @param {Object} userData - User data
+ * @param {string} userData.email - User's email
+ * @param {string} userData.role - User's role
+ * @param {string} userData.displayName - User's display name
+ * @param {string} userData.className - Class name
+ * @param {string} userData.userId - User's ID (optional)
+ * @param {string} userData.lang - User's language (optional, defaults to 'en')
+ */
+export const sendUserEnrollmentConfirmation = async (userData) => {
+  const { email, role, displayName, className, userId, lang = 'en' } = userData;
+  
+  try {
+    logger.info('✅ Sending user enrollment confirmation', { email, role, className });
+    
+    const result = await notificationGateway.send(NOTIFICATION_TRIGGERS.ENROLLMENT_CONFIRMED, {
+      email,
+      role,
+      userId,
+      lang,
+      variables: {
+        email,
+        role,
+        displayName: displayName || email.split('@')[0],
+        className,
+        loginUrl: `${window.location.origin}/login`,
+        dashboardUrl: `${window.location.origin}/dashboard`,
+        siteName: 'QAF Learning Hub',
+        siteUrl: window.location.origin
+      }
+    });
+    
+    return result;
+  } catch (error) {
+    logger.error('❌ Failed to send user enrollment confirmation', { 
+      email, 
+      role, 
+      className,
+      error: error.message 
+    });
+    return { success: false, error: error.message };
+  }
+};
+
+// Export all user notifications as a unified object
+export const userNotifications = {
+  welcome: sendUserWelcomeEmail,
+  passwordReset: sendUserPasswordReset,
+  qrCode: sendUserQRCode,
+  enrollmentConfirmation: sendUserEnrollmentConfirmation
+};

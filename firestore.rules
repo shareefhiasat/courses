@@ -9,10 +9,16 @@ service cloud.firestore {
     // Allow admin via custom claim OR via config/allowlist.adminEmails or superAdmins
     function isAllowlistAdmin() {
       return isSignedIn() &&
-        exists(/databases/$(database)/documents/config/allowlist) &&
         (
-          get(/databases/$(database)/documents/config/allowlist).data.adminEmails.hasAny([request.auth.token.email]) ||
-          get(/databases/$(database)/documents/config/allowlist).data.superAdmins.hasAny([request.auth.token.email])
+          // If config/allowlist exists, check against it
+          (exists(/databases/$(database)/documents/config/allowlist) &&
+            (
+              get(/databases/$(database)/documents/config/allowlist).data.adminEmails.hasAny([request.auth.token.email]) ||
+              get(/databases/$(database)/documents/config/allowlist).data.superAdmins.hasAny([request.auth.token.email])
+            )
+          ) ||
+          // If config doesn't exist yet, allow users with superAdmin custom claim to bootstrap
+          (!exists(/databases/$(database)/documents/config/allowlist) && request.auth.token.superAdmin == true)
         );
     }
 
@@ -80,14 +86,8 @@ service cloud.firestore {
       allow read: if isSignedIn();
 
       // Write: the user themselves OR an admin
-      // For bookmark updates: only allow bookmark fields and lastBookmarkUpdate
-      allow write: if (isSignedIn() && request.auth.uid == userId && 
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bookmarks', 'lastBookmarkUpdate']) ||
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['resourceProgress']) ||
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['enrolledClasses']) ||
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messageColor']) ||
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bookmarks', 'lastBookmarkUpdate', 'resourceProgress', 'enrolledClasses', 'messageColor']))
-      ) || isAdmin();
+      // Users can write any field to their own document
+      allow write: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
 
       // Subcollection: badges under user (used by StudentDashboard achievements)
       match /badges/{badgeId} {

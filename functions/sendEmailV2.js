@@ -24,7 +24,9 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
     );
   }
 
-  const db = admin.firestore();
+  const db = admin.firestore({
+    ignoreUndefinedProperties: true
+  });
 
   try {
     // 1. Prepare email content (either from template or raw HTML)
@@ -110,12 +112,11 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
     console.log("Email sent successfully:", info.messageId);
 
     // Log successful email to Firestore
-    await admin
-      .firestore()
+    await db
       .collection("emailLogs")
       .add({
         to: Array.isArray(data.to) ? data.to : [data.to],
-        subject: data.subject,
+        subject: emailSubject, // Use rendered subject instead of data.subject
         type: data.type || "custom", // system, class, quiz, attendance, newsletter, custom
         classId: data.classId || null,
         templateId: data.template || null,
@@ -139,12 +140,11 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
 
     // Log failed email to Firestore
     try {
-      await admin
-        .firestore()
+      await db
         .collection("emailLogs")
         .add({
           to: Array.isArray(data.to) ? data.to : [data.to],
-          subject: data.subject,
+          subject: emailSubject, // Use rendered subject instead of data.subject
           type: data.type || "custom",
           classId: data.classId || null,
           templateId: data.template || null,

@@ -284,6 +284,19 @@ export const AuthProvider = ({ children }) => {
           try {
             const userProfile = await getUserProfile(firebaseUser);
             if (userProfile) {
+              // Check if user is disabled or deleted - logout immediately
+              if (userProfile.disabled === true || userProfile.status === 'disabled' || userProfile.deleted === true) {
+                logger.warn('[Auth] User is disabled/deleted, logging out:', { 
+                  uid: firebaseUser.uid, 
+                  email: firebaseUser.email,
+                  disabled: userProfile.disabled,
+                  status: userProfile.status,
+                  deleted: userProfile.deleted
+                });
+                await auth.signOut();
+                return;
+              }
+              
               // logger.log('🔧 AuthContext loaded user profile:', userProfile);
               // logger.log('🔧 AuthContext userProfile.displayName:', userProfile.displayName);
               // logger.log('🔧 AuthContext userProfile.realName:', userProfile.realName);

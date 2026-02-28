@@ -62,6 +62,24 @@ export const getConfig = async (type, lang = 'en') => {
       };
     }
   } catch (error) {
+    // Check if this is a missing collection error
+    if (error.message.includes('Missing or insufficient permissions') || 
+        error.code === 'permission-denied' ||
+        error.message.includes('No document to update')) {
+      logger.warn(`Config collection not available for ${type}, returning default config:`, { error: error.message });
+      
+      // Return default config if collection doesn't exist
+      return { 
+        success: true, 
+        data: {
+          ...DEFAULT_CONFIG[type],
+          type,
+          label: getConfigTypeLabel(type, lang),
+          lastUpdated: null
+        }
+      };
+    }
+    
     logger.error(`Error getting config for ${type}:`, error);
     return { success: false, error: error.message };
   }
@@ -102,6 +120,31 @@ export const updateConfig = async (type, configData, userId = null) => {
     
     return { success: true };
   } catch (error) {
+    // Check if this is a missing collection error
+    if (error.message.includes('Missing or insufficient permissions') || 
+        error.code === 'permission-denied' ||
+        error.message.includes('No document to update')) {
+      logger.warn(`Config collection not available for ${type}, creating new document:`, { error: error.message });
+      
+      // Try to create the document instead
+      try {
+        const docRef = doc(db, "config", type);
+        const mergedConfig = mergeWithDefaults(type, configData);
+        
+        await setDoc(docRef, {
+          ...mergedConfig,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          updatedBy: userId
+        });
+        
+        return { success: true };
+      } catch (createError) {
+        logger.error(`Failed to create config document for ${type}:`, createError);
+        return { success: false, error: createError.message };
+      }
+    }
+    
     logger.error(`Error updating config for ${type}:`, error);
     return { success: false, error: error.message };
   }
@@ -144,6 +187,17 @@ export const setConfig = async (type, configData, userId = null) => {
     
     return { success: true };
   } catch (error) {
+    // Check if this is a missing collection error
+    if (error.message.includes('Missing or insufficient permissions') || 
+        error.code === 'permission-denied' ||
+        error.message.includes('No document to update')) {
+      logger.warn(`Config collection not available for ${type}, cannot create document:`, { error: error.message });
+      return { 
+        success: false, 
+        error: `Config collection not available. Please check Firestore permissions for the 'config' collection.` 
+      };
+    }
+    
     logger.error(`Error setting config for ${type}:`, error);
     return { success: false, error: error.message };
   }
@@ -186,6 +240,10 @@ export const getAllowlist = async () => {
       data: {
         allowedEmails: result.data.allowedEmails || [],
         adminEmails: result.data.adminEmails || [],
+        allowedStudents: result.data.allowedStudents || [],
+        allowedInstructors: result.data.allowedInstructors || [],
+        allowedHr: result.data.allowedHr || [],
+        superAdmins: result.data.superAdmins || [],
         enabled: result.data.enabled || true,
         requireApproval: result.data.requireApproval || false
       }

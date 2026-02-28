@@ -558,6 +558,29 @@ export const sendEmail = async (emailData) => {
   return await service.sendSingleEmail(emailData);
 };
 
+// Backward compatibility - redirect to consolidated notification service
+export const sendWelcomeEmail = async (email, role, displayName = null, userId = null, lang = 'en') => {
+  try {
+    logger.info('📧 Sending welcome email via consolidated service', { email, role, displayName, userId, lang });
+    
+    // Import consolidated service dynamically to avoid circular dependencies
+    const { sendUserWelcomeEmail } = await import('./notificationService');
+    
+    const result = await sendUserWelcomeEmail({
+      email,
+      role,
+      displayName,
+      userId,
+      lang
+    });
+    
+    return result;
+  } catch (error) {
+    logger.error('❌ Exception sending welcome email via consolidated service', { email, role, error: error.message });
+    return { success: false, error: error.message };
+  }
+};
+
 export const getEmailTemplates = async () => {
   try {
     logger.debug('Loading email templates');
@@ -616,6 +639,30 @@ export const getEmailTemplates = async () => {
     logger.error('Failed to get email templates:', error);
     return { success: false, error: error.message };
   }
+};
+
+/**
+ * Send email via Gmail direct function
+ * Simple - no templates, no complexity
+ */
+export const sendViaGmailFallback = async (emailData) => {
+  const { httpsCallable } = await import('firebase/functions');
+  const { functions } = await import('../other/config');
+  
+  const sendGmailEmailFn = httpsCallable(functions, 'sendGmailEmail');
+  
+  const result = await sendGmailEmailFn({
+    to: emailData.to,
+    subject: emailData.subject || 'Welcome to QAF Learning Hub',
+    html: emailData.html || '',
+    text: emailData.text || ''
+  });
+  
+  return {
+    success: true,
+    messageId: result.data?.messageId,
+    provider: 'gmail_direct'
+  };
 };
 
 export default getEmailService;

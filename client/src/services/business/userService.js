@@ -194,7 +194,13 @@ export const ensureUserDoc = async (uid, data = {}) => {
       displayName: data.displayName || null,
       realName: data.realName || null,
       studentNumber: data.studentNumber || null,
-      role: data.role || "student",
+      phoneNumber: data.phoneNumber || null,
+      // S flags instead of deprecated role field
+      isAdmin: false,
+      isSuperAdmin: false,
+      isHR: false,
+      isInstructor: false,
+      isStudent: true, // Default to student for new users
       createdAt: new Date(), // Will be converted to Timestamp by DB service
     };
     
