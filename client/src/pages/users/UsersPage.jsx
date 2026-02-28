@@ -50,7 +50,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
   const [autoAddToAllowlist, setAutoAddToAllowlist] = useState(true);
   const [allowlist, setAllowlist] = useState(() => {
     logger.info('🔧 USER_PAGE: Initializing allowlist state', { timestamp: new Date().toISOString() });
-    return { allowedEmails: [], adminEmails: [] };
+    return { allowedEmails: [], adminEmails: [], allowedStudents: [], superAdmins: [] };
   });
   
   // Quick filters
@@ -106,7 +106,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         getEnrollments(),
         getAllowlist().catch(error => {
           logger.warn('USER_PAGE: Failed to load allowlist', { error: error.message });
-          return { success: false, data: { allowedEmails: [], adminEmails: [] } };
+          return { success: false, data: { allowedEmails: [], adminEmails: [], allowedStudents: [], superAdmins: [] } };
         })
       ]);
       
@@ -135,14 +135,16 @@ const UsersPage = ({ isDashboardTab = false }) => {
       
       // Load allowlist data
       if (allowlistResult.success) {
-        setAllowlist(allowlistResult.data || { allowedEmails: [], adminEmails: [] });
+        setAllowlist(allowlistResult.data || { allowedEmails: [], adminEmails: [], allowedStudents: [], superAdmins: [] });
         logger.info('USER_PAGE: Successfully loaded allowlist', { 
           allowedEmails: allowlistResult.data?.allowedEmails?.length || 0,
-          adminEmails: allowlistResult.data?.adminEmails?.length || 0
+          adminEmails: allowlistResult.data?.adminEmails?.length || 0,
+          allowedStudents: allowlistResult.data?.allowedStudents?.length || 0,
+          superAdmins: allowlistResult.data?.superAdmins?.length || 0
         });
       } else {
         logger.warn('USER_PAGE: Using empty allowlist due to load failure');
-        setAllowlist({ allowedEmails: [], adminEmails: [] });
+        setAllowlist({ allowedEmails: [], adminEmails: [], allowedStudents: [], superAdmins: [] });
       }
       
       setPageState(PAGE_STATES.SUCCESS);
@@ -305,6 +307,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
         isDisabled: !isCurrentlyDisabled
       });
       if (result.success) {
+        // Close modal first
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        
         // Log activity
         try {
           const { logActivity } = await import('@services/other/activityLogger');
@@ -317,9 +322,13 @@ const UsersPage = ({ isDashboardTab = false }) => {
         toast?.showSuccess(isCurrentlyDisabled ? t('users_enabled_successfully') : t('users_disabled_successfully'));
         await loadData();
       } else {
+        // Close modal on error too
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
         toast?.showError(result.error || t('users_failed_to_update_user'));
       }
     } catch (error) {
+          // Close modal on exception too
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
           logger.error('Error:', error);
           toast?.showError(t('users_action_failed', { error: error.message }));
         }
@@ -340,8 +349,13 @@ const UsersPage = ({ isDashboardTab = false }) => {
       const { sendPasswordResetEmail } = await import('firebase/auth');
       const { auth } = await import('@services/other/config');
       await sendPasswordResetEmail(auth, email);
+      
+      // Close modal on success
+      setConfirmModal(prev => ({ ...prev, isOpen: false }));
       toast?.showSuccess(t('users_password_reset_email_sent', { email }));
     } catch (error) {
+          // Close modal on error too
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
           logger.error('Error:', error);
           toast?.showError(t('users_action_failed', { error: error.message }));
         }
@@ -799,14 +813,25 @@ const UsersPage = ({ isDashboardTab = false }) => {
       return;
     }
 
-    // Validate student number uniqueness for students
-    if (formData.role === ROLE_STRINGS.STUDENT && textValues.studentNumber?.trim()) {
-      const isDuplicate = users.some(user => 
+    // Validate email uniqueness across all users
+    const emailDuplicate = users.some(user => 
+      user.email === textValues.email.trim() && 
+      user.docId !== editingUser?.docId
+    );
+    
+    if (emailDuplicate) {
+      toast?.showError('Email already exists. Each user must have a unique email address.');
+      return;
+    }
+
+    // Validate student number uniqueness across all users (for all roles that provide it)
+    if (textValues.studentNumber?.trim()) {
+      const studentNumberDuplicate = users.some(user => 
         user.studentNumber === textValues.studentNumber.trim() && 
         user.docId !== editingUser?.docId
       );
       
-      if (isDuplicate) {
+      if (studentNumberDuplicate) {
         toast?.showError('Student number must be unique. This student number is already in use.');
         return;
       }
@@ -853,17 +878,62 @@ const UsersPage = ({ isDashboardTab = false }) => {
       } else {
         // Add to allowlist if checkbox is checked
         if (autoAddToAllowlist && submitData.email) {
+          // Validate student number is required for student invites
+          if (submitData.role === ROLE_STRINGS.STUDENT && !submitData.studentNumber?.trim()) {
+            logger.warn('❌ USER_PAGE: Student invite rejected - missing student number', {
+              email: submitData.email,
+              role: submitData.role,
+              timestamp: new Date().toISOString()
+            });
+            toast?.showError('Student number is required for student invites. Please provide a student number.');
+            return;
+          }
+
+          // Validate student number uniqueness for student invites
+          if (submitData.role === ROLE_STRINGS.STUDENT && submitData.studentNumber?.trim()) {
+            const studentNumberDuplicate = users.some(user => 
+              user.studentNumber === submitData.studentNumber.trim()
+            );
+            
+            logger.info('🔧 USER_PAGE: Checking student number uniqueness for invite', {
+              email: submitData.email,
+              studentNumber: submitData.studentNumber.trim(),
+              isDuplicate: studentNumberDuplicate,
+              existingUsers: users.filter(u => u.studentNumber).length
+            });
+            
+            if (studentNumberDuplicate) {
+              logger.warn('❌ USER_PAGE: Student invite rejected - duplicate student number', {
+                email: submitData.email,
+                studentNumber: submitData.studentNumber.trim(),
+                timestamp: new Date().toISOString()
+              });
+              toast?.showError('Student number must be unique. This student number is already assigned to another user.');
+              return;
+            }
+          }
+
           logger.info('🔧 USER_PAGE: Adding user to allowlist', {
             email: submitData.email,
             role: submitData.role,
+            studentNumber: submitData.studentNumber,
             autoAddToAllowlist: autoAddToAllowlist,
             timestamp: new Date().toISOString()
           });
 
+          // Log validation success for students
+          if (submitData.role === ROLE_STRINGS.STUDENT) {
+            logger.info('✅ USER_PAGE: Student invite validation passed', {
+              email: submitData.email,
+              studentNumber: submitData.studentNumber,
+              timestamp: new Date().toISOString()
+            });
+          }
+
           const { updateAllowlist } = await import('@services/other/config');
           
-          // All non-student roles go to adminEmails, only students go to allowedEmails
-          const targetList = submitData.role === ROLE_STRINGS.STUDENT ? 'allowedEmails' : 'adminEmails';
+          // All non-student roles go to adminEmails, students go to allowedStudents (new structure)
+          const targetList = submitData.role === ROLE_STRINGS.STUDENT ? 'allowedStudents' : 'adminEmails';
           const currentEmails = allowlist[targetList] || [];
 
           logger.info('🔧 USER_PAGE: Allowlist target determined', {
@@ -918,10 +988,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
             });
           }
           
-          toast?.showSuccess(t('invite_prepared_added_to_allowlist', { 
-            email: submitData.email, 
-            role: submitData.role 
-          }) || `Invite prepared. ${submitData.email} added to ${submitData.role} allowlist. ${t('ask_them_to_sign_up') || 'Ask them to sign up.'}`);
+          toast?.showSuccess(`✅ ${submitData.role === ROLE_STRINGS.STUDENT ? 'Student' : submitData.role.toUpperCase()} invitation prepared!\n\n📧 Email: ${submitData.email}\n🎯 Role: ${submitData.role}\n📋 Next steps: Ask them to check their email and sign up to activate their account.\n\nThey will receive their role permissions automatically after signing up.`);
         } else {
           logger.info('ℹ️ USER_PAGE: No allowlist update - checkbox disabled or no email', {
             autoAddToAllowlist: autoAddToAllowlist,

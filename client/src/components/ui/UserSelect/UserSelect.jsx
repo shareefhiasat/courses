@@ -4,6 +4,7 @@ import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } 
 import { getThemedIcon } from '@constants/iconTypes';
 import { getThemeColor } from '@constants/dashboardTypes';
 import { ROLE_STRINGS } from '@constants';
+import { isInstructor, isAdmin, isHR, isSuperAdmin } from '@services/business/userService';
 
 /**
  * UserSelect Component
@@ -112,7 +113,7 @@ const UserSelect = ({
       let enrollmentCount = 0;
       let displayCount = '';
       
-      if (isInstructorUser(u) || isAdminUser(u)) {
+      if (isInstructor(u) || isAdmin(u)) {
         // For instructors: count classes they teach
         console.log('🔍 [UserSelect] User Role Debug:', {
           userEmail: u.email,
@@ -125,10 +126,10 @@ const UserSelect = ({
             isStudent: u.isStudent
           },
           roleDetection: {
-            isInstructorUser: isInstructorUser(u),
-            isAdminUser: isAdminUser(u),
-            isSuperAdminUser: isSuperAdminUser(u),
-            hasAdminPrivileges: hasAdminPrivileges(u)
+            isInstructor: isInstructor(u),
+            isAdmin: isAdmin(u),
+            isSuperAdmin: isSuperAdmin(u),
+            hasAdminPrivileges: isAdmin(u) || isSuperAdmin(u)
           }
         });
         
@@ -137,7 +138,7 @@ const UserSelect = ({
           userId: u.docId || u.id,
           totalEnrollments: enrollments.length,
           totalClasses: classes?.length || 0,
-          isInstructor: isInstructorUser(u) || isAdminUser(u)
+          isInstructor: isInstructor(u) || isAdmin(u)
         });
         
         // Count classes owned by this instructor
@@ -179,12 +180,12 @@ const UserSelect = ({
             isStudent: u.isStudent
           },
           roleDetection: {
-            isInstructorUser: isInstructorUser(u),
-            isAdminUser: isAdminUser(u),
-            isSuperAdminUser: isSuperAdminUser(u),
-            hasAdminPrivileges: hasAdminPrivileges(u)
+            isInstructor: isInstructor(u),
+            isAdmin: isAdmin(u),
+            isSuperAdmin: isSuperAdmin(u),
+            hasAdminPrivileges: isAdmin(u) || isSuperAdmin(u)
           },
-          reason: 'Treated as student because isInstructorUser(u) || isAdminUser(u) returned false'
+          reason: 'Treated as student because isInstructor(u) || isAdmin(u) returned false'
         });
         
         const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
@@ -199,7 +200,7 @@ const UserSelect = ({
       let IconComponent = getIconComponent(iconProps.name);
       
       // Add instructor icon if user is instructor
-      if (isInstructorUser(u) || isAdminUser(u)) {
+      if (isInstructor(u) || isAdmin(u)) {
         const InstructorIcon = getIconComponent('BookOpen');
         IconComponent = (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>

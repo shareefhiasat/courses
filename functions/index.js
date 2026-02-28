@@ -394,3 +394,4 @@ exports.testEmail = sendEmailFunctions.testEmail;
 // Export QR code email function
 const qrCodeEmailFunctions = require('./sendQRCodeEmail');
 exports.sendQRCodeEmail = qrCodeEmailFunctions.sendQRCodeEmail;
+

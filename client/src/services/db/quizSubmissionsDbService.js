@@ -49,6 +49,17 @@ export const getQuizSubmissionsByQuiz = async (quizId, options = {}) => {
     const submissions = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: submissions };
   } catch (error) {
+    // Check if this is a missing collection error
+    if (error.message.includes('Missing or insufficient permissions') || 
+        error.code === 'permission-denied' ||
+        error.message.includes('No document to update')) {
+      logger.warn('[QuizSubmissionsDbService] QuizSubmissions collection not available:', { error: error.message });
+      return {
+        success: true,
+        data: []
+      };
+    }
+    
     logger.error('[QuizSubmissionsDbService] Error getting quiz submissions by quiz:', error);
     return { success: false, error: error.message };
   }

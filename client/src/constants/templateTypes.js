@@ -38,6 +38,9 @@ export const EMAIL_TEMPLATE_TYPES = {
   // Welcome Templates
   WELCOME_DEFAULT: 'welcome_default',
   
+  // Chat Templates
+  CHAT_DIGEST_DEFAULT: 'chat_digest_default',
+  
   // System Templates
   SYSTEM_MAINTENANCE: 'system_maintenance',
   SYSTEM_UPDATE: 'system_update',

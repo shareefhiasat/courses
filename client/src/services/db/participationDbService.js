@@ -225,6 +225,17 @@ export const getParticipations = async () => {
       data: participations
     };
   } catch (error) {
+    // Check if this is a missing collection error
+    if (error.message.includes('Missing or insufficient permissions') || 
+        error.code === 'permission-denied' ||
+        error.message.includes('No document to update')) {
+      logger.warn('[ParticipationDbService] Participations collection not available:', { error: error.message });
+      return {
+        success: true,
+        data: []
+      };
+    }
+    
     logger.error('[ParticipationDbService] Error getting participations:', { error: error.message });
     return {
       success: false,

@@ -223,6 +223,17 @@ export const getBehaviors = async () => {
       data: behaviors
     };
   } catch (error) {
+    // Check if this is a missing collection error
+    if (error.message.includes('Missing or insufficient permissions') || 
+        error.code === 'permission-denied' ||
+        error.message.includes('No document to update')) {
+      logger.warn('[BehaviorDbService] Behaviors collection not available:', { error: error.message });
+      return {
+        success: true,
+        data: []
+      };
+    }
+    
     logger.error('[BehaviorDbService] Error getting behaviors:', { error: error.message });
     return {
       success: false,

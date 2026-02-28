@@ -38,6 +38,17 @@ export const getEnrollments = async () => {
     const enrollments = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: enrollments };
   } catch (error) {
+    // Check if this is a missing collection error
+    if (error.message.includes('Missing or insufficient permissions') || 
+        error.code === 'permission-denied' ||
+        error.message.includes('No document to update')) {
+      logger.warn('[EnrollmentDbService] Enrollments collection not available:', { error: error.message });
+      return {
+        success: true,
+        data: []
+      };
+    }
+    
     logger.error('[EnrollmentDbService] Error getting enrollments:', error);
     return { success: false, error: error.message };
   }

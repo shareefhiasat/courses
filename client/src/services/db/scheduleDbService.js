@@ -42,6 +42,17 @@ export const getSchedulesByTermAndYear = async (term, year) => {
     
     return { success: true, data: schedules };
   } catch (error) {
+    // Check if this is a missing collection error
+    if (error.message.includes('Missing or insufficient permissions') || 
+        error.code === 'permission-denied' ||
+        error.message.includes('No document to update')) {
+      logger.warn('[ScheduleDbService] Classes collection not available:', { error: error.message });
+      return {
+        success: true,
+        data: []
+      };
+    }
+    
     logger.error('[ScheduleDbService] Error getting schedules by term and year:', error);
     return { success: false, error: error.message };
   }

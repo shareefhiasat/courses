@@ -42,6 +42,17 @@ export const getStudentGamification = async (studentId) => {
     }
     return { success: false, error: 'Student gamification data not found' };
   } catch (error) {
+    // Check if this is a missing collection error
+    if (error.message.includes('Missing or insufficient permissions') || 
+        error.code === 'permission-denied' ||
+        error.message.includes('No document to update')) {
+      logger.warn('[GamificationDbService] Gamification collection not available:', { error: error.message });
+      return {
+        success: true,
+        data: {}
+      };
+    }
+    
     logger.error('[GamificationDbService] Error getting student gamification:', error);
     return { success: false, error: error.message };
   }

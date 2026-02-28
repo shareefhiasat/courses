@@ -50,6 +50,17 @@ export const getQuizResultsByUser = async (userId, options = {}) => {
     const quizResults = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: quizResults };
   } catch (error) {
+    // Check if this is a missing collection error
+    if (error.message.includes('Missing or insufficient permissions') || 
+        error.code === 'permission-denied' ||
+        error.message.includes('No document to update')) {
+      logger.warn('[QuizResultsDbService] QuizResults collection not available:', { error: error.message });
+      return {
+        success: true,
+        data: []
+      };
+    }
+    
     logger.error('[QuizResultsDbService] Error getting quiz results by user:', error);
     return { success: false, error: error.message };
   }

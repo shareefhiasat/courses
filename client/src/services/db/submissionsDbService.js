@@ -49,6 +49,17 @@ export const getSubmissionsByUser = async (userId, options = {}) => {
     const submissions = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: submissions };
   } catch (error) {
+    // Check if this is a missing collection error
+    if (error.message.includes('Missing or insufficient permissions') || 
+        error.code === 'permission-denied' ||
+        error.message.includes('No document to update')) {
+      logger.warn('[SubmissionsDbService] Submissions collection not available:', { error: error.message });
+      return {
+        success: true,
+        data: []
+      };
+    }
+    
     logger.error('[SubmissionsDbService] Error getting submissions by user:', error);
     return { success: false, error: error.message };
   }

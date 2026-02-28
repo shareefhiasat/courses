@@ -57,6 +57,17 @@ export const getNotifications = async (userId, options = {}) => {
     const notifications = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: notifications };
   } catch (error) {
+    // Check if this is a missing collection error
+    if (error.message.includes('Missing or insufficient permissions') || 
+        error.code === 'permission-denied' ||
+        error.message.includes('No document to update')) {
+      logger.warn('[NotificationDbService] Notifications collection not available:', { error: error.message });
+      return {
+        success: true,
+        data: []
+      };
+    }
+    
     logger.error('[NotificationDbService] Error getting notifications:', error);
     return { success: false, error: error.message };
   }

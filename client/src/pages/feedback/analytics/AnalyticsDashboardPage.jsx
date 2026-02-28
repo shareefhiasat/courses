@@ -80,7 +80,7 @@ const AnalyticsDashboardPage = memo(() => {
         penaltiesRes,
         behaviorsRes,
         participationsRes
-      ] = await Promise.all([
+      ] = await Promise.allSettled([
         getPrograms(),
         getSubjects(),
         getClasses(),
@@ -94,17 +94,26 @@ const AnalyticsDashboardPage = memo(() => {
         getParticipations()
       ]);
       
-      if (programsRes.success) setPrograms(programsRes.data || []);
-      if (subjectsRes.success) setSubjects(subjectsRes.data || []);
-      if (classesRes.success) setClasses(classesRes.data || []);
-      if (enrollmentsRes.success) setEnrollments(enrollmentsRes.data || []);
-      if (activitiesRes.success) setActivities(activitiesRes.data || []);
-      if (usersRes.success) setUsers(usersRes.data || []);
-      if (quizzesRes.success) setQuizzes(quizzesRes.data || []);
-      if (announcementsRes.success) setAnnouncements(announcementsRes.data || []);
-      if (penaltiesRes.success) setPenalties(penaltiesRes.data || []);
-      if (behaviorsRes.success) setBehaviors(behaviorsRes.data || []);
-      if (participationsRes.success) setParticipations(participationsRes.data || []);
+      // Helper to handle settled promises
+      const handleSettled = (result) => {
+        if (result.status === 'fulfilled') {
+          return result.value.success ? result.value.data || [] : [];
+        }
+        logger.warn('⚠️ [AnalyticsDashboardPage] Collection not available or failed to load:', result.reason?.message || result.reason);
+        return [];
+      };
+      
+      if (programsRes.status === 'fulfilled' && programsRes.value.success) setPrograms(programsRes.value.data || []);
+      if (subjectsRes.status === 'fulfilled' && subjectsRes.value.success) setSubjects(subjectsRes.value.data || []);
+      if (classesRes.status === 'fulfilled' && classesRes.value.success) setClasses(classesRes.value.data || []);
+      if (enrollmentsRes.status === 'fulfilled' && enrollmentsRes.value.success) setEnrollments(enrollmentsRes.value.data || []);
+      if (activitiesRes.status === 'fulfilled' && activitiesRes.value.success) setActivities(activitiesRes.value.data || []);
+      if (usersRes.status === 'fulfilled' && usersRes.value.success) setUsers(usersRes.value.data || []);
+      if (quizzesRes.status === 'fulfilled' && quizzesRes.value.success) setQuizzes(quizzesRes.value.data || []);
+      if (announcementsRes.status === 'fulfilled' && announcementsRes.value.success) setAnnouncements(announcementsRes.value.data || []);
+      if (penaltiesRes.status === 'fulfilled' && penaltiesRes.value.success) setPenalties(penaltiesRes.value.data || []);
+      if (behaviorsRes.status === 'fulfilled' && behaviorsRes.value.success) setBehaviors(behaviorsRes.value.data || []);
+      if (participationsRes.status === 'fulfilled' && participationsRes.value.success) setParticipations(participationsRes.value.data || []);
       
       // Load resource count with current filters
       const filters = {};

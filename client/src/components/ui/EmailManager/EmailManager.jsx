@@ -11,7 +11,8 @@ const EmailManager = ({
   placeholder = "Enter email address...",
   description = "",
   excludeEmails = [],
-  excludeMessage = "Email already exists in another list"
+  excludeMessage = "Email already exists in another list",
+  userLookupMap = {}
 }) => {
   const { t } = useLang();
   const [newEmail, setNewEmail] = useState('');
@@ -150,9 +151,16 @@ const EmailManager = ({
                 <div className="no-emails">No emails found</div>
             ) : (
                 <div className="emails-grid">
-                  {filteredEmails.map((email, index) => (
+                  {filteredEmails.map((email, index) => {
+                    const studentNumber = userLookupMap[email];
+                    return (
                       <div key={index} className="email-tag">
-                        <span className="email-text">{email}</span>
+                        <div className="email-content">
+                          <span className="email-text">{email}</span>
+                          {studentNumber && (
+                            <span className="student-number">#{studentNumber}</span>
+                          )}
+                        </div>
                         <button
                             onClick={() => removeEmail(email)}
                             className="remove-btn"
@@ -161,7 +169,8 @@ const EmailManager = ({
                           ✕
                         </button>
                       </div>
-                  ))}
+                    );
+                  })}
                 </div>
             )}
           </div>

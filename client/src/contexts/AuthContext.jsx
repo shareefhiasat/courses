@@ -308,31 +308,47 @@ export const AuthProvider = ({ children }) => {
           // Continue with allowlist check as fallback
         }
         
-        if (!admin) {
-          try {
-            const allow = await getAllowlist();
-            const email = (firebaseUser.email || '').toLowerCase();
-            if (allow.success) {
-              const admins = (allow.data.adminEmails || []).map(e => (e || '').toLowerCase());
-              admin = admins.includes(email);
-              // Attempt to set claim via Cloud Function (production only)
-              if (admin && !token?.claims?.admin && import.meta.env.PROD) {
-                try {
-                  const { getFunctions, httpsCallable } = await import('firebase/functions');
-                  const { app } = await import('@services/other/config');
-                  const functions = getFunctions(app);
-                  const ensureAdminClaim = httpsCallable(functions, 'ensureAdminClaim');
-                  await ensureAdminClaim({ email });
-                  try { await firebaseUser.getIdToken(true); } catch {}
-                } catch (e) {
-                  // Silent in dev; logged only in prod
-                  if (import.meta.env.PROD) logger.warn('ensureAdminClaim failed:', e?.message || e);
-                }
+        // Check allowlist for admin and super admin status in one go
+        let superAdminFromAllowlist = false;
+        try {
+          const allow = await getAllowlist();
+          const email = (firebaseUser.email || '').toLowerCase();
+          if (allow.success) {
+            const admins = (allow.data.adminEmails || []).map(e => (e || '').toLowerCase());
+            const superAdmins = (allow.data.superAdmins || []).map(e => (e || '').toLowerCase());
+            admin = admin || admins.includes(email); // Use token claims OR allowlist
+            superAdminFromAllowlist = superAdmins.includes(email);
+            
+            // Set super admin status immediately to prevent race conditions
+            if (superAdminFromAllowlist && isSubscribed) {
+              setIsSuperAdmin(true);
+              setRole(ROLE_STRINGS.SUPER_ADMIN);
+              logger.info('[Auth] Immediate super admin role set from allowlist:', { email: firebaseUser.email });
+            }
+            
+            // Attempt to set claim via Cloud Function (production only)
+            if (admin && !token?.claims?.admin && import.meta.env.PROD) {
+              try {
+                const { getFunctions, httpsCallable } = await import('firebase/functions');
+                const { app } = await import('@services/other/config');
+                const functions = getFunctions(app);
+                const ensureAdminClaim = httpsCallable(functions, 'ensureAdminClaim');
+                await ensureAdminClaim({ email });
+                try { await firebaseUser.getIdToken(true); } catch {}
+              } catch (e) {
+                // Silent in dev; logged only in prod
+                if (import.meta.env.PROD) logger.warn('ensureAdminClaim failed:', e?.message || e);
               }
             }
-          } catch (error) {
-            logger.warn('[Auth] Failed to check allowlist:', error);
+            
+            logger.info('[Auth] Allowlist check completed:', { 
+              email: firebaseUser.email, 
+              admin, 
+              superAdmin: superAdminFromAllowlist 
+            });
           }
+        } catch (error) {
+          logger.warn('[Auth] Failed to check allowlist:', error);
         }
 
         // Check user doc for roles and fetch full profile
@@ -350,6 +366,12 @@ export const AuthProvider = ({ children }) => {
             superAdminFromDoc = isSuperAdminCheck(profile.role) || profile.isSuperAdmin === true;
             hr = isHRCheck(profile.role) || profile.isHR === true;
             instructor = isInstructorCheck(profile.role) || profile.isInstructor === true;
+            
+            // Use super admin from allowlist if not set in profile
+            if (!superAdminFromDoc && superAdminFromAllowlist) {
+              superAdminFromDoc = true;
+              logger.info('[Auth] Super admin status determined from allowlist:', { email: firebaseUser.email });
+            }
             
             // Cache profile in sessionStorage
             try {
@@ -413,9 +435,13 @@ export const AuthProvider = ({ children }) => {
               setIsInstructor(instructor);
               setIsSuperAdmin(superAdminFromDoc);
               
-              // Determine role with priority
-              if (superAdminFromDoc || adminFromDoc || admin) {
-                userRole = superAdminFromDoc ? ROLE_STRINGS.SUPER_ADMIN : ROLE_STRINGS.ADMIN;
+              // Determine role with priority - super admin from allowlist should be handled
+              if (superAdminFromDoc || superAdminFromAllowlist) {
+                userRole = ROLE_STRINGS.SUPER_ADMIN;
+                // Ensure super admin state is set correctly
+                setIsSuperAdmin(true);
+              } else if (adminFromDoc || admin) {
+                userRole = ROLE_STRINGS.ADMIN;
               } else if (hr) {
                 userRole = ROLE_STRINGS.HR;
               } else if (instructor) {
@@ -426,6 +452,17 @@ export const AuthProvider = ({ children }) => {
               
               setRole(userRole);
               setRealUser({ ...firebaseUser, role: userRole });
+              
+              logger.info('[Auth] Final role determination:', {
+                email: firebaseUser.email,
+                userRole,
+                superAdminFromDoc,
+                superAdminFromAllowlist,
+                adminFromDoc,
+                admin,
+                hr,
+                instructor
+              });
               
               // Log login if new session
               if (isNewLogin) {
@@ -443,18 +480,37 @@ export const AuthProvider = ({ children }) => {
             }
           } else if (!profile) {
             logger.warn('[Auth] User profile not found, using defaults');
-            // Set basic admin status from allowlist if profile is missing
+            // Set basic admin and super admin status from allowlist if profile is missing
             if (isSubscribed) {
               setIsAdmin(admin);
-              setRole(admin ? ROLE_STRINGS.ADMIN : ROLE_STRINGS.STUDENT);
+              setIsSuperAdmin(superAdminFromAllowlist);
+              const finalRole = superAdminFromAllowlist ? ROLE_STRINGS.SUPER_ADMIN : 
+                              (admin ? ROLE_STRINGS.ADMIN : ROLE_STRINGS.STUDENT);
+              setRole(finalRole);
+              logger.info('[Auth] Role set from allowlist (no profile):', { 
+                email: firebaseUser.email, 
+                admin, 
+                superAdmin: superAdminFromAllowlist,
+                finalRole 
+              });
             }
           }
         } catch (error) {
           logger.error('[Auth] Error loading user profile:', error);
-          // Set fallback role based on admin status from allowlist
+          // Set fallback role based on admin and super admin status from allowlist
           if (isSubscribed) {
             setIsAdmin(admin);
-            setRole(admin ? ROLE_STRINGS.ADMIN : ROLE_STRINGS.STUDENT);
+            setIsSuperAdmin(superAdminFromAllowlist);
+            const fallbackRole = superAdminFromAllowlist ? ROLE_STRINGS.SUPER_ADMIN : 
+                              (admin ? ROLE_STRINGS.ADMIN : ROLE_STRINGS.STUDENT);
+            setRole(fallbackRole);
+            logger.warn('[Auth] Fallback role set from allowlist (error):', { 
+              email: firebaseUser.email, 
+              admin, 
+              superAdmin: superAdminFromAllowlist,
+              fallbackRole,
+              error: error.message 
+            });
           }
         }
         

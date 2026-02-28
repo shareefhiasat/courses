@@ -1,5 +1,6 @@
 import { doc, getDoc, updateDoc, setDoc, serverTimestamp, collection, query, where, orderBy, getDocs } from "firebase/firestore";
 import { db } from '../other/config';
+import logger from '@utils/logger';
 import { 
   CONFIG_TYPES, 
   DEFAULT_CONFIG, 

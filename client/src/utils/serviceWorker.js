@@ -137,8 +137,8 @@ class ServiceWorkerManager {
 // Create singleton instance
 const serviceWorkerManager = new ServiceWorkerManager();
 
-// Auto-register if supported
-if (typeof window !== 'undefined' && serviceWorkerManager.isSupported) {
+// Auto-register if supported and NOT in development
+if (typeof window !== 'undefined' && serviceWorkerManager.isSupported && import.meta.env.PROD) {
   // Wait for page to load before registering
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
@@ -147,6 +147,8 @@ if (typeof window !== 'undefined' && serviceWorkerManager.isSupported) {
   } else {
     serviceWorkerManager.register();
   }
+} else if (typeof window !== 'undefined' && !import.meta.env.PROD) {
+  logger.log('Service Worker auto-registration disabled in development');
 }
 
 export default serviceWorkerManager;

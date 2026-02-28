@@ -202,13 +202,35 @@ export const updateUser = async (userId, updateData, auditData = {}) => {
 };
 
 /**
- * Delete user
+ * Delete user (both Firestore and Firebase Auth)
  * @param {string} userId - User ID
  * @returns {Promise<{success: boolean, error?: string}>}
  */
 export const deleteUser = async (userId) => {
   try {
+    // First delete from Firestore
     await deleteDoc(doc(db, 'users', userId));
+    
+    // Then delete from Firebase Auth to revoke tokens
+    try {
+      const { getAuth } = await import('firebase/auth');
+      const auth = getAuth();
+      const user = auth.currentUser;
+      
+      // If the current user is being deleted, sign them out
+      if (user && user.uid === userId) {
+        await user.delete();
+        logger.info('[UserDbService] Firebase Auth user deleted and signed out:', userId);
+      } else {
+        // For other users, we need admin SDK to delete their auth account
+        // This will be handled by the backend/Cloud Function
+        logger.info('[UserDbService] Firestore user deleted, auth cleanup needed:', userId);
+      }
+    } catch (authError) {
+      logger.warn('[UserDbService] Could not delete auth user (may need admin SDK):', authError);
+      // Continue even if auth deletion fails - Firestore record is deleted
+    }
+    
     return { success: true };
   } catch (error) {
     logger.error('[UserDbService] Error deleting user:', error);

@@ -38,7 +38,16 @@ const getFirebaseErrorMessage = (error, t) => {
   
   // Check for auth errors
   if (errorString.includes('email-already-in-use')) {
-    return t ? t('error_email_already_in_use') : '📧 This email is already registered. Try logging in instead.';
+    // This is likely an admin-created user - guide them to password reset
+    return {
+      message: t ? t('error_admin_created_user_use_reset') : '📧 This email was invited by an admin. Please use "Forgot Password" to set your password.',
+      showResetOption: true
+    };
+  }
+  
+  // Check for admin-created user scenario (email exists but no password set)
+  if (errorString.includes('auth/user-not-found') || errorString.includes('auth/wrong-password')) {
+    return t ? t('error_invalid_credentials_with_reset') : '❌ Invalid email or password. If you were invited by admin, use "Forgot Password" to set your password.';
   }
   
   if (errorString.includes('weak-password')) {
@@ -211,6 +220,32 @@ const AuthForm = () => {
 
     try {
       if (mode === 'reset') {
+        // Check if email is in allowlist first (for admin-created users)
+        try {
+          const allowlistResult = await getAllowlist();
+          if (allowlistResult.success) {
+            const { 
+              allowedEmails = [], 
+              adminEmails = [], 
+              allowedStudents = [],
+              superAdmins = []
+            } = allowlistResult.data;
+            const userEmail = email.toLowerCase();
+            const isAllowed = [...allowedEmails, ...adminEmails, ...allowedStudents, ...superAdmins]
+              .map(e => e.toLowerCase())
+              .includes(userEmail);
+            
+            if (!isAllowed) {
+              setError(tr('registration_restricted', 'This email is not authorized. Please contact an administrator.', 'هذا البريد غير مصرح به. تواصل مع الإدارة.'));
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (allowlistError) {
+          // Continue with reset even if allowlist check fails
+          logger.warn('Allowlist check failed during reset:', allowlistError);
+        }
+        
         const result = await resetPassword(email);
         if (result.success) {
           logger.log('🔍 PostHog - Password reset successful:', {
@@ -223,7 +258,7 @@ const AuthForm = () => {
             timestamp: new Date().toISOString()
           });
           
-          setMessage(tr('reset_email_sent', 'Password reset email sent! Check your inbox.', 'تم إرسال بريد إعادة التعيين! تحقق من صندوقك.'));
+          setMessage(tr('reset_email_sent_admin', '📧 Password setup link sent! Check your inbox to set your password.', '📧 تم إرسال رابط تعيين كلمة المرور! تحقق من صندوقك لتعيين كلمة المرور.'));
         } else {
           logger.log('🔍 PostHog - Password reset failed:', {
             email: email.substring(0, 5) + '...',
@@ -253,26 +288,34 @@ const AuthForm = () => {
           return;
         }
         
-        // Check if email is in allowlist
+        // Check if email is in allowlist (including new allowedStudents array)
         try {
           const allowlistResult = await getAllowlist();
           if (allowlistResult.success) {
-            const { allowedEmails = [], adminEmails = [] } = allowlistResult.data;
+            const { 
+              allowedEmails = [], 
+              adminEmails = [], 
+              allowedStudents = [],
+              superAdmins = []
+            } = allowlistResult.data;
             const userEmail = email.toLowerCase();
-            const isAllowed = [...allowedEmails, ...adminEmails]
+            const isAllowed = [...allowedEmails, ...adminEmails, ...allowedStudents, ...superAdmins]
               .map(e => e.toLowerCase())
               .includes(userEmail);
             
             if (!isAllowed) {
               setError(tr('registration_restricted', 'Registration is restricted. Your email is not on the allowlist. Please contact an administrator.', 'التسجيل مقيد. بريدك غير موجود في قائمة السماح. تواصل مع الإدارة.'));
+              setLoading(false);
               return;
             }
           } else {
             setError(tr('allowlist_error', 'Unable to verify registration permissions. Please try again later.', 'تعذر التحقق من صلاحيات التسجيل. حاول لاحقاً.'));
+            setLoading(false);
             return;
           }
         } catch (allowlistError) {
           setError(tr('allowlist_error', 'Unable to verify registration permissions. Please try again later.', 'تعذر التحقق من صلاحيات التسجيل. حاول لاحقاً.'));
+          setLoading(false);
           return;
         }
         
@@ -312,18 +355,46 @@ const AuthForm = () => {
               logger.warn('Failed to log user creation activity:', logError);
             }
             
-            // Send welcome email
+            // Send welcome email using notification gateway
             try {
-              const { httpsCallable } = await import('firebase/functions');
-              const { functions } = await import('@services/other/config');
-              const sendWelcomeEmail = httpsCallable(functions, 'sendWelcomeEmail');
-              await sendWelcomeEmail({
+              const { notificationGateway } = await import('@services/business/notificationGateway');
+              const { NOTIFICATION_TRIGGERS } = await import('@constants/notificationTypes');
+              
+              // Determine user role based on allowlist
+              let userRole = 'student'; // default
+              try {
+                const allowlistResult = await getAllowlist();
+                if (allowlistResult.success) {
+                  const { adminEmails = [], allowedStudents = [], superAdmins = [] } = allowlistResult.data;
+                  const userEmail = email.toLowerCase();
+                  
+                  if (superAdmins.includes(userEmail)) {
+                    userRole = 'super_admin';
+                  } else if (adminEmails.includes(userEmail)) {
+                    userRole = 'admin'; // Could be HR, Admin, or Instructor - will be determined later
+                  } else if (allowedStudents.includes(userEmail)) {
+                    userRole = 'student';
+                  }
+                }
+              } catch (roleError) {
+                logger.warn('Failed to determine user role for welcome email:', roleError);
+              }
+              
+              await notificationGateway.send(NOTIFICATION_TRIGGERS.WELCOME_SIGNUP, {
+                userId: result.user.uid,
+                role: userRole,
                 email: email,
-                displayName: displayName || email.split('@')[0],
-                userId: result.user.uid
+                variables: {
+                  displayName: displayName || email.split('@')[0],
+                  userEmail: email,
+                  userId: result.user.uid,
+                  signupDate: new Date().toLocaleDateString()
+                }
               });
+              
+              logger.log('Welcome email sent via notification gateway');
             } catch (emailError) {
-              logger.log('Welcome email not sent:', emailError);
+              logger.log('Welcome email not sent via notification gateway:', emailError);
               // Don't block signup if email fails
             }
           } catch {}
@@ -342,7 +413,14 @@ const AuthForm = () => {
             timestamp: new Date().toISOString()
           });
           
-          setError(getFirebaseErrorMessage(result.error, t));
+          const errorResult = getFirebaseErrorMessage(result.error, t);
+          if (typeof errorResult === 'object' && errorResult.showResetOption) {
+            setError(errorResult.message);
+            // Show reset option automatically
+            setTimeout(() => setMode('reset'), 1000);
+          } else {
+            setError(errorResult);
+          }
         }
       } else {
         // Login mode
@@ -479,6 +557,20 @@ const AuthForm = () => {
             />
           </div>
 
+          {mode === 'reset' && (
+            <div style={{ 
+              fontSize: '0.9rem', 
+              color: 'var(--text-secondary, #666)', 
+              marginBottom: '16px',
+              padding: '12px',
+              background: 'var(--color-info-light, rgba(59, 130, 246, 0.1))',
+              borderRadius: '8px',
+              border: '1px solid var(--color-info-border, rgba(59, 130, 246, 0.2))'
+            }}>
+              🔑 {tr('reset_password_info', 'Enter your email to receive a password setup link. This is for admin-invited users who need to set their password.', 'أدخل بريدك الإلكتروني لتلقي رابط تعيين كلمة المرور. هذا للمستخدمين الذين تمت دعوتهم من قبل الإدارة ويحتاجون لتعيين كلمة المرور.')}
+            </div>
+          )}
+
           {mode !== 'reset' && (
             <div className="form-group">
               <input
@@ -609,6 +701,20 @@ const AuthForm = () => {
              tr('send_reset_email', 'Send Reset Email', 'إرسال بريد إعادة التعيين')}
           </button>
         </form>
+
+        {error && typeof error === 'string' && error.includes('invited by an admin') && (
+          <div style={{
+            marginTop: '12px',
+            padding: '12px',
+            background: 'var(--color-info-light, rgba(59, 130, 246, 0.1))',
+            border: '1px solid var(--color-info-border, rgba(59, 130, 246, 0.2))',
+            borderRadius: '8px',
+            fontSize: '0.9rem',
+            color: 'var(--color-info, #3b82f6)'
+          }}>
+            💡 <strong>Next Step:</strong> Click "Forgot Password" below to receive a password setup link in your email.
+          </div>
+        )}
 
         {mode === 'login' && (
           <button 
