@@ -188,6 +188,7 @@ export const ICON_TYPES = {
     link: <Link size={16} />,
     external_link: <ExternalLink size={16} />,
     maximize: <Maximize size={16} />,
+    minimize: <Minus size={16} />,
     square: <Square size={16} />,
     video: <Video size={16} />,
     qr_code: <QrCode size={16} />,

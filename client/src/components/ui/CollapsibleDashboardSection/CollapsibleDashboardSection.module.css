@@ -199,6 +199,32 @@
   color: white;
 }
 
+.refreshButton {
+  position: relative;
+}
+
+.refreshButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.refreshButton svg {
+  transition: transform 0.5s ease;
+}
+
+.refreshButton:not(:disabled):hover svg {
+  transform: rotate(90deg);
+}
+
+.refreshButton.refreshing svg {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .fullContent {
   padding: 1.25rem;
   background: var(--section-bg);

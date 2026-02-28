@@ -2,6 +2,7 @@ import React, { useState, useEffect, memo, useLayoutEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
+import { useToast } from '@ui/Toast/Toast';
 import { CollapsibleDashboardSection, ProgramsSelect } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
@@ -36,6 +37,7 @@ const AnalyticsDashboardPage = memo(() => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const { user, isAdmin, isSuperAdmin, isInstructor } = useAuth();
+  const toast = useToast();
   
   // Local state for all data
   const [programs, setPrograms] = useState([]);
@@ -52,89 +54,131 @@ const AnalyticsDashboardPage = memo(() => {
   const [resourceCount, setResourceCount] = useState(0);
   const [loadingResourceCount, setLoadingResourceCount] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Filter states
-  const [enrollmentProgramFilter, setEnrollmentProgramFilter] = useState('all');
-  const [enrollmentSubjectFilter, setEnrollmentSubjectFilter] = useState('all');
-  const [enrollmentClassFilter, setEnrollmentClassFilter] = useState('all');
+  const [enrollmentProgramFilter, setEnrollmentProgramFilter] = useState('');
+  const [enrollmentSubjectFilter, setEnrollmentSubjectFilter] = useState('');
+  const [enrollmentClassFilter, setEnrollmentClassFilter] = useState('');
+  
+  // Load all data function
+  const loadAllData = async (isRefresh = false) => {
+    if (isRefresh) {
+      setIsRefreshing(true);
+      logger.log('🔄 [AnalyticsDashboardPage] Refreshing data...');
+    } else {
+      logger.log('🚀 [AnalyticsDashboardPage] Starting data load...');
+    }
+    
+    try {
+      const [
+        programsRes,
+        subjectsRes,
+        classesRes,
+        enrollmentsRes,
+        activitiesRes,
+        usersRes,
+        quizzesRes,
+        announcementsRes,
+        penaltiesRes,
+        behaviorsRes,
+        participationsRes
+      ] = await Promise.all([
+        getPrograms(),
+        getSubjects(),
+        getClasses(),
+        getEnrollments(),
+        getActivities(),
+        getUsers(),
+        getAllQuizzes(),
+        getAnnouncements(),
+        getPenalties(),
+        getBehaviors(),
+        getParticipations()
+      ]);
+      
+      if (programsRes.success) setPrograms(programsRes.data || []);
+      if (subjectsRes.success) setSubjects(subjectsRes.data || []);
+      if (classesRes.success) setClasses(classesRes.data || []);
+      if (enrollmentsRes.success) setEnrollments(enrollmentsRes.data || []);
+      if (activitiesRes.success) setActivities(activitiesRes.data || []);
+      if (usersRes.success) setUsers(usersRes.data || []);
+      if (quizzesRes.success) setQuizzes(quizzesRes.data || []);
+      if (announcementsRes.success) setAnnouncements(announcementsRes.data || []);
+      if (penaltiesRes.success) setPenalties(penaltiesRes.data || []);
+      if (behaviorsRes.success) setBehaviors(behaviorsRes.data || []);
+      if (participationsRes.success) setParticipations(participationsRes.data || []);
+      
+      // Mark data as loaded to prevent re-loading
+      setDataLoaded(true);
+      
+      // Show success toast for refresh
+      if (isRefresh) {
+        toast.success('Dashboard refreshed successfully!', 2000);
+      }
+      
+    } catch (error) {
+      logger.error('🔍 [AnalyticsDashboardPage] Error loading data:', error);
+      if (isRefresh) {
+        toast.error('Failed to refresh dashboard', 3000);
+      }
+    } finally {
+      if (isRefresh) {
+        setIsRefreshing(false);
+      }
+    }
+  };
   
   // Load all data only once on component mount
   useLayoutEffect(() => {
     // Only load data if not already loaded and user is authenticated
     if (dataLoaded || !user) return;
     
-    const loadAllData = async () => {
-      logger.log('🚀 [AnalyticsDashboardPage] Starting data load...');
-      
-      try {
-        const [
-          programsRes,
-          subjectsRes,
-          classesRes,
-          enrollmentsRes,
-          activitiesRes,
-          usersRes,
-          quizzesRes,
-          announcementsRes,
-          penaltiesRes,
-          behaviorsRes,
-          participationsRes
-        ] = await Promise.all([
-          getPrograms(),
-          getSubjects(),
-          getClasses(),
-          getEnrollments(),
-          getActivities(),
-          getUsers(),
-          getAllQuizzes(),
-          getAnnouncements(),
-          getPenalties(),
-          getBehaviors(),
-          getParticipations()
-        ]);
-        
-        if (programsRes.success) setPrograms(programsRes.data || []);
-        if (subjectsRes.success) setSubjects(subjectsRes.data || []);
-        if (classesRes.success) setClasses(classesRes.data || []);
-        if (enrollmentsRes.success) setEnrollments(enrollmentsRes.data || []);
-        if (activitiesRes.success) setActivities(activitiesRes.data || []);
-        if (usersRes.success) setUsers(usersRes.data || []);
-        if (quizzesRes.success) setQuizzes(quizzesRes.data || []);
-        if (announcementsRes.success) setAnnouncements(announcementsRes.data || []);
-        if (penaltiesRes.success) setPenalties(penaltiesRes.data || []);
-        if (behaviorsRes.success) setBehaviors(behaviorsRes.data || []);
-        if (participationsRes.success) setParticipations(participationsRes.data || []);
-        
-        // Mark data as loaded to prevent re-loading
-        setDataLoaded(true);
-        
-      } catch (error) {
-        logger.error('🔍 [AnalyticsDashboardPage] Error loading data:', error);
-      }
-    };
+    // Debug logging for initial filter states
+    logger.log('🔍 [AnalyticsDashboardPage] Initial page load - Filter states:', {
+      enrollmentProgramFilter,
+      enrollmentSubjectFilter,
+      enrollmentClassFilter,
+      dataLoaded,
+      user: user?.email
+    });
     
-    loadAllData();
+    loadAllData(false);
   }, [user, dataLoaded]); // Add dataLoaded dependency to prevent re-runs
 
   // Fetch resource count from server based on current filters
   useEffect(() => {
     const fetchResourceCount = async () => {
       setLoadingResourceCount(true);
+      
+      // Debug logging for resource count fetch
+      logger.log('🔍 [AnalyticsDashboardPage] Fetching resource count with filters:', {
+        enrollmentProgramFilter,
+        enrollmentSubjectFilter,
+        enrollmentClassFilter
+      });
+      
       try {
         const filters = {};
-        if (enrollmentProgramFilter !== 'all') {
+        if (enrollmentProgramFilter && enrollmentProgramFilter !== '') {
           filters.programId = enrollmentProgramFilter;
+          logger.log('🔍 [AnalyticsDashboardPage] Applying program filter:', enrollmentProgramFilter);
         }
-        if (enrollmentSubjectFilter !== 'all') {
+        if (enrollmentSubjectFilter && enrollmentSubjectFilter !== '') {
           filters.subjectId = enrollmentSubjectFilter;
+          logger.log('🔍 [AnalyticsDashboardPage] Applying subject filter:', enrollmentSubjectFilter);
         }
-        if (enrollmentClassFilter !== 'all') {
+        if (enrollmentClassFilter && enrollmentClassFilter !== '') {
           filters.classId = enrollmentClassFilter;
+          logger.log('🔍 [AnalyticsDashboardPage] Applying class filter:', enrollmentClassFilter);
         }
+
+        logger.log('🔍 [AnalyticsDashboardPage] Final filters for resource count:', filters);
 
         const result = await getResourceCount(filters);
         if (result.success) {
           setResourceCount(result.count);
+          logger.log('🔍 [AnalyticsDashboardPage] Resource count fetched successfully:', result.count);
         } else {
           logger.error('🔍 [AnalyticsDashboardPage] Error fetching resource count:', result.error);
           setResourceCount(0);
@@ -161,8 +205,29 @@ const AnalyticsDashboardPage = memo(() => {
       classesCount: classes.length,
       programFilter: enrollmentProgramFilter,
       subjectFilter: enrollmentSubjectFilter,
-      classFilter: enrollmentClassFilter
+      classFilter: enrollmentClassFilter,
+      resourceCount,
+      loadingResourceCount
     });
+    
+    // Debug: Check if any program is being pre-selected
+    if (enrollmentProgramFilter && enrollmentProgramFilter !== '') {
+      logger.log('🔍 [AnalyticsDashboardPage] Program filter has selection:', enrollmentProgramFilter);
+      logger.log('🔍 [AnalyticsDashboardPage] Available programs:', safePrograms.map(p => ({ id: p.id || p.docId, name: p.name })));
+    }
+    
+    if (enrollmentSubjectFilter && enrollmentSubjectFilter !== '') {
+      logger.log('🔍 [AnalyticsDashboardPage] Subject filter has selection:', enrollmentSubjectFilter);
+    }
+    
+    if (enrollmentClassFilter && enrollmentClassFilter !== '') {
+      logger.log('🔍 [AnalyticsDashboardPage] Class filter has selection:', enrollmentClassFilter);
+    }
+    
+    // Log when filters are empty (which means "all")
+    if (!enrollmentProgramFilter && !enrollmentSubjectFilter && !enrollmentClassFilter) {
+      logger.log('✅ [AnalyticsDashboardPage] All filters are empty - showing data for all programs/subjects/classes');
+    }
   }
 
   return (
@@ -189,8 +254,8 @@ const AnalyticsDashboardPage = memo(() => {
               });
             }
             setEnrollmentProgramFilter(value);
-            setEnrollmentSubjectFilter('all');
-            setEnrollmentClassFilter('all');
+            setEnrollmentSubjectFilter(''); // Reset subject when program changes
+            setEnrollmentClassFilter(''); // Reset class when program changes
           }}
           onSubjectChange={(value) => {
             if (user) {
@@ -201,7 +266,7 @@ const AnalyticsDashboardPage = memo(() => {
               });
             }
             setEnrollmentSubjectFilter(value);
-            setEnrollmentClassFilter('all');
+            setEnrollmentClassFilter(''); // Reset class when subject changes
           }}
           onClassChange={(value) => {
             if (user) {
@@ -220,6 +285,8 @@ const AnalyticsDashboardPage = memo(() => {
           style={{ gap: '0.5rem', width: '100%' }}
         />
       }
+      onRefresh={() => loadAllData(true)}
+      refreshing={isRefreshing}
     >
       <div style={{ marginBottom: '1rem' }}>
         {/* Summary Cards */}

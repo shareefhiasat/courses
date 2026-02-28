@@ -23,7 +23,8 @@ const CollapsibleDashboardSection = ({
   inlineFilters = null,
   animated = true,
   smartCollapse = false, // Auto-collapse based on user behavior
-  onRefresh = null // Refresh callback function
+  onRefresh = null, // Refresh callback function
+  refreshing = false // Refresh state for visual feedback
 }) => {
   const [mode, setMode] = useState(defaultMode);
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
@@ -192,10 +193,12 @@ const CollapsibleDashboardSection = ({
                   onRefresh();
                   setIsModeMenuOpen(false);
                 }}
-                className={styles.refreshButton}
+                className={`${styles.refreshButton} ${refreshing ? styles.refreshing : ''}`}
+                disabled={refreshing}
+                title={refreshing ? "Refreshing..." : "Refresh data"}
               >
                 {getThemedIcon('ui', 'refresh', 14)}
-                Refresh
+                {refreshing ? 'Refreshing...' : 'Refresh'}
               </button>
             )}
           </div>

@@ -297,11 +297,32 @@ div.auth-form.auth-form {
 }
 
 .auth-button:disabled {
-  opacity: 1;
+  opacity: 0.6;
   cursor: not-allowed;
   background: linear-gradient(135deg, var(--color-primary-light, #a01234), var(--color-primary, #800020));
   color: #fff;
   font-weight: 700;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: grayscale(20%);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-button:disabled::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  animation: loading-shimmer 1.5s infinite;
+}
+
+@keyframes loading-shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
 }
 
 .reset-link {
