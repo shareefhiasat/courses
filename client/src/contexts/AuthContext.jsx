@@ -3,11 +3,11 @@ import { onAuthChange, signOutUser } from '@services/business/authService';
 import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { getUserProfile, ROLE_STRINGS } from '@utils/userUtils';
+import { getUserStatus, getUserStatusSummary, canUserLogin, USER_STATUS } from '@utils/userStatus';
 import { getAllowlist } from '@services/business/configService';
 import { ensureUserDoc } from '@services/business/userService';
 import { addLoginLog } from '@services/business/activityService';
 import { ActivityLogger } from '@services/other/activityLogger.jsx';
-import { canUserLogin, getUserStatus, getUserStatusSummary } from '../utils/userStatus';
 import logger from '@utils/logger';
 import { applyAccentColorGlobally } from '@utils/theme';
 import { 
@@ -342,6 +342,40 @@ export const AuthProvider = ({ children }) => {
             // Check user status
             const userStatus = getUserStatus(profile, enrollments);
             const statusSummary = getUserStatusSummary(profile, enrollments);
+            
+            // 🔒 SECURITY: Prevent disabled users from logging in
+            if (!canUserLogin(profile)) {
+              const isDisabled = userStatus === USER_STATUS.DISABLED;
+              const isDeleted = userStatus === USER_STATUS.DELETED;
+              
+              logger.warn('[Auth] Login blocked - user account disabled or deleted', { 
+                userId: firebaseUser.uid, 
+                email: firebaseUser.email,
+                status: userStatus,
+                isDisabled,
+                isDeleted
+              });
+              
+              // Sign out the user immediately
+              try {
+                await signOutUser(firebaseUser);
+              } catch (signOutError) {
+                logger.error('[Auth] Failed to sign out disabled user:', signOutError);
+              }
+              
+              // Show specific error message
+              if (typeof window !== 'undefined' && window.toast) {
+                if (isDisabled) {
+                  window.toast.showError('Your account has been disabled. Please contact support.');
+                } else if (isDeleted) {
+                  window.toast.showError('Your account has been deleted. Please contact support.');
+                } else {
+                  window.toast.showError('Access denied. Please contact support.');
+                }
+              }
+              
+              return; // Stop authentication process
+            }
             
             // Only update state if component is still subscribed
             if (isSubscribed) {

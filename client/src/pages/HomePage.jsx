@@ -85,6 +85,15 @@ const HomePage = memo(() => {
     const name = lang === 'ar' 
       ? (category.nameAr || category.nameEn || category.name || 'Unnamed Category')
       : (category.nameEn || category.nameAr || category.name || 'Unnamed Category');
+    
+    // Capitalize first letter of each word for English
+    if (lang === 'en' && name && name !== 'Unnamed Category') {
+      return name
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    }
+    
     return name;
   };
 
@@ -1327,7 +1336,7 @@ const HomePage = memo(() => {
               },
               {
                 value: MODE_TYPES.REVIEW,
-                label: t('review_results') || 'Review Results',
+                label: (t('review_results') || 'Review Results').replace(/\b\w/g, l => l.toUpperCase()),
                 icon: mode === MODE_TYPES.REVIEW ? getIconWithColor('ui', 'eye', 16, '#ffffff') : getIconWithColor('ui', 'eye', 16, primaryColor),
                 badge: mode === MODE_TYPES.REVIEW ? filteredReviewItems.length : reviewSubmissions.length
               }
@@ -1369,7 +1378,7 @@ const HomePage = memo(() => {
                 },
                 {
                   value: ACTIVITY_TYPES.LAB_AND_PROJECT,
-                  label: t('lab_and_project') || 'Lab & Project',
+                  label: (t('lab_and_project') || 'Lab & Project').replace(/\b\w/g, l => l.toUpperCase()),
                   icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, primaryColor),
                   badge: activityTypeCounts.labandproject
                 }
@@ -1453,7 +1462,7 @@ const HomePage = memo(() => {
                     { value: ACTIVITY_TYPES.QUIZ, label: t('quiz') || 'Quiz', icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, primaryColor) },
                     { value: ACTIVITY_TYPES.HOMEWORK, label: t('homework') || 'Homework', icon: activityType === ACTIVITY_TYPES.HOMEWORK ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, primaryColor) },
                     { value: ACTIVITY_TYPES.TRAINING, label: t('training') || 'Training', icon: activityType === ACTIVITY_TYPES.TRAINING ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, primaryColor) },
-                    { value: ACTIVITY_TYPES.LAB_AND_PROJECT, label: t('lab_and_project') || 'Lab & Project', icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, primaryColor) }
+                    { value: ACTIVITY_TYPES.LAB_AND_PROJECT, label: (t('lab_and_project') || 'Lab & Project').replace(/\b\w/g, l => l.toUpperCase()), icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, primaryColor) }
                   ]}
                   activeTab={activityType}
                   onTabChange={setActivityType}

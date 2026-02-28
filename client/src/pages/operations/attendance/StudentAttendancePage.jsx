@@ -685,7 +685,10 @@ const StudentAttendancePage = () => {
                 <span style={{ fontWeight:700, color: h.status==='present' ? '#10b981' : h.status==='late' ? '#f59e0b' : h.status==='leave' ? '#8b5cf6' : '#6b7280', whiteSpace: 'nowrap', textTransform: 'capitalize' }}>{(h.status||'—').toString().replace('_', ' ')}</span>
               </div>
               <div style={{ fontSize:12, color:'#666' }}>
-                {new Date(h.at || h.createdAt || h.updatedAt || Date.now()).toLocaleString('en-GB')}
+                {new Date(h.at || h.createdAt || h.updatedAt || Date.now()).toLocaleDateString('en-GB', {
+                  day: '2-digit', month: '2-digit', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit'
+                })}
               </div>
               {h.reason && (
                 <div style={{ fontSize:11, color:'#666', fontStyle:'italic' }}>

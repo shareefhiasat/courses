@@ -47,6 +47,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
   const realNameRef = useRef(null);
   const studentNumberRef = useRef(null);
   const orderRef = useRef(null);
+  const roleRef = useRef(null);
   
   // Allowlist state (previously was props)
   const [autoAddToAllowlist, setAutoAddToAllowlist] = useState(true);
@@ -357,7 +358,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
       displayName: displayNameRef.current?.value ?? formData.displayName,
       realName: realNameRef.current?.value ?? formData.realName,
       studentNumber: studentNumberRef.current?.value ?? formData.studentNumber,
-      order: orderRef.current?.value ?? formData.order
+      order: orderRef.current?.value ?? formData.order,
+      role: roleRef.current?.value ?? formData.role
     };
   }, [formData]);
 
@@ -882,7 +884,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
     }
   };
 
-  const resetForm = useCallback(() => {
+  const resetForm = useCallback((clearRefs = true) => {
     setEditingUser(null);
     setFormData({
       email: '',
@@ -892,12 +894,15 @@ const UsersPage = ({ isDashboardTab = false }) => {
       studentNumber: '',
       order: ''
     });
-    // Clear refs
-    if (emailRef.current) emailRef.current.value = '';
-    if (displayNameRef.current) displayNameRef.current.value = '';
-    if (realNameRef.current) realNameRef.current.value = '';
-    if (studentNumberRef.current) studentNumberRef.current.value = '';
-    if (orderRef.current) orderRef.current.value = '';
+    // Clear refs only when explicitly requested (not on role changes)
+    if (clearRefs) {
+      if (emailRef.current) emailRef.current.value = '';
+      if (displayNameRef.current) displayNameRef.current.value = '';
+      if (realNameRef.current) realNameRef.current.value = '';
+      if (studentNumberRef.current) studentNumberRef.current.value = '';
+      if (orderRef.current) orderRef.current.value = '';
+      if (roleRef.current) roleRef.current.value = ROLE_STRINGS.STUDENT;
+    }
   }, []);
 
   if (authLoading) return <GlobalLoadingFallback />;
@@ -1095,16 +1100,16 @@ const UsersPage = ({ isDashboardTab = false }) => {
         {/* Single continuous form - no tabs for performance */}
         <div className="form-row">
           <Input
-            ref={emailRef}
             type="email"
-            defaultValue={formData.email}
+            value={formData.email}
+            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
             placeholder={t('user_email_placeholder')}
             required
           />
           <Input
-            ref={displayNameRef}
             type="text"
-            defaultValue={formData.displayName}
+            value={formData.displayName}
+            onChange={(e) => setFormData(prev => ({ ...prev, displayName: e.target.value }))}
             placeholder={t('user_display_name_placeholder')}
           />
         </div>
@@ -1131,9 +1136,10 @@ const UsersPage = ({ isDashboardTab = false }) => {
             description={t('student_order_description') || 'Display order for student lists'}
           />
           <Select
+            ref={roleRef}
             searchable
             placeholder={t('role') || 'Role'}
-            value={formData.role}
+            defaultValue={formData.role}
             onChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
             options={[
               { value: ROLE_STRINGS.STUDENT, label: (
@@ -1198,7 +1204,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
             <Button 
               type="button" 
               variant="outline" 
-              onClick={resetForm}
+              onClick={() => resetForm(true)}
             >
               {t('cancel') || 'Cancel'}
             </Button>

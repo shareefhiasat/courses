@@ -1277,7 +1277,10 @@ export default function StudentQuizPage() {
                 <strong>Answers:</strong> {Object.keys(savedProgress.answers || {}).length} saved
               </div>
               <div className={styles.progressItem}>
-                <strong>Saved:</strong> {new Date(savedProgress.savedAt).toLocaleString()}
+                <strong>Saved:</strong> {new Date(savedProgress.savedAt).toLocaleDateString('en-GB', {
+                  day: '2-digit', month: '2-digit', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit'
+                })}
               </div>
             </div>
             <p>Would you like to continue where you left off or start fresh?</p>

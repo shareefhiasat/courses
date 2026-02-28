@@ -1,4 +1,4 @@
-﻿/**
+/**
  * User Status Utility
  * 
  * Centralized system for managing and checking user status across the application.
@@ -75,8 +75,8 @@ export const canUserLogin = (user) => {
   
   const status = getUserStatus(user);
   
-  // Only deleted users cannot login
-  return status !== USER_STATUS.DELETED;
+  // Both deleted and disabled users cannot login
+  return status !== USER_STATUS.DELETED && status !== USER_STATUS.DISABLED;
 };
 
 /**
