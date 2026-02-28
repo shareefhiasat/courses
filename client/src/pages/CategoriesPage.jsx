@@ -155,7 +155,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
       if (editingCategory) {
         // Update existing category
-        const result = await updateCategory(editingCategory.docId || editingCategory.id, categoryData);
+        const result = await updateCategory(editingCategory.docId || editingCategory.id, categoryData, user);
         if (result.success) {
           toast.success(t('category_updated_successfully') || 'Category updated successfully');
         } else {
@@ -163,7 +163,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         }
       } else {
         // Create new category
-        const result = await addCategory(categoryData);
+        const result = await addCategory(categoryData, user);
         if (result.success) {
           toast.success(t('category_created_successfully') || 'Category created successfully');
         } else {
@@ -325,6 +325,60 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
       headerName: t('order') || 'Order',
       flex: 0.5,
       minWidth: 80
+    },
+    {
+      field: 'createdAt',
+      headerName: t('created_at') || 'Created At',
+      flex: 1,
+      minWidth: 180,
+      renderCell: (params) => {
+        const value = params?.value;
+        if (!value) return '—';
+        // Format the date nicely
+        try {
+          const date = new Date(value);
+          return date.toLocaleString();
+        } catch {
+          return value;
+        }
+      }
+    },
+    {
+      field: 'createdBy',
+      headerName: t('created_by') || 'Created By',
+      flex: 0.8,
+      minWidth: 120,
+      renderCell: (params) => {
+        const value = params?.value;
+        return value === 'system' ? t('system') || 'System' : value || '—';
+      }
+    },
+    {
+      field: 'updatedAt',
+      headerName: t('updated_at') || 'Updated At',
+      flex: 1,
+      minWidth: 180,
+      renderCell: (params) => {
+        const value = params?.value;
+        if (!value) return '—';
+        // Format the date nicely
+        try {
+          const date = new Date(value);
+          return date.toLocaleString();
+        } catch {
+          return value;
+        }
+      }
+    },
+    {
+      field: 'updatedBy',
+      headerName: t('updated_by') || 'Updated By',
+      flex: 0.8,
+      minWidth: 120,
+      renderCell: (params) => {
+        const value = params?.value;
+        return value === 'system' ? t('system') || 'System' : value || '—';
+      }
     },
     {
       field: 'actions',

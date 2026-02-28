@@ -164,12 +164,12 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           label: t("students") || "Students",
           gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
         },
-        teachers: {
+        instructors: {
           icon: getThemedIcon('ui', 'graduation_cap', 24, theme),
           bg: "rgba(99, 102, 241, 0.1)",
           iconColor: "#6366f1",
           shape: "rounded",
-          label: t("teachers") || "Teachers",
+          label: t("instructors") || "Instructors",
           gradient: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
         },
         hr: {
@@ -187,6 +187,14 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           shape: "rounded",
           label: t("admins") || "Admins",
           gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+        },
+        superadmins: {
+          icon: getThemedIcon('ui', 'crown', 24, theme),
+          bg: "rgba(139, 92, 246, 0.1)",
+          iconColor: "#8b5cf6",
+          shape: "rounded",
+          label: t("Super admins") || "Super admins",
+          gradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
         },
         submissions: {
           icon: getThemedIcon('ui', 'file_check', 24, theme),
@@ -351,7 +359,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(99, 102, 241, 0.1)",
           iconColor: "#6366f1",
           shape: "rounded",
-          label: t("participations") || "Participations",
+          label: t("Participations") || "Participations",
           gradient: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
         },
         "active-students": {

@@ -209,13 +209,14 @@ const AnalyticsDashboardPage = memo(() => {
       onRefresh={() => loadAllData(true)}
       refreshing={isRefreshing}
     >
-      <div style={{ marginBottom: '1rem' }}>
+      <div style={{ marginBottom: '0.75rem' }}>
         {/* Summary Cards */}
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-            gap: '0.75rem'
+            gap: '0.5rem',
+            justifyContent: 'center'
           }}
         >
           {[
@@ -308,18 +309,117 @@ const AnalyticsDashboardPage = memo(() => {
               type: 'resources',
               value: loadingResourceCount ? '...' : resourceCount,
               tooltip: loadingResourceCount ? (t('loading_resource_count') || 'Loading resource count...') : (t('total_resources') || 'Total number of resources (server-side count)')
-            },
-            // Users by role - Admin and Super Admin only
-            ...((isAdmin || isSuperAdmin) ? [
+            }
+          ].map((stat, idx) => {
+            const config = getCardConfig(stat.type, t, theme);
+            const IconComponent = config.icon;
+            const borderRadius = getShapeRadius(config.shape);
+            return (
+              <div
+                key={idx}
+                style={{
+                  padding: '0.75rem',
+                  background: theme === 'dark' ? '#1f2937' : '#ffffff',
+                  border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+                  borderRadius: '0.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  cursor: stat.onClick ? 'pointer' : 'default',
+                  transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  if (stat.onClick) {
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                    e.currentTarget.style.boxShadow = theme === 'dark' ? '0 2px 6px rgba(0, 0, 0, 0.3)' : '0 2px 6px rgba(0, 0, 0, 0.08)';
+                    e.currentTarget.style.borderColor = config.iconColor;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (stat.onClick) {
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.borderColor = 'transparent';
+                  }
+                }}
+                onClick={() => stat.onClick && stat.onClick()}
+              >
+                <div style={{ padding: '0.5rem', display: 'flex', flex: 1 }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    height: '100%'
+                  }}>
+                    <div style={{
+                      padding: '0.35rem',
+                      background: config.bg,
+                      borderRadius: borderRadius,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      marginTop: '0.1rem'
+                    }}>
+                      {React.cloneElement(IconComponent, { size: 16, style: { color: config.iconColor } })}
+                    </div>
+                    <div style={{
+                      flex: 1,
+                      minWidth: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      height: '100%',
+                      gap: '0.1rem'
+                    }}>
+                      <span style={{
+                        fontSize: '0.7rem',
+                        color: theme === 'dark' ? 'var(--text-secondary, #9ca3af)' : 'var(--text-secondary, #6b7280)',
+                        lineHeight: '1.1',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {config.label}
+                      </span>
+                      <div style={{
+                        fontSize: '1rem',
+                        fontWeight: 700,
+                        color: config.iconColor,
+                        lineHeight: '1.1'
+                      }}>
+                        {stat.value}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Second Row - User Roles (Admin and Super Admin only) */}
+      {(isAdmin || isSuperAdmin) && (
+        <div style={{ marginBottom: '0.75rem' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+              gap: '0.5rem',
+              justifyContent: 'center'
+            }}
+          >
+            {[
               {
                 type: 'students',
                 value: users.filter(u => u.role === 'student').length,
                 tooltip: t('total_students_system') || 'Total number of students in the system'
               },
               {
-                type: 'teachers', 
-                value: users.filter(u => u.role === 'teacher' || u.role === 'instructor').length,
-                tooltip: t('total_teachers_system') || 'Total number of teachers/instructors in the system'
+                type: 'instructors',
+                value: users.filter(u => u.role === 'instructor' || u.role === 'teacher').length,
+                tooltip: t('total_instructors_system') || 'Total number of instructors/teachers in the system'
               },
               {
                 type: 'hr',
@@ -328,10 +428,124 @@ const AnalyticsDashboardPage = memo(() => {
               },
               {
                 type: 'admins',
-                value: users.filter(u => u.role === 'admin' || u.role === 'superadmin').length,
+                value: users.filter(u => u.role === 'admin').length,
                 tooltip: t('total_admins_system') || 'Total number of admin users in the system'
+              },
+              {
+                type: 'superadmins',
+                value: users.filter(u => u.role === 'superadmin').length,
+                tooltip: t('total_superadmins_system') || 'Total number of super admin users in the system'
               }
-            ] : []),
+            ].map((stat, idx) => {
+              const config = getCardConfig(stat.type, t, theme);
+              const IconComponent = config.icon;
+              const borderRadius = getShapeRadius(config.shape);
+              return (
+                <div
+                  key={`role-${idx}`}
+                  style={{
+                    padding: '0.75rem',
+                    background: theme === 'dark' ? '#1f2937' : '#ffffff',
+                    border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+                    borderRadius: '0.5rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    cursor: 'default',
+                    transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s'
+                  }}
+                >
+                  <div style={{ padding: '0.5rem', display: 'flex', flex: 1 }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      width: '100%',
+                      height: '100%'
+                    }}>
+                      <div style={{
+                        padding: '0.35rem',
+                        background: config.bg,
+                        borderRadius: borderRadius,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        marginTop: '0.1rem'
+                      }}>
+                        {React.cloneElement(IconComponent, { size: 16, style: { color: config.iconColor } })}
+                      </div>
+                      <div style={{
+                        flex: 1,
+                        minWidth: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        height: '100%',
+                        gap: '0.1rem'
+                      }}>
+                        <span style={{
+                          fontSize: '0.7rem',
+                          color: theme === 'dark' ? 'var(--text-secondary, #9ca3af)' : 'var(--text-secondary, #6b7280)',
+                          lineHeight: '1.1',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {config.label}
+                        </span>
+                        <div style={{
+                          fontSize: '1rem',
+                          fontWeight: 700,
+                          color: config.iconColor,
+                          lineHeight: '1.1'
+                        }}>
+                          {stat.value}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Third Row - Other Statistics */}
+      <div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+            gap: '0.5rem',
+            justifyContent: 'center'
+          }}
+        >
+          {[
+            // Activities
+            {
+              type: 'activities',
+              value: activities.filter(a => {
+                if (enrollmentClassFilter && enrollmentClassFilter !== '') {
+                  return a.classId === enrollmentClassFilter;
+                }
+                if (enrollmentSubjectFilter && enrollmentSubjectFilter !== '') {
+                  const classItem = classes.find(c => (c.id || c.docId) === a.classId);
+                  return classItem?.subjectId === enrollmentSubjectFilter;
+                }
+                if (enrollmentProgramFilter && enrollmentProgramFilter !== '') {
+                  const classItem = classes.find(c => (c.id || c.docId) === a.classId);
+                  const subject = subjects.find(s => (s.docId || s.id) === classItem?.subjectId);
+                  return subject?.programId === enrollmentProgramFilter;
+                }
+                if (isInstructor && !isAdmin && !isSuperAdmin) {
+                  const classItem = classes.find(c => (c.id || c.docId) === a.classId);
+                  return classItem && (classItem.instructorId === user.uid || classItem.ownerEmail === user.email || classItem.instructor === user.email);
+                }
+                return true;
+              }).length,
+              tooltip: isSuperAdmin ? (t('total_activities_system') || 'Total number of activities') : isAdmin ? (t('total_activities_accessible') || 'Activities in your accessible programs') : (t('total_activities_instructor') || 'Activities in your classes')
+            },
             // Quizzes
             {
               type: 'quizzes',
@@ -423,18 +637,16 @@ const AnalyticsDashboardPage = memo(() => {
             const borderRadius = getShapeRadius(config.shape);
             return (
               <div
-                key={idx}
+                key={`other-${idx}`}
                 style={{
-                  position: 'relative',
-                  overflow: 'visible',
-                  height: '100%',
+                  padding: '0.75rem',
+                  background: theme === 'dark' ? '#1f2937' : '#ffffff',
+                  border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+                  borderRadius: '0.5rem',
                   display: 'flex',
                   flexDirection: 'column',
                   cursor: stat.onClick ? 'pointer' : 'default',
-                  transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
-                  border: '2px solid transparent',
-                  backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-                  borderRadius: '0.5rem'
+                  transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s'
                 }}
                 onMouseEnter={(e) => {
                   if (stat.onClick) {

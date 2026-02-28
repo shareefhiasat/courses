@@ -103,11 +103,11 @@ export const seedDefaultCategories = async () => {
 /**
  * Add a new category
  */
-export const addCategory = async (categoryData) => {
+export const addCategory = async (categoryData, user = null) => {
   try {
     logger.info('CATEGORY: Adding new category', { name: categoryData.nameEn });
     
-    const result = await createCategoryToDb(categoryData);
+    const result = await createCategoryToDb(categoryData, user);
     
     if (result.success) {
       logger.info('CATEGORY: Successfully added category', { name: categoryData.nameEn, docId: result.id });
@@ -125,11 +125,11 @@ export const addCategory = async (categoryData) => {
 /**
  * Update an existing category
  */
-export const updateCategory = async (docId, categoryData) => {
+export const updateCategory = async (docId, categoryData, user = null) => {
   try {
     logger.info('CATEGORY: Updating category', { docId, name: categoryData.nameEn });
     
-    const result = await updateCategoryInDb(docId, categoryData);
+    const result = await updateCategoryInDb(docId, categoryData, user);
     
     if (result.success) {
       logger.info('CATEGORY: Successfully updated category', { docId, name: categoryData.nameEn });
