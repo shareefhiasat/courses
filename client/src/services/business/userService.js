@@ -293,6 +293,20 @@ export const addUser = async (userData) => {
 // Update user function
 export const updateUser = async (id, userData) => {
   try {
+    logger.info('USER: updateUser called', {
+      timestamp: new Date().toISOString(),
+      userId: id,
+      userDataKeys: Object.keys(userData),
+      userData: {
+        email: userData.email,
+        displayName: userData.displayName,
+        realName: userData.realName,
+        studentNumber: userData.studentNumber,
+        order: userData.order,
+        role: userData.role
+      }
+    });
+    
     // Validate inputs
     if (!id || typeof id !== 'string') {
       logger.error('USER: Invalid user ID provided for update:', { id, type: typeof id });
@@ -307,27 +321,49 @@ export const updateUser = async (id, userData) => {
     logger.info('USER: Updating user', { userId: id, updateFields: Object.keys(userData) });
     
     // Check if email is being changed
+    logger.info('USER: Checking current user data for email change detection', { userId: id });
     const currentUserResult = await getUserByIdFromDb(id);
     
+    logger.info('USER: Current user data retrieved', {
+      success: currentUserResult.success,
+      hasData: !!currentUserResult.data,
+      currentEmail: currentUserResult.data?.email,
+      newEmail: userData.email
+    });
+    
     if (currentUserResult.success && userData.email && userData.email !== currentUserResult.data.email) {
+      logger.info('USER: Email change detected, logging activity', {
+        oldEmail: currentUserResult.data.email,
+        newEmail: userData.email
+      });
       // Log email change activity
       try {
         const { ActivityLogger } = await import('../other/activityLogger');
         await ActivityLogger.emailChange();
+        logger.info('USER: Email change activity logged successfully');
       } catch (error) {
         logger.warn('Failed to log email change activity:', error);
       }
     }
     
+    logger.info('USER: Calling updateUserInDb', { userId: id });
     const result = await updateUserInDb(id, userData);
+    
+    logger.info('USER: updateUserInDb response received', {
+      success: result.success,
+      error: result.error,
+      userId: id
+    });
     
     if (result.success) {
       // Log activity
       try {
+        logger.info('USER: Logging update activity');
         await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
           userId: id,
           updateFields: Object.keys(userData)
         }, id);
+        logger.info('USER: Update activity logged successfully');
       } catch (logError) {
         logger.warn('USER: Failed to log user update:', logError);
       }
@@ -337,13 +373,17 @@ export const updateUser = async (id, userData) => {
     
     return result;
   } catch (error) {
-    logger.error('USER: Failed to update user', { error: error.message, userId: id });
+    logger.error('USER: Failed to update user', { 
+      error: error.message, 
+      userId: id,
+      stack: error.stack 
+    });
     logger.error("Error updating user:", error);
     return { success: false, error: error.message };
   }
 };
 
-// Delete user function
+// Delete user function (role-based)
 export const deleteUser = async (id) => {
   try {
     logger.info('USER: Deleting user', { userId: id });
@@ -367,6 +407,52 @@ export const deleteUser = async (id) => {
   } catch (error) {
     logger.error('USER: Failed to delete user', { error: error.message, userId: id });
     logger.error("Error deleting user:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Delete student completely (Firestore + Firebase Auth)
+export const deleteStudent = async (userId) => {
+  try {
+    logger.info('USER: Deleting student completely', { userId });
+    
+    const { httpsCallable } = await import('firebase/functions');
+    const { functions } = await import('../other/config');
+    
+    const deleteUserAuthFn = httpsCallable(functions, 'deleteUserAuth');
+    const result = await deleteUserAuthFn({ userId });
+    
+    if (result.data?.success) {
+      logger.info('USER: Successfully deleted student from Firestore + Auth', { userId });
+      return { success: true, message: result.data.message };
+    } else {
+      throw new Error(result.data?.message || 'Failed to delete student');
+    }
+  } catch (error) {
+    logger.error('USER: Failed to delete student', { error: error.message, userId });
+    return { success: false, error: error.message };
+  }
+};
+
+// Disable user (soft delete for staff)
+export const disableUser = async (userId) => {
+  try {
+    logger.info('USER: Disabling user (soft delete)', { userId });
+    
+    const { httpsCallable } = await import('firebase/functions');
+    const { functions } = await import('../other/config');
+    
+    const disableUserFn = httpsCallable(functions, 'disableUser');
+    const result = await disableUserFn({ userId });
+    
+    if (result.data?.success) {
+      logger.info('USER: Successfully disabled user', { userId });
+      return { success: true, message: result.data.message };
+    } else {
+      throw new Error(result.data?.message || 'Failed to disable user');
+    }
+  } catch (error) {
+    logger.error('USER: Failed to disable user', { error: error.message, userId });
     return { success: false, error: error.message };
   }
 };

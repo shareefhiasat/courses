@@ -399,7 +399,8 @@ exports.sendGmailEmail = gmailEmailFunctions.sendGmailEmail;
 const qrCodeEmailFunctions = require('./sendQRCodeEmail');
 exports.sendQRCodeEmail = qrCodeEmailFunctions.sendQRCodeEmail;
 
-// Export template management function
-const templateFunctions = require('./checkAndEnableTemplates');
-exports.checkAndEnableTemplates = templateFunctions.checkAndEnableTemplates;
+// Export user management functions
+const userManagementFunctions = require('./deleteUserAuth');
+exports.deleteUserAuth = userManagementFunctions.deleteUserAuth;
+exports.disableUser = userManagementFunctions.disableUser;
 

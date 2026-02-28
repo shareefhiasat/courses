@@ -13,7 +13,7 @@ import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Card, CardBody, 
 import { DeleteModal, useDeleteModal } from '@ui';
 import { QREmailModal, useQREmailModal } from '@ui';
 import { ProgramsSelect } from '@ui';
-import { getUsers, addUser, updateUser, deleteUser as deleteUserFromService, isUserDisabledAtUserLevel, isStudent, isAdmin as isAdminUser } from '@services/business/userService';
+import { getUsers, addUser, updateUser, deleteUser as deleteUserFromService, deleteStudent, disableUser, isUserDisabledAtUserLevel, isStudent, isAdmin as isAdminUser } from '@services/business/userService';
 import { getPrograms } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { getSubjects } from '@services/business/programService';
@@ -223,6 +223,58 @@ const UsersPage = ({ isDashboardTab = false }) => {
 
   // Handler functions - must be defined before gridColumns
   const handleEditUser = useCallback((user) => {
+    logger.info('USER_PAGE: handleEditUser called', {
+      timestamp: new Date().toISOString(),
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        isInvited: user.isInvited,
+        hasId: !!user.id,
+        hasUid: !!user.uid,
+        availableIds: {
+          id: user.id,
+          uid: user.uid,
+          email: user.email
+        }
+      }
+    });
+
+    // Check if user is invited - if so, don't allow editing
+    if (user.isInvited) {
+      logger.warn('USER_PAGE: Edit attempted on invited user - blocking', {
+        email: user.email,
+        reason: 'Invited users cannot be edited. Cancel invitation and re-add instead.'
+      });
+      toast?.showError('Cannot edit invited users. Cancel invitation and re-add with new details.');
+      return;
+    }
+
+    // Check if user has proper ID for editing
+    const userId = user.id || user.uid || user.email;
+    if (!userId) {
+      logger.error('USER_PAGE: No valid ID found for editing user', {
+        user: {
+          email: user.email,
+          displayName: user.displayName,
+          isInvited: user.isInvited,
+          availableIds: {
+            id: user.id,
+            uid: user.uid,
+            email: user.email
+          }
+        }
+      });
+      toast?.showError('Cannot edit user - no valid ID found. User may need to sign up first.');
+      return;
+    }
+
+    logger.info('USER_PAGE: Setting up edit form', {
+      userId: userId,
+      userEmail: user.email,
+      userDisplayName: user.displayName
+    });
+
     setEditingUser(user);
     setFormData({
       email: user.email || '',
@@ -232,10 +284,21 @@ const UsersPage = ({ isDashboardTab = false }) => {
       order: user.order || '',
       role: user.role || ROLE_STRINGS.STUDENT
     });
+
+    logger.info('USER_PAGE: Edit form setup complete', {
+      formData: {
+        email: user.email || '',
+        displayName: user.displayName || '',
+        realName: user.realName || '',
+        studentNumber: user.studentNumber || '',
+        order: user.order || '',
+        role: user.role || ROLE_STRINGS.STUDENT
+      }
+    });
   }, []);
 
   const handleDeleteUser = useCallback(async (userToDelete) => {
-    const userId = userToDelete.docId || userToDelete.id;
+    const userId = userToDelete.id || userToDelete.uid || userToDelete.email;
     const role = userToDelete.role || ROLE_STRINGS.STUDENT;
     const isStudentRole = isStudent(userToDelete);
 
@@ -298,20 +361,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
     if (!isStudentRole) {
       deleteUser(userToDelete, async () => {
         try {
-          const result = await updateUser(userId, {
-            disabled: true,
-            isDisabled: true
-          });
+          const result = await disableUser(userId);
           if (result.success) {
-            // Log activity
-            try {
-              const { logActivity } = await import('@services/other/activityLogger');
-              await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
-                userId,
-                userEmail: userToDelete.email,
-                action: 'soft_deleted'
-              });
-            } catch (e) { }
             toast?.showSuccess(t('users_soft_deleted_success'));
             await loadData();
           } else {
@@ -325,14 +376,15 @@ const UsersPage = ({ isDashboardTab = false }) => {
     } else {
       deleteUser(userToDelete, async () => {
         try {
-          const result = await deleteUserFromService(userId);
+          const result = await deleteStudent(userId);
           if (result.success) {
             toast?.showSuccess(t('users_deleted_successfully'));
             await loadData();
           } else {
-            toast?.showError(t('users_error', { error: result.error }));
+            toast?.showError(result.error || t('users_failed_to_delete_user'));
           }
         } catch (error) {
+          logger.error('USER_PAGE: Failed to delete student:', error);
           toast?.showError(t('users_error', { error: error.message }));
         }
       }, relatedRecords);
@@ -340,12 +392,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
   }, [deleteUser, toast, loadData, enrollments, t]);
 
   const handleToggleUserStatus = useCallback(async (user) => {
-    // Prevent disabling super admin
-    if (isAdminUser(user) && !isUserDisabledAtUserLevel(user)) {
-      toast?.showError(t('users_cannot_disable_super_admin'));
-      return;
-    }
-
+    // Allow disabling any user (including admins) - only restriction is for delete
     const isCurrentlyDisabled = isUserDisabledAtUserLevel(user);
     const action = isCurrentlyDisabled ? 'enable' : 'disable';
 
@@ -683,38 +730,44 @@ const UsersPage = ({ isDashboardTab = false }) => {
       headerName: t('student_number') || 'Student Number', 
       width: 140,
       renderCell: (params) => {
-        if (params.row.role === ROLE_STRINGS.STUDENT) {
-          return (
-            <span style={{ 
-              fontFamily: 'monospace', 
-              fontSize: '0.875rem',
-              color: '#059669',
-              fontWeight: 600
-            }}>
-              {params.value || '—'}
-            </span>
-          );
-        }
-        return '—';
+        return (
+          <span style={{ 
+            fontFamily: 'monospace', 
+            fontSize: '0.875rem',
+            color: '#059669',
+            fontWeight: 600
+          }}>
+            {params.value || '—'}
+          </span>
+        );
       }
     },
     {
       field: 'order', 
       headerName: t('order') || 'Order', 
-      width: 80,
+      width: 120,
       renderCell: (params) => {
-        if (params.row.role === ROLE_STRINGS.STUDENT) {
-          return (
-            <span style={{ 
-              fontSize: '0.875rem',
-              color: params.value ? '#1f2937' : '#9ca3af',
-              fontWeight: params.value ? 600 : 400
-            }}>
-              {params.value || '—'}
-            </span>
-          );
+        // Debug logging for order column
+        if (params.row.email === 'hafole1668@hutudns.com') {
+          console.log('ORDER COLUMN DEBUG:', {
+            value: params.value,
+            row: params.row,
+            hasOrder: !!params.value,
+            orderType: typeof params.value,
+            allFields: Object.keys(params.row)
+          });
         }
-        return '—';
+        
+        return (
+          <span style={{ 
+            fontFamily: 'monospace',
+            fontSize: '0.875rem',
+            color: params.value ? '#059669' : '#9ca3af',
+            fontWeight: 600
+          }}>
+            {params.value || '—'}
+          </span>
+        );
       }
     },
     {
@@ -824,7 +877,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
       }
     },
     {
-      field: 'actions', headerName: t('actions_col'), width: 280, sortable: false, filterable: false,
+      field: 'actions', headerName: t('actions_col'), width: 350, sortable: false, filterable: false,
       renderCell: (params) => (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {params.row.isInvited ? (
@@ -850,30 +903,82 @@ const UsersPage = ({ isDashboardTab = false }) => {
               </Button>
             </>
           ) : (
-            // Existing users get full actions - start with edit button
-            (() => {
-              const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === ROLE_STRINGS.SUPER_ADMIN;
-              const currentUserIsSuperAdmin = user?.isSuperAdmin || user?.role === ROLE_STRINGS.SUPER_ADMIN;
-              const canEdit = !isSuperAdminUser || currentUserIsSuperAdmin;
-              
-              return (
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  icon={getThemedIcon('ui', 'edit', 16, theme)} 
-                  onClick={() => handleEditUser(params.row)}
-                  disabled={!canEdit}
-                  title={canEdit ? (t('edit') || 'Edit') : 'Only Super Admin can edit Super Admin'}
-                  style={{ opacity: canEdit ? 1 : 0.5 }}
-                >
-                  {t('edit') || 'Edit'}
-                </Button>
-              );
-            })()
-          )}
-          {!params.row.isInvited && (
-            // Show remaining actions only for existing users (not invited)
+            // Existing users get full actions
             <>
+              {/* Edit button - always first */}
+              {(() => {
+                const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === ROLE_STRINGS.SUPER_ADMIN;
+                const currentUserIsSuperAdmin = user?.isSuperAdmin || user?.role === ROLE_STRINGS.SUPER_ADMIN;
+                const canEdit = !isSuperAdminUser || currentUserIsSuperAdmin;
+                
+                logger.info('USER_PAGE: Edit button rendering', {
+                  userEmail: params.row.email,
+                  userId: params.row.id,
+                  isInvited: params.row.isInvited,
+                  canEdit: canEdit,
+                  isSuperAdminUser: isSuperAdminUser,
+                  currentUserIsSuperAdmin: currentUserIsSuperAdmin
+                });
+                
+                return (
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    icon={getThemedIcon('ui', 'edit', 16, theme)} 
+                    onClick={() => {
+                      logger.info('USER_PAGE: Edit button clicked', {
+                        userEmail: params.row.email,
+                        userId: params.row.id,
+                        isInvited: params.row.isInvited,
+                        canEdit: canEdit
+                      });
+                      handleEditUser(params.row);
+                    }}
+                    disabled={!canEdit}
+                    title={canEdit ? (t('edit') || 'Edit') : 'Only Super Admin can edit Super Admin'}
+                    style={{ opacity: canEdit ? 1 : 0.5 }}
+                  >
+                    {t('edit') || 'Edit'}
+                  </Button>
+                );
+              })()}
+              
+              {/* Reset Password button - always second */}
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                onClick={() => handleResetPassword(params.row.email)}
+                title={t('reset_password') || 'Reset Password'}
+                style={{ border: 'none' }}
+              >
+                {getThemedIcon('ui', 'key_round', 16, theme)}
+              </Button>
+              
+              {/* Welcome Email button - third (beside reset password) */}
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                onClick={() => handleSendWelcomeEmail(params.row.email, params.row.role, params.row.displayName)}
+                title={t('send_welcome_email') || 'Send Welcome Email'}
+                style={{ border: 'none' }}
+              >
+                {getThemedIcon('ui', 'mail', 16, theme)}
+              </Button>
+              
+              {/* Disable/Enable button - fourth */}
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                icon={isUserDisabledAtUserLevel(params.row) ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
+                style={{ color: isUserDisabledAtUserLevel(params.row) ? '#28a745' : '#dc2626' }}
+                onClick={() => handleToggleUserStatus(params.row)}
+                title={isUserDisabledAtUserLevel(params.row) ? 'Enable' : 'Disable'}
+                // Remove the admin restriction - allow disable for all users
+              >
+                {isUserDisabledAtUserLevel(params.row) ? 'Enable' : 'Disable'}
+              </Button>
+              
+              {/* QR Code buttons - fifth and sixth */}
               {(() => {
                 // Check if user has student role from boolean flags
                 const hasStudentRole = isStudent(params.row);
@@ -917,46 +1022,22 @@ const UsersPage = ({ isDashboardTab = false }) => {
                         disabled={!canUseQR}
                         style={{ opacity: canUseQR ? 1 : 0.5, border: 'none' }}
                       >
-                        {getThemedIcon('ui', 'mail', 16, theme)}
+                        {getThemedIcon('ui', 'qr_code', 16, theme)}
                       </Button>
                     </>
                   );
                 }
-                return null;
+                return null; // Don't show QR buttons if no student number
               })()}
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                onClick={() => handleResetPassword(params.row.email)}
-                title={t('reset_password') || 'Reset Password'}
-                style={{ border: 'none' }}
-              >
-                {getThemedIcon('ui', 'key_round', 16, theme)}
-              </Button>
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                onClick={() => handleSendWelcomeEmail(params.row.email, params.row.role, params.row.displayName)}
-                title={t('send_welcome_email') || 'Send Welcome Email'}
-                style={{ border: 'none' }}
-              >
-                {getThemedIcon('ui', 'mail', 16, theme)}
-              </Button>
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                icon={isUserDisabledAtUserLevel(params.row) ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
-                style={{ color: isUserDisabledAtUserLevel(params.row) ? '#28a745' : '#dc2626' }}
-                onClick={() => handleToggleUserStatus(params.row)}
-                title={isUserDisabledAtUserLevel(params.row) ? 'Enable' : 'Disable'}
-                disabled={isAdminUser(params.row) && !isUserDisabledAtUserLevel(params.row)}
-              >
-                {isUserDisabledAtUserLevel(params.row) ? 'Enable' : 'Disable'}
-              </Button>
+              
+              {/* Delete button - always last */}
               {(() => {
                 const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === ROLE_STRINGS.SUPER_ADMIN;
                 const currentUserIsSuperAdmin = user?.isSuperAdmin || user?.role === ROLE_STRINGS.SUPER_ADMIN;
-                const canDelete = !isSuperAdminUser || currentUserIsSuperAdmin;
+                const isStudentRole = isStudent(params.row);
+                
+                // Only students can be deleted
+                const canDelete = isStudentRole && (!isSuperAdminUser || currentUserIsSuperAdmin);
                 
                 return (
                   <Button 
@@ -966,7 +1047,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
                     style={{ color: '#dc2626', opacity: canDelete ? 1 : 0.5 }}
                     onClick={() => canDelete && handleDeleteUser(params.row)}
                     disabled={!canDelete}
-                    title={canDelete ? (t('delete') || 'Delete') : 'Cannot delete Super Admin'}
+                    title={canDelete ? (t('delete') || 'Delete') : (isStudentRole ? 'Cannot delete this user' : 'Only students can be deleted')}
                   >
                     {t('delete') || 'Delete'}
                   </Button>
@@ -1004,16 +1085,52 @@ const UsersPage = ({ isDashboardTab = false }) => {
   };
 
   const handleFormSubmit = async (e) => {
+    logger.info('USER_PAGE: Form submit started', {
+      timestamp: new Date().toISOString(),
+      editingUser: editingUser ? {
+        id: editingUser.id,
+        email: editingUser.email,
+        displayName: editingUser.displayName,
+        isInvited: editingUser.isInvited,
+        hasId: !!editingUser.id,
+        hasUid: !!editingUser.uid
+      } : null,
+      isEditMode: !!editingUser,
+      isCurrentlySaving: saving
+    });
+
+    // Prevent duplicate submissions
+    if (saving) {
+      logger.warn('USER_PAGE: Form submit blocked - already saving', {
+        timestamp: new Date().toISOString(),
+        isSaving: saving
+      });
+      return;
+    }
+
     e.preventDefault();
     const textValues = syncRefsToState();
     
+    logger.info('USER_PAGE: Form values collected', {
+      textValues: {
+        email: textValues.email,
+        displayName: textValues.displayName,
+        realName: textValues.realName,
+        studentNumber: textValues.studentNumber,
+        order: textValues.order,
+        role: textValues.role
+      }
+    });
+    
     if (!textValues.email.trim()) {
+      logger.warn('USER_PAGE: Validation failed - email empty');
       toast?.showError('Email is required');
       return;
     }
 
     // Validate student number is required for students
     if (formData.role === ROLE_STRINGS.STUDENT && !textValues.studentNumber?.trim()) {
+      logger.warn('USER_PAGE: Validation failed - student number required for student');
       toast?.showError('Student number is required for students');
       return;
     }
@@ -1021,10 +1138,14 @@ const UsersPage = ({ isDashboardTab = false }) => {
     // Validate email uniqueness across all users
     const emailDuplicate = users.some(user => 
       user.email === textValues.email.trim() && 
-      user.docId !== editingUser?.docId
+      (user.id !== editingUser?.id && user.email !== editingUser?.email)
     );
     
     if (emailDuplicate) {
+      logger.warn('USER_PAGE: Validation failed - email duplicate', {
+        newEmail: textValues.email.trim(),
+        editingUserEmail: editingUser?.email
+      });
       toast?.showError('Email already exists. Each user must have a unique email address.');
       return;
     }
@@ -1033,15 +1154,20 @@ const UsersPage = ({ isDashboardTab = false }) => {
     if (textValues.studentNumber?.trim()) {
       const studentNumberDuplicate = users.some(user => 
         user.studentNumber === textValues.studentNumber.trim() && 
-        user.docId !== editingUser?.docId
+        (user.id !== editingUser?.id && user.email !== editingUser?.email)
       );
       
       if (studentNumberDuplicate) {
+        logger.warn('USER_PAGE: Validation failed - student number duplicate', {
+          newStudentNumber: textValues.studentNumber.trim(),
+          editingUserStudentNumber: editingUser?.studentNumber
+        });
         toast?.showError('Student number must be unique. This student number is already in use.');
         return;
       }
     }
 
+    logger.info('USER_PAGE: Validation passed, proceeding with submit');
     setSaving(true);
     try {
       const submitData = {
@@ -1049,27 +1175,72 @@ const UsersPage = ({ isDashboardTab = false }) => {
         ...textValues
       };
       
+      logger.info('USER_PAGE: Submit data prepared', {
+        submitData: {
+          email: submitData.email,
+          displayName: submitData.displayName,
+          realName: submitData.realName,
+          studentNumber: submitData.studentNumber,
+          order: submitData.order,
+          role: submitData.role
+        }
+      });
+      
       if (editingUser) {
         logger.info('USER_PAGE: Attempting to update user', {
           timestamp: new Date().toISOString(),
           editingUser: {
-            docId: editingUser.docId,
             id: editingUser.id,
             email: editingUser.email,
-            hasDocId: !!editingUser.docId,
-            docIdType: typeof editingUser.docId
+            hasId: !!editingUser.id,
+            idType: typeof editingUser.id
           },
           submitDataKeys: Object.keys(submitData)
         });
         
-        const userId = editingUser.docId || editingUser.id;
+        const userId = editingUser.id || editingUser.uid || editingUser.email;
+        logger.info('USER_PAGE: User ID determined for update', {
+          userId: userId,
+          idSource: editingUser.id ? 'id' : editingUser.uid ? 'uid' : editingUser.email ? 'email' : 'unknown'
+        });
+        
         if (!userId) {
-          logger.error('USER_PAGE: No valid user ID found for update', { editingUser });
-          throw new Error('No valid user ID found for update');
+          logger.error('USER_PAGE: No valid user ID found for update', { 
+            editingUser: {
+              ...editingUser,
+              availableIds: {
+                id: editingUser.id,
+                uid: editingUser.uid,
+                email: editingUser.email
+              },
+              isInvited: editingUser.isInvited
+            }
+          });
+          throw new Error('User ID not found - cannot update user. User may need to sign up first.');
         }
+
+        logger.info('USER_PAGE: Calling updateUser service', {
+          userId: userId,
+          serviceFunction: 'updateUser'
+        });
         
         const result = await updateUser(userId, submitData);
-        if (!result.success) throw new Error(result.error || 'Failed to update user');
+        
+        logger.info('USER_PAGE: Update service response received', {
+          success: result.success,
+          error: result.error,
+          userId: userId
+        });
+        
+        if (!result.success) {
+          logger.error('USER_PAGE: Update failed', {
+            error: result.error,
+            userId: userId
+          });
+          throw new Error(result.error || 'Failed to update user');
+        }
+
+        logger.info('USER_PAGE: Update successful, logging activity');
         // Log activity
         try {
           const { logActivity } = await import('@services/other/activityLogger');
@@ -1080,6 +1251,16 @@ const UsersPage = ({ isDashboardTab = false }) => {
           }, userId);
         } catch (e) { }
         toast?.showSuccess('User updated successfully!');
+        
+        // Only reload if editing (not adding new user to allowlist)
+        if (editingUser) {
+          logger.info('USER_PAGE: Calling loadData after user update', {
+            timestamp: new Date().toISOString(),
+            userId: userId
+          });
+          await loadData();
+        }
+        resetForm();
       } else {
         // Add to allowlist if checkbox is checked
         if (autoAddToAllowlist && submitData.email) {
@@ -1270,6 +1451,12 @@ const UsersPage = ({ isDashboardTab = false }) => {
   };
 
   const resetForm = useCallback((clearRefs = true) => {
+    logger.info('USER_PAGE: resetForm called', {
+      timestamp: new Date().toISOString(),
+      clearRefs: clearRefs,
+      hadEditingUser: !!editingUser
+    });
+    
     setEditingUser(null);
     setFormData({
       email: '',
@@ -1625,6 +1812,18 @@ const UsersPage = ({ isDashboardTab = false }) => {
               exportFileName="users"
               showExportButton
               exportLabel={t('export') || 'Export'}
+              width="100%"
+              sx={{
+                '& .MuiDataGrid-root': {
+                  border: 'none',
+                },
+                '& .MuiDataGrid-columnHeaders': {
+                  backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
+                },
+                '& .MuiDataGrid-virtualScroller': {
+                  backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+                }
+              }}
             />
           </>
         )}
