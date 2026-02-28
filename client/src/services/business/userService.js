@@ -439,17 +439,28 @@ export const disableUser = async (userId) => {
   try {
     logger.info('USER: Disabling user (soft delete)', { userId });
     
-    const { httpsCallable } = await import('firebase/functions');
-    const { functions } = await import('../other/config');
+    const { disableUserAuth } = await import('../db/userAuthDbService');
+    const { disableUserFirestore } = await import('../db/userDbService');
     
-    const disableUserFn = httpsCallable(functions, 'disableUser');
-    const result = await disableUserFn({ userId });
+    // Get current user for admin ID from Firebase Auth
+    const { auth } = await import('../other/config');
+    const currentUser = auth.currentUser;
+    const adminId = currentUser?.uid;
     
-    if (result.data?.success) {
+    // Disable in Firestore first
+    const firestoreResult = await disableUserFirestore(userId, adminId);
+    if (!firestoreResult.success) {
+      throw new Error(firestoreResult.error || 'Failed to disable user in Firestore');
+    }
+    
+    // Then disable in Firebase Auth
+    const authResult = await disableUserAuth(userId);
+    
+    if (authResult.success) {
       logger.info('USER: Successfully disabled user', { userId });
-      return { success: true, message: result.data.message };
+      return { success: true, message: authResult.payload.message };
     } else {
-      throw new Error(result.data?.message || 'Failed to disable user');
+      throw new Error(authResult.error?.message || 'Failed to disable user');
     }
   } catch (error) {
     logger.error('USER: Failed to disable user', { error: error.message, userId });
@@ -679,17 +690,28 @@ export const enableUser = async (userId) => {
   try {
     logger.info('USER: Enabling user', { userId });
     
-    const { httpsCallable } = await import('firebase/functions');
-    const { functions } = await import('../other/config');
+    const { enableUserAuth } = await import('../db/userAuthDbService');
+    const { enableUserFirestore } = await import('../db/userDbService');
     
-    const enableUserFn = httpsCallable(functions, 'enableUser');
-    const result = await enableUserFn({ userId });
+    // Get current user for admin ID from Firebase Auth
+    const { auth } = await import('../other/config');
+    const currentUser = auth.currentUser;
+    const adminId = currentUser?.uid;
     
-    logger.info('USER: User enabled successfully', { userId, result: result.data });
+    // Enable in Firestore first
+    const firestoreResult = await enableUserFirestore(userId, adminId);
+    if (!firestoreResult.success) {
+      throw new Error(firestoreResult.error || 'Failed to enable user in Firestore');
+    }
+    
+    // Then enable in Firebase Auth
+    const authResult = await enableUserAuth(userId);
+    
+    logger.info('USER: User enabled successfully', { userId, result: authResult.payload });
     
     return {
       success: true,
-      payload: result.data,
+      payload: authResult.payload,
       timestamp: new Date().toISOString()
     };
   } catch (error) {

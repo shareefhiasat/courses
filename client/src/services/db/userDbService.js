@@ -407,3 +407,50 @@ export const deleteUserCascade = async (uid) => {
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Disable user in Firestore
+ * @param {string} userId - User ID
+ * @param {string} adminId - Admin ID performing the action
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const disableUserFirestore = async (userId, adminId) => {
+  try {
+    await updateDoc(doc(db, "users", userId), {
+      disabled: true,
+      isDisabled: true,
+      status: 'disabled',
+      disabledAt: serverTimestamp(),
+      disabledBy: adminId
+    });
+    
+    return { success: true };
+  } catch (error) {
+    logger.error('[UserDbService] Error disabling user:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Enable user in Firestore
+ * @param {string} userId - User ID
+ * @param {string} adminId - Admin ID performing the action
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const enableUserFirestore = async (userId, adminId) => {
+  try {
+    await updateDoc(doc(db, "users", userId), {
+      disabled: false,
+      isDisabled: false,
+      status: 'active',
+      disabledAt: null,
+      enabledBy: adminId,
+      enabledAt: serverTimestamp()
+    });
+    
+    return { success: true };
+  } catch (error) {
+    logger.error('[UserDbService] Error enabling user:', error);
+    return { success: false, error: error.message };
+  }
+};

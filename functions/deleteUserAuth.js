@@ -155,8 +155,6 @@ exports.disableUser = functions.https.onCall(async (data, context) => {
     }
 
     const userData = userDoc.data();
-    
-    console.log(`Disabling user: ${userId} (${userData.email})`);
 
     // Update user document to disable
     await admin.firestore().collection('users').doc(userId).update({
@@ -167,14 +165,11 @@ exports.disableUser = functions.https.onCall(async (data, context) => {
       disabledBy: callerUid
     });
 
-    console.log(`Disabled user in Firestore: ${userId}`);
-
-    // Also disable in Firebase Authentication
+    // Disable in Firebase Authentication
     try {
       await admin.auth().updateUser(userId, {
         disabled: true
       });
-      console.log(`Disabled Firebase Auth account: ${userId}`);
     } catch (authError) {
       console.warn(`Failed to disable Firebase Auth account: ${authError.message}`);
       // Continue anyway - Firestore is updated
@@ -256,8 +251,6 @@ exports.enableUser = functions.https.onCall(async (data, context) => {
     }
 
     const userData = userDoc.data();
-    
-    console.log(`Enabling user: ${userId} (${userData.email})`);
 
     // Update user document to enable
     await admin.firestore().collection('users').doc(userId).update({
@@ -269,14 +262,11 @@ exports.enableUser = functions.https.onCall(async (data, context) => {
       enabledAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    console.log(`Enabled user in Firestore: ${userId}`);
-
-    // Also enable in Firebase Authentication
+    // Enable in Firebase Authentication
     try {
       await admin.auth().updateUser(userId, {
         disabled: false
       });
-      console.log(`Enabled Firebase Auth account: ${userId}`);
     } catch (authError) {
       console.warn(`Failed to enable Firebase Auth account: ${authError.message}`);
       // Continue anyway - Firestore is updated
