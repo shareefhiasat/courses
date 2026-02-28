@@ -11,6 +11,7 @@ import { db } from '@services/other/config';
 import { normalizeHexColor, DEFAULT_ACCENT, hexToRgbString } from '@utils/color';
 import { getThemedIcon } from '@constants/iconTypes';
 import { TimerStopwatch } from '@ui';
+import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
 
 const SideDrawer = ({ isOpen, onClose }) => {
   const { user, isAdmin, isSuperAdmin, isHR, isInstructor, role, impersonating, stopImpersonation } = useAuth();
@@ -1056,10 +1057,37 @@ const SideDrawer = ({ isOpen, onClose }) => {
               borderTop: '1px solid rgba(255,255,255,0.08)',
               background: 'rgba(0,0,0,0.15)',
               display: 'flex',
+              flexDirection: 'column',
               justifyContent: collapsed ? 'center' : 'space-between',
-              alignItems: 'center',
+              alignItems: collapsed ? 'center' : 'stretch',
               gap: collapsed ? '0.75rem' : '0.5rem'
             }}>
+              {/* Version Display */}
+              {!collapsed && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  marginBottom: '0.5rem'
+                }}>
+                  <VersionDisplay 
+                    style={{
+                      position: 'static',
+                      fontSize: '9px',
+                      padding: '3px 8px',
+                      background: theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
+                      borderRadius: '6px'
+                    }}
+                  />
+                </div>
+              )}
+              
+              {/* Button Row */}
+              <div style={{
+                display: 'flex',
+                justifyContent: collapsed ? 'center' : 'space-between',
+                alignItems: 'center',
+                gap: collapsed ? '0.75rem' : '0.5rem'
+              }}>
               {/* Language Toggle */}
               <button
                 onClick={() => {
@@ -1092,6 +1120,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
               >
                 <span>{t('logout') || 'Logout'}</span>
               </button>
+              </div>
             </div>
           </motion.div>
         </>

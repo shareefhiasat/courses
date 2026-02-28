@@ -7,6 +7,7 @@ import AuthForm from '@/components/AuthForm';
 import { Container } from '@ui';
 import { GlobalLoadingFallback } from '@/contexts/GlobalLoadingContext';
 import { Navbar } from '@ui';
+import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
 import styles from './LoginPage.module.css';
 
 const LoginPage = () => {
@@ -222,6 +223,9 @@ const LoginPage = () => {
           </div>
         )}
       </Container>
+      
+      {/* Version Display */}
+      <VersionDisplay />
       
       {/* Add slideUp animation */}
       <style>{`
