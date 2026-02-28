@@ -1,15 +1,13 @@
 /**
  * Chat Limitations Configuration
- * Role-based restrictions for chat functionality
+ * Boolean flag-based restrictions for chat functionality
  */
 
-import { USER_ROLES } from './userRoles';
-
-// ===== CHAT LIMITATIONS BY ROLE =====
+// ===== CHAT LIMITATIONS BY USER TYPE =====
 
 export const CHAT_LIMITATIONS = {
   // Student limitations
-  [USER_ROLES.STUDENT]: {
+  student: {
     maxFileSize: 5 * 1024 * 1024, // 5MB
     maxVoiceRecordingTime: 5 * 60, // 5 minutes in seconds
     allowedFileTypes: [
@@ -22,7 +20,7 @@ export const CHAT_LIMITATIONS = {
   },
   
   // Instructor limitations
-  [USER_ROLES.INSTRUCTOR]: {
+  instructor: {
     maxFileSize: 25 * 1024 * 1024, // 25MB
     maxVoiceRecordingTime: 25 * 60, // 25 minutes in seconds
     allowedFileTypes: [
@@ -47,7 +45,7 @@ export const CHAT_LIMITATIONS = {
   },
   
   // Admin limitations
-  [USER_ROLES.ADMIN]: {
+  admin: {
     maxFileSize: 25 * 1024 * 1024, // 25MB
     maxVoiceRecordingTime: 25 * 60, // 25 minutes in seconds
     allowedFileTypes: [
@@ -74,7 +72,7 @@ export const CHAT_LIMITATIONS = {
   },
   
   // Super Admin limitations
-  [USER_ROLES.SUPER_ADMIN]: {
+  superAdmin: {
     maxFileSize: 25 * 1024 * 1024, // 25MB
     maxVoiceRecordingTime: 25 * 60, // 25 minutes in seconds
     allowedFileTypes: [
@@ -110,7 +108,7 @@ export const CHAT_LIMITATIONS = {
   },
   
   // HR limitations
-  [USER_ROLES.HR]: {
+  hr: {
     maxFileSize: 25 * 1024 * 1024, // 25MB
     maxVoiceRecordingTime: 25 * 60, // 25 minutes in seconds
     allowedFileTypes: [
@@ -139,69 +137,81 @@ export const CHAT_LIMITATIONS = {
 // ===== HELPER FUNCTIONS =====
 
 /**
- * Get chat limitations for a specific user role
- * @param {string} userRole - The user's role
- * @returns {Object} Chat limitations for the role
+ * Get chat limitations for a specific user based on boolean flags
+ * @param {Object} user - The user object with boolean flags
+ * @returns {Object} Chat limitations for the user
  */
-export const getChatLimitations = (userRole) => {
-  return CHAT_LIMITATIONS[userRole] || CHAT_LIMITATIONS[USER_ROLES.STUDENT];
+export const getChatLimitations = (user) => {
+  if (!user || typeof user !== 'object') {
+    return CHAT_LIMITATIONS.student;
+  }
+  
+  // Check in order of precedence (super admin > admin > hr > instructor > student)
+  if (user.isSuperAdmin) return CHAT_LIMITATIONS.superAdmin;
+  if (user.isAdmin) return CHAT_LIMITATIONS.admin;
+  if (user.isHR) return CHAT_LIMITATIONS.hr;
+  if (user.isInstructor) return CHAT_LIMITATIONS.instructor;
+  if (user.isStudent) return CHAT_LIMITATIONS.student;
+  
+  // Default to student limitations if no flags are set
+  return CHAT_LIMITATIONS.student;
 };
 
 /**
- * Check if a file type is allowed for a user role
- * @param {string} userRole - The user's role
+ * Check if a file type is allowed for a user
+ * @param {Object} user - The user object with boolean flags
  * @param {string} fileType - The MIME type of the file
  * @returns {boolean} True if file type is allowed
  */
-export const isFileTypeAllowed = (userRole, fileType) => {
-  const limitations = getChatLimitations(userRole);
+export const isFileTypeAllowed = (user, fileType) => {
+  const limitations = getChatLimitations(user);
   return limitations.allowedFileTypes.includes(fileType);
 };
 
 /**
- * Check if a file size is within limits for a user role
- * @param {string} userRole - The user's role
+ * Check if a file size is within limits for a user
+ * @param {Object} user - The user object with boolean flags
  * @param {number} fileSize - The file size in bytes
  * @returns {boolean} True if file size is within limits
  */
-export const isFileSizeAllowed = (userRole, fileSize) => {
-  const limitations = getChatLimitations(userRole);
+export const isFileSizeAllowed = (user, fileSize) => {
+  const limitations = getChatLimitations(user);
   return fileSize <= limitations.maxFileSize;
 };
 
 /**
- * Get maximum file size for a user role in human-readable format
- * @param {string} userRole - The user's role
+ * Get maximum file size for a user in human-readable format
+ * @param {Object} user - The user object with boolean flags
  * @returns {string} Maximum file size (e.g., "5MB", "25MB")
  */
-export const getMaxFileSizeDisplay = (userRole) => {
-  const limitations = getChatLimitations(userRole);
+export const getMaxFileSizeDisplay = (user) => {
+  const limitations = getChatLimitations(user);
   const sizeInMB = limitations.maxFileSize / (1024 * 1024);
   return `${sizeInMB}MB`;
 };
 
 /**
- * Get maximum voice recording time for a user role in human-readable format
- * @param {string} userRole - The user's role
+ * Get maximum voice recording time for a user in human-readable format
+ * @param {Object} user - The user object with boolean flags
  * @returns {string} Maximum recording time (e.g., "5 minutes", "25 minutes")
  */
-export const getMaxVoiceTimeDisplay = (userRole) => {
-  const limitations = getChatLimitations(userRole);
+export const getMaxVoiceTimeDisplay = (user) => {
+  const limitations = getChatLimitations(user);
   const timeInMinutes = limitations.maxVoiceRecordingTime / 60;
   return `${timeInMinutes} minutes`;
 };
 
 /**
- * Validate file upload against user role limitations
- * @param {string} userRole - The user's role
+ * Validate file upload against user limitations
+ * @param {Object} user - The user object with boolean flags
  * @param {File} file - The file to validate
  * @returns {Object} Validation result with isValid and message
  */
-export const validateFileUpload = (userRole, file) => {
-  const limitations = getChatLimitations(userRole);
+export const validateFileUpload = (user, file) => {
+  const limitations = getChatLimitations(user);
   
   // Check file type
-  if (!isFileTypeAllowed(userRole, file.type)) {
+  if (!isFileTypeAllowed(user, file.type)) {
     return {
       isValid: false,
       message: `File type "${file.type}" is not allowed for your role. Allowed types: ${limitations.allowedFileTypes.join(', ')}`
@@ -209,10 +219,10 @@ export const validateFileUpload = (userRole, file) => {
   }
   
   // Check file size
-  if (!isFileSizeAllowed(userRole, file.size)) {
+  if (!isFileSizeAllowed(user, file.size)) {
     return {
       isValid: false,
-      message: `File size exceeds maximum limit of ${getMaxFileSizeDisplay(userRole)} for your role.`
+      message: `File size exceeds maximum limit of ${getMaxFileSizeDisplay(user)} for your role.`
     };
   }
   
@@ -223,24 +233,24 @@ export const validateFileUpload = (userRole, file) => {
 };
 
 /**
- * Check if voice recording time is within limits for a user role
- * @param {string} userRole - The user's role
+ * Check if voice recording time is within limits for a user
+ * @param {Object} user - The user object with boolean flags
  * @param {number} recordingTime - Current recording time in seconds
  * @returns {boolean} True if recording time is within limits
  */
-export const isVoiceTimeAllowed = (userRole, recordingTime) => {
-  const limitations = getChatLimitations(userRole);
+export const isVoiceTimeAllowed = (user, recordingTime) => {
+  const limitations = getChatLimitations(user);
   return recordingTime <= limitations.maxVoiceRecordingTime;
 };
 
 /**
- * Get voice recording progress percentage for a user role
- * @param {string} userRole - The user's role
+ * Get voice recording progress percentage for a user
+ * @param {Object} user - The user object with boolean flags
  * @param {number} currentSeconds - Current recording time in seconds
  * @returns {number} Progress percentage (0-100)
  */
-export const getVoiceRecordingProgress = (userRole, currentSeconds) => {
-  const limitations = getChatLimitations(userRole);
+export const getVoiceRecordingProgress = (user, currentSeconds) => {
+  const limitations = getChatLimitations(user);
   return Math.min((currentSeconds / limitations.maxVoiceRecordingTime) * 100, 100);
 };
 

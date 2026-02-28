@@ -8,7 +8,7 @@ import { getStudentMarks as getStudentMarksDb } from '@services/db/enrollmentsDb
 import { getAllClassSubjectMarks as getAllClassSubjectMarksDb } from '@services/db/enrollmentsDbService';
 import { getSubjectMarksDistribution as getSubjectMarksDistributionDb } from '@services/db/enrollmentsDbService';
 import { setSubjectMarksDistribution as setSubjectMarksDistributionDb } from '@services/db/enrollmentsDbService';
-import { USER_ROLES } from '@constants/userRoles';
+import { ROLE_STRINGS } from '@utils/userUtils';
 
 /**
  * GPA Grading Rules
@@ -514,7 +514,7 @@ export const saveStudentMarks = async (marksData) => {
       enrollmentData = {
         userId: studentId,
         classId: classId,
-        role: USER_ROLES.STUDENT,
+        role: ROLE_STRINGS.STUDENT,
       };
       await setEnrollment(enrollmentId, enrollmentData);
     }
@@ -574,7 +574,7 @@ export const saveStudentMarks = async (marksData) => {
       isRetake,
       instructorId: instructorId || null,
       programId: enrollmentData.programId || null,
-      role: enrollmentData.role || USER_ROLES.STUDENT,
+      role: enrollmentData.role || ROLE_STRINGS.STUDENT,
     };
 
     await setStudentMarksDb(studentId, subjectId, classId, marksRecordData);

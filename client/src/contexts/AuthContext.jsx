@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { onAuthChange, signOutUser } from '@services/business/authService';
 import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@services/other/config';
-import { getUserProfile } from '@utils/userUtils';
+import { getUserProfile, ROLE_STRINGS } from '@utils/userUtils';
 import { getAllowlist } from '@services/business/configService';
 import { ensureUserDoc } from '@services/business/userService';
 import { addLoginLog } from '@services/business/activityService';
@@ -11,15 +11,12 @@ import { canUserLogin, getUserStatus, getUserStatusSummary } from '../utils/user
 import logger from '@utils/logger';
 import { applyAccentColorGlobally } from '@utils/theme';
 import { 
-  USER_ROLES
-} from '@constants/userRoles';
-import { 
   isAdmin as isAdminCheck,
   isSuperAdmin as isSuperAdminCheck,
   isHR as isHRCheck,
   isInstructor as isInstructorCheck,
   isStudent as isStudentCheck
-} from '@constants/userRoles';
+} from '@services/business/userService';
 
 const AuthContext = createContext();
 
@@ -39,7 +36,7 @@ export const AuthProvider = ({ children }) => {
   const [isInstructor, setIsInstructor] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState(USER_ROLES.STUDENT); // 'guest' | 'student' | 'instructor' | 'hr' | 'admin'
+  const [role, setRole] = useState(ROLE_STRINGS.STUDENT); // 'guest' | 'student' | 'instructor' | 'hr' | 'admin'
   const [impersonating, setImpersonating] = useState(null); // { originalUser, impersonatedUser }
   const [realUser, setRealUser] = useState(null); // Store the real admin user
   
@@ -311,7 +308,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         // Check user doc for roles and fetch full profile
-        let userRole = USER_ROLES.STUDENT;
+        let userRole = ROLE_STRINGS.STUDENT;
         let hr = false;
         let instructor = false;
         let adminFromDoc = false;
@@ -356,13 +353,13 @@ export const AuthProvider = ({ children }) => {
               
               // Determine role with priority
               if (superAdminFromDoc || adminFromDoc || admin) {
-                userRole = superAdminFromDoc ? USER_ROLES.SUPER_ADMIN : USER_ROLES.ADMIN;
+                userRole = superAdminFromDoc ? ROLE_STRINGS.SUPER_ADMIN : ROLE_STRINGS.ADMIN;
               } else if (hr) {
-                userRole = USER_ROLES.HR;
+                userRole = ROLE_STRINGS.HR;
               } else if (instructor) {
-                userRole = USER_ROLES.INSTRUCTOR;
+                userRole = ROLE_STRINGS.INSTRUCTOR;
               } else {
-                userRole = USER_ROLES.STUDENT;
+                userRole = ROLE_STRINGS.STUDENT;
               }
               
               setRole(userRole);
@@ -387,7 +384,7 @@ export const AuthProvider = ({ children }) => {
             // Set basic admin status from allowlist if profile is missing
             if (isSubscribed) {
               setIsAdmin(admin);
-              setRole(admin ? USER_ROLES.ADMIN : USER_ROLES.STUDENT);
+              setRole(admin ? ROLE_STRINGS.ADMIN : ROLE_STRINGS.STUDENT);
             }
           }
         } catch (error) {
@@ -395,7 +392,7 @@ export const AuthProvider = ({ children }) => {
           // Set fallback role based on admin status from allowlist
           if (isSubscribed) {
             setIsAdmin(admin);
-            setRole(admin ? USER_ROLES.ADMIN : USER_ROLES.STUDENT);
+            setRole(admin ? ROLE_STRINGS.ADMIN : ROLE_STRINGS.STUDENT);
           }
         }
         
@@ -462,7 +459,7 @@ export const AuthProvider = ({ children }) => {
       setIsAdmin(false);
       setIsHR(false);
       setIsInstructor(false);
-      setRole(studentData.role || USER_ROLES.STUDENT);
+      setRole(studentData.role || ROLE_STRINGS.STUDENT);
       
       return { success: true };
     } catch (error) {
@@ -477,13 +474,13 @@ export const AuthProvider = ({ children }) => {
     // Restore original user
     setUser(realUser);
     // Restore original role
-    const wasAdmin = impersonating?.originalUser?.role === USER_ROLES.ADMIN;
-    const wasHR = impersonating?.originalUser?.role === USER_ROLES.HR;
-    const wasInstructor = impersonating?.originalUser?.role === USER_ROLES.INSTRUCTOR;
+    const wasAdmin = impersonating?.originalUser?.role === ROLE_STRINGS.ADMIN;
+    const wasHR = impersonating?.originalUser?.role === ROLE_STRINGS.HR;
+    const wasInstructor = impersonating?.originalUser?.role === ROLE_STRINGS.INSTRUCTOR;
     setIsAdmin(wasAdmin || false);
     setIsHR(wasHR || false);
     setIsInstructor(wasInstructor || false);
-    setRole(impersonating?.originalUser?.role || USER_ROLES.ADMIN);
+    setRole(impersonating?.originalUser?.role || ROLE_STRINGS.ADMIN);
     setImpersonating(null);
     setRealUser(null);
   };

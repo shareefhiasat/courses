@@ -6,7 +6,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
 import { getUserById } from '@services/business/userService';
 import { Select, YearSelect, SimpleLoading, UserSelect } from '@ui';
-import { USER_ROLES } from '@constants/userRoles';
+import { ROLE_STRINGS } from '@utils/userUtils';
 import useAnalyticsData, { processWidgetData } from '@hooks/useAnalyticsData';
 import DashboardEngine from './analytics/DashboardEngine';
 import logger from '@utils/logger';
@@ -428,7 +428,7 @@ export default function AdvancedAnalytics({
           />
           <UserSelect
             users={(rawData.users || []).filter(u => 
-              u.role === USER_ROLES.STUDENT || u.isStudent
+              u.role === ROLE_STRINGS.STUDENT || u.isStudent
             )}
             enrollments={rawData.enrollments || []}
             value={localFilters.studentId}

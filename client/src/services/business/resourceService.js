@@ -2,7 +2,7 @@ import { getUserById } from './userService';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import { USER_ROLES } from '@constants/userRoles';
+import { ROLE_STRINGS } from '@utils/userUtils';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';

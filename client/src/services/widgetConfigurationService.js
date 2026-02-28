@@ -1,4 +1,4 @@
-import { USER_ROLES } from '@constants/userRoles';
+import { ROLE_STRINGS } from '@utils/userUtils';
 import logger from '@utils/logger';
 
 /**
@@ -7,7 +7,7 @@ import logger from '@utils/logger';
  */
 export const DEFAULT_WIDGET_CONFIGURATIONS = {
   // Student Dashboard - Overview Tab
-  [`${USER_ROLES.STUDENT}_overview`]: [
+  [`${ROLE_STRINGS.STUDENT}_overview`]: [
     {
       id: 'student_overview_1',
       title: 'Enrollment Status',
@@ -43,7 +43,7 @@ export const DEFAULT_WIDGET_CONFIGURATIONS = {
   ],
 
   // Student Dashboard - Performance Tab
-  [`${USER_ROLES.STUDENT}_performance`]: [
+  [`${ROLE_STRINGS.STUDENT}_performance`]: [
     {
       id: 'student_perf_1',
       title: 'Grade Distribution',
@@ -100,7 +100,7 @@ export const DEFAULT_WIDGET_CONFIGURATIONS = {
   ],
 
   // Instructor Dashboard - Overview Tab
-  [`${USER_ROLES.INSTRUCTOR}_overview`]: [
+  [`${ROLE_STRINGS.INSTRUCTOR}_overview`]: [
     {
       id: 'instructor_overview_1',
       title: 'Total Students',
@@ -156,7 +156,7 @@ export const DEFAULT_WIDGET_CONFIGURATIONS = {
   ],
 
   // Instructor Dashboard - Performance Tab
-  [`${USER_ROLES.INSTRUCTOR}_performance`]: [
+  [`${ROLE_STRINGS.INSTRUCTOR}_performance`]: [
     {
       id: 'instructor_perf_1',
       title: 'Grade Distribution by Class',
@@ -193,7 +193,7 @@ export const DEFAULT_WIDGET_CONFIGURATIONS = {
   ],
 
   // HR Dashboard - Overview Tab
-  [`${USER_ROLES.HR}_overview`]: [
+  [`${ROLE_STRINGS.HR}_overview`]: [
     {
       id: 'hr_overview_1',
       title: 'Total Employees',
@@ -260,7 +260,7 @@ export const DEFAULT_WIDGET_CONFIGURATIONS = {
   ],
 
   // HR Dashboard - Performance Tab
-  [`${USER_ROLES.HR}_performance`]: [
+  [`${ROLE_STRINGS.HR}_performance`]: [
     {
       id: 'hr_perf_1',
       title: 'Performance Ratings',
@@ -297,7 +297,7 @@ export const DEFAULT_WIDGET_CONFIGURATIONS = {
   ],
 
   // Admin Dashboard - Overview Tab
-  [`${USER_ROLES.ADMIN}_overview`]: [
+  [`${ROLE_STRINGS.ADMIN}_overview`]: [
     {
       id: 'admin_overview_1',
       title: 'System Overview',
@@ -363,7 +363,7 @@ export const DEFAULT_WIDGET_CONFIGURATIONS = {
   ],
 
   // Admin Dashboard - Performance Tab
-  [`${USER_ROLES.ADMIN}_performance`]: [
+  [`${ROLE_STRINGS.ADMIN}_performance`]: [
     {
       id: 'admin_perf_1',
       title: 'Course Performance',
@@ -400,7 +400,7 @@ export const DEFAULT_WIDGET_CONFIGURATIONS = {
   ],
 
   // Super Admin Dashboard - Overview Tab (inherits from Admin with additional widgets)
-  [`${USER_ROLES.SUPER_ADMIN}_overview`]: [
+  [`${ROLE_STRINGS.SUPER_ADMIN}_overview`]: [
     {
       id: 'super_admin_overview_1',
       title: 'Total Users',
@@ -489,7 +489,7 @@ export const DEFAULT_WIDGET_CONFIGURATIONS = {
   ],
 
   // Super Admin Dashboard - Performance Tab (inherits from Admin)
-  [`${USER_ROLES.SUPER_ADMIN}_performance`]: [
+  [`${ROLE_STRINGS.SUPER_ADMIN}_performance`]: [
     {
       id: 'super_admin_perf_1',
       title: 'Global Course Performance',
@@ -533,7 +533,7 @@ export const DEFAULT_WIDGET_CONFIGURATIONS = {
 class WidgetConfigurationService {
   /**
    * Get default widgets for a specific role and dashboard
-   * @param {string} role - User role (from USER_ROLES)
+   * @param {string} role - User role (from ROLE_STRINGS)
    * @param {string} dashboard - Dashboard identifier (e.g., 'overview', 'performance')
    * @returns {Array} Array of widget configurations
    */
@@ -573,11 +573,11 @@ class WidgetConfigurationService {
    */
   static canEditWidgets(userRole, targetRole) {
     // Super admins can edit all widgets
-    if (userRole === USER_ROLES.SUPER_ADMIN) return true;
+    if (userRole === ROLE_STRINGS.SUPER_ADMIN) return true;
     
     // Admins can edit admin and instructor widgets
-    if (userRole === USER_ROLES.ADMIN) {
-      return targetRole === USER_ROLES.ADMIN || targetRole === USER_ROLES.INSTRUCTOR;
+    if (userRole === ROLE_STRINGS.ADMIN) {
+      return targetRole === ROLE_STRINGS.ADMIN || targetRole === ROLE_STRINGS.INSTRUCTOR;
     }
     
     // Users can only edit their own role's widgets
@@ -593,18 +593,18 @@ class WidgetConfigurationService {
   static filterWidgetsByPermissions(widgets, role) {
     // Define data source permissions by role
     const dataSourcePermissions = {
-      [USER_ROLES.STUDENT]: ['enrollments', 'attendance', 'marks', 'participations', 'behaviors', 'penalties'],
-      [USER_ROLES.INSTRUCTOR]: ['enrollments', 'attendance', 'marks', 'submissions', 'activityLogs', 'classes'],
-      [USER_ROLES.HR]: ['users', 'trainings', 'leaves', 'departments', 'attendance', 'performanceReviews', 'surveys'],
-      [USER_ROLES.ADMIN]: ['users', 'classes', 'enrollments', 'activityLogs', 'resources', 'metrics', 'system'],
-      [USER_ROLES.SUPER_ADMIN]: ['*'] // Access to all data sources
+      [ROLE_STRINGS.STUDENT]: ['enrollments', 'attendance', 'marks', 'participations', 'behaviors', 'penalties'],
+      [ROLE_STRINGS.INSTRUCTOR]: ['enrollments', 'attendance', 'marks', 'submissions', 'activityLogs', 'classes'],
+      [ROLE_STRINGS.HR]: ['users', 'trainings', 'leaves', 'departments', 'attendance', 'performanceReviews', 'surveys'],
+      [ROLE_STRINGS.ADMIN]: ['users', 'classes', 'enrollments', 'activityLogs', 'resources', 'metrics', 'system'],
+      [ROLE_STRINGS.SUPER_ADMIN]: ['*'] // Access to all data sources
     };
 
     const allowedSources = dataSourcePermissions[role] || [];
     
     return widgets.filter(widget => {
       // Super admin sees all
-      if (role === USER_ROLES.SUPER_ADMIN) return true;
+      if (role === ROLE_STRINGS.SUPER_ADMIN) return true;
       
       // Check if widget's data source is allowed
       return allowedSources.includes('*') || allowedSources.includes(widget.dataSource);

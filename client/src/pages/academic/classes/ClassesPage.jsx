@@ -12,8 +12,8 @@ import { getUsers } from '@services/business/userService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getActivities } from '@services/business/activityService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger.jsx';
-import { USER_ROLES } from '@constants/userRoles';
-import { isAdminUser, isInstructorUser, isSuperAdminUser, canTeach } from '@utils/userUtils';
+import { ROLE_STRINGS } from '@utils/userUtils';
+import { isAdmin, isInstructor, isSuperAdmin, canTeach } from '@utils/userUtils';
 import { makeCurrentUserSuperAdminAndInstructor } from '@utils/userRoleManager';
 import { 
   Button, 

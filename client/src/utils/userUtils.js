@@ -1,13 +1,55 @@
 /**
  * Consolidated User Utilities
  * Combines userHelpers.js, roleAccess.js, and other user-related utilities
+ * Single source of truth for all role-related data and functions
  */
 
-import { 
-  USER_ROLES, 
-  getRoleDisplayName
-} from '@constants/userRoles';
 import { getUserById } from '@services/business/userService';
+
+// ===== ROLE STRING CONSTANTS (Single Source of Truth) =====
+export const ROLE_STRINGS = {
+  STUDENT: 'student',
+  INSTRUCTOR: 'instructor', 
+  ADMIN: 'admin',
+  HR: 'hr',
+  SUPER_ADMIN: 'super_admin'
+};
+
+// ===== ROLE DISPLAY NAMES (for backward compatibility) =====
+export const ROLE_DISPLAY_NAMES = {
+  STUDENT: 'Student',
+  INSTRUCTOR: 'Instructor',
+  ADMIN: 'Admin',
+  HR: 'HR',
+  SUPER_ADMIN: 'Super Admin'
+};
+
+// ===== ROLE HIERARCHY (for permission comparisons) =====
+export const ROLE_HIERARCHY = [
+  ROLE_STRINGS.STUDENT,
+  ROLE_STRINGS.INSTRUCTOR,
+  ROLE_STRINGS.HR,
+  ROLE_STRINGS.ADMIN,
+  ROLE_STRINGS.SUPER_ADMIN
+];
+
+// ===== ROLE PRECEDENCE (highest to lowest) =====
+export const ROLE_PRECEDENCE = {
+  [ROLE_STRINGS.SUPER_ADMIN]: 5,
+  [ROLE_STRINGS.ADMIN]: 4,
+  [ROLE_STRINGS.HR]: 3,
+  [ROLE_STRINGS.INSTRUCTOR]: 2,
+  [ROLE_STRINGS.STUDENT]: 1
+};
+
+// ===== DEFAULT ROLE =====
+export const DEFAULT_ROLE = ROLE_STRINGS.STUDENT;
+
+// ===== EXPORT ALL ROLES ARRAY =====
+export const ALL_ROLES = Object.values(ROLE_STRINGS);
+
+// ===== EXPORT ROLE KEYS ARRAY =====
+export const ROLE_KEYS = Object.keys(ROLE_STRINGS);
 
 // ===== ROLE ACCESS UTILITIES =====
 
@@ -24,7 +66,7 @@ export const hasScreenAccess = async (
   userContext,
   roleScreens = null
 ) => {
-  const { isSuperAdmin, role } = userContext;
+  const { isSuperAdmin, isAdmin, isHR } = userContext;
 
   // Super admins bypass all restrictions
   if (isSuperAdmin) {
@@ -45,26 +87,35 @@ export const hasScreenAccess = async (
     }
   }
 
+  // Determine role for screen access (in order of precedence)
+  let userRole = ROLE_STRINGS.STUDENT; // default
+  if (isAdmin) userRole = ROLE_STRINGS.ADMIN;
+  else if (isHR) userRole = ROLE_STRINGS.HR;
+  else if (userContext.isInstructor) userRole = ROLE_STRINGS.INSTRUCTOR;
+
   // Check if user has access to the screen
-  const roleAccess = screens[role];
+  const roleAccess = screens[userRole];
   return roleAccess && roleAccess[screenId] === true;
 };
 
 // ===== USER DISPLAY UTILITIES =====
 
 /**
- * Get user role display name with proper fallbacks
- * @param {string} role - User role from database
- * @param {Object} user - Auth user object
+ * Get user role display name using boolean flags with localization
+ * @param {Object} user - User object with boolean flags
+ * @param {Function} t - Translation function
  * @param {string} lang - Language code ('en' or 'ar')
  * @returns {string} Display name for the role
  */
-export const getUserRoleDisplay = (role, user = {}, lang = 'en') => {
-  if (!role && user?.role) {
-    role = user.role;
-  }
+export const getUserRoleDisplay = (user = {}, t = () => ({}), lang = 'en') => {
+  // Check in order of precedence (super admin > admin > hr > instructor > student)
+  if (user.isSuperAdmin) return t('super_admin') || (lang === 'en' ? 'Super Admin' : 'مدير عام');
+  if (user.isAdmin) return t('admin') || (lang === 'en' ? 'Admin' : 'مدير');
+  if (user.isHR) return t('hr') || (lang === 'en' ? 'HR' : 'الموارد البشرية');
+  if (user.isInstructor) return t('instructor') || (lang === 'en' ? 'Instructor' : 'مدرب');
+  if (user.isStudent) return t('student') || (lang === 'en' ? 'Student' : 'طالب');
   
-  return getRoleDisplayName(role, lang);
+  return t('unknown') || (lang === 'en' ? 'Unknown' : 'غير معروف');
 };
 
 /**
@@ -122,78 +173,6 @@ export const isProfileComplete = (userProfile) => {
   return requiredFields.every(field => userProfile[field]);
 };
 
-// ===== USER ROLE CHECK UTILITIES =====
-
-/**
- * Check if user is admin (helper function) - FLAG ONLY
- * @param {Object} user - User object
- * @returns {boolean} True if user is admin
- */
-export const isAdminUser = (user) => {
-  if (!user) return false;
-  return user.isAdmin === true || user.isSuperAdmin === true;
-};
-
-/**
- * Check if user is instructor (helper function) - FLAG ONLY
- * @param {Object} user - User object
- * @returns {boolean} True if user is instructor
- */
-export const isInstructorUser = (user) => {
-  if (!user) return false;
-  return user.isInstructor === true;
-};
-
-/**
- * Check if user is HR (helper function) - FLAG ONLY
- * @param {Object} user - User object
- * @returns {boolean} True if user is HR
- */
-export const isHRUser = (user) => {
-  if (!user) return false;
-  return user.isHR === true;
-};
-
-/**
- * Check if user is student (helper function) - FLAG ONLY
- * @param {Object} user - User object
- * @returns {boolean} True if user is student
- */
-export const isStudentUser = (user) => {
-  if (!user) return false;
-  return user.isStudent === true;
-};
-
-/**
- * Check if user is super admin (helper function) - FLAG ONLY
- * @param {Object} user - User object
- * @returns {boolean} True if user is super admin
- */
-export const isSuperAdminUser = (user) => {
-  if (!user) return false;
-  return user.isSuperAdmin === true;
-};
-
-/**
- * Check if user has any admin-level privileges (FLAG ONLY)
- * @param {Object} user - User object
- * @returns {boolean} True if user is admin, super admin, or HR
- */
-export const hasAdminPrivileges = (user) => {
-  if (!user) return false;
-  return isAdminUser(user) || isHRUser(user);
-};
-
-/**
- * Check if user can teach/instruct (FLAG ONLY)
- * @param {Object} user - User object
- * @returns {boolean} True if user is instructor, admin, or super admin
- */
-export const canTeach = (user) => {
-  if (!user) return false;
-  return isInstructorUser(user) || isAdminUser(user);
-};
-
 // ===== USER PROFILE UTILITIES =====
 
 /**
@@ -235,15 +214,6 @@ export default {
   // Validation utilities
   isValidEmail,
   isProfileComplete,
-  
-  // Role check utilities (FLAG ONLY)
-  isAdminUser,
-  isInstructorUser,
-  isHRUser,
-  isStudentUser,
-  isSuperAdminUser,
-  hasAdminPrivileges,
-  canTeach,
   
   // Profile utilities
   getUserProfile,

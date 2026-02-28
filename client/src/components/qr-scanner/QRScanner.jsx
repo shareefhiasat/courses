@@ -7,7 +7,7 @@ import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance, rosterQuickAction, markAttendance } from '@services/business/attendanceService';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
 import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
-import { USER_ROLES, isAdmin, isSuperAdmin, isStudent } from '@constants/userRoles';
+import { isAdmin, isSuperAdmin, isStudent } from '@utils/userUtils';
 import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@services/business/penaltyService';
 import { createParticipation, getParticipations, getParticipationsByClassAndDate, deleteParticipation } from '@services/business/participationService';
 import { createBehavior, getBehaviors, getBehaviorsByClassAndDate, deleteBehavior } from '@services/business/behaviorService';
@@ -232,7 +232,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       // Method 1: Try direct student number lookup
       try {
         const result = await getUserByStudentNumber(studentInfo.studentNumber);
-        if (result.success && result.data && !isAdmin(result.data.role) && !isSuperAdmin(result.data.role)) {
+        if (result.success && result.data && !isAdmin(result.data) && !isSuperAdmin(result.data)) {
           foundStudent = {
             id: result.data.docId || result.data.id,
             docId: result.data.docId,
@@ -294,7 +294,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               return matches.some(Boolean);
             });
 
-            if (student && !isAdmin(student.role) && !isSuperAdmin(student.role)) {
+            if (student && !isAdmin(student) && !isSuperAdmin(student)) {
               foundStudent = {
                 id: student.docId || student.id, // Use docId as primary, fallback to id
                 docId: student.docId,
@@ -650,7 +650,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const students = result.success ? result.data : [];
       const student = students.find(s =>
           s.referenceId === referenceId &&
-          s.role === USER_ROLES.STUDENT // Only match students exactly
+          isStudent(s) // Only match students exactly
       );
       return student;
     } catch (error) {

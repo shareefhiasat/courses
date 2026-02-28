@@ -11,7 +11,7 @@ import {
   getAllRolePermissions,
   getHigherPrivilegeRole,
   canManageRole,
-  USER_ROLES
+  ROLE_STRINGS
 } from '@constants';
 
 // ===== USAGE EXAMPLES =====
@@ -89,7 +89,7 @@ export const canUserManageOtherUser = (actorRole, targetRole) => {
 export const getHighestRole = (roles) => {
   return roles.reduce((highest, current) => {
     return getHigherPrivilegeRole(highest, current);
-  }, USER_ROLES.STUDENT);
+  }, ROLE_STRINGS.STUDENT);
 };
 
 // Example 9: Role-based feature access control

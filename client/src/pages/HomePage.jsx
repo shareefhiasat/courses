@@ -23,7 +23,7 @@ import { formatDateTime } from '@utils/date';
 import { SUBMISSION_STATUS, TASK_STATUS, getStatusLabel, MODE_TYPES, RESOURCE_TYPES, RECORD_TYPES } from '@utils/sharedTypes';
 import { ACTIVITY_TYPES } from '@constants/activityTypes';
 import { DIFFICULTY_TYPES } from '@constants/difficultyTypes';
-import { USER_ROLES, isAdmin as isAdminRole } from '@constants/userRoles';
+import { ROLE_STRINGS } from '@utils/userUtils';
 import { useFilterCounts } from '@hooks/useFilterCounts';
 import { getActivityTypeConfig } from '@constants/activityTypes';
 import { getDifficultyConfig } from '@constants/difficultyTypes';
@@ -38,7 +38,7 @@ import './HomePage.css';
 
 const HomePage = memo(() => {
   // logger.componentMount('HomePage');
-  const { user, isAdmin, loading: authLoading } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isHR, isInstructor, isStudent, loading: authLoading } = useAuth();
   const { lang, t } = useLang();
   const { theme } = useTheme();
   const { startLoading } = useGlobalLoading();
@@ -238,19 +238,28 @@ const HomePage = memo(() => {
       logger.debug('[HomePage] Starting loadData - calling all services...');
       
       const [activitiesResult, resourcesResult, quizzesResult, announcementsResult, coursesResult, categoriesResult] = await Promise.all([
-        getActivities(),
-        getResources().then(result => {
-        console.log('[HomePage] getResources result:', result);
-        return result;
-      }).catch(err => {
-        console.error('[HomePage] getResources FAILED:', err);
-        return { success: false, error: err.message, data: [] };
-      }),
+        getActivities().catch(err => {
+          console.error('[HomePage] getActivities FAILED:', err);
+          console.log('[HomePage] getActivities error details:', err);
+          return { success: false, error: err.message, data: [] };
+        }),
+        getResources().catch(err => {
+          console.error('[HomePage] getResources FAILED:', err);
+          return { success: false, error: err.message, data: [] };
+        }),
         getAllQuizzes(),
         getAnnouncements(),
         getCourses(),
         getCategories()
       ]);
+
+      console.log('[HomePage] Promise.all results:', {
+        activitiesSuccess: activitiesResult.success,
+        activitiesLength: activitiesResult.data?.length,
+        activitiesError: activitiesResult.error,
+        resourcesSuccess: resourcesResult.success,
+        resourcesLength: resourcesResult.data?.length
+      });
 
       logger.debug('[HomePage] Promise.all completed, checking results...');
 
@@ -327,8 +336,9 @@ const HomePage = memo(() => {
       let activitiesData = activitiesRes.success ? (activitiesRes.data || []) : [];
       const usersData = usersRes.success ? (usersRes.data || []) : [];
 
-      const isInstructor = user?.role === 'instructor';
-      const isSuperAdmin = user?.role === 'superadmin';
+      const isInstructor = user?.isInstructor || false;
+      const isSuperAdmin = user?.isSuperAdmin || false;
+      const isAdmin = user?.isAdmin || false;
 
       if (isInstructor && !isAdmin && !isSuperAdmin) {
         classesData = classesData.filter(c =>
@@ -346,7 +356,7 @@ const HomePage = memo(() => {
       setReviewSubjects(subjectsData);
       setReviewClasses(classesData);
       setReviewActivities(activitiesData);
-      setReviewStudents(usersData.filter(u => u.role === 'student'));
+      setReviewStudents(usersData.filter(u => u.isStudent));
 
       const submissionsResult = await getSubmissions();
       let submissionsData = submissionsResult.success ? submissionsResult.data : [];
@@ -461,17 +471,24 @@ const HomePage = memo(() => {
   const getCurrentItems = useCallback(() => {
     // Helper function to check if user can access item based on class
     const canUserAccessItem = (item) => {
-      // HR and Admin roles can see all items
-      if (isAdminRole(user?.role)) return true;
+      // Admin, SuperAdmin, and HR roles can see all items
+      if (isAdmin || isSuperAdmin || isHR) {
+        console.log('[HomePage] canUserAccessItem - Super admin bypass for item:', item.docId);
+        return true;
+      }
       
-      // Public items (no program/subject/class assignments) are visible to all logged-in users
-      if (!item.programId && !item.subjectId && !item.classId) return true;
+      // Instructors can see items from their enrolled classes
+      if (isInstructor) {
+        return enrolledClasses.includes(item.classId);
+      }
       
-      // If item has no classId, it's public/available to all
-      if (!item.classId) return true;
+      // Students can only see items from their enrolled classes
+      if (isStudent) {
+        return enrolledClasses.includes(item.classId);
+      }
       
-      // Students and instructors can only see items from their enrolled classes
-      return enrolledClasses.includes(item.classId);
+      // Default: deny access if no role flags are set
+      return false;
     };
     
     if (mode === MODE_TYPES.RESOURCES) {
@@ -485,7 +502,7 @@ const HomePage = memo(() => {
         category,
         filteredCount: filteredResources.length,
         resourcesSample: resources.slice(0, 3),
-        isAdmin: isAdminRole(user?.role),
+        isAdmin: user?.isAdmin || false,
         enrolledClasses,
         canAccessSample: resources.slice(0, 3).map(r => ({
           id: r.docId || r.id,
@@ -506,6 +523,22 @@ const HomePage = memo(() => {
     
     // Handle activities mode with activity type and category filtering
     if (mode === MODE_TYPES.ACTIVITIES) {
+      console.log('[HomePage] Activities filtering - AuthContext flags:', {
+        isAdmin: isAdmin,
+        isSuperAdmin: isSuperAdmin,
+        isHR: isHR,
+        isInstructor: isInstructor,
+        isStudent: isStudent,
+        userRole: user?.role
+      });
+      console.log('[HomePage] Activities filtering - Raw activities data:', activities.map(a => ({
+        id: a.docId,
+        type: a.type,
+        show: a.show,
+        classId: a.classId,
+        course: a.course
+      })));
+      
       let filtered = [];
       
       if (activityType === ACTIVITY_TYPES.QUIZ) {
@@ -915,14 +948,16 @@ const HomePage = memo(() => {
   const modeCounts = useMemo(() => {
     // Helper function to check if user can access item based on class
     const canUserAccessItem = (item) => {
-      // HR and Admin roles can see all items
-      if (isAdminRole(user?.role)) return true;
+      // Admin, SuperAdmin, and HR roles can see all items
+      if (isAdmin || isSuperAdmin || isHR) return true;
       
-      // If item has no classId, it's public/available to all
-      if (!item.classId) return true;
+      // Instructors and students can only see items from their enrolled classes
+      if (isInstructor || isStudent) {
+        return enrolledClasses.includes(item.classId);
+      }
       
-      // Students and instructors can only see items from their enrolled classes
-      return enrolledClasses.includes(item.classId);
+      // Default: deny access
+      return false;
     };
     
     // Calculate activities count with class-based filtering
@@ -1061,9 +1096,9 @@ const HomePage = memo(() => {
   const filteredReviewItems = useMemo(() => {
     if (mode !== MODE_TYPES.REVIEW) return [];
 
-    const isStudent = user?.role === 'student';
-    const isInstructor = user?.role === 'instructor';
-    const isSuperAdmin = user?.role === 'superadmin';
+    const isStudent = user?.isStudent || false;
+    const isInstructor = user?.isInstructor || false;
+    const isSuperAdmin = user?.isSuperAdmin || false;
 
     // Instructor classes for scoping
     const instructorClassIds = new Set(reviewClasses.map(c => c.id || c.docId));
@@ -1406,7 +1441,7 @@ const HomePage = memo(() => {
 
         {/* ── REVIEW MODE ─────────────────────────────────────────────── */}
         {mode === MODE_TYPES.REVIEW && (() => {
-          const isStudent = user?.role === 'student';
+          const isStudent = user?.isStudent || false;
           const canFilterByStudent = !isStudent;
           return (
             <>

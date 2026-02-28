@@ -16,14 +16,10 @@ export const TIMEOUTS = {
   AUTH_STATE: 2000,
 };
 
-// Test User Roles
-export const ROLES = {
-  SUPER_ADMIN: 'superAdmin',
-  ADMIN: 'admin',
-  INSTRUCTOR: 'instructor',
-  HR: 'hr',
-  STUDENT: 'student',
-};
+// Test User Roles - Import from single source of truth
+import { ROLE_STRINGS } from '../../../client/src/utils/userUtils';
+
+export const ROLES = ROLE_STRINGS;
 
 // Page Paths
 export const PATHS = {

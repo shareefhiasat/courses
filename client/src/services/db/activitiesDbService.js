@@ -246,6 +246,7 @@ export const getActivities = async (filters = {}) => {
     
     const querySnapshot = await getDocs(q);
     const activities = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    
     return { success: true, data: activities };
   } catch (error) {
     logger.error('[ActivitiesDbService] Error getting activities:', error);

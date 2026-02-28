@@ -1,10 +1,9 @@
 import React from 'react';
 import { Select } from '@ui';
-import { USER_ROLES } from '@constants/userRoles';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '@utils/userStatus';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getThemeColor } from '@constants/dashboardTypes';
-import { isAdminUser, isInstructorUser, isSuperAdminUser, isHRUser, hasAdminPrivileges } from '@utils/userUtils';
+import { ROLE_STRINGS } from '@constants';
 
 /**
  * UserSelect Component
@@ -75,14 +74,14 @@ const UserSelect = ({
         // Check each role in roleFilter against user flags
         return roleFilter.some(role => {
           switch (role) {
-            case USER_ROLES.SUPER_ADMIN:
-              return isSuperAdminUser(u);
-            case USER_ROLES.ADMIN:
-              return isAdminUser(u);
-            case USER_ROLES.INSTRUCTOR:
-              return isInstructorUser(u);
-            case USER_ROLES.HR:
-              return isHRUser(u);
+            case ROLE_STRINGS.SUPER_ADMIN:
+              return isSuperAdmin(u);
+            case ROLE_STRINGS.ADMIN:
+              return isAdmin(u);
+            case ROLE_STRINGS.INSTRUCTOR:
+              return isInstructor(u);
+            case ROLE_STRINGS.HR:
+              return isHR(u);
             default:
               return false;
           }

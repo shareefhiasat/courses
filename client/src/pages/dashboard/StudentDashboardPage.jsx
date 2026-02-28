@@ -7,7 +7,7 @@ import { useToast } from '@ui';
 import { useGlobalLoading, GlobalLoadingFallback } from '@contexts/GlobalLoadingContext';
 import { Container, Button, Select, UserSelect, Tabs } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
-import { USER_ROLES } from '@constants';
+import { ROLE_STRINGS } from '@constants';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import logger from '@utils/logger';
 
@@ -106,7 +106,7 @@ export default function StudentDashboardPage() {
   const studentUsers = useMemo(() => {
     return filters.filteredStudents.filter(u => {
       const role = (u.role || '').toLowerCase();
-      return role === (USER_ROLES.STUDENT || 'student');
+      return role === (ROLE_STRINGS.STUDENT || 'student');
     });
   }, [filters.filteredStudents]);
 
@@ -222,7 +222,7 @@ export default function StudentDashboardPage() {
                 value={filters.selectedStudentId}
                 onChange={e => filters.setSelectedStudentId(e.target.value)}
                 placeholder={t('filters.select_student') || (lang === 'ar' ? 'اختر طالب' : 'Select Student')}
-                roleFilter={[USER_ROLES.STUDENT]}
+                roleFilter={[ROLE_STRINGS.STUDENT]}
                 showEnrollments={true}
                 showStatus={true}
                 searchable={true}

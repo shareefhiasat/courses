@@ -5,7 +5,7 @@ import { db } from '@services/other/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Container, Card, CardBody, Button, Input, Select, Badge, useToast } from '@ui';
 import { GlobalLoadingFallback } from '@/contexts/GlobalLoadingContext';
-import { USER_ROLES } from '@constants/userRoles';
+import { ROLE_STRINGS } from '@utils/userUtils';
 import { getAllLocalizedScreens, SCREEN_GROUPS } from '@constants/screenDefinitions';
 import { getThemedIcon } from '@constants/iconTypes';
 import { NOTIFICATION_CHANNELS, NOTIFICATION_TRIGGERS, SCREEN_NOTIFICATION_MAPPING } from '@constants/notificationTypes';
@@ -23,7 +23,7 @@ export default function RoleAccessPro() {
   const [roleScreens, setRoleScreens] = useState({});
   const [notificationSettings, setNotificationSettings] = useState({});
   const [message, setMessage] = useState('');
-  const [activeRole, setActiveRole] = useState(USER_ROLES.ADMIN);
+  const [activeRole, setActiveRole] = useState(ROLE_STRINGS.ADMIN);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('all');
@@ -38,7 +38,7 @@ export default function RoleAccessPro() {
   const searchTimeoutRef = useRef(null);
   const previousRoleScreensRef = useRef({});
 
-  const roles = [USER_ROLES.ADMIN, USER_ROLES.INSTRUCTOR, USER_ROLES.HR, USER_ROLES.STUDENT];
+  const roles = [ROLE_STRINGS.ADMIN, ROLE_STRINGS.INSTRUCTOR, ROLE_STRINGS.HR, ROLE_STRINGS.STUDENT];
 
   // Get localized screens from centralized definitions
   const screens = getAllLocalizedScreens(t);

@@ -7,7 +7,7 @@ import { useToast } from '@ui';
 import logger from '@utils/logger';
 import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
 import { getThemedIcon } from '@constants/iconTypes';
-import { USER_ROLES } from '@constants/userRoles';
+import { ROLE_STRINGS } from '@utils/userUtils';
 import { ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Card, CardBody, ConfirmModal } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
@@ -66,7 +66,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
     email: '',
     displayName: '',
     realName: '',
-    role: USER_ROLES.STUDENT,
+    role: ROLE_STRINGS.STUDENT,
     studentNumber: '',
     order: ''
   });
@@ -154,13 +154,13 @@ const UsersPage = ({ isDashboardTab = false }) => {
       realName: user.realName || '',
       studentNumber: user.studentNumber || '',
       order: user.order || '',
-      role: user.role || USER_ROLES.STUDENT
+      role: user.role || ROLE_STRINGS.STUDENT
     });
   }, []);
 
   const handleDeleteUser = useCallback(async (userToDelete) => {
     const userId = userToDelete.docId || userToDelete.id;
-    const role = userToDelete.role || USER_ROLES.STUDENT;
+    const role = userToDelete.role || ROLE_STRINGS.STUDENT;
     const isStudentRole = isStudent(userToDelete);
 
     // Use already-loaded enrollments to compute enrollment and class counts
@@ -428,11 +428,11 @@ const UsersPage = ({ isDashboardTab = false }) => {
   // Memoized options for dropdowns
   const roleOptions = useMemo(() => [
     { value: 'all', label: t('all_roles') || 'All Roles' },
-    { value: USER_ROLES.SUPER_ADMIN, label: t('super_admin') || 'Super Admin' },
-    { value: USER_ROLES.ADMIN, label: t('admin') || 'Admin' },
-    { value: USER_ROLES.INSTRUCTOR, label: t('instructor') || 'Instructor' },
-    { value: USER_ROLES.HR, label: t('hr') || 'HR' },
-    { value: USER_ROLES.STUDENT, label: t('student') || 'Student' }
+    { value: ROLE_STRINGS.SUPER_ADMIN, label: t('super_admin') || 'Super Admin' },
+    { value: ROLE_STRINGS.ADMIN, label: t('admin') || 'Admin' },
+    { value: ROLE_STRINGS.INSTRUCTOR, label: t('instructor') || 'Instructor' },
+    { value: ROLE_STRINGS.HR, label: t('hr') || 'HR' },
+    { value: ROLE_STRINGS.STUDENT, label: t('student') || 'Student' }
   ], [t]);
   
   const statusOptions = useMemo(() => [
@@ -498,7 +498,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
       headerName: t('student_number') || 'Student Number', 
       width: 140,
       renderCell: (params) => {
-        if (params.row.role === USER_ROLES.STUDENT) {
+        if (params.row.role === ROLE_STRINGS.STUDENT) {
           return (
             <span style={{ 
               fontFamily: 'monospace', 
@@ -518,7 +518,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
       headerName: t('order') || 'Order', 
       width: 80,
       renderCell: (params) => {
-        if (params.row.role === USER_ROLES.STUDENT) {
+        if (params.row.role === ROLE_STRINGS.STUDENT) {
           return (
             <span style={{ 
               fontSize: '0.875rem',
@@ -537,38 +537,38 @@ const UsersPage = ({ isDashboardTab = false }) => {
       renderCell: (params) => {
         // Get all roles from boolean flags
         const userRoles = [];
-        if (params.row.isSuperAdmin) userRoles.push(USER_ROLES.SUPER_ADMIN);
-        if (params.row.isAdmin) userRoles.push(USER_ROLES.ADMIN);
-        if (params.row.isInstructor) userRoles.push(USER_ROLES.INSTRUCTOR);
-        if (params.row.isHR) userRoles.push(USER_ROLES.HR);
-        if (params.row.isStudent) userRoles.push(USER_ROLES.STUDENT);
+        if (params.row.isSuperAdmin) userRoles.push(ROLE_STRINGS.SUPER_ADMIN);
+        if (params.row.isAdmin) userRoles.push(ROLE_STRINGS.ADMIN);
+        if (params.row.isInstructor) userRoles.push(ROLE_STRINGS.INSTRUCTOR);
+        if (params.row.isHR) userRoles.push(ROLE_STRINGS.HR);
+        if (params.row.isStudent) userRoles.push(ROLE_STRINGS.STUDENT);
         
         // Fallback to role field if no boolean flags
         if (userRoles.length === 0) {
-          const fallbackRole = params.row.role || params.value || USER_ROLES.STUDENT;
+          const fallbackRole = params.row.role || params.value || ROLE_STRINGS.STUDENT;
           userRoles.push(fallbackRole);
         }
         
         const roleIcons = {
-          [USER_ROLES.SUPER_ADMIN]: getThemedIcon('ui', 'crown', 14, theme),
-          [USER_ROLES.ADMIN]: getThemedIcon('ui', 'shield', 14, theme),
-          [USER_ROLES.INSTRUCTOR]: getThemedIcon('ui', 'book_open', 14, theme),
-          [USER_ROLES.HR]: getThemedIcon('ui', 'users', 14, theme),
-          [USER_ROLES.STUDENT]: getThemedIcon('ui', 'user', 14, theme)
+          [ROLE_STRINGS.SUPER_ADMIN]: getThemedIcon('ui', 'crown', 14, theme),
+          [ROLE_STRINGS.ADMIN]: getThemedIcon('ui', 'shield', 14, theme),
+          [ROLE_STRINGS.INSTRUCTOR]: getThemedIcon('ui', 'book_open', 14, theme),
+          [ROLE_STRINGS.HR]: getThemedIcon('ui', 'users', 14, theme),
+          [ROLE_STRINGS.STUDENT]: getThemedIcon('ui', 'user', 14, theme)
         };
         const roleColors = {
-          [USER_ROLES.SUPER_ADMIN]: '#f59e0b',
-          [USER_ROLES.ADMIN]: '#4f46e5', 
-          [USER_ROLES.INSTRUCTOR]: '#0ea5e9',
-          [USER_ROLES.HR]: '#8b5cf6',
-          [USER_ROLES.STUDENT]: '#16a34a'
+          [ROLE_STRINGS.SUPER_ADMIN]: '#f59e0b',
+          [ROLE_STRINGS.ADMIN]: '#4f46e5', 
+          [ROLE_STRINGS.INSTRUCTOR]: '#0ea5e9',
+          [ROLE_STRINGS.HR]: '#8b5cf6',
+          [ROLE_STRINGS.STUDENT]: '#16a34a'
         };
         
         return (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
             {userRoles.map((role, idx) => {
-              const icon = roleIcons[role] || roleIcons[USER_ROLES.STUDENT];
-              const color = roleColors[role] || roleColors[USER_ROLES.STUDENT];
+              const icon = roleIcons[role] || roleIcons[ROLE_STRINGS.STUDENT];
+              const color = roleColors[role] || roleColors[ROLE_STRINGS.STUDENT];
               const displayName = role.replace(/_/g, ' ');
               
               return (
@@ -633,8 +633,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
       renderCell: (params) => (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {(() => {
-            const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === USER_ROLES.SUPER_ADMIN;
-            const currentUserIsSuperAdmin = user?.isSuperAdmin || user?.role === USER_ROLES.SUPER_ADMIN;
+            const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === ROLE_STRINGS.SUPER_ADMIN;
+            const currentUserIsSuperAdmin = user?.isSuperAdmin || user?.role === ROLE_STRINGS.SUPER_ADMIN;
             const canEdit = !isSuperAdminUser || currentUserIsSuperAdmin;
             
             return (
@@ -654,8 +654,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
           {(() => {
             // Check if user has student role from boolean flags
             const hasStudentRole = isStudent(params.row);
-            const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === USER_ROLES.SUPER_ADMIN;
-            const isInstructorUser = params.row.isInstructor || params.row.role === USER_ROLES.INSTRUCTOR;
+            const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === ROLE_STRINGS.SUPER_ADMIN;
+            const isInstructorUser = params.row.isInstructor || params.row.role === ROLE_STRINGS.INSTRUCTOR;
 
             // Show QR code for students (functional), super admins, and instructors (disabled)
             if (params.row.studentNumber && (hasStudentRole || isSuperAdminUser || isInstructorUser)) {
@@ -722,8 +722,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
             {isUserDisabledAtUserLevel(params.row) ? 'Enable' : 'Disable'}
           </Button>
           {(() => {
-            const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === USER_ROLES.SUPER_ADMIN;
-            const currentUserIsSuperAdmin = user?.isSuperAdmin || user?.role === USER_ROLES.SUPER_ADMIN;
+            const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === ROLE_STRINGS.SUPER_ADMIN;
+            const currentUserIsSuperAdmin = user?.isSuperAdmin || user?.role === ROLE_STRINGS.SUPER_ADMIN;
             const canDelete = !isSuperAdminUser || currentUserIsSuperAdmin;
             
             return (
@@ -748,25 +748,25 @@ const UsersPage = ({ isDashboardTab = false }) => {
   // Helper function to get role icon using getThemedIcon
   const getRoleIconThemed = (role) => {
     const roleIconMap = {
-      [USER_ROLES.STUDENT]: getThemedIcon('ui', 'user', 16, theme),
-      [USER_ROLES.INSTRUCTOR]: getThemedIcon('ui', 'book_open', 16, theme),
-      [USER_ROLES.HR]: getThemedIcon('ui', 'users', 16, theme),
-      [USER_ROLES.ADMIN]: getThemedIcon('ui', 'shield', 16, theme),
-      [USER_ROLES.SUPER_ADMIN]: getThemedIcon('ui', 'crown', 16, theme),
+      [ROLE_STRINGS.STUDENT]: getThemedIcon('ui', 'user', 16, theme),
+      [ROLE_STRINGS.INSTRUCTOR]: getThemedIcon('ui', 'book_open', 16, theme),
+      [ROLE_STRINGS.HR]: getThemedIcon('ui', 'users', 16, theme),
+      [ROLE_STRINGS.ADMIN]: getThemedIcon('ui', 'shield', 16, theme),
+      [ROLE_STRINGS.SUPER_ADMIN]: getThemedIcon('ui', 'crown', 16, theme),
     };
-    return roleIconMap[role] || roleIconMap[USER_ROLES.STUDENT];
+    return roleIconMap[role] || roleIconMap[ROLE_STRINGS.STUDENT];
   };
 
   // Helper function to get role icon color
   const getRoleIconColor = (role) => {
     const colorMap = {
-      [USER_ROLES.STUDENT]: '#16a34a',
-      [USER_ROLES.INSTRUCTOR]: '#0ea5e9',
-      [USER_ROLES.HR]: '#8b5cf6',
-      [USER_ROLES.ADMIN]: '#4f46e5',
-      [USER_ROLES.SUPER_ADMIN]: '#f59e0b',
+      [ROLE_STRINGS.STUDENT]: '#16a34a',
+      [ROLE_STRINGS.INSTRUCTOR]: '#0ea5e9',
+      [ROLE_STRINGS.HR]: '#8b5cf6',
+      [ROLE_STRINGS.ADMIN]: '#4f46e5',
+      [ROLE_STRINGS.SUPER_ADMIN]: '#f59e0b',
     };
-    return colorMap[role] || colorMap[USER_ROLES.STUDENT];
+    return colorMap[role] || colorMap[ROLE_STRINGS.STUDENT];
   };
 
   const handleFormSubmit = async (e) => {
@@ -779,13 +779,13 @@ const UsersPage = ({ isDashboardTab = false }) => {
     }
 
     // Validate student number is required for students
-    if (formData.role === USER_ROLES.STUDENT && !textValues.studentNumber?.trim()) {
+    if (formData.role === ROLE_STRINGS.STUDENT && !textValues.studentNumber?.trim()) {
       toast?.showError('Student number is required for students');
       return;
     }
 
     // Validate student number uniqueness for students
-    if (formData.role === USER_ROLES.STUDENT && textValues.studentNumber?.trim()) {
+    if (formData.role === ROLE_STRINGS.STUDENT && textValues.studentNumber?.trim()) {
       const isDuplicate = users.some(user => 
         user.studentNumber === textValues.studentNumber.trim() && 
         user.docId !== editingUser?.docId
@@ -839,7 +839,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         // Add to allowlist if checkbox is checked
         if (autoAddToAllowlist && submitData.email) {
           const { updateAllowlist } = await import('@services/other/config');
-          const targetList = submitData.role === USER_ROLES.ADMIN ? 'adminEmails' : 'allowedEmails';
+          const targetList = submitData.role === ROLE_STRINGS.ADMIN ? 'adminEmails' : 'allowedEmails';
           const currentEmails = allowlist[targetList] || [];
 
           if (!currentEmails.includes(submitData.email)) {
@@ -888,7 +888,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
       email: '',
       displayName: '',
       realName: '',
-      role: USER_ROLES.STUDENT,
+      role: ROLE_STRINGS.STUDENT,
       studentNumber: '',
       order: ''
     });
@@ -1022,8 +1022,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
           fontWeight: '500',
           color: theme === 'dark' ? '#fbbf24' : '#92400e'
         }}>
-          {getRoleIconThemed(USER_ROLES.STUDENT)}
-          {users.filter(u => u.role === USER_ROLES.STUDENT).length} {lang === 'ar' ? 'طلاب' : 'Students'}
+          {getRoleIconThemed(ROLE_STRINGS.STUDENT)}
+          {users.filter(u => u.role === ROLE_STRINGS.STUDENT).length} {lang === 'ar' ? 'طلاب' : 'Students'}
         </div>
         
         <div style={{ 
@@ -1038,8 +1038,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
           fontWeight: '500',
           color: theme === 'dark' ? '#f9a8d4' : '#831843'
         }}>
-          {getRoleIconThemed(USER_ROLES.INSTRUCTOR)}
-          {users.filter(u => u.role === USER_ROLES.INSTRUCTOR).length} {lang === 'ar' ? 'مدرسين' : 'Instructors'}
+          {getRoleIconThemed(ROLE_STRINGS.INSTRUCTOR)}
+          {users.filter(u => u.role === ROLE_STRINGS.INSTRUCTOR).length} {lang === 'ar' ? 'مدرسين' : 'Instructors'}
         </div>
         
         <div style={{ 
@@ -1054,8 +1054,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
           fontWeight: '500',
           color: theme === 'dark' ? '#22c55e' : '#166534'
         }}>
-          {getRoleIconThemed(USER_ROLES.ADMIN)}
-          {users.filter(u => u.role === USER_ROLES.ADMIN || u.role === USER_ROLES.SUPER_ADMIN).length} {lang === 'ar' ? 'مدراء' : 'Admins'}
+          {getRoleIconThemed(ROLE_STRINGS.ADMIN)}
+          {users.filter(u => u.role === ROLE_STRINGS.ADMIN || u.role === ROLE_STRINGS.SUPER_ADMIN).length} {lang === 'ar' ? 'مدراء' : 'Admins'}
         </div>
         
         <div style={{ 
@@ -1070,8 +1070,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
           fontWeight: '500',
           color: theme === 'dark' ? '#0ea5e9' : '#0c4a6e'
         }}>
-          {getRoleIconThemed(USER_ROLES.HR)}
-          {users.filter(u => u.role === USER_ROLES.HR).length} {lang === 'ar' ? 'موارد بشرية' : 'HR'}
+          {getRoleIconThemed(ROLE_STRINGS.HR)}
+          {users.filter(u => u.role === ROLE_STRINGS.HR).length} {lang === 'ar' ? 'موارد بشرية' : 'HR'}
         </div>
       </div>
 
@@ -1121,7 +1121,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
             type="text"
             defaultValue={formData.studentNumber}
             placeholder={t('student_number_placeholder') || 'Student Number'}
-            required={formData.role === USER_ROLES.STUDENT}
+            required={formData.role === ROLE_STRINGS.STUDENT}
           />
           <Input
             ref={orderRef}
@@ -1136,42 +1136,42 @@ const UsersPage = ({ isDashboardTab = false }) => {
             value={formData.role}
             onChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
             options={[
-              { value: USER_ROLES.STUDENT, label: (
+              { value: ROLE_STRINGS.STUDENT, label: (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: getRoleIconColor(USER_ROLES.STUDENT) }}>
-                    {getRoleIconThemed(USER_ROLES.STUDENT)}
+                  <span style={{ color: getRoleIconColor(ROLE_STRINGS.STUDENT) }}>
+                    {getRoleIconThemed(ROLE_STRINGS.STUDENT)}
                   </span>
                   {t('student') || 'Student'}
                 </span>
               )},
-              { value: USER_ROLES.INSTRUCTOR, label: (
+              { value: ROLE_STRINGS.INSTRUCTOR, label: (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: getRoleIconColor(USER_ROLES.INSTRUCTOR) }}>
-                    {getRoleIconThemed(USER_ROLES.INSTRUCTOR)}
+                  <span style={{ color: getRoleIconColor(ROLE_STRINGS.INSTRUCTOR) }}>
+                    {getRoleIconThemed(ROLE_STRINGS.INSTRUCTOR)}
                   </span>
                   {t('instructor') || 'Instructor'}
                 </span>
               )},
-              { value: USER_ROLES.HR, label: (
+              { value: ROLE_STRINGS.HR, label: (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: getRoleIconColor(USER_ROLES.HR) }}>
-                    {getRoleIconThemed(USER_ROLES.HR)}
+                  <span style={{ color: getRoleIconColor(ROLE_STRINGS.HR) }}>
+                    {getRoleIconThemed(ROLE_STRINGS.HR)}
                   </span>
                   {t('hr') || 'HR'}
                 </span>
               )},
-              { value: USER_ROLES.ADMIN, label: (
+              { value: ROLE_STRINGS.ADMIN, label: (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: getRoleIconColor(USER_ROLES.ADMIN) }}>
-                    {getRoleIconThemed(USER_ROLES.ADMIN)}
+                  <span style={{ color: getRoleIconColor(ROLE_STRINGS.ADMIN) }}>
+                    {getRoleIconThemed(ROLE_STRINGS.ADMIN)}
                   </span>
                   {t('admin') || 'Admin'}
                 </span>
               )},
-              { value: USER_ROLES.SUPER_ADMIN, label: (
+              { value: ROLE_STRINGS.SUPER_ADMIN, label: (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: getRoleIconColor(USER_ROLES.SUPER_ADMIN) }}>
-                    {getRoleIconThemed(USER_ROLES.SUPER_ADMIN)}
+                  <span style={{ color: getRoleIconColor(ROLE_STRINGS.SUPER_ADMIN) }}>
+                    {getRoleIconThemed(ROLE_STRINGS.SUPER_ADMIN)}
                   </span>
                   {t('super_admin') || 'Super Admin'}
                 </span>

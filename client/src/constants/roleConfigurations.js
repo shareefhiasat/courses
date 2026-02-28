@@ -3,13 +3,13 @@
  * Centralized limitations and permissions for all user roles
  */
 
-import { USER_ROLES } from './userRoles';
+import { ROLE_STRINGS, ROLE_HIERARCHY } from '@utils/userUtils';
 
 // ===== GLOBAL ROLE CONFIGURATIONS =====
 
 export const ROLE_CONFIGURATIONS = {
   // Student configuration
-  [USER_ROLES.STUDENT]: {
+  [ROLE_STRINGS.STUDENT]: {
     // Chat limitations
     chat: {
       maxFileSize: 5 * 1024 * 1024, // 5MB
@@ -70,7 +70,7 @@ export const ROLE_CONFIGURATIONS = {
   },
   
   // Instructor configuration
-  [USER_ROLES.INSTRUCTOR]: {
+  [ROLE_STRINGS.INSTRUCTOR]: {
     // Chat limitations
     chat: {
       maxFileSize: 25 * 1024 * 1024, // 25MB
@@ -161,7 +161,7 @@ export const ROLE_CONFIGURATIONS = {
   },
   
   // HR configuration
-  [USER_ROLES.HR]: {
+  [ROLE_STRINGS.HR]: {
     // Chat limitations
     chat: {
       maxFileSize: 25 * 1024 * 1024, // 25MB
@@ -252,7 +252,7 @@ export const ROLE_CONFIGURATIONS = {
   },
   
   // Admin configuration
-  [USER_ROLES.ADMIN]: {
+  [ROLE_STRINGS.ADMIN]: {
     // Chat limitations
     chat: {
       maxFileSize: 25 * 1024 * 1024, // 25MB
@@ -358,7 +358,7 @@ export const ROLE_CONFIGURATIONS = {
   },
   
   // Super Admin configuration
-  [USER_ROLES.SUPER_ADMIN]: {
+  [ROLE_STRINGS.SUPER_ADMIN]: {
     // Chat limitations (unlimited)
     chat: {
       maxFileSize: 100 * 1024 * 1024, // 100MB
@@ -583,16 +583,8 @@ export const getAllRolePermissions = (role) => {
  * @returns {string} The role with higher privileges
  */
 export const getHigherPrivilegeRole = (role1, role2) => {
-  const roleHierarchy = [
-    USER_ROLES.STUDENT,
-    USER_ROLES.INSTRUCTOR,
-    USER_ROLES.HR,
-    USER_ROLES.ADMIN,
-    USER_ROLES.SUPER_ADMIN
-  ];
-  
-  const index1 = roleHierarchy.indexOf(role1);
-  const index2 = roleHierarchy.indexOf(role2);
+  const index1 = ROLE_HIERARCHY.indexOf(role1);
+  const index2 = ROLE_HIERARCHY.indexOf(role2);
   
   if (index1 === -1) return role2;
   if (index2 === -1) return role1;
@@ -616,4 +608,4 @@ export const CHAT_LIMITATIONS = Object.fromEntries(
   Object.entries(ROLE_CONFIGURATIONS).map(([role, config]) => [role, config.chat])
 );
 
-export const DEFAULT_CHAT_LIMITATIONS = ROLE_CONFIGURATIONS[USER_ROLES.STUDENT].chat;
+export const DEFAULT_CHAT_LIMITATIONS = ROLE_CONFIGURATIONS[ROLE_STRINGS.STUDENT].chat;

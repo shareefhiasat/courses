@@ -6,7 +6,7 @@ import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Select, UserSelect, AdvancedDataGrid, SimpleLoading } from '@ui';
 import { ProgramsSelect } from '@ui';
-import { USER_ROLES } from '@constants';
+import { ROLE_STRINGS } from '@constants';
 import { ACTIVITY_LOG_TYPES, logActivity } from '@services/other/activityLogger';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
@@ -38,7 +38,7 @@ const EnrollmentsManagementPage = () => {
   const [enrollmentForm, setEnrollmentForm] = useState({ 
     userId: '', 
     classId: '', 
-    role: USER_ROLES.STUDENT, 
+    role: ROLE_STRINGS.STUDENT, 
     programId: '', 
     subjectId: '', 
     year: '', 
@@ -164,7 +164,7 @@ const EnrollmentsManagementPage = () => {
           logger.warn('[EnrollmentManagementPage] Failed to log activity:', error);
         }
         await loadData();
-        setEnrollmentForm({ userId: '', classId: '', role: USER_ROLES.STUDENT, programId: '', subjectId: '', year: '', term: '' });
+        setEnrollmentForm({ userId: '', classId: '', role: ROLE_STRINGS.STUDENT, programId: '', subjectId: '', year: '', term: '' });
         toast?.showSuccess(t('enrollment_added_successfully') || 'Enrollment added successfully!');
       } else {
         toast?.showError(t('error') + ': ' + result.error);
@@ -210,7 +210,7 @@ const EnrollmentsManagementPage = () => {
   const studentUsers = useMemo(() => {
     return users.filter(u => {
       const role = (u.role || '').toLowerCase();
-      return role === (USER_ROLES.STUDENT || 'student');
+      return role === (ROLE_STRINGS.STUDENT || 'student');
     });
   }, [users]);
 
@@ -281,7 +281,7 @@ const EnrollmentsManagementPage = () => {
             value={enrollmentForm.userId}
             onChange={e => setEnrollmentForm({ ...enrollmentForm, userId: e.target.value })}
             placeholder={t('select_user') || 'Select User'}
-            roleFilter={[USER_ROLES.STUDENT]}
+            roleFilter={[ROLE_STRINGS.STUDENT]}
             showEnrollments={true}
             showStatus={true}
             searchable={true}
@@ -312,7 +312,7 @@ const EnrollmentsManagementPage = () => {
             value={enrollmentForm.role}
             onChange={e => setEnrollmentForm({ ...enrollmentForm, role: e.target.value })}
             options={[
-              { value: USER_ROLES.STUDENT, label: (
+              { value: ROLE_STRINGS.STUDENT, label: (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ color: '#16a34a' }}>
                     {getThemedIcon('ui', 'user', 16, theme)}
@@ -497,7 +497,7 @@ const EnrollmentsManagementPage = () => {
             width: 120,
             renderCell: (params) => {
               const roleMap = {
-                [USER_ROLES.STUDENT]: (
+                [ROLE_STRINGS.STUDENT]: (
                   <span style={{ 
                     display: 'inline-flex', 
                     alignItems: 'center', 
@@ -522,7 +522,7 @@ const EnrollmentsManagementPage = () => {
                     👨‍🏫 {t('ta') || 'TA'}
                   </span>
                 ),
-                [USER_ROLES.INSTRUCTOR]: (
+                [ROLE_STRINGS.INSTRUCTOR]: (
                   <span style={{ 
                     display: 'inline-flex', 
                     alignItems: 'center', 

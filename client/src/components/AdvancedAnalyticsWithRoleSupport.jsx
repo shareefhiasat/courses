@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { getThemedIcon, USER_ROLES } from '@constants';
+import { getThemedIcon, ROLE_STRINGS } from '@constants';
 import { normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
 import { getUserById } from '@services/business/userService';
 import { Select, YearSelect, SimpleLoading } from '@ui';
@@ -130,7 +130,7 @@ export default function AdvancedAnalytics({
 
   // ── Check if user is super admin ───────────────────────────────────────────
   const isSuperAdmin = useMemo(() => {
-    return userRole === USER_ROLES.SUPER_ADMIN;
+    return userRole === ROLE_STRINGS.SUPER_ADMIN;
   }, [userRole]);
 
   // ── Data fetching with parallel loading ───────────────────────────────────

@@ -16,7 +16,7 @@ import { getClasses } from '@services/business/classService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger.jsx';
 import { MARK_TYPES } from '@constants/activityTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import { USER_ROLES } from '@constants/userRoles';
+import { ROLE_STRINGS } from '@utils/userUtils';
 import { SimpleLoading, Modal, Button, Input, Select, useToast, AdvancedDataGrid, Card, CardBody, Container } from '@ui';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { ProgramsSelect } from '@ui';

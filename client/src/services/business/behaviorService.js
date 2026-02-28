@@ -1,7 +1,7 @@
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import { USER_ROLES } from '@constants/userRoles';
+import { ROLE_STRINGS } from '@utils/userUtils';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
@@ -95,7 +95,7 @@ export async function createBehavior({
         // Use smart notification gateway
         await notificationGateway.send(NOTIFICATION_TRIGGERS.BEHAVIOR_RECORDED, {
           userId: studentId,
-          role: USER_ROLES.STUDENT,
+          role: ROLE_STRINGS.STUDENT,
           classId: classId,
           title: `📋 Behavior ${actionLabel}`,
           message: `Behavior ${actionLabel} for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
@@ -185,7 +185,7 @@ export async function updateBehavior(behaviorId, updateData, user) {
         
         await notificationGateway.send(NOTIFICATION_TRIGGERS.BEHAVIOR_UPDATED, {
           userId: existingData.studentId,
-          role: USER_ROLES.STUDENT,
+          role: ROLE_STRINGS.STUDENT,
           classId: existingData.classId,
           title: '✏️ Behavior Record Updated',
           message: `Your behavior record has been updated on ${formattedDate}`,
@@ -258,7 +258,7 @@ export async function deleteBehavior(behaviorId, behaviorData = null) {
         
         await notificationGateway.send(NOTIFICATION_TRIGGERS.BEHAVIOR_DELETED, {
           userId: dataToDelete.studentId,
-          role: USER_ROLES.STUDENT,
+          role: ROLE_STRINGS.STUDENT,
           classId: dataToDelete.classId,
           title: '🗑️ Behavior Record Removed',
           message: `Your behavior record has been removed on ${formattedDate}`,

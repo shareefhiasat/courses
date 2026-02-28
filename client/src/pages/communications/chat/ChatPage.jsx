@@ -3,7 +3,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Navigate, useLocation } from 'react-router-dom';
-import { USER_ROLES } from '@constants/userRoles';
+import { ROLE_STRINGS } from '@utils/userUtils';
 import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 import {
   collection,
@@ -300,7 +300,7 @@ const ChatPage = memo(() => {
     } catch {}
     
     // Optionally include platform admins so students can DM an admin (but not self)
-    const admins = allUsersToUse.filter(u => u.role === USER_ROLES.ADMIN && u.docId !== user.uid && u.email !== user.email);
+    const admins = allUsersToUse.filter(u => u.role === ROLE_STRINGS.ADMIN && u.docId !== user.uid && u.email !== user.email);
     admins.forEach(a => { if (!members.some(m => m.docId === a.docId)) members.push(a); });
     
     logger.info('Setting class members', { 
@@ -2361,7 +2361,7 @@ const ChatPage = memo(() => {
                   Voice Message Ready
                 </span>
                 <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', background: 'rgba(255,255,255,0.15)', padding: '1px 4px', borderRadius: '2px' }}>
-                  {formatTime(recordingTime)} / {getMaxVoiceTimeDisplay(user?.role || USER_ROLES.STUDENT)}
+                  {formatTime(recordingTime)} / {getMaxVoiceTimeDisplay(user?.role || ROLE_STRINGS.STUDENT)}
                 </span>
               </div>
               <button
@@ -2432,7 +2432,7 @@ const ChatPage = memo(() => {
                     Recording
                   </span>
                   <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', background: 'rgba(255,255,255,0.15)', padding: '1px 4px', borderRadius: '2px' }}>
-                    {formatTime(recordingTime)} / {getMaxVoiceTimeDisplay(user?.role || USER_ROLES.STUDENT)}
+                    {formatTime(recordingTime)} / {getMaxVoiceTimeDisplay(user?.role || ROLE_STRINGS.STUDENT)}
                   </span>
                 </div>
               </div>
@@ -2680,7 +2680,7 @@ const ChatPage = memo(() => {
                     animation: 'pulse 1.4s infinite ease-in-out 0.4s'
                   }}></span>
                   <span style={{ fontSize: '9px', marginLeft: '2px' }}>
-                    {formatTime(recordingTime)}/{getMaxVoiceTimeDisplay(user?.role || USER_ROLES.STUDENT).replace(' minutes', 'm')}
+                    {formatTime(recordingTime)}/{getMaxVoiceTimeDisplay(user?.role || ROLE_STRINGS.STUDENT).replace(' minutes', 'm')}
                   </span>
                 </div>
               )}
@@ -2954,7 +2954,7 @@ const ChatPage = memo(() => {
                 );
               }
               if (studentsOnly) {
-                filtered = filtered.filter(m => m.role === USER_ROLES.STUDENT);
+                filtered = filtered.filter(m => m.role === ROLE_STRINGS.STUDENT);
               }
               // Filter out the logged-in user (by both docId and email for safety)
               filtered = filtered.filter(m => {
@@ -2968,7 +2968,7 @@ const ChatPage = memo(() => {
               const isDeleted = !m || m.deleted;
               const isDisabled = m?.disabled || m?.isDisabled;
               const isUnenrolled = selectedClass && selectedClass !== 'global' && !selectedClass.startsWith('dm:') && 
-                m.role === USER_ROLES.STUDENT && !(Array.isArray(m.enrolledClasses) && m.enrolledClasses.includes(selectedClass));
+                m.role === ROLE_STRINGS.STUDENT && !(Array.isArray(m.enrolledClasses) && m.enrolledClasses.includes(selectedClass));
               const showIndicator = isDeleted || isDisabled || isUnenrolled;
               const indicatorTitle = isDeleted ? 'Deleted User' : (isDisabled ? 'Disabled User' : (isUnenrolled ? 'Unenrolled from this class' : ''));
               
@@ -2993,7 +2993,7 @@ const ChatPage = memo(() => {
                             ({m.studentNumber})
                           </span>
                         )}
-                        {m.role === USER_ROLES.ADMIN && (
+                        {m.role === ROLE_STRINGS.ADMIN && (
                           <span style={{ fontSize: '0.7rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>Admin</span>
                         )}
                       </div>

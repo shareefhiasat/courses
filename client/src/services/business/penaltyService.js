@@ -1,7 +1,7 @@
 import { notificationGateway } from "./notificationGateway";
 import { NOTIFICATION_TRIGGERS } from "@constants/notificationTypes";
 import { RECORD_TYPES } from "@utils/sharedTypes";
-import { USER_ROLES } from "@constants/userRoles";
+import { ROLE_STRINGS } from "@utils/userUtils";
 import logger from '@utils/logger';
 import { PENALTY_TYPES } from "@constants/penaltyTypes";
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
@@ -94,7 +94,7 @@ export async function createPenalty({
         // Use smart notification gateway
         await notificationGateway.send(NOTIFICATION_TRIGGERS.PENALTY_RECORDED, {
           userId: studentId,
-          role: USER_ROLES.STUDENT,
+          role: ROLE_STRINGS.STUDENT,
           classId: classId,
           title: `⚠️ Penalty ${actionLabel}`,
           message: `Penalty ${actionLabel} for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
@@ -184,7 +184,7 @@ export async function updatePenalty(penaltyId, { updatedBy, ...updateData }) {
         
         await notificationGateway.send(NOTIFICATION_TRIGGERS.PENALTY_UPDATED, {
           userId: existingData.studentId,
-          role: USER_ROLES.STUDENT,
+          role: ROLE_STRINGS.STUDENT,
           classId: existingData.classId,
           title: '✏️ Penalty Record Updated',
           message: `Your penalty record has been updated on ${formattedDate}`,
@@ -257,7 +257,7 @@ export async function deletePenalty(penaltyId, penaltyData = null) {
         
         await notificationGateway.send(NOTIFICATION_TRIGGERS.PENALTY_DELETED, {
           userId: dataToDelete.studentId,
-          role: USER_ROLES.STUDENT,
+          role: ROLE_STRINGS.STUDENT,
           classId: dataToDelete.classId,
           title: '🗑️ Penalty Record Removed',
           message: `Your penalty record has been removed on ${formattedDate}`,

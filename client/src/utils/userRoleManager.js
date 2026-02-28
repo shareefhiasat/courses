@@ -1,4 +1,4 @@
-﻿/**
+/**
  * User Role Management Utility
  * 
  * This script helps set user roles in Firebase for development.
@@ -8,15 +8,14 @@
 import { db } from '@services/other/config';
 import { auth } from '@services/other/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { USER_ROLES } from '@constants/userRoles';
 
 /**
- * Set user role in Firebase
+ * Set user role flags in Firebase
  * @param {string} userId - User ID (Firebase auth UID)
- * @param {string} role - Role from USER_ROLES
- * @param {Object} additionalRoles - Additional role flags
+ * @param {Object} roleFlags - Boolean role flags (isAdmin, isSuperAdmin, isHR, isInstructor, isStudent)
+ * @param {Object} additionalData - Additional user data to update
  */
-export async function setUserRole(userId, role, additionalRoles = {}) {
+export async function setUserRole(userId, roleFlags = {}, additionalData = {}) {
   try {
     const userDocRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userDocRef);
@@ -29,28 +28,29 @@ export async function setUserRole(userId, role, additionalRoles = {}) {
     const currentData = userDoc.data();
     logger.log('🔧 Current user data:', currentData);
     
-    // Update user document with role information
+    // Update user document with role flag information
     const updatedData = {
       ...currentData,
-      role: role,
-      // Set role flags for backward compatibility
-      isAdmin: role === USER_ROLES.ADMIN || role === USER_ROLES.SUPER_ADMIN,
-      isSuperAdmin: role === USER_ROLES.SUPER_ADMIN,
-      isHR: role === USER_ROLES.HR,
-      isInstructor: role === USER_ROLES.INSTRUCTOR,
-      isStudent: role === USER_ROLES.STUDENT,
-      // Override with any additional role flags
-      ...additionalRoles,
+      // Set role flags
+      isAdmin: Boolean(roleFlags.isAdmin),
+      isSuperAdmin: Boolean(roleFlags.isSuperAdmin),
+      isHR: Boolean(roleFlags.isHR),
+      isInstructor: Boolean(roleFlags.isInstructor),
+      isStudent: Boolean(roleFlags.isStudent),
+      // Remove old role field
+      role: null,
+      // Override with any additional data
+      ...additionalData,
       updatedAt: new Date().toISOString()
     };
     
     await setDoc(userDocRef, updatedData, { merge: true });
     
-    logger.log('✅ User role updated successfully:', updatedData);
+    logger.log('✅ User role flags updated successfully:', updatedData);
     return { success: true, data: updatedData };
     
   } catch (error) {
-    logger.error('❌ Error updating user role:', error);
+    logger.error('❌ Error updating user role flags:', error);
     return { success: false, error: error.message };
   }
 }
@@ -67,7 +67,10 @@ export async function makeCurrentUserSuperAdmin() {
   }
   
   logger.log('🔧 Making current user super admin:', user.uid);
-  return await setUserRole(user.uid, USER_ROLES.SUPER_ADMIN);
+  return await setUserRole(user.uid, {
+    isSuperAdmin: true,
+    isAdmin: true
+  });
 }
 
 /**
@@ -82,7 +85,9 @@ export async function makeCurrentUserInstructor() {
   }
   
   logger.log('🔧 Making current user instructor:', user.uid);
-  return await setUserRole(user.uid, USER_ROLES.INSTRUCTOR);
+  return await setUserRole(user.uid, {
+    isInstructor: true
+  });
 }
 
 /**
@@ -97,8 +102,10 @@ export async function makeCurrentUserSuperAdminAndInstructor() {
   }
   
   logger.log('🔧 Making current user super admin AND instructor:', user.uid);
-  return await setUserRole(user.uid, USER_ROLES.SUPER_ADMIN, {
-    isInstructor: true  // Additional flag for instructor
+  return await setUserRole(user.uid, {
+    isSuperAdmin: true,
+    isAdmin: true,
+    isInstructor: true
   });
 }
 
@@ -123,10 +130,9 @@ export async function checkCurrentUserRole() {
     }
     
     const userData = userDoc.data();
-    logger.log('🔧 Current user role data:', {
+    logger.log('🔧 Current user role flags:', {
       uid: user.uid,
       email: user.email,
-      role: userData.role,
       isAdmin: userData.isAdmin,
       isSuperAdmin: userData.isSuperAdmin,
       isHR: userData.isHR,

@@ -12,12 +12,6 @@ import {
   userExists as checkUserExists
 } from '../db/userDbService';
 import { USER_STATUS } from '@utils/userStatus';
-import { 
-  isAdmin as isRoleAdmin, 
-  isInstructor as isRoleInstructor, 
-  isStudent as isRoleStudent,
-  isHR as isRoleHR
-} from '@constants/userRoles';
 
 // Prevent duplicate ensureUserDoc writes during React StrictMode re-mounts
 const _ensureUserDocOnce = new Set();
@@ -704,7 +698,7 @@ export const hasUserRole = (user, role) => {
 };
 
 /**
- * Check if user is a student (wrapper for userRoles utility)
+ * Check if user is a student (using new boolean flag system)
  * 
  * @param {Object} user - User object
  * @returns {boolean} True if user is a student
@@ -714,7 +708,7 @@ export const isStudent = (user) => {
     if (!user || typeof user !== 'object') {
       return false;
     }
-    return isRoleStudent(user.role);
+    return Boolean(user.isStudent);
   } catch (error) {
     logger.error('Error checking if user is student:', error);
     return false;
@@ -722,7 +716,7 @@ export const isStudent = (user) => {
 };
 
 /**
- * Check if user is an instructor (wrapper for userRoles utility)
+ * Check if user is an instructor (using new boolean flag system)
  * 
  * @param {Object} user - User object
  * @returns {boolean} True if user is an instructor
@@ -732,7 +726,7 @@ export const isInstructor = (user) => {
     if (!user || typeof user !== 'object') {
       return false;
     }
-    return isRoleInstructor(user.role);
+    return Boolean(user.isInstructor);
   } catch (error) {
     logger.error('Error checking if user is instructor:', error);
     return false;
@@ -740,7 +734,7 @@ export const isInstructor = (user) => {
 };
 
 /**
- * Check if user is an admin (wrapper for userRoles utility)
+ * Check if user is an admin (using new boolean flag system)
  * 
  * @param {Object} user - User object
  * @returns {boolean} True if user is an admin
@@ -750,7 +744,7 @@ export const isAdmin = (user) => {
     if (!user || typeof user !== 'object') {
       return false;
     }
-    return isRoleAdmin(user.role);
+    return Boolean(user.isAdmin);
   } catch (error) {
     logger.error('Error checking if user is admin:', error);
     return false;
@@ -758,7 +752,7 @@ export const isAdmin = (user) => {
 };
 
 /**
- * Check if user is HR (wrapper for userRoles utility)
+ * Check if user is HR (using new boolean flag system)
  * 
  * @param {Object} user - User object
  * @returns {boolean} True if user is HR
@@ -768,9 +762,27 @@ export const isHR = (user) => {
     if (!user || typeof user !== 'object') {
       return false;
     }
-    return isRoleHR(user.role);
+    return Boolean(user.isHR);
   } catch (error) {
     logger.error('Error checking if user is HR:', error);
+    return false;
+  }
+};
+
+/**
+ * Check if user is a super admin (using new boolean flag system)
+ * 
+ * @param {Object} user - User object
+ * @returns {boolean} True if user is a super admin
+ */
+export const isSuperAdmin = (user) => {
+  try {
+    if (!user || typeof user !== 'object') {
+      return false;
+    }
+    return Boolean(user.isSuperAdmin);
+  } catch (error) {
+    logger.error('Error checking if user is super admin:', error);
     return false;
   }
 };

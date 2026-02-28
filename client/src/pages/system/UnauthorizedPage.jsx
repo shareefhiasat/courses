@@ -5,7 +5,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Button, Card, CardBody } from '@ui';
 import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
-import { getRoleDisplayName } from '@constants/userRoles';
+import { getUserRoleDisplay } from '@utils/userUtils';
 import './UnauthorizedPage.css';
 
 /**
@@ -88,7 +88,7 @@ const UnauthorizedPage = () => {
                 <div className="role-badge" data-theme={theme}>
                   {getThemedIcon('ui', 'user', 16, theme)}
                   <span>
-                    {t('your_role') || 'Your Role'}: <strong>{getRoleDisplayName(role, lang)}</strong>
+                    {t('your_role') || 'Your Role'}: <strong>{getUserRoleDisplay(user, t, lang)}</strong>
                   </span>
                 </div>
                 <p className="role-hint">

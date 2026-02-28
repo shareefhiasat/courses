@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { USER_ROLES } from '@constants';
+import { ROLE_STRINGS } from '@constants';
 import { Button, Select, Modal, Card } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import WidgetConfigurationService from '@services/widgetConfigurationService';
@@ -17,7 +17,7 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
   const { theme } = useTheme();
   const { user, userProfile } = useAuth();
   
-  const [selectedRole, setSelectedRole] = useState(USER_ROLES.STUDENT);
+  const [selectedRole, setSelectedRole] = useState(ROLE_STRINGS.STUDENT);
   const [selectedDashboard, setSelectedDashboard] = useState('overview');
   const [assignedWidgets, setAssignedWidgets] = useState([]);
   const [availableWidgets, setAvailableWidgets] = useState([]);
@@ -25,11 +25,11 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
 
   // Role options for dropdown
   const roleOptions = useMemo(() => [
-    { value: USER_ROLES.STUDENT, label: t('roles.student') || 'Student' },
-    { value: USER_ROLES.INSTRUCTOR, label: t('roles.instructor') || 'Instructor' },
-    { value: USER_ROLES.HR, label: t('roles.hr') || 'HR' },
-    { value: USER_ROLES.ADMIN, label: t('roles.admin') || 'Admin' },
-    { value: USER_ROLES.SUPER_ADMIN, label: t('roles.super_admin') || 'Super Admin' }
+    { value: ROLE_STRINGS.STUDENT, label: t('roles.student') || 'Student' },
+    { value: ROLE_STRINGS.INSTRUCTOR, label: t('roles.instructor') || 'Instructor' },
+    { value: ROLE_STRINGS.HR, label: t('roles.hr') || 'HR' },
+    { value: ROLE_STRINGS.ADMIN, label: t('roles.admin') || 'Admin' },
+    { value: ROLE_STRINGS.SUPER_ADMIN, label: t('roles.super_admin') || 'Super Admin' }
   ], [t]);
 
   // Dashboard options

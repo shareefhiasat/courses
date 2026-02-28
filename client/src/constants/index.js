@@ -141,7 +141,6 @@ export {
 };
 
 // Re-export commonly used constants from other files
-import { USER_ROLES } from './userRoles.js';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel } from './attendanceTypes.js';
 import { ATTENDANCE_METHODS, getAttendanceMethodLabel, shouldShowMethodLabel } from './attendanceMethods.jsx';
 import { NOTIFICATION_TYPES, NOTIFICATION_STATUS, getNotificationTypeOptions, getNotificationStatusOptions, getNotificationTriggerOptions, getNotificationChannelOptions, NOTIFICATION_TRIGGERS, NOTIFICATION_CHANNELS } from './notificationTypes.jsx';
@@ -150,8 +149,16 @@ import { PENALTY_TYPES, getPenaltyColor, getPenaltyLabel, getPenaltyTypeById } f
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorColor, getBehaviorTypeById } from './behaviorTypes.jsx';
 import { ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS, ACTIVITY_TYPE_LABELS_AR, ACTIVITY_TYPE_OPTIONS, getActivityTypeConfig, getActivityTypeOptionsForDropdown } from './activityTypes.js';
 import { RECORD_TYPES, GENERAL_STATUS, ENROLLMENT_STATUS, SUBMISSION_STATUS, TASK_STATUS, USER_STATUS, CLASS_STATUS } from '../utils/sharedTypes.js';
+import { 
+  ROLE_STRINGS, 
+  ROLE_DISPLAY_NAMES, 
+  ROLE_HIERARCHY, 
+  ROLE_PRECEDENCE, 
+  DEFAULT_ROLE, 
+  ALL_ROLES, 
+  ROLE_KEYS
+} from '../utils/userUtils.js';
 
-export { USER_ROLES };
 export { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel };
 export { ATTENDANCE_METHODS, getAttendanceMethodLabel, shouldShowMethodLabel };
 export { NOTIFICATION_TYPES, NOTIFICATION_STATUS, getNotificationTypeOptions, getNotificationStatusOptions, getNotificationTriggerOptions, getNotificationChannelOptions, NOTIFICATION_TRIGGERS, NOTIFICATION_CHANNELS };
@@ -160,6 +167,17 @@ export { PENALTY_TYPES, getPenaltyColor, getPenaltyLabel, getPenaltyTypeById };
 export { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorColor, getBehaviorTypeById };
 export { ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS, ACTIVITY_TYPE_LABELS_AR, ACTIVITY_TYPE_OPTIONS, getActivityTypeConfig, getActivityTypeOptionsForDropdown };
 export { RECORD_TYPES, GENERAL_STATUS, ENROLLMENT_STATUS, SUBMISSION_STATUS, TASK_STATUS, USER_STATUS, CLASS_STATUS };
+
+// Re-export role constants from userUtils (single source of truth)
+export { 
+  ROLE_STRINGS, 
+  ROLE_DISPLAY_NAMES, 
+  ROLE_HIERARCHY, 
+  ROLE_PRECEDENCE, 
+  DEFAULT_ROLE, 
+  ALL_ROLES, 
+  ROLE_KEYS
+};
 
 // Global Role Configuration System - Comprehensive role-based limitations
 import {
@@ -297,7 +315,6 @@ export default {
   useUITheme,
   
   // Re-exported constants
-  USER_ROLES,
   ATTENDANCE_STATUS,
   ATTENDANCE_STATUS_LABELS,
   getAttendanceColor,
