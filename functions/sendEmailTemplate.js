@@ -16,7 +16,7 @@
 const functions = require("firebase-functions");
 const nodemailer = require("nodemailer");
 const admin = require("firebase-admin");
-const { renderEmailTemplate, getEmailTemplate } = require("./emailRenderer");
+const { renderEmailTemplate, getEmailTemplate } = require("./utils/emailRenderer");
 
 /**
  * Send email using template from Firestore

@@ -1017,8 +1017,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
                 size="sm" 
                 variant="ghost" 
                 onClick={() => handleResetPassword(params.row.email)}
-                title={t('reset_password') || 'Reset Password'}
-                style={{ border: 'none' }}
+                title={memoizedDisabledStatus(params.row) ? 'User is disabled - cannot reset password' : (t('reset_password') || 'Reset Password')}
+                style={{ border: 'none', opacity: memoizedDisabledStatus(params.row) ? 0.5 : 1 }}
+                disabled={memoizedDisabledStatus(params.row)}
               >
                 {getThemedIcon('ui', 'key_round', 16, theme)}
               </Button>
@@ -1028,8 +1029,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
                 size="sm" 
                 variant="ghost" 
                 onClick={() => handleSendWelcomeEmail(params.row.email, params.row.role, params.row.displayName)}
-                title={t('send_welcome_email') || 'Send Welcome Email'}
-                style={{ border: 'none' }}
+                title={memoizedDisabledStatus(params.row) ? 'User is disabled - cannot send welcome email' : (t('send_welcome_email') || 'Send Welcome Email')}
+                style={{ border: 'none', opacity: memoizedDisabledStatus(params.row) ? 0.5 : 1 }}
+                disabled={memoizedDisabledStatus(params.row)}
               >
                 {getThemedIcon('ui', 'mail', 16, theme)}
               </Button>
@@ -1086,10 +1088,14 @@ const UsersPage = ({ isDashboardTab = false }) => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => canUseQR && handleSendQRCodeEmail(params.row)}
-                        title={canUseQR ? 'Send QR Code Email' : 'QR Code Email (Student only)'}
-                        disabled={!canUseQR}
-                        style={{ opacity: canUseQR ? 1 : 0.5, border: 'none' }}
+                        onClick={() => canUseQR && !memoizedDisabledStatus(params.row) && handleSendQRCodeEmail(params.row)}
+                        title={
+                          !canUseQR ? 'QR Code Email (Student only)' :
+                          memoizedDisabledStatus(params.row) ? 'User is disabled - cannot send QR code email' :
+                          'Send QR Code Email'
+                        }
+                        disabled={!canUseQR || memoizedDisabledStatus(params.row)}
+                        style={{ opacity: (canUseQR && !memoizedDisabledStatus(params.row)) ? 1 : 0.5, border: 'none' }}
                       >
                         {getThemedIcon('ui', 'qr_code', 16, theme)}
                       </Button>

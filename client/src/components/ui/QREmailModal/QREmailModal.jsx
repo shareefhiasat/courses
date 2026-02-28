@@ -197,26 +197,44 @@ const QREmailModal = ({
             backgroundColor: useCustomEmail ? 'var(--color-muted, #f9fafb)' : 'var(--color-primary-background, #eff6ff)',
             cursor: 'pointer',
             marginBottom: '12px',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            position: 'relative'
           }}
           onClick={() => setUseCustomEmail(false)}
           >
-            <input
-              type="radio"
-              name="emailOption"
-              checked={!useCustomEmail}
-              onChange={() => setUseCustomEmail(false)}
-              style={{ 
-                width: '18px',
-                height: '18px',
-                accentColor: 'var(--color-primary, #3b82f6)',
-                cursor: 'pointer'
-              }}
-            />
-            <div style={{ flex: 1 }}>
+            {/* Card selection indicator */}
+            <div style={{
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              border: '2px solid var(--color-primary, #3b82f6)',
+              backgroundColor: useCustomEmail ? 'transparent' : 'var(--color-primary, #3b82f6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              {!useCustomEmail && (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </div>
+            
+            <div style={{ flex: 1, paddingRight: '30px' }}>
               <div style={{ 
                 fontSize: '0.9rem', 
+                fontWeight: '500',
                 color: 'var(--color-foreground, #1f2937)',
+                marginBottom: '4px'
+              }}>
+                {t('default_email') || 'Default Email'}
+              </div>
+              <div style={{ 
+                fontSize: '0.875rem', 
+                color: 'var(--color-muted-foreground, #6b7280)',
                 wordBreak: 'break-all'
               }}>
                 {defaultEmail}
@@ -234,23 +252,41 @@ const QREmailModal = ({
             borderRadius: '8px',
             backgroundColor: useCustomEmail ? 'var(--color-primary-background, #eff6ff)' : 'var(--color-background, #ffffff)',
             cursor: 'pointer',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            position: 'relative'
           }}
           onClick={() => setUseCustomEmail(true)}
           >
-            <input
-              type="radio"
-              name="emailOption"
-              checked={useCustomEmail}
-              onChange={() => setUseCustomEmail(true)}
-              style={{ 
-                width: '18px',
-                height: '18px',
-                accentColor: 'var(--color-primary, #3b82f6)',
-                cursor: 'pointer'
-              }}
-            />
-            <div style={{ flex: 1, width: '100%' }}>
+            {/* Card selection indicator */}
+            <div style={{
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              border: '2px solid var(--color-primary, #3b82f6)',
+              backgroundColor: useCustomEmail ? 'var(--color-primary, #3b82f6)' : 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              {useCustomEmail && (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </div>
+            
+            <div style={{ flex: 1, paddingRight: '30px', width: '100%' }}>
+              <div style={{ 
+                fontSize: '0.9rem', 
+                fontWeight: '500',
+                color: 'var(--color-foreground, #1f2937)',
+                marginBottom: '8px'
+              }}>
+                {t('custom_email') || 'Custom Email'}
+              </div>
               <Input
                 ref={customEmailRef}
                 type="email"

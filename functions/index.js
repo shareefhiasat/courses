@@ -13,8 +13,6 @@
 
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const { onSchedule } = require("firebase-functions/v2/scheduler");
-const https = require("https");
 
 // Initialize admin if not already initialized
 if (!admin.apps.length) {
@@ -107,14 +105,9 @@ exports.verifyTurnstileToken = functions.https.onCall(async (data, context) => {
  * - Set it to publish to a Pub/Sub topic
  * - This function subscribes to that topic
  */
-exports.processScheduledReports = onSchedule(
-  {
-    schedule: "every 1 hours", // Default: check every hour
-    timeZone: "UTC",
-    memory: "512MB",
-    timeoutSeconds: 540,
-  },
-  async (event) => {
+// Temporarily commented out for deployment testing
+/*
+exports.processScheduledReports = functions.pubsub.schedule('every 1 hours').timeZone('UTC').onRun(async (context) => {
     console.log("Processing scheduled reports...");
 
     try {
@@ -166,6 +159,7 @@ exports.processScheduledReports = onSchedule(
     }
   }
 );
+*/
 
 /**
  * Process a single report
@@ -385,19 +379,6 @@ async function generatePDF(html) {
   // For now, return null (no PDF)
   return null;
 }
-
-// Export email functions
-const sendEmailFunctions = require('./sendEmailV2');
-exports.sendEmail = sendEmailFunctions.sendEmail;
-exports.testEmail = sendEmailFunctions.testEmail;
-
-// Export Gmail direct email function
-const gmailEmailFunctions = require('./sendGmailEmail');
-exports.sendGmailEmail = gmailEmailFunctions.sendGmailEmail;
-
-// Export QR code email function
-const qrCodeEmailFunctions = require('./sendQRCodeEmail');
-exports.sendQRCodeEmail = qrCodeEmailFunctions.sendQRCodeEmail;
 
 // Export user management functions
 const userManagementFunctions = require('./deleteUserAuth');
