@@ -106,6 +106,26 @@ const AnalyticsDashboardPage = memo(() => {
       if (behaviorsRes.success) setBehaviors(behaviorsRes.data || []);
       if (participationsRes.success) setParticipations(participationsRes.data || []);
       
+      // Load resource count with current filters
+      const filters = {};
+      if (enrollmentProgramFilter && enrollmentProgramFilter !== '') {
+        filters.programId = enrollmentProgramFilter;
+      }
+      if (enrollmentSubjectFilter && enrollmentSubjectFilter !== '') {
+        filters.subjectId = enrollmentSubjectFilter;
+      }
+      if (enrollmentClassFilter && enrollmentClassFilter !== '') {
+        filters.classId = enrollmentClassFilter;
+      }
+
+      const resourceResult = await getResourceCount(filters);
+      if (resourceResult.success) {
+        setResourceCount(resourceResult.count);
+      } else {
+        logger.error('❌ [AnalyticsDashboardPage] Error fetching resource count:', resourceResult.error);
+        setResourceCount(0);
+      }
+      
       // Mark data as loaded to prevent re-loading
       setDataLoaded(true);
       
@@ -134,11 +154,12 @@ const AnalyticsDashboardPage = memo(() => {
     loadAllData(false);
   }, [user, dataLoaded]); // Add dataLoaded dependency to prevent re-runs
 
-  // Fetch resource count from server based on current filters
+  // Update resource count when filters change
   useEffect(() => {
-    const fetchResourceCount = async () => {
-      setLoadingResourceCount(true);
-      
+    // Only update if data is already loaded (to avoid conflicts with initial load)
+    if (!dataLoaded) return;
+    
+    const updateResourceCount = async () => {
       try {
         const filters = {};
         if (enrollmentProgramFilter && enrollmentProgramFilter !== '') {
@@ -161,13 +182,11 @@ const AnalyticsDashboardPage = memo(() => {
       } catch (error) {
         logger.error('❌ [AnalyticsDashboardPage] Exception fetching resource count:', error);
         setResourceCount(0);
-      } finally {
-        setLoadingResourceCount(false);
       }
     };
 
-    fetchResourceCount();
-  }, [enrollmentProgramFilter, enrollmentSubjectFilter, enrollmentClassFilter]);
+    updateResourceCount();
+  }, [enrollmentProgramFilter, enrollmentSubjectFilter, enrollmentClassFilter, dataLoaded]);
 
   // Safety check: ensure programs is an array
   const safePrograms = Array.isArray(programs) ? programs : [];

@@ -989,10 +989,10 @@ const ActivitiesPage = () => {
                             allowRetake: quizAllowRetake,
                             maxScore: quizMaxScore,
                             // Sync quiz title and description to activity form
-                            title_en: selectedQuiz.title_en || selectedQuiz.title || '',
-                            title_ar: selectedQuiz.title_ar || '',
-                            description_en: selectedQuiz.description_en || '',
-                            description_ar: selectedQuiz.description_ar || ''
+                            titleEn: selectedQuiz.titleEn || selectedQuiz.title_en || selectedQuiz.title || '',
+                            titleAr: selectedQuiz.titleAr || selectedQuiz.title_ar || '',
+                            descriptionEn: selectedQuiz.descriptionEn || selectedQuiz.description_en || '',
+                            descriptionAr: selectedQuiz.descriptionAr || selectedQuiz.description_ar || ''
                           })
                         };
                         return newForm;

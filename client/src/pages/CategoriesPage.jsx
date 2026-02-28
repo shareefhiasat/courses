@@ -7,6 +7,7 @@ import { getThemedIcon, CATEGORY_ICONS } from '@constants';
 import { Button, Select, SimpleLoading, Textarea, useToast, AdvancedDataGrid, Card, CardBody, Input } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { getCategories, addCategory, updateCategory, deleteCategory } from '@services/business/categoryService';
+import { getUsers } from '@services/business/userService';
 import { 
   PAGE_STATES, 
   FORM_STATES
@@ -23,15 +24,16 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [editingCategory, setEditingCategory] = useState(null);
   const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   const [formData, setFormData] = useState({
-    name_en: '',
-    name_ar: '',
+    nameEn: '',
+    nameAr: '',
     icon: '',
-    description_en: '',
-    description_ar: '',
+    descriptionEn: '',
+    descriptionAr: '',
     color: '#3b82f6',
     order: 1
   });
   const [saving, setSaving] = useState(false);
+  const [userMap, setUserMap] = useState(new Map()); // Cache for user lookups
 
   // Refs for uncontrolled inputs
   const nameEnRef = useRef(null);
@@ -41,21 +43,110 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   // Sync refs when editing
   useEffect(() => {
-    if (nameEnRef.current) nameEnRef.current.value = formData.name_en || '';
-    if (nameArRef.current) nameArRef.current.value = formData.name_ar || '';
-    if (descEnRef.current) descEnRef.current.value = formData.description_en || '';
-    if (descArRef.current) descArRef.current.value = formData.description_ar || '';
-  }, [editingCategory, formData.name_en, formData.name_ar, formData.description_en, formData.description_ar]);
+    if (nameEnRef.current) nameEnRef.current.value = formData.nameEn || '';
+    if (nameArRef.current) nameArRef.current.value = formData.nameAr || '';
+    if (descEnRef.current) descEnRef.current.value = formData.descriptionEn || '';
+    if (descArRef.current) descArRef.current.value = formData.descriptionAr || '';
+  }, [editingCategory, formData.nameEn, formData.nameAr, formData.descriptionEn, formData.descriptionAr]);
 
   // Read text values from refs into form state before submit
   const syncRefsToState = useCallback(() => {
     return {
-      name_en: nameEnRef.current?.value ?? formData.name_en,
-      name_ar: nameArRef.current?.value ?? formData.name_ar,
-      description_en: descEnRef.current?.value ?? formData.description_en,
-      description_ar: descArRef.current?.value ?? formData.description_ar
+      nameEn: nameEnRef.current?.value ?? formData.nameEn,
+      nameAr: nameArRef.current?.value ?? formData.nameAr,
+      descriptionEn: descEnRef.current?.value ?? formData.descriptionEn,
+      descriptionAr: descArRef.current?.value ?? formData.descriptionAr
     };
-  }, [formData.name_en, formData.name_ar, formData.description_en, formData.description_ar]);
+  }, [formData.nameEn, formData.nameAr, formData.descriptionEn, formData.descriptionAr]);
+
+  // Get user display name with caching
+  const getUserDisplayName = useCallback(async (userId) => {
+    if (!userId) return '—';
+    if (userId === 'system') return t('system') || 'System';
+    
+    // Check cache first
+    if (userMap.has(userId)) {
+      return userMap.get(userId);
+    }
+    
+    try {
+      const result = await getUsers();
+      if (result.success && result.data) {
+        const user = result.data.find(u => u.id === userId);
+        if (user) {
+          const displayName = user.displayName || user.email || userId;
+          setUserMap(prev => new Map(prev.set(userId, displayName)));
+          return displayName;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to fetch user details:', error);
+    }
+    
+    return userId; // Fallback to UID if lookup fails
+  }, [userMap, t]);
+
+  // Format date like other grids (handles string dates from Activities/Resources pattern)
+  const formatDate = useCallback((dateValue) => {
+    if (!dateValue) return '—';
+    
+    try {
+      // Handle string dates (e.g., "February 28, 2026 at 3:43:36 PM UTC+3")
+      if (typeof dateValue === 'string') {
+        const date = new Date(dateValue);
+        if (isNaN(date.getTime())) {
+          // If parsing fails, return the original string
+          return dateValue;
+        }
+        
+        const now = new Date();
+        const diffMs = now - date;
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        
+        // If within last 7 days, show relative time
+        if (diffDays < 7) {
+          if (diffDays === 0) {
+            return t('today') || 'Today';
+          } else if (diffDays === 1) {
+            return t('yesterday') || 'Yesterday';
+          } else {
+            return `${diffDays} ${t('days_ago') || 'days ago'}`;
+          }
+        }
+        
+        // Otherwise show formatted date
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+      
+      // Handle Date objects (fallback for any remaining Date objects)
+      const date = new Date(dateValue);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 7) {
+        if (diffDays === 0) {
+          return t('today') || 'Today';
+        } else if (diffDays === 1) {
+          return t('yesterday') || 'Yesterday';
+        } else {
+          return `${diffDays} ${t('days_ago') || 'days ago'}`;
+        }
+      }
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return dateValue;
+    }
+  }, [t]);
 
   // Dynamic form validation
   const formErrors = useMemo(() => {
@@ -144,11 +235,11 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     setSaving(true);
     try {
       const categoryData = {
-        name_en: textValues.name_en.trim(),
-        name_ar: textValues.name_ar.trim(),
+        nameEn: textValues.nameEn.trim(),
+        nameAr: textValues.nameAr.trim(),
         icon: formData.icon.trim(),
-        description_en: textValues.description_en.trim(),
-        description_ar: textValues.description_ar.trim(),
+        descriptionEn: textValues.descriptionEn.trim(),
+        descriptionAr: textValues.descriptionAr.trim(),
         color: formData.color,
         order: parseInt(formData.order) || 1
       };
@@ -184,11 +275,11 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const handleEdit = useCallback((category) => {
     setEditingCategory(category);
     setFormData({
-      name_en: category.name_en || '',
-      name_ar: category.name_ar || '',
+      nameEn: category.nameEn || '',
+      nameAr: category.nameAr || '',
       icon: category.icon || '',
-      description_en: category.description_en || '',
-      description_ar: category.description_ar || '',
+      descriptionEn: category.descriptionEn || '',
+      descriptionAr: category.descriptionAr || '',
       color: category.color || '#3b82f6',
       order: category.order || 1
     });
@@ -216,11 +307,11 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   const resetForm = () => {
     setFormData({
-      name_en: '',
-      name_ar: '',
+      nameEn: '',
+      nameAr: '',
       icon: '',
-      description_en: '',
-      description_ar: '',
+      descriptionEn: '',
+      descriptionAr: '',
       color: '#3b82f6',
       order: 1
     });
@@ -229,19 +320,23 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   const columns = useMemo(() => [
     {
-      field: 'name_en',
+      field: 'nameEn',
       headerName: t('name_english') || 'Name (English)',
       flex: 1,
-      minWidth: 150
+      minWidth: 150,
+      renderCell: (params) => {
+        const value = params?.value;
+        return value || '—';
+      }
     },
     {
-      field: 'name_ar',
+      field: 'nameAr',
       headerName: t('name_arabic') || 'Name (Arabic)',
       flex: 1,
       minWidth: 150
     },
     {
-      field: 'description_en',
+      field: 'descriptionEn',
       headerName: t('description_english') || 'Description (English)',
       flex: 1.5,
       minWidth: 200,
@@ -260,7 +355,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
       }
     },
     {
-      field: 'description_ar',
+      field: 'descriptionAr',
       headerName: t('description_arabic') || 'Description (Arabic)',
       flex: 1.5,
       minWidth: 200,
@@ -329,55 +424,63 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     {
       field: 'createdAt',
       headerName: t('created_at') || 'Created At',
-      flex: 1,
-      minWidth: 180,
+      flex: 0.8,
+      minWidth: 120,
       renderCell: (params) => {
         const value = params?.value;
-        if (!value) return '—';
-        // Format the date nicely
-        try {
-          const date = new Date(value);
-          return date.toLocaleString();
-        } catch {
-          return value;
-        }
+        return formatDate(value);
       }
     },
     {
       field: 'createdBy',
       headerName: t('created_by') || 'Created By',
-      flex: 0.8,
-      minWidth: 120,
+      flex: 1,
+      minWidth: 150,
       renderCell: (params) => {
         const value = params?.value;
-        return value === 'system' ? t('system') || 'System' : value || '—';
+        if (!value || value === 'system') {
+          return t('system') || 'System';
+        }
+        
+        // Use async lookup in renderCell
+        const [displayName, setDisplayName] = useState(value);
+        
+        useEffect(() => {
+          getUserDisplayName(value).then(setDisplayName);
+        }, [value]);
+        
+        return displayName;
       }
     },
     {
       field: 'updatedAt',
       headerName: t('updated_at') || 'Updated At',
-      flex: 1,
-      minWidth: 180,
+      flex: 0.8,
+      minWidth: 120,
       renderCell: (params) => {
         const value = params?.value;
-        if (!value) return '—';
-        // Format the date nicely
-        try {
-          const date = new Date(value);
-          return date.toLocaleString();
-        } catch {
-          return value;
-        }
+        return formatDate(value);
       }
     },
     {
       field: 'updatedBy',
       headerName: t('updated_by') || 'Updated By',
-      flex: 0.8,
-      minWidth: 120,
+      flex: 1,
+      minWidth: 150,
       renderCell: (params) => {
         const value = params?.value;
-        return value === 'system' ? t('system') || 'System' : value || '—';
+        if (!value || value === 'system') {
+          return t('system') || 'System';
+        }
+        
+        // Use async lookup in renderCell
+        const [displayName, setDisplayName] = useState(value);
+        
+        useEffect(() => {
+          getUserDisplayName(value).then(setDisplayName);
+        }, [value]);
+        
+        return displayName;
       }
     },
     {

@@ -43,15 +43,18 @@ export const getCategories = async () => {
     const querySnapshot = await getDocs(q);
     const categories = querySnapshot.docs.map(doc => {
       const data = doc.data();
-      const category = { docId: doc.id, ...data };
+      const category = { 
+        docId: doc.id, 
+        ...data,
+        // Always use camelCase for consistency
+        nameEn: data.nameEn || data.name_en,
+        nameAr: data.nameAr || data.name_ar,
+        descriptionEn: data.descriptionEn || data.description_en,
+        descriptionAr: data.descriptionAr || data.description_ar
+      };
       
-      // Convert Firestore timestamps to dates
-      if (category.createdAt?.toDate) {
-        category.createdAt = category.createdAt.toDate();
-      }
-      if (category.updatedAt?.toDate) {
-        category.updatedAt = category.updatedAt.toDate();
-      }
+      // Keep dates as strings (don't convert to Date objects)
+      // This matches Activities, Resources, and other entities
       
       return category;
     });
@@ -77,15 +80,19 @@ export const getCategoryById = async (docId) => {
     const docSnapshot = await getDoc(docRef);
     
     if (docSnapshot.exists()) {
-      const categoryData = { docId: docSnapshot.id, ...docSnapshot.data() };
+      const data = docSnapshot.data();
+      const categoryData = { 
+        docId: docSnapshot.id, 
+        ...data,
+        // Always use camelCase for consistency
+        nameEn: data.nameEn || data.name_en,
+        nameAr: data.nameAr || data.name_ar,
+        descriptionEn: data.descriptionEn || data.description_en,
+        descriptionAr: data.descriptionAr || data.description_ar
+      };
       
-      // Convert Firestore timestamps to dates
-      if (categoryData.createdAt?.toDate) {
-        categoryData.createdAt = categoryData.createdAt.toDate();
-      }
-      if (categoryData.updatedAt?.toDate) {
-        categoryData.updatedAt = categoryData.updatedAt.toDate();
-      }
+      // Keep dates as strings (don't convert to Date objects)
+      // This matches Activities, Resources, and other entities
       
       logger.info('CATEGORY: Successfully fetched category', { docId });
       return { success: true, data: categoryData };
