@@ -13,7 +13,7 @@ import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Card, CardBody, 
 import { DeleteModal, useDeleteModal } from '@ui';
 import { QREmailModal, useQREmailModal } from '@ui';
 import { ProgramsSelect } from '@ui';
-import { getUsers, addUser, updateUser, deleteUser as deleteUserFromService, deleteStudent, disableUser, isUserDisabledAtUserLevel, isStudent, isAdmin as isAdminUser } from '@services/business/userService';
+import { getUsers, addUser, updateUser, deleteUser as deleteUserFromService, deleteStudent, disableUser, enableUser, isUserDisabledAtUserLevel, isStudent, isAdmin as isAdminUser } from '@services/business/userService';
 import { getPrograms } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { getSubjects } from '@services/business/programService';
@@ -72,6 +72,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
     order: ''
   });
   const [saving, setSaving] = useState(false);
+  const [gridRefreshKey, setGridRefreshKey] = useState(0);
   
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState({
@@ -396,6 +397,21 @@ const UsersPage = ({ isDashboardTab = false }) => {
     const isCurrentlyDisabled = isUserDisabledAtUserLevel(user);
     const action = isCurrentlyDisabled ? 'enable' : 'disable';
 
+    logger.info('USER_PAGE: handleToggleUserStatus called', {
+      timestamp: new Date().toISOString(),
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        isCurrentlyDisabled: isCurrentlyDisabled,
+        disabled: user.disabled,
+        isDisabled: user.isDisabled,
+        disabledAt: user.disabledAt,
+        status: user.status
+      },
+      action: action
+    });
+
     // Show confirmation modal
     setConfirmModal({
       isOpen: true,
@@ -405,26 +421,64 @@ const UsersPage = ({ isDashboardTab = false }) => {
       variant: isCurrentlyDisabled ? 'primary' : 'danger',
       onConfirm: async () => {
         try {
-      const userId = user.docId || user.id;
-      const result = await updateUser(userId, {
-        disabled: !isCurrentlyDisabled,
-        isDisabled: !isCurrentlyDisabled
-      });
-      if (result.success) {
-        // Close modal first
-        setConfirmModal(prev => ({ ...prev, isOpen: false }));
-        
-        // Log activity
-        try {
-          const { logActivity } = await import('@services/other/activityLogger');
-          await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
+          const userId = user.docId || user.id;
+          const newDisabledState = !isCurrentlyDisabled;
+          
+          logger.info('USER_PAGE: Confirming user status change', {
             userId: userId,
-            userEmail: user.email,
-            action: isCurrentlyDisabled ? 'enabled' : 'disabled'
+            currentDisabled: isCurrentlyDisabled,
+            newDisabledState: newDisabledState,
+            action: action
           });
-        } catch (e) { }
+
+          // Call the appropriate Cloud Function
+          const result = newDisabledState 
+            ? await disableUser(userId)
+            : await enableUser(userId);
+          
+          logger.info('USER_PAGE: Cloud function result', {
+            userId: userId,
+            action: action,
+            success: result.success,
+            payload: result.payload
+          });
+          
+          if (result.success) {
+            // Close modal first
+            setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            
+            logger.info('USER_PAGE: User status update successful', {
+              userId: userId,
+              action: action
+            });
+            
+            // Log activity
+            try {
+              const { logActivity } = await import('@services/other/activityLogger');
+              await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
+                userId: userId,
+                userEmail: user.email,
+                action: isCurrentlyDisabled ? 'enabled' : 'disabled'
+              }, userId);
+            } catch (e) { }
         toast?.showSuccess(isCurrentlyDisabled ? t('users_enabled_successfully') : t('users_disabled_successfully'));
-        await loadData();
+        
+        logger.info('USER_PAGE: About to reload data after status change', {
+          timestamp: new Date().toISOString(),
+          userId: userId,
+          action: action
+        });
+        
+        // Force reload data with timestamp to ensure fresh data
+        await loadData(true);
+        
+        // Force grid re-render to update button states
+        setGridRefreshKey(prev => prev + 1);
+        
+        logger.info('USER_PAGE: Data reload completed after status change', {
+          timestamp: new Date().toISOString(),
+          userId: userId
+        });
       } else {
         // Close modal on error too
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
@@ -1802,6 +1856,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
             />
             
             <AdvancedDataGrid
+              key={`users-grid-${gridRefreshKey}`}
               rows={filteredUsers}
               getRowId={(row) => row.docId || row.id}
               columns={gridColumns}

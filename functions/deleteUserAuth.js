@@ -161,12 +161,24 @@ exports.disableUser = functions.https.onCall(async (data, context) => {
     // Update user document to disable
     await admin.firestore().collection('users').doc(userId).update({
       disabled: true,
+      isDisabled: true,
       status: 'disabled',
       disabledAt: admin.firestore.FieldValue.serverTimestamp(),
       disabledBy: callerUid
     });
 
     console.log(`Disabled user in Firestore: ${userId}`);
+
+    // Also disable in Firebase Authentication
+    try {
+      await admin.auth().updateUser(userId, {
+        disabled: true
+      });
+      console.log(`Disabled Firebase Auth account: ${userId}`);
+    } catch (authError) {
+      console.warn(`Failed to disable Firebase Auth account: ${authError.message}`);
+      // Continue anyway - Firestore is updated
+    }
 
     // Log the disable action
     try {
@@ -178,7 +190,8 @@ exports.disableUser = functions.https.onCall(async (data, context) => {
         disabledAt: admin.firestore.FieldValue.serverTimestamp(),
         metadata: {
           role: userData.isStudent ? 'student' : 'staff',
-          method: 'soft_disable'
+          method: 'full_disable',
+          authDisabled: true
         }
       });
     } catch (logError) {
@@ -187,11 +200,113 @@ exports.disableUser = functions.https.onCall(async (data, context) => {
 
     return {
       success: true,
-      message: "User disabled successfully. Firebase Auth account preserved for audit trail."
+      message: "User disabled successfully in both Firestore and Firebase Auth."
     };
 
   } catch (error) {
     console.error(`Error disabling user ${userId}:`, error);
+    throw new functions.https.HttpsError(
+      "internal",
+      error.message
+    );
+  }
+});
+
+/**
+ * Enable user (enable in both Firestore and Firebase Auth)
+ */
+exports.enableUser = functions.https.onCall(async (data, context) => {
+  // Check authentication - only admins can enable users
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "Authentication required"
+    );
+  }
+
+  // Check if user is admin
+  const callerUid = context.auth.uid;
+  const callerDoc = await admin.firestore().collection('users').doc(callerUid).get();
+  
+  if (!callerDoc.exists || (!callerDoc.data()?.isAdmin && !callerDoc.data()?.isSuperAdmin)) {
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      "Admin access required to enable users"
+    );
+  }
+
+  const { userId } = data;
+
+  if (!userId) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "userId is required"
+    );
+  }
+
+  try {
+    // Get user document
+    const userDoc = await admin.firestore().collection('users').doc(userId).get();
+    
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError(
+        "not-found",
+        "User not found in Firestore"
+      );
+    }
+
+    const userData = userDoc.data();
+    
+    console.log(`Enabling user: ${userId} (${userData.email})`);
+
+    // Update user document to enable
+    await admin.firestore().collection('users').doc(userId).update({
+      disabled: false,
+      isDisabled: false,
+      status: 'active',
+      disabledAt: null,
+      enabledBy: callerUid,
+      enabledAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    console.log(`Enabled user in Firestore: ${userId}`);
+
+    // Also enable in Firebase Authentication
+    try {
+      await admin.auth().updateUser(userId, {
+        disabled: false
+      });
+      console.log(`Enabled Firebase Auth account: ${userId}`);
+    } catch (authError) {
+      console.warn(`Failed to enable Firebase Auth account: ${authError.message}`);
+      // Continue anyway - Firestore is updated
+    }
+
+    // Log the enable action
+    try {
+      await admin.firestore().collection('activities').add({
+        type: 'USER_ENABLED',
+        userId: userId,
+        userEmail: userData.email,
+        enabledBy: callerUid,
+        enabledAt: admin.firestore.FieldValue.serverTimestamp(),
+        metadata: {
+          role: userData.isStudent ? 'student' : 'staff',
+          method: 'full_enable',
+          authEnabled: true
+        }
+      });
+    } catch (logError) {
+      console.warn(`Failed to log enable: ${logError.message}`);
+    }
+
+    return {
+      success: true,
+      message: "User enabled successfully in both Firestore and Firebase Auth."
+    };
+
+  } catch (error) {
+    console.error(`Error enabling user ${userId}:`, error);
     throw new functions.https.HttpsError(
       "internal",
       error.message

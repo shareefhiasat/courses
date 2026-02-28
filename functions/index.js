@@ -403,4 +403,5 @@ exports.sendQRCodeEmail = qrCodeEmailFunctions.sendQRCodeEmail;
 const userManagementFunctions = require('./deleteUserAuth');
 exports.deleteUserAuth = userManagementFunctions.deleteUserAuth;
 exports.disableUser = userManagementFunctions.disableUser;
+exports.enableUser = userManagementFunctions.enableUser;
 

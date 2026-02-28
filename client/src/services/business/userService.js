@@ -642,16 +642,67 @@ export const isUserDeleted = (user) => {
 export const isUserDisabledAtUserLevel = (user) => {
   try {
     if (!user || typeof user !== 'object') {
+      logger.warn('isUserDisabledAtUserLevel: Invalid user object', { user });
       return true;
     }
 
-    return user.disabled === true || 
-           user.disabledAt !== undefined ||
-           user.status === USER_STATUS.DISABLED ||
-           user.isDisabled === true;
+    const disabled = user.disabled === true;
+    const disabledAt = user.disabledAt && user.disabledAt !== null && user.disabledAt !== '';
+    const statusDisabled = user.status === USER_STATUS.DISABLED;
+    const isDisabled = user.isDisabled === true;
+
+    const result = disabled || disabledAt || statusDisabled || isDisabled;
+
+    logger.info('isUserDisabledAtUserLevel: Checking user disabled status', {
+      userEmail: user.email,
+      disabled: disabled,
+      disabledAt: disabledAt,
+      status: user.status,
+      isDisabled: isDisabled,
+      result: result,
+      allFields: Object.keys(user)
+    });
+
+    return result;
   } catch (error) {
     logger.error('Error checking if user is disabled at user level:', error);
     return true; // Fail safe to disabled
+  }
+};
+
+/**
+ * Enable user (both Firestore and Firebase Auth)
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} Result object
+ */
+export const enableUser = async (userId) => {
+  try {
+    logger.info('USER: Enabling user', { userId });
+    
+    const { httpsCallable } = await import('firebase/functions');
+    const { functions } = await import('../other/config');
+    
+    const enableUserFn = httpsCallable(functions, 'enableUser');
+    const result = await enableUserFn({ userId });
+    
+    logger.info('USER: User enabled successfully', { userId, result: result.data });
+    
+    return {
+      success: true,
+      payload: result.data,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    logger.error('USER: Failed to enable user', { userId, error: error.message });
+    
+    return {
+      success: false,
+      error: {
+        code: error.code || 'ENABLE_USER_FAILED',
+        message: error.message || 'Failed to enable user'
+      },
+      timestamp: new Date().toISOString()
+    };
   }
 };
 
