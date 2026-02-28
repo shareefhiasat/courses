@@ -710,12 +710,13 @@ const handleCancelEdit = useCallback(() => {
           <UserSelect
             users={filteredInstructorUsers}
             enrollments={enrollments}
+            classes={classes}
             value={classForm.ownerEmail}
             onChange={e => setClassForm({ ...classForm, ownerEmail: e.target.value })}
             placeholder={t('select_instructor') || 'Select Instructor'}
             roleFilter={[]} // No filtering needed - already filtered
             includeAll={false}
-            showEnrollments={false}
+            showEnrollments={true}
             showStatus={true}
             useEmailAsValue={true}
             searchable={true}

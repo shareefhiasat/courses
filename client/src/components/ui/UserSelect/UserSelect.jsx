@@ -4,7 +4,7 @@ import { USER_ROLES } from '@constants/userRoles';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '@utils/userStatus';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getThemeColor } from '@constants/dashboardTypes';
-import { isAdminUser, isInstructorUser, isSuperAdminUser, isHRUser } from '@utils/userUtils';
+import { isAdminUser, isInstructorUser, isSuperAdminUser, isHRUser, hasAdminPrivileges } from '@utils/userUtils';
 
 /**
  * UserSelect Component
@@ -15,6 +15,7 @@ import { isAdminUser, isInstructorUser, isSuperAdminUser, isHRUser } from '@util
  * @param {Object} props
  * @param {Array} props.users - Array of user objects
  * @param {Array} props.enrollments - Array of enrollment objects
+ * @param {Array} props.classes - Array of class objects (for instructor class counting)
  * @param {string} props.value - Selected user ID or email
  * @param {Function} props.onChange - Change handler
  * @param {string} props.placeholder - Placeholder text
@@ -33,6 +34,7 @@ import { isAdminUser, isInstructorUser, isSuperAdminUser, isHRUser } from '@util
 const UserSelect = ({
   users = [],
   enrollments = [],
+  classes = [],
   value,
   onChange,
   placeholder = 'Select User',
@@ -113,13 +115,79 @@ const UserSelect = ({
       
       if (isInstructorUser(u) || isAdminUser(u)) {
         // For instructors: count classes they teach
-        const taughtClasses = enrollments.filter(e => 
-          e.instructorId === (u.docId || u.id) || e.ownerEmail === u.email
-        );
+        console.log('🔍 [UserSelect] User Role Debug:', {
+          userEmail: u.email,
+          userId: u.docId || u.id,
+          userRoles: {
+            isInstructor: u.isInstructor,
+            isAdmin: u.isAdmin,
+            isSuperAdmin: u.isSuperAdmin,
+            isHR: u.isHR,
+            isStudent: u.isStudent
+          },
+          roleDetection: {
+            isInstructorUser: isInstructorUser(u),
+            isAdminUser: isAdminUser(u),
+            isSuperAdminUser: isSuperAdminUser(u),
+            hasAdminPrivileges: hasAdminPrivileges(u)
+          }
+        });
+        
+        console.log('🔍 [UserSelect] Instructor Debug:', {
+          userEmail: u.email,
+          userId: u.docId || u.id,
+          totalEnrollments: enrollments.length,
+          totalClasses: classes?.length || 0,
+          isInstructor: isInstructorUser(u) || isAdminUser(u)
+        });
+        
+        // Count classes owned by this instructor
+        let taughtClasses = [];
+        
+        if (classes && classes.length > 0) {
+          // Count classes where this user is the owner
+          taughtClasses = classes.filter(c => 
+            c.ownerEmail === u.email || 
+            c.createdBy === (u.docId || u.id)
+          );
+          console.log('🔍 [UserSelect] Classes owned by instructor:', taughtClasses);
+        } else {
+          // Fallback to enrollment-based counting (for backward compatibility)
+          taughtClasses = enrollments.filter(e => 
+            e.instructorId === (u.docId || u.id) || e.ownerEmail === u.email
+          );
+          console.log('🔍 [UserSelect] Taught Classes from enrollments:', taughtClasses);
+        }
+        
         enrollmentCount = taughtClasses.length;
         displayCount = enrollmentCount > 0 ? `${enrollmentCount} classes` : 'No classes';
+        
+        console.log('🔍 [UserSelect] Instructor Final Count:', {
+          enrollmentCount,
+          displayCount,
+          taughtClassesCount: taughtClasses.length
+        });
       } else {
         // For students: count their enrollments
+        console.log('🔍 [UserSelect] Student Branch Debug:', {
+          userEmail: u.email,
+          userId: u.docId || u.id,
+          userRoles: {
+            isInstructor: u.isInstructor,
+            isAdmin: u.isAdmin,
+            isSuperAdmin: u.isSuperAdmin,
+            isHR: u.isHR,
+            isStudent: u.isStudent
+          },
+          roleDetection: {
+            isInstructorUser: isInstructorUser(u),
+            isAdminUser: isAdminUser(u),
+            isSuperAdminUser: isSuperAdminUser(u),
+            hasAdminPrivileges: hasAdminPrivileges(u)
+          },
+          reason: 'Treated as student because isInstructorUser(u) || isAdminUser(u) returned false'
+        });
+        
         const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
         enrollmentCount = userEnrollments.length;
         displayCount = enrollmentCount > 0 ? `${enrollmentCount} enrollments` : 'No enrollments';
