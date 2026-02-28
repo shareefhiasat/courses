@@ -26,12 +26,12 @@ const QUESTION_TYPES = {
   TRUE_FALSE: 'true_false'
 };
 
-function getDefaultOptions(type = QUESTION_TYPES.MULTIPLE_CHOICE) {
+function getDefaultOptions(type = QUESTION_TYPES.MULTIPLE_CHOICE, t = null) {
   switch (type) {
     case QUESTION_TYPES.TRUE_FALSE:
       return [
-        { id: '1', text: 'True', text_en: 'True', text_ar: 'True', correct: false },
-        { id: '2', text: 'False', text_en: 'False', text_ar: 'False', correct: false }
+        { id: '1', text: t?.('true_option') || 'True', text_en: t?.('true_option') || 'True', text_ar: t?.('true_option') || 'صحيح', correct: false },
+        { id: '2', text: t?.('false_option') || 'False', text_en: t?.('false_option') || 'False', text_ar: t?.('false_option') || 'خطأ', correct: false }
       ];
     case QUESTION_TYPES.SINGLE_CHOICE:
       return [
@@ -144,7 +144,7 @@ export default function QuizzesPage() {
           text_en: opt.text_en || opt.text || '',
           text_ar: opt.text_ar || opt.text || ''
         }))
-      : getDefaultOptions(resolvedType).map(opt => ({
+      : getDefaultOptions(resolvedType, t).map(opt => ({
           ...opt,
           text: opt.text || opt.text_en || '',
           text_en: opt.text_en || opt.text || '',
@@ -609,7 +609,7 @@ export default function QuizzesPage() {
       type: selectedType,
       question: '',
       image: null,
-      options: getDefaultOptions(selectedType),
+      options: getDefaultOptions(selectedType, t),
       explanation: '',
       points: 1,
       timeLimit: 0
@@ -1526,7 +1526,7 @@ export default function QuizzesPage() {
                             if (currentQuestion) {
                               updateQuestion(activeQuestionIndex, {
                                 type: newType,
-                                options: getDefaultOptions(newType)
+                                options: getDefaultOptions(newType, t)
                               });
                               logger.log('[QuestionType] Type updated successfully');
                             } else {

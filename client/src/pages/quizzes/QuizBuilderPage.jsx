@@ -722,7 +722,7 @@ export default function QuizBuilderPage() {
                 <div className={styles.formGrid}>
                   <div className={styles.formField}>
                     <Input
-                      placeholder={quizLang === 'en' ? "Quiz Title (English)" : "عنوان الاختبار (عربي)"}
+                      placeholder={quizLang === 'en' ? (t('quiz_title_english') || "Quiz Title (English)") : (t('quiz_title_arabic') || "عنوان الاختبار (عربي)")}
                       value={quizLang === 'en' ? (quizData.titleEn || quizData.title || '') : (quizData.titleAr || quizData.title || '')}
                       onChange={(e) => {
                         const value = e.target.value;
@@ -737,7 +737,7 @@ export default function QuizBuilderPage() {
                   </div>
                   <div className={styles.formField}>
                     <Input
-                      placeholder={quizLang === 'en' ? "Quiz Description (optional)" : "وصف الاختبار (اختياري)"}
+                      placeholder={quizLang === 'en' ? (t('quiz_description_optional') || "Quiz Description (optional)") : (t('quiz_description_optional_arabic') || "وصف الاختبار (اختياري)")}
                       value={quizLang === 'en' ? (quizData.descriptionEn || quizData.description || '') : (quizData.descriptionAr || quizData.description || '')}
                       onChange={(e) => {
                         const value = e.target.value;

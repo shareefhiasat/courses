@@ -269,10 +269,10 @@ window.editActivity = function editActivity(index) {
   
   document.getElementById('activity-id').value = activity.id || '';
   document.getElementById('activity-course').value = activity.course || 'python';
-  document.getElementById('activity-title-en').value = activity.title_en || activity.title || '';
-  document.getElementById('activity-title-ar').value = activity.title_ar || '';
-  document.getElementById('activity-description-en').value = activity.description_en || activity.description || '';
-  document.getElementById('activity-description-ar').value = activity.description_ar || '';
+  document.getElementById('activity-title-en').value = activity.titleEn || activity.title || '';
+  document.getElementById('activity-title-ar').value = activity.titleAr || '';
+  document.getElementById('activity-description-en').value = activity.descriptionEn || activity.description || '';
+  document.getElementById('activity-description-ar').value = activity.descriptionAr || '';
   document.getElementById('activity-difficulty').value = activity.difficulty || 'beginner';
   document.getElementById('activity-type').value = activity.type || 'training';
   document.getElementById('activity-url').value = activity.url || '';

@@ -577,7 +577,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
                 value={formData.icon}
                 onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
                 options={[
-                  { value: '', label: 'Select Icon' },
+                  { value: '', label: t('select_icon') || 'Select Icon' },
                   ...iconOptions.map(opt => ({
                     value: opt.value,
                     label: (

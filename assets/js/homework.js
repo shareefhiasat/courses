@@ -62,12 +62,12 @@ import { httpsCallable } from 'https://www.gstatic.com/firebasejs/12.3.0/firebas
       item.innerHTML = `
         <div class="item-header">
           <div>
-            <h3 class="item-title">${activity.title_en || activity.id}</h3>
+            <h3 class="item-title">${activity.titleEn || activity.id}</h3>
             <p class="item-due-date">Due: ${activity.dueDate ? new Date(activity.dueDate).toLocaleString() : 'N/A'}</p>
           </div>
           <div id="status-${activity.id}"></div>
         </div>
-        <p>${activity.description_en || ''}</p>
+        <p>${activity.descriptionEn || ''}</p>
         ${canSubmit ? `
         <div class="submission-area">
           <input type="file" id="file-${activity.id}" accept=".zip,.rar,.pdf,.doc,.docx">

@@ -35,7 +35,7 @@ import { validateEntity, validateBilingualField } from '@utils/validationHelpers
 const ACTIVITY_VALIDATION_RULES = [
   { field: 'type', required: true, type: 'string', label: 'Activity type' },
   { field: 'url', type: 'string', label: 'Activity URL' },
-  { field: 'description_en', type: 'string', label: 'Activity description' },
+  { field: 'descriptionEn', type: 'string', label: 'Activity description' },
   { field: 'maxScore', type: 'number', positive: true, label: 'Max score' }
 ];
 const validateActivityData = (data) => {
@@ -70,7 +70,7 @@ export const getActivities = async () => {
 export const addActivity = async (activityData, user) => {
   try {
     logger.info('ACTIVITY: Creating new activity', {
-      title: activityData.title_en,
+      title: activityData.titleEn,
       url: activityData.url,
       type: activityData.type,
       hasProgram: !!activityData.programId,
@@ -205,12 +205,12 @@ export const updateActivity = async (id, activityData, user, emailOptions = { se
                 role: 'student',
                 classId: activityData.classId,
                 title: 'Activity Updated',
-                message: `Activity "${activityData.title_en || activityData.title}" has been updated.`,
+                message: `Activity "${activityData.titleEn || activityData.title}" has been updated.`,
                 email: student.email,
                 activityId: id,
                 type: activityData.type,
                 variables: {
-                  activityTitle: activityData.title_en || activityData.title,
+                  activityTitle: activityData.titleEn || activityData.title,
                   activityType: activityData.type,
                   dueDate: activityData.dueDate,
                   classId: activityData.classId
@@ -242,7 +242,7 @@ export const deleteActivity = async (id, activityData = null) => {
       try {
         await logActivity(ACTIVITY_LOG_TYPES.ACTIVITY_DELETED, {
           activityId: id,
-          activityTitle: activityData.title_en || activityData.title,
+          activityTitle: activityData.titleEn || activityData.title,
           activityType: activityData.type
         });
       } catch (logError) {
@@ -533,14 +533,14 @@ export const updateResource = async (id, resourceData, emailOptions = { sendEmai
                 role: 'student',
                 classId: resourceData.classId,
                 title: 'Resource Updated',
-                message: `Resource "${resourceData.title_en || resourceData.title}" has been updated.`,
+                message: `Resource "${resourceData.titleEn || resourceData.title}" has been updated.`,
                 email: student.email,
                 resourceId: id,
                 url: resourceData.url,
                 variables: {
-                  resourceTitle: resourceData.title_en || resourceData.title,
+                  resourceTitle: resourceData.titleEn || resourceData.title,
                   resourceUrl: resourceData.url,
-                  resourceDescription: resourceData.description_en || resourceData.description,
+                  resourceDescription: resourceData.descriptionEn || resourceData.description,
                   classId: resourceData.classId
                 }
               });

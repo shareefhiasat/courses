@@ -169,6 +169,32 @@ const DICT = {
     failed_to_send_test_email: 'Failed to send test email',
     sending: 'Sending…',
     duplicate: 'Duplicate',
+
+    // Notification Drawer Localization
+    all_penalty_types: 'All Penalty Types',
+    all_absence_types: 'All Absence Types',
+    all_programs: 'All Programs',
+    all_subjects: 'All Subjects',
+    all_classes: 'All Classes',
+    absent_no_excuse: 'Absent (No Excuse)',
+    absent_with_excuse: 'Absent (With Excuse)',
+    test_notification: 'Test Notification',
+    test_browser_notification_message: 'This is a test browser notification!',
+    no_notifications_match_filters: 'No notifications match your filters',
+    no_notifications_yet: 'No notifications yet',
+
+    // Quiz Builder Localization
+    quiz_title_english: 'Quiz Title (English)',
+    quiz_title_arabic: 'Quiz Title (Arabic)',
+    quiz_description_optional: 'Quiz Description (optional)',
+    quiz_description_optional_arabic: 'Quiz Description (Arabic)',
+
+    // Categories Page Localization
+    select_icon: 'Select Icon',
+
+    // Quiz Options Localization
+    true_option: 'True',
+    false_option: 'False',
     
     // UI Elements
     admin_dashboard: 'Admin Dashboard',
@@ -4014,6 +4040,32 @@ const DICT = {
     details: 'التفاصيل',
     variables: 'المتغيرات',
     template: 'القالب',
+
+    // Notification Drawer Localization (Arabic)
+    all_penalty_types: 'جميع أنواع العقوبات',
+    all_absence_types: 'جميع أنواع الغياب',
+    all_programs: 'جميع البرامج',
+    all_subjects: 'جميع المواد',
+    all_classes: 'جميع الفصول',
+    absent_no_excuse: 'غائب (بدون عذر)',
+    absent_with_excuse: 'غائب (مع عذر)',
+    test_notification: 'اختبار الإشعار',
+    test_browser_notification_message: 'هذا إشعار اختبار للمتصفح!',
+    no_notifications_match_filters: 'لا توجد إشعارات تطابق الفلاتر',
+    no_notifications_yet: 'لا توجد إشعارات بعد',
+
+    // Quiz Builder Localization (Arabic)
+    quiz_title_english: 'عنوان الاختبار (إنجليزي)',
+    quiz_title_arabic: 'عنوان الاختبار (عربي)',
+    quiz_description_optional: 'وصف الاختبار (اختياري)',
+    quiz_description_optional_arabic: 'وصف الاختبار (اختياري)',
+
+    // Categories Page Localization (Arabic)
+    select_icon: 'اختر الأيقونة',
+
+    // Quiz Options Localization (Arabic)
+    true_option: 'صحيح',
+    false_option: 'خطأ',
 
     // Role Access Notifications (Arabic)
     notification_settings_for: 'إعدادات الإشعارات لـ',

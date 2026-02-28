@@ -751,10 +751,10 @@ import { collection, getDocs, doc, getDoc, updateDoc } from 'https://www.gstatic
         document.getElementById('act-order').value = item.order || 0;
         document.getElementById('act-show').checked = !!item.show;
         document.getElementById('act-allowRetake').checked = !!item.allowRetake;
-        document.getElementById('act-title-en').value = item.title_en || '';
-        document.getElementById('act-title-ar').value = item.title_ar || '';
-        document.getElementById('act-desc-en').value = item.description_en || '';
-        document.getElementById('act-desc-ar').value = item.description_ar || '';
+        document.getElementById('act-title-en').value = item.titleEn || '';
+        document.getElementById('act-title-ar').value = item.titleAr || '';
+        document.getElementById('act-desc-en').value = item.descriptionEn || '';
+        document.getElementById('act-desc-ar').value = item.descriptionAr || '';
         if (item.dueDate){
           const d = new Date(item.dueDate);
           const fp = document.getElementById('act-due');

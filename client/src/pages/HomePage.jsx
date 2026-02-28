@@ -1310,7 +1310,7 @@ const HomePage = memo(() => {
               tabs={[
                 {
                   value: 'all',
-                  label: lang === 'en' ? 'All' : 'الكل',
+                  label: t('all') || (lang === 'en' ? 'All' : 'الكل'),
                   icon: activityType === 'all' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor),
                   badge: activityTypeCounts.all
                 },

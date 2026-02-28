@@ -1,12 +1,15 @@
 import React from 'react';
+import { useLang } from '@contexts/LangContext';
 
 /**
  * Custom Area Chart Component (Pure React/SVG)
  * Stacked or grouped area charts
  */
 export default function AreaChart({ data = [], width = 400, height = 300, accentColor = '#800020', colors, showGrid = true, stacked = false }) {
+  const { t } = useLang();
+  
   if (!data || data.length === 0) {
-    return <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No data</div>;
+    return <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>{t('no_data') || 'No data'}</div>;
   }
 
   const padding = { top: 20, right: 20, bottom: 60, left: 60 };

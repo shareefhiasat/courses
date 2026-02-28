@@ -539,7 +539,7 @@ document.addEventListener("DOMContentLoaded", () => {
       state.activities
         .filter((a) => a.course === "python")
         .forEach((act) => {
-          const title = state.lang === "ar" ? act.title_ar : act.title_en;
+          const title = state.lang === "ar" ? act.titleAr : act.titleEn;
           pythonContainer.appendChild(
             el("div", { class: "timeline-item" }, title)
           );

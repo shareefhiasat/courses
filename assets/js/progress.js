@@ -132,7 +132,7 @@ import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-
       item.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
           <div>
-            <h3 style="margin:0;color:#2b2b2b;">${activity.title_en || activity.id}</h3>
+            <h3 style="margin:0;color:#2b2b2b;">${activity.titleEn || activity.id}</h3>
             <p style="margin:4px 0;opacity:0.8;">${activity.course} • ${activity.type} • ${activity.difficulty}</p>
           </div>
           <div style="text-align:right;font-size:0.9rem;opacity:0.8;">
@@ -142,7 +142,7 @@ import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-
           </div>
         </div>
         <div style="margin-bottom:8px;">
-          <p style="margin:0;opacity:0.9;">${activity.description_en || ''}</p>
+          <p style="margin:0;opacity:0.9;">${activity.descriptionEn || ''}</p>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           ${activity.url ? `<a href="${activity.url}" target="_blank" class="btn btn-primary">Start Activity</a>` : ''}

@@ -255,7 +255,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
   const handleTestBrowserNotification = useCallback(async () => {
     if (checkSupport().notification) {
       try {
-        await triggerNotification('default', 'Test Notification', 'This is a test browser notification!');
+        await triggerNotification('default', t('test_notification') || 'Test Notification', t('test_browser_notification_message') || 'This is a test browser notification!');
       } catch (error) {
         logger.error('Failed to send test notification:', error);
       }
@@ -499,7 +499,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 value={filterPenaltyType}
                 onChange={(e) => setFilterPenaltyType(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Penalty Types' },
+                  { value: 'all', label: t('all_penalty_types') || 'All Penalty Types' },
                   ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: pt.label_en }))
                 ]}
                 size="small"
@@ -511,13 +511,13 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 value={filterAttendanceStatus}
                 onChange={(e) => setFilterAttendanceStatus(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Statuses' },
-                  { value: ATTENDANCE_STATUS.PRESENT, label: 'Present' },
-                  { value: ATTENDANCE_STATUS.LATE, label: 'Late' },
-                  { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: 'Absent (No Excuse)' },
-                  { value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: 'Absent (With Excuse)' },
-                  { value: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: 'Excused Leave' },
-                  { value: ATTENDANCE_STATUS.HUMAN_CASE, label: 'Human Case' }
+                  { value: 'all', label: t('all_statuses') || 'All Statuses' },
+                  { value: ATTENDANCE_STATUS.PRESENT, label: t('present') || 'Present' },
+                  { value: ATTENDANCE_STATUS.LATE, label: t('late') || 'Late' },
+                  { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: t('absent_no_excuse') || 'Absent (No Excuse)' },
+                  { value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: t('absent_with_excuse') || 'Absent (With Excuse)' },
+                  { value: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: t('excused_leave') || 'Excused Leave' },
+                  { value: ATTENDANCE_STATUS.HUMAN_CASE, label: t('human_case') || 'Human Case' }
                 ]}
                 size="small"
                 style={{ flex: 1, minWidth: '100px' }}
@@ -528,7 +528,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 value={filterAbsenceType}
                 onChange={(e) => setFilterAbsenceType(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Absence Types' },
+                  { value: 'all', label: t('all_absence_types') || 'All Absence Types' },
                   ...ABSENCE_TYPES.map(at => ({ value: at.id, label: at.label_en }))
                 ]}
                 size="small"
@@ -547,7 +547,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 setFilterClass('all');
               }}
               options={[
-                { value: 'all', label: 'All Programs' },
+                { value: 'all', label: t('all_programs') || 'All Programs' },
                 ...(programs || []).map(p => ({
                   value: p.docId || p.id,
                   label: p.nameEn || p.name || p.code || p.docId
@@ -565,7 +565,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 setFilterClass('all');
               }}
               options={[
-                { value: 'all', label: 'All Subjects' },
+                { value: 'all', label: t('all_subjects') || 'All Subjects' },
                 ...(subjects || [])
                   .filter(s => filterProgram === 'all' || s.programId === filterProgram)
                   .map(s => ({
@@ -582,7 +582,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               value={filterClass}
               onChange={(e) => setFilterClass(e.target.value)}
               options={[
-                { value: 'all', label: 'All Classes' },
+                { value: 'all', label: t('all_classes') || 'All Classes' },
                 ...(classes || [])
                   .filter(c => {
                     if (filterSubject !== 'all' && c.subjectId !== filterSubject) return false;
@@ -710,8 +710,8 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               {getThemedIcon('ui', 'bell', 48, theme)}
               <p style={{ margin: 0, fontSize: '0.9rem' }}>
                 {searchTerm || filterType !== 'all' || filterCategory !== 'all'
-                  ? 'No notifications match your filters'
-                  : 'No notifications yet'}
+                  ? t('no_notifications_match_filters') || 'No notifications match your filters'
+                  : t('no_notifications_yet') || 'No notifications yet'}
               </p>
             </div>
           ) : (

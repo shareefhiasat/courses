@@ -51,8 +51,8 @@ export class ActivitiesPage {
     }
     
     // Fill form
-    if (activityData.title_en) await this.titleEnInput.fill(activityData.title_en);
-    if (activityData.title_ar) await this.titleArInput.fill(activityData.title_ar);
+    if (activityData.titleEn) await this.titleEnInput.fill(activityData.titleEn);
+    if (activityData.titleAr) await this.titleArInput.fill(activityData.titleAr);
     
     // Select type
     if (activityData.type) {
