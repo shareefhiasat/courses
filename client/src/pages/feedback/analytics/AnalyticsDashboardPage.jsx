@@ -65,9 +65,6 @@ const AnalyticsDashboardPage = memo(() => {
   const loadAllData = async (isRefresh = false) => {
     if (isRefresh) {
       setIsRefreshing(true);
-      logger.log('🔄 [AnalyticsDashboardPage] Refreshing data...');
-    } else {
-      logger.log('🚀 [AnalyticsDashboardPage] Starting data load...');
     }
     
     try {
@@ -118,7 +115,7 @@ const AnalyticsDashboardPage = memo(() => {
       }
       
     } catch (error) {
-      logger.error('🔍 [AnalyticsDashboardPage] Error loading data:', error);
+      logger.error('❌ [AnalyticsDashboardPage] Error loading data:', error);
       if (isRefresh) {
         toast.error('Failed to refresh dashboard', 3000);
       }
@@ -134,15 +131,6 @@ const AnalyticsDashboardPage = memo(() => {
     // Only load data if not already loaded and user is authenticated
     if (dataLoaded || !user) return;
     
-    // Debug logging for initial filter states
-    logger.log('🔍 [AnalyticsDashboardPage] Initial page load - Filter states:', {
-      enrollmentProgramFilter,
-      enrollmentSubjectFilter,
-      enrollmentClassFilter,
-      dataLoaded,
-      user: user?.email
-    });
-    
     loadAllData(false);
   }, [user, dataLoaded]); // Add dataLoaded dependency to prevent re-runs
 
@@ -151,40 +139,27 @@ const AnalyticsDashboardPage = memo(() => {
     const fetchResourceCount = async () => {
       setLoadingResourceCount(true);
       
-      // Debug logging for resource count fetch
-      logger.log('🔍 [AnalyticsDashboardPage] Fetching resource count with filters:', {
-        enrollmentProgramFilter,
-        enrollmentSubjectFilter,
-        enrollmentClassFilter
-      });
-      
       try {
         const filters = {};
         if (enrollmentProgramFilter && enrollmentProgramFilter !== '') {
           filters.programId = enrollmentProgramFilter;
-          logger.log('🔍 [AnalyticsDashboardPage] Applying program filter:', enrollmentProgramFilter);
         }
         if (enrollmentSubjectFilter && enrollmentSubjectFilter !== '') {
           filters.subjectId = enrollmentSubjectFilter;
-          logger.log('🔍 [AnalyticsDashboardPage] Applying subject filter:', enrollmentSubjectFilter);
         }
         if (enrollmentClassFilter && enrollmentClassFilter !== '') {
           filters.classId = enrollmentClassFilter;
-          logger.log('🔍 [AnalyticsDashboardPage] Applying class filter:', enrollmentClassFilter);
         }
-
-        logger.log('🔍 [AnalyticsDashboardPage] Final filters for resource count:', filters);
 
         const result = await getResourceCount(filters);
         if (result.success) {
           setResourceCount(result.count);
-          logger.log('🔍 [AnalyticsDashboardPage] Resource count fetched successfully:', result.count);
         } else {
-          logger.error('🔍 [AnalyticsDashboardPage] Error fetching resource count:', result.error);
+          logger.error('❌ [AnalyticsDashboardPage] Error fetching resource count:', result.error);
           setResourceCount(0);
         }
       } catch (error) {
-        logger.error('🔍 [AnalyticsDashboardPage] Exception fetching resource count:', error);
+        logger.error('❌ [AnalyticsDashboardPage] Exception fetching resource count:', error);
         setResourceCount(0);
       } finally {
         setLoadingResourceCount(false);
@@ -196,39 +171,6 @@ const AnalyticsDashboardPage = memo(() => {
 
   // Safety check: ensure programs is an array
   const safePrograms = Array.isArray(programs) ? programs : [];
-  
-  // Log current state for debugging (only if auth is available)
-  if (user) {
-    logger.log('🔍 [AnalyticsDashboardPage] Current state:', {
-      programsCount: safePrograms.length,
-      subjectsCount: subjects.length,
-      classesCount: classes.length,
-      programFilter: enrollmentProgramFilter,
-      subjectFilter: enrollmentSubjectFilter,
-      classFilter: enrollmentClassFilter,
-      resourceCount,
-      loadingResourceCount
-    });
-    
-    // Debug: Check if any program is being pre-selected
-    if (enrollmentProgramFilter && enrollmentProgramFilter !== '') {
-      logger.log('🔍 [AnalyticsDashboardPage] Program filter has selection:', enrollmentProgramFilter);
-      logger.log('🔍 [AnalyticsDashboardPage] Available programs:', safePrograms.map(p => ({ id: p.id || p.docId, name: p.name })));
-    }
-    
-    if (enrollmentSubjectFilter && enrollmentSubjectFilter !== '') {
-      logger.log('🔍 [AnalyticsDashboardPage] Subject filter has selection:', enrollmentSubjectFilter);
-    }
-    
-    if (enrollmentClassFilter && enrollmentClassFilter !== '') {
-      logger.log('🔍 [AnalyticsDashboardPage] Class filter has selection:', enrollmentClassFilter);
-    }
-    
-    // Log when filters are empty (which means "all")
-    if (!enrollmentProgramFilter && !enrollmentSubjectFilter && !enrollmentClassFilter) {
-      logger.log('✅ [AnalyticsDashboardPage] All filters are empty - showing data for all programs/subjects/classes');
-    }
-  }
 
   return (
     <CollapsibleDashboardSection
@@ -247,36 +189,15 @@ const AnalyticsDashboardPage = memo(() => {
           selectedSubject={enrollmentSubjectFilter}
           selectedClass={enrollmentClassFilter}
           onProgramChange={(value) => {
-            if (user) {
-              logger.log('🔄 [AnalyticsDashboardPage] Program filter changed:', {
-                oldValue: enrollmentProgramFilter,
-                newValue: value
-              });
-            }
             setEnrollmentProgramFilter(value);
-            setEnrollmentSubjectFilter(''); // Reset subject when program changes
-            setEnrollmentClassFilter(''); // Reset class when program changes
+            setEnrollmentSubjectFilter('');
+            setEnrollmentClassFilter('');
           }}
           onSubjectChange={(value) => {
-            if (user) {
-              logger.log('🔄 [AnalyticsDashboardPage] Subject filter changed:', {
-                oldValue: enrollmentSubjectFilter,
-                newValue: value,
-                programFilter: enrollmentProgramFilter
-              });
-            }
             setEnrollmentSubjectFilter(value);
-            setEnrollmentClassFilter(''); // Reset class when subject changes
+            setEnrollmentClassFilter('');
           }}
           onClassChange={(value) => {
-            if (user) {
-              logger.log('🔄 [AnalyticsDashboardPage] Class filter changed:', {
-                oldValue: enrollmentClassFilter,
-                newValue: value,
-                programFilter: enrollmentProgramFilter,
-                subjectFilter: enrollmentSubjectFilter
-              });
-            }
             setEnrollmentClassFilter(value);
           }}
           showLabels={false}
@@ -308,7 +229,7 @@ const AnalyticsDashboardPage = memo(() => {
             ...((isAdmin || isSuperAdmin) ? [{
               type: 'subjects',
               value: subjects.filter(s => {
-                if (enrollmentProgramFilter !== 'all') return s.programId === enrollmentProgramFilter;
+                if (enrollmentProgramFilter && enrollmentProgramFilter !== '') return s.programId === enrollmentProgramFilter;
                 return true;
               }).length,
               tooltip: isSuperAdmin ? (t('total_subjects_all') || 'Total number of subjects') : (t('total_subjects_accessible') || 'Subjects in your accessible programs')
@@ -317,14 +238,14 @@ const AnalyticsDashboardPage = memo(() => {
             {
               type: 'classes',
               value: classes.filter(c => {
-                if (enrollmentProgramFilter !== 'all') {
+                if (enrollmentProgramFilter && enrollmentProgramFilter !== '') {
                   const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
                   return subject?.programId === enrollmentProgramFilter;
                 }
-                if (enrollmentSubjectFilter !== 'all') {
+                if (enrollmentSubjectFilter && enrollmentSubjectFilter !== '') {
                   return c.subjectId === enrollmentSubjectFilter;
                 }
-                if (enrollmentClassFilter !== 'all') {
+                if (enrollmentClassFilter && enrollmentClassFilter !== '') {
                   return (c.id || c.docId) === enrollmentClassFilter;
                 }
                 if (isInstructor && !isAdmin && !isSuperAdmin) {
@@ -338,14 +259,14 @@ const AnalyticsDashboardPage = memo(() => {
             {
               type: 'enrollments',
               value: enrollments.filter(e => {
-                if (enrollmentClassFilter !== 'all') {
+                if (enrollmentClassFilter && enrollmentClassFilter !== '') {
                   return e.classId === enrollmentClassFilter;
                 }
-                if (enrollmentSubjectFilter !== 'all') {
+                if (enrollmentSubjectFilter && enrollmentSubjectFilter !== '') {
                   const classItem = classes.find(c => (c.id || c.docId) === e.classId);
                   return classItem?.subjectId === enrollmentSubjectFilter;
                 }
-                if (enrollmentProgramFilter !== 'all') {
+                if (enrollmentProgramFilter && enrollmentProgramFilter !== '') {
                   const classItem = classes.find(c => (c.id || c.docId) === e.classId);
                   const subject = subjects.find(s => (s.docId || s.id) === classItem?.subjectId);
                   return subject?.programId === enrollmentProgramFilter;
@@ -362,14 +283,14 @@ const AnalyticsDashboardPage = memo(() => {
             {
               type: 'activities',
               value: activities.filter(a => {
-                if (enrollmentClassFilter !== 'all') {
+                if (enrollmentClassFilter && enrollmentClassFilter !== '') {
                   return a.classId === enrollmentClassFilter;
                 }
-                if (enrollmentSubjectFilter !== 'all') {
+                if (enrollmentSubjectFilter && enrollmentSubjectFilter !== '') {
                   const classItem = classes.find(c => (c.id || c.docId) === a.classId);
                   return classItem?.subjectId === enrollmentSubjectFilter;
                 }
-                if (enrollmentProgramFilter !== 'all') {
+                if (enrollmentProgramFilter && enrollmentProgramFilter !== '') {
                   const classItem = classes.find(c => (c.id || c.docId) === a.classId);
                   const subject = subjects.find(s => (s.docId || s.id) === classItem?.subjectId);
                   return subject?.programId === enrollmentProgramFilter;
@@ -388,12 +309,29 @@ const AnalyticsDashboardPage = memo(() => {
               value: loadingResourceCount ? '...' : resourceCount,
               tooltip: loadingResourceCount ? (t('loading_resource_count') || 'Loading resource count...') : (t('total_resources') || 'Total number of resources (server-side count)')
             },
-            // Users - Admin and Super Admin only
-            ...((isAdmin || isSuperAdmin) ? [{
-              type: 'users',
-              value: users.length,
-              tooltip: t('total_users_system') || 'Total number of users in the system'
-            }] : []),
+            // Users by role - Admin and Super Admin only
+            ...((isAdmin || isSuperAdmin) ? [
+              {
+                type: 'students',
+                value: users.filter(u => u.role === 'student').length,
+                tooltip: t('total_students_system') || 'Total number of students in the system'
+              },
+              {
+                type: 'teachers', 
+                value: users.filter(u => u.role === 'teacher' || u.role === 'instructor').length,
+                tooltip: t('total_teachers_system') || 'Total number of teachers/instructors in the system'
+              },
+              {
+                type: 'hr',
+                value: users.filter(u => u.role === 'hr').length,
+                tooltip: t('total_hr_system') || 'Total number of HR users in the system'
+              },
+              {
+                type: 'admins',
+                value: users.filter(u => u.role === 'admin' || u.role === 'superadmin').length,
+                tooltip: t('total_admins_system') || 'Total number of admin users in the system'
+              }
+            ] : []),
             // Quizzes
             {
               type: 'quizzes',
@@ -406,13 +344,13 @@ const AnalyticsDashboardPage = memo(() => {
             {
               type: MODE_TYPES.ANNOUNCEMENTS,
               value: announcements.filter(a => {
-                if (enrollmentClassFilter !== 'all') {
+                if (enrollmentClassFilter && enrollmentClassFilter !== '') {
                   return a.classId === enrollmentClassFilter;
                 }
-                if (enrollmentSubjectFilter !== 'all') {
+                if (enrollmentSubjectFilter && enrollmentSubjectFilter !== '') {
                   return a.subjectId === enrollmentSubjectFilter;
                 }
-                if (enrollmentProgramFilter !== 'all') {
+                if (enrollmentProgramFilter && enrollmentProgramFilter !== '') {
                   return a.programId === enrollmentProgramFilter;
                 }
                 return true;
@@ -423,13 +361,13 @@ const AnalyticsDashboardPage = memo(() => {
             {
               type: 'penalties',
               value: penalties.filter(p => {
-                if (enrollmentClassFilter !== 'all') {
+                if (enrollmentClassFilter && enrollmentClassFilter !== '') {
                   return p.classId === enrollmentClassFilter;
                 }
-                if (enrollmentSubjectFilter !== 'all') {
+                if (enrollmentSubjectFilter && enrollmentSubjectFilter !== '') {
                   return p.subjectId === enrollmentSubjectFilter;
                 }
-                if (enrollmentProgramFilter !== 'all') {
+                if (enrollmentProgramFilter && enrollmentProgramFilter !== '') {
                   return p.programId === enrollmentProgramFilter;
                 }
                 if (isInstructor && !isAdmin && !isSuperAdmin) {
@@ -443,13 +381,13 @@ const AnalyticsDashboardPage = memo(() => {
             {
               type: 'behaviors',
               value: behaviors.filter(b => {
-                if (enrollmentClassFilter !== 'all') {
+                if (enrollmentClassFilter && enrollmentClassFilter !== '') {
                   return b.classId === enrollmentClassFilter;
                 }
-                if (enrollmentSubjectFilter !== 'all') {
+                if (enrollmentSubjectFilter && enrollmentSubjectFilter !== '') {
                   return b.subjectId === enrollmentSubjectFilter;
                 }
-                if (enrollmentProgramFilter !== 'all') {
+                if (enrollmentProgramFilter && enrollmentProgramFilter !== '') {
                   return b.programId === enrollmentProgramFilter;
                 }
                 if (isInstructor && !isAdmin && !isSuperAdmin) {
@@ -463,13 +401,13 @@ const AnalyticsDashboardPage = memo(() => {
             {
               type: 'participations',
               value: participations.filter(p => {
-                if (enrollmentClassFilter !== 'all') {
+                if (enrollmentClassFilter && enrollmentClassFilter !== '') {
                   return p.classId === enrollmentClassFilter;
                 }
-                if (enrollmentSubjectFilter !== 'all') {
+                if (enrollmentSubjectFilter && enrollmentSubjectFilter !== '') {
                   return p.subjectId === enrollmentSubjectFilter;
                 }
-                if (enrollmentProgramFilter !== 'all') {
+                if (enrollmentProgramFilter && enrollmentProgramFilter !== '') {
                   return p.programId === enrollmentProgramFilter;
                 }
                 if (isInstructor && !isAdmin && !isSuperAdmin) {

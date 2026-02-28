@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Unified card configuration utility for dashboard cards and metrics
  * Provides consistent icons, colors, shapes, and localized labels across the application
  */
@@ -156,6 +156,38 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           label: t("users") || "Users",
           gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
         },
+        students: {
+          icon: getThemedIcon('ui', 'user_check', 24, theme),
+          bg: "rgba(16, 185, 129, 0.1)",
+          iconColor: "#10b981",
+          shape: "rounded",
+          label: t("students") || "Students",
+          gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+        },
+        teachers: {
+          icon: getThemedIcon('ui', 'graduation_cap', 24, theme),
+          bg: "rgba(99, 102, 241, 0.1)",
+          iconColor: "#6366f1",
+          shape: "rounded",
+          label: t("teachers") || "Teachers",
+          gradient: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+        },
+        hr: {
+          icon: getThemedIcon('ui', 'shield', 24, theme),
+          bg: "rgba(245, 158, 11, 0.1)",
+          iconColor: "#f59e0b",
+          shape: "rounded",
+          label: t("hr") || "HR",
+          gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+        },
+        admins: {
+          icon: getThemedIcon('ui', 'crown', 24, theme),
+          bg: "rgba(239, 68, 68, 0.1)",
+          iconColor: "#ef4444",
+          shape: "rounded",
+          label: t("admins") || "Admins",
+          gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+        },
         submissions: {
           icon: getThemedIcon('ui', 'file_check', 24, theme),
           bg: "rgba(128, 0, 32, 0.1)",
@@ -312,6 +344,14 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           iconColor: "#6366f1",
           shape: "rounded",
           label: t("participation") || "Participation",
+          gradient: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+        },
+        participations: {
+          icon: getThemedIcon('ui', 'message_square', 24, theme),
+          bg: "rgba(99, 102, 241, 0.1)",
+          iconColor: "#6366f1",
+          shape: "rounded",
+          label: t("participations") || "Participations",
           gradient: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
         },
         "active-students": {
