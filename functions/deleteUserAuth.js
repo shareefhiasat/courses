@@ -10,6 +10,9 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 
+// Import shared user constants
+const { USER_ACTIVITY_TYPES, USER_ROLES, USER_STATUS_TYPES, getUserRole } = require('./constants/userConstants');
+
 /**
  * Delete user completely (Firestore + Firebase Auth)
  * For students only - complete removal
@@ -160,7 +163,7 @@ exports.disableUser = functions.https.onCall(async (data, context) => {
     await admin.firestore().collection('users').doc(userId).update({
       disabled: true,
       isDisabled: true,
-      status: 'disabled',
+      status: USER_STATUS_TYPES.DISABLED,
       disabledAt: admin.firestore.FieldValue.serverTimestamp(),
       disabledBy: callerUid
     });
@@ -178,13 +181,13 @@ exports.disableUser = functions.https.onCall(async (data, context) => {
     // Log the disable action
     try {
       await admin.firestore().collection('activities').add({
-        type: 'USER_DISABLED',
+        type: USER_ACTIVITY_TYPES.USER_DISABLED,
         userId: userId,
         userEmail: userData.email,
         disabledBy: callerUid,
         disabledAt: admin.firestore.FieldValue.serverTimestamp(),
         metadata: {
-          role: userData.isStudent ? 'student' : 'staff',
+          role: getUserRole(userData),
           method: 'full_disable',
           authDisabled: true
         }
@@ -256,7 +259,7 @@ exports.enableUser = functions.https.onCall(async (data, context) => {
     await admin.firestore().collection('users').doc(userId).update({
       disabled: false,
       isDisabled: false,
-      status: 'active',
+      status: USER_STATUS_TYPES.ACTIVE,
       disabledAt: null,
       enabledBy: callerUid,
       enabledAt: admin.firestore.FieldValue.serverTimestamp()
@@ -275,13 +278,13 @@ exports.enableUser = functions.https.onCall(async (data, context) => {
     // Log the enable action
     try {
       await admin.firestore().collection('activities').add({
-        type: 'USER_ENABLED',
+        type: USER_ACTIVITY_TYPES.USER_ENABLED,
         userId: userId,
         userEmail: userData.email,
         enabledBy: callerUid,
         enabledAt: admin.firestore.FieldValue.serverTimestamp(),
         metadata: {
-          role: userData.isStudent ? 'student' : 'staff',
+          role: getUserRole(userData),
           method: 'full_enable',
           authEnabled: true
         }

@@ -30,14 +30,14 @@ const AllowlistPage = () => {
       if (result.success) {
         const now = new Date();
         setLastSavedTime(now);
-        setSavedTimeDisplay('Just saved');
+        setSavedTimeDisplay(t('allowlist_just_saved'));
         if (showSuccessMessage) {
-          toast?.showSuccess('Changes saved successfully!');
+          toast?.showSuccess(t('allowlist_changes_saved_successfully'));
         }
         logger.info('Allowlist saved successfully');
       } else {
         logger.error('Save failed:', result.error);
-        toast?.showError('Failed to save changes: ' + result.error);
+        toast?.showError(t('allowlist_failed_to_save_changes') + ': ' + result.error);
         // Revert to previous state on error
         const prevResult = await getAllowlist();
         if (prevResult.success) {

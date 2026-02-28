@@ -222,6 +222,32 @@ const UsersPage = ({ isDashboardTab = false }) => {
     loadData(true);
   }, [authLoading, user?.uid, user, isAdmin, isSuperAdmin, loadData]);
 
+  // Debounced loadData to prevent multiple rapid calls
+  const debouncedLoadData = useMemo(() => {
+    let timeoutId;
+    return (force = false) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        loadData(force);
+      }, 100); // 100ms debounce
+    };
+  }, [loadData]);
+
+  // Memoized disabled status check to prevent excessive calls
+  const memoizedDisabledStatus = useMemo(() => {
+    const cache = new Map();
+    
+    return (user) => {
+      const cacheKey = `${user.id || user.docId}-${user.disabled}-${user.isDisabled}-${user.status}`;
+      
+      if (!cache.has(cacheKey)) {
+        cache.set(cacheKey, isUserDisabledAtUserLevel(user));
+      }
+      
+      return cache.get(cacheKey);
+    };
+  }, []);
+
   // Handler functions - must be defined before gridColumns
   const handleEditUser = useCallback((user) => {
     logger.info('USER_PAGE: handleEditUser called', {
@@ -365,7 +391,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
           const result = await disableUser(userId);
           if (result.success) {
             toast?.showSuccess(t('users_soft_deleted_success'));
-            await loadData();
+            debouncedLoadData();
           } else {
             toast?.showError(result.error || t('users_failed_to_disable_user'));
           }
@@ -380,7 +406,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
           const result = await deleteStudent(userId);
           if (result.success) {
             toast?.showSuccess(t('users_deleted_successfully'));
-            await loadData();
+            debouncedLoadData();
           } else {
             toast?.showError(result.error || t('users_failed_to_delete_user'));
           }
@@ -390,11 +416,11 @@ const UsersPage = ({ isDashboardTab = false }) => {
         }
       }, relatedRecords);
     }
-  }, [deleteUser, toast, loadData, enrollments, t]);
+  }, [deleteUser, toast, debouncedLoadData, enrollments, t]);
 
   const handleToggleUserStatus = useCallback(async (user) => {
     // Allow disabling any user (including admins) - only restriction is for delete
-    const isCurrentlyDisabled = isUserDisabledAtUserLevel(user);
+    const isCurrentlyDisabled = memoizedDisabledStatus(user);
     const action = isCurrentlyDisabled ? 'enable' : 'disable';
 
     logger.info('USER_PAGE: handleToggleUserStatus called', {
@@ -470,7 +496,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         });
         
         // Force reload data with timestamp to ensure fresh data
-        await loadData(true);
+        debouncedLoadData(true);
         
         // Force grid re-render to update button states
         setGridRefreshKey(prev => prev + 1);
@@ -492,7 +518,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         }
       }
     });
-  }, [toast, loadData, t]);
+  }, [toast, debouncedLoadData, t, memoizedDisabledStatus]);
 
   const handleResetPassword = useCallback(async (email) => {
     // Show confirmation modal
@@ -605,7 +631,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
             logger.info('✅ Invitation removed successfully', { email, role });
             
             // Reload data to update the grid
-            loadData(true);
+            debouncedLoadData(true);
           } else {
             throw new Error(updateResult.error);
           }
@@ -618,7 +644,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         }
       }
     });
-  }, [toast, t, loadData]);
+  }, [toast, t, debouncedLoadData]);
 
   const openQRCodeInNewTab = useCallback((user) => {
     const qrUrl = `/qrcode/${encodeURIComponent(user.studentNumber)}`;
@@ -669,8 +695,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
     // Status filter (based on centralized disabled helper)
     if (statusFilter && statusFilter !== 'all') {
       filtered = filtered.filter(user => {
-        if (statusFilter === 'active') return !isUserDisabledAtUserLevel(user);
-        if (statusFilter === 'disabled') return isUserDisabledAtUserLevel(user);
+        if (statusFilter === 'active') return !memoizedDisabledStatus(user);
+        if (statusFilter === 'disabled') return memoizedDisabledStatus(user);
         return true;
       });
     }
@@ -801,17 +827,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
       headerName: t('order') || 'Order', 
       width: 120,
       renderCell: (params) => {
-        // Debug logging for order column
-        if (params.row.email === 'hafole1668@hutudns.com') {
-          console.log('ORDER COLUMN DEBUG:', {
-            value: params.value,
-            row: params.row,
-            hasOrder: !!params.value,
-            orderType: typeof params.value,
-            allFields: Object.keys(params.row)
-          });
-        }
-        
         return (
           <span style={{ 
             fontFamily: 'monospace',
@@ -890,7 +905,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
           );
         }
         
-        const isDisabled = isUserDisabledAtUserLevel(params.row);
+        const isDisabled = memoizedDisabledStatus(params.row);
         if (isDisabled) {
           return (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-danger, #dc2626)', fontWeight: 500 }}>
@@ -1023,13 +1038,13 @@ const UsersPage = ({ isDashboardTab = false }) => {
               <Button 
                 size="sm" 
                 variant="ghost" 
-                icon={isUserDisabledAtUserLevel(params.row) ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
-                style={{ color: isUserDisabledAtUserLevel(params.row) ? '#28a745' : '#dc2626' }}
+                icon={memoizedDisabledStatus(params.row) ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
+                style={{ color: memoizedDisabledStatus(params.row) ? '#28a745' : '#dc2626' }}
                 onClick={() => handleToggleUserStatus(params.row)}
-                title={isUserDisabledAtUserLevel(params.row) ? 'Enable' : 'Disable'}
+                title={memoizedDisabledStatus(params.row) ? 'Enable' : 'Disable'}
                 // Remove the admin restriction - allow disable for all users
               >
-                {isUserDisabledAtUserLevel(params.row) ? 'Enable' : 'Disable'}
+                {memoizedDisabledStatus(params.row) ? 'Enable' : 'Disable'}
               </Button>
               
               {/* QR Code buttons - fifth and sixth */}
@@ -1312,7 +1327,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
             timestamp: new Date().toISOString(),
             userId: userId
           });
-          await loadData();
+          debouncedLoadData();
         }
         resetForm();
       } else {
@@ -1490,11 +1505,12 @@ const UsersPage = ({ isDashboardTab = false }) => {
 
       // Only reload if editing (not adding new user to allowlist)
       if (editingUser) {
+        const userId = editingUser.id || editingUser.uid || editingUser.email;
         logger.info('USER_PAGE: Calling loadData after user update', {
           timestamp: new Date().toISOString(),
           userId: userId
         });
-        await loadData();
+        debouncedLoadData();
       }
       resetForm();
     } catch (error) {
@@ -1838,7 +1854,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         {pageState === PAGE_STATES.ERROR ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <p style={{ color: theme === 'dark' ? '#f87171' : '#ef4444' }}>{t('error_loading_users') || 'Error loading users'}</p>
-            <Button onClick={loadData} style={{ marginTop: '1rem' }}>
+            <Button onClick={() => debouncedLoadData(true)} style={{ marginTop: '1rem' }}>
               {getThemedIcon('ui', 'refresh', 16, theme)} {t('retry') || 'Retry'}
             </Button>
           </div>

@@ -28,6 +28,19 @@ const ClassCard = ({
     return cls.name || cls.code || t('classcard_unnamed_class');
   };
 
+  // Helper function to format term with year
+  const formatTermWithYear = (cls) => {
+    const term = cls.term || '';
+    const year = cls.year || new Date().getFullYear();
+    
+    if (term) {
+      return `${term} ${year}`;
+    }
+    
+    // If no term, just show year
+    return year.toString();
+  };
+
   // Helper function to get localized instructor name
   const getLocalizedInstructorName = (instructor) => {
     if (!instructor) return t('classcard_instructor');
@@ -139,6 +152,24 @@ const ClassCard = ({
         }}>
           {getLocalizedClassName(cls)}
         </h4>
+        
+        {/* Term and Year */}
+        <div style={{ 
+          marginTop: '0.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}>
+          {getThemedIcon('ui', 'calendar', 10, theme)}
+          <span style={{ 
+            fontSize: '0.75rem', 
+            color: theme === 'dark' ? '#9ca3af' : '#6b7280',
+            fontWeight: 500
+          }}>
+            {formatTermWithYear(cls)}
+          </span>
+        </div>
+        
         {showInstructorInfo && instructor && (
           <div style={{ 
             marginTop: '0.25rem',

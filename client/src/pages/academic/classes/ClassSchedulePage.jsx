@@ -222,11 +222,14 @@ const ClassSchedulePage = () => {
   const classesBySemester = useMemo(() => {
     const grouped = {};
     filteredClasses.forEach(cls => {
-      const semester = cls.term || 'Unknown Semester';
-      if (!grouped[semester]) {
-        grouped[semester] = [];
+      const term = cls.term || 'Unknown Semester';
+      const year = cls.year || new Date().getFullYear();
+      const semesterWithYear = `${term} ${year}`;
+      
+      if (!grouped[semesterWithYear]) {
+        grouped[semesterWithYear] = [];
       }
-      grouped[semester].push(cls);
+      grouped[semesterWithYear].push(cls);
     });
     return grouped;
   }, [filteredClasses]);
@@ -701,16 +704,12 @@ const ClassSchedulePage = () => {
                     {getLocalizedClassName(cls)}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {cls.term && (
+                    {(cls.term || cls.year) && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                         {getThemedIcon('ui', 'calendar', 10, theme)}
-                        {cls.term}
-                      </span>
-                    )}
-                    {cls.year && !cls.term && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        {getThemedIcon('ui', 'calendar', 10, theme)}
-                        {t('year') || 'Year'} {cls.year}
+                        {cls.term && cls.year ? `${cls.term} ${cls.year}` : 
+                         cls.term ? cls.term : 
+                         cls.year ? `${t('year') || 'Year'} ${cls.year}` : ''}
                       </span>
                     )}
                   </div>
@@ -809,16 +808,12 @@ const ClassSchedulePage = () => {
               <div style={{ marginBottom: 24 }}>
                 <h2 style={{ margin: 0, fontSize: 20 }}>{getLocalizedClassName(selectedClass)}</h2>
                 <div style={{ fontSize: 12, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  {selectedClass.term && (
+                  {(selectedClass.term || selectedClass.year) && (
                     <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                       {getThemedIcon('ui', 'calendar', 10, theme)}
-                      {selectedClass.term}
-                    </span>
-                  )}
-                  {selectedClass.year && !selectedClass.term && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                      {getThemedIcon('ui', 'calendar', 10, theme)}
-                      {t('year') || 'Year'} {selectedClass.year}
+                      {selectedClass.term && selectedClass.year ? `${selectedClass.term} ${selectedClass.year}` : 
+                       selectedClass.term ? selectedClass.term : 
+                       selectedClass.year ? `${t('year') || 'Year'} ${selectedClass.year}` : ''}
                     </span>
                   )}
                 </div>
@@ -857,8 +852,9 @@ const ClassSchedulePage = () => {
                 <label style={{ display: 'none' }}>
                   {t('select_days') || 'Select Days'} ({schedule.days.length}/{frequencyOptions.find(f => f.value === schedule.frequency)?.days})
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
-                  {dayOptions.map(dayOption => {
+                <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0, maxWidth: '500px', width: '100%' }}>
+                    {dayOptions.map(dayOption => {
                     const isSelected = schedule.days.includes(dayOption.value);
                     const maxDays = frequencyOptions.find(f => f.value === schedule.frequency)?.days || 1;
                     const canSelect = isSelected || schedule.days.length < maxDays;
@@ -868,19 +864,23 @@ const ClassSchedulePage = () => {
                         onClick={() => canSelect && toggleDay(dayOption.value)}
                         disabled={!canSelect}
                         style={{
-                          padding: '0.75rem 0.5rem',
+                          padding: '1rem 0.5rem',
                           border: '1px solid var(--border)',
-                          borderRadius: 8,
+                          borderRadius: dayOption.value === 'SUN' ? '8px 0 0 8px' : 
+                                     dayOption.value === 'SAT' ? '0 8px 8px 0' : '0',
                           background: isSelected ? primaryColor : (theme === 'dark' ? '#1f2937' : '#fff'),
                           color: isSelected ? 'white' : (theme === 'dark' ? '#f9fafb' : '#111827'),
                           fontWeight: 600,
-                          fontSize: 12,
+                          fontSize: 14,
                           cursor: canSelect ? 'pointer' : 'not-allowed',
                           opacity: canSelect ? 1 : 0.5,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '4px',
+                          width: '100%',
+                          height: '100%',
+                          minHeight: '50px',
                           '&:hover': {
                             background: isSelected ? primaryColor : (theme === 'dark' ? '#374151' : '#f9fafb')
                           }
@@ -892,6 +892,7 @@ const ClassSchedulePage = () => {
                       </Tooltip>
                     );
                   })}
+                  </div>
                 </div>
               </div>
 

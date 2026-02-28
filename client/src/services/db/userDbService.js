@@ -38,6 +38,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
+import { USER_STATUS_TYPES } from '@constants/activityTypes';
 
 /**
  * Get user by ID - with performance monitoring and memoization
@@ -419,7 +420,7 @@ export const disableUserFirestore = async (userId, adminId) => {
     await updateDoc(doc(db, "users", userId), {
       disabled: true,
       isDisabled: true,
-      status: 'disabled',
+      status: USER_STATUS_TYPES.DISABLED,
       disabledAt: serverTimestamp(),
       disabledBy: adminId
     });
@@ -442,7 +443,7 @@ export const enableUserFirestore = async (userId, adminId) => {
     await updateDoc(doc(db, "users", userId), {
       disabled: false,
       isDisabled: false,
-      status: 'active',
+      status: USER_STATUS_TYPES.ACTIVE,
       disabledAt: null,
       enabledBy: adminId,
       enabledAt: serverTimestamp()
