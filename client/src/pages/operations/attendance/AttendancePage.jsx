@@ -680,10 +680,7 @@ const AttendancePageEnhanced = () => {
                         const result = await getAttendanceMarksForExport(sessionId);
                         const rows = result.success ? result.data : [];
                         const headers = ['uid','status','deviceHash','scannedAt'];
-                        const csvRows = rows.map(r => [r.uid, r.status||'present', r.deviceHash||'', (r.at && r.at.toDate ? r.at.toDate() : new Date()).toLocaleDateString('en-GB', {
-                        day: '2-digit', month: '2-digit', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
-                      })]);
+                        const csvRows = rows.map(r => [r.uid, r.status||'present', r.deviceHash||'', (r.at && r.at.toDate ? r.at.toDate() : new Date()).toLocaleString('en-GB')]);
                         const csv = [headers.join(','), ...csvRows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n');
                         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                         const url = URL.createObjectURL(blob); const a = document.createElement('a');

@@ -502,10 +502,7 @@ const QuizResultsPage = () => {
       width: 180,
       valueGetter: (params) => {
         const date = params.row.submittedAt?.toDate ? params.row.submittedAt.toDate() : new Date(params.row.submittedAt || 0);
-        return date.toLocaleDateString('en-GB', {
-          day: '2-digit', month: '2-digit', year: 'numeric',
-          hour: '2-digit', minute: '2-digit'
-        });
+        return date.toLocaleString('en-GB');
       }
     },
     {

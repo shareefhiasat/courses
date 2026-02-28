@@ -1,7 +1,6 @@
 import React, { memo } from 'react';
 import { Button } from '@ui';
 import { formatDateTime } from '@utils/date';
-import { formatQatarDate } from '@utils/timezone';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getWhiteIcon, getIconWithColor, getColoredIcon } from '@constants/iconTypes';
 import { DIFFICULTY_TYPES } from '@constants/difficultyTypes';
@@ -207,21 +206,8 @@ const UnifiedCard = memo(({
   const formatDate = (date) => {
     if (!date) return '';
     
-    // Use Qatar timezone formatting for consistent display
-    try {
-      return formatQatarDate(date, 'dd/MM/yyyy, HH:mm');
-    } catch (error) {
-      logger.warn('[UnifiedCard] Error formatting date with Qatar timezone:', error);
-      
-      // Fallback to original formatDateTime
-      if (date.seconds) {
-        return formatDateTime(new Date(date.seconds * 1000));
-      }
-      if (date instanceof Date) {
-        return formatDateTime(date);
-      }
-      return formatDateTime(new Date(date));
-    }
+    // Use centralized formatDateTime function
+    return formatDateTime(date);
   };
 
   // Get primary color for border

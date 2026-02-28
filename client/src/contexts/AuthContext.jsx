@@ -127,13 +127,28 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (loading) {
-        logger.error('[Auth] Loading timeout - forcing loading to false');
-        setLoading(false);
+        const hasUser = !!user;
+        const hasProfile = !!userProfile;
+        const hasSession = sessionStorage.getItem('hasLoggedInThisSession') === 'true';
+        
+        logger.error('[Auth] Loading timeout - forcing loading to false', {
+          hasUser,
+          hasProfile, 
+          hasSession,
+          userEmail: user?.email || 'none'
+        });
+        
+        // Only force loading to false if we have some session data
+        if (hasUser || hasProfile || hasSession) {
+          setLoading(false);
+        } else {
+          logger.warn('[Auth] No session data available, keeping loading state');
+        }
       }
     }, 15000); // 15 second timeout
 
     return () => clearTimeout(timeout);
-  }, [loading]);
+  }, [loading, user, userProfile]);
 
   // Load cached profile from sessionStorage on mount
   useEffect(() => {
@@ -141,6 +156,17 @@ export const AuthProvider = ({ children }) => {
     if (cached) {
       try {
         setUserProfile(JSON.parse(cached));
+        
+        // Restore session flags if user profile exists but session flags are missing
+        const hasLoggedIn = sessionStorage.getItem('hasLoggedInThisSession');
+        const sessionStart = sessionStorage.getItem('sessionStart');
+        
+        if (!hasLoggedIn || !sessionStart) {
+          logger.log('[Auth] Restoring session flags from cached user profile');
+          sessionStorage.setItem('hasLoggedInThisSession', 'true');
+          sessionStorage.setItem('sessionStart', Date.now().toString());
+          setHasLoggedInThisSession(true);
+        }
       } catch (e) {
         logger.warn('Failed to parse cached user profile');
       }
@@ -181,16 +207,18 @@ export const AuthProvider = ({ children }) => {
           const hasRecentActivity = sessionStorage.getItem('hasLoggedInThisSession') === 'true';
           const sessionStart = sessionStorage.getItem('sessionStart');
           const recentSession = sessionStart && (Date.now() - parseInt(sessionStart)) < 5 * 60 * 1000; // 5 minutes
+          const hasUserProfile = !!sessionStorage.getItem('userProfile');
           
-          logger.log(`[Auth] Session analysis - Has recent activity: ${hasRecentActivity}, Recent session: ${recentSession}, Session start: ${sessionStart}`);
+          logger.log(`[Auth] Session analysis - Has recent activity: ${hasRecentActivity}, Recent session: ${recentSession}, Has user profile: ${hasUserProfile}, Session start: ${sessionStart}`);
           
-          if (hasRecentActivity && recentSession) {
+          // More lenient check: if user profile exists, treat as potential temporary issue
+          if ((hasRecentActivity && recentSession) || hasUserProfile) {
             // Wait a bit and see if auth state recovers
             logger.log('[Auth] Waiting to see if auth state recovers...');
             await new Promise(resolve => setTimeout(resolve, 2000)); // Increased wait time
             return;
           } else {
-            // If no recent activity, this might be a real logout
+            // If no recent activity and no user profile, this might be a real logout
             logger.info('[Auth] No recent session activity, treating as real logout');
           }
         }

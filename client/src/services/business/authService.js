@@ -144,22 +144,15 @@ export const onAuthChange = (callback) => {
   return onAuthStateChanged(auth, async (user) => {
     try {
       await callback(user);
-      AuthErrorHandler.resetRetryCount(); // Reset retry count on successful auth change
     } catch (error) {
-      // Handle permission errors gracefully
-      const shouldRetry = await AuthErrorHandler.handlePermissionError(error, 'auth-state-change');
-      
-      if (!shouldRetry) {
-        // If we shouldn't retry, let the original error propagate
+      // Only log permission errors, don't retry in auth state change to prevent hanging
+      if (error?.code === 'permission-denied' || error?.message?.includes('permission-denied')) {
+        logger.warn('[Auth] Permission error in auth state change, continuing without retry:', error.message);
+        // Don't retry - just continue with null user to prevent hanging
+        await callback(null);
+      } else {
+        // For other errors, let them propagate
         throw error;
-      }
-      
-      // If we should retry, try the callback again
-      try {
-        await callback(user);
-      } catch (retryError) {
-        // If retry fails, let it propagate
-        throw retryError;
       }
     }
   });

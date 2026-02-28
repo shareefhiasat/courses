@@ -1265,39 +1265,36 @@ export default function StudentQuizPage() {
         <Modal
           isOpen={showResumeModal}
           onClose={() => setShowResumeModal(false)}
-          title="Resume Quiz?"
+          title={t('quiz_resume_title') || 'Resume Quiz?'}
         >
           <div className={styles.resumeModal}>
-            <p>You have an in-progress attempt for this quiz.</p>
+            <p>{t('quiz_in_progress') || 'You have an in-progress attempt for this quiz.'}</p>
             <div className={styles.progressInfo}>
               <div className={styles.progressItem}>
-                <strong>Progress:</strong> {savedProgress.currentQuestionIndex + 1} / {quiz?.questions?.length || 0} questions
+                <strong>{t('quiz_progress') || 'Progress'}:</strong> {savedProgress.currentQuestionIndex + 1} / {quiz?.questions?.length || 0} questions
               </div>
               <div className={styles.progressItem}>
-                <strong>Answers:</strong> {Object.keys(savedProgress.answers || {}).length} saved
+                <strong>{t('quiz_answers') || 'Answers'}:</strong> {Object.keys(savedProgress.answers || {}).length} saved
               </div>
               <div className={styles.progressItem}>
-                <strong>Saved:</strong> {new Date(savedProgress.savedAt).toLocaleDateString('en-GB', {
-                  day: '2-digit', month: '2-digit', year: 'numeric',
-                  hour: '2-digit', minute: '2-digit'
-                })}
+                <strong>{t('quiz_saved') || 'Saved'}:</strong> {new Date(savedProgress.savedAt).toLocaleString()}
               </div>
             </div>
-            <p>Would you like to continue where you left off or start fresh?</p>
+            <p>{t('quiz_continue_question') || 'Would you like to continue where you left off or start fresh?'}</p>
             <div className={styles.resumeActions}>
               <Button
                 variant="outline"
                 onClick={startFresh}
               >
                 {getThemedIcon('ui', 'rotate_ccw', 16, theme)}
-                Start Fresh
+                {t('quiz_start_fresh') || 'Start Fresh'}
               </Button>
               <Button
                 variant="primary"
                 onClick={resumeQuiz}
               >
                 {getThemedIcon('ui', 'play', 16, theme)}
-                Continue
+                {t('quiz_continue') || 'Continue'}
               </Button>
             </div>
           </div>

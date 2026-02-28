@@ -18,6 +18,7 @@ import { getPrograms } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { getSubjects } from '@services/business/programService';
 import { getEnrollments } from '@services/business/enrollmentService';
+import { getAllowlist } from '@services/other/config';
 import { getAttendanceByStudent } from '@services/business/attendanceService';
 import { getPenalties } from '@services/business/penaltyService';
 import { getBehaviors } from '@services/business/behaviorService';
@@ -44,14 +45,13 @@ const UsersPage = ({ isDashboardTab = false }) => {
   // Form refs for performance (uncontrolled inputs)
   const emailRef = useRef(null);
   const displayNameRef = useRef(null);
-  const realNameRef = useRef(null);
-  const studentNumberRef = useRef(null);
-  const orderRef = useRef(null);
-  const roleRef = useRef(null);
   
   // Allowlist state (previously was props)
   const [autoAddToAllowlist, setAutoAddToAllowlist] = useState(true);
-  const [allowlist, setAllowlist] = useState([]);
+  const [allowlist, setAllowlist] = useState(() => {
+    logger.info('🔧 USER_PAGE: Initializing allowlist state', { timestamp: new Date().toISOString() });
+    return { allowedEmails: [], adminEmails: [] };
+  });
   
   // Quick filters
   const [programFilter, setProgramFilter] = useState('');
@@ -98,12 +98,16 @@ const UsersPage = ({ isDashboardTab = false }) => {
         timestamp: new Date().toISOString()
       });
       
-      const [usersResult, programsResult, classesResult, subjectsResult, enrollmentsResult] = await Promise.all([
+      const [usersResult, programsResult, classesResult, subjectsResult, enrollmentsResult, allowlistResult] = await Promise.all([
         getUsers(),
         getPrograms(),
         getClasses(),
         getSubjects(),
-        getEnrollments()
+        getEnrollments(),
+        getAllowlist().catch(error => {
+          logger.warn('USER_PAGE: Failed to load allowlist', { error: error.message });
+          return { success: false, data: { allowedEmails: [], adminEmails: [] } };
+        })
       ]);
       
       if (usersResult.success) {
@@ -127,6 +131,18 @@ const UsersPage = ({ isDashboardTab = false }) => {
       
       if (enrollmentsResult.success) {
         setEnrollments(enrollmentsResult.data || []);
+      }
+      
+      // Load allowlist data
+      if (allowlistResult.success) {
+        setAllowlist(allowlistResult.data || { allowedEmails: [], adminEmails: [] });
+        logger.info('USER_PAGE: Successfully loaded allowlist', { 
+          allowedEmails: allowlistResult.data?.allowedEmails?.length || 0,
+          adminEmails: allowlistResult.data?.adminEmails?.length || 0
+        });
+      } else {
+        logger.warn('USER_PAGE: Using empty allowlist due to load failure');
+        setAllowlist({ allowedEmails: [], adminEmails: [] });
       }
       
       setPageState(PAGE_STATES.SUCCESS);
@@ -346,9 +362,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
   useEffect(() => {
     if (emailRef.current) emailRef.current.value = formData.email || '';
     if (displayNameRef.current) displayNameRef.current.value = formData.displayName || '';
-    if (realNameRef.current) realNameRef.current.value = formData.realName || '';
-    if (studentNumberRef.current) studentNumberRef.current.value = formData.studentNumber || '';
-    if (orderRef.current) orderRef.current.value = formData.order || '';
   }, [editingUser, formData]);
 
   // Read text values from refs into form state before submit
@@ -356,10 +369,10 @@ const UsersPage = ({ isDashboardTab = false }) => {
     return {
       email: emailRef.current?.value ?? formData.email,
       displayName: displayNameRef.current?.value ?? formData.displayName,
-      realName: realNameRef.current?.value ?? formData.realName,
-      studentNumber: studentNumberRef.current?.value ?? formData.studentNumber,
-      order: orderRef.current?.value ?? formData.order,
-      role: roleRef.current?.value ?? formData.role
+      realName: formData.realName,
+      studentNumber: formData.studentNumber,
+      order: formData.order,
+      role: formData.role
     };
   }, [formData]);
 
@@ -840,9 +853,24 @@ const UsersPage = ({ isDashboardTab = false }) => {
       } else {
         // Add to allowlist if checkbox is checked
         if (autoAddToAllowlist && submitData.email) {
+          logger.info('🔧 USER_PAGE: Adding user to allowlist', {
+            email: submitData.email,
+            role: submitData.role,
+            autoAddToAllowlist: autoAddToAllowlist,
+            timestamp: new Date().toISOString()
+          });
+
           const { updateAllowlist } = await import('@services/other/config');
-          const targetList = submitData.role === ROLE_STRINGS.ADMIN ? 'adminEmails' : 'allowedEmails';
+          
+          // All non-student roles go to adminEmails, only students go to allowedEmails
+          const targetList = submitData.role === ROLE_STRINGS.STUDENT ? 'allowedEmails' : 'adminEmails';
           const currentEmails = allowlist[targetList] || [];
+
+          logger.info('🔧 USER_PAGE: Allowlist target determined', {
+            targetList: targetList,
+            currentEmails: currentEmails,
+            emailExists: currentEmails.includes(submitData.email)
+          });
 
           if (!currentEmails.includes(submitData.email)) {
             const updatedAllowlist = {
@@ -851,19 +879,55 @@ const UsersPage = ({ isDashboardTab = false }) => {
             };
             setAllowlist(updatedAllowlist);
 
+            logger.info('🔧 USER_PAGE: Saving updated allowlist', {
+              updatedAllowlist: updatedAllowlist,
+              targetList: targetList
+            });
+
             // Save to Firestore
             try {
-              await updateAllowlist(updatedAllowlist);
+              const result = await updateAllowlist(updatedAllowlist);
+              if (result.success) {
+                logger.info('✅ USER_PAGE: Successfully added to allowlist', {
+                  email: submitData.email,
+                  role: submitData.role,
+                  targetList: targetList
+                });
+              } else {
+                logger.error('❌ USER_PAGE: Failed to update allowlist', {
+                  error: result.error,
+                  email: submitData.email,
+                  role: submitData.role
+                });
+                toast?.showError(t('failed_to_update_allowlist') || 'Failed to update allowlist');
+              }
             } catch (allowlistError) {
-              logger.error('Failed to update allowlist:', allowlistError);
+              logger.error('❌ USER_PAGE: Exception updating allowlist', {
+                error: allowlistError.message,
+                email: submitData.email,
+                role: submitData.role,
+                stack: allowlistError.stack
+              });
               toast?.showError(t('failed_to_update_allowlist') || 'Failed to update allowlist');
             }
+          } else {
+            logger.info('ℹ️ USER_PAGE: Email already exists in allowlist', {
+              email: submitData.email,
+              role: submitData.role,
+              targetList: targetList
+            });
           }
+          
           toast?.showSuccess(t('invite_prepared_added_to_allowlist', { 
             email: submitData.email, 
             role: submitData.role 
           }) || `Invite prepared. ${submitData.email} added to ${submitData.role} allowlist. ${t('ask_them_to_sign_up') || 'Ask them to sign up.'}`);
         } else {
+          logger.info('ℹ️ USER_PAGE: No allowlist update - checkbox disabled or no email', {
+            autoAddToAllowlist: autoAddToAllowlist,
+            email: submitData.email,
+            role: submitData.role
+          });
           toast?.showInfo(t('no_changes_saved_provide_email_or_enable_allowlist') || 'No changes saved. Provide an email or enable allowlist option.');
         }
       }
@@ -898,10 +962,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
     if (clearRefs) {
       if (emailRef.current) emailRef.current.value = '';
       if (displayNameRef.current) displayNameRef.current.value = '';
-      if (realNameRef.current) realNameRef.current.value = '';
-      if (studentNumberRef.current) studentNumberRef.current.value = '';
-      if (orderRef.current) orderRef.current.value = '';
-      if (roleRef.current) roleRef.current.value = ROLE_STRINGS.STUDENT;
     }
   }, []);
 
@@ -1116,31 +1176,30 @@ const UsersPage = ({ isDashboardTab = false }) => {
         
         <div className="form-row">
           <Input
-            ref={realNameRef}
             type="text"
-            defaultValue={formData.realName}
+            value={formData.realName}
+            onChange={(e) => setFormData(prev => ({ ...prev, realName: e.target.value }))}
             placeholder={t('real_name_placeholder') || 'Real Name (First Last)'}
           />
           <Input
-            ref={studentNumberRef}
             type="text"
-            defaultValue={formData.studentNumber}
+            value={formData.studentNumber}
+            onChange={(e) => setFormData(prev => ({ ...prev, studentNumber: e.target.value }))}
             placeholder={t('student_number_placeholder') || 'Student Number'}
             required={formData.role === ROLE_STRINGS.STUDENT}
           />
           <Input
-            ref={orderRef}
             type="number"
-            defaultValue={formData.order}
+            value={formData.order}
+            onChange={(e) => setFormData(prev => ({ ...prev, order: e.target.value }))}
             placeholder={t('student_order_placeholder') || 'Order/Sequence'}
             description={t('student_order_description') || 'Display order for student lists'}
           />
           <Select
-            ref={roleRef}
+            value={formData.role}
             searchable
             placeholder={t('role') || 'Role'}
-            defaultValue={formData.role}
-            onChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
+            onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
             options={[
               { value: ROLE_STRINGS.STUDENT, label: (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

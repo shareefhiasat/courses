@@ -36,7 +36,7 @@ const EmailManager = ({
       if (emailRegex.test(email)) {
         onEmailsChange([...emails, email]);
         setNewEmail('');
-        toast?.showSuccess('Email added successfully');
+        toast?.showSuccess('Email added');
       } else {
         toast?.showError('Please enter a valid email address');
       }
@@ -73,7 +73,7 @@ const EmailManager = ({
 
       if (newEmails.length > 0) {
         onEmailsChange([...emails, ...newEmails]);
-        toast?.showSuccess(`Added ${newEmails.length} new email(s)`);
+        toast?.showSuccess(`Added ${newEmails.length} email(s)`);
       } else {
         toast?.showError('No valid new emails found');
       }

@@ -30,6 +30,14 @@ export const setTimeFormatPreference = (fmt) => {
 
 export const formatDateTime = (value, fmt) => {
   if (!value) return '';
+  
+  // Handle database string format: "February 28, 2026 at 3:31:39 PM UTC+3"
+  if (typeof value === 'string') {
+    // Clean up the database format
+    return value.replace(' UTC+3', '').replace(' at ', ' ');
+  }
+  
+  // Handle other date formats (timestamps, Date objects)
   const d = value?.seconds ? new Date(value.seconds * 1000) : new Date(value);
   const hour12 = (fmt || getTimeFormatPreference()) === '12h';
   try {

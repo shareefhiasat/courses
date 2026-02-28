@@ -9,7 +9,6 @@ import {
   XCircle, Users, Shield, Activity, 
   Home, Search, Filter, ChevronDown, Crown, KeyRound
 } from 'lucide-react';
-import { formatQatarDate } from '@utils/timezone';
 
 // Resource Types with Icons and Colors
 export const RESOURCE_TYPES = {
@@ -200,15 +199,10 @@ export const COMMON_GRID_COLUMNS = {
       renderCell: (params) => {
         const timestamp = params.value;
         if (!timestamp) return '—';
-        try {
-          return formatQatarDate(timestamp, 'dd/MM/yyyy, HH:mm');
-        } catch (error) {
-          // Fallback to basic formatting
-          const date = timestamp?.seconds ? 
-            new Date(timestamp.seconds * 1000) : 
-            new Date(timestamp);
-          return date.toLocaleString();
-        }
+        const date = timestamp?.seconds ? 
+          new Date(timestamp.seconds * 1000) : 
+          new Date(timestamp);
+        return date.toLocaleString();
       }
     }
   ],
