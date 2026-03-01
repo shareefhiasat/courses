@@ -1460,21 +1460,6 @@ const QRScannerPage = () => {
                   {t('loading') || 'Loading...'}
                 </div>
               )}
-              {!gridLoading && (!selectedClassId || selectedClassId === 'all') && (
-                <div style={{
-                  height: '38px',
-                  background: '#f3f4f6',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '0.375rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#9ca3af',
-                  fontSize: '0.875rem'
-                }}>
-                  {t('select_class_first') || 'Select class first'}
-                </div>
-              )}
             </div>
             
             <div 

@@ -234,7 +234,7 @@ export default function StudentQuizPage() {
     }
   };
 
-  const startQuiz = () => {
+  const startQuiz = async () => {
     // Log quiz started activity
     try {
       await ActivityLogger.quizStarted(quizId, quiz?.title || 'Untitled Quiz');
@@ -348,7 +348,7 @@ export default function StudentQuizPage() {
     startQuiz();
   };
 
-  const saveProgress = () => {
+  const saveProgress = async () => {
     if (!user?.uid || !quizId) return;
     
     try {

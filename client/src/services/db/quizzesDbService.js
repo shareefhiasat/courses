@@ -150,3 +150,7 @@ export const deleteQuiz = async (quizId) => {
     return { success: false, error: error.message };
   }
 };
+
+// Export aliases for backward compatibility
+export const createQuiz = create;
+export const updateQuiz = update;

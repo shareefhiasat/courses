@@ -4,7 +4,7 @@
  * Single source of truth for all role-related data and functions
  */
 
-import { getUserById } from '@services/business/userService';
+import { getUserById, isAdmin, isSuperAdmin, isStudent } from '@services/business/userService';
 
 // ===== ROLE STRING CONSTANTS (Single Source of Truth) =====
 export const ROLE_STRINGS = {
@@ -201,10 +201,18 @@ export async function getUserDisplayNameAsync(user) {
   return userProfile?.displayName || user?.displayName || user?.email || 'Unknown User';
 }
 
+// Export role checking functions
+export { isAdmin, isSuperAdmin, isStudent };
+
 // Export all utilities
 export default {
   // Role access
   hasScreenAccess,
+  
+  // Role checking
+  isAdmin,
+  isSuperAdmin,
+  isStudent,
   
   // Display utilities
   getUserRoleDisplay,

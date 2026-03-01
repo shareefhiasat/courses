@@ -58,6 +58,7 @@ export const ICON_TYPES = {
   
   // User Role Icons
   user_role: {
+    super_admin: <Crown size={16} />,
     superadmin: <Crown size={16} />,
     admin: <Shield size={16} />,
     instructor: <GraduationCap size={16} />,
@@ -317,6 +318,12 @@ export const ICON_TYPES = {
     copy: <Copy size={16} />,
     more_vertical: <MoreVertical size={16} />,
     wrench: <Wrench size={16} />,
+    // Missing icons causing warnings
+    volume2: <Volume2 size={16} />,
+    volume: <Volume2 size={16} />,
+    test_tube: <Monitor size={16} />,
+    palette: <Sun size={16} />,
+    smartphone: <Phone size={16} />,
     clipboard: <Clipboard size={16} />,
     // Additional icons from dashboard and chat pages
     upload: <Upload size={16} />,

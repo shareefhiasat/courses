@@ -244,13 +244,6 @@ const HomePage = memo(() => {
 
   // Load data function (defined before useEffect that uses it)
   const loadData = useCallback(async (stopGlobalLoading) => {
-    // Log dashboard viewed activity
-    try {
-      await ActivityLogger.dashboardViewed();
-    } catch (logError) {
-      logger.warn('Failed to log dashboard viewed activity:', logError);
-    }
-    
     try {
       logger.debug('[HomePage] Starting loadData - calling all services...');
       

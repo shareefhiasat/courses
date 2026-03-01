@@ -144,6 +144,11 @@ export const CONFIG_TYPES = {
 export const DEFAULT_CONFIG = {
   [CONFIG_TYPES.ALLOWLIST]: {
     allowedEmails: [],
+    adminEmails: [],
+    allowedStudents: [],
+    allowedInstructors: [],
+    allowedHr: [],
+    superAdmins: [],
     enabled: true,
     requireApproval: false
   },
@@ -265,6 +270,11 @@ export const validateConfigValue = (type, value) => {
   const validators = {
     [CONFIG_TYPES.ALLOWLIST]: (val) => {
       return Array.isArray(val?.allowedEmails) && 
+             Array.isArray(val?.adminEmails) &&
+             Array.isArray(val?.allowedStudents) &&
+             Array.isArray(val?.allowedInstructors) &&
+             Array.isArray(val?.allowedHr) &&
+             Array.isArray(val?.superAdmins) &&
              typeof val?.enabled === 'boolean' &&
              typeof val?.requireApproval === 'boolean';
     },

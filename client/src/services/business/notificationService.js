@@ -622,8 +622,8 @@ export const getNotificationSettings = async (userId) => {
 export const saveNotificationSettings = async (userId, settings) => {
   try {
     if (!userId) return { success: false, error: 'User ID is required' };
-    const { updateUserById } = await import('./userService');
-    return await updateUserById(userId, {
+    const { updateUser } = await import('./userService');
+    return await updateUser(userId, {
       notificationSoundEnabled: settings.soundEnabled,
       notificationVibrationEnabled: settings.vibrationEnabled,
       browserNotificationsEnabled: settings.browserNotificationsEnabled,

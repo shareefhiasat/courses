@@ -207,21 +207,27 @@ export const AuthProvider = ({ children }) => {
           const logoutTimestamp = sessionStorage.getItem('logoutTimestamp');
           const sessionTimeoutUser = sessionStorage.getItem('sessionTimeoutUser');
           
-          logger.warn(`[Auth] Temporary auth state change detected, retry ${authRetryCount}/${maxRetries}`);
-          
-          // Check if this is actually a network issue vs real logout
-          const hasRecentActivity = sessionStorage.getItem('hasLoggedInThisSession') === 'true';
-          const sessionStart = sessionStorage.getItem('sessionStart');
-          const recentSession = sessionStart && (Date.now() - parseInt(sessionStart)) < 5 * 60 * 1000; // 5 minutes
-          const hasUserProfile = !!sessionStorage.getItem('userProfile');
-          
-          // More lenient check: if user profile exists, treat as potential temporary issue
-          if ((hasRecentActivity && recentSession) || hasUserProfile) {
-            // Wait a bit and see if auth state recovers
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Increased wait time
-            return;
+          // Check if this is a manual logout or session timeout - if so, don't retry
+          if (logoutReason === 'manual_logout' || logoutReason === 'session_timeout') {
+            logger.warn(`[Auth] Logout detected (${logoutReason}), completing logout without retry`);
+            authRetryCount = maxRetries; // Skip retries for manual logout
           } else {
-            // If no recent activity and no user profile, this might be a real logout
+            logger.warn(`[Auth] Temporary auth state change detected, retry ${authRetryCount}/${maxRetries}`);
+            
+            // Check if this is actually a network issue vs real logout
+            const hasRecentActivity = sessionStorage.getItem('hasLoggedInThisSession') === 'true';
+            const sessionStart = sessionStorage.getItem('sessionStart');
+            const recentSession = sessionStart && (Date.now() - parseInt(sessionStart)) < 5 * 60 * 1000; // 5 minutes
+            const hasUserProfile = !!sessionStorage.getItem('userProfile');
+            
+            // More lenient check: if user profile exists, treat as potential temporary issue
+            if ((hasRecentActivity && recentSession) || hasUserProfile) {
+              // Wait a bit and see if auth state recovers
+              await new Promise(resolve => setTimeout(resolve, 2000)); // Increased wait time
+              return;
+            } else {
+              // If no recent activity and no user profile, this might be a real logout
+            }
           }
         }
 

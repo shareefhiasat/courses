@@ -60,7 +60,6 @@ export const getActivityLogOptions = (t) => [
   { value: ACTIVITY_LOG_TYPES.ACTIVITY_CREATED, label: t('activity_created') || 'Activity Created', icon: <FileText size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.ACTIVITY_UPDATED, label: t('activity_updated') || 'Activity Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.ACTIVITY_DELETED, label: t('activity_deleted') || 'Activity Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-  { value: ACTIVITY_LOG_TYPES.ACTIVITY_VIEWED, label: t('activity_viewed') || 'Activity Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.ACTIVITY_BOOKMARKED, label: t('activity_bookmarked') || 'Activity Bookmarked', icon: <Bookmark size={16} color="var(--text-secondary, #374151)" /> },
   
   // Assignment/Submission
@@ -90,62 +89,54 @@ export const getActivityLogOptions = (t) => [
   { value: ACTIVITY_LOG_TYPES.PENALTY_CREATED, label: t('penalty_created') || 'Penalty Created', icon: <AlertTriangle size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.PENALTY_UPDATED, label: t('penalty_updated') || 'Penalty Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.PENALTY_DELETED, label: t('penalty_deleted') || 'Penalty Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-  { value: ACTIVITY_LOG_TYPES.PENALTY_VIEWED, label: t('penalty_viewed') || 'Penalty Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
   
   // Participation CRUD
   { value: ACTIVITY_LOG_TYPES.PARTICIPATION_CREATED, label: t('participation_created') || 'Participation Created', icon: <Users size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.PARTICIPATION_UPDATED, label: t('participation_updated') || 'Participation Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.PARTICIPATION_DELETED, label: t('participation_deleted') || 'Participation Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-  { value: ACTIVITY_LOG_TYPES.PARTICIPATION_VIEWED, label: t('participation_viewed') || 'Participation Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
   
   // Behavior CRUD
   { value: ACTIVITY_LOG_TYPES.BEHAVIOR_CREATED, label: t('behavior_created') || 'Behavior Created', icon: <UserMinus size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.BEHAVIOR_UPDATED, label: t('behavior_updated') || 'Behavior Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.BEHAVIOR_DELETED, label: t('behavior_deleted') || 'Behavior Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-  { value: ACTIVITY_LOG_TYPES.BEHAVIOR_VIEWED, label: t('behavior_viewed') || 'Behavior Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
   
   // Class CRUD
   { value: ACTIVITY_LOG_TYPES.CLASS_CREATED, label: t('class_created') || 'Class Created', icon: <Home size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.CLASS_UPDATED, label: t('class_updated') || 'Class Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.CLASS_DELETED, label: t('class_deleted') || 'Class Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-  { value: ACTIVITY_LOG_TYPES.CLASS_VIEWED, label: t('class_viewed') || 'Class Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
   
   // Subject CRUD
   { value: ACTIVITY_LOG_TYPES.SUBJECT_CREATED, label: t('subject_created') || 'Subject Created', icon: getThemedIcon('ui', 'book_open', 16, 'light') },
   { value: ACTIVITY_LOG_TYPES.SUBJECT_UPDATED, label: t('subject_updated') || 'Subject Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.SUBJECT_DELETED, label: t('subject_deleted') || 'Subject Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-  { value: ACTIVITY_LOG_TYPES.SUBJECT_VIEWED, label: t('subject_viewed') || 'Subject Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
   
   // Program CRUD
   { value: ACTIVITY_LOG_TYPES.PROGRAM_CREATED, label: t('program_created') || 'Program Created', icon: <GraduationCap size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.PROGRAM_UPDATED, label: t('program_updated') || 'Program Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.PROGRAM_DELETED, label: t('program_deleted') || 'Program Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-  { value: ACTIVITY_LOG_TYPES.PROGRAM_VIEWED, label: t('program_viewed') || 'Program Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
   
   // Enrollment CRUD
   { value: ACTIVITY_LOG_TYPES.ENROLLMENT_CREATED, label: t('enrollment_created') || 'Enrollment Created', icon: <Users size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.ENROLLMENT_UPDATED, label: t('enrollment_updated') || 'Enrollment Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.ENROLLMENT_DELETED, label: t('enrollment_deleted') || 'Enrollment Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-  { value: ACTIVITY_LOG_TYPES.ENROLLMENT_VIEWED, label: t('enrollment_viewed') || 'Enrollment Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
   
   // Mark Entry CRUD
   { value: ACTIVITY_LOG_TYPES.MARK_ENTRY_CREATED, label: t('mark_entry_created') || 'Mark Entry Created', icon: <FileText size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.MARK_ENTRY_UPDATED, label: t('mark_entry_updated') || 'Mark Entry Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.MARK_ENTRY_DELETED, label: t('mark_entry_deleted') || 'Mark Entry Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-  { value: ACTIVITY_LOG_TYPES.MARK_ENTRY_VIEWED, label: t('mark_entry_viewed') || 'Mark Entry Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
   
   // User CRUD
   { value: ACTIVITY_LOG_TYPES.USER_CREATED, label: t('user_created') || 'User Created', icon: <UserPlus size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.USER_UPDATED, label: t('user_updated') || 'User Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
-  { value: ACTIVITY_LOG_TYPES.USER_DELETED, label: t('user_deleted') || 'User Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-  
-  // Navigation
-  { value: ACTIVITY_LOG_TYPES.DASHBOARD_VIEWED, label: t('dashboard_viewed') || 'Dashboard Viewed', icon: <Home size={16} color="var(--text-secondary, #374151)" /> },
-  { value: ACTIVITY_LOG_TYPES.ANALYTICS_VIEWED, label: t('analytics_viewed') || 'Analytics Viewed', icon: <BarChart3 size={16} color="var(--text-secondary, #374151)" /> }
+  { value: ACTIVITY_LOG_TYPES.USER_DELETED, label: t('user_deleted') || 'User Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> }
 ];
 
+// Debounce and deduplication for activity logging
+const activityLogCache = new Map();
+const LOG_DEBOUNCE_TIME = 5000; // 5 seconds
+
 /**
- * Log user activity
+ * Log user activity with deduplication and error handling
  * @param {string} type - Activity type
  * @param {object} details - Additional details
  * @param {string} userId - User ID (optional, defaults to current user)
@@ -189,42 +180,7 @@ export async function logActivity(type, details = {}, userId = null) {
       }
     }
 
-    // Additional debug info for session timeout issues
-    const logoutReason = sessionStorage.getItem('logoutReason');
-    const sessionTimeoutUser = sessionStorage.getItem('sessionTimeoutUser');
-    const logoutTimestamp = sessionStorage.getItem('logoutTimestamp');
-    
     if (!currentUser) {
-      logger.warn("[Activity Logger] No user ID available");
-      // Removed debug logs to reduce console noise
-      // logger.log(`[Activity Logger] Debug info - Type: ${type}, Logout reason: ${logoutReason}, Session user: ${sessionTimeoutUser}, Timestamp: ${logoutTimestamp}`);
-      // logger.log(`[Activity Logger] Session storage contents: hasLoggedInThisSession: ${sessionStorage.getItem('hasLoggedInThisSession')}, sessionStart: ${sessionStorage.getItem('sessionStart')}`);
-      
-      // For session timeout, try to use the stored user info
-      if (type === ACTIVITY_LOG_TYPES.SESSION_TIMEOUT && sessionTimeoutUser) {
-        try {
-          const timeoutUser = JSON.parse(sessionTimeoutUser);
-          // logger.log(`[Activity Logger] Using session timeout user: ${timeoutUser.email}`); // Removed to reduce console noise
-          
-          const activityData = {
-            type,
-            userId: timeoutUser.uid,
-            userName: timeoutUser.email?.split("@")[0] || "Unknown",
-            userEmail: timeoutUser.email || null,
-            timestamp: serverTimestamp(),
-            details: { ...details, fallbackUser: true },
-            userAgent: navigator.userAgent,
-            url: window.location.pathname,
-          };
-
-          await addDoc(collection(db, "activityLogs"), activityData);
-          logger.log("[Activity Logger] Session timeout logged with fallback user");
-          return { success: true };
-        } catch (parseError) {
-          logger.error("[Activity Logger] Failed to parse session timeout user:", parseError);
-        }
-      }
-      
       return { success: false, error: "No user ID" };
     }
 
@@ -243,13 +199,37 @@ export async function logActivity(type, details = {}, userId = null) {
       url: window.location.pathname,
     };
 
-    await addDoc(collection(db, "activityLogs"), activityData);
-    logger.log(`[Activity Logger] Activity logged: ${type} for user ${currentUser}`);
+    // Add retry logic for document conflicts
+    let retryCount = 0;
+    const maxRetries = 2;
+    
+    while (retryCount <= maxRetries) {
+      try {
+        await addDoc(collection(db, "activityLogs"), activityData);
+        return { success: true };
+      } catch (error) {
+        if (error.code === 'resource-exhausted' || error.message?.includes('Document already exists')) {
+          retryCount++;
+          if (retryCount <= maxRetries) {
+            // Wait a bit and retry with a small delay
+            await new Promise(resolve => setTimeout(resolve, 100 + retryCount * 50));
+            continue;
+          }
+        }
+        throw error;
+      }
+    }
     
     return { success: true };
   } catch (error) {
-    logger.error("[Activity Logger] Error logging activity:", error);
-    return { success: false, error: error.message };
+    // Don't spam logs with permission errors
+    if (error.code === 'permission-denied' || error.message?.includes('permission-denied')) {
+      // Silently handle permission errors
+      return { success: false, error: "Permission denied" };
+    } else {
+      logger.error("[Activity Logger] Error logging activity:", error);
+      return { success: false, error: error.message };
+    }
   }
 }
 
@@ -271,12 +251,10 @@ export const ACTIVITY_LOG_TYPES = {
   QUIZ_SUBMITTED: "quiz_submitted",
   QUIZ_RETAKE: "quiz_retake",
   QUIZ_SAVED: "quiz_saved",
-  QUIZ_VIEWED: "quiz_viewed",
 
   // Assignment Activities
   ASSIGNMENT_STARTED: "assignment_started",
   ASSIGNMENT_SUBMITTED: "assignment_submitted",
-  ASSIGNMENT_VIEWED: "assignment_viewed",
 
   // Grading
   SUBMISSION_GRADED: "submission_graded",
@@ -286,7 +264,6 @@ export const ACTIVITY_LOG_TYPES = {
   RESOURCE_CREATED: "resource_created",
   RESOURCE_UPDATED: "resource_updated",
   RESOURCE_DELETED: "resource_deleted",
-  RESOURCE_VIEWED: "resource_viewed",
   RESOURCE_COMPLETED: "resource_completed",
   RESOURCE_BOOKMARKED: "resource_bookmarked",
   RESOURCE_DOWNLOADED: "resource_downloaded",
@@ -301,11 +278,6 @@ export const ACTIVITY_LOG_TYPES = {
   ANNOUNCEMENT_CREATED: "announcement_created",
   ANNOUNCEMENT_UPDATED: "announcement_updated",
   ANNOUNCEMENT_DELETED: "announcement_deleted",
-
-  // Navigation
-  DASHBOARD_VIEWED: "dashboard_viewed",
-  ANALYTICS_VIEWED: "analytics_viewed",
-  ACTIVITY_VIEWED: "activity_viewed",
 
   // Tools
   CALCULATOR_OPENED: "calculator_opened",
@@ -338,56 +310,48 @@ export const ACTIVITY_LOG_TYPES = {
   PENALTY_CREATED: "penalty_created",
   PENALTY_UPDATED: "penalty_updated",
   PENALTY_DELETED: "penalty_deleted",
-  PENALTY_VIEWED: "penalty_viewed",
   PENALTY_SEARCHED: "penalty_searched",
 
   // Participation CRUD
   PARTICIPATION_CREATED: "participation_created",
   PARTICIPATION_UPDATED: "participation_updated",
   PARTICIPATION_DELETED: "participation_deleted",
-  PARTICIPATION_VIEWED: "participation_viewed",
   PARTICIPATION_SEARCHED: "participation_searched",
 
   // Behavior CRUD
   BEHAVIOR_CREATED: "behavior_created",
   BEHAVIOR_UPDATED: "behavior_updated",
   BEHAVIOR_DELETED: "behavior_deleted",
-  BEHAVIOR_VIEWED: "behavior_viewed",
   BEHAVIOR_SEARCHED: "behavior_searched",
 
   // Class CRUD
   CLASS_CREATED: "class_created",
   CLASS_UPDATED: "class_updated",
   CLASS_DELETED: "class_deleted",
-  CLASS_VIEWED: "class_viewed",
   CLASS_SEARCHED: "class_searched",
 
   // Subject CRUD
   SUBJECT_CREATED: "subject_created",
   SUBJECT_UPDATED: "subject_updated",
   SUBJECT_DELETED: "subject_deleted",
-  SUBJECT_VIEWED: "subject_viewed",
   SUBJECT_SEARCHED: "subject_searched",
 
   // Program CRUD
   PROGRAM_CREATED: "program_created",
   PROGRAM_UPDATED: "program_updated",
   PROGRAM_DELETED: "program_deleted",
-  PROGRAM_VIEWED: "program_viewed",
   PROGRAM_SEARCHED: "program_searched",
 
   // Enrollment CRUD
   ENROLLMENT_CREATED: "enrollment_created",
   ENROLLMENT_UPDATED: "enrollment_updated",
   ENROLLMENT_DELETED: "enrollment_deleted",
-  ENROLLMENT_VIEWED: "enrollment_viewed",
   ENROLLMENT_SEARCHED: "enrollment_searched",
 
   // Mark Entry CRUD
   MARK_ENTRY_CREATED: "mark_entry_created",
   MARK_ENTRY_UPDATED: "mark_entry_updated",
   MARK_ENTRY_DELETED: "mark_entry_deleted",
-  MARK_ENTRY_VIEWED: "mark_entry_viewed",
   MARK_ENTRY_SEARCHED: "mark_entry_searched",
 
   // Generic Actions
@@ -399,6 +363,7 @@ export const ACTIVITY_LOG_TYPES = {
   // - BADGE_EARNED
   // - ACHIEVEMENT_UNLOCKED
   // - MEDAL_AWARDED
+  // - All VIEWED activities (removed to reduce logging noise)
 };
 
 /**
@@ -425,8 +390,6 @@ export const ActivityLogger = {
     logActivity(ACTIVITY_LOG_TYPES.QUIZ_SUBMITTED, { quizId, quizTitle, score }),
   quizSaved: (quizId, quizTitle) =>
     logActivity(ACTIVITY_LOG_TYPES.QUIZ_SAVED, { quizId, quizTitle }),
-  quizViewed: (quizId, quizTitle) =>
-    logActivity(ACTIVITY_LOG_TYPES.QUIZ_VIEWED, { quizId, quizTitle }),
 
   // Communication
   messageSent: (details) =>
@@ -437,8 +400,6 @@ export const ActivityLogger = {
     logActivity(ACTIVITY_LOG_TYPES.ANNOUNCEMENT_READ, details),
 
   // Resources
-  resourceViewed: (resourceId, resourceTitle) =>
-    logActivity(ACTIVITY_LOG_TYPES.RESOURCE_VIEWED, { resourceId, resourceTitle }),
   resourceCompleted: (resourceId, resourceTitle) =>
     logActivity(ACTIVITY_LOG_TYPES.RESOURCE_COMPLETED, {
       resourceId,
@@ -450,28 +411,12 @@ export const ActivityLogger = {
       resourceTitle,
     }),
 
-  // Activities (Home Page)
-  activityViewed: (activityId, activityTitle) =>
-    logActivity(ACTIVITY_LOG_TYPES.ACTIVITY_VIEWED, { activityId, activityTitle }),
+  // Activities (Home Page) - removed activityViewed to reduce logging
   activityBookmarked: (activityId, activityTitle) =>
     logActivity(ACTIVITY_LOG_TYPES.ACTIVITY_BOOKMARKED, {
       activityId,
       activityTitle,
     }),
-
-  // Navigation
-  dashboardViewed: () => {
-    // Only log if we have a current user (avoid race condition during initial auth)
-    if (auth.currentUser) {
-      logActivity(ACTIVITY_LOG_TYPES.DASHBOARD_VIEWED);
-    }
-  },
-  analyticsViewed: () => {
-    // Only log if we have a current user (avoid race condition during initial auth)
-    if (auth.currentUser) {
-      logActivity(ACTIVITY_LOG_TYPES.ANALYTICS_VIEWED);
-    }
-  },
 
   // Tools
   calculatorOpened: () => logActivity(ACTIVITY_LOG_TYPES.CALCULATOR_OPENED),
@@ -500,13 +445,10 @@ export const ACTIVITY_LOG_LABELS = {
   quiz_submitted: "Quiz Submitted",
   quiz_retake: "Quiz Retake",
   quiz_saved: "Quiz Saved",
-  quiz_viewed: "Quiz Viewed",
   assignment_started: "Assignment Started",
   assignment_submitted: "Assignment Submitted",
-  assignment_viewed: "Assignment Viewed",
   submission_graded: "Submission Graded",
   feedback_given: "Feedback Given",
-  resource_viewed: "Resource Viewed",
   resource_completed: "Resource Completed",
   resource_bookmarked: "Resource Bookmarked",
   resource_downloaded: "Resource Downloaded",
@@ -515,9 +457,6 @@ export const ACTIVITY_LOG_LABELS = {
   message_received: "Message Received",
   announcement_read: "Announcement Read",
   announcement_created: "Announcement Created",
-  dashboard_viewed: "Dashboard Viewed",
-  analytics_viewed: "Analytics Viewed",
-  activity_viewed: "Activity Viewed",
   calculator_opened: "Calculator Opened",
   scratch_pad_opened: "Scratch Pad Opened",
   formula_sheet_opened: "Formula Sheet Opened",
@@ -541,56 +480,48 @@ export const ACTIVITY_LOG_LABELS = {
   penalty_created: "Penalty Created",
   penalty_updated: "Penalty Updated",
   penalty_deleted: "Penalty Deleted",
-  penalty_viewed: "Penalty Viewed",
   penalty_searched: "Penalty Searched",
 
   // Participation
   participation_created: "Participation Created",
   participation_updated: "Participation Updated",
   participation_deleted: "Participation Deleted",
-  participation_viewed: "Participation Viewed",
   participation_searched: "Participation Searched",
 
   // Behavior
   behavior_created: "Behavior Created",
   behavior_updated: "Behavior Updated",
   behavior_deleted: "Behavior Deleted",
-  behavior_viewed: "Behavior Viewed",
   behavior_searched: "Behavior Searched",
 
   // Class
   class_created: "Class Created",
   class_updated: "Class Updated",
   class_deleted: "Class Deleted",
-  class_viewed: "Class Viewed",
   class_searched: "Class Searched",
 
   // Subject
   subject_created: "Subject Created",
   subject_updated: "Subject Updated",
   subject_deleted: "Subject Deleted",
-  subject_viewed: "Subject Viewed",
   subject_searched: "Subject Searched",
 
   // Program
   program_created: "Program Created",
   program_updated: "Program Updated",
   program_deleted: "Program Deleted",
-  program_viewed: "Program Viewed",
   program_searched: "Program Searched",
 
   // Enrollment
   enrollment_created: "Enrollment Created",
   enrollment_updated: "Enrollment Updated",
   enrollment_deleted: "Enrollment Deleted",
-  enrollment_viewed: "Enrollment Viewed",
   enrollment_searched: "Enrollment Searched",
 
   // Mark Entry
   mark_entry_created: "Mark Entry Created",
   mark_entry_updated: "Mark Entry Updated",
   mark_entry_deleted: "Mark Entry Deleted",
-  mark_entry_viewed: "Mark Entry Viewed",
   mark_entry_searched: "Mark Entry Searched",
 
   // Generic Actions

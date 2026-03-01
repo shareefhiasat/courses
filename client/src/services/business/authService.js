@@ -152,11 +152,16 @@ export const onAuthChange = (callback) => {
     try {
       await callback(user);
     } catch (error) {
-      // Only log permission errors, don't retry in auth state change to prevent hanging
-      if (error?.code === 'permission-denied' || error?.message?.includes('permission-denied')) {
+      // Handle permission errors gracefully during logout
+      if (error?.code === 'permission-denied' || error?.message?.includes('permission-denied') || error?.message?.includes('Missing or insufficient permissions')) {
         logger.warn('[Auth] Permission error in auth state change, continuing without retry:', error.message);
-        // Don't retry - just continue with null user to prevent hanging
-        await callback(null);
+        // For permission errors, continue with null user to allow logout to complete
+        if (user === null) {
+          await callback(null);
+        } else {
+          // If user exists but permission error occurs, try with null to force logout
+          await callback(null);
+        }
       } else {
         // For other errors, let them propagate
         throw error;

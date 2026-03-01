@@ -12,6 +12,7 @@ import { normalizeHexColor, DEFAULT_ACCENT, hexToRgbString } from '@utils/color'
 import { getThemedIcon } from '@constants/iconTypes';
 import { TimerStopwatch } from '@ui';
 import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
+import logger from '@utils/logger';
 
 const SideDrawer = ({ isOpen, onClose }) => {
   const { user, isAdmin, isSuperAdmin, isHR, isInstructor, role, impersonating, stopImpersonation } = useAuth();
@@ -123,8 +124,20 @@ const SideDrawer = ({ isOpen, onClose }) => {
   };
 
   const handleLogout = async () => {
-    await signOutUser(user);
-    navigate('/login');
+    try {
+      const result = await signOutUser(user);
+      if (result.success) {
+        navigate('/login');
+      } else {
+        // Even if signOutUser fails, try to navigate to login
+        logger.warn('[SideDrawer] Logout failed but navigating to login anyway');
+        navigate('/login');
+      }
+    } catch (error) {
+      logger.error('[SideDrawer] Error during logout:', error);
+      // Force navigation even on error
+      navigate('/login');
+    }
   };
 
   const confirmNavigation = (path, hash = null, label) => {

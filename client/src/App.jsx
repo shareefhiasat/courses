@@ -462,6 +462,7 @@ const AppContent = () => {
           {/* ============================================ */}
           {/* REDIRECTS */}
           {/* ============================================ */}
+          <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/activities" element={<Navigate to="/?mode=activities" replace />} />
           <Route path="/resources" element={<Navigate to="/?mode=resources" replace />} />
           <Route path="/progress" element={<Navigate to="/student-dashboard" replace />} />
