@@ -33,6 +33,7 @@ import '@/components/qr-scanner/ui/qr-scanner-ui.css';
 import './QRScannerPage.module.css';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 const QRScannerPage = () => {
   const { user, loading: authLoading } = useAuth();
@@ -351,18 +352,213 @@ const QRScannerPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSubjectId]);
 
+  // Memoized loadStudents function for performance
+  const loadStudents = useCallback(async (classId, date) => {
+    try {
+      logger.debug('[QR Scanner] Loading students for class:', classId, 'date:', date);
+      setLoading(true);
+
+      // Parallel data fetching for better performance
+      const [enrollmentsResponse, usersResponse, penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
+        getEnrollments(),
+        getUsers(),
+        getPenalties(),
+        getParticipations(),
+        getBehaviors()
+      ]);
+
+      const allEnrollments = enrollmentsResponse.success ? enrollmentsResponse.data : [];
+      const allUsers = usersResponse.success ? usersResponse.data : [];
+      const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
+      const allParticipations = participationsResponse.success ? participationsResponse.data : [];
+      const allBehaviors = behaviorsResponse.success ? behaviorsResponse.data : [];
+      
+      // Create Set for O(1) lookup performance
+      const classEnrollments = allEnrollments.filter(e => e.classId === classId);
+      const studentIdSet = new Set(classEnrollments.map(e => e.userId));
+      const studentUsers = allUsers.filter(u => 
+        studentIdSet.has(u.id) || studentIdSet.has(u.docId)
+      );
+      
+      setEnrollments(classEnrollments);
+
+      if (studentUsers.length === 0) {
+        logger.warn('[QR Scanner] No students found for this class');
+      }
+
+      // Get attendance for selected date
+      const dateStr = date;
+      const attendanceResponse = await getAttendanceByClass(classId, dateStr);
+      const attendance = attendanceResponse.success ? attendanceResponse.data : [];
+      setAttendanceRecords(attendance);
+
+      // Create penalty map for O(1) lookup
+      const penaltyMap = new Map();
+      allPenalties.forEach(p => {
+        if (studentIdSet.has(p.studentId)) {
+          const existing = penaltyMap.get(p.studentId) || [];
+          existing.push(p);
+          penaltyMap.set(p.studentId, existing);
+        }
+      });
+      setPenaltyRecords(Array.from(penaltyMap.values()).flat());
+
+      // Create participation/behavior maps for O(1) lookup
+      const participationMap = new Map();
+      allParticipations.forEach(p => {
+        if (studentIdSet.has(p.studentId) || studentIdSet.has(p.docId)) {
+          const existing = participationMap.get(p.studentId) || [];
+          existing.push(p);
+          participationMap.set(p.studentId, existing);
+        }
+      });
+
+      const behaviorMap = new Map();
+      allBehaviors.forEach(b => {
+        if (studentIdSet.has(b.studentId) || studentIdSet.has(b.docId)) {
+          const existing = behaviorMap.get(b.studentId) || [];
+          existing.push(b);
+          behaviorMap.set(b.studentId, existing);
+        }
+      });
+
+      // Process students in parallel batches for better performance
+      const BATCH_SIZE = 10;
+      const studentsWithData = [];
+      
+      for (let i = 0; i < studentUsers.length; i += BATCH_SIZE) {
+        const batch = studentUsers.slice(i, i + BATCH_SIZE);
+        const batchResults = await Promise.all(batch.map(async (student) => {
+          const studentId = student.id || student.docId;
+          const studentName = student.displayName || student.realName || student.name || student.email;
+          
+          // Find the primary attendance record
+          const studentRecords = attendance.filter(a => a.studentId === studentId);
+          const todayAttendance = studentRecords.find(a => !a.delta) || studentRecords[0];
+
+          // Fetch all attendance records for this student (attendance only)
+          const studentAttendanceResponse = await getAttendanceByStudent(studentId);
+          const studentAttendanceRecords = studentAttendanceResponse.success ? studentAttendanceResponse.data : [];
+
+          // Attendance total should count status records only
+          let totalAttendanceCount = 0;
+          const attendanceStats = {
+            present: 0,
+            late: 0,
+            absent: 0,
+            absentWithExcuse: 0,
+            excusedLeave: 0,
+            humanitarianCase: 0
+          };
+
+          studentAttendanceRecords.forEach(record => {
+            if (record.status === 'present' || record.status === 'late') {
+              totalAttendanceCount++;
+            }
+            switch (record.status) {
+              case 'present':
+                attendanceStats.present++;
+                break;
+              case 'late':
+                attendanceStats.late++;
+                break;
+              case 'absent_no_excuse':
+                attendanceStats.absent++;
+                break;
+              case 'absent_with_excuse':
+                attendanceStats.absentWithExcuse++;
+                break;
+              case 'excused_leave':
+                attendanceStats.excusedLeave++;
+                break;
+              case 'humanitarian_case':
+                attendanceStats.humanitarianCase++;
+                break;
+            }
+          });
+
+          // Participation/Behavior totals + history from dedicated collections
+          const participations = participationMap.get(studentId) || [];
+          const behaviors = behaviorMap.get(studentId) || [];
+
+          const participationTotal = participations.reduce((sum, p) => sum + (Number(p.points) || 0), 0);
+          const behaviorTotal = behaviors.reduce((sum, b) => sum + (Number(b.points) || 0), 0);
+
+          const studentParticipationHistory = participations.map(p => ({
+            id: p.docId || p.id,
+            date: p.date,
+            time: p.createdAt,
+            points: p.points,
+            reason: p.description || '',
+            markedBy: p.createdBy,
+            category: RECORD_TYPES.PARTICIPATION
+          }));
+
+          const studentBehaviorHistory = behaviors.map(b => ({
+            id: b.docId || b.id,
+            date: b.date,
+            time: b.createdAt,
+            points: b.points,
+            reason: b.description || '',
+            markedBy: b.createdBy,
+            category: RECORD_TYPES.BEHAVIOR
+          }));
+
+          // Get penalties from map
+          const penalties = penaltyMap.get(studentId) || [];
+          
+          const penaltyTotal = penalties.reduce((sum, p) => {
+            const pPoints = p.points;
+            if (pPoints !== null && pPoints !== undefined && pPoints !== '' && !isNaN(pPoints)) {
+              const negativePoints = -Math.abs(Number(pPoints)); // Convert to negative
+              return sum + negativePoints;
+            }
+            return sum;
+          }, 0);
+
+          return {
+            id: studentId,
+            docId: student.docId,
+            studentId: student.studentId || studentId,
+            studentNumber: student.studentNumber,
+            name: studentName,
+            email: student.email,
+            attendance: todayAttendance?.status || 'absent_no_excuse',
+            participation: participationTotal,
+            behavior: behaviorTotal,
+            penalty: penaltyTotal,
+            totalAttendance: totalAttendanceCount,
+            attendanceStats, // Add detailed attendance statistics
+            isPinned: student.isPinned || false,
+            behaviorHistory: studentBehaviorHistory,
+            participationHistory: studentParticipationHistory,
+            penaltyHistory: penalties
+          };
+        }));
+        
+        studentsWithData.push(...batchResults);
+      }
+
+      setStudents(studentsWithData);
+      
+      logger.debug('[LoadStudents] Loaded', studentsWithData.length, 'students');
+    } catch (error) {
+      logger.error('[QR Scanner] Error loading students:', error);
+      setStudents([]);
+      setError('Failed to load students: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Load students when class or date changes
   useEffect(() => {
-    // console.log('🔧 QRScannerPage useEffect - selectedClassId:', selectedClassId);
     if (selectedClassId && selectedClassId !== 'all') {
-      // console.log('🔧 QRScannerPage calling loadStudents for class:', selectedClassId);
       loadStudents(selectedClassId, selectedDate);
     } else {
-      // console.log('🔧 QRScannerPage clearing students - classId is all or empty');
       setStudents([]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClassId, selectedDate]);
+  }, [selectedClassId, selectedDate, loadStudents]);
 
   // Load favorite behaviors when student changes
   useEffect(() => {
@@ -374,7 +570,7 @@ const QRScannerPage = () => {
     }
   }, [selectedStudent?.id, selectedStudent?.favoriteBehaviors]);
 
-  // Listen for real-time attendance updates
+  // Listen for real-time attendance updates with debouncing
   useEffect(() => {
     const unsubscribe = eventBus.on(EVENTS.ATTENDANCE_MARKED, (data) => {
       // If the update is for the current class, refresh students immediately
@@ -383,20 +579,13 @@ const QRScannerPage = () => {
         
         // Immediate refresh to update UI
         loadStudents(selectedClassId, selectedDate);
-        
-        // Also trigger a secondary refresh after a short delay to ensure Firebase consistency
-        setTimeout(() => {
-          logger.debug('🔄 Secondary refresh to ensure Firebase consistency');
-          loadStudents(selectedClassId, selectedDate);
-        }, 500);
       }
     });
 
     return () => {
       if (unsubscribe) unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClassId, selectedDate]);
+  }, [selectedClassId, selectedDate, loadStudents]);
 
   const loadPrograms = async () => {
     try {
@@ -518,250 +707,6 @@ const QRScannerPage = () => {
       setError('Failed to load classes: ' + error.message);
     }
   };
-
-  // Memoized loadStudents function for performance
-  const loadStudents = useCallback(async (classId, date) => {
-    try {
-      // console.log('🔧 loadStudents started for class:', classId, 'date:', date);
-      logger.debug('[QR Scanner] Loading students for class:', classId, 'date:', date);
-      setLoading(true);
-
-      // Parallel data fetching for better performance
-      const [enrollmentsResponse, usersResponse, penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
-        getEnrollments(),
-        getUsers(),
-        getPenalties(),
-        getParticipations(),
-        getBehaviors()
-      ]);
-
-      const allEnrollments = enrollmentsResponse.success ? enrollmentsResponse.data : [];
-      const allUsers = usersResponse.success ? usersResponse.data : [];
-      const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
-      const allParticipations = participationsResponse.success ? participationsResponse.data : [];
-      const allBehaviors = behaviorsResponse.success ? behaviorsResponse.data : [];
-      
-      // Create Set for O(1) lookup performance
-      const classEnrollments = allEnrollments.filter(e => e.classId === classId);
-      const studentIdSet = new Set(classEnrollments.map(e => e.userId));
-      const studentUsers = allUsers.filter(u => 
-        studentIdSet.has(u.id) || studentIdSet.has(u.docId)
-      );
-      
-      setEnrollments(classEnrollments);
-
-      if (studentUsers.length === 0) {
-        logger.warn('[QR Scanner] No students found for this class');
-      }
-
-      // Get attendance for selected date
-      // date is already in Qatar format, use it directly
-      const dateStr = date;
-      logger.debug('[QR Scanner] Fetching attendance for date:', dateStr, '(Qatar format)');
-      const attendanceResponse = await getAttendanceByClass(classId, dateStr);
-      const attendance = attendanceResponse.success ? attendanceResponse.data : [];
-      setAttendanceRecords(attendance);
-      
-      // Simple debug - check if we have attendance data
-      console.log('🔍 [DEBUG] Attendance data for', dateStr, ':', {
-        success: attendanceResponse.success,
-        count: attendance.length,
-        sample: attendance.slice(0, 3).map(a => ({ studentId: a.studentId, status: a.status, date: a.date }))
-      });
-
-      // Create penalty map for O(1) lookup
-      const penaltyMap = new Map();
-      allPenalties.forEach(p => {
-        if (studentIdSet.has(p.studentId)) {
-          const existing = penaltyMap.get(p.studentId) || [];
-          existing.push(p);
-          penaltyMap.set(p.studentId, existing);
-        }
-      });
-      setPenaltyRecords(Array.from(penaltyMap.values()).flat());
-
-      // Create participation/behavior maps for O(1) lookup
-      const participationMap = new Map();
-      allParticipations.forEach(p => {
-        if (studentIdSet.has(p.studentId) || studentIdSet.has(p.docId)) {
-          const existing = participationMap.get(p.studentId) || [];
-          existing.push(p);
-          participationMap.set(p.studentId, existing);
-        }
-      });
-
-      const behaviorMap = new Map();
-      allBehaviors.forEach(b => {
-        if (studentIdSet.has(b.studentId) || studentIdSet.has(b.docId)) {
-          const existing = behaviorMap.get(b.studentId) || [];
-          existing.push(b);
-          behaviorMap.set(b.studentId, existing);
-        }
-      });
-
-      // Process students in parallel batches for better performance
-      const BATCH_SIZE = 10;
-      const studentsWithData = [];
-      
-      for (let i = 0; i < studentUsers.length; i += BATCH_SIZE) {
-        const batch = studentUsers.slice(i, i + BATCH_SIZE);
-        const batchResults = await Promise.all(batch.map(async (student) => {
-          const studentId = student.id || student.docId;
-          const studentName = student.displayName || student.realName || student.name || student.email;
-          
-          // Find the primary attendance record
-          const studentRecords = attendance.filter(a => a.studentId === studentId);
-          const todayAttendance = studentRecords.find(a => !a.delta) || studentRecords[0];
-          
-          console.log('🔍 [LoadStudents] Student attendance data:', {
-            studentId,
-            studentName,
-            searchingForDate: dateStr,
-            foundRecords: studentRecords.length,
-            todayAttendance: todayAttendance?.status,
-            allRecords: studentRecords.map(r => ({ 
-              studentId: r.studentId, 
-              status: r.status, 
-              delta: r.delta,
-              recordDate: r.date,
-              searchingDate: dateStr,
-              dateMatch: r.date === dateStr
-            }))
-          });
-          
-          // Debug: Check if we have a valid attendance record for today
-          if (!todayAttendance) {
-            console.warn('⚠️ [LoadStudents] No attendance record found for student:', studentId, 'on date:', dateStr);
-          } else if (todayAttendance.status === 'absent_no_excuse') {
-            console.warn('⚠️ [LoadStudents] Student marked as absent_no_excuse (default):', studentId);
-          } else {
-            console.log('✅ [LoadStudents] Student has valid attendance status:', studentId, todayAttendance.status);
-          }
-
-          // Fetch all attendance records for this student (attendance only)
-          const studentAttendanceResponse = await getAttendanceByStudent(studentId);
-          const studentAttendanceRecords = studentAttendanceResponse.success ? studentAttendanceResponse.data : [];
-
-          // Attendance total should count status records only
-          let totalAttendanceCount = 0;
-          const attendanceStats = {
-            present: 0,
-            late: 0,
-            absent: 0,
-            absentWithExcuse: 0,
-            excusedLeave: 0,
-            humanitarianCase: 0
-          };
-
-          studentAttendanceRecords.forEach(record => {
-            if (record.status === 'present' || record.status === 'late') {
-              totalAttendanceCount++;
-            }
-            switch (record.status) {
-              case 'present':
-                attendanceStats.present++;
-                break;
-              case 'late':
-                attendanceStats.late++;
-                break;
-              case 'absent_no_excuse':
-                attendanceStats.absent++;
-                break;
-              case 'absent_with_excuse':
-                attendanceStats.absentWithExcuse++;
-                break;
-              case 'excused_leave':
-                attendanceStats.excusedLeave++;
-                break;
-              case 'humanitarian_case':
-                attendanceStats.humanitarianCase++;
-                break;
-            }
-          });
-
-          // Participation/Behavior totals + history from dedicated collections
-          const participations = participationMap.get(studentId) || [];
-          const behaviors = behaviorMap.get(studentId) || [];
-
-          const participationTotal = participations.reduce((sum, p) => sum + (Number(p.points) || 0), 0);
-          const behaviorTotal = behaviors.reduce((sum, b) => sum + (Number(b.points) || 0), 0);
-
-          const studentParticipationHistory = participations.map(p => ({
-            id: p.docId || p.id,
-            date: p.date,
-            time: p.createdAt,
-            points: p.points,
-            reason: p.description || '',
-            markedBy: p.createdBy,
-            category: RECORD_TYPES.PARTICIPATION
-          }));
-
-          const studentBehaviorHistory = behaviors.map(b => ({
-            id: b.docId || b.id,
-            date: b.date,
-            time: b.createdAt,
-            points: b.points,
-            reason: b.description || '',
-            markedBy: b.createdBy,
-            category: RECORD_TYPES.BEHAVIOR
-          }));
-
-          // Get penalties from map
-          const penalties = penaltyMap.get(studentId) || [];
-          
-          const penaltyTotal = penalties.reduce((sum, p) => {
-            const pPoints = p.points;
-            if (pPoints !== null && pPoints !== undefined && pPoints !== '' && !isNaN(pPoints)) {
-              const negativePoints = -Math.abs(Number(pPoints)); // Convert to negative
-              return sum + negativePoints;
-            }
-            return sum;
-          }, 0);
-
-          return {
-            id: studentId,
-            docId: student.docId,
-            studentId: student.studentId || studentId,
-            studentNumber: student.studentNumber,
-            name: studentName,
-            email: student.email,
-            attendance: todayAttendance?.status || 'absent_no_excuse',
-            participation: participationTotal,
-            behavior: behaviorTotal,
-            penalty: penaltyTotal,
-            totalAttendance: totalAttendanceCount,
-            attendanceStats, // Add detailed attendance statistics
-            isPinned: student.isPinned || false,
-            behaviorHistory: studentBehaviorHistory,
-            participationHistory: studentParticipationHistory,
-            penaltyHistory: penalties
-          };
-        }));
-        
-        studentsWithData.push(...batchResults);
-      }
-
-      setStudents(studentsWithData);
-      
-      // Debug: Log a sample of student data with attendance
-      console.log('🔍 [LoadStudents] Sample student data:', studentsWithData.slice(0, 3).map(s => ({
-        id: s.id,
-        name: s.name,
-        attendance: s.attendance,
-        participation: s.participation,
-        behavior: s.behavior,
-        penalty: s.penalty
-      })));
-      
-      logger.log('🔧 loadStudents completed - set', studentsWithData.length, 'students');
-    } catch (error) {
-      logger.error('[QR Scanner] Error loading students:', error);
-      setStudents([]);
-      setError('Failed to load students: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   const handleMarkAttendance = useCallback(async (studentId, status, notes = '', method = ATTENDANCE_METHODS.MANUAL_INSTRUCTOR) => {
     try {
@@ -1207,8 +1152,7 @@ const QRScannerPage = () => {
 
     // Apply attendance filter
     if (attendanceFilter !== 'all') {
-      console.log('🔍 [Filter] Applying attendance filter:', attendanceFilter);
-      console.log('🔍 [Filter] Students before filter:', filtered.length);
+      logger.debug('[Filter] Applying attendance filter:', attendanceFilter);
       
       // More flexible filtering - check multiple possible attendance fields
       filtered = filtered.filter(student => {
@@ -1222,8 +1166,6 @@ const QRScannerPage = () => {
         
         return matches;
       });
-      
-      console.log('🔍 [Filter] Students after filter:', filtered.length);
     }
 
     // Apply participation range filter
@@ -1731,7 +1673,6 @@ const QRScannerPage = () => {
                 <select
                   value={attendanceFilter}
                   onChange={(e) => {
-                    console.log('🔍 [Filter] Attendance filter changed from', attendanceFilter, 'to', e.target.value);
                     setAttendanceFilter(e.target.value);
                   }}
                   style={{
@@ -1899,4 +1840,8 @@ const QRScannerPage = () => {
   );
 };
 
-export default QRScannerPage;
+export default () => (
+  <ErrorBoundary>
+    <QRScannerPage />
+  </ErrorBoundary>
+);

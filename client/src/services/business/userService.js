@@ -293,82 +293,38 @@ export const addUser = async (userData) => {
 // Update user function
 export const updateUser = async (id, userData) => {
   try {
-    logger.info('USER: updateUser called', {
-      timestamp: new Date().toISOString(),
-      userId: id,
-      userDataKeys: Object.keys(userData),
-      userData: {
-        email: userData.email,
-        displayName: userData.displayName,
-        realName: userData.realName,
-        studentNumber: userData.studentNumber,
-        order: userData.order,
-        role: userData.role
-      }
-    });
-    
     // Validate inputs
     if (!id || typeof id !== 'string') {
-      logger.error('USER: Invalid user ID provided for update:', { id, type: typeof id });
       return { success: false, error: 'Invalid user ID provided' };
     }
     
     if (!userData || typeof userData !== 'object') {
-      logger.error('USER: Invalid user data provided for update:', { userData });
       return { success: false, error: 'Invalid user data provided' };
     }
-    
-    logger.info('USER: Updating user', { userId: id, updateFields: Object.keys(userData) });
-    
-    // Check if email is being changed
-    logger.info('USER: Checking current user data for email change detection', { userId: id });
     const currentUserResult = await getUserByIdFromDb(id);
     
-    logger.info('USER: Current user data retrieved', {
-      success: currentUserResult.success,
-      hasData: !!currentUserResult.data,
-      currentEmail: currentUserResult.data?.email,
-      newEmail: userData.email
-    });
-    
     if (currentUserResult.success && userData.email && userData.email !== currentUserResult.data.email) {
-      logger.info('USER: Email change detected, logging activity', {
-        oldEmail: currentUserResult.data.email,
-        newEmail: userData.email
-      });
       // Log email change activity
       try {
         const { ActivityLogger } = await import('../other/activityLogger');
         await ActivityLogger.emailChange();
-        logger.info('USER: Email change activity logged successfully');
       } catch (error) {
         logger.warn('Failed to log email change activity:', error);
       }
     }
     
-    logger.info('USER: Calling updateUserInDb', { userId: id });
     const result = await updateUserInDb(id, userData);
-    
-    logger.info('USER: updateUserInDb response received', {
-      success: result.success,
-      error: result.error,
-      userId: id
-    });
     
     if (result.success) {
       // Log activity
       try {
-        logger.info('USER: Logging update activity');
         await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
           userId: id,
           updateFields: Object.keys(userData)
         }, id);
-        logger.info('USER: Update activity logged successfully');
       } catch (logError) {
-        logger.warn('USER: Failed to log user update:', logError);
+        // Silently fail activity logging
       }
-      
-      logger.info('USER: Successfully updated user', { userId: id });
     }
     
     return result;
@@ -663,16 +619,6 @@ export const isUserDisabledAtUserLevel = (user) => {
     const isDisabled = user.isDisabled === true;
 
     const result = disabled || disabledAt || statusDisabled || isDisabled;
-
-    logger.info('isUserDisabledAtUserLevel: Checking user disabled status', {
-      userEmail: user.email,
-      disabled: disabled,
-      disabledAt: disabledAt,
-      status: user.status,
-      isDisabled: isDisabled,
-      result: result,
-      allFields: Object.keys(user)
-    });
 
     return result;
   } catch (error) {

@@ -4,7 +4,7 @@ import { getUserStatus, getUserStatusSummary, getStatusIconProps, getStatusDescr
 import { getThemedIcon } from '@constants/iconTypes';
 import { getThemeColor } from '@constants/dashboardTypes';
 import { ROLE_STRINGS } from '@constants';
-import { isInstructor, isAdmin, isHR, isSuperAdmin } from '@services/business/userService';
+import { isInstructor, isAdmin, isHR, isSuperAdmin, isStudent } from '@services/business/userService';
 
 /**
  * UserSelect Component
@@ -83,6 +83,8 @@ const UserSelect = ({
               return isInstructor(u);
             case ROLE_STRINGS.HR:
               return isHR(u);
+            case ROLE_STRINGS.STUDENT:
+              return isStudent(u);
             default:
               return false;
           }
@@ -217,7 +219,7 @@ const UserSelect = ({
                 marginLeft: 'auto'
               }}>
                 {showStatus && statusLabel}
-                {showStatus && showEnrollments && enrollmentCount > 0 && ' • '}
+                {showStatus && showEnrollments && ' • '}
                 {showEnrollments && displayCount}
               </span>
             )}

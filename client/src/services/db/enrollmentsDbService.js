@@ -28,6 +28,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import dbService from '@services/other/dbService';
+import { COLLECTIONS } from '@constants/collections';
 import logger from '@utils/logger';
 
 // ==================== MARKS OPERATIONS ====================
@@ -124,10 +125,14 @@ export const setStudentMarks = async (studentId, subjectId, classId, marksData) 
 export const updateStudentMarks = async (studentId, subjectId, classId, updateData) => {
   try {
     const compositeKey = `${studentId}_${classId}_${subjectId}`;
-    await updateDoc(doc(dbService.getDb(), 'studentMarks', compositeKey), {
-      ...updateData,
-      updatedAt: serverTimestamp()
-    });
+    await setDoc(
+      doc(dbService.getDb(), 'studentMarks', compositeKey),
+      {
+        ...updateData,
+        updatedAt: serverTimestamp()
+      },
+      { merge: true }
+    );
     return { success: true };
   } catch (error) {
     logger.error('[MarksDbService] Error updating student marks:', error);
@@ -206,10 +211,14 @@ export const setSubjectMarksDistribution = async (subjectId, distributionData) =
  */
 export const updateSubjectMarksDistribution = async (subjectId, updateData) => {
   try {
-    await updateDoc(doc(dbService.getDb(), 'subjectMarksDistribution', subjectId), {
-      ...updateData,
-      updatedAt: serverTimestamp()
-    });
+    await setDoc(
+      doc(dbService.getDb(), 'subjectMarksDistribution', subjectId),
+      {
+        ...updateData,
+        updatedAt: serverTimestamp()
+      },
+      { merge: true }
+    );
     return { success: true };
   } catch (error) {
     logger.error('[MarksDbService] Error updating subject marks distribution:', error);

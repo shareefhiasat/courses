@@ -262,6 +262,7 @@ export const ICON_TYPES = {
     zap: <Zap size={16} />,
     list: <List size={16} />,
     hash: <Hash size={16} />,
+    bed: <Home size={16} />,
     // Additional UI icons needed by the application
     award: <Award size={16} />,
     trophy: <Trophy size={16} />,

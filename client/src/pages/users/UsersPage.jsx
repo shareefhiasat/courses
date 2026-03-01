@@ -276,12 +276,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
       return;
     }
 
-    logger.info('USER_PAGE: Setting up edit form', {
-      userId: userId,
-      userEmail: user.email,
-      userDisplayName: user.displayName
-    });
-
     setEditingUser(user);
     setFormData({
       email: user.email || '',
@@ -290,17 +284,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
       studentNumber: user.studentNumber || '',
       order: user.order || '',
       role: user.role || ROLE_STRINGS.STUDENT
-    });
-
-    logger.info('USER_PAGE: Edit form setup complete', {
-      formData: {
-        email: user.email || '',
-        displayName: user.displayName || '',
-        realName: user.realName || '',
-        studentNumber: user.studentNumber || '',
-        order: user.order || '',
-        role: user.role || ROLE_STRINGS.STUDENT
-      }
     });
   }, []);
 
@@ -960,15 +943,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
                 const currentUserIsSuperAdmin = user?.isSuperAdmin || user?.role === ROLE_STRINGS.SUPER_ADMIN;
                 const canEdit = !isSuperAdminUser || currentUserIsSuperAdmin;
                 
-                logger.info('USER_PAGE: Edit button rendering', {
-                  userEmail: params.row.email,
-                  userId: params.row.id,
-                  isInvited: params.row.isInvited,
-                  canEdit: canEdit,
-                  isSuperAdminUser: isSuperAdminUser,
-                  currentUserIsSuperAdmin: currentUserIsSuperAdmin
-                });
-                
                 return (
                   <Button 
                     size="sm" 
@@ -1140,52 +1114,21 @@ const UsersPage = ({ isDashboardTab = false }) => {
   };
 
   const handleFormSubmit = async (e) => {
-    logger.info('USER_PAGE: Form submit started', {
-      timestamp: new Date().toISOString(),
-      editingUser: editingUser ? {
-        id: editingUser.id,
-        email: editingUser.email,
-        displayName: editingUser.displayName,
-        isInvited: editingUser.isInvited,
-        hasId: !!editingUser.id,
-        hasUid: !!editingUser.uid
-      } : null,
-      isEditMode: !!editingUser,
-      isCurrentlySaving: saving
-    });
-
     // Prevent duplicate submissions
     if (saving) {
-      logger.warn('USER_PAGE: Form submit blocked - already saving', {
-        timestamp: new Date().toISOString(),
-        isSaving: saving
-      });
       return;
     }
 
     e.preventDefault();
     const textValues = syncRefsToState();
     
-    logger.info('USER_PAGE: Form values collected', {
-      textValues: {
-        email: textValues.email,
-        displayName: textValues.displayName,
-        realName: textValues.realName,
-        studentNumber: textValues.studentNumber,
-        order: textValues.order,
-        role: textValues.role
-      }
-    });
-    
     if (!textValues.email.trim()) {
-      logger.warn('USER_PAGE: Validation failed - email empty');
       toast?.showError('Email is required');
       return;
     }
 
     // Validate student number is required for students
     if (formData.role === ROLE_STRINGS.STUDENT && !textValues.studentNumber?.trim()) {
-      logger.warn('USER_PAGE: Validation failed - student number required for student');
       toast?.showError('Student number is required for students');
       return;
     }
@@ -1197,10 +1140,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
     );
     
     if (emailDuplicate) {
-      logger.warn('USER_PAGE: Validation failed - email duplicate', {
-        newEmail: textValues.email.trim(),
-        editingUserEmail: editingUser?.email
-      });
       toast?.showError('Email already exists. Each user must have a unique email address.');
       return;
     }
@@ -1213,16 +1152,11 @@ const UsersPage = ({ isDashboardTab = false }) => {
       );
       
       if (studentNumberDuplicate) {
-        logger.warn('USER_PAGE: Validation failed - student number duplicate', {
-          newStudentNumber: textValues.studentNumber.trim(),
-          editingUserStudentNumber: editingUser?.studentNumber
-        });
         toast?.showError('Student number must be unique. This student number is already in use.');
         return;
       }
     }
 
-    logger.info('USER_PAGE: Validation passed, proceeding with submit');
     setSaving(true);
     try {
       const submitData = {
@@ -1274,28 +1208,12 @@ const UsersPage = ({ isDashboardTab = false }) => {
           throw new Error('User ID not found - cannot update user. User may need to sign up first.');
         }
 
-        logger.info('USER_PAGE: Calling updateUser service', {
-          userId: userId,
-          serviceFunction: 'updateUser'
-        });
-        
         const result = await updateUser(userId, submitData);
         
-        logger.info('USER_PAGE: Update service response received', {
-          success: result.success,
-          error: result.error,
-          userId: userId
-        });
-        
         if (!result.success) {
-          logger.error('USER_PAGE: Update failed', {
-            error: result.error,
-            userId: userId
-          });
           throw new Error(result.error || 'Failed to update user');
         }
 
-        logger.info('USER_PAGE: Update successful, logging activity');
         // Log activity
         try {
           const { logActivity } = await import('@services/other/activityLogger');
@@ -1309,10 +1227,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
         
         // Only reload if editing (not adding new user to allowlist)
         if (editingUser) {
-          logger.info('USER_PAGE: Calling loadData after user update', {
-            timestamp: new Date().toISOString(),
-            userId: userId
-          });
           debouncedLoadData();
         }
         resetForm();
@@ -1462,11 +1376,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
   };
 
   const resetForm = useCallback((clearRefs = true) => {
-    logger.info('USER_PAGE: resetForm called', {
-      timestamp: new Date().toISOString(),
-      clearRefs: clearRefs,
-      hadEditingUser: !!editingUser
-    });
     
     setEditingUser(null);
     setFormData({

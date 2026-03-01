@@ -150,10 +150,48 @@ const AdvancedDataGrid = ({
     filterOperatorIsEmpty: 'فارغ',
     filterOperatorIsNotEmpty: 'غير فارغ',
     filterOperatorIsAnyOf: 'أي من',
+    // Empty state
+    noRowsLabel: 'لا توجد بيانات',
+    noResultsOverlayLabel: 'لم يتم العثور على نتائج',
     // Pagination
     MuiTablePagination: {
       labelRowsPerPage: 'الصفوف في الصفحة:',
       labelDisplayedRows: ({ from, to, count }) => `${from}–${to} من ${count !== -1 ? count : `أكثر من ${to}`}`
+    }
+  };
+
+  // English locale text for DataGrid
+  const englishLocale = {
+    // Empty state
+    noRowsLabel: 'No enrollments',
+    noResultsOverlayLabel: 'No results found',
+    // Toolbar
+    toolbarColumns: 'Columns',
+    toolbarFilters: 'Filters',
+    toolbarDensity: 'Density',
+    toolbarExport: 'Export',
+    toolbarQuickFilterPlaceholder: 'Search...',
+    // Column menu
+    columnMenuLabel: 'Menu',
+    columnMenuShowColumns: 'Show columns',
+    columnMenuFilter: 'Filter',
+    columnMenuHideColumn: 'Hide',
+    columnMenuUnsort: 'Unsort',
+    columnMenuSortAsc: 'Sort by Asc',
+    columnMenuSortDesc: 'Sort by Desc',
+    columnMenuManageColumns: 'Manage columns',
+    // Filter
+    filterOperatorContains: 'contains',
+    filterOperatorEquals: 'equals',
+    filterOperatorStartsWith: 'starts with',
+    filterOperatorEndsWith: 'ends with',
+    filterOperatorIsEmpty: 'is empty',
+    filterOperatorIsNotEmpty: 'is not empty',
+    filterOperatorIsAnyOf: 'is any of',
+    // Pagination
+    MuiTablePagination: {
+      labelRowsPerPage: 'Rows per page:',
+      labelDisplayedRows: ({ from, to, count }) => `${from}–${to} of ${count !== -1 ? count : `more than ${to}`}`
     }
   };
 
@@ -351,7 +389,7 @@ const AdvancedDataGrid = ({
         density={density}
         // MUI v8 API
         slots={mergedSlots}
-        localeText={lang === 'ar' ? arabicLocale : undefined}
+        localeText={lang === 'ar' ? arabicLocale : englishLocale}
         getRowId={(row) => {
           try {
             // Use consumer-provided getRowId if passed through rest

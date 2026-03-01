@@ -186,15 +186,6 @@ export const AuthProvider = ({ children }) => {
     let isSubscribed = true; // Prevent state updates if component unmounted
     let authRetryCount = 0;
     const maxRetries = 3;
-    let authTimeoutId = null;
-
-    // Add auth initialization timeout
-    authTimeoutId = setTimeout(() => {
-      if (loading && isSubscribed) {
-        logger.error('[Auth] Auth initialization timeout - forcing loading to false');
-        setLoading(false);
-      }
-    }, 20000); // 20 second timeout for auth initialization
 
     const unsubscribe = onAuthChange(async (firebaseUser) => {
       // Prevent race conditions - if user changed during async operations, skip
@@ -481,17 +472,6 @@ export const AuthProvider = ({ children }) => {
               setRealUser({ ...firebaseUser, role: userRole });
               setRoleLoading(false); // Role resolution complete
               
-              // Debug role resolution
-              logger.info('[Auth] Role resolved:', {
-                userId: firebaseUser.uid,
-                email: firebaseUser.email,
-                resolvedRole: userRole,
-                isSuperAdmin: superAdminFromDoc || superAdminFromAllowlist,
-                isAdmin: adminFromDoc || admin,
-                isHR: hr,
-                isInstructor: instructor
-              });
-              
               // Log login if new session
               if (isNewLogin) {
                 try {
@@ -566,7 +546,6 @@ export const AuthProvider = ({ children }) => {
     // Cleanup function
     return () => {
       isSubscribed = false;
-      if (authTimeoutId) clearTimeout(authTimeoutId);
       if (userDocUnsub) {
         userDocUnsub();
       }

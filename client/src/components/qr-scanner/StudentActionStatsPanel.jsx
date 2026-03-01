@@ -439,15 +439,15 @@ export default function StudentActionStatsPanel({
         return dateB - dateA; // Most recent first
       });
 
-      console.log('🔧 StudentActionStatsPanel - total logs fetched:', logs.length);
-      console.log('🔧 StudentActionStatsPanel - logs:', logs);
+      logger.debug('StudentActionStatsPanel - total logs fetched:', logs.length);
+      logger.debug('StudentActionStatsPanel - logs:', logs);
 
       // Filter today's logs
       const today = new Date().toISOString().split('T')[0];
       const todayLogsFiltered = logs.filter(log => log.date === today);
 
-      console.log('🔧 StudentActionStatsPanel - today logs filtered:', todayLogsFiltered.length);
-      console.log('🔧 StudentActionStatsPanel - historical logs to set:', logs.length);
+      logger.debug('StudentActionStatsPanel - today logs filtered:', todayLogsFiltered.length);
+      logger.debug('StudentActionStatsPanel - historical logs to set:', logs.length);
 
       // Set historicalLogs to ALL logs (including today)
       setHistoricalLogs(logs);
@@ -822,15 +822,10 @@ export default function StudentActionStatsPanel({
     const sortedGrouped = Object.values(grouped).sort((a, b) => {
       // Sort days by date (newest first)
       const result = new Date(b.date) - new Date(a.date);
-      console.log('🔍 StudentActionStatsPanel day sort:', {
-        dayA: { date: a.date, parsedDate: new Date(a.date) },
-        dayB: { date: b.date, parsedDate: new Date(b.date) },
-        result
-      });
       return result;
     });
 
-    console.log('🔍 StudentActionStatsPanel final grouped logs:', sortedGrouped.map(g => ({ date: g.date, counts: { attendance: g.attendance.length, penalties: g.penalties.length, participation: g.participation.length, behavior: g.behavior.length } })));
+    logger.debug('StudentActionStatsPanel final grouped logs:', sortedGrouped.map(g => ({ date: g.date, counts: { attendance: g.attendance.length, penalties: g.penalties.length, participation: g.participation.length, behavior: g.behavior.length } })));
 
     return sortedGrouped;
   }, []);
@@ -838,23 +833,13 @@ export default function StudentActionStatsPanel({
   // Memoized grouped logs for display
   const memoizedGroupedLogs = useMemo(() => {
     const grouped = groupLogsByDay(historicalLogs);
-    console.log('🔧 StudentActionStatsPanel - memoizedGroupedLogs:', grouped);
-    console.log('🔧 StudentActionStatsPanel - historicalLogs length:', historicalLogs.length);
-    console.log('🔧 StudentActionStatsPanel - activeFilters:', activeFilters);
+    logger.debug('StudentActionStatsPanel - memoizedGroupedLogs:', grouped);
+    logger.debug('StudentActionStatsPanel - historicalLogs length:', historicalLogs.length);
+    logger.debug('StudentActionStatsPanel - activeFilters:', activeFilters);
 
     // Debug today's logs specifically
     const today = new Date().toISOString().split('T')[0];
     const todayGroup = grouped.find(g => g.date === today);
-    if (todayGroup) {
-      console.log('🔧 Today group logs:', {
-        date: todayGroup.date,
-        attendance: todayGroup.attendance.length,
-        penalties: todayGroup.penalties.length,
-        participation: todayGroup.participation.length,
-        behavior: todayGroup.behavior.length,
-        total: todayGroup.attendance.length + todayGroup.penalties.length + todayGroup.participation.length + todayGroup.behavior.length
-      });
-    }
 
     return grouped;
   }, [historicalLogs, groupLogsByDay, activeFilters]);
@@ -970,7 +955,7 @@ export default function StudentActionStatsPanel({
 
     // If no actual attendance records for today, show None (matching roster)
     if (!hasTodayAttendance) {
-      console.log('🔧 No attendance found - showing None');
+      logger.debug('No attendance found - showing None');
       return {
         en: t('none') || 'None',
         ar: t('none') || 'لا شيء',
@@ -983,7 +968,7 @@ export default function StudentActionStatsPanel({
     if (attendanceToUse) {
       const statusInfo = ATTENDANCE_STATUS_LABELS[attendanceToUse];
       if (statusInfo) {
-        console.log('🔧 Using direct attendance status:', attendanceToUse, statusInfo);
+        logger.debug('Using direct attendance status:', attendanceToUse, statusInfo);
         return statusInfo;
       }
     }

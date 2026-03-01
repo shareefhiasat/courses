@@ -12,7 +12,7 @@ import {
   deleteEnrollment as deleteEnrollmentFromDb
 } from '../db/enrollmentDbService';
 import { getUserById, updateUser } from './userService';
-import { getClassById } from './classService';
+import { getClassById, updateClass } from './classService';
 
 /**
  * Unified Enrollment Service
@@ -398,7 +398,7 @@ export const toggleStudentAccess = async (classId, studentId, currentlyDisabled,
     }
     
     // Update class with new disabledStudents array
-    const updateResult = await updateClassInDb(classId, { disabledStudents: updatedDisabledStudents });
+    const updateResult = await updateClass(classId, { disabledStudents: updatedDisabledStudents });
     
     return { 
       success: updateResult.success, 
@@ -494,7 +494,7 @@ export const unenrollStudent = async (classId, studentId, options = {}) => {
       const currentDisabledStudents = classResult.data.disabledStudents || [];
       const updatedDisabledStudents = currentDisabledStudents.filter(id => id !== studentId);
       
-      await updateClassInDb(classId, { disabledStudents: updatedDisabledStudents });
+      await updateClass(classId, { disabledStudents: updatedDisabledStudents });
     }
     
     // Log activity

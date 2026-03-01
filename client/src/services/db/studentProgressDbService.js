@@ -26,6 +26,7 @@ import {
   increment
 } from 'firebase/firestore';
 import dbService from '@services/other/dbService';
+import { safeUpdateDoc, safeIncrementDoc } from '@services/other/safeUpdateUtils';
 import { COLLECTIONS } from '@constants/collections';
 import logger from '@utils/logger';
 
@@ -83,46 +84,23 @@ export const setStudentProgress = async (userId, progressData) => {
 };
 
 /**
- * Update student progress
+ * Update student progress (creates if doesn't exist)
  * @param {string} userId - User ID
  * @param {Object} updateData - Data to update
  * @returns {Promise<{success: boolean, error?: string}>}
  */
 export const updateStudentProgress = async (userId, updateData) => {
-  try {
-    await updateDoc(doc(dbService.getDb(), COLLECTIONS.STUDENT_PROGRESS, userId), {
-      ...updateData,
-      updatedAt: serverTimestamp()
-    });
-    return { success: true };
-  } catch (error) {
-    logger.error('[StudentProgressDbService] Error updating student progress:', error);
-    return { success: false, error: error.message };
-  }
+  return await safeUpdateDoc(COLLECTIONS.STUDENT_PROGRESS, userId, updateData);
 };
 
 /**
- * Increment student progress metrics
+ * Increment student progress metrics (creates if doesn't exist)
  * @param {string} userId - User ID
  * @param {Object} increments - Object with fields to increment
  * @returns {Promise<{success: boolean, error?: string}>}
  */
 export const incrementStudentProgress = async (userId, increments) => {
-  try {
-    const incrementData = {};
-    Object.keys(increments).forEach(key => {
-      incrementData[key] = increment(increments[key]);
-    });
-    
-    await updateDoc(doc(dbService.getDb(), COLLECTIONS.STUDENT_PROGRESS, userId), {
-      ...incrementData,
-      updatedAt: serverTimestamp()
-    });
-    return { success: true };
-  } catch (error) {
-    logger.error('[StudentProgressDbService] Error incrementing student progress:', error);
-    return { success: false, error: error.message };
-  }
+  return await safeIncrementDoc(COLLECTIONS.STUDENT_PROGRESS, userId, increments);
 };
 
 /**

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
+import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -19,8 +20,9 @@ import logger from '@utils/logger';
 import { DeleteModal, useDeleteModal } from '@ui';
 
 const EnrollmentsManagementPage = () => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const toast = useToast();
   const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
 
@@ -40,9 +42,7 @@ const EnrollmentsManagementPage = () => {
     classId: '', 
     role: ROLE_STRINGS.STUDENT, 
     programId: '', 
-    subjectId: '', 
-    year: '', 
-    term: '' 
+    subjectId: ''
   });
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
@@ -164,7 +164,7 @@ const EnrollmentsManagementPage = () => {
           logger.warn('[EnrollmentManagementPage] Failed to log activity:', error);
         }
         await loadData();
-        setEnrollmentForm({ userId: '', classId: '', role: ROLE_STRINGS.STUDENT, programId: '', subjectId: '', year: '', term: '' });
+        setEnrollmentForm({ userId: '', classId: '', role: ROLE_STRINGS.STUDENT, programId: '', subjectId: '' });
         toast?.showSuccess(t('enrollment_added_successfully') || 'Enrollment added successfully!');
       } else {
         toast?.showError(t('error') + ': ' + result.error);
@@ -437,6 +437,7 @@ const EnrollmentsManagementPage = () => {
         <AdvancedDataGrid
           rows={filteredEnrollmentRows}
           getRowId={(row) => row.docId || row.id}
+          lang={lang}
           columns={[
           {
             field: 'userId', 
@@ -556,9 +557,48 @@ const EnrollmentsManagementPage = () => {
             valueGetter: (params) => params.value,
             renderCell: (params) => {
               if (!params.value) return 'Unknown';
-              const dateObj = params.value?.toDate
-                ? params.value.toDate()
-                : (params.value?.seconds ? new Date(params.value.seconds * 1000) : new Date(params.value));
+              
+              let dateObj;
+              
+              // Handle Firestore Timestamp
+              if (params.value?.toDate) {
+                dateObj = params.value.toDate();
+              }
+              // Handle Firestore timestamp with seconds
+              else if (params.value?.seconds) {
+                dateObj = new Date(params.value.seconds * 1000);
+              }
+              // Handle string dates
+              else if (typeof params.value === 'string') {
+                // Try parsing the string directly first
+                dateObj = new Date(params.value);
+                
+                // If invalid, try to handle specific formats
+                if (isNaN(dateObj.getTime())) {
+                  // Handle format like "March 2, 2026 at 5:24:47 AM UTC+3"
+                  const match = params.value.match(/(\w+)\s+(\d+),\s+(\d+)\s+at\s+(.+)$/);
+                  if (match) {
+                    const [, month, day, year, timePart] = match;
+                    // Remove timezone info and parse
+                    const timeWithoutTimezone = timePart.split(' UTC')[0];
+                    const dateString = `${month} ${day}, ${year} ${timeWithoutTimezone}`;
+                    dateObj = new Date(dateString);
+                  }
+                }
+              }
+              // Handle number (timestamp)
+              else if (typeof params.value === 'number') {
+                dateObj = new Date(params.value);
+              }
+              else {
+                dateObj = new Date(params.value);
+              }
+              
+              // Final validation
+              if (isNaN(dateObj.getTime())) {
+                return 'Invalid Date';
+              }
+              
               const dateStr = dateObj.toLocaleDateString('en-US', {
                 month: 'short', day: '2-digit', year: 'numeric'
               });
