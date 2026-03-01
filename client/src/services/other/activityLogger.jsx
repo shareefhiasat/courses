@@ -375,7 +375,11 @@ export const ACTIVITY_LOG_TYPES = {
  */
 export const ActivityLogger = {
   // Authentication
-  login: () => logActivity(ACTIVITY_LOG_TYPES.LOGIN),
+  login: async () => {
+    // Wait a moment for auth context to update
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await logActivity(ACTIVITY_LOG_TYPES.LOGIN);
+  },
   logout: () => logActivity(ACTIVITY_LOG_TYPES.LOGOUT),
   sessionTimeout: () => logActivity(ACTIVITY_LOG_TYPES.SESSION_TIMEOUT),
   profileUpdate: () => logActivity(ACTIVITY_LOG_TYPES.PROFILE_UPDATE),
@@ -425,8 +429,20 @@ export const ActivityLogger = {
     }),
 
   // Navigation
-  dashboardViewed: () => logActivity(ACTIVITY_LOG_TYPES.DASHBOARD_VIEWED),
-  analyticsViewed: () => logActivity(ACTIVITY_LOG_TYPES.ANALYTICS_VIEWED),
+  dashboardViewed: () => {
+    // Only log if we have a current user (avoid race condition during initial auth)
+    const { auth } = require('../other/config');
+    if (auth.currentUser) {
+      logActivity(ACTIVITY_LOG_TYPES.DASHBOARD_VIEWED);
+    }
+  },
+  analyticsViewed: () => {
+    // Only log if we have a current user (avoid race condition during initial auth)
+    const { auth } = require('../other/config');
+    if (auth.currentUser) {
+      logActivity(ACTIVITY_LOG_TYPES.ANALYTICS_VIEWED);
+    }
+  },
 
   // Tools
   calculatorOpened: () => logActivity(ACTIVITY_LOG_TYPES.CALCULATOR_OPENED),

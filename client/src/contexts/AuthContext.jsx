@@ -446,13 +446,19 @@ export const AuthProvider = ({ children }) => {
               setIsAdmin(admin || adminFromDoc);
               setIsHR(hr);
               setIsInstructor(instructor);
-              setIsSuperAdmin(superAdminFromDoc);
               
               // Determine role with priority - super admin from allowlist should be handled
               if (superAdminFromDoc || superAdminFromAllowlist) {
                 userRole = ROLE_STRINGS.SUPER_ADMIN;
-                // Ensure super admin state is set correctly
+                // Ensure super admin state is set correctly (include allowlist)
                 setIsSuperAdmin(true);
+              } else {
+                // Only set to false if not super admin from any source
+                setIsSuperAdmin(false);
+              }
+              
+              if (superAdminFromDoc || superAdminFromAllowlist) {
+                userRole = ROLE_STRINGS.SUPER_ADMIN;
               } else if (adminFromDoc || admin) {
                 userRole = ROLE_STRINGS.ADMIN;
               } else if (hr) {
