@@ -346,7 +346,7 @@ const DashboardPage = () => {
   if (authLoading) {
     return <GlobalLoadingFallback />;
   }
-  if (!user || !isAdmin) {
+  if (!user || !(isAdmin || isSuperAdmin)) {
     return (
       <div className="dashboard-page">
         <div className="access-denied">

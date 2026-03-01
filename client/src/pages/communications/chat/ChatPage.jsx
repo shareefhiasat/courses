@@ -82,7 +82,7 @@ import MessageBubbleWrapper from './components/MessageBubbleWrapper';
 import { useChatActions } from './hooks/useChatActions';
 
 const ChatPage = memo(() => {
-  const { user, isAdmin, loading: authLoading } = useAuth();
+  const { user, isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
@@ -192,6 +192,7 @@ const ChatPage = memo(() => {
     safeClasses,
     safeDirectRooms,
     isAdmin,
+    isSuperAdmin,
     t,
     logger,
     messageInputRef,
@@ -655,7 +656,7 @@ const ChatPage = memo(() => {
     const setupClassesSubscription = async () => {
       try {
         let ids = new Set();
-        if (!isAdmin) {
+        if (!isAdmin && !isSuperAdmin) {
           // Student: get enrolled classes
           const enrollmentsResult = await getEnrollments();
           const allEnr = enrollmentsResult.success ? (enrollmentsResult.data || []) : [];
@@ -719,7 +720,7 @@ const ChatPage = memo(() => {
     unsubs.push(unsub);
     
     return () => unsubs.forEach(u => u());
-  }, [user, isAdmin, authLoading, loadClassMembers, selectedClass]);
+  }, [user, isAdmin, isSuperAdmin, authLoading, loadClassMembers, selectedClass]);
 
   // Load all users once for DM labels
   useEffect(() => {
@@ -869,7 +870,7 @@ const ChatPage = memo(() => {
       }
 
       const all = classesResult.data || [];
-      if (isAdmin) {
+      if (isAdmin || isSuperAdmin) {
         setClasses(all);
       } else if (user?.uid) {
         const allEnr = enrollmentsResult.success ? (enrollmentsResult.data || []) : [];
@@ -1186,7 +1187,7 @@ const ChatPage = memo(() => {
               {t('chat_direct_messages')}
             </div>
           )} */}
-          {isAdmin && (
+          {(isAdmin || isSuperAdmin) && (
             <input
               type="text"
               placeholder={t('chat_search_users')}

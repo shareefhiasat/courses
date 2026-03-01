@@ -79,7 +79,7 @@ const defaultRoleScreens = {
  * @returns {Object} { hasAccess, loading, roleScreens, reload }
  */
 export const useRoleAccess = () => {
-  const { user, role, isSuperAdmin, loading: authLoading } = useAuth();
+  const { user, role, isSuperAdmin, loading: authLoading, roleLoading } = useAuth();
   const [roleScreens, setRoleScreens] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -130,14 +130,12 @@ export const useRoleAccess = () => {
   const hasAccess = useCallback((screenId) => {
     // Not authenticated
     if (!user) {
-      console.log('🔍 [useRoleAccess] No user:', { user: !!user });
       return false;
     }
 
-    // During initial loading, if user exists but role is still 'guest', be patient and allow access
+    // During initial loading, if user exists but role is still loading, be patient and allow access
     // This prevents the access denied flicker during role detection
-    if (!role || role === 'guest') {
-      console.log('🔍 [useRoleAccess] Role still loading or guest, allowing access:', { role });
+    if (!role || roleLoading) {
       return true;
     }
 
@@ -166,13 +164,6 @@ export const useRoleAccess = () => {
 
     const hasPermission = !!screenPermissions[screenId];
     
-    console.log('🔍 [useRoleAccess] Final check:', {
-      screenId,
-      userRole,
-      hasPermission,
-      screenPermissions: screenPermissions
-    });
-    
     return hasPermission;
   }, [user, role, isSuperAdmin, roleScreens]);
 
@@ -200,7 +191,7 @@ export const useRoleAccess = () => {
     hasAccess,
     hasAnyAccess,
     hasAllAccess,
-    loading: authLoading || loading,
+    loading: authLoading || loading || roleLoading,
     roleScreens,
     error,
     reload: loadRoleScreens

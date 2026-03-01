@@ -498,7 +498,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 <NavLink to="/" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
                   <span style={{ display: 'inline-flex', alignItems:'center' }}>{getThemedIcon('ui', 'home', 18, theme === 'light' ? 'white' : theme)}</span>
                 </NavLink>
-              {!isAdmin && (
+              {!isAdmin && !isSuperAdmin && (
                 <>
                   <NavLink to="/enrollments" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
                     {t('my_classes') || 'Classes'}

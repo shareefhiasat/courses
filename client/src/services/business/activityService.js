@@ -581,7 +581,8 @@ export const addActivityLog = async (log = {}) => {
 };
 
 export const addLoginLog = async (log = {}) => {
-  return logActivity(ACTIVITY_LOG_TYPES.LOGIN, log.metadata || {}, log.userId);
+  const { userId, metadata = {} } = log;
+  return logActivity(ACTIVITY_LOG_TYPES.LOGIN, metadata, userId);
 };
 
 export const getLoginLogs = async () => {

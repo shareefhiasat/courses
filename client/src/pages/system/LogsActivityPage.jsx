@@ -214,19 +214,16 @@ const LogsActivityPage = () => {
     { value: 'quiz_submitted', label: t('quiz_submitted') || 'Quiz Submitted' },
     { value: 'quiz_retake', label: t('quiz_retake') || 'Quiz Retake' },
     { value: 'quiz_saved', label: t('quiz_saved') || 'Quiz Saved' },
-    { value: 'quiz_viewed', label: t('quiz_viewed') || 'Quiz Viewed' },
 
     // Assignment Activities
     { value: 'assignment_started', label: t('assignment_started') || 'Assignment Started' },
     { value: 'assignment_submitted', label: t('assignment_submitted') || 'Assignment Submitted' },
-    { value: 'assignment_viewed', label: t('assignment_viewed') || 'Assignment Viewed' },
 
     // Grading & Feedback
     { value: 'submission_graded', label: t('submission_graded') || 'Submission Graded' },
     { value: 'feedback_given', label: t('feedback_given') || 'Feedback Given' },
 
     // Resource Activities
-    { value: 'resource_viewed', label: t('resource_viewed') || 'Resource Viewed' },
     { value: 'resource_completed', label: t('resource_completed') || 'Resource Completed' },
     { value: 'resource_bookmarked', label: t('resource_bookmarked') || 'Resource Bookmarked' },
     { value: 'resource_downloaded', label: t('resource_downloaded') || 'Resource Downloaded' },
@@ -241,11 +238,6 @@ const LogsActivityPage = () => {
     { value: 'announcement_created', label: t('announcement_created') || 'Announcement Created' },
     { value: 'announcement_updated', label: t('announcement_updated') || 'Announcement Updated' },
     { value: 'announcement_deleted', label: t('announcement_deleted') || 'Announcement Deleted' },
-
-    // Navigation & Views
-    { value: 'dashboard_viewed', label: t('dashboard_viewed') || 'Dashboard Viewed' },
-    { value: 'analytics_viewed', label: t('analytics_viewed') || 'Analytics Viewed' },
-    { value: 'activity_viewed', label: t('activity_viewed') || 'Activity Viewed' },
 
     // Tools & Utilities
     { value: 'calculator_opened', label: t('calculator_opened') || 'Calculator Opened' },
@@ -277,56 +269,48 @@ const LogsActivityPage = () => {
     { value: 'penalty_created', label: t('penalty_created') || 'Penalty Created' },
     { value: 'penalty_updated', label: t('penalty_updated') || 'Penalty Updated' },
     { value: 'penalty_deleted', label: t('penalty_deleted') || 'Penalty Deleted' },
-    { value: 'penalty_viewed', label: t('penalty_viewed') || 'Penalty Viewed' },
     { value: 'penalty_searched', label: t('penalty_searched') || 'Penalty Searched' },
 
     // Participation CRUD
     { value: 'participation_created', label: t('participation_created') || 'Participation Created' },
     { value: 'participation_updated', label: t('participation_updated') || 'Participation Updated' },
     { value: 'participation_deleted', label: t('participation_deleted') || 'Participation Deleted' },
-    { value: 'participation_viewed', label: t('participation_viewed') || 'Participation Viewed' },
     { value: 'participation_searched', label: t('participation_searched') || 'Participation Searched' },
 
     // Behavior CRUD
     { value: 'behavior_created', label: t('behavior_created') || 'Behavior Created' },
     { value: 'behavior_updated', label: t('behavior_updated') || 'Behavior Updated' },
     { value: 'behavior_deleted', label: t('behavior_deleted') || 'Behavior Deleted' },
-    { value: 'behavior_viewed', label: t('behavior_viewed') || 'Behavior Viewed' },
     { value: 'behavior_searched', label: t('behavior_searched') || 'Behavior Searched' },
 
     // Class CRUD
     { value: 'class_created', label: t('class_created') || 'Class Created' },
     { value: 'class_updated', label: t('class_updated') || 'Class Updated' },
     { value: 'class_deleted', label: t('class_deleted') || 'Class Deleted' },
-    { value: 'class_viewed', label: t('class_viewed') || 'Class Viewed' },
     { value: 'class_searched', label: t('class_searched') || 'Class Searched' },
 
     // Subject CRUD
     { value: 'subject_created', label: t('subject_created') || 'Subject Created' },
     { value: 'subject_updated', label: t('subject_updated') || 'Subject Updated' },
     { value: 'subject_deleted', label: t('subject_deleted') || 'Subject Deleted' },
-    { value: 'subject_viewed', label: t('subject_viewed') || 'Subject Viewed' },
     { value: 'subject_searched', label: t('subject_searched') || 'Subject Searched' },
 
     // Program CRUD
     { value: 'program_created', label: t('program_created') || 'Program Created' },
     { value: 'program_updated', label: t('program_updated') || 'Program Updated' },
     { value: 'program_deleted', label: t('program_deleted') || 'Program Deleted' },
-    { value: 'program_viewed', label: t('program_viewed') || 'Program Viewed' },
     { value: 'program_searched', label: t('program_searched') || 'Program Searched' },
 
     // Enrollment CRUD
     { value: 'enrollment_created', label: t('enrollment_created') || 'Enrollment Created' },
     { value: 'enrollment_updated', label: t('enrollment_updated') || 'Enrollment Updated' },
     { value: 'enrollment_deleted', label: t('enrollment_deleted') || 'Enrollment Deleted' },
-    { value: 'enrollment_viewed', label: t('enrollment_viewed') || 'Enrollment Viewed' },
     { value: 'enrollment_searched', label: t('enrollment_searched') || 'Enrollment Searched' },
 
     // Mark Entry CRUD
     { value: 'mark_entry_created', label: t('mark_entry_created') || 'Mark Entry Created' },
     { value: 'mark_entry_updated', label: t('mark_entry_updated') || 'Mark Entry Updated' },
     { value: 'mark_entry_deleted', label: t('mark_entry_deleted') || 'Mark Entry Deleted' },
-    { value: 'mark_entry_viewed', label: t('mark_entry_viewed') || 'Mark Entry Viewed' },
     { value: 'mark_entry_searched', label: t('mark_entry_searched') || 'Mark Entry Searched' },
 
     // Generic Actions
@@ -355,19 +339,16 @@ const LogsActivityPage = () => {
       quiz_submitted: { icon: <CheckCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Quiz Submitted' },
       quiz_retake: { icon: <RotateCw size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Quiz Retake' },
       quiz_saved: { icon: <Save size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Quiz Saved' },
-      quiz_viewed: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Quiz Viewed' },
 
       // Assignment Activities
       assignment_started: { icon: <Play size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Assignment Started' },
       assignment_submitted: { icon: <Upload size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Assignment Submitted' },
-      assignment_viewed: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Assignment Viewed' },
 
       // Grading & Feedback
       submission_graded: { icon: <Star size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Submission Graded' },
       feedback_given: { icon: <MessageSquare size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Feedback Given' },
 
       // Resource Activities
-      resource_viewed: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Resource Viewed' },
       resource_completed: { icon: <CheckCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Resource Completed' },
       resource_bookmarked: { icon: <Bookmark size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Resource Bookmarked' },
       resource_downloaded: { icon: <Download size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Resource Downloaded' },
@@ -382,11 +363,6 @@ const LogsActivityPage = () => {
       announcement_created: { icon: <PlusCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Announcement Created' },
       announcement_updated: { icon: <Edit size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Announcement Updated' },
       announcement_deleted: { icon: <Trash size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Announcement Deleted' },
-
-      // Navigation & Views
-      dashboard_viewed: { icon: <LayoutDashboard size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Dashboard Viewed' },
-      analytics_viewed: { icon: <BarChart size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Analytics Viewed' },
-      activity_viewed: { icon: <Activity size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Activity Viewed' },
 
       // Tools & Utilities
       calculator_opened: { icon: <Calculator size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Calculator Opened' },

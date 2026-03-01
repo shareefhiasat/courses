@@ -220,7 +220,7 @@ const ScheduleOverviewPage = () => {
     ];
   }, [subjects, programFilter, lang, t]);
 
-  if (!isAdmin && !isInstructor) {
+  if (!isAdmin && !isSuperAdmin && !isInstructor) {
     return (
       <div className="schedule-overview-access-denied">
         <h2>{t('access_denied') || 'Access Denied'}</h2>

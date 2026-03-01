@@ -36,6 +36,7 @@ export const AuthProvider = ({ children }) => {
   const [isInstructor, setIsInstructor] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [roleLoading, setRoleLoading] = useState(true); // Track when role is being resolved
   const [role, setRole] = useState(ROLE_STRINGS.STUDENT); // 'guest' | 'student' | 'instructor' | 'hr' | 'admin'
   const [impersonating, setImpersonating] = useState(null); // { originalUser, impersonatedUser }
   const [realUser, setRealUser] = useState(null); // Store the real admin user
@@ -206,6 +207,7 @@ export const AuthProvider = ({ children }) => {
           const logoutReason = sessionStorage.getItem('logoutReason');
           const logoutTimestamp = sessionStorage.getItem('logoutTimestamp');
           const sessionTimeoutUser = sessionStorage.getItem('sessionTimeoutUser');
+          const hasLoggedInThisSession = sessionStorage.getItem('hasLoggedInThisSession') === 'true';
           
           // Check if this is a manual logout or session timeout - if so, don't retry
           if (logoutReason === 'manual_logout' || logoutReason === 'session_timeout') {
@@ -215,13 +217,12 @@ export const AuthProvider = ({ children }) => {
             logger.warn(`[Auth] Temporary auth state change detected, retry ${authRetryCount}/${maxRetries}`);
             
             // Check if this is actually a network issue vs real logout
-            const hasRecentActivity = sessionStorage.getItem('hasLoggedInThisSession') === 'true';
             const sessionStart = sessionStorage.getItem('sessionStart');
             const recentSession = sessionStart && (Date.now() - parseInt(sessionStart)) < 5 * 60 * 1000; // 5 minutes
             const hasUserProfile = !!sessionStorage.getItem('userProfile');
             
             // More lenient check: if user profile exists, treat as potential temporary issue
-            if ((hasRecentActivity && recentSession) || hasUserProfile) {
+            if ((hasLoggedInThisSession && recentSession) || hasUserProfile) {
               // Wait a bit and see if auth state recovers
               await new Promise(resolve => setTimeout(resolve, 2000)); // Increased wait time
               return;
@@ -250,7 +251,8 @@ export const AuthProvider = ({ children }) => {
         setIsHR(false);
         setIsInstructor(false);
         setIsSuperAdmin(false);
-        setRole('guest');
+        setRole(ROLE_STRINGS.STUDENT);
+        setRoleLoading(false);
         setLoading(false);
         setHasLoggedInThisSession(false);
         sessionStorage.removeItem('hasLoggedInThisSession');
@@ -264,8 +266,15 @@ export const AuthProvider = ({ children }) => {
       // Reset retry count on successful auth
       authRetryCount = 0;
 
+      // Start role loading process
+      setRoleLoading(true);
+
+      // Check if this is a new login session
+      const currentHasLoggedInThisSession = sessionStorage.getItem('hasLoggedInThisSession') === 'true';
+      const sessionStart = sessionStorage.getItem('sessionStart');
+      const isNewLogin = !currentHasLoggedInThisSession;
+      
       // Only log login if we haven't logged this session yet
-      const isNewLogin = !hasLoggedInThisSession;
       
       setUser(firebaseUser);
 
@@ -470,11 +479,31 @@ export const AuthProvider = ({ children }) => {
               
               setRole(userRole);
               setRealUser({ ...firebaseUser, role: userRole });
+              setRoleLoading(false); // Role resolution complete
+              
+              // Debug role resolution
+              logger.info('[Auth] Role resolved:', {
+                userId: firebaseUser.uid,
+                email: firebaseUser.email,
+                resolvedRole: userRole,
+                isSuperAdmin: superAdminFromDoc || superAdminFromAllowlist,
+                isAdmin: adminFromDoc || admin,
+                isHR: hr,
+                isInstructor: instructor
+              });
               
               // Log login if new session
               if (isNewLogin) {
                 try {
-                  await addLoginLog(firebaseUser, statusSummary);
+                  await addLoginLog({
+                    userId: firebaseUser.uid,
+                    metadata: {
+                      email: firebaseUser.email,
+                      displayName: firebaseUser.displayName,
+                      status: statusSummary,
+                      timestamp: new Date().toISOString()
+                    }
+                  });
                 } catch (e) {
                   logger.warn('[Auth] Failed to add login log:', e);
                 }
@@ -525,7 +554,10 @@ export const AuthProvider = ({ children }) => {
           // Set fallback state to prevent app from breaking
           setUser(firebaseUser);
           setIsAdmin(false);
-          setRole('guest');
+          // Don't set role to 'guest' - this causes permission issues
+          // Keep the existing role or set to student as default
+          setRole(ROLE_STRINGS.STUDENT);
+          setRoleLoading(false);
           setLoading(false);
         }
       }
@@ -542,10 +574,10 @@ export const AuthProvider = ({ children }) => {
         unsubscribe();
       }
     };
-  }, [hasLoggedInThisSession, loading]);
+  }, []); // Empty dependency array - run only once
 
   const impersonateUser = async (studentId) => {
-    if (!isAdmin) return { success: false, error: 'Only admins can impersonate' };
+    if (!isAdmin && !isSuperAdmin) return { success: false, error: 'Only admins can impersonate' };
     
     try {
       // Get student data
@@ -612,7 +644,8 @@ export const AuthProvider = ({ children }) => {
     isHR,
     isInstructor,
     role,
-    loading,
+    loading: loading || roleLoading, // Include role loading in overall loading
+    roleLoading, // Expose role loading state
     impersonating,
     impersonateUser,
     stopImpersonation
