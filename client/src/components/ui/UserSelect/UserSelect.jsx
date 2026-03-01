@@ -1,6 +1,6 @@
 import React from 'react';
 import { Select } from '@ui';
-import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '@utils/userStatus';
+import { getUserStatus, getUserStatusSummary, getStatusIconProps, getStatusDescription, USER_STATUS } from '@utils/userStatus';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getThemeColor } from '@constants/dashboardTypes';
 import { ROLE_STRINGS } from '@constants';
@@ -141,9 +141,42 @@ const UserSelect = ({
       }
       
       // Get status information
-      const status = getUserStatus(u, enrollments);
-      const statusSummary = getUserStatusSummary(u, enrollments);
-      const iconProps = getStatusIconProps(status);
+      // For instructors, calculate status based on classes they teach, not student enrollments
+      let status, statusSummary, iconProps;
+      
+      if (isInstructor(u) || isAdmin(u)) {
+        // For instructors: use a simplified status check that doesn't rely on student enrollments
+        if (u.deleted === true || u.deletedAt) {
+          status = USER_STATUS.DELETED;
+        } else if (u.archived === true || u.archivedAt) {
+          status = USER_STATUS.ARCHIVED;
+        } else if (u.disabled === true || u.disabledAt) {
+          status = USER_STATUS.DISABLED;
+        } else {
+          // Instructors are active if they exist, regardless of enrollments
+          status = USER_STATUS.ACTIVE;
+        }
+        
+        // Create a minimal status summary for instructors
+        statusSummary = {
+          status,
+          label: status === USER_STATUS.ACTIVE ? 'Active' : USER_STATUS_LABELS[status] || status,
+          canLogin: status !== USER_STATUS.DELETED && status !== USER_STATUS.DISABLED,
+          hasFullAccess: status === USER_STATUS.ACTIVE,
+          hasReadOnlyAccess: status === USER_STATUS.ARCHIVED,
+          canParticipate: status === USER_STATUS.ACTIVE,
+          canViewDashboard: status !== USER_STATUS.DELETED,
+          enrollmentCount: enrollmentCount,
+          iconProps: getStatusIconProps(status),
+          description: status === USER_STATUS.ACTIVE ? 'Instructor is active' : getStatusDescription(status)
+        };
+      } else {
+        // For students: use the normal status calculation
+        status = getUserStatus(u, enrollments);
+        statusSummary = getUserStatusSummary(u, enrollments);
+      }
+      
+      iconProps = getStatusIconProps(status);
       let IconComponent = getIconComponent(iconProps.name);
       
       // Add instructor icon if user is instructor

@@ -13,7 +13,7 @@ import { getEnrollments } from '@services/business/enrollmentService';
 import { getActivities } from '@services/business/activityService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger.jsx';
 import { ROLE_STRINGS } from '@utils/userUtils';
-import { isAdmin, isInstructor, isSuperAdmin, canTeach } from '@utils/userUtils';
+import { isAdmin, isInstructor, isSuperAdmin } from '@services/business/userService';
 import { makeCurrentUserSuperAdminAndInstructor } from '@utils/userRoleManager';
 import { 
   Button, 
@@ -93,7 +93,7 @@ const ClassesPage = () => {
         
         // Filter instructor users using centralized utilities (FLAG ONLY)
         const instructorUsers = usersRes.data?.filter(u => 
-          isSuperAdminUser(u) || isAdminUser(u) || isInstructorUser(u)
+          isSuperAdmin(u) || isAdmin(u) || isInstructor(u)
         );
         setFilteredInstructorUsers(instructorUsers || []);
         
@@ -812,7 +812,7 @@ const handleCancelEdit = useCallback(() => {
             onChange={(e) => setClassInstructorFilter(e.target.value)}
             options={[
               { value: '', label: lang === 'ar' ? 'جميع المدربين' : 'All Instructors', icon: getThemedIcon('ui', 'users', 16, theme) },
-              ...users.filter(u => isSuperAdminUser(u) || isAdminUser(u) || isInstructorUser(u)).map(instructor => ({
+              ...users.filter(u => isSuperAdmin(u) || isAdmin(u) || isInstructor(u)).map(instructor => ({
                   value: instructor.email,
                   label: instructor.displayName || instructor.name || instructor.email,
                   icon: getThemedIcon('ui', 'user', 16, theme)
