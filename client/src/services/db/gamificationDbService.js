@@ -5,29 +5,30 @@
  * Direct Firestore operations for gamification records. This is the database layer
  * and should NOT contain business logic.
  * 
- * COLLECTIONS: 'gamification', 'leaderboards', 'achievements'
+ * COLLECTIONS.GAMIFICATION: 'gamification', 'leaderboards', 'achievements'
  * 
  * @typedef {import('@types/index').Gamification} Gamification
  * @typedef {import('@types/index').ServiceResponse} ServiceResponse
  */
 
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  where, 
-  getDocs,
+  serverTimestamp,
+  increment,
+  doc,
+  getDoc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  collection,
+  query,
+  where,
   orderBy,
   limit,
-  serverTimestamp,
-  increment
+  getDocs
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get student gamification data - with performance monitoring and memoization
@@ -36,7 +37,7 @@ import logger from '@utils/logger';
  */
 export const getStudentGamification = async (studentId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'gamification', studentId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.GAMIFICATION, studentId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -67,7 +68,7 @@ export const getStudentGamification = async (studentId) => {
 export const setStudentGamification = async (studentId, gamificationData) => {
   try {
     await setDoc(
-      doc(db, 'gamification', studentId),
+      doc(dbService.getDb(), COLLECTIONS.GAMIFICATION, studentId),
       {
         ...gamificationData,
         studentId,
@@ -91,7 +92,7 @@ export const setStudentGamification = async (studentId, gamificationData) => {
  */
 export const awardPoints = async (studentId, points, metadata = {}) => {
   try {
-    await updateDoc(doc(db, 'gamification', studentId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.GAMIFICATION, studentId), {
       totalPoints: increment(points),
       pointsHistory: increment(1),
       lastPointsAwarded: serverTimestamp(),
@@ -113,7 +114,7 @@ export const awardPoints = async (studentId, points, metadata = {}) => {
  */
 export const updateStudentRank = async (studentId, rank) => {
   try {
-    await updateDoc(doc(db, 'gamification', studentId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.GAMIFICATION, studentId), {
       currentRank: rank,
       rankUpdatedAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -135,7 +136,7 @@ export const getLeaderboard = async (options = {}) => {
     const { limitCount = 100, orderByField = 'totalPoints', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, 'gamification'),
+      collection(dbService.getDb(), COLLECTIONS.GAMIFICATION),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
     );
@@ -186,7 +187,7 @@ export const getClassLeaderboard = async (classId, options = {}) => {
 export const getStudentAchievements = async (studentId) => {
   try {
     const q = query(
-      collection(db, 'achievements'),
+      collection(dbService.getDb(), 'achievements'),
       where('studentId', '==', studentId),
       orderBy('earnedAt', 'desc')
     );
@@ -207,7 +208,7 @@ export const getStudentAchievements = async (studentId) => {
  */
 export const awardAchievement = async (studentId, achievementData) => {
   try {
-    const docRef = doc(collection(db, 'achievements'));
+    const docRef = doc(collection(dbService.getDb(), 'achievements'));
     await setDoc(docRef, {
       ...achievementData,
       studentId,
@@ -228,7 +229,7 @@ export const awardAchievement = async (studentId, achievementData) => {
  */
 export const updateStudentSkills = async (studentId, skillsData) => {
   try {
-    await updateDoc(doc(db, 'gamification', studentId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.GAMIFICATION, studentId), {
       skills: skillsData,
       skillsUpdatedAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -248,7 +249,7 @@ export const updateStudentSkills = async (studentId, skillsData) => {
 export const getTopStudents = async (count = 10) => {
   try {
     const q = query(
-      collection(db, 'gamification'),
+      collection(dbService.getDb(), COLLECTIONS.GAMIFICATION),
       orderBy('totalPoints', 'desc'),
       limit(count)
     );
@@ -286,7 +287,7 @@ export const initializeStudentGamification = async (studentId, initialData = {})
       updatedAt: serverTimestamp()
     };
     
-    await setDoc(doc(db, 'gamification', studentId), defaultData);
+    await setDoc(doc(dbService.getDb(), COLLECTIONS.GAMIFICATION, studentId), defaultData);
     return { success: true };
   } catch (error) {
     logger.error('[GamificationDbService] Error initializing student gamification:', error);

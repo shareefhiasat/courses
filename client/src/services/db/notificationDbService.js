@@ -13,23 +13,24 @@
  */
 
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  where, 
-  getDocs,
+  serverTimestamp,
+  onSnapshot,
+  collection,
+  query,
+  where,
   orderBy,
   limit,
-  serverTimestamp,
-  onSnapshot
+  doc,
+  updateDoc,
+  deleteDoc,
+  getDoc,
+  setDoc,
+  getDocs
 } from 'firebase/firestore';
-import { db } from '../other/config';
-import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 
 /**
  * Get notifications for a user - with performance monitoring and memoization
@@ -47,7 +48,7 @@ export const getNotifications = async (userId, options = {}) => {
     }
     
     const q = query(
-      collection(db, 'notifications'),
+      collection(dbService.getDb(), COLLECTIONS.NOTIFICATIONS),
       ...conditions,
       orderBy('createdAt', 'desc'),
       limit(limitCount)
@@ -80,7 +81,7 @@ export const getNotifications = async (userId, options = {}) => {
  */
 export const getNotification = async (notificationId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'notifications', notificationId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.NOTIFICATIONS, notificationId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -99,7 +100,7 @@ export const getNotification = async (notificationId) => {
  */
 export const create = async (notificationData, user = null) => {
   try {
-    const docRef = doc(collection(db, 'notifications'));
+    const docRef = doc(collection(dbService.getDb(), COLLECTIONS.NOTIFICATIONS));
     await setDoc(docRef, {
       ...notificationData,
       read: false,
@@ -120,7 +121,7 @@ export const create = async (notificationData, user = null) => {
  */
 export const markNotificationAsRead = async (notificationId) => {
   try {
-    await updateDoc(doc(db, 'notifications', notificationId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.NOTIFICATIONS, notificationId), {
       read: true,
       readAt: serverTimestamp()
     });
@@ -139,7 +140,7 @@ export const markNotificationAsRead = async (notificationId) => {
 export const markAllNotificationsAsRead = async (userId) => {
   try {
     const q = query(
-      collection(db, 'notifications'),
+      collection(dbService.getDb(), COLLECTIONS.NOTIFICATIONS),
       where('userId', '==', userId),
       where('read', '==', false)
     );
@@ -167,7 +168,7 @@ export const markAllNotificationsAsRead = async (userId) => {
  */
 export const archiveNotification = async (notificationId) => {
   try {
-    await updateDoc(doc(db, 'notifications', notificationId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.NOTIFICATIONS, notificationId), {
       archived: true,
       archivedAt: serverTimestamp()
     });
@@ -185,7 +186,7 @@ export const archiveNotification = async (notificationId) => {
  */
 export const deleteNotification = async (notificationId) => {
   try {
-    await deleteDoc(doc(db, 'notifications', notificationId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.NOTIFICATIONS, notificationId));
     return { success: true };
   } catch (error) {
     logger.error('[NotificationDbService] Error deleting notification:', error);
@@ -202,7 +203,7 @@ export const deleteNotification = async (notificationId) => {
 export const onNotificationsChange = (userId, callback) => {
   try {
     const q = query(
-      collection(db, 'notifications'),
+      collection(dbService.getDb(), COLLECTIONS.NOTIFICATIONS),
       where('userId', '==', userId),
       orderBy('createdAt', 'desc'),
       limit(50)
@@ -227,7 +228,7 @@ export const onNotificationsChange = (userId, callback) => {
  */
 export const logNotificationActivity = async (activity) => {
   try {
-    const docRef = doc(collection(db, 'notificationLogs'));
+    const docRef = doc(collection(dbService.getDb(), 'notificationLogs'));
     const logEntry = {
       ...activity,
       timestamp: serverTimestamp(),

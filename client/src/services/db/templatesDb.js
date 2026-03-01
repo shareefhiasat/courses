@@ -4,11 +4,12 @@
  * Following the project's service layer architecture
  */
 
-import { db } from '../other/config';
-import { collection, addDoc, getDocs, serverTimestamp, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { serverTimestamp, doc, getDoc, updateDoc, setDoc, deleteDoc, collection, getDocs, addDoc } from 'firebase/firestore';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
-const TEMPLATES_COLLECTION = 'emailTemplates';
+const TEMPLATES_COLLECTION = COLLECTIONS.EMAIL_TEMPLATES;
 
 /**
  * Get all email templates from Firestore
@@ -17,7 +18,7 @@ export const getAllTemplates = async () => {
   try {
     logger.debug('Fetching all email templates from Firestore');
     
-    const templatesSnapshot = await getDocs(collection(db, TEMPLATES_COLLECTION));
+    const templatesSnapshot = await getDocs(collection(dbService.getDb(), TEMPLATES_COLLECTION));
     const templates = templatesSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -38,7 +39,7 @@ export const getAllTemplates = async () => {
  */
 export const getExistingTemplateIds = async () => {
   try {
-    const templatesSnapshot = await getDocs(collection(db, TEMPLATES_COLLECTION));
+    const templatesSnapshot = await getDocs(collection(dbService.getDb(), TEMPLATES_COLLECTION));
     const templateIds = templatesSnapshot.docs.map(doc => doc.data().id);
     
     logger.debug('Existing template IDs:', templateIds);
@@ -57,7 +58,7 @@ export const createTemplate = async (templateData) => {
   try {
     logger.debug('Creating template:', templateData.id);
     
-    const docRef = await addDoc(collection(db, TEMPLATES_COLLECTION), {
+    const docRef = await addDoc(collection(dbService.getDb(), TEMPLATES_COLLECTION), {
       ...templateData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -77,7 +78,7 @@ export const createTemplate = async (templateData) => {
  */
 export const getTemplateById = async (templateId) => {
   try {
-    const docRef = doc(db, TEMPLATES_COLLECTION, templateId);
+    const docRef = doc(dbService.getDb(), TEMPLATES_COLLECTION, templateId);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
@@ -98,7 +99,7 @@ export const updateTemplate = async (templateId, updateData) => {
   try {
     logger.debug('Updating template:', templateId);
     
-    const docRef = doc(db, TEMPLATES_COLLECTION, templateId);
+    const docRef = doc(dbService.getDb(), TEMPLATES_COLLECTION, templateId);
     await updateDoc(docRef, {
       ...updateData,
       updatedAt: serverTimestamp()
@@ -120,7 +121,7 @@ export const deleteTemplate = async (templateId) => {
   try {
     logger.debug('Deleting template:', templateId);
     
-    const docRef = doc(db, TEMPLATES_COLLECTION, templateId);
+    const docRef = doc(dbService.getDb(), TEMPLATES_COLLECTION, templateId);
     await deleteDoc(docRef);
     
     logger.debug('Template deleted successfully');

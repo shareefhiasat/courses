@@ -35,12 +35,10 @@ const validateResourceData = (data) => [
 // Get all resources - with performance monitoring and memoization
 export const getResources = async () => {
   try {
-    logger.info('RESOURCE: Fetching all resources');
-    
     const result = await getResourcesFromDb();
     
     if (result.success) {
-      logger.info('RESOURCE: Successfully fetched resources', { count: result.data.length });
+      // Resources fetched successfully
     } else {
       logger.warn('RESOURCE: Failed to fetch resources', { error: result.error });
     }

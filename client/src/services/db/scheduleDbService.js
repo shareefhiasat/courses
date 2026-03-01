@@ -12,14 +12,20 @@
  */
 
 import { 
-  collection, 
-  query, 
-  where, 
-  getDocs,
-  Timestamp
+  Timestamp,
+  doc,
+  getDoc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  collection,
+  query,
+  where,
+  getDocs
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get all classes with schedules for a specific term and year
@@ -29,30 +35,31 @@ import logger from '@utils/logger';
  */
 export const getSchedulesByTermAndYear = async (term, year) => {
   try {
-    const q = query(
-      collection(db, 'classes'), 
-      where('term', '==', term),
-      where('year', '==', year)
-    );
+    // Get all classes first, then filter client-side for multiple where conditions
+    const result = await dbService.getAll(COLLECTIONS.CLASSES);
     
-    const querySnapshot = await getDocs(q);
-    const schedules = querySnapshot.docs
-      .map(doc => ({ docId: doc.id, ...doc.data() }))
-      .filter(cls => cls.schedule && cls.schedule.days && cls.schedule.days.length > 0);
+    if (result.success) {
+      const schedules = result.data
+        .filter(cls => cls.term === term && cls.year === year)
+        .filter(cls => cls.schedule && cls.schedule.days && cls.schedule.days.length > 0);
+      
+      return { success: true, data: schedules };
+    }
     
-    return { success: true, data: schedules };
-  } catch (error) {
-    // Check if this is a missing collection error
-    if (error.message.includes('Missing or insufficient permissions') || 
-        error.code === 'permission-denied' ||
-        error.message.includes('No document to update')) {
-      logger.warn('[ScheduleDbService] Classes collection not available:', { error: error.message });
+    // Handle missing collection gracefully
+    if (!result.success && result.error && 
+        (result.error.includes('Missing or insufficient permissions') || 
+         result.error.includes('permission-denied') ||
+         result.error.includes('No document to update'))) {
+      logger.warn('[ScheduleDbService] Classes collection not available:', { error: result.error });
       return {
         success: true,
         data: []
       };
     }
     
+    return result;
+  } catch (error) {
     logger.error('[ScheduleDbService] Error getting schedules by term and year:', error);
     return { success: false, error: error.message };
   }
@@ -64,7 +71,7 @@ export const getSchedulesByTermAndYear = async (term, year) => {
  */
 export const getAllSchedules = async () => {
   try {
-    const querySnapshot = await getDocs(collection(db, 'classes'));
+    const querySnapshot = await getDocs(collection(dbService.getDb(), COLLECTIONS.CLASSES));
     const schedules = querySnapshot.docs
       .map(doc => ({ docId: doc.id, ...doc.data() }))
       .filter(cls => cls.schedule && cls.schedule.days && cls.schedule.days.length > 0);
@@ -88,14 +95,14 @@ export const getSchedulesByProgram = async (programId, term = null, year = null)
     let q;
     if (term && year) {
       q = query(
-        collection(db, 'classes'),
+        collection(dbService.getDb(), COLLECTIONS.CLASSES),
         where('programId', '==', programId),
         where('term', '==', term),
         where('year', '==', year)
       );
     } else {
       q = query(
-        collection(db, 'classes'),
+        collection(dbService.getDb(), COLLECTIONS.CLASSES),
         where('programId', '==', programId)
       );
     }
@@ -124,14 +131,14 @@ export const getSchedulesByInstructor = async (instructorEmail, term = null, yea
     let q;
     if (term && year) {
       q = query(
-        collection(db, 'classes'),
+        collection(dbService.getDb(), COLLECTIONS.CLASSES),
         where('ownerEmail', '==', instructorEmail),
         where('term', '==', term),
         where('year', '==', year)
       );
     } else {
       q = query(
-        collection(db, 'classes'),
+        collection(dbService.getDb(), COLLECTIONS.CLASSES),
         where('ownerEmail', '==', instructorEmail)
       );
     }

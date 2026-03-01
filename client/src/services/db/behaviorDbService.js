@@ -33,23 +33,23 @@
  */
 
 import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
-  serverTimestamp 
+  serverTimestamp,
+  collection,
+  query,
+  orderBy,
+  getDocs,
+  doc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  getDoc,
+  where
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
-// Collection name
-const COLLECTION = 'behaviors';
+const COLLECTION = COLLECTIONS.BEHAVIOR;
 
 // ============================================================================
 // CRUD OPERATIONS
@@ -62,7 +62,7 @@ const COLLECTION = 'behaviors';
  */
 export const createBehavior = async (behaviorData) => {
   try {
-    const docRef = doc(collection(db, COLLECTION));
+    const docRef = doc(collection(dbService.getDb(), COLLECTION));
     const behaviorWithTimestamp = {
       ...behaviorData,
       createdAt: serverTimestamp(),
@@ -91,7 +91,7 @@ export const createBehavior = async (behaviorData) => {
  */
 export const getBehavior = async (id) => {
   try {
-    const docRef = doc(db, COLLECTION, id);
+    const docRef = doc(dbService.getDb(), COLLECTION, id);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
@@ -122,7 +122,7 @@ export const getBehavior = async (id) => {
  */
 export const updateBehavior = async (id, updateData) => {
   try {
-    const docRef = doc(db, COLLECTION, id);
+    const docRef = doc(dbService.getDb(), COLLECTION, id);
     const updateWithTimestamp = {
       ...updateData,
       updatedAt: serverTimestamp()
@@ -150,7 +150,7 @@ export const updateBehavior = async (id, updateData) => {
  */
 export const deleteBehavior = async (id) => {
   try {
-    const docRef = doc(db, COLLECTION, id);
+    const docRef = doc(dbService.getDb(), COLLECTION, id);
     await deleteDoc(docRef);
     
     return {
@@ -177,7 +177,7 @@ export const deleteBehavior = async (id) => {
 export const getBehaviorsByStudent = async (studentId) => {
   try {
     const q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       where('studentId', '==', studentId),
       orderBy('createdAt', 'desc')
     );
@@ -208,7 +208,7 @@ export const getBehaviorsByStudent = async (studentId) => {
 export const getBehaviors = async () => {
   try {
     const q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       orderBy('createdAt', 'desc')
     );
     
@@ -250,7 +250,7 @@ export const getBehaviors = async () => {
 export const getBehaviorsByClass = async (classId) => {
   try {
     const q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       where('classId', '==', classId),
       orderBy('createdAt', 'desc')
     );
@@ -283,7 +283,7 @@ export const getBehaviorsByClass = async (classId) => {
 export const getBehaviorsByClassAndDate = async (classId, date) => {
   try {
     const q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       where('classId', '==', classId),
       where('date', '==', date),
       orderBy('createdAt', 'desc')

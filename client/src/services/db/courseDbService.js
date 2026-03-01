@@ -12,21 +12,22 @@
  */
 
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  where, 
+  serverTimestamp,
+  doc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  getDoc,
+  collection,
+  query,
+  where,
   getDocs,
-  orderBy,
-  serverTimestamp
+  orderBy
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get all courses - with performance monitoring and memoization
@@ -34,10 +35,13 @@ import logger from '@utils/logger';
  */
 export const getCourses = async () => {
   try {
-    const q = query(collection(db, 'courses'), orderBy('order', 'asc'));
-    const querySnapshot = await getDocs(q);
-    const courses = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: courses };
+    const result = await dbService.getAll(COLLECTIONS.COURSES, {
+      orderBy: {
+        field: 'order',
+        direction: 'asc'
+      }
+    });
+    return result;
   } catch (error) {
     logger.error('[CourseDbService] Error getting courses:', error);
     return { success: false, error: error.message };
@@ -51,7 +55,7 @@ export const getCourses = async () => {
  */
 export const getCourse = async (courseId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'courses', courseId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.COURSES, courseId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -70,7 +74,7 @@ export const getCourse = async (courseId) => {
  */
 export const create = async (courseData, user = null) => {
   try {
-    const docRef = doc(collection(db, 'courses'));
+    const docRef = doc(collection(dbService.getDb(), COLLECTIONS.COURSES));
     const finalData = {
       ...courseData,
       ...getCreateAuditData(user || { uid: 'system' })
@@ -96,7 +100,7 @@ export const update = async (courseId, courseData, user = null) => {
       ...courseData,
       ...getUpdateAuditData(user || { uid: 'system' })
     };
-    await updateDoc(doc(db, 'courses', courseId), finalData);
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.COURSES, courseId), finalData);
     return { success: true };
   } catch (error) {
     logger.error('[CourseDbService] Error updating course:', error);
@@ -113,7 +117,7 @@ export const update = async (courseId, courseData, user = null) => {
 export const setCourse = async (courseId, courseData) => {
   try {
     await setDoc(
-      doc(db, 'courses', courseId),
+      doc(dbService.getDb(), COLLECTIONS.COURSES, courseId),
       {
         ...courseData,
         updatedAt: serverTimestamp()
@@ -134,7 +138,7 @@ export const setCourse = async (courseId, courseData) => {
  */
 export const deleteCourse = async (courseId) => {
   try {
-    await deleteDoc(doc(db, 'courses', courseId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.COURSES, courseId));
     return { success: true };
   } catch (error) {
     logger.error('[CourseDbService] Error deleting course:', error);
@@ -149,7 +153,7 @@ export const deleteCourse = async (courseId) => {
 export const getActiveCourses = async () => {
   try {
     const q = query(
-      collection(db, 'courses'), 
+      collection(dbService.getDb(), COLLECTIONS.COURSES), 
       where('isActive', '==', true),
       orderBy('order', 'asc')
     );
@@ -170,7 +174,7 @@ export const getActiveCourses = async () => {
 export const getCoursesByProgram = async (programId) => {
   try {
     const q = query(
-      collection(db, 'courses'), 
+      collection(dbService.getDb(), COLLECTIONS.COURSES), 
       where('programId', '==', programId),
       orderBy('order', 'asc')
     );

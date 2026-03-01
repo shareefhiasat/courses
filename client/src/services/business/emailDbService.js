@@ -1,18 +1,14 @@
 import { 
-  collection, 
-  getDocs, 
-  query, 
-  orderBy, 
-  where, 
-  getDoc, 
-  doc, 
-  deleteDoc, 
-  addDoc, 
-  updateDoc, 
-  Timestamp 
+  Timestamp,
+  collection,
+  query,
+  orderBy,
+  getDocs
 } from 'firebase/firestore';
-import { db } from '@services/other/config';
+import { db } from '../other/config';
+import dbService from '../other/dbService';
 import logger from '@utils/logger';
+import { NOTIFICATION_COLLECTIONS } from '@constants/collections';
 
 /**
  * Email Database Service
@@ -21,7 +17,7 @@ import logger from '@utils/logger';
  */
 
 // Template collection reference
-const TEMPLATES_COLLECTION = 'emailTemplates';
+const TEMPLATES_COLLECTION = NOTIFICATION_COLLECTIONS.EMAIL_TEMPLATES;
 
 /**
  * Get all email templates
@@ -30,8 +26,6 @@ const TEMPLATES_COLLECTION = 'emailTemplates';
  */
 export const getEmailTemplates = async (forceRefresh = false) => {
   try {
-    logger.info('📋 Loading email templates...', { forceRefresh });
-    
     const q = query(
       collection(db, TEMPLATES_COLLECTION), 
       orderBy('createdAt', 'desc')
@@ -47,8 +41,6 @@ export const getEmailTemplates = async (forceRefresh = false) => {
       templateIds.push(doc.id);
     });
 
-    logger.info('📊 Templates loaded:', { count: templateList.length, ids: templateIds });
-    
     return templateList;
   } catch (error) {
     logger.error('❌ Error loading templates:', error);

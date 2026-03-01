@@ -25,7 +25,8 @@ import {
   limit,
   serverTimestamp
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
+import { COLLECTIONS } from '@constants/collections';
 import logger from '@utils/logger';
 
 /**
@@ -51,7 +52,7 @@ export const getQuizzes = async (filters = {}) => {
     if (subjectId) conditions.push(where('subjectId', '==', subjectId));
     
     const q = query(
-      collection(db, 'quizzes'),
+      collection(dbService.getDb(), COLLECTIONS.QUIZZES),
       ...conditions,
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -84,7 +85,7 @@ export const getQuizzes = async (filters = {}) => {
  */
 export const getQuiz = async (quizId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'quizzes', quizId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.QUIZZES, quizId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -103,7 +104,7 @@ export const getQuiz = async (quizId) => {
  */
 export const create = async (quizData, auditData = {}) => {
   try {
-    const docRef = doc(collection(db, 'quizzes'));
+    const docRef = doc(collection(dbService.getDb(), COLLECTIONS.QUIZZES));
     await setDoc(docRef, {
       ...quizData,
       ...auditData
@@ -124,7 +125,7 @@ export const create = async (quizData, auditData = {}) => {
  */
 export const update = async (quizId, quizData, auditData = {}) => {
   try {
-    await updateDoc(doc(db, 'quizzes', quizId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.QUIZZES, quizId), {
       ...quizData,
       ...auditData
     });
@@ -142,7 +143,7 @@ export const update = async (quizId, quizData, auditData = {}) => {
  */
 export const deleteQuiz = async (quizId) => {
   try {
-    await deleteDoc(doc(db, 'quizzes', quizId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.QUIZZES, quizId));
     return { success: true };
   } catch (error) {
     logger.error('[QuizzesDbService] Error deleting quiz:', error);

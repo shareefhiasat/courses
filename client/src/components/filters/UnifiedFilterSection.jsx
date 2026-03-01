@@ -148,11 +148,6 @@ const UnifiedFilterSection = ({
     showGraded: true
   }
 }) => {
-  console.log('[UnifiedFilterSection] Received props:', {
-    resourceTypeFilter,
-    resourceTypes,
-    resourceTypesLength: resourceTypes.length
-  });
   const isDark = theme === 'dark';
 
   return (

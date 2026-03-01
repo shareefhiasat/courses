@@ -47,8 +47,6 @@ const ClassSchedulePage = () => {
   const [quickSearch, setQuickSearch] = useState(''); // Quick filter for class name or instructor
   const [classStats, setClassStats] = useState({}); // Statistics for each class
 
-  // Debug log to show current primaryColor
-  console.log('[ClassSchedule] Primary color from ColorTheme:', primaryColor);
   const [programFilter, setProgramFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [classFilter, setClassFilter] = useState('all');
@@ -254,8 +252,6 @@ const ClassSchedulePage = () => {
       return;
     }
     
-    console.log('📊 [ClassSchedule] Fetching stats for', classList.length, 'classes');
-    
     // Get all class IDs
     const classIds = classList.map(cls => cls.docId || cls.id).filter(Boolean);
     
@@ -305,7 +301,6 @@ const ClassSchedulePage = () => {
         };
       }
       
-      console.log('✅ [ClassSchedule] Stats fetched successfully');
       setClassStats(stats);
     } catch (error) {
       console.error('❌ [ClassSchedule] Failed to fetch stats:', error);
@@ -330,7 +325,6 @@ const ClassSchedulePage = () => {
   useEffect(() => {
     // Fetch stats when classes are available (for all view modes)
     if (classes.length > 0) {
-      console.log('🔄 [ClassSchedule] Triggering stats fetch for all classes');
       fetchClassStats(classes);
     }
   }, [classes, fetchClassStats]);
@@ -352,14 +346,11 @@ const ClassSchedulePage = () => {
         
         // Fetch instructor data for all classes
         const instructorEmails = [...new Set(classesRes.data.map(cls => cls.ownerEmail).filter(Boolean))];
-        console.log('👨‍🏫 [ClassSchedule] Found instructor emails:', instructorEmails);
         
         const instructorPromises = instructorEmails.map(async (email) => {
           try {
-            console.log(`🔍 [ClassSchedule] Fetching instructor data for: ${email}`);
             const userRes = await getUserByEmail(email);
             const instructorData = userRes.success ? userRes.data : null;
-            console.log(`📋 [ClassSchedule] Instructor data for ${email}:`, instructorData);
             return { email, data: instructorData };
           } catch (error) {
             console.warn(`Failed to fetch instructor for email: ${email}`, error);
@@ -376,13 +367,9 @@ const ClassSchedulePage = () => {
               ...data,
               email: email // Ensure email is included
             };
-            console.log(`✅ [ClassSchedule] Mapped instructor: ${email} ->`, data.displayName || data.realName || 'No name');
-          } else {
-            console.warn(`❌ [ClassSchedule] No data found for instructor: ${email}`);
           }
         });
         
-        console.log('🎯 [ClassSchedule] Final instructor map:', instructorMap);
         setInstructors(instructorMap);
       } else {
         throw new Error(classesRes.error);

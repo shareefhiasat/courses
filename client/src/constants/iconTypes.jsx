@@ -142,7 +142,10 @@ export const ICON_TYPES = {
     homework: <FileText size={16} />,
     training: <Award size={16} />,
     lab: <Monitor size={16} />,
-    exam: <FileText size={16} />
+    exam: <FileText size={16} />,
+    star: <Star size={16} />,
+    zap: <Zap size={16} />,
+    trophy: <Trophy size={16} />
   },
   
   // Notification Type Icons

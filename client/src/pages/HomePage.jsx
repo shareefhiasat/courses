@@ -6,7 +6,7 @@ import logger from '@utils/logger';
 import { getAcademicTermOptions, getAcademicTermLabel } from '@constants/academicTerms';
 const { getThemedIcon, getIconWithColor } = iconTypes;
 import { useTheme } from '@contexts/ThemeContext';
-import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import { GlobalLoadingFallback, useGlobalLoading } from '@contexts/GlobalLoadingContext';
 import { Tabs } from '@ui';
 import { getActivities, getAnnouncements, getResources } from '@services/business/activityService';
 import { getCourses } from '@services/business/courseService';
@@ -17,7 +17,7 @@ import { getUserProfile, updateUserProgress, getUsers } from '@services/business
 import { getCategories } from '@services/business/categoryService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
-import ProgramsSelect from '@/components/ui/Select/ProgramsSelect';
+import ProgramsSelect from '@components/ui/Select/ProgramsSelect';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { formatDateTime } from '@utils/date';
@@ -32,9 +32,9 @@ import { getResourceTypeConfig } from '@constants/resourceTypes';
 import { ActivityLogger } from '@services/other/activityLogger';
 import { Card, CardBody, Modal, EmptyState, Select } from '@ui';
 import { useToast } from '@ui';
-import UnifiedCard from '@/components/UnifiedCard';
-import AuthForm from '@/components/AuthForm';
-import { UnifiedFilterSection } from '@/components/filters';
+import UnifiedCard from '@components/UnifiedCard';
+import AuthForm from '@components/AuthForm';
+import { UnifiedFilterSection } from '@components/filters';
 import useBookmarks from '@hooks/useBookmarks';
 import './HomePage.css';
 
@@ -257,7 +257,6 @@ const HomePage = memo(() => {
       const [activitiesResult, resourcesResult, quizzesResult, announcementsResult, coursesResult, categoriesResult] = await Promise.all([
         getActivities().catch(err => {
           console.error('[HomePage] getActivities FAILED:', err);
-          console.log('[HomePage] getActivities error details:', err);
           return { success: false, error: err.message, data: [] };
         }),
         getResources().catch(err => {
@@ -270,16 +269,7 @@ const HomePage = memo(() => {
         getCategories()
       ]);
 
-      console.log('[HomePage] Promise.all results:', {
-        activitiesSuccess: activitiesResult.success,
-        activitiesLength: activitiesResult.data?.length,
-        activitiesError: activitiesResult.error,
-        resourcesSuccess: resourcesResult.success,
-        resourcesLength: resourcesResult.data?.length
-      });
-
-      logger.debug('[HomePage] Promise.all completed, checking results...');
-
+      // Process results
       if (activitiesResult.success) {
         setActivities(activitiesResult.data || []);
         // Debug: Log all activity types to see what we have
@@ -312,11 +302,9 @@ const HomePage = memo(() => {
           dataLength: resourcesResult.data?.length || 0,
           data: resourcesResult.data
         });
-        console.log('[HomePage] Resources data received:', resourcesResult.data);
         setResources(resourcesResult.data || []);
       } else {
         logger.warn('[HomePage] Resources service failed:', resourcesResult.error);
-        console.log('[HomePage] Resources service failed:', resourcesResult.error);
         setResources([]);
       }
       if (quizzesResult.success) setQuizzes(quizzesResult.data || []);
@@ -569,11 +557,7 @@ const HomePage = memo(() => {
 
   // Debug: Log when resources state changes
   useEffect(() => {
-    console.log('[HomePage] Resources state updated:', {
-      resourcesLength: resources.length,
-      resourcesSample: resources.slice(0, 2),
-      mode
-    });
+    // Resources state updated
   }, [resources, mode]);
 
   // Filter items based on mode and filters
@@ -581,32 +565,7 @@ const HomePage = memo(() => {
     const items = getCurrentItems();
     let filtered = [...items];
 
-    console.log('[HomePage] FILTERING START:', {
-      mode,
-      activityType,
-      category,
-      searchTerm: `'${searchTerm}'`,
-      bookmarkFilter,
-      difficultyFilter,
-      completedFilter,
-      requiredFilter,
-      optionalFilter,
-      overdueFilter,
-      pendingFilter,
-      retakableFilter,
-      featuredFilter,
-      gradedFilter,
-      resourceTypeFilter,
-      classFilter,
-      getCurrentItemsLength: items.length,
-      initialFilteredLength: filtered.length,
-      itemsSample: items.slice(0, 3).map(item => ({
-        id: item.docId || item.id,
-        title: item.titleEn || item.title,
-        type: item.type,
-        classId: item.classId
-      }))
-    });
+    // Apply filters based on mode
 
     // Common: Search
     if (searchTerm.trim()) {
@@ -642,7 +601,6 @@ const HomePage = memo(() => {
         const descAr = (item.descriptionAr || '').toLowerCase();
         return titleEn.includes(q) || titleAr.includes(q) || descEn.includes(q) || descAr.includes(q);
       });
-      console.log('[HomePage] AFTER SEARCH FILTER:', { beforeSearch, afterSearch: filtered.length });
     }
 
     // Common: Bookmark
@@ -656,7 +614,6 @@ const HomePage = memo(() => {
         }
         return !!bookmarks[mode]?.[id];
       });
-      console.log('[HomePage] AFTER BOOKMARK FILTER:', { beforeBookmark, afterBookmark: filtered.length });
     }
 
     // Common: Difficulty
@@ -680,8 +637,8 @@ const HomePage = memo(() => {
             const submission = submissions[id];
             return submission?.status === SUBMISSION_STATUS.GRADED;
           } else {
-            // Activities
-            return submissions[id]?.status === SUBMISSION_STATUS.GRADED;
+            // Activities - check userProgress for completion
+            return userProgress[id]?.completed;
           }
         }
         return false;
@@ -715,8 +672,8 @@ const HomePage = memo(() => {
             const submission = submissions[id];
             isCompleted = submission?.status === SUBMISSION_STATUS.GRADED;
           } else {
-            // Activities
-            isCompleted = submissions[id]?.status === SUBMISSION_STATUS.GRADED;
+            // Activities - check userProgress for completion
+            isCompleted = userProgress[id]?.completed;
           }
         }
         
@@ -737,8 +694,8 @@ const HomePage = memo(() => {
             const submission = submissions[id];
             return !submission || submission?.status !== SUBMISSION_STATUS.GRADED;
           } else {
-            // Activities
-            return !submissions[id] || submissions[id]?.status !== SUBMISSION_STATUS.GRADED;
+            // Activities - check userProgress for completion
+            return !userProgress[id]?.completed;
           }
         }
         return true;
@@ -759,11 +716,29 @@ const HomePage = memo(() => {
     if (gradedFilter === 'graded') {
       filtered = filtered.filter(item => {
         const id = item.docId || item.id;
+        if (mode === MODE_TYPES.ACTIVITIES) {
+          if (activityType === ACTIVITY_TYPES.QUIZ) {
+            // Quizzes - check submissions for graded status
+            return submissions[id]?.status === SUBMISSION_STATUS.GRADED;
+          } else {
+            // Non-quiz activities - check userProgress for completion
+            return userProgress[id]?.completed;
+          }
+        }
         return submissions[id]?.status === SUBMISSION_STATUS.GRADED;
       });
     } else if (gradedFilter === 'not_graded') {
       filtered = filtered.filter(item => {
         const id = item.docId || item.id;
+        if (mode === MODE_TYPES.ACTIVITIES) {
+          if (activityType === ACTIVITY_TYPES.QUIZ) {
+            // Quizzes - check submissions for graded status
+            return !submissions[id] || submissions[id]?.status !== SUBMISSION_STATUS.GRADED;
+          } else {
+            // Non-quiz activities - check userProgress for completion
+            return !userProgress[id]?.completed;
+          }
+        }
         return !submissions[id] || submissions[id]?.status !== SUBMISSION_STATUS.GRADED;
       });
     }
@@ -1268,6 +1243,27 @@ const HomePage = memo(() => {
     }
   }, [user, userProgress]);
 
+  const handleActivityComplete = useCallback(async (activityId) => {
+    if (!user) return;
+    const isCompleted = userProgress[activityId]?.completed || false;
+    const newProgress = {
+      ...userProgress,
+      [activityId]: {
+        completed: !isCompleted,
+        completedAt: !isCompleted ? new Date() : null
+      }
+    };
+    setUserProgress(newProgress);
+    
+    const result = await updateUserProgress(user.uid, newProgress);
+    if (!result.success) {
+      logger.error('Error updating activity progress:', result.error);
+      setUserProgress(userProgress); // Revert on error
+    } else {
+      logger.info('[HomePage] Activity completion updated:', { activityId, completed: !isCompleted });
+    }
+  }, [user, userProgress]);
+
   // Get primary color from CSS variable
   const primaryColor = useMemo(() => {
     if (typeof window === 'undefined') return '#800020';
@@ -1291,7 +1287,6 @@ const HomePage = memo(() => {
 
   return (
     <div className="home-page" data-theme={theme} style={{ padding: '0rem 0', position: 'relative' }}>
-      {console.log('[HomePage] RENDERING - mode:', mode, 'filteredItems.length:', filteredItems.length)}
       <div className="content-section" style={{ position: 'relative' }}>
         {/* Mode Switcher - Using Tabs component */}
         <div data-tour="mode-switcher" style={{ marginBottom: '0.05rem' }}>
@@ -1342,25 +1337,25 @@ const HomePage = memo(() => {
                 {
                   value: ACTIVITY_TYPES.QUIZ,
                   label: t('quiz') || 'Quiz',
-                  icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, primaryColor),
+                  icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, primaryColor),
                   badge: activityTypeCounts.quiz
                 },
                 {
                   value: ACTIVITY_TYPES.HOMEWORK,
                   label: t('homework') || 'Homework',
-                  icon: activityType === ACTIVITY_TYPES.HOMEWORK ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, primaryColor),
+                  icon: activityType === ACTIVITY_TYPES.HOMEWORK ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, primaryColor),
                   badge: activityTypeCounts.homework
                 },
                 {
                   value: ACTIVITY_TYPES.TRAINING,
                   label: t('training') || 'Training',
-                  icon: activityType === ACTIVITY_TYPES.TRAINING ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, primaryColor),
+                  icon: activityType === ACTIVITY_TYPES.TRAINING ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, primaryColor),
                   badge: activityTypeCounts.training
                 },
                 {
                   value: ACTIVITY_TYPES.LAB_AND_PROJECT,
                   label: (t('lab_and_project') || 'Lab & Project').replace(/\b\w/g, l => l.toUpperCase()),
-                  icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, primaryColor),
+                  icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, primaryColor),
                   badge: activityTypeCounts.labandproject
                 }
               ]}
@@ -1440,10 +1435,10 @@ const HomePage = memo(() => {
                 <Tabs
                   tabs={[
                     { value: 'all', label: lang === 'en' ? 'All' : 'الكل', icon: activityType === 'all' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor) },
-                    { value: ACTIVITY_TYPES.QUIZ, label: t('quiz') || 'Quiz', icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, primaryColor) },
-                    { value: ACTIVITY_TYPES.HOMEWORK, label: t('homework') || 'Homework', icon: activityType === ACTIVITY_TYPES.HOMEWORK ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, primaryColor) },
-                    { value: ACTIVITY_TYPES.TRAINING, label: t('training') || 'Training', icon: activityType === ACTIVITY_TYPES.TRAINING ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, primaryColor) },
-                    { value: ACTIVITY_TYPES.LAB_AND_PROJECT, label: (t('lab_and_project') || 'Lab & Project').replace(/\b\w/g, l => l.toUpperCase()), icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, primaryColor) }
+                    { value: ACTIVITY_TYPES.QUIZ, label: t('quiz') || 'Quiz', icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, primaryColor) },
+                    { value: ACTIVITY_TYPES.HOMEWORK, label: t('homework') || 'Homework', icon: activityType === ACTIVITY_TYPES.HOMEWORK ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, primaryColor) },
+                    { value: ACTIVITY_TYPES.TRAINING, label: t('training') || 'Training', icon: activityType === ACTIVITY_TYPES.TRAINING ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, primaryColor) },
+                    { value: ACTIVITY_TYPES.LAB_AND_PROJECT, label: (t('lab_and_project') || 'Lab & Project').replace(/\b\w/g, l => l.toUpperCase()), icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, primaryColor) }
                   ]}
                   activeTab={activityType}
                   onTabChange={setActivityType}
@@ -1756,9 +1751,9 @@ const HomePage = memo(() => {
                       itemData: item
                     });
                   } else {
-                    const submission = submissions[itemId];
-                    isCompleted = submission?.status === SUBMISSION_STATUS.GRADED;
-                    completedAt = submission?.completedAt || submission?.submittedAt;
+                    // For non-quiz activities, check userProgress for completion status
+                    isCompleted = userProgress[itemId]?.completed || false;
+                    completedAt = userProgress[itemId]?.completedAt;
                     isBookmarked = !!bookmarks.activities[itemId];
                     dueDate = item.dueDate;
                   }
@@ -1784,7 +1779,7 @@ const HomePage = memo(() => {
                           (mode === MODE_TYPES.RESOURCES && (item.type === 'link' || item.type === 'video') && item.url) ||
                           (mode === MODE_TYPES.ANNOUNCEMENTS)
                         }
-                        onStart={() => {
+                        onStart={async () => {
                           // Debug log when starting a quiz
                           if (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) {
                             logger.debug('[HomePage] Starting quiz:', {
@@ -1860,17 +1855,14 @@ const HomePage = memo(() => {
                           }
                         }}
                         onComplete={(item) => {
-                          console.log('[UnifiedCard] Complete button clicked:', {
-                            flavor,
-                            item,
-                            isCompleted,
-                            itemId: item.docId || item.id
-                          });
-                          if (mode === MODE_TYPES.RESOURCES) {
-                            handleResourceComplete(itemId);
+                          // Handle complete action
+                          if (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) {
+                            navigate(`/quiz/${item.docId || item.id}`);
+                          } else if (mode === MODE_TYPES.RESOURCES) {
+                            handleResourceComplete(item.docId || item.id);
                           } else {
                             // Handle activity completion
-                            logger.info('[HomePage] Activity completion:', { itemId, mode, activityType });
+                            handleActivityComplete(item.docId || item.id);
                           }
                         }}
                         onBookmark={() => handleBookmark(itemId, mode)}

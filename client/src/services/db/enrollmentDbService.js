@@ -13,20 +13,21 @@
  */
 
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  where, 
-  getDocs,
   Timestamp,
-  serverTimestamp
+  serverTimestamp,
+  doc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get all enrollments - with performance monitoring and memoization
@@ -34,21 +35,22 @@ import logger from '@utils/logger';
  */
 export const getEnrollments = async () => {
   try {
-    const querySnapshot = await getDocs(collection(db, 'enrollments'));
-    const enrollments = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: enrollments };
-  } catch (error) {
-    // Check if this is a missing collection error
-    if (error.message.includes('Missing or insufficient permissions') || 
-        error.code === 'permission-denied' ||
-        error.message.includes('No document to update')) {
-      logger.warn('[EnrollmentDbService] Enrollments collection not available:', { error: error.message });
+    const result = await dbService.getAll(COLLECTIONS.ENROLLMENTS);
+    
+    // Handle missing collection gracefully
+    if (!result.success && result.error && 
+        (result.error.includes('Missing or insufficient permissions') || 
+         result.error.includes('permission-denied') ||
+         result.error.includes('No document to update'))) {
+      logger.warn('[EnrollmentDbService] Enrollments collection not available:', { error: result.error });
       return {
         success: true,
         data: []
       };
     }
     
+    return result;
+  } catch (error) {
     logger.error('[EnrollmentDbService] Error getting enrollments:', error);
     return { success: false, error: error.message };
   }
@@ -61,7 +63,7 @@ export const getEnrollments = async () => {
  */
 export const getEnrollmentsByUser = async (userId) => {
   try {
-    const q = query(collection(db, 'enrollments'), where('userId', '==', userId));
+    const q = query(collection(dbService.getDb(), COLLECTIONS.ENROLLMENTS), where('userId', '==', userId));
     const querySnapshot = await getDocs(q);
     const enrollments = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: enrollments };
@@ -78,7 +80,7 @@ export const getEnrollmentsByUser = async (userId) => {
  */
 export const getEnrollmentsByClass = async (classId) => {
   try {
-    const q = query(collection(db, 'enrollments'), where('classId', '==', classId));
+    const q = query(collection(dbService.getDb(), COLLECTIONS.ENROLLMENTS), where('classId', '==', classId));
     const querySnapshot = await getDocs(q);
     const enrollments = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: enrollments };
@@ -95,7 +97,7 @@ export const getEnrollmentsByClass = async (classId) => {
  */
 export const getEnrollment = async (enrollmentId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'enrollments', enrollmentId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.ENROLLMENTS, enrollmentId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -115,7 +117,7 @@ export const getEnrollment = async (enrollmentId) => {
 export const setEnrollment = async (enrollmentId, enrollmentData) => {
   try {
     await setDoc(
-      doc(db, 'enrollments', enrollmentId),
+      doc(dbService.getDb(), COLLECTIONS.ENROLLMENTS, enrollmentId),
       {
         ...enrollmentData,
         createdAt: enrollmentData.createdAt || Timestamp.now(),
@@ -139,7 +141,7 @@ export const setEnrollment = async (enrollmentId, enrollmentData) => {
  */
 export const update = async (enrollmentId, updateData, auditData = {}) => {
   try {
-    await updateDoc(doc(db, 'enrollments', enrollmentId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.ENROLLMENTS, enrollmentId), {
       ...updateData,
       ...auditData
     });
@@ -157,7 +159,7 @@ export const update = async (enrollmentId, updateData, auditData = {}) => {
  */
 export const deleteEnrollment = async (enrollmentId) => {
   try {
-    await deleteDoc(doc(db, 'enrollments', enrollmentId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.ENROLLMENTS, enrollmentId));
     return { success: true };
   } catch (error) {
     logger.error('[EnrollmentDbService] Error deleting enrollment:', error);
@@ -174,7 +176,7 @@ export const deleteEnrollment = async (enrollmentId) => {
 export const enrollmentExists = async (userId, classId) => {
   try {
     const enrollmentId = `${userId}_${classId}`;
-    const docSnap = await getDoc(doc(db, 'enrollments', enrollmentId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.ENROLLMENTS, enrollmentId));
     return docSnap.exists();
   } catch (error) {
     logger.error('[EnrollmentDbService] Error checking enrollment existence:', error);

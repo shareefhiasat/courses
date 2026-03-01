@@ -786,7 +786,6 @@ const AllowlistPage = () => {
 
         if (usersResult.success) {
           setUsers(usersResult.data || []);
-          logger.info('AllowlistPage: Loaded users for student number lookup', { count: usersResult.data?.length || 0 });
         }
       } catch (error) {
         console.error(t('allowlist_error_loading'), error);

@@ -11,24 +11,11 @@
  * @typedef {import('@types/index').ServiceResponse} ServiceResponse
  */
 
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  where, 
-  getDocs,
-  orderBy,
-  limit,
-  serverTimestamp
-} from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get activities by class ID - with performance monitoring and memoization
@@ -40,16 +27,20 @@ export const getActivitiesByClass = async (classId, options = {}) => {
   try {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
-    const q = query(
-      collection(db, RECORD_TYPES.ACTIVITY),
-      where('classId', '==', classId),
-      orderBy(orderByField, orderDirection),
-      limit(limitCount)
-    );
+    const result = await dbService.getAll(RECORD_TYPES.ACTIVITY, {
+      where: {
+        field: 'classId',
+        operator: '==',
+        value: classId
+      },
+      orderBy: {
+        field: orderByField,
+        direction: orderDirection
+      },
+      limit: limitCount
+    });
     
-    const querySnapshot = await getDocs(q);
-    const activities = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: activities };
+    return result;
   } catch (error) {
     logger.error('[ActivitiesDbService] Error getting activities by class:', error);
     return { success: false, error: error.message };
@@ -69,16 +60,20 @@ export const getActivitiesByClasses = async (classIds, options = {}) => {
     // Firestore 'in' query supports up to 10 values
     const limitedClassIds = classIds.slice(0, 10);
     
-    const q = query(
-      collection(db, RECORD_TYPES.ACTIVITY),
-      where('classId', 'in', limitedClassIds),
-      orderBy(orderByField, orderDirection),
-      limit(limitCount)
-    );
+    const result = await dbService.getAll(RECORD_TYPES.ACTIVITY, {
+      where: {
+        field: 'classId',
+        operator: 'in',
+        value: limitedClassIds
+      },
+      orderBy: {
+        field: orderByField,
+        direction: orderDirection
+      },
+      limit: limitCount
+    });
     
-    const querySnapshot = await getDocs(q);
-    const activities = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: activities };
+    return result;
   } catch (error) {
     logger.error('[ActivitiesDbService] Error getting activities by classes:', error);
     return { success: false, error: error.message };
@@ -95,16 +90,20 @@ export const getActivitiesByUser = async (userId, options = {}) => {
   try {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
-    const q = query(
-      collection(db, RECORD_TYPES.ACTIVITY),
-      where('userId', '==', userId),
-      orderBy(orderByField, orderDirection),
-      limit(limitCount)
-    );
+    const result = await dbService.getAll(RECORD_TYPES.ACTIVITY, {
+      where: {
+        field: 'userId',
+        operator: '==',
+        value: userId
+      },
+      orderBy: {
+        field: orderByField,
+        direction: orderDirection
+      },
+      limit: limitCount
+    });
     
-    const querySnapshot = await getDocs(q);
-    const activities = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: activities };
+    return result;
   } catch (error) {
     logger.error('[ActivitiesDbService] Error getting activities by user:', error);
     return { success: false, error: error.message };
@@ -118,11 +117,8 @@ export const getActivitiesByUser = async (userId, options = {}) => {
  */
 export const getActivity = async (activityId) => {
   try {
-    const docSnap = await getDoc(doc(db, RECORD_TYPES.ACTIVITY, activityId));
-    if (docSnap.exists()) {
-      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
-    }
-    return { success: false, error: 'Activity not found' };
+    const result = await dbService.getById(RECORD_TYPES.ACTIVITY, activityId);
+    return result;
   } catch (error) {
     logger.error('[ActivitiesDbService] Error getting activity:', error);
     return { success: false, error: error.message };
@@ -139,9 +135,6 @@ export const createActivity = async (activityData, user = null) => {
   try {
     logger.debug('[ActivitiesDbService] Creating activity with data:', JSON.stringify(activityData, null, 2));
     
-    const docRef = doc(collection(db, RECORD_TYPES.ACTIVITY));
-    logger.debug('[ActivitiesDbService] Generated document ID:', docRef.id);
-    
     const docData = {
       ...activityData,
       ...getCreateAuditData(user || { uid: 'system' })
@@ -149,10 +142,10 @@ export const createActivity = async (activityData, user = null) => {
     
     logger.debug('[ActivitiesDbService] Writing document data:', JSON.stringify(docData, null, 2));
     
-    await setDoc(docRef, docData);
+    const result = await dbService.add(RECORD_TYPES.ACTIVITY, docData);
     
-    logger.info('[ActivitiesDbService] Activity created successfully with ID:', docRef.id);
-    return { success: true, id: docRef.id };
+    logger.info('[ActivitiesDbService] Activity created successfully with ID:', result.id);
+    return result;
   } catch (error) {
     logger.error('[ActivitiesDbService] Error creating activity:', {
       message: error.message,
@@ -173,11 +166,11 @@ export const createActivity = async (activityData, user = null) => {
  */
 export const updateActivity = async (activityId, activityData, user = null) => {
   try {
-    await updateDoc(doc(db, RECORD_TYPES.ACTIVITY, activityId), {
+    const result = await dbService.update(RECORD_TYPES.ACTIVITY, activityId, {
       ...activityData,
       ...getUpdateAuditData(user || { uid: 'system' })
     });
-    return { success: true };
+    return result;
   } catch (error) {
     logger.error('[ActivitiesDbService] Error updating activity:', error);
     return { success: false, error: error.message };
@@ -191,8 +184,8 @@ export const updateActivity = async (activityId, activityData, user = null) => {
  */
 export const deleteActivity = async (activityId) => {
   try {
-    await deleteDoc(doc(db, RECORD_TYPES.ACTIVITY, activityId));
-    return { success: true };
+    const result = await dbService.delete(RECORD_TYPES.ACTIVITY, activityId);
+    return result;
   } catch (error) {
     logger.error('[ActivitiesDbService] Error deleting activity:', error);
     return { success: false, error: error.message };
@@ -218,36 +211,42 @@ export const getActivities = async (filters = {}) => {
       orderDirection = 'desc'
     } = filters;
     
-    let conditions = [];
+    // Since dbService only supports one where clause, we need to get all and filter client-side
+    const result = await dbService.getAll(RECORD_TYPES.ACTIVITY, {
+      orderBy: {
+        field: orderByField,
+        direction: orderDirection
+      },
+      limit: limitCount
+    });
     
-    if (userId) conditions.push(where('userId', '==', userId));
-    if (classId) conditions.push(where('classId', '==', classId));
-    if (programId) conditions.push(where('programId', '==', programId));
-    if (subjectId) conditions.push(where('subjectId', '==', subjectId));
-    if (type) conditions.push(where('type', '==', type));
-    if (status) conditions.push(where('status', '==', status));
-    
-    // If no conditions provided, create a simple query without where clauses
-    let q;
-    if (conditions.length === 0) {
-      q = query(
-        collection(db, RECORD_TYPES.ACTIVITY),
-        orderBy(orderByField, orderDirection),
-        limit(limitCount)
-      );
-    } else {
-      q = query(
-        collection(db, RECORD_TYPES.ACTIVITY),
-        ...conditions,
-        orderBy(orderByField, orderDirection),
-        limit(limitCount)
-      );
+    if (!result.success) {
+      return result;
     }
     
-    const querySnapshot = await getDocs(q);
-    const activities = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    // Apply filters client-side
+    let filteredActivities = result.data;
     
-    return { success: true, data: activities };
+    if (userId) {
+      filteredActivities = filteredActivities.filter(activity => activity.userId === userId);
+    }
+    if (classId) {
+      filteredActivities = filteredActivities.filter(activity => activity.classId === classId);
+    }
+    if (programId) {
+      filteredActivities = filteredActivities.filter(activity => activity.programId === programId);
+    }
+    if (subjectId) {
+      filteredActivities = filteredActivities.filter(activity => activity.subjectId === subjectId);
+    }
+    if (type) {
+      filteredActivities = filteredActivities.filter(activity => activity.type === type);
+    }
+    if (status) {
+      filteredActivities = filteredActivities.filter(activity => activity.status === status);
+    }
+    
+    return { success: true, data: filteredActivities };
   } catch (error) {
     logger.error('[ActivitiesDbService] Error getting activities:', error);
     return { success: false, error: error.message };

@@ -49,7 +49,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
   // Allowlist state (previously was props)
   const [autoAddToAllowlist, setAutoAddToAllowlist] = useState(true);
   const [allowlist, setAllowlist] = useState(() => {
-    logger.info('🔧 USER_PAGE: Initializing allowlist state', { timestamp: new Date().toISOString() });
     return { allowedEmails: [], adminEmails: [], allowedStudents: [], allowedInstructors: [], allowedHr: [], superAdmins: [] };
   });
   
@@ -95,9 +94,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
     
     if (!isInitial) setPageState(PAGE_STATES.LOADING);
     try {
-      logger.info('USER_PAGE: Loading users and reference data', { 
-        timestamp: new Date().toISOString()
-      });
       
       const [usersResult, programsResult, classesResult, subjectsResult, enrollmentsResult, allowlistResult] = await Promise.all([
         getUsers(),
@@ -113,7 +109,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
       
       if (usersResult.success) {
         setUsers(usersResult.data || []);
-        logger.info('USER_PAGE: Successfully loaded users', { count: usersResult.data?.length || 0 });
       } else {
         toast?.showError(t('users_failed_to_load_users') + ': ' + usersResult.error);
       }
@@ -137,14 +132,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
       // Load allowlist data
       if (allowlistResult.success) {
         setAllowlist(allowlistResult.data || { allowedEmails: [], adminEmails: [], allowedStudents: [], allowedInstructors: [], allowedHr: [], superAdmins: [] });
-        logger.info('USER_PAGE: Successfully loaded allowlist', { 
-          allowedEmails: allowlistResult.data?.allowedEmails?.length || 0,
-          adminEmails: allowlistResult.data?.adminEmails?.length || 0,
-          allowedStudents: allowlistResult.data?.allowedStudents?.length || 0,
-          allowedInstructors: allowlistResult.data?.allowedInstructors?.length || 0,
-          allowedHr: allowlistResult.data?.allowedHr?.length || 0,
-          superAdmins: allowlistResult.data?.superAdmins?.length || 0
-        });
 
         // Merge actual users with invited users from allowlist
         if (usersResult.success) {
@@ -193,15 +180,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
           // Combine actual users with invited users
           const allUsers = [...actualUsers, ...invitedUsers];
           setUsers(allUsers);
-          
-          logger.info('USER_PAGE: Successfully loaded users with invited', { 
-            actualUsers: actualUsers.length,
-            invitedUsers: invitedUsers.length,
-            total: allUsers.length
-          });
         }
       } else {
-        logger.warn('USER_PAGE: Using empty allowlist due to load failure');
         setAllowlist({ allowedEmails: [], adminEmails: [], allowedStudents: [], allowedInstructors: [], allowedHr: [], superAdmins: [] });
       }
       
@@ -1356,39 +1336,10 @@ const UsersPage = ({ isDashboardTab = false }) => {
               user.studentNumber === submitData.studentNumber.trim()
             );
             
-            logger.info('🔧 USER_PAGE: Checking student number uniqueness for invite', {
-              email: submitData.email,
-              studentNumber: submitData.studentNumber.trim(),
-              isDuplicate: studentNumberDuplicate,
-              existingUsers: users.filter(u => u.studentNumber).length
-            });
-            
             if (studentNumberDuplicate) {
-              logger.warn('❌ USER_PAGE: Student invite rejected - duplicate student number', {
-                email: submitData.email,
-                studentNumber: submitData.studentNumber.trim(),
-                timestamp: new Date().toISOString()
-              });
               toast?.showError('Student number must be unique. This student number is already assigned to another user.');
               return;
             }
-          }
-
-          logger.info('🔧 USER_PAGE: Adding user to allowlist', {
-            email: submitData.email,
-            role: submitData.role,
-            studentNumber: submitData.studentNumber,
-            autoAddToAllowlist: autoAddToAllowlist,
-            timestamp: new Date().toISOString()
-          });
-
-          // Log validation success for students
-          if (submitData.role === ROLE_STRINGS.STUDENT) {
-            logger.info('✅ USER_PAGE: Student invite validation passed', {
-              email: submitData.email,
-              studentNumber: submitData.studentNumber,
-              timestamp: new Date().toISOString()
-            });
           }
 
           const { updateAllowlist } = await import('@services/other/config');
@@ -1413,12 +1364,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
           }
           const currentEmails = allowlist[targetList] || [];
 
-          logger.info('🔧 USER_PAGE: Allowlist target determined', {
-            targetList: targetList,
-            currentEmails: currentEmails,
-            emailExists: currentEmails.includes(submitData.email)
-          });
-
           if (!currentEmails.includes(submitData.email)) {
             const updatedAllowlist = {
               ...allowlist,
@@ -1426,20 +1371,10 @@ const UsersPage = ({ isDashboardTab = false }) => {
             };
             setAllowlist(updatedAllowlist);
 
-            logger.info('🔧 USER_PAGE: Saving updated allowlist', {
-              updatedAllowlist: updatedAllowlist,
-              targetList: targetList
-            });
-
             // Save to Firestore
             try {
               const result = await updateAllowlist(updatedAllowlist);
               if (result.success) {
-                logger.info('✅ USER_PAGE: Successfully added to allowlist', {
-                  email: submitData.email,
-                  role: submitData.role,
-                  targetList: targetList
-                });
 
                 // Send welcome email
                 try {

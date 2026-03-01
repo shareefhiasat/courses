@@ -11,22 +11,10 @@
  * @typedef {import('@types/index').ServiceResponse} ServiceResponse
  */
 
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  where, 
-  getDocs,
-  orderBy,
-  limit,
-  serverTimestamp
-} from 'firebase/firestore';
-import { db } from '../other/config';
+import { serverTimestamp } from 'firebase/firestore';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get all resources
@@ -45,21 +33,60 @@ export const getResources = async (options = {}) => {
       type
     } = options;
     
-    let q = query(collection(db, 'resources'));
+    // Build query options for dbService
+    const queryOptions = {
+      orderBy: {
+        field: orderByField,
+        direction: orderDirection
+      }
+    };
     
-    // Add filters
-    if (classId) q = query(q, where('classId', '==', classId));
-    if (subjectId) q = query(q, where('subjectId', '==', subjectId));
-    if (programId) q = query(q, where('programId', '==', programId));
-    if (type) q = query(q, where('type', '==', type));
+    // Add filters (only one where clause supported by dbService)
+    if (classId) {
+      queryOptions.where = {
+        field: 'classId',
+        operator: '==',
+        value: classId
+      };
+    } else if (subjectId) {
+      queryOptions.where = {
+        field: 'subjectId',
+        operator: '==',
+        value: subjectId
+      };
+    } else if (programId) {
+      queryOptions.where = {
+        field: 'programId',
+        operator: '==',
+        value: programId
+      };
+    } else if (type) {
+      queryOptions.where = {
+        field: 'type',
+        operator: '==',
+        value: type
+      };
+    }
     
-    // Add ordering and limit
-    q = query(q, orderBy(orderByField, orderDirection));
-    if (limitCount) q = query(q, limit(limitCount));
+    if (limitCount) {
+      queryOptions.limit = limitCount;
+    }
     
-    const querySnapshot = await getDocs(q);
-    const resources = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: resources };
+    const result = await dbService.getAll(COLLECTIONS.RESOURCES, queryOptions);
+    
+    // If we need additional filtering, do it client-side
+    if (result.success && ((classId && subjectId) || (classId && programId) || (subjectId && programId) || (type && (classId || subjectId || programId)))) {
+      const filteredData = result.data.filter(resource => {
+        const matchesClass = !classId || resource.classId === classId;
+        const matchesSubject = !subjectId || resource.subjectId === subjectId;
+        const matchesProgram = !programId || resource.programId === programId;
+        const matchesType = !type || resource.type === type;
+        return matchesClass && matchesSubject && matchesProgram && matchesType;
+      });
+      return { success: true, data: filteredData };
+    }
+    
+    return result;
   } catch (error) {
     logger.error('[ResourceDbService] Error getting resources:', error);
     return { success: false, error: error.message };
@@ -73,11 +100,8 @@ export const getResources = async (options = {}) => {
  */
 export const getResource = async (resourceId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'resources', resourceId));
-    if (docSnap.exists()) {
-      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
-    }
-    return { success: false, error: 'Resource not found' };
+    const result = await dbService.getById(COLLECTIONS.RESOURCES, resourceId);
+    return result;
   } catch (error) {
     logger.error('[ResourceDbService] Error getting resource:', error);
     return { success: false, error: error.message };
@@ -91,13 +115,12 @@ export const getResource = async (resourceId) => {
  */
 export const createResource = async (resourceData) => {
   try {
-    const docRef = doc(collection(db, 'resources'));
-    await setDoc(docRef, {
+    const result = await dbService.add(COLLECTIONS.RESOURCES, {
       ...resourceData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
-    return { success: true, id: docRef.id };
+    return result;
   } catch (error) {
     logger.error('[ResourceDbService] Error creating resource:', error);
     return { success: false, error: error.message };
@@ -112,11 +135,11 @@ export const createResource = async (resourceData) => {
  */
 export const updateResource = async (resourceId, resourceData) => {
   try {
-    await updateDoc(doc(db, 'resources', resourceId), {
+    const result = await dbService.update(COLLECTIONS.RESOURCES, resourceId, {
       ...resourceData,
       updatedAt: serverTimestamp()
     });
-    return { success: true };
+    return result;
   } catch (error) {
     logger.error('[ResourceDbService] Error updating resource:', error);
     return { success: false, error: error.message };
@@ -130,8 +153,8 @@ export const updateResource = async (resourceId, resourceData) => {
  */
 export const deleteResource = async (resourceId) => {
   try {
-    await deleteDoc(doc(db, 'resources', resourceId));
-    return { success: true };
+    const result = await dbService.delete(COLLECTIONS.RESOURCES, resourceId);
+    return result;
   } catch (error) {
     logger.error('[ResourceDbService] Error deleting resource:', error);
     return { success: false, error: error.message };
@@ -148,16 +171,20 @@ export const getResourcesByClass = async (classId, options = {}) => {
   try {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
-    const q = query(
-      collection(db, 'resources'),
-      where('classId', '==', classId),
-      orderBy(orderByField, orderDirection),
-      limit(limitCount)
-    );
+    const result = await dbService.getAll(COLLECTIONS.RESOURCES, {
+      where: {
+        field: 'classId',
+        operator: '==',
+        value: classId
+      },
+      orderBy: {
+        field: orderByField,
+        direction: orderDirection
+      },
+      limit: limitCount
+    });
     
-    const querySnapshot = await getDocs(q);
-    const resources = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: resources };
+    return result;
   } catch (error) {
     logger.error('[ResourceDbService] Error getting resources by class:', error);
     return { success: false, error: error.message };
@@ -174,16 +201,20 @@ export const getResourcesBySubject = async (subjectId, options = {}) => {
   try {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
-    const q = query(
-      collection(db, 'resources'),
-      where('subjectId', '==', subjectId),
-      orderBy(orderByField, orderDirection),
-      limit(limitCount)
-    );
+    const result = await dbService.getAll(COLLECTIONS.RESOURCES, {
+      where: {
+        field: 'subjectId',
+        operator: '==',
+        value: subjectId
+      },
+      orderBy: {
+        field: orderByField,
+        direction: orderDirection
+      },
+      limit: limitCount
+    });
     
-    const querySnapshot = await getDocs(q);
-    const resources = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: resources };
+    return result;
   } catch (error) {
     logger.error('[ResourceDbService] Error getting resources by subject:', error);
     return { success: false, error: error.message };
@@ -200,16 +231,20 @@ export const getResourcesByType = async (type, options = {}) => {
   try {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
-    const q = query(
-      collection(db, 'resources'),
-      where('type', '==', type),
-      orderBy(orderByField, orderDirection),
-      limit(limitCount)
-    );
+    const result = await dbService.getAll(COLLECTIONS.RESOURCES, {
+      where: {
+        field: 'type',
+        operator: '==',
+        value: type
+      },
+      orderBy: {
+        field: orderByField,
+        direction: orderDirection
+      },
+      limit: limitCount
+    });
     
-    const querySnapshot = await getDocs(q);
-    const resources = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: resources };
+    return result;
   } catch (error) {
     logger.error('[ResourceDbService] Error getting resources by type:', error);
     return { success: false, error: error.message };
@@ -252,16 +287,30 @@ export const getResourceCount = async (filters = {}) => {
   try {
     const { classId, subjectId, programId, type } = filters;
     
-    let q = query(collection(db, 'resources'));
+    // Since dbService only supports one where clause, we need to get all and filter
+    const result = await dbService.getAll(COLLECTIONS.RESOURCES, { limit: 1000 });
     
-    // Add filters
-    if (classId) q = query(q, where('classId', '==', classId));
-    if (subjectId) q = query(q, where('subjectId', '==', subjectId));
-    if (programId) q = query(q, where('programId', '==', programId));
-    if (type) q = query(q, where('type', '==', type));
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
     
-    const querySnapshot = await getDocs(q);
-    return { success: true, count: querySnapshot.size };
+    // Apply filters client-side
+    let filteredResources = result.data;
+    
+    if (classId) {
+      filteredResources = filteredResources.filter(resource => resource.classId === classId);
+    }
+    if (subjectId) {
+      filteredResources = filteredResources.filter(resource => resource.subjectId === subjectId);
+    }
+    if (programId) {
+      filteredResources = filteredResources.filter(resource => resource.programId === programId);
+    }
+    if (type) {
+      filteredResources = filteredResources.filter(resource => resource.type === type);
+    }
+    
+    return { success: true, count: filteredResources.length };
   } catch (error) {
     logger.error('[ResourceDbService] Error getting resource count:', error);
     return { success: false, error: error.message };

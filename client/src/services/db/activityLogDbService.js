@@ -12,21 +12,17 @@
  */
 
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
   collection, 
   query, 
   where, 
   getDocs,
   orderBy,
   limit,
-  serverTimestamp
+  startAfter
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get all activity logs
@@ -37,15 +33,15 @@ export const getActivityLogs = async (options = {}) => {
   try {
     const { limitCount = 100, orderByField = 'timestamp', orderDirection = 'desc' } = options;
     
-    const q = query(
-      collection(db, 'activityLogs'),
-      orderBy(orderByField, orderDirection),
-      limit(limitCount)
-    );
+    const result = await dbService.getAll(COLLECTIONS.ACTIVITY_LOG, {
+      orderBy: {
+        field: orderByField,
+        direction: orderDirection
+      },
+      limit: limitCount
+    });
     
-    const querySnapshot = await getDocs(q);
-    const logs = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: logs };
+    return result;
   } catch (error) {
     logger.error('[ActivityLogDbService] Error getting activity logs:', error);
     return { success: false, error: error.message };
@@ -59,11 +55,8 @@ export const getActivityLogs = async (options = {}) => {
  */
 export const getActivityLog = async (logId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'activityLogs', logId));
-    if (docSnap.exists()) {
-      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
-    }
-    return { success: false, error: 'Activity log not found' };
+    const result = await dbService.getById(COLLECTIONS.ACTIVITY_LOG, logId);
+    return result;
   } catch (error) {
     logger.error('[ActivityLogDbService] Error getting activity log:', error);
     return { success: false, error: error.message };
@@ -77,12 +70,8 @@ export const getActivityLog = async (logId) => {
  */
 export const createActivityLog = async (logData) => {
   try {
-    const docRef = doc(collection(db, 'activityLogs'));
-    await setDoc(docRef, {
-      ...logData,
-      timestamp: serverTimestamp()
-    });
-    return { success: true, id: docRef.id };
+    const result = await dbService.add(COLLECTIONS.ACTIVITY_LOG, logData);
+    return result;
   } catch (error) {
     logger.error('[ActivityLogDbService] Error creating activity log:', error);
     return { success: false, error: error.message };
@@ -99,16 +88,20 @@ export const getActivityLogsByUser = async (userId, options = {}) => {
   try {
     const { limitCount = 50, orderByField = 'timestamp', orderDirection = 'desc' } = options;
     
-    const q = query(
-      collection(db, 'activityLogs'),
-      where('userId', '==', userId),
-      orderBy(orderByField, orderDirection),
-      limit(limitCount)
-    );
+    const result = await dbService.getAll(COLLECTIONS.ACTIVITY_LOG, {
+      where: {
+        field: 'userId',
+        operator: '==',
+        value: userId
+      },
+      orderBy: {
+        field: orderByField,
+        direction: orderDirection
+      },
+      limit: limitCount
+    });
     
-    const querySnapshot = await getDocs(q);
-    const logs = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: logs };
+    return result;
   } catch (error) {
     logger.error('[ActivityLogDbService] Error getting activity logs by user:', error);
     return { success: false, error: error.message };
@@ -125,16 +118,20 @@ export const getActivityLogsByType = async (type, options = {}) => {
   try {
     const { limitCount = 50, orderByField = 'timestamp', orderDirection = 'desc' } = options;
     
-    const q = query(
-      collection(db, 'activityLogs'),
-      where('type', '==', type),
-      orderBy(orderByField, orderDirection),
-      limit(limitCount)
-    );
+    const result = await dbService.getAll(COLLECTIONS.ACTIVITY_LOG, {
+      where: {
+        field: 'type',
+        operator: '==',
+        value: type
+      },
+      orderBy: {
+        field: orderByField,
+        direction: orderDirection
+      },
+      limit: limitCount
+    });
     
-    const querySnapshot = await getDocs(q);
-    const logs = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: logs };
+    return result;
   } catch (error) {
     logger.error('[ActivityLogDbService] Error getting activity logs by type:', error);
     return { success: false, error: error.message };
@@ -181,15 +178,15 @@ export const getLoginLogs = async (options = {}) => {
   try {
     const { limitCount = 500 } = options;
     
-    const q = query(
-      collection(db, 'activityLogs'),
-      orderBy('timestamp', 'desc'),
-      limit(limitCount)
-    );
+    const result = await dbService.getAll(COLLECTIONS.ACTIVITY_LOG, {
+      orderBy: {
+        field: 'timestamp',
+        direction: 'desc'
+      },
+      limit: limitCount
+    });
     
-    const querySnapshot = await getDocs(q);
-    const logs = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: logs };
+    return result;
   } catch (error) {
     logger.error('[ActivityLogDbService] Error getting activity logs:', error);
     return { success: false, error: error.message };
@@ -203,8 +200,8 @@ export const getLoginLogs = async (options = {}) => {
  */
 export const deleteActivityLog = async (logId) => {
   try {
-    await deleteDoc(doc(db, 'activityLogs', logId));
-    return { success: true };
+    const result = await dbService.delete(COLLECTIONS.ACTIVITY_LOG, logId);
+    return result;
   } catch (error) {
     logger.error('[ActivityLogDbService] Error deleting activity log:', error);
     return { success: false, error: error.message };
@@ -218,14 +215,13 @@ export const deleteActivityLog = async (logId) => {
  */
 export const deleteAllActivityLogs = async (options = {}) => {
   try {
-    // This is a dangerous operation, should be used carefully
-    const { batchSize = 400, maxRetries = 3 } = options;
+    const { batchSize = 400 } = options;
     
     let deletedCount = 0;
     let lastVisible = null;
     
     do {
-      let q = query(collection(db, 'activityLogs'), limit(batchSize));
+      let q = query(collection(dbService.getDb(), COLLECTIONS.ACTIVITY_LOG), limit(batchSize));
       if (lastVisible) {
         q = query(q, startAfter(lastVisible));
       }
@@ -234,7 +230,7 @@ export const deleteAllActivityLogs = async (options = {}) => {
       
       if (querySnapshot.empty) break;
       
-      const batch = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+      const batch = querySnapshot.docs.map(doc => dbService.delete(COLLECTIONS.ACTIVITY_LOG, doc.id));
       await Promise.all(batch);
       
       deletedCount += querySnapshot.size;

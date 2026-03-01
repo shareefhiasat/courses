@@ -25,7 +25,8 @@ import {
   limit,
   serverTimestamp
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
+import { COLLECTIONS } from '@constants/collections';
 import logger from '@utils/logger';
 
 /**
@@ -39,7 +40,7 @@ export const getSubmissionsByUser = async (userId, options = {}) => {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, 'submissions'),
+      collection(dbService.getDb(), COLLECTIONS.SUBMISSIONS),
       where('userId', '==', userId),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -76,7 +77,7 @@ export const getSubmissionsByActivity = async (activityId, options = {}) => {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, 'submissions'),
+      collection(dbService.getDb(), COLLECTIONS.SUBMISSIONS),
       where('activityId', '==', activityId),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -98,7 +99,7 @@ export const getSubmissionsByActivity = async (activityId, options = {}) => {
  */
 export const getSubmission = async (submissionId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'submissions', submissionId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.SUBMISSIONS, submissionId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -116,7 +117,7 @@ export const getSubmission = async (submissionId) => {
  */
 export const createSubmission = async (submissionData) => {
   try {
-    const docRef = doc(collection(db, 'submissions'));
+    const docRef = doc(collection(dbService.getDb(), COLLECTIONS.SUBMISSIONS));
     await setDoc(docRef, {
       ...submissionData,
       createdAt: serverTimestamp(),
@@ -137,7 +138,7 @@ export const createSubmission = async (submissionData) => {
  */
 export const updateSubmission = async (submissionId, submissionData) => {
   try {
-    await updateDoc(doc(db, 'submissions', submissionId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.SUBMISSIONS, submissionId), {
       ...submissionData,
       updatedAt: serverTimestamp()
     });
@@ -155,7 +156,7 @@ export const updateSubmission = async (submissionId, submissionData) => {
  */
 export const deleteSubmission = async (submissionId) => {
   try {
-    await deleteDoc(doc(db, 'submissions', submissionId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.SUBMISSIONS, submissionId));
     return { success: true };
   } catch (error) {
     logger.error('[SubmissionsDbService] Error deleting submission:', error);
@@ -192,7 +193,7 @@ export const getSubmissions = async (filters = {}) => {
     if (status) conditions.push(where('status', '==', status));
     
     const q = query(
-      collection(db, 'submissions'),
+      collection(dbService.getDb(), COLLECTIONS.SUBMISSIONS),
       ...conditions,
       orderBy(orderByField, orderDirection),
       limit(limitCount)

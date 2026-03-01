@@ -196,6 +196,48 @@ export default function QuizzesPage() {
   const [quizData, setQuizData] = useState(() => normalizeQuizData());
   const [originalQuizData, setOriginalQuizData] = useState(null); // Store original for comparison
 
+  const loadQuizzes = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    setError('');
+    try {
+      let response;
+      if (isAdmin) {
+        response = await getAllQuizzes();
+      } else if (isInstructor) {
+        response = await getQuizzesByCreator(user.uid);
+      } else {
+        response = await getQuizzesByCreator(user.uid);
+      }
+
+      if (!response?.success) {
+        throw new Error(response?.error || t('quiz_failed_to_load'));
+      }
+
+      const quizzesWithCreators = await Promise.all(
+        (response.data || [])
+          .filter(Boolean)
+          .map(q => formatQuiz(q))
+      );
+
+      const normalized = quizzesWithCreators.sort((a, b) => {
+        const ad = a.createdAt ? a.createdAt.getTime() : 0;
+        const bd = b.createdAt ? b.createdAt.getTime() : 0;
+        return bd - ad;
+      });
+
+      setQuizzes(normalized);
+    } catch (error) {
+      console.error('Error loading quizzes:', error);
+      const message = String(error?.message || '').toLowerCase().includes('permission')
+        ? t('quiz_no_permission')
+        : (error?.message || t('quiz_failed_to_load'));
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, isAdmin, isInstructor, t, formatQuiz]);
+
   // Load quizzes list
   useEffect(() => {
     if (viewMode === 'list' && !authLoading && user) {
@@ -281,48 +323,6 @@ export default function QuizzesPage() {
       updatedAt: toDate(quiz.updatedAt)
     };
   }, [t, lang]);
-
-  const loadQuizzes = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    setError('');
-    try {
-      let response;
-      if (isAdmin) {
-        response = await getAllQuizzes();
-      } else if (isInstructor) {
-        response = await getQuizzesByCreator(user.uid);
-      } else {
-        response = await getQuizzesByCreator(user.uid);
-      }
-
-      if (!response?.success) {
-        throw new Error(response?.error || t('quiz_failed_to_load'));
-      }
-
-      const quizzesWithCreators = await Promise.all(
-        (response.data || [])
-          .filter(Boolean)
-          .map(q => formatQuiz(q))
-      );
-
-      const normalized = quizzesWithCreators.sort((a, b) => {
-        const ad = a.createdAt ? a.createdAt.getTime() : 0;
-        const bd = b.createdAt ? b.createdAt.getTime() : 0;
-        return bd - ad;
-      });
-
-      setQuizzes(normalized);
-    } catch (error) {
-      console.error('Error loading quizzes:', error);
-      const message = String(error?.message || '').toLowerCase().includes('permission')
-        ? t('quiz_no_permission')
-        : (error?.message || t('quiz_failed_to_load'));
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, isAdmin, isInstructor, t, formatQuiz]);
 
   const loadQuiz = useCallback(async (id) => {
     setLoading(true);

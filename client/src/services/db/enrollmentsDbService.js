@@ -27,7 +27,7 @@ import {
   Timestamp,
   serverTimestamp
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
 
 // ==================== MARKS OPERATIONS ====================
@@ -42,7 +42,7 @@ import logger from '@utils/logger';
 export const getStudentMarks = async (studentId, subjectId, classId) => {
   try {
     const compositeKey = `${studentId}_${classId}_${subjectId}`;
-    const docSnap = await getDoc(doc(db, 'studentMarks', compositeKey));
+    const docSnap = await getDoc(doc(dbService.getDb(), 'studentMarks', compositeKey));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -62,7 +62,7 @@ export const getStudentMarks = async (studentId, subjectId, classId) => {
 export const getAllClassSubjectMarks = async (subjectId, classId) => {
   try {
     const q = query(
-      collection(db, 'studentMarks'), 
+      collection(dbService.getDb(), 'studentMarks'), 
       where('subjectId', '==', subjectId),
       where('classId', '==', classId)
     );
@@ -95,7 +95,7 @@ export const setStudentMarks = async (studentId, subjectId, classId, marksData) 
   try {
     const compositeKey = `${studentId}_${classId}_${subjectId}`;
     await setDoc(
-      doc(db, 'studentMarks', compositeKey),
+      doc(dbService.getDb(), 'studentMarks', compositeKey),
       {
         ...marksData,
         studentId,
@@ -124,7 +124,7 @@ export const setStudentMarks = async (studentId, subjectId, classId, marksData) 
 export const updateStudentMarks = async (studentId, subjectId, classId, updateData) => {
   try {
     const compositeKey = `${studentId}_${classId}_${subjectId}`;
-    await updateDoc(doc(db, 'studentMarks', compositeKey), {
+    await updateDoc(doc(dbService.getDb(), 'studentMarks', compositeKey), {
       ...updateData,
       updatedAt: serverTimestamp()
     });
@@ -145,7 +145,7 @@ export const updateStudentMarks = async (studentId, subjectId, classId, updateDa
 export const deleteStudentMarks = async (studentId, subjectId, classId) => {
   try {
     const compositeKey = `${studentId}_${classId}_${subjectId}`;
-    await deleteDoc(doc(db, 'studentMarks', compositeKey));
+    await deleteDoc(doc(dbService.getDb(), 'studentMarks', compositeKey));
     return { success: true };
   } catch (error) {
     logger.error('[MarksDbService] Error deleting student marks:', error);
@@ -162,7 +162,7 @@ export const deleteStudentMarks = async (studentId, subjectId, classId) => {
  */
 export const getSubjectMarksDistribution = async (subjectId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'subjectMarksDistribution', subjectId));
+    const docSnap = await getDoc(doc(dbService.getDb(), 'subjectMarksDistribution', subjectId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -182,7 +182,7 @@ export const getSubjectMarksDistribution = async (subjectId) => {
 export const setSubjectMarksDistribution = async (subjectId, distributionData) => {
   try {
     await setDoc(
-      doc(db, 'subjectMarksDistribution', subjectId),
+      doc(dbService.getDb(), 'subjectMarksDistribution', subjectId),
       {
         ...distributionData,
         subjectId,
@@ -206,7 +206,7 @@ export const setSubjectMarksDistribution = async (subjectId, distributionData) =
  */
 export const updateSubjectMarksDistribution = async (subjectId, updateData) => {
   try {
-    await updateDoc(doc(db, 'subjectMarksDistribution', subjectId), {
+    await updateDoc(doc(dbService.getDb(), 'subjectMarksDistribution', subjectId), {
       ...updateData,
       updatedAt: serverTimestamp()
     });
@@ -224,7 +224,7 @@ export const updateSubjectMarksDistribution = async (subjectId, updateData) => {
  */
 export const deleteSubjectMarksDistribution = async (subjectId) => {
   try {
-    await deleteDoc(doc(db, 'subjectMarksDistribution', subjectId));
+    await deleteDoc(doc(dbService.getDb(), 'subjectMarksDistribution', subjectId));
     return { success: true };
   } catch (error) {
     logger.error('[MarksDbService] Error deleting subject marks distribution:', error);
@@ -238,7 +238,7 @@ export const deleteSubjectMarksDistribution = async (subjectId) => {
  */
 export const getAllMarksDistributions = async () => {
   try {
-    const querySnapshot = await getDocs(collection(db, 'subjectMarksDistribution'));
+    const querySnapshot = await getDocs(collection(dbService.getDb(), 'subjectMarksDistribution'));
     const distributions = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: distributions };
   } catch (error) {
@@ -260,7 +260,7 @@ export const getAllMarksDistributions = async () => {
 export const getEnrollment = async (userId, classId) => {
   try {
     const q = query(
-      collection(db, 'enrollments'),
+      collection(dbService.getDb(), COLLECTIONS.ENROLLMENTS),
       where('userId', '==', userId),
       where('classId', '==', classId)
     );
@@ -290,7 +290,7 @@ export const getEnrollment = async (userId, classId) => {
  */
 export const setEnrollment = async (userId, classId, enrollmentData) => {
   try {
-    const docRef = doc(db, 'enrollments', `${userId}_${classId}`);
+    const docRef = doc(dbService.getDb(), COLLECTIONS.ENROLLMENTS, `${userId}_${classId}`);
     await setDoc(docRef, {
       userId,
       classId,
@@ -313,7 +313,7 @@ export const setEnrollment = async (userId, classId, enrollmentData) => {
 export const getClassEnrollments = async (classId) => {
   try {
     const q = query(
-      collection(db, 'enrollments'),
+      collection(dbService.getDb(), COLLECTIONS.ENROLLMENTS),
       where('classId', '==', classId)
     );
     const querySnapshot = await getDocs(q);
@@ -333,7 +333,7 @@ export const getClassEnrollments = async (classId) => {
 export const getEnrollmentsByClassIds = async (classIds) => {
   try {
     const q = query(
-      collection(db, 'enrollments'),
+      collection(dbService.getDb(), COLLECTIONS.ENROLLMENTS),
       where('classId', 'in', classIds)
     );
     const querySnapshot = await getDocs(q);
@@ -353,7 +353,7 @@ export const getEnrollmentsByClassIds = async (classIds) => {
 export const getEnrollmentsByUserId = async (userId) => {
   try {
     const q = query(
-      collection(db, 'enrollments'),
+      collection(dbService.getDb(), COLLECTIONS.ENROLLMENTS),
       where('userId', '==', userId)
     );
     const querySnapshot = await getDocs(q);
@@ -373,7 +373,7 @@ export const getEnrollmentsByUserId = async (userId) => {
  */
 export const deleteEnrollment = async (userId, classId) => {
   try {
-    const docRef = doc(db, 'enrollments', `${userId}_${classId}`);
+    const docRef = doc(dbService.getDb(), COLLECTIONS.ENROLLMENTS, `${userId}_${classId}`);
     await deleteDoc(docRef);
     return { success: true };
   } catch (error) {

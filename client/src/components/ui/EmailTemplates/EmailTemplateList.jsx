@@ -6,7 +6,8 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { ToggleSwitch } from '@ui';
 import { formatDateTime } from '@utils/date';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, doc, getDoc } from 'firebase/firestore';
+import { db } from '@services/other/config';
 import emailDbService from '@services/business/emailDbService';
 import logger from '@utils/logger';
 
@@ -50,19 +51,6 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
       }
       
       const templateList = await emailDbService.getEmailTemplates(forceRefresh);
-      
-      // Also log to console for easy viewing
-      console.log('📋 Current Email Templates:', templateList.map(t => ({ id: t.id, name: t.name })));
-      
-      // Debug: Check specifically for password_reset_default
-      const problematicTemplate = templateList.find(t => t.id === 'password_reset_default');
-      if (problematicTemplate) {
-        console.warn('🚨 Found problematic template:', problematicTemplate);
-        logger.warn('🚨 Found problematic template in Firestore:', problematicTemplate);
-      } else {
-        console.log('✅ password_reset_default not found in Firestore');
-        logger.info('✅ password_reset_default not found in Firestore');
-      }
       
       setTemplates(templateList);
     } catch (error) {

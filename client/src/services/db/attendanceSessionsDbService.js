@@ -11,22 +11,11 @@
  * @typedef {import('@types/index').ServiceResponse} ServiceResponse
  */
 
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  where, 
-  getDocs,
-  orderBy,
-  limit
-} from 'firebase/firestore';
-import { db } from '../other/config';
+import { doc, updateDoc, setDoc, collection, query, where, orderBy, limit, getDocs, getDoc, deleteDoc } from 'firebase/firestore';
+import dbService from '@services/other/dbService';
 import { getQatarTimestampString } from '@utils/qatarDate';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get attendance sessions for a class
@@ -38,15 +27,17 @@ export const getAttendanceSessions = async (classId, options = {}) => {
   try {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
-    const q = query(
-      collection(db, 'classes', classId, 'sessions'),
-      orderBy(orderByField, orderDirection),
-      limit(limitCount)
-    );
+    // Use subcollection pattern: classes/{classId}/sessions
+    const subcollectionPath = `${COLLECTIONS.CLASSES}/${classId}/${COLLECTIONS.ATTENDANCE_SESSIONS}`;
+    const result = await dbService.getAll(subcollectionPath, {
+      orderBy: {
+        field: orderByField,
+        direction: orderDirection
+      },
+      limit: limitCount
+    });
     
-    const querySnapshot = await getDocs(q);
-    const sessions = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: sessions };
+    return result;
   } catch (error) {
     logger.error('[AttendanceSessionsDbService] Error getting attendance sessions:', error);
     return { success: false, error: error.message };
@@ -64,7 +55,7 @@ export const getOpenAttendanceSessions = async (classId, options = {}) => {
     const { limitCount = 50 } = options;
     
     const q = query(
-      collection(db, 'classes', classId, 'sessions'),
+      collection(dbService.getDb(), COLLECTIONS.CLASSES, classId, 'sessions'),
       where('status', '==', 'open'),
       orderBy('createdAt', 'desc'),
       limit(limitCount)
@@ -87,7 +78,7 @@ export const getOpenAttendanceSessions = async (classId, options = {}) => {
  */
 export const getAttendanceSession = async (classId, sessionId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'classes', classId, 'sessions', sessionId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.CLASSES, classId, 'sessions', sessionId));
     
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
@@ -107,7 +98,7 @@ export const getAttendanceSession = async (classId, sessionId) => {
  */
 export const createAttendanceSession = async (classId, sessionData) => {
   try {
-    const docRef = doc(collection(db, 'classes', classId, 'sessions'));
+    const docRef = doc(collection(dbService.getDb(), COLLECTIONS.CLASSES, classId, 'sessions'));
     const now = getQatarTimestampString();
     await setDoc(docRef, {
       ...sessionData,
@@ -130,7 +121,7 @@ export const createAttendanceSession = async (classId, sessionData) => {
  */
 export const updateAttendanceSession = async (classId, sessionId, updateData) => {
   try {
-    await updateDoc(doc(db, 'classes', classId, 'sessions', sessionId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.CLASSES, classId, 'sessions', sessionId), {
       ...updateData,
       updatedAt: getQatarTimestampString()
     });
@@ -149,7 +140,7 @@ export const updateAttendanceSession = async (classId, sessionId, updateData) =>
  */
 export const deleteAttendanceSession = async (classId, sessionId) => {
   try {
-    await deleteDoc(doc(db, 'classes', classId, 'sessions', sessionId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.CLASSES, classId, 'sessions', sessionId));
     return { success: true };
   } catch (error) {
     logger.error('[AttendanceSessionsDbService] Error deleting attendance session:', error);
@@ -166,7 +157,7 @@ export const deleteAttendanceSession = async (classId, sessionId) => {
 export const closeAttendanceSession = async (classId, sessionId) => {
   try {
     const now = getQatarTimestampString();
-    await updateDoc(doc(db, 'classes', classId, 'sessions', sessionId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.CLASSES, classId, 'sessions', sessionId), {
       status: 'closed',
       closedAt: now,
       updatedAt: now
@@ -184,7 +175,7 @@ export const closeAttendanceSession = async (classId, sessionId) => {
  */
 export const getAllAttendanceSessions = async () => {
   try {
-    const q = query(collection(db, 'attendanceSessions'), orderBy('createdAt', 'desc'));
+    const q = query(collection(dbService.getDb(), COLLECTIONS.ATTENDANCE_SESSIONS), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
     
     const sessions = querySnapshot.docs.map(doc => ({ 
@@ -206,7 +197,7 @@ export const getAllAttendanceSessions = async () => {
  */
 export const getAttendanceMarksCount = async (sessionId) => {
   try {
-    const q = query(collection(db, 'attendanceSessions', sessionId, 'marks'));
+    const q = query(collection(dbService.getDb(), COLLECTIONS.ATTENDANCE_SESSIONS, sessionId, 'marks'));
     const querySnapshot = await getDocs(q);
     
     const marks = querySnapshot.docs.map(doc => ({ 
@@ -238,7 +229,7 @@ export const getAttendanceMarksCount = async (sessionId) => {
  */
 export const updateAttendanceMark = async (sessionId, uid, updateData) => {
   try {
-    const markRef = doc(db, 'attendanceSessions', sessionId, 'marks', uid);
+    const markRef = doc(dbService.getDb(), COLLECTIONS.ATTENDANCE_SESSIONS, sessionId, 'marks', uid);
     await updateDoc(markRef, {
       ...updateData,
       updatedAt: getQatarTimestampString()
@@ -258,7 +249,7 @@ export const updateAttendanceMark = async (sessionId, uid, updateData) => {
  */
 export const getAttendanceMarksForExport = async (sessionId) => {
   try {
-    const q = query(collection(db, 'attendanceSessions', sessionId, 'marks'));
+    const q = query(collection(dbService.getDb(), COLLECTIONS.ATTENDANCE_SESSIONS, sessionId, 'marks'));
     const querySnapshot = await getDocs(q);
     const marks = querySnapshot.docs.map(doc => ({ 
       uid: doc.id, 
@@ -280,7 +271,7 @@ export const getAttendanceMarksForExport = async (sessionId) => {
  */
 export const markAttendanceByQR = async (sessionId, uid, markData) => {
   try {
-    const markRef = doc(db, 'attendanceSessions', sessionId, 'marks', uid);
+    const markRef = doc(dbService.getDb(), COLLECTIONS.ATTENDANCE_SESSIONS, sessionId, 'marks', uid);
     const base = {
       ...markData,
       history: [{ at: markData.updatedAt, action: markData.action, reason: markData.reason || null }],
@@ -307,7 +298,7 @@ export const markAttendanceByQR = async (sessionId, uid, markData) => {
  */
 export const finalizeAttendanceSession = async (classId, sessionId, finalizeData) => {
   try {
-    const sessRef = doc(db, 'classes', classId, 'sessions', sessionId);
+    const sessRef = doc(dbService.getDb(), COLLECTIONS.CLASSES, classId, 'sessions', sessionId);
     await updateDoc(sessRef, {
       ...finalizeData,
       updatedAt: getQatarTimestampString()

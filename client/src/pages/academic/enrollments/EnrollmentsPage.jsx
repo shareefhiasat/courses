@@ -14,7 +14,7 @@ import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadin
 
 const EnrollmentsPage = () => {
   const { user, isAdmin, isInstructor } = useAuth();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
   const { startLoading } = useGlobalLoading();

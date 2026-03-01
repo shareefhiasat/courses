@@ -4,7 +4,7 @@
  */
 
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "./config";
+import { db, auth } from "./config";
 import logger from '@utils/logger';
 
 import { 
@@ -152,11 +152,42 @@ export const getActivityLogOptions = (t) => [
  */
 export async function logActivity(type, details = {}, userId = null) {
   try {
-    // Get user profile from session storage
-    const userProfile = JSON.parse(
-      sessionStorage.getItem("userProfile") || "{}"
-    );
-    const currentUser = userId || userProfile.uid;
+    // Try multiple sources for user ID in order of reliability
+    let currentUser = userId;
+    let userProfile = {}; // Declare userProfile in the proper scope
+    
+    // 1. Use provided userId (highest priority)
+    if (!currentUser) {
+      // 2. Try to get from AuthContext user (if available in window)
+      try {
+        const authUser = window.__AUTH_USER__ || window.currentAuthUser;
+        if (authUser?.uid) {
+          currentUser = authUser.uid;
+          userProfile = authUser; // Use the auth user as profile
+        }
+      } catch (e) {
+        // AuthContext not available in window
+      }
+    }
+    
+    // 3. Try sessionStorage userProfile
+    if (!currentUser) {
+      userProfile = JSON.parse(
+        sessionStorage.getItem("userProfile") || "{}"
+      );
+      currentUser = userProfile.uid;
+    }
+    
+    // 4. Try sessionStorage user (fallback)
+    if (!currentUser) {
+      try {
+        const sessionUser = JSON.parse(sessionStorage.getItem("user") || "{}");
+        currentUser = sessionUser.uid;
+        userProfile = sessionUser; // Use session user as profile
+      } catch (e) {
+        // Invalid session user data
+      }
+    }
 
     // Additional debug info for session timeout issues
     const logoutReason = sessionStorage.getItem('logoutReason');
@@ -431,14 +462,12 @@ export const ActivityLogger = {
   // Navigation
   dashboardViewed: () => {
     // Only log if we have a current user (avoid race condition during initial auth)
-    const { auth } = require('../other/config');
     if (auth.currentUser) {
       logActivity(ACTIVITY_LOG_TYPES.DASHBOARD_VIEWED);
     }
   },
   analyticsViewed: () => {
     // Only log if we have a current user (avoid race condition during initial auth)
-    const { auth } = require('../other/config');
     if (auth.currentUser) {
       logActivity(ACTIVITY_LOG_TYPES.ANALYTICS_VIEWED);
     }

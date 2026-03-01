@@ -12,22 +12,23 @@
  */
 
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  where, 
+  serverTimestamp,
+  writeBatch,
+  doc,
+  getDoc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  collection,
+  query,
+  where,
   getDocs,
   orderBy,
-  limit,
-  serverTimestamp,
-  writeBatch
+  limit
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get quiz results by user ID
@@ -39,28 +40,33 @@ export const getQuizResultsByUser = async (userId, options = {}) => {
   try {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
-    const q = query(
-      collection(db, 'quizResults'),
-      where('userId', '==', userId),
-      orderBy(orderByField, orderDirection),
-      limit(limitCount)
-    );
+    const result = await dbService.getAll(COLLECTIONS.QUIZ_RESULTS, {
+      where: {
+        field: 'userId',
+        operator: '==',
+        value: userId
+      },
+      orderBy: {
+        field: orderByField,
+        direction: orderDirection
+      },
+      limit: limitCount
+    });
     
-    const querySnapshot = await getDocs(q);
-    const quizResults = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: quizResults };
-  } catch (error) {
-    // Check if this is a missing collection error
-    if (error.message.includes('Missing or insufficient permissions') || 
-        error.code === 'permission-denied' ||
-        error.message.includes('No document to update')) {
-      logger.warn('[QuizResultsDbService] QuizResults collection not available:', { error: error.message });
+    // Handle missing collection gracefully
+    if (!result.success && result.error && 
+        (result.error.includes('Missing or insufficient permissions') || 
+         result.error.includes('permission-denied') ||
+         result.error.includes('No document to update'))) {
+      logger.warn('[QuizResultsDbService] QuizResults collection not available:', { error: result.error });
       return {
         success: true,
         data: []
       };
     }
     
+    return result;
+  } catch (error) {
     logger.error('[QuizResultsDbService] Error getting quiz results by user:', error);
     return { success: false, error: error.message };
   }
@@ -77,7 +83,7 @@ export const getQuizResultsByQuiz = async (quizId, options = {}) => {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, 'quizResults'),
+      collection(dbService.getDb(), COLLECTIONS.QUIZ_RESULTS),
       where('quizId', '==', quizId),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -99,7 +105,7 @@ export const getQuizResultsByQuiz = async (quizId, options = {}) => {
  */
 export const getQuizResult = async (resultId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'quizResults', resultId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.QUIZ_RESULTS, resultId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -117,7 +123,7 @@ export const getQuizResult = async (resultId) => {
  */
 export const createQuizResult = async (quizResultData) => {
   try {
-    const docRef = doc(collection(db, 'quizResults'));
+    const docRef = doc(collection(dbService.getDb(), COLLECTIONS.QUIZ_RESULTS));
     await setDoc(docRef, {
       ...quizResultData,
       createdAt: serverTimestamp(),
@@ -138,7 +144,7 @@ export const createQuizResult = async (quizResultData) => {
  */
 export const updateQuizResult = async (resultId, quizResultData) => {
   try {
-    await updateDoc(doc(db, 'quizResults', resultId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.QUIZ_RESULTS, resultId), {
       ...quizResultData,
       updatedAt: serverTimestamp()
     });
@@ -156,7 +162,7 @@ export const updateQuizResult = async (resultId, quizResultData) => {
  */
 export const deleteQuizResult = async (resultId) => {
   try {
-    await deleteDoc(doc(db, 'quizResults', resultId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.QUIZ_RESULTS, resultId));
     return { success: true };
   } catch (error) {
     logger.error('[QuizResultsDbService] Error deleting quiz result:', error);
@@ -171,10 +177,10 @@ export const deleteQuizResult = async (resultId) => {
  */
 export const batchUpdateQuizResults = async (updates) => {
   try {
-    const batch = writeBatch(db);
+    const batch = writeBatch(dbService.getDb());
     
     updates.forEach(({ id, data }) => {
-      const docRef = doc(db, 'quizResults', id);
+      const docRef = doc(dbService.getDb(), COLLECTIONS.QUIZ_RESULTS, id);
       batch.update(docRef, {
         ...data,
         updatedAt: serverTimestamp()
@@ -216,7 +222,7 @@ export const getQuizResults = async (filters = {}) => {
     if (subjectId) conditions.push(where('subjectId', '==', subjectId));
     
     const q = query(
-      collection(db, 'quizResults'),
+      collection(dbService.getDb(), COLLECTIONS.QUIZ_RESULTS),
       ...conditions,
       orderBy(orderByField, orderDirection),
       limit(limitCount)

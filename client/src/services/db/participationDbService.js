@@ -34,24 +34,25 @@
  */
 
 import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
+  serverTimestamp,
   onSnapshot,
-  serverTimestamp 
+  collection,
+  query,
+  orderBy,
+  getDocs,
+  doc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  getDoc,
+  where
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 // Collection name
-const COLLECTION = 'participations';
+const COLLECTION = COLLECTIONS.PARTICIPATION;
 
 // ============================================================================
 // CRUD OPERATIONS
@@ -64,7 +65,7 @@ const COLLECTION = 'participations';
  */
 export const createParticipation = async (participationData) => {
   try {
-    const docRef = doc(collection(db, COLLECTION));
+    const docRef = doc(collection(dbService.getDb(), COLLECTION));
     const participationWithTimestamp = {
       ...participationData,
       createdAt: serverTimestamp(),
@@ -93,7 +94,7 @@ export const createParticipation = async (participationData) => {
  */
 export const getParticipation = async (id) => {
   try {
-    const docRef = doc(db, COLLECTION, id);
+    const docRef = doc(dbService.getDb(), COLLECTION, id);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
@@ -124,7 +125,7 @@ export const getParticipation = async (id) => {
  */
 export const updateParticipation = async (id, updateData) => {
   try {
-    const docRef = doc(db, COLLECTION, id);
+    const docRef = doc(dbService.getDb(), COLLECTION, id);
     const updateWithTimestamp = {
       ...updateData,
       updatedAt: serverTimestamp()
@@ -152,7 +153,7 @@ export const updateParticipation = async (id, updateData) => {
  */
 export const deleteParticipation = async (id) => {
   try {
-    const docRef = doc(db, COLLECTION, id);
+    const docRef = doc(dbService.getDb(), COLLECTION, id);
     await deleteDoc(docRef);
     
     return {
@@ -179,7 +180,7 @@ export const deleteParticipation = async (id) => {
 export const getParticipationsByStudent = async (studentId) => {
   try {
     const q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       where('studentId', '==', studentId),
       orderBy('createdAt', 'desc')
     );
@@ -210,7 +211,7 @@ export const getParticipationsByStudent = async (studentId) => {
 export const getParticipations = async () => {
   try {
     const q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       orderBy('createdAt', 'desc')
     );
     
@@ -252,7 +253,7 @@ export const getParticipations = async () => {
 export const getParticipationsByClass = async (classId) => {
   try {
     const q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       where('classId', '==', classId),
       orderBy('createdAt', 'desc')
     );
@@ -285,7 +286,7 @@ export const getParticipationsByClass = async (classId) => {
 export const getParticipationsByClassAndDate = async (classId, date) => {
   try {
     const q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       where('classId', '==', classId),
       where('date', '==', date),
       orderBy('createdAt', 'desc')
@@ -322,7 +323,7 @@ export const getParticipationsByDateRange = async (startDate, endDate, classId =
     // Note: Firestore doesn't support date range queries on timestamp fields directly
     // This would need to be implemented with a composite index or client-side filtering
     let q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       orderBy('createdAt', 'desc')
     );
     
@@ -371,7 +372,7 @@ export const getParticipationsByDateRange = async (startDate, endDate, classId =
  */
 export const subscribeToParticipationsByClass = (classId, callback) => {
   const q = query(
-    collection(db, COLLECTION),
+    collection(dbService.getDb(), COLLECTION),
     where('classId', '==', classId),
     orderBy('createdAt', 'desc')
   );
@@ -387,7 +388,7 @@ export const subscribeToParticipationsByClass = (classId, callback) => {
  */
 export const subscribeToParticipationsByStudent = (studentId, callback) => {
   const q = query(
-    collection(db, COLLECTION),
+    collection(dbService.getDb(), COLLECTION),
     where('studentId', '==', studentId),
     orderBy('createdAt', 'desc')
   );

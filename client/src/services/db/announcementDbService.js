@@ -12,23 +12,24 @@
  */
 
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  where, 
-  getDocs,
+  serverTimestamp,
+  onSnapshot,
+  collection,
+  query,
   orderBy,
   limit,
-  serverTimestamp,
-  onSnapshot
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
+  getDoc,
+  setDoc,
+  where
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get all announcements - with performance monitoring and memoization
@@ -42,7 +43,7 @@ export const getAnnouncements = async (options = {}) => {
     logger.debug('Querying announcements collection with options:', options);
     
     const q = query(
-      collection(db, 'announcements'),
+      collection(dbService.getDb(), COLLECTIONS.ANNOUNCEMENTS),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
     );
@@ -64,7 +65,7 @@ export const getAnnouncements = async (options = {}) => {
 export const getLatestAnnouncement = async () => {
   try {
     const q = query(
-      collection(db, 'announcements'),
+      collection(dbService.getDb(), COLLECTIONS.ANNOUNCEMENTS),
       orderBy('createdAt', 'desc'),
       limit(1)
     );
@@ -89,7 +90,7 @@ export const getLatestAnnouncement = async () => {
  */
 export const getAnnouncement = async (announcementId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'announcements', announcementId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.ANNOUNCEMENTS, announcementId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -108,7 +109,7 @@ export const getAnnouncement = async (announcementId) => {
  */
 export const create = async (announcementData, user = null) => {
   try {
-    const docRef = doc(collection(db, 'announcements'));
+    const docRef = doc(collection(dbService.getDb(), COLLECTIONS.ANNOUNCEMENTS));
     await setDoc(docRef, {
       ...announcementData,
       ...getCreateAuditData(user || { uid: 'system' })
@@ -129,7 +130,7 @@ export const create = async (announcementData, user = null) => {
  */
 export const update = async (announcementId, announcementData, user = null) => {
   try {
-    await updateDoc(doc(db, 'announcements', announcementId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.ANNOUNCEMENTS, announcementId), {
       ...announcementData,
       ...getUpdateAuditData(user || { uid: 'system' })
     });
@@ -147,7 +148,7 @@ export const update = async (announcementId, announcementData, user = null) => {
  */
 export const deleteAnnouncement = async (announcementId) => {
   try {
-    await deleteDoc(doc(db, 'announcements', announcementId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.ANNOUNCEMENTS, announcementId));
     return { success: true };
   } catch (error) {
     logger.error('[AnnouncementDbService] Error deleting announcement:', error);
@@ -163,7 +164,7 @@ export const deleteAnnouncement = async (announcementId) => {
 export const onLatestAnnouncementChange = (callback) => {
   try {
     const q = query(
-      collection(db, 'announcements'),
+      collection(dbService.getDb(), COLLECTIONS.ANNOUNCEMENTS),
       orderBy('createdAt', 'desc'),
       limit(1)
     );
@@ -195,7 +196,7 @@ export const onAnnouncementsChange = (callback, options = {}) => {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, 'announcements'),
+      collection(dbService.getDb(), COLLECTIONS.ANNOUNCEMENTS),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
     );
@@ -223,7 +224,7 @@ export const getAnnouncementsByClass = async (classId, options = {}) => {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, 'announcements'),
+      collection(dbService.getDb(), COLLECTIONS.ANNOUNCEMENTS),
       where('classId', '==', classId),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -249,7 +250,7 @@ export const getAnnouncementsByProgram = async (programId, options = {}) => {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, 'announcements'),
+      collection(dbService.getDb(), COLLECTIONS.ANNOUNCEMENTS),
       where('programId', '==', programId),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -274,7 +275,7 @@ export const getActiveAnnouncements = async (options = {}) => {
     const { limitCount = 100, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, 'announcements'),
+      collection(dbService.getDb(), COLLECTIONS.ANNOUNCEMENTS),
       where('isActive', '==', true),
       orderBy(orderByField, orderDirection),
       limit(limitCount)

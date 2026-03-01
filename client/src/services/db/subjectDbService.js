@@ -12,20 +12,21 @@
  */
 
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  where, 
+  serverTimestamp,
+  doc,
+  getDoc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  collection,
+  query,
+  where,
   getDocs,
-  orderBy,
-  serverTimestamp
+  orderBy
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get all subjects - with performance monitoring and memoization
@@ -33,10 +34,13 @@ import logger from '@utils/logger';
  */
 export const getSubjects = async () => {
   try {
-    const q = query(collection(db, 'subjects'), orderBy('nameEn', 'asc'));
-    const querySnapshot = await getDocs(q);
-    const subjects = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: subjects };
+    const result = await dbService.getAll(COLLECTIONS.SUBJECTS, {
+      orderBy: {
+        field: 'nameEn',
+        direction: 'asc'
+      }
+    });
+    return result;
   } catch (error) {
     logger.error('[SubjectDbService] Error getting subjects:', error);
     return { success: false, error: error.message };
@@ -50,7 +54,7 @@ export const getSubjects = async () => {
  */
 export const getSubject = async (subjectId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'subjects', subjectId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.SUBJECTS, subjectId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -69,7 +73,7 @@ export const getSubject = async (subjectId) => {
  */
 export const createSubject = async (subjectData, auditData = null) => {
   try {
-    const docRef = doc(collection(db, 'subjects'));
+    const docRef = doc(collection(dbService.getDb(), COLLECTIONS.SUBJECTS));
     const finalData = {
       ...subjectData,
       ...(auditData || {
@@ -100,7 +104,7 @@ export const updateSubject = async (subjectId, subjectData, auditData = null) =>
         updatedAt: serverTimestamp()
       })
     };
-    await updateDoc(doc(db, 'subjects', subjectId), finalData);
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.SUBJECTS, subjectId), finalData);
     return { success: true };
   } catch (error) {
     logger.error('[SubjectDbService] Error updating subject:', error);
@@ -115,7 +119,7 @@ export const updateSubject = async (subjectId, subjectData, auditData = null) =>
  */
 export const deleteSubject = async (subjectId) => {
   try {
-    await deleteDoc(doc(db, 'subjects', subjectId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.SUBJECTS, subjectId));
     return { success: true };
   } catch (error) {
     logger.error('[SubjectDbService] Error deleting subject:', error);
@@ -131,7 +135,7 @@ export const deleteSubject = async (subjectId) => {
 export const getSubjectsByProgram = async (programId) => {
   try {
     const q = query(
-      collection(db, 'subjects'), 
+      collection(dbService.getDb(), COLLECTIONS.SUBJECTS), 
       where('programId', '==', programId),
       orderBy('nameEn', 'asc')
     );
@@ -151,7 +155,7 @@ export const getSubjectsByProgram = async (programId) => {
 export const getActiveSubjects = async () => {
   try {
     const q = query(
-      collection(db, 'subjects'), 
+      collection(dbService.getDb(), COLLECTIONS.SUBJECTS), 
       where('isActive', '==', true),
       orderBy('nameEn', 'asc')
     );

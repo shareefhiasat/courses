@@ -134,10 +134,6 @@ class Logger {
   info(...args) {
     if (this.shouldLog('info')) {
       this.originalConsole.info(...this.formatMessage('info', ...args));
-      // Always show logs in development for debugging
-      if (isDevelopment) {
-        this.originalConsole.log('🔧 [DEV-INFO]', ...args);
-      }
       // Send to Loggly if configured
       this.sendToLoggly('info', ...args);
     }
@@ -225,8 +221,7 @@ class Logger {
       const Sentry = await this.importSentry();
       
       if (!Sentry) {
-        this.originalConsole.warn('⚠️ Sentry not available - skipping initialization');
-        return;
+        return; // Skip if Sentry not available
       }
       
       Sentry.init({

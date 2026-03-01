@@ -18,7 +18,7 @@
  */
 
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '../other/config';
+import { functions } from '@services/other/config';
 import logger from '@utils/logger';
 
 /**

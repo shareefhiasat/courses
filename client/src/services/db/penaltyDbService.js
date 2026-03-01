@@ -33,23 +33,24 @@
  */
 
 import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
-  serverTimestamp 
+  serverTimestamp,
+  collection,
+  query,
+  orderBy,
+  getDocs,
+  doc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  getDoc,
+  where
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 // Collection name
-const COLLECTION = 'penalties';
+const COLLECTION = COLLECTIONS.PENALTIES;
 
 // ============================================================================
 // CRUD OPERATIONS
@@ -62,7 +63,7 @@ const COLLECTION = 'penalties';
  */
 export const createPenalty = async (penaltyData) => {
   try {
-    const docRef = doc(collection(db, COLLECTION));
+    const docRef = doc(collection(dbService.getDb(), COLLECTION));
     const penaltyWithTimestamp = {
       ...penaltyData,
       createdAt: serverTimestamp(),
@@ -91,7 +92,7 @@ export const createPenalty = async (penaltyData) => {
  */
 export const getPenalty = async (id) => {
   try {
-    const docRef = doc(db, COLLECTION, id);
+    const docRef = doc(dbService.getDb(), COLLECTION, id);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
@@ -122,7 +123,7 @@ export const getPenalty = async (id) => {
  */
 export const updatePenalty = async (id, updateData) => {
   try {
-    const docRef = doc(db, COLLECTION, id);
+    const docRef = doc(dbService.getDb(), COLLECTION, id);
     const updateWithTimestamp = {
       ...updateData,
       updatedAt: serverTimestamp()
@@ -150,7 +151,7 @@ export const updatePenalty = async (id, updateData) => {
  */
 export const deletePenalty = async (id) => {
   try {
-    const docRef = doc(db, COLLECTION, id);
+    const docRef = doc(dbService.getDb(), COLLECTION, id);
     await deleteDoc(docRef);
     
     return {
@@ -177,7 +178,7 @@ export const deletePenalty = async (id) => {
 export const getPenaltiesByStudent = async (studentId) => {
   try {
     const q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       where('studentId', '==', studentId),
       orderBy('createdAt', 'desc')
     );
@@ -208,7 +209,7 @@ export const getPenaltiesByStudent = async (studentId) => {
 export const getPenalties = async () => {
   try {
     const q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       orderBy('createdAt', 'desc')
     );
     
@@ -250,7 +251,7 @@ export const getPenalties = async () => {
 export const getPenaltiesByClass = async (classId) => {
   try {
     const q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       where('classId', '==', classId),
       orderBy('createdAt', 'desc')
     );
@@ -283,7 +284,7 @@ export const getPenaltiesByClass = async (classId) => {
 export const getPenaltiesByClassAndDate = async (classId, date) => {
   try {
     const q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       where('classId', '==', classId),
       where('date', '==', date),
       orderBy('createdAt', 'desc')

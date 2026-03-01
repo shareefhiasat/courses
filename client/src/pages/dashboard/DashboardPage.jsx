@@ -180,7 +180,6 @@ const DashboardPage = () => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.uploadDefaultEmailTemplates = uploadDefaultEmailTemplates;
-      console.log((t('upload_function_available') || '🔧 Upload function available: ') + 'window.uploadDefaultEmailTemplates()');
     }
   }, [uploadDefaultEmailTemplates, t]);
 

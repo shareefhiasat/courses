@@ -12,20 +12,21 @@
  */
 
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  getDocs,
+  serverTimestamp,
+  collection,
+  query,
   orderBy,
-  serverTimestamp
+  getDocs,
+  doc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  getDoc
 } from 'firebase/firestore';
-import { db } from '../other/config';
-import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
+import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 
 /**
  * Get all categories from Firestore
@@ -34,7 +35,7 @@ import logger from '@utils/logger';
 export const getCategories = async () => {
   try {
     const q = query(
-      collection(db, 'categories'),
+      collection(dbService.getDb(), COLLECTIONS.CATEGORIES),
       orderBy('order', 'asc')
     );
     
@@ -71,7 +72,7 @@ export const getCategories = async () => {
  */
 export const getCategoryById = async (docId) => {
   try {
-    const docRef = doc(db, 'categories', docId);
+    const docRef = doc(dbService.getDb(), COLLECTIONS.CATEGORIES, docId);
     const docSnapshot = await getDoc(docRef);
     
     if (docSnapshot.exists()) {
@@ -109,7 +110,7 @@ export const create = async (categoryData, user = null) => {
   try {
     logger.info('CATEGORY: Creating new category', { name: categoryData.nameEn });
     
-    const docRef = doc(collection(db, 'categories'));
+    const docRef = doc(collection(dbService.getDb(), COLLECTIONS.CATEGORIES));
     const categoryWithAudit = {
       ...categoryData,
       ...getCreateAuditData(user || { uid: 'system' })
@@ -136,7 +137,7 @@ export const update = async (docId, categoryData, user = null) => {
   try {
     logger.info('CATEGORY: Updating category', { docId, name: categoryData.nameEn });
     
-    const docRef = doc(db, 'categories', docId);
+    const docRef = doc(dbService.getDb(), COLLECTIONS.CATEGORIES, docId);
     const updateData = {
       ...categoryData,
       ...getUpdateAuditData(user || { uid: 'system' })
@@ -161,7 +162,7 @@ export const deleteCategory = async (docId) => {
   try {
     logger.info('CATEGORY: Deleting category', { docId });
     
-    const docRef = doc(db, 'categories', docId);
+    const docRef = doc(dbService.getDb(), COLLECTIONS.CATEGORIES, docId);
     await deleteDoc(docRef);
     
     logger.info('CATEGORY: Successfully deleted category', { docId });

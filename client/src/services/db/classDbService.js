@@ -13,21 +13,22 @@
  */
 
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  where, 
-  getDocs,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  doc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get all classes - with performance monitoring and memoization
@@ -35,9 +36,8 @@ import logger from '@utils/logger';
  */
 export const getClasses = async () => {
   try {
-    const querySnapshot = await getDocs(collection(db, 'classes'));
-    const classes = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: classes };
+    const result = await dbService.getAll(COLLECTIONS.CLASSES);
+    return result;
   } catch (error) {
     logger.error('[ClassDbService] Error getting classes:', error);
     return { success: false, error: error.message };
@@ -51,7 +51,7 @@ export const getClasses = async () => {
  */
 export const getClass = async (classId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'classes', classId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.CLASSES, classId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -69,7 +69,7 @@ export const getClass = async (classId) => {
  */
 export const getClassesByProgram = async (programId) => {
   try {
-    const q = query(collection(db, 'classes'), where('programId', '==', programId));
+    const q = query(collection(dbService.getDb(), COLLECTIONS.CLASSES), where('programId', '==', programId));
     const querySnapshot = await getDocs(q);
     const classes = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: classes };
@@ -86,7 +86,7 @@ export const getClassesByProgram = async (programId) => {
  */
 export const getClassesByInstructor = async (instructorId) => {
   try {
-    const q = query(collection(db, 'classes'), where('instructorId', '==', instructorId));
+    const q = query(collection(dbService.getDb(), COLLECTIONS.CLASSES), where('instructorId', '==', instructorId));
     const querySnapshot = await getDocs(q);
     const classes = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: classes };
@@ -104,7 +104,7 @@ export const getClassesByInstructor = async (instructorId) => {
  */
 export const create = async (classData, user = null) => {
   try {
-    const docRef = doc(collection(db, 'classes'));
+    const docRef = doc(collection(dbService.getDb(), COLLECTIONS.CLASSES));
     const finalData = {
       ...classData,
       ...getCreateAuditData(user || { uid: 'system' })
@@ -138,15 +138,15 @@ export const update = async (classId, updateData, user = null) => {
       ...getUpdateAuditData(user || { uid: 'system' })
     };
     
-    console.log('🔧 [ClassDbService] final data for Firestore:', finalData);
+    console.log(' [ClassDbService] final data for Firestore:', finalData);
     
-    await updateDoc(doc(db, 'classes', classId), finalData);
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.CLASSES, classId), finalData);
     
-    console.log('✅ [ClassDbService] Firestore update successful for classId:', classId);
+    console.log(' [ClassDbService] Firestore update successful for classId:', classId);
     
     return { success: true };
   } catch (error) {
-    console.error('❌ [ClassDbService] Firestore update error:', error);
+    console.error(' [ClassDbService] Firestore update error:', error);
     logger.error('[ClassDbService] Error updating class:', error);
     return { success: false, error: error.message };
   }
@@ -159,7 +159,7 @@ export const update = async (classId, updateData, user = null) => {
  */
 export const deleteClass = async (classId) => {
   try {
-    await deleteDoc(doc(db, 'classes', classId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.CLASSES, classId));
     return { success: true };
   } catch (error) {
     logger.error('[ClassDbService] Error deleting class:', error);

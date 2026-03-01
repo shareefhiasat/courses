@@ -1,6 +1,7 @@
-import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { db } from '@services/other/config';
+import { onSnapshot, serverTimestamp, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Bookmark Database Service - Pure database operations
@@ -8,7 +9,7 @@ import logger from '@utils/logger';
  * No business logic, validation, or side effects
  */
 
-const COLLECTION_NAME = 'users';
+const COLLECTION_NAME = COLLECTIONS.USERS;
 
 /**
  * Get user document from Firestore - with performance monitoring and memoization
@@ -17,7 +18,7 @@ const COLLECTION_NAME = 'users';
  */
 export const getUserDocument = async (userId) => {
   try {
-    const userDocRef = doc(db, COLLECTION_NAME, userId);
+    const userDocRef = doc(dbService.getDb(), COLLECTION_NAME, userId);
     const userDoc = await getDoc(userDocRef);
     return userDoc;
   } catch (error) {
@@ -35,7 +36,7 @@ export const getUserDocument = async (userId) => {
  */
 export const setUserDocument = async (userId, data, options = {}) => {
   try {
-    const userDocRef = doc(db, COLLECTION_NAME, userId);
+    const userDocRef = doc(dbService.getDb(), COLLECTION_NAME, userId);
     await setDoc(userDocRef, data, { merge: true, ...options });
   } catch (error) {
     logger.error('[BookmarkDb] Failed to set user document:', error);
@@ -51,7 +52,7 @@ export const setUserDocument = async (userId, data, options = {}) => {
  */
 export const updateUserDocument = async (userId, data) => {
   try {
-    const userDocRef = doc(db, COLLECTION_NAME, userId);
+    const userDocRef = doc(dbService.getDb(), COLLECTION_NAME, userId);
     await updateDoc(userDocRef, data);
   } catch (error) {
     logger.error('[BookmarkDb] Failed to update user document:', error);
@@ -111,7 +112,7 @@ export const saveUserBookmarksToDb = async (userId, bookmarks) => {
     };
 
     // Use updateDoc instead of setDoc with merge to properly handle deletions
-    const userDocRef = doc(db, COLLECTION_NAME, userId);
+    const userDocRef = doc(dbService.getDb(), COLLECTION_NAME, userId);
     await updateDoc(userDocRef, bookmarkData);
     
     logger.debug('[BookmarkDb] Saved bookmarks to database:', {
@@ -160,7 +161,7 @@ export const updateBookmarkTypeInDb = async (userId, bookmarkType, bookmarkData)
  */
 export const onUserBookmarksChange = (userId, callback, onError = null) => {
   try {
-    const userDocRef = doc(db, COLLECTION_NAME, userId);
+    const userDocRef = doc(dbService.getDb(), COLLECTION_NAME, userId);
     
     return onSnapshot(userDocRef, (doc) => {
       const userData = doc.data();

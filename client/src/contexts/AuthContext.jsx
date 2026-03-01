@@ -95,7 +95,6 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Set initial timeout
-    logger.log(`[Auth] Initial session timeout set for ${user.email} at ${new Date(Date.now() + sessionTimeout).toLocaleTimeString()}`);
     resetTimeout();
 
     // Reset timeout on user activity - WITH DEBOUNCING
@@ -150,6 +149,15 @@ export const AuthProvider = ({ children }) => {
     return () => clearTimeout(timeout);
   }, [loading, user, userProfile]);
 
+  // Make current user available globally for Activity Logger
+  useEffect(() => {
+    if (user) {
+      window.__AUTH_USER__ = user;
+    } else {
+      delete window.__AUTH_USER__;
+    }
+  }, [user]);
+
   // Load cached profile from sessionStorage on mount
   useEffect(() => {
     const cached = sessionStorage.getItem('userProfile');
@@ -162,7 +170,6 @@ export const AuthProvider = ({ children }) => {
         const sessionStart = sessionStorage.getItem('sessionStart');
         
         if (!hasLoggedIn || !sessionStart) {
-          logger.log('[Auth] Restoring session flags from cached user profile');
           sessionStorage.setItem('hasLoggedInThisSession', 'true');
           sessionStorage.setItem('sessionStart', Date.now().toString());
           setHasLoggedInThisSession(true);
@@ -201,7 +208,6 @@ export const AuthProvider = ({ children }) => {
           const sessionTimeoutUser = sessionStorage.getItem('sessionTimeoutUser');
           
           logger.warn(`[Auth] Temporary auth state change detected, retry ${authRetryCount}/${maxRetries}`);
-          logger.log(`[Auth] Debug info - Logout reason: ${logoutReason}, Timestamp: ${logoutTimestamp}, Session user: ${sessionTimeoutUser}`);
           
           // Check if this is actually a network issue vs real logout
           const hasRecentActivity = sessionStorage.getItem('hasLoggedInThisSession') === 'true';
@@ -209,17 +215,13 @@ export const AuthProvider = ({ children }) => {
           const recentSession = sessionStart && (Date.now() - parseInt(sessionStart)) < 5 * 60 * 1000; // 5 minutes
           const hasUserProfile = !!sessionStorage.getItem('userProfile');
           
-          logger.log(`[Auth] Session analysis - Has recent activity: ${hasRecentActivity}, Recent session: ${recentSession}, Has user profile: ${hasUserProfile}, Session start: ${sessionStart}`);
-          
           // More lenient check: if user profile exists, treat as potential temporary issue
           if ((hasRecentActivity && recentSession) || hasUserProfile) {
             // Wait a bit and see if auth state recovers
-            logger.log('[Auth] Waiting to see if auth state recovers...');
             await new Promise(resolve => setTimeout(resolve, 2000)); // Increased wait time
             return;
           } else {
             // If no recent activity and no user profile, this might be a real logout
-            logger.info('[Auth] No recent session activity, treating as real logout');
           }
         }
 
@@ -255,7 +257,6 @@ export const AuthProvider = ({ children }) => {
 
       // Reset retry count on successful auth
       authRetryCount = 0;
-      logger.log('[Auth] User authenticated:', firebaseUser.email);
 
       // Only log login if we haven't logged this session yet
       const isNewLogin = !hasLoggedInThisSession;
@@ -303,7 +304,7 @@ export const AuthProvider = ({ children }) => {
               userData.displayName = userProfile.displayName || userProfile.realName || userData.displayName;
               // logger.log('🔧 AuthContext final userData.displayName:', userData.displayName);
             } else {
-              logger.log('🔧 AuthContext user profile does not exist');
+              // User profile does not exist
             }
           } catch (error) {
             logger.warn("Failed to load user document for display name:", error);
@@ -336,7 +337,6 @@ export const AuthProvider = ({ children }) => {
             if (superAdminFromAllowlist && isSubscribed) {
               setIsSuperAdmin(true);
               setRole(ROLE_STRINGS.SUPER_ADMIN);
-              logger.info('[Auth] Immediate super admin role set from allowlist:', { email: firebaseUser.email });
             }
             
             // Attempt to set claim via Cloud Function (production only)
@@ -353,12 +353,6 @@ export const AuthProvider = ({ children }) => {
                 if (import.meta.env.PROD) logger.warn('ensureAdminClaim failed:', e?.message || e);
               }
             }
-            
-            logger.info('[Auth] Allowlist check completed:', { 
-              email: firebaseUser.email, 
-              admin, 
-              superAdmin: superAdminFromAllowlist 
-            });
           }
         } catch (error) {
           logger.warn('[Auth] Failed to check allowlist:', error);
@@ -383,7 +377,6 @@ export const AuthProvider = ({ children }) => {
             // Use super admin from allowlist if not set in profile
             if (!superAdminFromDoc && superAdminFromAllowlist) {
               superAdminFromDoc = true;
-              logger.info('[Auth] Super admin status determined from allowlist:', { email: firebaseUser.email });
             }
             
             // Cache profile in sessionStorage
@@ -472,17 +465,6 @@ export const AuthProvider = ({ children }) => {
               setRole(userRole);
               setRealUser({ ...firebaseUser, role: userRole });
               
-              logger.info('[Auth] Final role determination:', {
-                email: firebaseUser.email,
-                userRole,
-                superAdminFromDoc,
-                superAdminFromAllowlist,
-                adminFromDoc,
-                admin,
-                hr,
-                instructor
-              });
-              
               // Log login if new session
               if (isNewLogin) {
                 try {
@@ -506,12 +488,6 @@ export const AuthProvider = ({ children }) => {
               const finalRole = superAdminFromAllowlist ? ROLE_STRINGS.SUPER_ADMIN : 
                               (admin ? ROLE_STRINGS.ADMIN : ROLE_STRINGS.STUDENT);
               setRole(finalRole);
-              logger.info('[Auth] Role set from allowlist (no profile):', { 
-                email: firebaseUser.email, 
-                admin, 
-                superAdmin: superAdminFromAllowlist,
-                finalRole 
-              });
             }
           }
         } catch (error) {

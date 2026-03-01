@@ -96,33 +96,6 @@ const ClassesPage = () => {
           isSuperAdmin(u) || isAdmin(u) || isInstructor(u)
         );
         setFilteredInstructorUsers(instructorUsers || []);
-        
-        console.log('🔍 [ClassesPage] UserSelect Debug:', {
-          totalUsers: usersRes.data?.length,
-          instructorUsers: instructorUsers?.length,
-          currentUser: user?.email
-        });
-        
-        // Debug class data and lookup issues
-        console.log('🔍 [ClassesPage] Column Lookup Debug:', {
-          classSubjectId: classesRes?.data?.[0]?.subjectId,
-          classProgramId: classesRes?.data?.[0]?.programId,
-          foundSubject: subjects.find(s => (s.docId || s.id) === classesRes?.data?.[0]?.subjectId),
-          foundProgram: programs.find(p => (p.docId || p.id) === classesRes?.data?.[0]?.programId)
-        });
-        
-        // Make the fix function available in console for debugging
-        if (typeof window !== 'undefined') {
-          window.fixUserRole = async () => {
-            console.log('🔧 Fixing user role...');
-            const result = await makeCurrentUserSuperAdminAndInstructor();
-            console.log('🔧 Result:', result);
-            if (result.success) {
-              console.log('✅ User role fixed! Please refresh the page.');
-            }
-          };
-          console.log('🔧 Run window.fixUserRole() in console to fix your role');
-        }
       }
       if (enrollmentsRes?.success) setEnrollments(enrollmentsRes.data || []);
       if (activitiesRes?.success) setActivities(activitiesRes.data || []);

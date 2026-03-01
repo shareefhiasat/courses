@@ -24,21 +24,22 @@
  */
 
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  collection,
+  query,
+  where,
+  getDocs
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
 import { USER_STATUS_TYPES } from '@constants/activityTypes';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get user by ID - with performance monitoring and memoization
@@ -53,11 +54,8 @@ export const getUserById = async (userId) => {
     }
     
     logger.debug('[UserDbService] Getting user by ID:', { userId });
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (userDoc.exists()) {
-      return { success: true, data: { id: userDoc.id, ...userDoc.data() } };
-    }
-    return { success: false, error: 'User not found' };
+    const result = await dbService.getById(COLLECTIONS.USERS, userId);
+    return result;
   } catch (error) {
     logger.error('[UserDbService] Error getting user by ID:', error);
     return { success: false, error: error.message };
@@ -71,11 +69,8 @@ export const getUserById = async (userId) => {
  */
 export const getUserByStudentNumber = async (studentNumber) => {
   try {
-    const userDoc = await getDoc(doc(db, 'users', studentNumber));
-    if (userDoc.exists()) {
-      return { success: true, data: { id: userDoc.id, ...userDoc.data() } };
-    }
-    return { success: false, error: 'Student not found' };
+    const result = await dbService.getById(COLLECTIONS.USERS, studentNumber);
+    return result;
   } catch (error) {
     logger.error('[UserDbService] Error getting user by student number:', error);
     return { success: false, error: error.message };
@@ -89,12 +84,16 @@ export const getUserByStudentNumber = async (studentNumber) => {
  */
 export const getUserByEmail = async (email) => {
   try {
-    const q = query(collection(db, 'users'), where('email', '==', email));
-    const querySnapshot = await getDocs(q);
+    const result = await dbService.getAll(COLLECTIONS.USERS, {
+      where: {
+        field: 'email',
+        operator: '==',
+        value: email
+      }
+    });
     
-    if (!querySnapshot.empty) {
-      const userDoc = querySnapshot.docs[0];
-      return { success: true, data: { id: userDoc.id, ...userDoc.data() } };
+    if (result.success && result.data.length > 0) {
+      return { success: true, data: result.data[0] };
     }
     
     return { success: false, error: 'User not found' };
@@ -111,7 +110,7 @@ export const getUserByEmail = async (email) => {
  */
 export const getUsersByRole = async (role) => {
   try {
-    const q = query(collection(db, 'users'), where('role', '==', role));
+    const q = query(collection(dbService.getDb(), COLLECTIONS.USERS), where('role', '==', role));
     const querySnapshot = await getDocs(q);
     const users = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return { success: true, data: users };
@@ -136,8 +135,8 @@ export const getUsers = async (filters = {}) => {
     if (isActive !== undefined) conditions.push(where('isActive', '==', isActive));
     
     const q = conditions.length > 0 
-      ? query(collection(db, 'users'), ...conditions)
-      : query(collection(db, 'users'));
+      ? query(collection(dbService.getDb(), COLLECTIONS.USERS), ...conditions)
+      : query(collection(dbService.getDb(), COLLECTIONS.USERS));
       
     const querySnapshot = await getDocs(q);
     const users = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -157,7 +156,7 @@ export const getUsers = async (filters = {}) => {
  */
 export const setUser = async (userId, userData, auditData = {}) => {
   try {
-    const docRef = doc(db, 'users', userId);
+    const docRef = doc(dbService.getDb(), COLLECTIONS.USERS, userId);
     await setDoc(docRef, {
       ...userData,
       ...auditData
@@ -189,7 +188,7 @@ export const updateUser = async (userId, updateData, auditData = {}) => {
     }
     
     logger.debug('[UserDbService] Updating user:', { userId, updateFields: Object.keys(updateData) });
-    const docRef = doc(db, 'users', userId);
+    const docRef = doc(dbService.getDb(), COLLECTIONS.USERS, userId);
     await updateDoc(docRef, {
       ...updateData,
       ...auditData
@@ -210,7 +209,7 @@ export const updateUser = async (userId, updateData, auditData = {}) => {
 export const deleteUser = async (userId) => {
   try {
     // First delete from Firestore
-    await deleteDoc(doc(db, 'users', userId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.USERS, userId));
     
     // Then delete from Firebase Auth to revoke tokens
     try {
@@ -246,7 +245,7 @@ export const deleteUser = async (userId) => {
  */
 export const userExists = async (userId) => {
   try {
-    const userDoc = await getDoc(doc(db, 'users', userId));
+    const userDoc = await getDoc(doc(dbService.getDb(), COLLECTIONS.USERS, userId));
     return userDoc.exists();
   } catch (error) {
     logger.error('[UserDbService] Error checking user existence:', error);
@@ -262,7 +261,7 @@ export const userExists = async (userId) => {
  */
 export const onUserChange = (userId, callback) => {
   try {
-    const docRef = doc(db, 'users', userId);
+    const docRef = doc(dbService.getDb(), COLLECTIONS.USERS, userId);
     const unsubscribe = onSnapshot(docRef, (doc) => {
       if (doc.exists()) {
         callback({ id: doc.id, ...doc.data() });
@@ -293,7 +292,7 @@ export const getUsersByIds = async (userIds) => {
     // Batch fetch users with error handling
     const userPromises = uniqueIds.map(async (userId) => {
       try {
-        const userDoc = await getDoc(doc(db, 'users', userId));
+        const userDoc = await getDoc(doc(dbService.getDb(), COLLECTIONS.USERS, userId));
         if (userDoc.exists()) {
           return { id: userId, data: { id: userDoc.id, ...userDoc.data() } };
         }
@@ -333,75 +332,63 @@ export const deleteUserCascade = async (uid) => {
     
     // notifications
     const nqs = await getDocs(
-      query(collection(db, "notifications"), where("userId", "==", uid))
+      query(collection(dbService.getDb(), COLLECTIONS.NOTIFICATIONS), where("userId", "==", uid))
     );
     nqs.forEach((d) =>
-      deletions.push(deleteDoc(doc(db, "notifications", d.id)))
+      deletions.push(deleteDoc(doc(dbService.getDb(), COLLECTIONS.NOTIFICATIONS, d.id)))
     );
     
     // enrollments
     const eqs = await getDocs(
-      query(collection(db, "enrollments"), where("userId", "==", uid))
+      query(collection(dbService.getDb(), COLLECTIONS.ENROLLMENTS), where("userId", "==", uid))
     );
-    eqs.forEach((d) => deletions.push(deleteDoc(doc(db, "enrollments", d.id))));
+    eqs.forEach((d) => deletions.push(deleteDoc(doc(dbService.getDb(), COLLECTIONS.ENROLLMENTS, d.id))));
     
     // submissions
     const sqs = await getDocs(
-      query(collection(db, "submissions"), where("userId", "==", uid))
+      query(collection(dbService.getDb(), COLLECTIONS.SUBMISSIONS), where("userId", "==", uid))
     );
-    sqs.forEach((d) => deletions.push(deleteDoc(doc(db, "submissions", d.id))));
+    sqs.forEach((d) => deletions.push(deleteDoc(doc(dbService.getDb(), COLLECTIONS.SUBMISSIONS, d.id))));
     
     // attendance records
     const attQuery = await getDocs(
-      query(collection(db, "attendance"), where("studentId", "==", uid))
+      query(collection(dbService.getDb(), COLLECTIONS.ATTENDANCE), where("studentId", "==", uid))
     );
     attQuery.forEach((d) =>
-      deletions.push(deleteDoc(doc(db, "attendance", d.id)))
+      deletions.push(deleteDoc(doc(dbService.getDb(), COLLECTIONS.ATTENDANCE, d.id)))
     );
     
     // quiz submissions
     const quizSubQuery = await getDocs(
-      query(collection(db, "quizSubmissions"), where("userId", "==", uid))
+      query(collection(dbService.getDb(), COLLECTIONS.QUIZ_SUBMISSIONS), where("userId", "==", uid))
     );
     quizSubQuery.forEach((d) =>
-      deletions.push(deleteDoc(doc(db, "quizSubmissions", d.id)))
+      deletions.push(deleteDoc(doc(dbService.getDb(), COLLECTIONS.QUIZ_SUBMISSIONS, d.id)))
     );
     
     // quiz results
     const quizResQuery = await getDocs(
-      query(collection(db, "quizResults"), where("userId", "==", uid))
+      query(collection(dbService.getDb(), COLLECTIONS.QUIZ_RESULTS), where("userId", "==", uid))
     );
     quizResQuery.forEach((d) =>
-      deletions.push(deleteDoc(doc(db, "quizResults", d.id)))
+      deletions.push(deleteDoc(doc(dbService.getDb(), COLLECTIONS.QUIZ_RESULTS, d.id)))
     );
     
     // marks/grades
     const marksQuery = await getDocs(
-      query(collection(db, "studentMarks"), where("studentId", "==", uid))
+      query(collection(dbService.getDb(), 'studentMarks'), where("studentId", "==", uid))
     );
     marksQuery.forEach((d) =>
-      deletions.push(deleteDoc(doc(db, "studentMarks", d.id)))
+      deletions.push(deleteDoc(doc(dbService.getDb(), 'studentMarks', d.id)))
     );
     
     // messages (sent by user)
     const mqs = await getDocs(
-      query(collection(db, "messages"), where("senderId", "==", uid))
+      query(collection(dbService.getDb(), COLLECTIONS.CHAT_MESSAGES), where("senderId", "==", uid))
     );
-    mqs.forEach((d) => deletions.push(deleteDoc(doc(db, "messages", d.id))));
-    
-    // direct rooms containing user (delete room)
-    const rqs = await getDocs(
-      query(
-        collection(db, "directRooms"),
-        where("participants", "array-contains", uid)
-      )
-    );
-    rqs.forEach((d) => deletions.push(deleteDoc(doc(db, "directRooms", d.id))));
-    
-    await Promise.allSettled(deletions);
     
     // finally delete users/{uid}
-    await deleteDoc(doc(db, "users", uid));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.USERS, uid));
     return { success: true };
   } catch (error) {
     logger.error('[UserDbService] Error deleting user cascade:', error);
@@ -417,7 +404,7 @@ export const deleteUserCascade = async (uid) => {
  */
 export const disableUserFirestore = async (userId, adminId) => {
   try {
-    await updateDoc(doc(db, "users", userId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.USERS, userId), {
       disabled: true,
       isDisabled: true,
       status: USER_STATUS_TYPES.DISABLED,
@@ -440,7 +427,7 @@ export const disableUserFirestore = async (userId, adminId) => {
  */
 export const enableUserFirestore = async (userId, adminId) => {
   try {
-    await updateDoc(doc(db, "users", userId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.USERS, userId), {
       disabled: false,
       isDisabled: false,
       status: USER_STATUS_TYPES.ACTIVE,

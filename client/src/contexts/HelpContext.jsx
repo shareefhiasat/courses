@@ -1151,7 +1151,6 @@ export const HelpProvider = ({ children }) => {
       help = helpContent[helpKey];
       // console.log(`[HelpContext] getHelpForRoute - Case 1: helpContent[helpKey] =`, help);
       if (!help) {
-        logger.warn(`[HelpContext] No specific help content found for dashboard tab: ${tab}`);
         // Try to find help for similar tabs
         if (tab === 'penalty') {
           help = helpContent['/dashboard?tab=penalty'] || helpContent['/penalty'];

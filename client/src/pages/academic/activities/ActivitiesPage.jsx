@@ -36,7 +36,6 @@ import { ProgramsSelect } from '@ui';
  * - Activity deletion with confirmation
  */
 const ActivitiesPage = () => {
-  console.log('🔄 ActivitiesPage rendering at:', new Date().toISOString());
   
   const { t, lang } = useLang();
   const { theme } = useTheme();
@@ -552,7 +551,7 @@ const ActivitiesPage = () => {
         const typeConfig = getActivityTypeConfig(type, theme, lang);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {getThemedIcon('ui', typeConfig.icon, 14, theme)}
+            {getThemedIcon('activity_type', typeConfig.icon, 14, theme)}
             {typeConfig.text}
           </span>
         );
@@ -1304,7 +1303,7 @@ const ActivitiesPage = () => {
               fontWeight: '500',
               color: isDark ? '#fef3c7' : '#92400e'
             }}>
-              {getThemedIcon('ui', config.icon, 16, theme)}
+              {getThemedIcon('activity_type', config.icon, 16, theme)}
               {count} {config.text}
             </div>
           );
@@ -1328,7 +1327,7 @@ const ActivitiesPage = () => {
               fontWeight: '500',
               color: isDark ? '#dcfce7' : '#166534'
             }}>
-              {getThemedIcon('ui', config.icon, 16, theme)}
+              {getThemedIcon('activity_type', config.icon, 16, theme)}
               {count} {config.text}
             </div>
           );

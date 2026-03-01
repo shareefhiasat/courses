@@ -30,9 +30,10 @@ import {
   arrayRemove,
   addDoc
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import { getQatarTimestampString } from '@utils/qatarDate';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get chat room by ID
@@ -41,11 +42,8 @@ import logger from '@utils/logger';
  */
 export const getChatRoom = async (roomId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'chatRooms', roomId));
-    if (docSnap.exists()) {
-      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
-    }
-    return { success: false, error: 'Chat room not found' };
+    const result = await dbService.getById(COLLECTIONS.CHAT_ROOMS, roomId);
+    return result;
   } catch (error) {
     logger.error('[ChatDbService] Error getting chat room:', error);
     return { success: false, error: error.message };
@@ -59,14 +57,18 @@ export const getChatRoom = async (roomId) => {
  */
 export const createChatRoom = async (roomData) => {
   try {
-    const docRef = doc(collection(db, 'chatRooms'));
     const now = getQatarTimestampString();
-    await setDoc(docRef, {
+    const result = await dbService.add(COLLECTIONS.CHAT_ROOMS, {
       ...roomData,
       createdAt: now,
       updatedAt: now
     });
-    return { success: true, id: docRef.id };
+    
+    if (result.success) {
+      return { success: true, id: result.data.id };
+    } else {
+      return { success: false, error: result.error };
+    }
   } catch (error) {
     logger.error('[ChatDbService] Error creating chat room:', error);
     return { success: false, error: error.message };
@@ -81,11 +83,11 @@ export const createChatRoom = async (roomData) => {
  */
 export const updateChatRoom = async (roomId, updateData) => {
   try {
-    await updateDoc(doc(db, 'chatRooms', roomId), {
+    const result = await dbService.update(COLLECTIONS.CHAT_ROOMS, roomId, {
       ...updateData,
       updatedAt: getQatarTimestampString()
     });
-    return { success: true };
+    return result;
   } catch (error) {
     logger.error('[ChatDbService] Error updating chat room:', error);
     return { success: false, error: error.message };
@@ -99,14 +101,19 @@ export const updateChatRoom = async (roomId, updateData) => {
  */
 export const getChatRoomsByUser = async (userId) => {
   try {
-    const q = query(
-      collection(db, 'chatRooms'),
-      where('participants', 'array-contains', userId),
-      orderBy('updatedAt', 'desc')
-    );
-    const querySnapshot = await getDocs(q);
-    const rooms = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: rooms };
+    const result = await dbService.getAll(COLLECTIONS.CHAT_ROOMS, {
+      where: {
+        field: 'participants',
+        operator: 'array-contains',
+        value: userId
+      },
+      orderBy: {
+        field: 'updatedAt',
+        direction: 'desc'
+      }
+    });
+    
+    return result;
   } catch (error) {
     logger.error('[ChatDbService] Error getting chat rooms by user:', error);
     return { success: false, error: error.message };
@@ -124,7 +131,7 @@ export const getChatMessages = async (roomId, options = {}) => {
     const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, 'chatMessages'),
+      collection(dbService.getDb(), COLLECTIONS.CHAT_MESSAGES),
       where('roomId', '==', roomId),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -146,7 +153,7 @@ export const getChatMessages = async (roomId, options = {}) => {
  */
 export const sendChatMessage = async (messageData) => {
   try {
-    const docRef = doc(collection(db, 'chatMessages'));
+    const docRef = doc(collection(dbService.getDb(), COLLECTIONS.CHAT_MESSAGES));
     const now = getQatarTimestampString();
     await setDoc(docRef, {
       ...messageData,
@@ -174,7 +181,7 @@ export const sendChatMessage = async (messageData) => {
  */
 export const deleteChatMessage = async (messageId) => {
   try {
-    await deleteDoc(doc(db, 'chatMessages', messageId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.CHAT_MESSAGES, messageId));
     return { success: true };
   } catch (error) {
     logger.error('[ChatDbService] Error deleting chat message:', error);
@@ -191,7 +198,7 @@ export const deleteChatMessage = async (messageId) => {
 export const subscribeToChatMessages = (roomId, callback) => {
   try {
     const q = query(
-      collection(db, 'chatMessages'),
+      collection(dbService.getDb(), COLLECTIONS.CHAT_MESSAGES),
       where('roomId', '==', roomId),
       orderBy('createdAt', 'asc')
     );
@@ -216,7 +223,7 @@ export const subscribeToChatMessages = (roomId, callback) => {
  */
 export const subscribeToChatRoom = (roomId, callback) => {
   try {
-    const unsubscribe = onSnapshot(doc(db, 'chatRooms', roomId), (snapshot) => {
+    const unsubscribe = onSnapshot(doc(dbService.getDb(), COLLECTIONS.CHAT_ROOMS, roomId), (snapshot) => {
       if (snapshot.exists()) {
         callback({ docId: snapshot.id, ...snapshot.data() });
       } else {
@@ -238,7 +245,7 @@ export const subscribeToChatRoom = (roomId, callback) => {
  */
 export const getUserMessageColor = async (userId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'users', userId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.USERS, userId));
     if (docSnap.exists()) {
       const data = docSnap.data();
       return { success: true, data: data.messageColor };
@@ -258,7 +265,7 @@ export const getUserMessageColor = async (userId) => {
  */
 export const updateUserMessageColor = async (userId, color) => {
   try {
-    await updateDoc(doc(db, 'users', userId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.USERS, userId), {
       messageColor: color
     });
     return { success: true };
@@ -276,7 +283,7 @@ export const updateUserMessageColor = async (userId, color) => {
  */
 export const subscribeToUserMessageColor = (userId, callback) => {
   try {
-    const unsubscribe = onSnapshot(doc(db, 'users', userId), (snapshot) => {
+    const unsubscribe = onSnapshot(doc(dbService.getDb(), COLLECTIONS.USERS, userId), (snapshot) => {
       const data = snapshot.exists() ? snapshot.data() : {};
       callback(data.messageColor);
     });
@@ -295,7 +302,7 @@ export const subscribeToUserMessageColor = (userId, callback) => {
  */
 export const updateChatMessage = async (messageId, updateData) => {
   try {
-    await updateDoc(doc(db, 'chatMessages', messageId), updateData);
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.CHAT_MESSAGES, messageId), updateData);
     return { success: true };
   } catch (error) {
     logger.error('[ChatDbService] Error updating chat message:', error);
@@ -310,7 +317,7 @@ export const updateChatMessage = async (messageId, updateData) => {
  */
 export const getChatMessage = async (messageId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'chatMessages', messageId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.CHAT_MESSAGES, messageId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -329,7 +336,7 @@ export const getChatMessage = async (messageId) => {
  */
 export const subscribeToUserForReadReceipts = (userId, callback) => {
   try {
-    const unsubscribe = onSnapshot(doc(db, 'users', userId), (snapshot) => {
+    const unsubscribe = onSnapshot(doc(dbService.getDb(), COLLECTIONS.USERS, userId), (snapshot) => {
       const data = snapshot.data() || {};
       callback(data);
     });
@@ -350,7 +357,7 @@ export const getMessagesByClassId = async (classId, options = {}) => {
   try {
     const { limitCount = 1, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     const q = query(
-      collection(db, 'chatMessages'),
+      collection(dbService.getDb(), COLLECTIONS.CHAT_MESSAGES),
       where('classId', '==', classId),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -374,7 +381,7 @@ export const getMessagesByRoomId = async (roomId, options = {}) => {
   try {
     const { limitCount = 1, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     const q = query(
-      collection(db, 'chatMessages'),
+      collection(dbService.getDb(), COLLECTIONS.CHAT_MESSAGES),
       where('type', '==', 'dm'),
       where('roomId', '==', roomId),
       orderBy(orderByField, orderDirection),
@@ -397,7 +404,7 @@ export const getMessagesByRoomId = async (roomId, options = {}) => {
  */
 export const updateClassDocument = async (classId, updateData) => {
   try {
-    await updateDoc(doc(db, 'classes', classId), updateData);
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.CLASSES, classId), updateData);
     return { success: true };
   } catch (error) {
     logger.error('[ChatDbService] Error updating class document:', error);
@@ -413,7 +420,7 @@ export const updateClassDocument = async (classId, updateData) => {
  */
 export const updateDirectRoomDocument = async (roomId, updateData) => {
   try {
-    await updateDoc(doc(db, 'directRooms', roomId), updateData);
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.DIRECT_ROOMS, roomId), updateData);
     return { success: true };
   } catch (error) {
     logger.error('[ChatDbService] Error updating direct room document:', error);
@@ -430,7 +437,7 @@ export const updateDirectRoomDocument = async (roomId, updateData) => {
  */
 export const updateMessageReaction = async (messageId, userId, reaction) => {
   try {
-    await updateDoc(doc(db, 'chatMessages', messageId), { 
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.CHAT_MESSAGES, messageId), { 
       [`reactions.${userId}`]: reaction 
     });
     return { success: true };
@@ -448,10 +455,10 @@ export const updateMessageReaction = async (messageId, userId, reaction) => {
  */
 export const removeMessageReaction = async (messageId, userId) => {
   try {
-    await updateDoc(doc(db, 'chatMessages', messageId), { 
+    const result = await dbService.update('chatMessages', messageId, { 
       [`reactions.${userId}`]: deleteField() 
     });
-    return { success: true };
+    return result;
   } catch (error) {
     logger.error('[ChatDbService] Error removing message reaction:', error);
     return { success: false, error: error.message };
@@ -465,11 +472,8 @@ export const removeMessageReaction = async (messageId, userId) => {
  */
 export const getDirectRoom = async (roomId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'directRooms', roomId));
-    if (docSnap.exists()) {
-      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
-    }
-    return { success: false, error: 'Room not found' };
+    const result = await dbService.getById('directRooms', roomId);
+    return result;
   } catch (error) {
     logger.error('[ChatDbService] Error getting direct room:', error);
     return { success: false, error: error.message };
@@ -484,8 +488,8 @@ export const getDirectRoom = async (roomId) => {
  */
 export const updateDirectRoom = async (roomId, updateData) => {
   try {
-    await updateDoc(doc(db, 'directRooms', roomId), updateData);
-    return { success: true };
+    const result = await dbService.update('directRooms', roomId, updateData);
+    return result;
   } catch (error) {
     logger.error('[ChatDbService] Error updating direct room:', error);
     return { success: false, error: error.message };
@@ -499,8 +503,8 @@ export const updateDirectRoom = async (roomId, updateData) => {
  */
 export const deleteDirectRoom = async (roomId) => {
   try {
-    await deleteDoc(doc(db, 'directRooms', roomId));
-    return { success: true };
+    const result = await dbService.delete('directRooms', roomId);
+    return result;
   } catch (error) {
     logger.error('[ChatDbService] Error deleting direct room:', error);
     return { success: false, error: error.message };
@@ -514,11 +518,8 @@ export const deleteDirectRoom = async (roomId) => {
  */
 export const getClass = async (classId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'classes', classId));
-    if (docSnap.exists()) {
-      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
-    }
-    return { success: false, error: 'Class not found' };
+    const result = await dbService.getById('classes', classId);
+    return result;
   } catch (error) {
     logger.error('[ChatDbService] Error getting class:', error);
     return { success: false, error: error.message };
@@ -532,7 +533,8 @@ export const getClass = async (classId) => {
  */
 export const subscribeToClasses = (callback) => {
   try {
-    const unsubscribe = onSnapshot(collection(db, 'classes'), (snapshot) => {
+    const classesRef = dbService.getCollectionRef('classes');
+    const unsubscribe = onSnapshot(classesRef, (snapshot) => {
       const classes = [];
       snapshot.forEach(doc => {
         classes.push({ docId: doc.id, ...doc.data() });
@@ -554,7 +556,8 @@ export const subscribeToClasses = (callback) => {
  */
 export const subscribeToMessagesWithQuery = (queryConstraints, callback) => {
   try {
-    const q = query(collection(db, 'chatMessages'), ...queryConstraints);
+    const messagesRef = dbService.getCollectionRef('chatMessages');
+    const q = query(messagesRef, ...queryConstraints);
     const unsubscribe = onSnapshot(q, callback);
     return unsubscribe;
   } catch (error) {
@@ -570,11 +573,16 @@ export const subscribeToMessagesWithQuery = (queryConstraints, callback) => {
  */
 export const createMessage = async (messageData) => {
   try {
-    const docRef = await addDoc(collection(db, 'chatMessages'), {
+    const result = await dbService.add('chatMessages', {
       ...messageData,
       createdAt: getQatarTimestampString()
     });
-    return { success: true, id: docRef.id };
+    
+    if (result.success) {
+      return { success: true, id: result.data.id };
+    } else {
+      return { success: false, error: result.error };
+    }
   } catch (error) {
     logger.error('[ChatDbService] Error creating message:', error);
     return { success: false, error: error.message };
@@ -589,8 +597,8 @@ export const createMessage = async (messageData) => {
  */
 export const createDirectRoom = async (roomId, roomData) => {
   try {
-    await setDoc(doc(db, 'directRooms', roomId), roomData);
-    return { success: true };
+    const result = await dbService.set('directRooms', roomId, roomData);
+    return result;
   } catch (error) {
     logger.error('[ChatDbService] Error creating direct room:', error);
     return { success: false, error: error.message };
@@ -605,8 +613,8 @@ export const createDirectRoom = async (roomId, roomData) => {
  */
 export const updateUserDocument = async (userId, updateData) => {
   try {
-    await updateDoc(doc(db, 'users', userId), updateData);
-    return { success: true };
+    const result = await dbService.update('users', userId, updateData);
+    return result;
   } catch (error) {
     logger.error('[ChatDbService] Error updating user document:', error);
     return { success: false, error: error.message };
@@ -620,7 +628,8 @@ export const updateUserDocument = async (userId, updateData) => {
  */
 export const getMessagesByQuery = async (queryConstraints) => {
   try {
-    const q = query(collection(db, 'chatMessages'), ...queryConstraints);
+    const messagesRef = dbService.getCollectionRef('chatMessages');
+    const q = query(messagesRef, ...queryConstraints);
     const querySnapshot = await getDocs(q);
     const messages = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: messages };
@@ -637,12 +646,12 @@ export const getMessagesByQuery = async (queryConstraints) => {
  */
 export const deleteMessagesByQuery = async (queryConstraints) => {
   try {
-    const q = query(collection(db, 'chatMessages'), ...queryConstraints);
+    const q = query(collection(dbService.getDb(), COLLECTIONS.CHAT_MESSAGES), ...queryConstraints);
     const querySnapshot = await getDocs(q);
     let deletedCount = 0;
     
     for (const docSnap of querySnapshot.docs) {
-      await deleteDoc(doc(db, 'chatMessages', docSnap.id));
+      await deleteDoc(doc(dbService.getDb(), COLLECTIONS.CHAT_MESSAGES, docSnap.id));
       deletedCount++;
     }
     
@@ -660,7 +669,7 @@ export const deleteMessagesByQuery = async (queryConstraints) => {
  */
 export const getEnrollmentsByUserId = async (userId) => {
   try {
-    const q = query(collection(db, 'enrollments'), where('userId', '==', userId));
+    const q = query(collection(dbService.getDb(), COLLECTIONS.ENROLLMENTS), where('userId', '==', userId));
     const querySnapshot = await getDocs(q);
     const enrollments = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return { success: true, data: enrollments };
@@ -679,7 +688,7 @@ export const getEnrollmentsByUserId = async (userId) => {
  */
 export const updatePollVote = async (messageId, userId, optionIndex) => {
   try {
-    await updateDoc(doc(db, 'chatMessages', messageId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.CHAT_MESSAGES, messageId), {
       [`pollVotes.${optionIndex}`]: arrayUnion(userId)
     });
     return { success: true };
@@ -698,7 +707,7 @@ export const updatePollVote = async (messageId, userId, optionIndex) => {
  */
 export const removePollVote = async (messageId, userId, optionIndex) => {
   try {
-    await updateDoc(doc(db, 'chatMessages', messageId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.CHAT_MESSAGES, messageId), {
       [`pollVotes.${optionIndex}`]: arrayRemove(userId)
     });
     return { success: true };
@@ -717,7 +726,7 @@ export const removePollVote = async (messageId, userId, optionIndex) => {
  */
 export const updateRoomStar = async (roomId, userId, add = true) => {
   try {
-    await updateDoc(doc(db, 'directRooms', roomId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.DIRECT_ROOMS, roomId), {
       starBy: add ? arrayUnion(userId) : arrayRemove(userId)
     });
     return { success: true };
@@ -736,7 +745,7 @@ export const updateRoomStar = async (roomId, userId, add = true) => {
  */
 export const updateUserEnrolledClasses = async (userId, classId, add = true) => {
   try {
-    await updateDoc(doc(db, 'users', userId), { 
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.USERS, userId), { 
       enrolledClasses: add ? arrayUnion(classId) : arrayRemove(classId) 
     });
     return { success: true };
@@ -755,7 +764,7 @@ export const updateUserEnrolledClasses = async (userId, classId, add = true) => 
  */
 export const addPollVote = async (messageId, userId, optionIndex) => {
   try {
-    await updateDoc(doc(db, 'chatMessages', messageId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.CHAT_MESSAGES, messageId), {
       [`pollVotes.${optionIndex}`]: arrayUnion(userId)
     });
     return { success: true };
@@ -772,7 +781,7 @@ export const addPollVote = async (messageId, userId, optionIndex) => {
  */
 export const subscribeToDirectRooms = (callback) => {
   try {
-    const roomsRef = collection(db, 'directRooms');
+    const roomsRef = collection(dbService.getDb(), COLLECTIONS.DIRECT_ROOMS);
     return onSnapshot(roomsRef, callback);
   } catch (error) {
     logger.error('[ChatDbService] Error subscribing to direct rooms:', error);

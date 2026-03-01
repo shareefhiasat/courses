@@ -28,12 +28,10 @@ const validateCourseData = (data) => validateEntity(data, COURSE_VALIDATION_RULE
 // Get all courses - with performance monitoring and memoization
 export const getCourses = async () => {
   try {
-    logger.info('COURSE: Fetching all courses');
-    
     const result = await getCoursesFromDb();
     
     if (result.success) {
-      logger.info('COURSE: Successfully fetched courses', { count: result.data.length });
+      // Courses fetched successfully
     } else {
       logger.warn('COURSE: Failed to fetch courses', { error: result.error });
     }

@@ -25,7 +25,8 @@ import {
   serverTimestamp,
   addDoc
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
+import { COLLECTIONS } from '@constants/collections';
 import logger from '@utils/logger';
 
 /**
@@ -37,7 +38,7 @@ export const getSubjectEnrollments = async (filters = {}) => {
   try {
     const { subjectId, studentId, semester, academicYear, status } = filters;
     
-    let q = collection(db, 'subjectEnrollments');
+    let q = collection(dbService.getDb(), COLLECTIONS.SUBJECT_ENROLLMENTS);
     
     // Add filters
     if (subjectId) q = query(q, where('subjectId', '==', subjectId));
@@ -76,7 +77,7 @@ export const getSubjectEnrollments = async (filters = {}) => {
  */
 export const getSubjectEnrollment = async (enrollmentId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'subjectEnrollments', enrollmentId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.SUBJECT_ENROLLMENTS, enrollmentId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -95,7 +96,7 @@ export const getSubjectEnrollment = async (enrollmentId) => {
  */
 export const createSubjectEnrollment = async (enrollmentData, auditData = null) => {
   try {
-    const docRef = doc(collection(db, 'subjectEnrollments'));
+    const docRef = doc(collection(dbService.getDb(), COLLECTIONS.SUBJECT_ENROLLMENTS));
     const finalData = {
       ...enrollmentData,
       ...(auditData || {
@@ -119,7 +120,7 @@ export const createSubjectEnrollment = async (enrollmentData, auditData = null) 
  */
 export const enrollStudentInSubject = async (enrollmentData, auditData = null) => {
   try {
-    const docRef = await addDoc(collection(db, 'subjectEnrollments'), {
+    const docRef = await addDoc(collection(dbService.getDb(), COLLECTIONS.SUBJECT_ENROLLMENTS), {
       ...enrollmentData,
       ...(auditData || {
         createdAt: serverTimestamp(),
@@ -148,7 +149,7 @@ export const updateSubjectEnrollment = async (enrollmentId, enrollmentData, audi
         updatedAt: serverTimestamp()
       })
     };
-    await updateDoc(doc(db, 'subjectEnrollments', enrollmentId), finalData);
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.SUBJECT_ENROLLMENTS, enrollmentId), finalData);
     return { success: true };
   } catch (error) {
     logger.error('[SubjectEnrollmentsDbService] Error updating subject enrollment:', error);
@@ -163,7 +164,7 @@ export const updateSubjectEnrollment = async (enrollmentId, enrollmentData, audi
  */
 export const deleteSubjectEnrollment = async (enrollmentId) => {
   try {
-    await deleteDoc(doc(db, 'subjectEnrollments', enrollmentId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.SUBJECT_ENROLLMENTS, enrollmentId));
     return { success: true };
   } catch (error) {
     logger.error('[SubjectEnrollmentsDbService] Error deleting subject enrollment:', error);

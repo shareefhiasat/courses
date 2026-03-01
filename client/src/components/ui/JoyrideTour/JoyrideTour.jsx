@@ -3,6 +3,7 @@ import Joyride from 'react-joyride';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { MODE_TYPES } from '@utils/sharedTypes';
+import logger from '@utils/logger';
 
 const JoyrideTour = ({ 
   run, 

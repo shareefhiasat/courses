@@ -12,21 +12,22 @@
  */
 
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  where, 
+  serverTimestamp,
+  doc,
+  getDoc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  collection,
+  query,
+  where,
   getDocs,
   orderBy,
-  limit,
-  serverTimestamp
+  limit
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get quiz submissions by quiz ID
@@ -38,28 +39,33 @@ export const getQuizSubmissionsByQuiz = async (quizId, options = {}) => {
   try {
     const { limitCount = 100, orderByField = 'submittedAt', orderDirection = 'desc' } = options;
     
-    const q = query(
-      collection(db, 'quizSubmissions'),
-      where('quizId', '==', quizId),
-      orderBy(orderByField, orderDirection),
-      limit(limitCount)
-    );
+    const result = await dbService.getAll(COLLECTIONS.QUIZ_SUBMISSIONS, {
+      where: {
+        field: 'quizId',
+        operator: '==',
+        value: quizId
+      },
+      orderBy: {
+        field: orderByField,
+        direction: orderDirection
+      },
+      limit: limitCount
+    });
     
-    const querySnapshot = await getDocs(q);
-    const submissions = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: submissions };
-  } catch (error) {
-    // Check if this is a missing collection error
-    if (error.message.includes('Missing or insufficient permissions') || 
-        error.code === 'permission-denied' ||
-        error.message.includes('No document to update')) {
-      logger.warn('[QuizSubmissionsDbService] QuizSubmissions collection not available:', { error: error.message });
+    // Handle missing collection gracefully
+    if (!result.success && result.error && 
+        (result.error.includes('Missing or insufficient permissions') || 
+         result.error.includes('permission-denied') ||
+         result.error.includes('No document to update'))) {
+      logger.warn('[QuizSubmissionsDbService] QuizSubmissions collection not available:', { error: result.error });
       return {
         success: true,
         data: []
       };
     }
     
+    return result;
+  } catch (error) {
     logger.error('[QuizSubmissionsDbService] Error getting quiz submissions by quiz:', error);
     return { success: false, error: error.message };
   }
@@ -76,7 +82,7 @@ export const getQuizSubmissionsByUser = async (userId, options = {}) => {
     const { limitCount = 100, orderByField = 'submittedAt', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, 'quizSubmissions'),
+      collection(dbService.getDb(), COLLECTIONS.QUIZ_SUBMISSIONS),
       where('userId', '==', userId),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -114,7 +120,7 @@ export const getQuizSubmissions = async (filters = {}) => {
     if (classId) conditions.push(where('classId', '==', classId));
     
     const q = query(
-      collection(db, 'quizSubmissions'),
+      collection(dbService.getDb(), COLLECTIONS.QUIZ_SUBMISSIONS),
       ...conditions,
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -136,7 +142,7 @@ export const getQuizSubmissions = async (filters = {}) => {
  */
 export const getQuizSubmission = async (submissionId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'quizSubmissions', submissionId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.QUIZ_SUBMISSIONS, submissionId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -154,7 +160,7 @@ export const getQuizSubmission = async (submissionId) => {
  */
 export const createQuizSubmission = async (submissionData) => {
   try {
-    const docRef = doc(collection(db, 'quizSubmissions'));
+    const docRef = doc(collection(dbService.getDb(), COLLECTIONS.QUIZ_SUBMISSIONS));
     await setDoc(docRef, {
       ...submissionData,
       submittedAt: serverTimestamp(),
@@ -175,7 +181,7 @@ export const createQuizSubmission = async (submissionData) => {
  */
 export const updateQuizSubmission = async (submissionId, submissionData) => {
   try {
-    await updateDoc(doc(db, 'quizSubmissions', submissionId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.QUIZ_SUBMISSIONS, submissionId), {
       ...submissionData,
       updatedAt: serverTimestamp()
     });
@@ -193,7 +199,7 @@ export const updateQuizSubmission = async (submissionId, submissionData) => {
  */
 export const deleteQuizSubmission = async (submissionId) => {
   try {
-    await deleteDoc(doc(db, 'quizSubmissions', submissionId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.QUIZ_SUBMISSIONS, submissionId));
     return { success: true };
   } catch (error) {
     logger.error('[QuizSubmissionsDbService] Error deleting quiz submission:', error);

@@ -25,7 +25,8 @@ import {
   serverTimestamp,
   increment
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
+import { COLLECTIONS } from '@constants/collections';
 import logger from '@utils/logger';
 
 /**
@@ -35,7 +36,7 @@ import logger from '@utils/logger';
  */
 export const getStudentProgress = async (userId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'studentProgress', userId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.STUDENT_PROGRESS, userId));
     if (docSnap.exists()) {
       return { success: true, data: { id: docSnap.id, ...docSnap.data() } };
     }
@@ -66,7 +67,7 @@ export const getStudentProgress = async (userId) => {
 export const setStudentProgress = async (userId, progressData) => {
   try {
     await setDoc(
-      doc(db, 'studentProgress', userId),
+      doc(dbService.getDb(), COLLECTIONS.STUDENT_PROGRESS, userId),
       {
         ...progressData,
         userId,
@@ -89,7 +90,7 @@ export const setStudentProgress = async (userId, progressData) => {
  */
 export const updateStudentProgress = async (userId, updateData) => {
   try {
-    await updateDoc(doc(db, 'studentProgress', userId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.STUDENT_PROGRESS, userId), {
       ...updateData,
       updatedAt: serverTimestamp()
     });
@@ -113,7 +114,7 @@ export const incrementStudentProgress = async (userId, increments) => {
       incrementData[key] = increment(increments[key]);
     });
     
-    await updateDoc(doc(db, 'studentProgress', userId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.STUDENT_PROGRESS, userId), {
       ...incrementData,
       updatedAt: serverTimestamp()
     });
@@ -134,7 +135,7 @@ export const getAllStudentProgress = async (options = {}) => {
     const { limitCount = 100, orderByField = 'updatedAt', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, 'studentProgress'),
+      collection(dbService.getDb(), COLLECTIONS.STUDENT_PROGRESS),
       orderBy(orderByField, orderDirection),
       limit ? limit(limitCount) : undefined
     ).filter(Boolean);
@@ -181,7 +182,7 @@ export const getStudentProgressByClass = async (classId) => {
  */
 export const deleteStudentProgress = async (userId) => {
   try {
-    await deleteDoc(doc(db, 'studentProgress', userId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.STUDENT_PROGRESS, userId));
     return { success: true };
   } catch (error) {
     logger.error('[StudentProgressDbService] Error deleting student progress:', error);
@@ -212,7 +213,7 @@ export const initializeStudentProgress = async (userId) => {
       updatedAt: serverTimestamp()
     };
     
-    await setDoc(doc(db, 'studentProgress', userId), defaultProgress);
+    await setDoc(doc(dbService.getDb(), COLLECTIONS.STUDENT_PROGRESS, userId), defaultProgress);
     return { success: true };
   } catch (error) {
     logger.error('[StudentProgressDbService] Error initializing student progress:', error);

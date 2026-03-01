@@ -12,23 +12,24 @@
  */
 
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  where, 
+  serverTimestamp,
+  doc,
+  getDoc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  collection,
+  query,
+  where,
   getDocs,
   orderBy,
-  limit,
-  serverTimestamp
+  limit
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
-const COLLECTION = 'questionBank';
+const COLLECTION = COLLECTIONS.QUESTION_BANK;
 
 /**
  * Get all questions
@@ -46,32 +47,66 @@ export const getQuestions = async (options = {}) => {
       questionType
     } = options;
     
-    let q = query(collection(db, COLLECTION));
+    // Build query options for dbService
+    const queryOptions = {
+      orderBy: {
+        field: orderByField,
+        direction: orderDirection
+      }
+    };
     
-    // Add filters
-    if (subjectId) q = query(q, where('subjectId', '==', subjectId));
-    if (difficulty) q = query(q, where('difficulty', '==', difficulty));
-    if (questionType) q = query(q, where('questionType', '==', questionType));
+    // Add filters (only one where clause supported by dbService)
+    if (subjectId) {
+      queryOptions.where = {
+        field: 'subjectId',
+        operator: '==',
+        value: subjectId
+      };
+    } else if (difficulty) {
+      queryOptions.where = {
+        field: 'difficulty',
+        operator: '==',
+        value: difficulty
+      };
+    } else if (questionType) {
+      queryOptions.where = {
+        field: 'questionType',
+        operator: '==',
+        value: questionType
+      };
+    }
     
-    // Add ordering and limit
-    q = query(q, orderBy(orderByField, orderDirection));
-    if (limitCount) q = query(q, limit(limitCount));
+    if (limitCount) {
+      queryOptions.limit = limitCount;
+    }
     
-    const querySnapshot = await getDocs(q);
-    const questions = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: questions };
-  } catch (error) {
-    // Check if this is a missing collection error
-    if (error.message.includes('Missing or insufficient permissions') || 
-        error.code === 'permission-denied' ||
-        error.message.includes('No document to update')) {
-      logger.warn('[QuestionBankDbService] QuestionBank collection not available:', { error: error.message });
+    const result = await dbService.getAll(COLLECTION, queryOptions);
+    
+    // If we need additional filtering, do it client-side
+    if (result.success && (subjectId && difficulty) || (subjectId && questionType) || (difficulty && questionType)) {
+      const filteredData = result.data.filter(question => {
+        const matchesSubject = !subjectId || question.subjectId === subjectId;
+        const matchesDifficulty = !difficulty || question.difficulty === difficulty;
+        const matchesType = !questionType || question.questionType === questionType;
+        return matchesSubject && matchesDifficulty && matchesType;
+      });
+      return { success: true, data: filteredData };
+    }
+    
+    // Handle missing collection gracefully
+    if (!result.success && result.error && 
+        (result.error.includes('Missing or insufficient permissions') || 
+         result.error.includes('permission-denied') ||
+         result.error.includes('No document to update'))) {
+      logger.warn('[QuestionBankDbService] QuestionBank collection not available:', { error: result.error });
       return {
         success: true,
         data: []
       };
     }
     
+    return result;
+  } catch (error) {
     logger.error('[QuestionBankDbService] Error getting questions:', error);
     return { success: false, error: error.message };
   }
@@ -84,7 +119,7 @@ export const getQuestions = async (options = {}) => {
  */
 export const getQuestion = async (questionId) => {
   try {
-    const docSnap = await getDoc(doc(db, COLLECTION, questionId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTION, questionId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -102,7 +137,7 @@ export const getQuestion = async (questionId) => {
  */
 export const createQuestion = async (questionData) => {
   try {
-    const docRef = doc(collection(db, COLLECTION));
+    const docRef = doc(collection(dbService.getDb(), COLLECTION));
     await setDoc(docRef, {
       ...questionData,
       createdAt: serverTimestamp(),
@@ -123,7 +158,7 @@ export const createQuestion = async (questionData) => {
  */
 export const updateQuestion = async (questionId, questionData) => {
   try {
-    await updateDoc(doc(db, COLLECTION, questionId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTION, questionId), {
       ...questionData,
       updatedAt: serverTimestamp()
     });
@@ -141,7 +176,7 @@ export const updateQuestion = async (questionId, questionData) => {
  */
 export const deleteQuestion = async (questionId) => {
   try {
-    await deleteDoc(doc(db, COLLECTION, questionId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTION, questionId));
     return { success: true };
   } catch (error) {
     logger.error('[QuestionBankDbService] Error deleting question:', error);
@@ -160,7 +195,7 @@ export const getQuestionsBySubject = async (subjectId, options = {}) => {
     const { limitCount = 100, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       where('subjectId', '==', subjectId),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -186,7 +221,7 @@ export const getQuestionsByDifficulty = async (difficulty, options = {}) => {
     const { limitCount = 100, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       where('difficulty', '==', difficulty),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -212,7 +247,7 @@ export const getQuestionsByType = async (questionType, options = {}) => {
     const { limitCount = 100, orderByField = 'createdAt', orderDirection = 'desc' } = options;
     
     const q = query(
-      collection(db, COLLECTION),
+      collection(dbService.getDb(), COLLECTION),
       where('questionType', '==', questionType),
       orderBy(orderByField, orderDirection),
       limit(limitCount)
@@ -314,7 +349,7 @@ export const getRandomQuestions = async (count = 10, filters = {}) => {
  */
 export const updateQuestionUsage = async (questionId, usageData) => {
   try {
-    await updateDoc(doc(db, COLLECTION, questionId), {
+    await updateDoc(doc(dbService.getDb(), COLLECTION, questionId), {
       usage: usageData,
       lastUsedAt: serverTimestamp(),
       updatedAt: serverTimestamp()

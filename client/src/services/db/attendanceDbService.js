@@ -52,8 +52,9 @@ import {
   deleteDoc, 
   orderBy 
 } from 'firebase/firestore';
-import { db } from '../other/config.js';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 
 /**
  * Get attendance records with filters - with performance monitoring
@@ -66,7 +67,7 @@ export const getAttendanceRecords = async (filters = {}) => {
     
     let q;
     const conditions = [];
-    const attendanceRef = collection(db, 'attendance');
+    const attendanceRef = collection(dbService.getDb(), COLLECTIONS.ATTENDANCE);
 
     // Apply filters
     if (studentId) {
@@ -125,7 +126,7 @@ export const getAttendanceRecords = async (filters = {}) => {
  */
 export const getAttendanceRecord = async (attendanceId) => {
   try {
-    const docRef = doc(db, 'attendance', attendanceId);
+    const docRef = doc(dbService.getDb(), COLLECTIONS.ATTENDANCE, attendanceId);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
@@ -150,7 +151,7 @@ export const getAttendanceRecord = async (attendanceId) => {
  */
 export const setAttendanceRecord = async (attendanceId, attendanceData) => {
   try {
-    const docRef = doc(db, 'attendance', attendanceId);
+    const docRef = doc(dbService.getDb(), COLLECTIONS.ATTENDANCE, attendanceId);
     const dataWithTimestamp = {
       ...attendanceData,
       timestamp: serverTimestamp(),
@@ -173,7 +174,7 @@ export const setAttendanceRecord = async (attendanceId, attendanceData) => {
  */
 export const updateAttendanceRecord = async (attendanceId, updateData) => {
   try {
-    const docRef = doc(db, 'attendance', attendanceId);
+    const docRef = doc(dbService.getDb(), COLLECTIONS.ATTENDANCE, attendanceId);
     const dataWithTimestamp = {
       ...updateData,
       updatedAt: serverTimestamp()
@@ -194,7 +195,7 @@ export const updateAttendanceRecord = async (attendanceId, updateData) => {
  */
 export const deleteAttendanceRecord = async (attendanceId) => {
   try {
-    const docRef = doc(db, 'attendance', attendanceId);
+    const docRef = doc(dbService.getDb(), COLLECTIONS.ATTENDANCE, attendanceId);
     await deleteDoc(docRef);
     return { success: true };
   } catch (error) {
@@ -218,7 +219,7 @@ export const getAttendanceStats = async (classId, dateRange = null) => {
       conditions.push(where('date', '<=', dateRange.to));
     }
 
-    const q = query(collection(db, 'attendance'), ...conditions, orderBy('date', 'desc'));
+    const q = query(collection(dbService.getDb(), COLLECTIONS.ATTENDANCE), ...conditions, orderBy('date', 'desc'));
     const querySnapshot = await getDocs(q);
     
     const records = querySnapshot.docs.map(doc => ({ 
@@ -255,7 +256,7 @@ export const onAttendanceRecordsChange = (filters = {}, callback) => {
     
     let q;
     const conditions = [];
-    const attendanceRef = collection(db, 'attendance');
+    const attendanceRef = collection(dbService.getDb(), COLLECTIONS.ATTENDANCE);
 
     // Apply filters
     if (studentId) {

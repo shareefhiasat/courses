@@ -12,20 +12,21 @@
  */
 
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  collection, 
-  query, 
-  where, 
-  getDocs,
+  serverTimestamp,
+  collection,
+  query,
   orderBy,
-  serverTimestamp
+  getDocs,
+  doc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  getDoc,
+  where
 } from 'firebase/firestore';
-import { db } from '../other/config';
+import dbService from '@services/other/dbService';
 import logger from '@utils/logger';
+import { COLLECTIONS } from '@constants/collections';
 import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 
 /**
@@ -34,9 +35,13 @@ import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
  */
 export const getPrograms = async () => {
   try {
-    const querySnapshot = await getDocs(collection(db, 'programs'));
-    const programs = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-    return { success: true, data: programs };
+    const result = await dbService.getAll(COLLECTIONS.PROGRAMS, {
+      orderBy: {
+        field: 'name',
+        direction: 'asc'
+      }
+    });
+    return result;
   } catch (error) {
     logger.error('[ProgramDbService] Error getting programs:', error);
     return { success: false, error: error.message };
@@ -50,7 +55,7 @@ export const getPrograms = async () => {
  */
 export const getProgram = async (programId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'programs', programId));
+    const docSnap = await getDoc(doc(dbService.getDb(), COLLECTIONS.PROGRAMS, programId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -67,7 +72,7 @@ export const getProgram = async (programId) => {
  */
 export const getProgramsSorted = async () => {
   try {
-    const q = query(collection(db, 'programs'), orderBy('nameEn', 'asc'));
+    const q = query(collection(dbService.getDb(), COLLECTIONS.PROGRAMS), orderBy('nameEn', 'asc'));
     const querySnapshot = await getDocs(q);
     const programs = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: programs };
@@ -83,7 +88,7 @@ export const getProgramsSorted = async () => {
  */
 export const getActivePrograms = async () => {
   try {
-    const q = query(collection(db, 'programs'), where('isActive', '==', true));
+    const q = query(collection(dbService.getDb(), COLLECTIONS.PROGRAMS), where('isActive', '==', true));
     const querySnapshot = await getDocs(q);
     const programs = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: programs };
@@ -101,7 +106,7 @@ export const getActivePrograms = async () => {
  */
 export const createProgram = async (programData, auditData = null) => {
   try {
-    const docRef = doc(collection(db, 'programs'));
+    const docRef = doc(collection(dbService.getDb(), COLLECTIONS.PROGRAMS));
     const finalData = {
       ...programData,
       ...(auditData || {
@@ -132,7 +137,7 @@ export const updateProgram = async (programId, updateData, auditData = null) => 
         updatedAt: serverTimestamp()
       })
     };
-    await updateDoc(doc(db, 'programs', programId), finalData);
+    await updateDoc(doc(dbService.getDb(), COLLECTIONS.PROGRAMS, programId), finalData);
     return { success: true };
   } catch (error) {
     logger.error('[ProgramDbService] Error updating program:', error);
@@ -147,7 +152,7 @@ export const updateProgram = async (programId, updateData, auditData = null) => 
  */
 export const deleteProgram = async (programId) => {
   try {
-    await deleteDoc(doc(db, 'programs', programId));
+    await deleteDoc(doc(dbService.getDb(), COLLECTIONS.PROGRAMS, programId));
     return { success: true };
   } catch (error) {
     logger.error('[ProgramDbService] Error deleting program:', error);
