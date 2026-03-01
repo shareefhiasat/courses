@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import JoyrideTour from '@ui/JoyrideTour';
 import iconTypes from '@constants/iconTypes';
 import logger from '@utils/logger';
+import { getAcademicTermOptions, getAcademicTermLabel } from '@constants/academicTerms';
 const { getThemedIcon, getIconWithColor } = iconTypes;
 import { useTheme } from '@contexts/ThemeContext';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
@@ -1072,8 +1073,14 @@ const HomePage = memo(() => {
       const term = sub.term || sub.semester;
       if (term) terms.add(term);
     });
-    return Array.from(terms);
-  }, [reviewSubmissions]);
+    
+    // Convert to options with localized labels
+    const termValues = Array.from(terms).sort();
+    return termValues.map(termValue => ({
+      value: termValue,
+      label: getAcademicTermLabel(termValue, lang, t)
+    }));
+  }, [reviewSubmissions, lang, t]);
 
   // Review mode: filtered items with role-based scoping + all active filters
   const filteredReviewItems = useMemo(() => {

@@ -29,10 +29,10 @@ import logger from '@utils/logger';
  */
 export const getSchedulesByTermAndYear = async (term, year) => {
   try {
-    const termString = `${term} ${year}`;
     const q = query(
       collection(db, 'classes'), 
-      where('term', '==', termString)
+      where('term', '==', term),
+      where('year', '==', year)
     );
     
     const querySnapshot = await getDocs(q);
@@ -87,11 +87,11 @@ export const getSchedulesByProgram = async (programId, term = null, year = null)
   try {
     let q;
     if (term && year) {
-      const termString = `${term} ${year}`;
       q = query(
         collection(db, 'classes'),
         where('programId', '==', programId),
-        where('term', '==', termString)
+        where('term', '==', term),
+        where('year', '==', year)
       );
     } else {
       q = query(
@@ -123,11 +123,11 @@ export const getSchedulesByInstructor = async (instructorEmail, term = null, yea
   try {
     let q;
     if (term && year) {
-      const termString = `${term} ${year}`;
       q = query(
         collection(db, 'classes'),
         where('ownerEmail', '==', instructorEmail),
-        where('term', '==', termString)
+        where('term', '==', term),
+        where('year', '==', year)
       );
     } else {
       q = query(

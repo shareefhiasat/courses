@@ -8,6 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MODE_TYPES } from '@utils/sharedTypes';
 import { Container, Card, CardBody, Tabs, Badge } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import { getAcademicTermOptions, getAcademicTermLabel } from '@constants/academicTerms';
 import iconTypes from '@constants/iconTypes';
 const { getThemedIcon, getColoredIcon, getIconWithColor } = iconTypes;
 import { getPrograms, getSubjects } from '@services/business/programService';
@@ -90,8 +91,14 @@ const ReviewResultsPage = () => {
       const term = submission.term || submission.semester;
       if (term) terms.add(term);
     });
-    return Array.from(terms);
-  }, [submissions]);
+    
+    // Convert to options with localized labels
+    const termValues = Array.from(terms).sort();
+    return termValues.map(termValue => ({
+      value: termValue,
+      label: getAcademicTermLabel(termValue, lang, t)
+    }));
+  }, [submissions, lang, t]);
 
   // Filter states - using filter chips like HomePage
   const [searchTerm, setSearchTerm] = useState('');

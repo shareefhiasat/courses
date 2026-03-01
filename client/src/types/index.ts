@@ -104,6 +104,8 @@ export interface Class {
   programId: string;              // Parent program ID
   subjectId: string;              // Parent subject ID
   instructorId: string;           // Assigned instructor ID
+  term?: string;                  // Academic term (Fall, Spring, Summer)
+  year?: string;                  // Academic year
   schedule?: ClassSchedule[];     // Class schedule array
   room?: string;                  // Classroom location
   capacity?: number;              // Maximum students

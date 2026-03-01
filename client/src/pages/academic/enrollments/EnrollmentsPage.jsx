@@ -8,6 +8,7 @@ import { getClasses } from '@services/business/classService';
 import { getEnrolledStudents, toggleStudentAccess as toggleStudentAccessService } from '@services/business/enrollmentService';
 import { Container, Card, CardBody, Button, Input, Badge, EmptyState, useToast, Select, YearSelect } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
+import { getAcademicTermOptions, getAcademicTermLabel } from '@constants/academicTerms';
 import styles from './EnrollmentsPage.module.css';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 
@@ -58,13 +59,17 @@ const EnrollmentsPage = () => {
     classes.forEach(cls => {
       if (cls.term) {
         // For separate term field, use it directly
-        // For combined term field, extract the first part
-        const termPart = cls.term.includes(' ') ? cls.term.split(' ')[0] : cls.term;
-        if (termPart) terms.add(termPart);
+        terms.add(cls.term);
       }
     });
-    return Array.from(terms).sort();
-  }, [classes]);
+    
+    // Convert to options with localized labels
+    const termValues = Array.from(terms).sort();
+    return termValues.map(termValue => ({
+      value: termValue,
+      label: getAcademicTermLabel(termValue, lang, t)
+    }));
+  }, [classes, lang, t]);
 
   const filteredClasses = useMemo(() => {
     let result = [...classes];
@@ -111,9 +116,13 @@ const EnrollmentsPage = () => {
       result = result.filter(cls => {
         if (!cls.term) return false;
         // For separate term field, use it directly
-        // For combined term field, extract the first part
-        const termPart = cls.term.includes(' ') ? cls.term.split(' ')[0] : cls.term;
-        return termPart === termFilter;
+        if (cls.term === termFilter) return true;
+        // Backward compatibility: check if term is part of combined field
+        if (cls.term.includes(' ')) {
+          const termPart = cls.term.split(' ')[0];
+          return termPart === termFilter;
+        }
+        return false;
       });
     }
     
@@ -360,7 +369,7 @@ const EnrollmentsPage = () => {
                 onChange={(e) => setTermFilter(e.target.value)}
                 options={[
                   { value: 'all', label: t('enrollments_all_terms_filter') },
-                  ...availableTerms.map(term => ({ value: term, label: term }))
+                  ...availableTerms
                 ]}
                 fullWidth
               />

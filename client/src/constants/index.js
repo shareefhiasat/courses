@@ -158,6 +158,13 @@ import {
   ALL_ROLES, 
   ROLE_KEYS
 } from '../utils/userUtils.js';
+import {
+  ACADEMIC_TERMS,
+  getAcademicTermOptions,
+  getAcademicTermLabel,
+  getAcademicTermValues,
+  DEFAULT_TERM_OPTIONS
+} from './academicTerms.js';
 
 export { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel };
 export { ATTENDANCE_METHODS, getAttendanceMethodLabel, shouldShowMethodLabel };
@@ -354,6 +361,13 @@ export default {
   formatQatarDateOnly,
   generateReferenceId,
   generateStudentQRCode,
+  
+  // Academic Terms
+  ACADEMIC_TERMS,
+  getAcademicTermOptions,
+  getAcademicTermLabel,
+  getAcademicTermValues,
+  DEFAULT_TERM_OPTIONS,
   
   // Theme utilities - DARK_MODE_COLORS exported from dashboardTypes.jsx
 };

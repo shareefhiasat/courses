@@ -6,6 +6,7 @@ import { useColorTheme } from '@contexts/ColorThemeContext';
 import { Tabs } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import iconTypes from '@constants/iconTypes';
+import { getAcademicTermOptions, getAcademicTermLabel } from '@constants/academicTerms';
 const { getIconWithColor } = iconTypes;
 import useDashboardData from '@hooks/useDashboardData';
 import useStudentDashboardFilters from '@hooks/useStudentDashboardFilters';
@@ -56,8 +57,14 @@ export default function StudentDashboardPageModern() {
       const term = enrollment.semester || enrollment.term;
       if (term) terms.add(term);
     });
-    return Array.from(terms);
-  }, [enrollments]);
+    
+    // Convert to options with localized labels
+    const termValues = Array.from(terms).sort();
+    return termValues.map(termValue => ({
+      value: termValue,
+      label: getAcademicTermLabel(termValue, lang, t)
+    }));
+  }, [enrollments, lang, t]);
 
   const studentOptions = useMemo(() => {
     return [
