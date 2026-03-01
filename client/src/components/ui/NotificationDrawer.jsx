@@ -330,7 +330,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
       console.warn('Failed to log notification clicked activity:', logError);
     }
     
-    if (!n.read) handleMarkAsRead(n.id);
+    if (!n.read) await handleMarkAsRead(n.id);
     
     // Activity, quiz, homework, resource notifications
     if (n.type === 'activity' || n.type === 'submission') {

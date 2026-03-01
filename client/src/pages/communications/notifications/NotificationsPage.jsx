@@ -283,8 +283,8 @@ const NotificationsPage = () => {
     }
   };
 
-  const gotoFromNotification = (n) => {
-    if (!n.read) handleMarkAsRead(n.id);
+  const gotoFromNotification = async (n) => {
+    if (!n.read) await handleMarkAsRead(n.id);
     
     // Activity, quiz, homework, resource notifications
     if (n.type === 'activity' || n.type === 'submission') {
