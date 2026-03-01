@@ -6,6 +6,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useTheme } from '@contexts/ThemeContext';
+import { ActivityLogger } from '@services/other/activityLogger';
 import styles from './ScratchPad.module.css';
 
 const ScratchPad = ({ onClose, quizId, questionId }) => {
@@ -16,6 +17,15 @@ const ScratchPad = ({ onClose, quizId, questionId }) => {
   const [lineWidth, setLineWidth] = useState(2);
   const [tool, setTool] = useState('pen'); // 'pen' | 'eraser'
   const [context, setContext] = useState(null);
+
+  // Log scratch pad opened activity
+  useEffect(() => {
+    try {
+      ActivityLogger.scratchPadOpened();
+    } catch (logError) {
+      console.warn('Failed to log scratch pad opened activity:', logError);
+    }
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;

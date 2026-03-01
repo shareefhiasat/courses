@@ -3,12 +3,22 @@
  * Reference materials attachment for quizzes
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
+import { ActivityLogger } from '@services/other/activityLogger';
 import styles from './FormulaSheet.module.css';
 
 const FormulaSheet = ({ formulas = [], onClose }) => {
   const [expandedSections, setExpandedSections] = useState({});
+
+  // Log formula sheet opened activity
+  useEffect(() => {
+    try {
+      ActivityLogger.formulaSheetOpened();
+    } catch (logError) {
+      console.warn('Failed to log formula sheet opened activity:', logError);
+    }
+  }, []);
 
   const toggleSection = (index) => {
     setExpandedSections(prev => ({

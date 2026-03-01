@@ -1828,12 +1828,33 @@ const HomePage = memo(() => {
                             navigate(`/quiz/${itemId}`);
                           } else if (mode === MODE_TYPES.RESOURCES) {
                             if (item.type === 'link' && item.url) {
+                              // Log resource viewed activity
+                              try {
+                                ActivityLogger.resourceViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Resource');
+                              } catch (logError) {
+                                logger.warn('Failed to log resource viewed activity:', logError);
+                              }
+                              
                               window.open(item.url, '_blank');
                             } else if (item.type === 'video' && item.url) {
+                              // Log resource viewed activity
+                              try {
+                                ActivityLogger.resourceViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Video');
+                              } catch (logError) {
+                                logger.warn('Failed to log resource viewed activity:', logError);
+                              }
+                              
                               window.open(item.url, '_blank');
                             } else {
                               // Handle other resource types
                               logger.info('[HomePage] Resource click:', { itemId, type: item.type });
+                              
+                              // Log resource viewed activity for other types
+                              try {
+                                ActivityLogger.resourceViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Resource');
+                              } catch (logError) {
+                                logger.warn('Failed to log resource viewed activity:', logError);
+                              }
                             }
                           } else if (mode === MODE_TYPES.ANNOUNCEMENTS) {
                             // Log announcement read activity
@@ -1856,6 +1877,13 @@ const HomePage = memo(() => {
                             setAnnouncementFullPage(true);
                           } else {
                             // Handle other activity types
+                            // Log activity viewed activity
+                            try {
+                              ActivityLogger.activityViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Activity');
+                            } catch (logError) {
+                              logger.warn('Failed to log activity viewed activity:', logError);
+                            }
+                            
                             navigate(`/activity/${itemId}`);
                           }
                         }}

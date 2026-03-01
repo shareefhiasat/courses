@@ -19,6 +19,7 @@ import { getBehaviors } from '@services/business/behaviorService';
 import { getParticipations } from '@services/business/participationService';
 import { MODE_TYPES } from '@utils/sharedTypes';
 import logger from '@utils/logger';
+import { ActivityLogger } from '@services/other/activityLogger';
 
 /**
  * AnalyticsDashboardPage - Dashboard Statistics Page
@@ -65,6 +66,15 @@ const AnalyticsDashboardPage = memo(() => {
   const loadAllData = async (isRefresh = false) => {
     if (isRefresh) {
       setIsRefreshing(true);
+    }
+    
+    // Log analytics viewed activity (only on initial load, not refresh)
+    if (!isRefresh) {
+      try {
+        ActivityLogger.analyticsViewed();
+      } catch (logError) {
+        logger.warn('Failed to log analytics viewed activity:', logError);
+      }
     }
     
     try {
