@@ -8,6 +8,8 @@
 import { db } from '@services/other/config';
 import { auth } from '@services/other/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import logger from '@utils/logger';
+import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 
 /**
  * Set user role flags in Firebase
@@ -45,6 +47,39 @@ export async function setUserRole(userId, roleFlags = {}, additionalData = {}) {
     };
     
     await setDoc(userDocRef, updatedData, { merge: true });
+    
+    // Log role change activity
+    try {
+      const changedRoles = [];
+      if (currentData.isAdmin !== updatedData.isAdmin) changedRoles.push('isAdmin');
+      if (currentData.isSuperAdmin !== updatedData.isSuperAdmin) changedRoles.push('isSuperAdmin');
+      if (currentData.isHR !== updatedData.isHR) changedRoles.push('isHR');
+      if (currentData.isInstructor !== updatedData.isInstructor) changedRoles.push('isInstructor');
+      if (currentData.isStudent !== updatedData.isStudent) changedRoles.push('isStudent');
+      
+      if (changedRoles.length > 0) {
+        await logActivity(ACTIVITY_LOG_TYPES.ROLE_CHANGE, {
+          userId: userId,
+          changedRoles: changedRoles,
+          oldRoles: {
+            isAdmin: currentData.isAdmin,
+            isSuperAdmin: currentData.isSuperAdmin,
+            isHR: currentData.isHR,
+            isInstructor: currentData.isInstructor,
+            isStudent: currentData.isStudent
+          },
+          newRoles: {
+            isAdmin: updatedData.isAdmin,
+            isSuperAdmin: updatedData.isSuperAdmin,
+            isHR: updatedData.isHR,
+            isInstructor: updatedData.isInstructor,
+            isStudent: updatedData.isStudent
+          }
+        });
+      }
+    } catch (logError) {
+      logger.warn('Failed to log role change activity:', logError);
+    }
     
     logger.log('✅ User role flags updated successfully:', updatedData);
     return { success: true, data: updatedData };

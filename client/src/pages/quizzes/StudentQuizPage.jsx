@@ -219,20 +219,29 @@ export default function StudentQuizPage() {
         if (user) {
           try {
             await ActivityLogger.quizViewed(quizId, getQuizText(result.data, 'title') || t('student_quiz_untitled_quiz'));
-          } catch (e) { console.warn('Failed to log quiz view:', e); }
+          } catch (e) { 
+            logger.warn('Failed to log quiz view:', e); 
+          }
         }
       } else {
         setError(result.error);
       }
     } catch (err) {
       setError('Failed to load quiz');
-      console.error(err);
+      logger.error('Error loading quiz:', err);
     } finally {
       setLoading(false);
     }
   };
 
   const startQuiz = () => {
+    // Log quiz started activity
+    try {
+      ActivityLogger.quizStarted(quizId, quiz?.title || 'Untitled Quiz');
+    } catch (logError) {
+      logger.warn('Failed to log quiz started activity:', logError);
+    }
+    
     setStarted(true);
     setCurrentQuestionIndex(0);
     setAnswers({});
@@ -352,9 +361,17 @@ export default function StudentQuizPage() {
         savedAt: new Date().toISOString()
       };
       localStorage.setItem(progressKey, JSON.stringify(progress));
+      
+      // Log quiz saved activity
+      try {
+        ActivityLogger.quizSaved(quizId, quiz?.title || 'Untitled Quiz');
+      } catch (logError) {
+        logger.warn('Failed to log quiz saved activity:', logError);
+      }
+      
       toast?.showSuccess?.(t('student_quiz_progress_saved'));
     } catch (err) {
-      console.error('Error saving progress:', err);
+      logger.error('Error saving progress:', err);
       toast?.showError?.(t('student_quiz_failed_to_save_progress'));
     }
   };

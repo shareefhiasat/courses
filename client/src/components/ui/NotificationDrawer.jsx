@@ -28,6 +28,7 @@ import { RECORD_TYPES } from '@utils/sharedTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
+import { ActivityLogger } from '@services/other/activityLogger';
 import useNotifications from '@hooks/useNotifications';
 
 const NotificationDrawer = ({ isOpen, onClose }) => {
@@ -264,6 +265,14 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
 
   const handleMarkAsRead = useCallback(async (notificationId, e) => {
     e?.stopPropagation();
+    
+    // Log notification dismissed activity
+    try {
+      ActivityLogger.notificationDismissed(notificationId);
+    } catch (logError) {
+      console.warn('Failed to log notification dismissed activity:', logError);
+    }
+    
     setLoading(true);
     try {
       await markNotificationRead(notificationId);
@@ -314,6 +323,13 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
   };
 
   const gotoFromNotification = (n) => {
+    // Log notification clicked activity
+    try {
+      ActivityLogger.notificationClicked(n.id, n.type);
+    } catch (logError) {
+      console.warn('Failed to log notification clicked activity:', logError);
+    }
+    
     if (!n.read) handleMarkAsRead(n.id);
     
     // Activity, quiz, homework, resource notifications

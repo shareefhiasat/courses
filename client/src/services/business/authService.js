@@ -23,6 +23,13 @@ export const signIn = async (email, password) => {
     
     const result = await signInWithEmailAndPassword(auth, email, password);
     
+    // Log successful login
+    try {
+      await ActivityLogger.login();
+    } catch (logError) {
+      logger.warn('Failed to log login activity:', logError);
+    }
+    
     logger.info('AUTH: User signed in successfully', { userId: result.user.uid });
     return { success: true, user: result.user };
   } catch (error) {

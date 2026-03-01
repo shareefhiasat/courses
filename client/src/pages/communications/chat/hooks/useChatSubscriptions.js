@@ -13,6 +13,7 @@ import { getUsers } from '@services/business/userService';
 import { getUserProfile } from '@services/business/userService';
 import { chatService } from '@services/business/chatService';
 import { ROLE_STRINGS } from '@utils/userUtils';
+import { ActivityLogger } from '@services/other/activityLogger';
 import logger from '@utils/logger';
 
 import { LOCAL_STORAGE_KEYS } from '../constants/chatConstants';
@@ -54,6 +55,7 @@ export const useChatSubscriptions = (user, isAdmin, state, actions) => {
   const scrollContainerRef = useRef(null);
   const suppressAutoScrollRef = useRef(false);
   const hasHighlightedRef = useRef(null);
+  const lastProcessedMessageRef = useRef(new Set()); // Track processed messages
 
   // Load user profile
   useEffect(() => {
@@ -175,9 +177,43 @@ export const useChatSubscriptions = (user, isAdmin, state, actions) => {
     
     const unsubscribe = chatService.subscribeToMessages(chatType, chatId, (snapshot) => {
       const msgs = [];
+      const newMessageIds = new Set();
+      
       snapshot.forEach((doc) => {
-        msgs.push({ id: doc.id, ...doc.data() });
+        const msg = { id: doc.id, ...doc.data() };
+        msgs.push(msg);
+        newMessageIds.add(doc.id);
+        
+        // Only log message received for NEW messages from other users (after initial load)
+        if (lastProcessedMessageRef.current.size > 0 && 
+            !lastProcessedMessageRef.current.has(doc.id) && 
+            msg.senderId !== user.uid) {
+          try {
+            ActivityLogger.messageReceived({
+              messageId: doc.id,
+              messageType: msg.messageType,
+              chatType: chatType,
+              classId: msg.classId,
+              roomId: msg.roomId,
+              senderId: msg.senderId,
+              senderName: msg.senderName,
+              contentLength: msg.content?.length || 0,
+              hasAttachment: !!(msg.voiceUrl || msg.fileUrl)
+            });
+          } catch (logError) {
+            logger.warn('Failed to log message received activity:', logError);
+          }
+        }
       });
+      
+      // Update processed messages tracking after initial load
+      if (lastProcessedMessageRef.current.size === 0) {
+        // First load - populate with existing messages
+        lastProcessedMessageRef.current = newMessageIds;
+      } else {
+        // Subsequent loads - only add new messages
+        newMessageIds.forEach(id => lastProcessedMessageRef.current.add(id));
+      }
       
       logger.info('Messages loaded', { 
         chatType, 
@@ -201,6 +237,12 @@ export const useChatSubscriptions = (user, isAdmin, state, actions) => {
     
     return unsubscribe;
   }, [selectedClass, user, setMessages, setChatReads]);
+
+  // Clear message tracking when switching rooms
+  useEffect(() => {
+    // Clear tracking when switching to a different room
+    lastProcessedMessageRef.current.clear();
+  }, [selectedClass]);
 
   useEffect(() => {
     if (!selectedClass) return;

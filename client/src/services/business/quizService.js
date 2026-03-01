@@ -5,6 +5,7 @@ import { getUserById } from "./userService";
 import { RECORD_TYPES } from "@utils/sharedTypes";
 import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import logger from '@utils/logger';
+import { ActivityLogger } from '../other/activityLogger';
 import { 
   getQuizzes as getQuizzesFromDb,
   getQuiz as getQuizFromDb,
@@ -331,6 +332,18 @@ export const submitQuiz = async (submissionData) => {
               previousScore: bestSubmission.score,
               previousPercentage: bestPercentage,
             });
+            
+            // Log quiz retake activity
+            try {
+              await ActivityLogger.quizSubmitted(
+                submissionData.quizId, 
+                quiz?.title || 'Untitled Quiz', 
+                submissionData.percentage || 0
+              );
+            } catch (logError) {
+              logger.warn('Failed to log quiz retake activity:', logError);
+            }
+            
             return {
               success: true,
               id: bestSubmission.docId,
@@ -367,6 +380,18 @@ export const submitQuiz = async (submissionData) => {
     // No existing submission or retake not allowed - create new submission
     const { createQuizSubmission } = await import('../db/quizSubmissionsDbService');
     const result = await createQuizSubmission(submissionData);
+    
+    // Log quiz submitted activity (treat as assignment submission as requested)
+    try {
+      await ActivityLogger.quizSubmitted(
+        submissionData.quizId, 
+        quiz?.title || 'Untitled Quiz', 
+        submissionData.percentage || 0
+      );
+    } catch (logError) {
+      logger.warn('Failed to log quiz submission activity:', logError);
+    }
+    
     return { success: true, id: result.id };
   } catch (error) {
     logger.error("Error submitting quiz:", error);

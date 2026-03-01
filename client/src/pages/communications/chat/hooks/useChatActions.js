@@ -17,6 +17,7 @@ import { addNotification } from '@services/business/notificationService';
 import { getUsers } from '@services/business/userService';
 import { filterBadWords } from '@utils/badWordFilter';
 import { canParticipate } from '@utils/userStatus';
+import { ActivityLogger } from '@services/other/activityLogger';
 import logger from '@utils/logger';
 
 import {
@@ -261,6 +262,21 @@ export const useChatActions = (user, state, toast, t) => {
       }
       
       const added = await chatService.sendMessage(messageData);
+
+      // Log message sent activity
+      try {
+        await ActivityLogger.messageSent({
+          messageId: added.id,
+          messageType: messageData.messageType,
+          chatType: chatType,
+          classId: messageData.classId,
+          roomId: messageData.roomId,
+          contentLength: messageData.content?.length || 0,
+          hasAttachment: !!(messageData.voiceUrl || messageData.fileUrl)
+        });
+      } catch (logError) {
+        logger.warn('Failed to log message sent activity:', logError);
+      }
 
       // Notify for global chat
       if (chatType === CHAT_TYPES.GLOBAL) {

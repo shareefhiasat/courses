@@ -28,6 +28,7 @@ import { useFilterCounts } from '@hooks/useFilterCounts';
 import { getActivityTypeConfig } from '@constants/activityTypes';
 import { getDifficultyConfig } from '@constants/difficultyTypes';
 import { getResourceTypeConfig } from '@constants/resourceTypes';
+import { ActivityLogger } from '@services/other/activityLogger';
 import { Card, CardBody, Modal, EmptyState, Select } from '@ui';
 import { useToast } from '@ui';
 import UnifiedCard from '@/components/UnifiedCard';
@@ -243,6 +244,14 @@ const HomePage = memo(() => {
   // Load data function (defined before useEffect that uses it)
   const loadData = useCallback(async (stopGlobalLoading) => {
     console.log('[HomePage] loadData called - about to fetch resources');
+    
+    // Log dashboard viewed activity
+    try {
+      ActivityLogger.dashboardViewed();
+    } catch (logError) {
+      logger.warn('Failed to log dashboard viewed activity:', logError);
+    }
+    
     try {
       logger.debug('[HomePage] Starting loadData - calling all services...');
       
@@ -1827,6 +1836,22 @@ const HomePage = memo(() => {
                               logger.info('[HomePage] Resource click:', { itemId, type: item.type });
                             }
                           } else if (mode === MODE_TYPES.ANNOUNCEMENTS) {
+                            // Log announcement read activity
+                            try {
+                              ActivityLogger.announcementRead({
+                                announcementId: item.id || item.docId,
+                                title: lang === 'ar' 
+                                  ? (item.titleAr || item.titleEn || item.title)
+                                  : (item.titleEn || item.titleAr || item.title),
+                                target: item.target,
+                                programId: item.programId,
+                                subjectId: item.subjectId,
+                                classId: item.classId
+                              });
+                            } catch (logError) {
+                              logger.warn('Failed to log announcement read activity:', logError);
+                            }
+                            
                             setSelectedAnnouncement(item);
                             setAnnouncementFullPage(true);
                           } else {

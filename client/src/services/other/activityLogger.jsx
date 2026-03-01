@@ -233,6 +233,7 @@ export const ACTIVITY_LOG_TYPES = {
   PROFILE_UPDATE: "profile_update",
   PASSWORD_CHANGE: "password_change",
   EMAIL_CHANGE: "email_change",
+  ROLE_CHANGE: "role_change",
 
   // Quiz Activities
   QUIZ_STARTED: "quiz_started",
@@ -380,6 +381,7 @@ export const ActivityLogger = {
   profileUpdate: () => logActivity(ACTIVITY_LOG_TYPES.PROFILE_UPDATE),
   passwordChange: () => logActivity(ACTIVITY_LOG_TYPES.PASSWORD_CHANGE),
   emailChange: () => logActivity(ACTIVITY_LOG_TYPES.EMAIL_CHANGE),
+  roleChange: () => logActivity(ACTIVITY_LOG_TYPES.ROLE_CHANGE),
 
   // Quiz
   quizStarted: (quizId, quizTitle) =>
@@ -390,6 +392,14 @@ export const ActivityLogger = {
     logActivity(ACTIVITY_LOG_TYPES.QUIZ_SAVED, { quizId, quizTitle }),
   quizViewed: (quizId, quizTitle) =>
     logActivity(ACTIVITY_LOG_TYPES.QUIZ_VIEWED, { quizId, quizTitle }),
+
+  // Communication
+  messageSent: (details) =>
+    logActivity(ACTIVITY_LOG_TYPES.MESSAGE_SENT, details),
+  messageReceived: (details) =>
+    logActivity(ACTIVITY_LOG_TYPES.MESSAGE_RECEIVED, details),
+  announcementRead: (details) =>
+    logActivity(ACTIVITY_LOG_TYPES.ANNOUNCEMENT_READ, details),
 
   // Resources
   resourceViewed: (resourceId, resourceTitle) =>
@@ -440,6 +450,7 @@ export const ACTIVITY_LOG_LABELS = {
   profile_update: "Profile Update",
   password_change: "Password Change",
   email_change: "Email Change",
+  role_change: "Role Change",
   quiz_started: "Quiz Started",
   quiz_submitted: "Quiz Submitted",
   quiz_retake: "Quiz Retake",
