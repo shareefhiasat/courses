@@ -78,39 +78,39 @@ export const getActivityTypeConfig = (type, theme = 'light', lang = 'en') => {
   
   const typeConfig = {
     [ACTIVITY_TYPES.QUIZ]: {
-      icon: getThemedIcon('quiz', theme),
+      icon: getThemedIcon('activity_type', 'quiz', theme),
       label: labels[ACTIVITY_TYPES.QUIZ],
       color: theme === 'dark' ? '#8b5cf6' : '#7c3aed'
     },
     [ACTIVITY_TYPES.HOMEWORK]: {
-      icon: getThemedIcon('homework', theme),
+      icon: getThemedIcon('activity_type', 'homework', theme),
       label: labels[ACTIVITY_TYPES.HOMEWORK],
       color: theme === 'dark' ? '#3b82f6' : '#2563eb'
     },
     [ACTIVITY_TYPES.TRAINING]: {
-      icon: getThemedIcon('training', theme),
+      icon: getThemedIcon('activity_type', 'training', theme),
       label: labels[ACTIVITY_TYPES.TRAINING],
       color: theme === 'dark' ? '#10b981' : '#059669'
     },
     [ACTIVITY_TYPES.LAB_AND_PROJECT]: {
-      icon: getThemedIcon('lab', theme),
+      icon: getThemedIcon('activity_type', 'lab', theme),
       label: labels[ACTIVITY_TYPES.LAB_AND_PROJECT],
       color: theme === 'dark' ? '#f59e0b' : '#d97706'
     },
     [ACTIVITY_TYPES.MID_EXAM]: {
-      icon: getThemedIcon('exam', theme),
+      icon: getThemedIcon('activity_type', 'exam', theme),
       label: labels[ACTIVITY_TYPES.MID_EXAM],
       color: theme === 'dark' ? '#ef4444' : '#dc2626'
     },
     [ACTIVITY_TYPES.FINAL_EXAM]: {
-      icon: getThemedIcon('exam', theme),
+      icon: getThemedIcon('activity_type', 'exam', theme),
       label: labels[ACTIVITY_TYPES.FINAL_EXAM],
       color: theme === 'dark' ? '#dc2626' : '#b91c1c'
     }
   };
 
   return typeConfig[type] || {
-    icon: getThemedIcon('activity', theme),
+    icon: getThemedIcon('activity_type', 'activity', theme),
     label: 'Unknown Activity',
     color: theme === 'dark' ? '#6b7280' : '#4b5563'
   };

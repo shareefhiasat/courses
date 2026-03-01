@@ -268,7 +268,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     
     // Log notification dismissed activity
     try {
-      ActivityLogger.notificationDismissed(notificationId);
+      await ActivityLogger.notificationDismissed(notificationId);
     } catch (logError) {
       console.warn('Failed to log notification dismissed activity:', logError);
     }
@@ -322,10 +322,10 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     }
   };
 
-  const gotoFromNotification = (n) => {
+  const gotoFromNotification = async (n) => {
     // Log notification clicked activity
     try {
-      ActivityLogger.notificationClicked(n.id, n.type);
+      await ActivityLogger.notificationClicked(n.id, n.type);
     } catch (logError) {
       console.warn('Failed to log notification clicked activity:', logError);
     }

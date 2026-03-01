@@ -115,32 +115,6 @@ const UserSelect = ({
       
       if (isInstructor(u) || isAdmin(u)) {
         // For instructors: count classes they teach
-        console.log('🔍 [UserSelect] User Role Debug:', {
-          userEmail: u.email,
-          userId: u.docId || u.id,
-          userRoles: {
-            isInstructor: u.isInstructor,
-            isAdmin: u.isAdmin,
-            isSuperAdmin: u.isSuperAdmin,
-            isHR: u.isHR,
-            isStudent: u.isStudent
-          },
-          roleDetection: {
-            isInstructor: isInstructor(u),
-            isAdmin: isAdmin(u),
-            isSuperAdmin: isSuperAdmin(u),
-            hasAdminPrivileges: isAdmin(u) || isSuperAdmin(u)
-          }
-        });
-        
-        console.log('🔍 [UserSelect] Instructor Debug:', {
-          userEmail: u.email,
-          userId: u.docId || u.id,
-          totalEnrollments: enrollments.length,
-          totalClasses: classes?.length || 0,
-          isInstructor: isInstructor(u) || isAdmin(u)
-        });
-        
         // Count classes owned by this instructor
         let taughtClasses = [];
         
@@ -150,44 +124,17 @@ const UserSelect = ({
             c.ownerEmail === u.email || 
             c.createdBy === (u.docId || u.id)
           );
-          console.log('🔍 [UserSelect] Classes owned by instructor:', taughtClasses);
         } else {
           // Fallback to enrollment-based counting (for backward compatibility)
           taughtClasses = enrollments.filter(e => 
             e.instructorId === (u.docId || u.id) || e.ownerEmail === u.email
           );
-          console.log('🔍 [UserSelect] Taught Classes from enrollments:', taughtClasses);
         }
         
         enrollmentCount = taughtClasses.length;
         displayCount = enrollmentCount > 0 ? `${enrollmentCount} classes` : 'No classes';
-        
-        console.log('🔍 [UserSelect] Instructor Final Count:', {
-          enrollmentCount,
-          displayCount,
-          taughtClassesCount: taughtClasses.length
-        });
       } else {
         // For students: count their enrollments
-        console.log('🔍 [UserSelect] Student Branch Debug:', {
-          userEmail: u.email,
-          userId: u.docId || u.id,
-          userRoles: {
-            isInstructor: u.isInstructor,
-            isAdmin: u.isAdmin,
-            isSuperAdmin: u.isSuperAdmin,
-            isHR: u.isHR,
-            isStudent: u.isStudent
-          },
-          roleDetection: {
-            isInstructor: isInstructor(u),
-            isAdmin: isAdmin(u),
-            isSuperAdmin: isSuperAdmin(u),
-            hasAdminPrivileges: isAdmin(u) || isSuperAdmin(u)
-          },
-          reason: 'Treated as student because isInstructor(u) || isAdmin(u) returned false'
-        });
-        
         const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
         enrollmentCount = userEnrollments.length;
         displayCount = enrollmentCount > 0 ? `${enrollmentCount} enrollments` : 'No enrollments';

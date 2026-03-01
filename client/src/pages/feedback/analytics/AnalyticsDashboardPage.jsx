@@ -69,9 +69,9 @@ const AnalyticsDashboardPage = memo(() => {
     }
     
     // Log analytics viewed activity (only on initial load, not refresh)
-    if (!isRefresh) {
+    if (!isRefresh && user?.uid) {
       try {
-        ActivityLogger.analyticsViewed();
+        await ActivityLogger.analyticsViewed();
       } catch (logError) {
         logger.warn('Failed to log analytics viewed activity:', logError);
       }

@@ -237,7 +237,7 @@ export default function StudentQuizPage() {
   const startQuiz = () => {
     // Log quiz started activity
     try {
-      ActivityLogger.quizStarted(quizId, quiz?.title || 'Untitled Quiz');
+      await ActivityLogger.quizStarted(quizId, quiz?.title || 'Untitled Quiz');
     } catch (logError) {
       logger.warn('Failed to log quiz started activity:', logError);
     }
@@ -364,7 +364,7 @@ export default function StudentQuizPage() {
       
       // Log quiz saved activity
       try {
-        ActivityLogger.quizSaved(quizId, quiz?.title || 'Untitled Quiz');
+        await ActivityLogger.quizSaved(quizId, quiz?.title || 'Untitled Quiz');
       } catch (logError) {
         logger.warn('Failed to log quiz saved activity:', logError);
       }

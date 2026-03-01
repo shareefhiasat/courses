@@ -243,11 +243,9 @@ const HomePage = memo(() => {
 
   // Load data function (defined before useEffect that uses it)
   const loadData = useCallback(async (stopGlobalLoading) => {
-    console.log('[HomePage] loadData called - about to fetch resources');
-    
     // Log dashboard viewed activity
     try {
-      ActivityLogger.dashboardViewed();
+      await ActivityLogger.dashboardViewed();
     } catch (logError) {
       logger.warn('Failed to log dashboard viewed activity:', logError);
     }
@@ -491,7 +489,6 @@ const HomePage = memo(() => {
     const canUserAccessItem = (item) => {
       // Admin, SuperAdmin, and HR roles can see all items
       if (isAdmin || isSuperAdmin || isHR) {
-        console.log('[HomePage] canUserAccessItem - Super admin bypass for item:', item.docId);
         return true;
       }
       
@@ -515,22 +512,6 @@ const HomePage = memo(() => {
         (category === '' || (r.category || '') === category) &&
         canUserAccessItem(r)
       );
-      console.log('[HomePage] Resources filtering:', {
-        totalResources: resources.length,
-        category,
-        filteredCount: filteredResources.length,
-        resourcesSample: resources.slice(0, 3),
-        isAdmin: user?.isAdmin || false,
-        enrolledClasses,
-        canAccessSample: resources.slice(0, 3).map(r => ({
-          id: r.docId || r.id,
-          title: r.titleEn || r.title,
-          classId: r.classId,
-          category: r.category,
-          categoryCheck: (r.category || '') === category,
-          canAccess: canUserAccessItem(r)
-        }))
-      });
       return filteredResources;
     }
     
@@ -541,22 +522,6 @@ const HomePage = memo(() => {
     
     // Handle activities mode with activity type and category filtering
     if (mode === MODE_TYPES.ACTIVITIES) {
-      console.log('[HomePage] Activities filtering - AuthContext flags:', {
-        isAdmin: isAdmin,
-        isSuperAdmin: isSuperAdmin,
-        isHR: isHR,
-        isInstructor: isInstructor,
-        isStudent: isStudent,
-        userRole: user?.role
-      });
-      console.log('[HomePage] Activities filtering - Raw activities data:', activities.map(a => ({
-        id: a.docId,
-        type: a.type,
-        show: a.show,
-        classId: a.classId,
-        course: a.course
-      })));
-      
       let filtered = [];
       
       if (activityType === ACTIVITY_TYPES.QUIZ) {
@@ -1830,7 +1795,7 @@ const HomePage = memo(() => {
                             if (item.type === 'link' && item.url) {
                               // Log resource viewed activity
                               try {
-                                ActivityLogger.resourceViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Resource');
+                                await ActivityLogger.resourceViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Resource');
                               } catch (logError) {
                                 logger.warn('Failed to log resource viewed activity:', logError);
                               }
@@ -1839,7 +1804,7 @@ const HomePage = memo(() => {
                             } else if (item.type === 'video' && item.url) {
                               // Log resource viewed activity
                               try {
-                                ActivityLogger.resourceViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Video');
+                                await ActivityLogger.resourceViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Video');
                               } catch (logError) {
                                 logger.warn('Failed to log resource viewed activity:', logError);
                               }
@@ -1851,7 +1816,7 @@ const HomePage = memo(() => {
                               
                               // Log resource viewed activity for other types
                               try {
-                                ActivityLogger.resourceViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Resource');
+                                await ActivityLogger.resourceViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Resource');
                               } catch (logError) {
                                 logger.warn('Failed to log resource viewed activity:', logError);
                               }
@@ -1859,7 +1824,7 @@ const HomePage = memo(() => {
                           } else if (mode === MODE_TYPES.ANNOUNCEMENTS) {
                             // Log announcement read activity
                             try {
-                              ActivityLogger.announcementRead({
+                              await ActivityLogger.announcementRead({
                                 announcementId: item.id || item.docId,
                                 title: lang === 'ar' 
                                   ? (item.titleAr || item.titleEn || item.title)
@@ -1879,7 +1844,7 @@ const HomePage = memo(() => {
                             // Handle other activity types
                             // Log activity viewed activity
                             try {
-                              ActivityLogger.activityViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Activity');
+                              await ActivityLogger.activityViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Activity');
                             } catch (logError) {
                               logger.warn('Failed to log activity viewed activity:', logError);
                             }

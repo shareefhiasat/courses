@@ -143,7 +143,6 @@ export const useRoleAccess = () => {
 
     // Super admins bypass all restrictions
     if (isSuperAdmin) {
-      console.log('🔍 [useRoleAccess] Super admin bypass for screen:', screenId);
       return true;
     }
 

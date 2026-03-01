@@ -136,7 +136,13 @@ export const ICON_TYPES = {
     penalty_created: <AlertTriangle size={16} />,
     penalty_updated: <Edit size={16} />,
     penalty_deleted: <Trash2 size={16} />,
-    activity: <Activity size={16} />
+    activity: <Activity size={16} />,
+    // Missing activity type icons
+    quiz: <FileText size={16} />,
+    homework: <FileText size={16} />,
+    training: <Award size={16} />,
+    lab: <Monitor size={16} />,
+    exam: <FileText size={16} />
   },
   
   // Notification Type Icons
