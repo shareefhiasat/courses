@@ -3,6 +3,7 @@ import logger from '@utils/logger';
 import { formatQatarDateOnly, getQatarNow } from '@utils/qatarDate';
 import { Button } from '@ui';
 import { CollapsibleSection, PerformedBy } from '@ui';
+import { Upload } from 'lucide-react';
 import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance, rosterQuickAction, markAttendance } from '@services/business/attendanceService';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
@@ -24,6 +25,7 @@ import PortalTooltip from '@ui/PortalTooltip';
 import { GENERAL_STATUS } from '@utils/sharedTypes';
 import StudentActionStatsPanel from './StudentActionStatsPanel';
 import StudentActionZapPanel from './StudentActionZapPanel';
+import BulkScanDialog from '@ui/BulkScanDialog';
 import { generateReferenceId } from '@utils/qrCode';
 import { getTypeColor } from '@utils/sharedTypes';
 import { PARTICIPATION_TYPES, getParticipationColor } from '@constants/participationTypes.jsx';
@@ -106,6 +108,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const [showManualInput, setShowManualInput] = useState(false); // Start with false
   const [manualStudentId, setManualStudentId] = useState('');
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
+  const [showBulkScanDialog, setShowBulkScanDialog] = useState(false);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -1943,6 +1946,36 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     }}
                   >
                     <UserInputIcon style={{ width: '14px', height: '14px' }} />
+                  </button>
+                </PortalTooltip>
+
+                <PortalTooltip content={(!selectedProgramId || !selectedSubjectId || !selectedClassId) ? t('please_select_program_subject_class') : (t('bulk_scan') || 'Bulk Scan')} position="top">
+                <button
+                    onClick={() => {
+                      if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
+                        showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+                        return;
+                      }
+                      setShowBulkScanDialog(true);
+                    }}
+                    disabled={!selectedProgramId || !selectedSubjectId || !selectedClassId}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      padding: '0.375rem 0.5rem',
+                      borderRadius: '0.375rem',
+                      border: '1px solid var(--border, #e5e7eb)',
+                      background: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? '#f3f4f6' : '#8b5cf6',
+                      color: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? '#9ca3af' : 'white',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      cursor: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      opacity: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? 0.6 : 1
+                    }}
+                  >
+                    <Upload style={{ width: '14px', height: '14px' }} />
                   </button>
                 </PortalTooltip>
 
@@ -3933,6 +3966,42 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 </div>
               </div>
           )}
+
+          {/* Bulk Scan Dialog */}
+          <BulkScanDialog
+            isOpen={showBulkScanDialog}
+            onClose={() => setShowBulkScanDialog(false)}
+            programId={selectedProgramId}
+            subjectId={selectedSubjectId}
+            classId={selectedClassId}
+            markedBy={user?.uid || 'unknown'}
+            performedBy={user?.uid || 'unknown'}
+            performedByName={user?.displayName || user?.name || user?.email || 'Unknown User'}
+            performedByEmail={user?.email || 'unknown@example.com'}
+            onSuccess={(result) => {
+              showSuccess(t('bulk_operation_success') || `Successfully processed ${result.summary.succeeded} students`);
+              
+              // Trigger multiple refresh mechanisms to ensure UI updates
+              fetchRecentActivity();
+              
+              // Trigger event bus events to refresh all components
+              eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
+                classId: selectedClassId,
+                timestamp: Date.now()
+              });
+              
+              eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
+              eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
+              
+              // Force a second refresh after a short delay to catch any slow updates
+              setTimeout(() => {
+                fetchRecentActivity();
+                eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
+              }, 500);
+            }}
+            t={t}
+            lang={lang}
+          />
 
           <style>{`
             @keyframes qr-scan-line {

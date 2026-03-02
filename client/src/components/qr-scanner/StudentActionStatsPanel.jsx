@@ -443,9 +443,22 @@ export default function StudentActionStatsPanel({
       logger.debug('StudentActionStatsPanel - total logs fetched:', logs.length);
       logger.debug('StudentActionStatsPanel - logs:', logs);
 
-      // Filter today's logs
-      const today = new Date().toISOString().split('T')[0];
-      const todayLogsFiltered = logs.filter(log => log.date === today);
+      // Helper function to check if a date matches today (handles both ISO and human-readable formats)
+      const isToday = (dateString) => {
+        try {
+          const today = new Date();
+          const logDate = new Date(dateString);
+          
+          // Check if both dates represent the same day
+          return today.toDateString() === logDate.toDateString();
+        } catch (error) {
+          logger.warn('StudentActionStatsPanel - Error parsing date:', dateString, error);
+          return false;
+        }
+      };
+      
+      // Filter today's logs (handles both ISO and human-readable formats)
+      const todayLogsFiltered = logs.filter(log => isToday(log.date));
 
       logger.debug('StudentActionStatsPanel - today logs filtered:', todayLogsFiltered.length);
       logger.debug('StudentActionStatsPanel - historical logs to set:', logs.length);
@@ -1339,9 +1352,9 @@ export default function StudentActionStatsPanel({
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
-                      border: '2px solid #ef4444',
+                      border: '2px solid var(--color-danger, #ef4444)',
                       background: !isAttendanceNone && currentAttendanceStatus === 'absent_no_excuse' ? 'var(--color-danger, #ef4444)' : 'var(--panel, white)',
-                      color: !isAttendanceNone && currentAttendanceStatus === 'absent_no_excuse' ? 'var(--text-on-success, white)' : 'var(--color-danger, #ef4444)',
+                      color: !isAttendanceNone && currentAttendanceStatus === 'absent_no_excuse' ? 'var(--text-on-primary, white)' : 'var(--color-danger, #ef4444)',
                       cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
                       opacity: isAttendanceNone ? 0.5 : 1,
                       display: 'flex',

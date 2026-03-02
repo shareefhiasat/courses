@@ -68,10 +68,30 @@ export const getAttendanceMarksForExport = async (sessionId) => {
 // ===== BASIC ATTENDANCE OPERATIONS (from attendanceService.js) =====
 
 // Check today's attendance status for a student
-export const getTodayAttendanceStatus = async (classId, studentId) => {
+export const getTodayAttendanceStatus = async (classId, studentIdentifier) => {
   try {
     const today = formatQatarDateOnly(getQatarNow());
-    const attendanceDocId = `${classId}_${studentId}_${today}`;
+    // Try to get student number if studentId was passed
+    let studentNumber = studentIdentifier;
+    
+    // If studentIdentifier looks like a Firebase UID (long string), we need to find the studentNumber
+    if (studentIdentifier.length > 20) {
+      // This is likely a studentId, fetch the user to get studentNumber
+      try {
+        const userResponse = await getUserById(studentIdentifier);
+        if (userResponse.success && userResponse.data?.studentNumber) {
+          studentNumber = userResponse.data.studentNumber;
+        } else {
+          logger.warn('Could not find studentNumber for studentId:', studentIdentifier);
+          return { success: false, data: null };
+        }
+      } catch (error) {
+        logger.error('Error fetching user for studentNumber:', error);
+        return { success: false, data: null };
+      }
+    }
+    
+    const attendanceDocId = `${classId}_${studentNumber}_${today}`;
     const existingRecord = await getAttendanceRecordFromDb(attendanceDocId);
     
     if (existingRecord.success && existingRecord.data) {
@@ -101,14 +121,23 @@ export const isStudentMarkedToday = async (classId, studentIdentifier) => {
 // Mark attendance (centralized - CONSOLIDATED from both files)
 export const markAttendance = async (attendanceData) => {
   try {
+    // Validate required fields and provide defaults
+    const validatedData = {
+      ...attendanceData,
+      markedBy: attendanceData.markedBy || 'unknown',
+      performedBy: attendanceData.performedBy || 'unknown',
+      performedByName: attendanceData.performedByName || 'Unknown User',
+      performedByEmail: attendanceData.performedByEmail || 'unknown@example.com'
+    };
+
     // Use the date passed from caller, or default to today's Qatar date
-    const date = attendanceData.date || formatQatarDateOnly(getQatarNow());
+    const date = validatedData.date || formatQatarDateOnly(getQatarNow());
     const today = date; // Use the passed date for consistency
-    const attendanceDocId = `${attendanceData.classId}_${attendanceData.studentNumber}_${today}`;
+    const attendanceDocId = `${validatedData.classId}_${validatedData.studentNumber}_${today}`;
     
     // Ensure we have programId and subjectId from class data
     // These should be passed from the calling code, but we validate here
-    const { programId = null, subjectId = null } = attendanceData;
+    const { programId = null, subjectId = null } = validatedData;
     
     // Check if record exists using DB service
     const existingRecord = await getAttendanceRecordFromDb(attendanceDocId);
@@ -116,7 +145,7 @@ export const markAttendance = async (attendanceData) => {
     if (existingRecord.success && existingRecord.data) {
       // Update existing attendance using DB service
       const updateResult = await updateAttendanceRecordInDb(attendanceDocId, {
-        ...attendanceData,
+        ...validatedData,
         programId,
         subjectId,
         date: date, // Use the passed date (ISO format)
@@ -128,22 +157,22 @@ export const markAttendance = async (attendanceData) => {
       }
       
       // Notify via gateway on update if not present
-      if (attendanceData.status !== 'present') {
+      if (validatedData.status !== 'present') {
         try {
-          const { data: student } = await getUserById(attendanceData.studentId);
+          const { data: student } = await getUserById(validatedData.studentId);
           if (student) {
             await notificationGateway.send(NOTIFICATION_TRIGGERS.ATTENDANCE_RECORDED, {
-              userId: attendanceData.studentId,
+              userId: validatedData.studentId,
               role: 'student',
-              classId: attendanceData.classId,
+              classId: validatedData.classId,
               title: 'Attendance Updated',
-              message: `Your attendance status has been updated to: ${attendanceData.status}`,
+              message: `Your attendance status has been updated to: ${validatedData.status}`,
               type: RECORD_TYPES.ATTENDANCE,
               email: student.email,
               templateId: 'attendanceNotification',
               variables: {
                 studentName: student.displayName || student.name || 'Student',
-                status: attendanceData.status,
+                status: validatedData.status,
                 date: today
               }
             });
@@ -155,7 +184,7 @@ export const markAttendance = async (attendanceData) => {
     } else {
       // Create new attendance record using DB service
       const createResult = await setAttendanceRecordToDb(attendanceDocId, {
-        ...attendanceData,
+        ...validatedData,
         programId,
         subjectId,
         date: date, // Use the passed date (ISO format)
@@ -168,22 +197,22 @@ export const markAttendance = async (attendanceData) => {
       }
 
       // Notify via gateway on new record if absent/late
-      if (attendanceData.status !== 'present') {
+      if (validatedData.status !== 'present') {
         try {
-          const { data: student } = await getUserById(attendanceData.studentId);
+          const { data: student } = await getUserById(validatedData.studentId);
           if (student) {
-            await notificationGateway.send(attendanceData.status === 'absent' ? NOTIFICATION_TRIGGERS.ATTENDANCE_ABSENT : NOTIFICATION_TRIGGERS.ATTENDANCE_RECORDED, {
-              userId: attendanceData.studentId,
+            await notificationGateway.send(validatedData.status === 'absent' ? NOTIFICATION_TRIGGERS.ATTENDANCE_ABSENT : NOTIFICATION_TRIGGERS.ATTENDANCE_RECORDED, {
+              userId: validatedData.studentId,
               role: 'student',
-              classId: attendanceData.classId,
-              title: attendanceData.status === 'absent' ? 'Absence Recorded' : 'Attendance Recorded',
-              message: `You were marked ${attendanceData.status} for today's class.`,
+              classId: validatedData.classId,
+              title: validatedData.status === 'absent' ? 'Absence Recorded' : 'Attendance Recorded',
+              message: `You were marked ${validatedData.status} for today's class.`,
               type: RECORD_TYPES.ATTENDANCE,
               email: student.email,
               templateId: 'attendanceNotification',
               variables: {
                 studentName: student.displayName || student.name || 'Student',
-                status: attendanceData.status,
+                status: validatedData.status,
                 date: today
               }
             });
