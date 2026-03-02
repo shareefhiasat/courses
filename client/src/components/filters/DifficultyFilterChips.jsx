@@ -1,5 +1,6 @@
 import React from 'react';
 import { getColoredIcon } from '@constants/iconTypes';
+import PortalTooltip from '@ui/PortalTooltip';
 
 /**
  * Reusable difficulty filter chips component
@@ -75,11 +76,10 @@ const DifficultyFilterChips = ({
       {difficulties.map(diff => {
         const isActive = difficultyFilter === diff.value;
         return (
+          <PortalTooltip key={diff.value} content={diff.label} position="top">
           <button
-            key={diff.value}
             className="filter-button"
             onClick={() => setDifficultyFilter(diff.value)}
-            title={diff.label}
             style={{
               padding: isMinified ? '4px 8px' : '4px 10px',
               borderRadius: 999,
@@ -116,6 +116,7 @@ const DifficultyFilterChips = ({
               </>
             )}
           </button>
+          </PortalTooltip>
         );
       })}
     </div>

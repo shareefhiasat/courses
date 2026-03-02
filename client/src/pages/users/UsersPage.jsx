@@ -13,6 +13,7 @@ import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Card, CardBody, 
 import { DeleteModal, useDeleteModal } from '@ui';
 import { QREmailModal, useQREmailModal } from '@ui';
 import { ProgramsSelect } from '@ui';
+import PortalTooltip from '@ui/PortalTooltip';
 import { getUsers, addUser, updateUser, deleteUser as deleteUserFromService, deleteStudent, disableUser, enableUser, isUserDisabledAtUserLevel, isStudent, isAdmin as isAdminUser } from '@services/business/userService';
 import { getPrograms } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
@@ -915,24 +916,26 @@ const UsersPage = ({ isDashboardTab = false }) => {
           {params.row.isInvited ? (
             // Invited users get limited actions
             <>
+              <PortalTooltip content={t('resend_welcome_email')} position="top">
               <Button 
                 size="sm" 
                 variant="ghost" 
                 onClick={() => handleSendWelcomeEmail(params.row.email, params.row.role, params.row.displayName)}
-                title={t('resend_welcome_email') || 'Resend Welcome Email'}
                 style={{ border: 'none' }}
               >
                 {getThemedIcon('ui', 'mail', 16, theme)}
               </Button>
+            </PortalTooltip>
+              <PortalTooltip content={t('remove_invitation')} position="top">
               <Button 
                 size="sm" 
                 variant="ghost" 
                 onClick={() => handleRemoveFromAllowlist(params.row.email, params.row.role)}
-                title={t('remove_invitation') || 'Remove Invitation'}
                 style={{ border: 'none', color: '#dc2626' }}
               >
                 {getThemedIcon('ui', 'x', 16, theme)}
               </Button>
+            </PortalTooltip>
             </>
           ) : (
             // Existing users get full actions
@@ -944,6 +947,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
                 const canEdit = !isSuperAdminUser || currentUserIsSuperAdmin;
                 
                 return (
+                  <PortalTooltip content={canEdit ? t('edit') : t('only_super_admin_can_edit_super_admin')} position="top">
                   <Button 
                     size="sm" 
                     variant="ghost" 
@@ -958,50 +962,53 @@ const UsersPage = ({ isDashboardTab = false }) => {
                       handleEditUser(params.row);
                     }}
                     disabled={!canEdit}
-                    title={canEdit ? (t('edit') || 'Edit') : 'Only Super Admin can edit Super Admin'}
                     style={{ opacity: canEdit ? 1 : 0.5 }}
                   >
-                    {t('edit') || 'Edit'}
+                    {t('edit')}
                   </Button>
+                  </PortalTooltip>
                 );
               })()}
               
               {/* Reset Password button - always second */}
+              <PortalTooltip content={memoizedDisabledStatus(params.row) ? t('user_is_disabled_cannot_reset_password') : t('reset_password')} position="top">
               <Button 
                 size="sm" 
                 variant="ghost" 
                 onClick={() => handleResetPassword(params.row.email)}
-                title={memoizedDisabledStatus(params.row) ? 'User is disabled - cannot reset password' : (t('reset_password') || 'Reset Password')}
                 style={{ border: 'none', opacity: memoizedDisabledStatus(params.row) ? 0.5 : 1 }}
                 disabled={memoizedDisabledStatus(params.row)}
               >
                 {getThemedIcon('ui', 'key_round', 16, theme)}
               </Button>
+            </PortalTooltip>
               
               {/* Welcome Email button - third (beside reset password) */}
+              <PortalTooltip content={memoizedDisabledStatus(params.row) ? t('user_is_disabled_cannot_send_welcome_email') : t('send_welcome_email')} position="top">
               <Button 
                 size="sm" 
                 variant="ghost" 
                 onClick={() => handleSendWelcomeEmail(params.row.email, params.row.role, params.row.displayName)}
-                title={memoizedDisabledStatus(params.row) ? 'User is disabled - cannot send welcome email' : (t('send_welcome_email') || 'Send Welcome Email')}
                 style={{ border: 'none', opacity: memoizedDisabledStatus(params.row) ? 0.5 : 1 }}
                 disabled={memoizedDisabledStatus(params.row)}
               >
                 {getThemedIcon('ui', 'mail', 16, theme)}
               </Button>
+            </PortalTooltip>
               
               {/* Disable/Enable button - fourth */}
+              <PortalTooltip content={memoizedDisabledStatus(params.row) ? t('enable') : t('disable')} position="top">
               <Button 
                 size="sm" 
                 variant="ghost" 
                 icon={memoizedDisabledStatus(params.row) ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
                 style={{ color: memoizedDisabledStatus(params.row) ? '#28a745' : '#dc2626' }}
                 onClick={() => handleToggleUserStatus(params.row)}
-                title={memoizedDisabledStatus(params.row) ? 'Enable' : 'Disable'}
                 // Remove the admin restriction - allow disable for all users
               >
-                {memoizedDisabledStatus(params.row) ? 'Enable' : 'Disable'}
+                {memoizedDisabledStatus(params.row) ? t('enable') : t('disable')}
               </Button>
+            </PortalTooltip>
               
               {/* QR Code buttons - fifth and sixth */}
               {(() => {
@@ -1018,41 +1025,43 @@ const UsersPage = ({ isDashboardTab = false }) => {
                   if (canUseQR) {
                     title = t('view_qr_code') || 'View QR Code';
                   } else if (isSuperAdminUser && isInstructorUser) {
-                    title = 'QR Code (Student only) - Super Admin & Instructor';
+                    title = t('qr_code_student_only_super_admin_instructor') || 'QR Code (Student only) - Super Admin & Instructor';
                   } else if (isSuperAdminUser) {
-                    title = 'QR Code (Student only) - Super Admin';
+                    title = t('qr_code_student_only_super_admin');
                   } else if (isInstructorUser) {
-                    title = 'QR Code (Student only) - Instructor';
+                    title = t('qr_code_student_only_instructor');
                   } else {
-                    title = 'QR Code (Student only)';
+                    title = t('qr_code_student_only');
                   }
                   
                   return (
                     <>
+                      <PortalTooltip content={title} position="top">
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => canUseQR && openQRCodeInNewTab(params.row)}
-                        title={title}
                         disabled={!canUseQR}
                         style={{ opacity: canUseQR ? 1 : 0.5, border: 'none' }}
                       >
                         {getThemedIcon('ui', 'qr_code', 16, theme)}
                       </Button>
+                      </PortalTooltip>
+                      <PortalTooltip content={
+                          !canUseQR ? t('qr_code_email_student_only') :
+                          memoizedDisabledStatus(params.row) ? t('user_is_disabled_cannot_send_qr_code_email') :
+                          t('send_qr_code_email')
+                        } position="top">
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => canUseQR && !memoizedDisabledStatus(params.row) && handleSendQRCodeEmail(params.row)}
-                        title={
-                          !canUseQR ? 'QR Code Email (Student only)' :
-                          memoizedDisabledStatus(params.row) ? 'User is disabled - cannot send QR code email' :
-                          'Send QR Code Email'
-                        }
                         disabled={!canUseQR || memoizedDisabledStatus(params.row)}
                         style={{ opacity: (canUseQR && !memoizedDisabledStatus(params.row)) ? 1 : 0.5, border: 'none' }}
                       >
                         {getThemedIcon('ui', 'qr_code', 16, theme)}
                       </Button>
+                    </PortalTooltip>
                     </>
                   );
                 }

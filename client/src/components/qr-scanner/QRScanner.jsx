@@ -1915,7 +1915,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 {/*  <DebugIcon style={{ width: '14px', height: '14px' }} />*/}
                 {/*</button>*/}
 
-                <PortalTooltip content={(!selectedProgramId || !selectedSubjectId || !selectedClassId) ? (t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning') : (t('manual_student_id_input') || 'Manual student ID input')} position="top">
+                <PortalTooltip content={(!selectedProgramId || !selectedSubjectId || !selectedClassId) ? t('please_select_program_subject_class') : t('manual_student_id_input')} position="top">
                 <button
                     onClick={() => {
                       // Check if all required fields are selected before allowing manual input
@@ -2143,7 +2143,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         {/* Quick Present Button */}
                         <PortalTooltip content={(() => {
                             const student = students.find(s => s.id === activity.studentId);
-                            return student?.attendance === 'present' ? t('already_marked_present') || 'Already marked as present' : t('mark_present') || 'Mark Present';
+                            return student?.attendance === 'present' ? t('already_marked_present') : t('mark_present');
                           })()} position="top">
                         <button
                           onClick={async (e) => {
@@ -2214,7 +2214,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         {/* Quick Late Button */}
                         <PortalTooltip content={(() => {
                             const student = students.find(s => s.id === activity.studentId);
-                            return student?.attendance === 'late' ? t('already_marked_late') || 'Already marked as late' : t('mark_late') || 'Mark Late';
+                            return student?.attendance === 'late' ? t('already_marked_late') : t('mark_late');
                           })()} position="top">
                         <button
                           onClick={async (e) => {

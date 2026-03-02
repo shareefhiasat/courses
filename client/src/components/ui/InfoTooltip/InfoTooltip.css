@@ -71,8 +71,8 @@
   top: 100%;
   left: 50%;
   transform: translateX(-50%) translateY(8px);
-  background: white;
-  color: #212529;
+  background: var(--color-primary, #3b82f6);
+  color: white;
   padding: 8px 12px;
   border-radius: 6px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
@@ -84,7 +84,7 @@
   width: max-content;
   max-width: min(300px, calc(100vw - 32px));
   z-index: 99999;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--color-primary, #3b82f6);
   animation: tooltipFadeIn 0.15s ease-out;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -103,7 +103,7 @@
   transform: translateX(-50%);
   border-width: 6px;
   border-style: solid;
-  border-color: transparent transparent white transparent;
+  border-color: transparent transparent var(--color-primary, #3b82f6) transparent;
 }
 
 /* Position the tooltip relative to the trigger */

@@ -8,6 +8,7 @@ import { ACTIVITY_TYPES } from '@constants/activityTypes';
 import { getResourceTypeConfig } from '@constants/resourceTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import logger from '@utils/logger';
+import PortalTooltip from '@ui/PortalTooltip';
 
 /**
  * Unified card component for activities, quizzes, resources, and home page items
@@ -259,12 +260,12 @@ const UnifiedCard = memo(({
 
         {/* Bookmark Button - Top Right Corner */}
         {onBookmark && !isReviewMode && (
+          <PortalTooltip content={`${isBookmarked ? t('click_to_remove_bookmark') : t('click_to_add_bookmark')} (${isBookmarked ? t('bookmarked') : t('not_bookmarked')})`} position="top">
           <button
             onClick={() => {
             onBookmark();
           }}
-            aria-label={`${isBookmarked ? (t('remove_bookmark') || 'Remove bookmark') : (t('add_bookmark') || 'Add bookmark')} - ${isBookmarked ? (t('currently_bookmarked') || 'Currently bookmarked') : (t('not_bookmarked') || 'Not bookmarked')}`}
-            title={`${isBookmarked ? (t('remove_bookmark') || 'Click to remove bookmark') : (t('add_bookmark') || 'Click to add bookmark')} (${isBookmarked ? (t('bookmarked') || 'bookmarked') : (t('not_bookmarked') || 'not bookmarked')})`}
+            aria-label={`${isBookmarked ? t('remove_bookmark') : t('add_bookmark')} - ${isBookmarked ? t('currently_bookmarked') : t('not_bookmarked')}`}
             style={{
               position: 'absolute',
               top: 10,
@@ -295,15 +296,16 @@ const UnifiedCard = memo(({
               ? getIconWithColor('ui', 'star', 18, '#fbbf24')
               : getThemedIcon('ui', 'star_off', 18, theme)}
           </button>
+          </PortalTooltip>
         )}
 
         {/* Title */}
         <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', paddingRight: (onBookmark && !isReviewMode) || (isReviewMode && scorePercent !== null) ? '2.5rem' : 0, color: cardText, fontSize: '1.15rem', fontWeight: '600' }}>
           <span>{getTitle()}</span>
           {item.featured && (
+              <PortalTooltip content={t('featured')} position="top">
               <button
                   type="button"
-                  title={t('featured') || 'Featured'}
                   style={{
                     width: 28,
                     height: 28,
@@ -320,6 +322,7 @@ const UnifiedCard = memo(({
               >
                 {getWhiteIcon('ui', 'pin', 14)}
               </button>
+              </PortalTooltip>
           )}
         </h3>
 
@@ -534,43 +537,50 @@ const UnifiedCard = memo(({
           <div style={{ display: 'flex', flexDirection: 'row', gap: '0.5rem', fontSize: '0.75rem', justifyContent: 'space-between', alignItems: 'flex-end' }}>
             {/* Created Date */}
             {item.createdAt && (
+                <PortalTooltip content={t('created_at')} position="top">
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
                   color: isDark ? '#94a3b8' : '#16a34a'
-                }} title={t('created_at') || 'Created at'}>
+                }}>
                   {getColoredIcon('ui', 'add', 12, '#16a34a', theme)}
                   <span>{formatDate(item.createdAt)}</span>
                 </div>
+              </PortalTooltip>
             )}
             {isCompleted && completedAt && (
+                <PortalTooltip content={t('completed_at')} position="top">
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
                   color: '#16a34a'
-                }} title={t('completed_at') || 'Completed at'}>
+                }}>
                   {getWhiteIcon('ui', 'check', 14)}
                   <span>{formatDate(completedAt)}</span>
                 </div>
+              </PortalTooltip>
             )}
             {dueDate && !isCompleted && (
+                <PortalTooltip content={t('due_date')} position="top">
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
                   color: '#dc2626'
-                }} title={t('due_date') || 'Due date'}>
+                }}>
                   {getColoredIcon('ui', 'calendar', 14, '#dc2626', theme)}
                   <span>{formatDate(dueDate)}</span>
                 </div>
+              </PortalTooltip>
             )}
 
             {/* Action Buttons on the right */}
             <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
               {/* View Results button - review mode primary action */}
               {isReviewMode && onReview && (
+                <PortalTooltip content={t('view_results')} position="top">
                 <Button
                   variant="outline"
                   size="small"
@@ -587,12 +597,12 @@ const UnifiedCard = memo(({
                     color: scoreColor
                   }}
                   onClick={onReview}
-                  aria-label={t('view_results') || 'View Results'}
-                  title={t('view_results') || 'View Results'}
+                  aria-label={t('view_results')}
                 >
                   {getColoredIcon('ui', 'eye', 12, scoreColor, theme)}
-                  {!isMinified && <span>{t('view_results') || 'View Results'}</span>}
+                  {!isMinified && <span>{t('view_results')}</span>}
                 </Button>
+              </PortalTooltip>
               )}
               {onStart && showStartButton && !isReviewMode && (
                   flavor === RECORD_TYPES.ANNOUNCEMENT ? (

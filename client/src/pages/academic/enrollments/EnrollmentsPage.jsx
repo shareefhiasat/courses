@@ -11,6 +11,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { getAcademicTermOptions, getAcademicTermLabel } from '@constants/academicTerms';
 import styles from './EnrollmentsPage.module.css';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import PortalTooltip from '@ui/PortalTooltip';
 
 const EnrollmentsPage = () => {
   const { user, isAdmin, isInstructor } = useAuth();
@@ -436,6 +437,7 @@ const EnrollmentsPage = () => {
                 
                 {/* Info Button */}
                 <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <PortalTooltip content={t('click_to_see_info_about_disabling_students')} position="top">
                   <button
                     onClick={() => setShowInfoTooltip(!showInfoTooltip)}
                     style={{
@@ -460,10 +462,10 @@ const EnrollmentsPage = () => {
                       e.currentTarget.style.transform = 'scale(1)';
                       e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
                     }}
-                    title="Click to see info about disabling students"
                   >
                     {getThemedIcon('ui', 'info', 14, theme)}
                   </button>
+                </PortalTooltip>
                   
                   {showInfoTooltip && (
                     <div style={{

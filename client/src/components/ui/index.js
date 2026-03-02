@@ -22,6 +22,7 @@ export { default as Table } from './Table';
 export { default as DataGrid } from './DataGrid';
 export { default as Avatar } from './Avatar';
 export { default as Tooltip } from './Tooltip';
+export { default as PortalTooltip } from './PortalTooltip';
 export { default as ProgressBar } from './ProgressBar';
 export { default as Accordion } from './Accordion';
 export { default as Calendar } from './Calendar';

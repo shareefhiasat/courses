@@ -18,6 +18,7 @@ import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/fire
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import { DeleteConfirmationModal } from '@ui';
 import styles from './QuizManagementPage.module.css';
+import PortalTooltip from '@ui/PortalTooltip';
 
 export default function QuizManagementPage() {
   const { t, lang } = useLang();
@@ -508,34 +509,36 @@ export default function QuizManagementPage() {
                       </div>
 
                       <div className={styles.quizActions}>
+                        <PortalTooltip content={t('preview_quiz')} position="top">
                         <Button
                           variant="outline"
                           size="sm"
                           className={styles.iconButton}
-                          title={t('preview_quiz') || 'Preview quiz'}
-                          aria-label={t('preview_quiz') || 'Preview quiz'}
+                          aria-label={t('preview_quiz')}
                           onClick={() => handlePreview(quiz.id)}
                         >
                           <Play size={16} />
                         </Button>
+                      </PortalTooltip>
+                        <PortalTooltip content={t('edit_quiz')} position="top">
                         <Button
                           variant="outline"
                           size="sm"
                           className={styles.iconButton}
-                          title={t('edit_quiz') || 'Edit quiz'}
-                          aria-label={t('edit_quiz') || 'Edit quiz'}
+                          aria-label={t('edit_quiz')}
                           onClick={() => handleEdit(quiz)}
                         >
                           <Edit size={16} />
                         </Button>
+                      </PortalTooltip>
+                        <PortalTooltip content={t('delete_quiz')} position="top">
                         <Button
                           variant="danger"
                           size="sm"
                           className={styles.iconButton}
                           onClick={() => handleDelete(quiz.id)}
                           disabled={deleting === quiz.id}
-                          title={t('delete_quiz') || 'Delete quiz'}
-                          aria-label={t('delete_quiz') || 'Delete quiz'}
+                          aria-label={t('delete_quiz')}
                         >
                           {deleting === quiz.id ? (
                             <Spinner size="sm" />
@@ -543,6 +546,7 @@ export default function QuizManagementPage() {
                             <Trash2 size={16} />
                           )}
                         </Button>
+                      </PortalTooltip>
                       </div>
                     </div>
 

@@ -12,6 +12,7 @@ import { Button, Select, YearSelect } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getPrograms, getSubjects, getClasses } from '@services/business/programService';
 import styles from './AttendancePage.module.css';
+import PortalTooltip from '@ui/PortalTooltip';
 
 const AttendancePageEnhanced = () => {
   const { user, isAdmin, isInstructor, isHR, loading: authLoading } = useAuth();
@@ -607,20 +608,22 @@ const AttendancePageEnhanced = () => {
           </div>
           {sessionId && (
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <PortalTooltip content={t('make_qr_smaller')} position="top">
               <button
                 onClick={() => setQrSize(Math.max(200, qrSize - 40))}
                 style={{ padding: '0.25rem 0.5rem', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--panel)', cursor: 'pointer', color: '#1f2937' }}
-                title={t('make_qr_smaller') || 'Make QR smaller'}
               >
                 {getThemedIcon('ui', 'minimize2', 16, theme)}
               </button>
+              </PortalTooltip>
+              <PortalTooltip content={t('make_qr_bigger')} position="top">
               <button
                 onClick={() => setQrSize(Math.min(500, qrSize + 40))}
                 style={{ padding: '0.25rem 0.5rem', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--panel)', cursor: 'pointer', color: '#1f2937' }}
-                title={t('make_qr_bigger') || 'Make QR bigger'}
               >
                 {getThemedIcon('ui', 'maximize2', 16, theme)}
               </button>
+              </PortalTooltip>
             </div>
           )}
         </div>

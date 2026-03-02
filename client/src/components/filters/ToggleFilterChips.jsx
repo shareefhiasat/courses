@@ -1,6 +1,7 @@
 import React from 'react';
 import { getColoredIcon, getThemedIcon } from '@constants/iconTypes';
 import { SUBMISSION_STATUS, getStatusLabel } from '@utils/sharedTypes';
+import PortalTooltip from '@ui/PortalTooltip';
 
 // Import deriveIconColor separately to avoid module loading issues
 let deriveIconColor;
@@ -132,10 +133,9 @@ const ToggleFilterChips = ({
     <div style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap' }}>
       {isMinified ? (
         toggleChips.map(chip => (
+          <PortalTooltip key={chip.id} content={chip.label} position="top">
           <button
-            key={chip.id}
             onClick={chip.toggle}
-            title={chip.label}
             style={{
               width: 28,
               height: 28,
@@ -161,6 +161,7 @@ const ToggleFilterChips = ({
               getColoredIcon('ui', chip.icon, 14, chip.colors.text, theme)
             )}
           </button>
+          </PortalTooltip>
         ))
       ) : (
         toggleChips.map(chip => (

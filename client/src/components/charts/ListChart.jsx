@@ -4,6 +4,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import logger from '@utils/logger';
 import ColumnManager from '../analytics/ColumnManager';
+import PortalTooltip from '@ui/PortalTooltip';
 import {
   resolveUser,
   resolveClass,
@@ -476,6 +477,7 @@ function ListChart({
         <span>
           {widget.title || t('list_view') || 'List View'} ({items.length} {t('items') || 'items'})
         </span>
+        <PortalTooltip content={t('manage_columns')} position="top">
         <button
           onClick={() => setShowColumnManager(true)}
           style={{
@@ -490,11 +492,11 @@ function ListChart({
             alignItems: 'center',
             gap: '4px'
           }}
-          title={t('manage_columns') || 'Manage Columns'}
         >
           {getThemedIcon('ui', 'settings', 12, theme)}
-          {t('columns') || 'Columns'}
+          {t('columns')}
         </button>
+      </PortalTooltip>
       </div>
 
       {/* Table */}

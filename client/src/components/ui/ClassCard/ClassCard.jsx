@@ -3,7 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
 import { getThemedIcon, deriveIconColor } from '@constants/iconTypes';
-import { Tooltip } from '@ui';
+import { Tooltip, PortalTooltip } from '@ui';
 import { createClassStatBadge, CLASS_STAT_CONFIGS } from '@constants/iconTypes';
 
 const ClassCard = ({ 
@@ -199,7 +199,7 @@ const ClassCard = ({
           color: 'var(--muted)'
         }}>
           {classStats[clsId].students > 0 && (
-            <Tooltip content={t('classcard_students')}>
+            <PortalTooltip content={t('classcard_students')} position="top">
               <span 
                 style={{ 
                   background: `${primaryColor}15`, 
@@ -215,7 +215,7 @@ const ClassCard = ({
                 {getThemedIcon('ui', 'users', 10, deriveIconColor(primaryColor))}
                 {classStats[clsId].students}
               </span>
-            </Tooltip>
+            </PortalTooltip>
           )}
           {classStats[clsId].penalties > 0 && (
             createClassStatBadge(

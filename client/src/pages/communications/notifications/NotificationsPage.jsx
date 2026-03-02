@@ -18,6 +18,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { formatDateTime } from '@utils/date';
 import { Button, Input, Select, Badge, Container } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import PortalTooltip from '@ui/PortalTooltip';
 import { ToggleSwitch } from '@ui';
 import { 
   NOTIFICATION_TYPES, 
@@ -421,15 +422,16 @@ const NotificationsPage = () => {
                     await updateSetting('browserNotificationsEnabled', checked);
                   }}
                 />
+                <PortalTooltip content={t('test_browser_notification')} position="top">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleTestBrowserNotification}
-                  title={t('test_browser_notification') || 'Test Browser Notification'}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                 >
                   {getThemedIcon('ui', 'test_tube', 16, theme)}
                 </Button>
+              </PortalTooltip>
               </div>
             )}
             {unreadCount > 0 && (

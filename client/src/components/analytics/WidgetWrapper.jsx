@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import PortalTooltip from '@ui/PortalTooltip';
 
 /**
  * WidgetWrapper
@@ -100,13 +101,27 @@ const WidgetWrapper = ({
       </ActionBtn> */}
 
       {/* Minimize / Restore — controlled */}
-      <ActionBtn
-        title={isMinimized ? (t('restore') || 'Restore') : (t('minimize') || 'Minimize')}
-        onClick={onMinimize}
-        style={{ color: isMinimized ? accentColor : 'var(--text)' }}
-      >
-        {getThemedIcon('ui', isMinimized ? 'chevron_down' : 'chevron_up', 14, theme)}
-      </ActionBtn>
+      <PortalTooltip content={isMinimized ? t('restore') : t('minimize')} position="top">
+        <button
+          onClick={onMinimize}
+          style={{
+            padding: '0.3rem',
+            background: 'transparent',
+            border: '1px solid var(--border)',
+            borderRadius: 4,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            color: isMinimized ? accentColor : 'var(--text)',
+            flexShrink: 0
+          }}
+        >
+          {getThemedIcon('ui', isMinimized ? 'chevron_down' : 'chevron_up', 14, theme)}
+        </button>
+      </PortalTooltip>
 
       {/* Maximize - Commented out */}
       {/* <ActionBtn title={t('maximize') || 'Maximize'} onClick={toggleMaximize}>
@@ -114,23 +129,73 @@ const WidgetWrapper = ({
       </ActionBtn> */}
 
       {/* Edit */}
-      <ActionBtn title={t('edit') || 'Edit'} onClick={onEdit}>
-        {getThemedIcon('ui', 'edit', 14, theme)}
-      </ActionBtn>
+      <PortalTooltip content={t('edit')} position="top">
+        <button
+          onClick={onEdit}
+          style={{
+            padding: '0.3rem',
+            background: 'transparent',
+            border: '1px solid var(--border)',
+            borderRadius: 4,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            color: 'var(--text)',
+            flexShrink: 0
+          }}
+        >
+          {getThemedIcon('ui', 'edit', 14, theme)}
+        </button>
+      </PortalTooltip>
 
       {/* Duplicate */}
-      <ActionBtn title={t('duplicate') || 'Duplicate'} onClick={onDuplicate}>
-        {getThemedIcon('ui', 'copy', 14, theme)}
-      </ActionBtn>
+      <PortalTooltip content={t('duplicate')} position="top">
+        <button
+          onClick={onDuplicate}
+          style={{
+            padding: '0.3rem',
+            background: 'transparent',
+            border: '1px solid var(--border)',
+            borderRadius: 4,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            color: 'var(--text)',
+            flexShrink: 0
+          }}
+        >
+          {getThemedIcon('ui', 'copy', 14, theme)}
+        </button>
+      </PortalTooltip>
 
       {/* Delete */}
-      <ActionBtn
-        title={t('delete') || 'Delete'}
-        onClick={onDelete}
-        style={{ color: 'var(--color-danger, #ef4444)', borderColor: 'var(--color-danger, #ef4444)' }}
-      >
-        {getThemedIcon('ui', 'trash2', 14, theme)}
-      </ActionBtn>
+      <PortalTooltip content={t('delete')} position="top">
+        <button
+          onClick={onDelete}
+          style={{
+            padding: '0.3rem',
+            background: 'transparent',
+            border: '1px solid var(--color-danger, #ef4444)',
+            borderRadius: 4,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            color: 'var(--color-danger, #ef4444)',
+            flexShrink: 0
+          }}
+        >
+          {getThemedIcon('ui', 'trash2', 14, theme)}
+        </button>
+      </PortalTooltip>
     </div>
   );
 
@@ -268,6 +333,7 @@ const WidgetWrapper = ({
                   {widget.dataSource} • {widget.chartType}
                 </p>
               </div>
+              <PortalTooltip content={t('close')} position="top">
               <button
                 onClick={toggleMaximize}
                 style={{
@@ -285,11 +351,11 @@ const WidgetWrapper = ({
                   e.target.style.background = 'var(--bg)';
                   e.target.style.borderColor = 'var(--border)';
                 }}
-                title={t('close') || 'Close'}
               >
                 {getThemedIcon('ui', 'close', 18, theme)}
-                <span style={{ marginLeft: '0.5rem' }}>{t('close') || 'Close'}</span>
+                <span style={{ marginLeft: '0.5rem' }}>{t('close')}</span>
               </button>
+            </PortalTooltip>
             </div>
             
             {/* Modal Content */}
@@ -310,32 +376,6 @@ const WidgetWrapper = ({
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function ActionBtn({ children, title, onClick, style = {} }) {
-  return (
-    <button
-      title={title}
-      onClick={onClick}
-      style={{
-        padding: '0.3rem',
-        background: 'transparent',
-        border: '1px solid var(--border)',
-        borderRadius: 4,
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 28,
-        height: 28,
-        color: 'var(--text)',
-        flexShrink: 0,
-        ...style
-      }}
-    >
-      {children}
-    </button>
-  );
-}
 
 function ChartSizer({ children }) {
   const ref = React.useRef(null);

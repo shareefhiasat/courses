@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
-import { Tooltip, Button } from '@ui';
+import { Tooltip, PortalTooltip, Button } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 
 /*
@@ -80,7 +80,7 @@ export default function RibbonTabs({ categories = [], activeCategory, activeItem
                     <span>{item.label}</span>
                   </button>
                   {tabUrl && (
-                    <Tooltip content={t('open_in_separate_page') || 'Open in separate page for focused view'}>
+                    <PortalTooltip content={t('open_in_separate_page')} position="top">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -108,7 +108,7 @@ export default function RibbonTabs({ categories = [], activeCategory, activeItem
                       >
                         {getThemedIcon('ui', 'external_link', 14, theme)}
                       </Button>
-                    </Tooltip>
+                    </PortalTooltip>
                   )}
                 </div>
               );

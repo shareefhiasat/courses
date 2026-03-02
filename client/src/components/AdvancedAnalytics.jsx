@@ -10,6 +10,7 @@ import { ROLE_STRINGS } from '@utils/userUtils';
 import useAnalyticsData, { processWidgetData } from '@hooks/useAnalyticsData';
 import DashboardEngine from './analytics/DashboardEngine';
 import logger from '@utils/logger';
+import PortalTooltip from '@ui/PortalTooltip';
 
 /**
  * DEFAULT_WIDGETS
@@ -275,8 +276,8 @@ export default function AdvancedAnalytics({
 
           {/* Auto-refresh progress bar */}
           {autoRefreshMs > 0 && (
+            <PortalTooltip content={t('next_auto_refresh')} position="top">
             <div
-              title={t('next_auto_refresh') || 'Next auto refresh'}
               style={{ width: 120, height: 5, background: 'var(--border)', borderRadius: 999, overflow: 'hidden' }}
             >
               <div style={{
@@ -286,6 +287,7 @@ export default function AdvancedAnalytics({
                 transition: 'width 0.25s linear'
               }} />
             </div>
+            </PortalTooltip>
           )}
 
           {/* Refresh */}

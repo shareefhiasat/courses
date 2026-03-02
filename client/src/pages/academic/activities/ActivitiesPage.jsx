@@ -18,6 +18,7 @@ import { getUsers } from '@services/business/userService';
 import { Select, DatePicker, Button, ToggleSwitch, UrlInput, Input, RichTextEditor } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import PortalTooltip from '@ui/PortalTooltip';
 import { ProgramsSelect } from '@ui';
 
 
@@ -860,6 +861,7 @@ const ActivitiesPage = () => {
                   disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
                 />
                 {activityForm.quizId && !activityForm.overrideQuizSettings && (
+                  <PortalTooltip content={t('locked_synced_from_quiz')} position="top">
                   <div
                     style={{
                       position: 'absolute',
@@ -870,10 +872,10 @@ const ActivitiesPage = () => {
                       pointerEvents: 'none',
                       zIndex: 10
                     }}
-                    title="Locked - synced from quiz"
                   >
                     {getThemedIcon('ui', 'lock', 16, theme)}
                   </div>
+                </PortalTooltip>
                 )}
               </div>
             </div>
@@ -1080,12 +1082,13 @@ const ActivitiesPage = () => {
               disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
             />
             {activityForm.quizId && !activityForm.overrideQuizSettings && (
+              <PortalTooltip content={t('locked_synced_from_quiz')} position="top">
               <span 
                 style={{ color: '#ef4444', flexShrink: 0 }} 
-                title="Locked - synced from quiz"
               >
                 {getThemedIcon('ui', 'lock', 14, theme)}
               </span>
+              </PortalTooltip>
             )}
           </div>
           <ToggleSwitch

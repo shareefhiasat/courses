@@ -1,6 +1,8 @@
 import React from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
+import { useLang } from '@contexts/LangContext';
 import styles from './WindowControls.module.css';
+import PortalTooltip from '@ui/PortalTooltip';
 
 const WindowControls = ({ 
   title, 
@@ -17,6 +19,8 @@ const WindowControls = ({
   showMaximize = true,
   showClose = true
 }) => {
+  const { t } = useLang();
+  
   return (
     <div className={`${styles.windowControls} ${className}`}>
       <div className={styles.windowHeader}>
@@ -26,43 +30,47 @@ const WindowControls = ({
         
         <div className={styles.windowButtons}>
           {showPin && (
+            <PortalTooltip content={isPinned ? t('unpin') : t('pin')} position="top">
             <button
               className={`${styles.windowButton} ${isPinned ? styles.pinned : ''}`}
               onClick={onPin}
-              title={isPinned ? 'Unpin' : 'Pin'}
             >
               📌
             </button>
+            </PortalTooltip>
           )}
           
           {showMinimize && (
+            <PortalTooltip content={t('minimize')} position="top">
             <button
               className={styles.windowButton}
               onClick={onMinimize}
-              title="Minimize"
             >
               {getThemedIcon('ui', 'minus', 14)}
             </button>
+            </PortalTooltip>
           )}
           
           {showMaximize && (
+            <PortalTooltip content={t('maximize')} position="top">
             <button
               className={styles.windowButton}
               onClick={onMaximize}
-              title="Maximize"
             >
               {getThemedIcon('ui', 'maximize', 14)}
             </button>
+            </PortalTooltip>
           )}
           
           {showClose && (
+            <PortalTooltip content={t('close')} position="top">
             <button
               className={`${styles.windowButton} ${styles.closeButton}`}
               onClick={onClose}
-              title="Close"
             >
               {getThemedIcon('ui', 'close', 14)}
             </button>
+            </PortalTooltip>
           )}
         </div>
       </div>

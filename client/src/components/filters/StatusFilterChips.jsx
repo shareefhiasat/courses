@@ -1,6 +1,7 @@
 import React from 'react';
 import { getColoredIcon } from '@constants/iconTypes';
 import { TASK_STATUS, getStatusLabel } from '@utils/sharedTypes';
+import PortalTooltip from '@ui/PortalTooltip';
 
 /**
  * Reusable status filter chips component
@@ -137,15 +138,14 @@ const StatusFilterChips = ({
       aria-label={t('status_filters') || 'Status filters'}
     >
       {filterChips.map(chip => (
+        <PortalTooltip key={chip.id} content={chip.label} position="top">
         <button
-          key={chip.id}
           className={`filter-button inline-flex items-center justify-center cursor-pointer transition-all duration-200 ease-in-out hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-1 ${
             isMinified 
               ? 'w-8 h-8 rounded-full border-1 p-0' 
               : `px-2 py-1 rounded-full border-1 text-xs font-semibold gap-1 ${lang === 'ar' ? 'flex-row-reverse' : ''}`
           }`}
           onClick={chip.toggle}
-          title={chip.label}
           role="button"
           aria-pressed={chip.active}
           aria-label={`${chip.label} ${chip.active ? 'selected' : 'not selected'} ${chip.badge ? `(${chip.badge} items)` : ''}`}
@@ -181,6 +181,7 @@ const StatusFilterChips = ({
             </span>
           )}
         </button>
+        </PortalTooltip>
       ))}
     </div>
   );
