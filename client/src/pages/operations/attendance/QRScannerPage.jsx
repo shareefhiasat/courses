@@ -15,13 +15,15 @@ import { createParticipation, getParticipations, deleteParticipation } from '@se
 import { createBehavior, getBehaviors, deleteBehavior } from '@services/business/behaviorService';
 import { getPerformedByFields } from '@services/business/userService';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
+import { ATTENDANCE_METHODS, getAttendanceMethodLabel } from '@constants/attendanceMethods';
+import { ATTENDANCE_TYPES } from '@constants/attendanceTypes';
 import { db } from '@services/other/config';
+import { useToast } from '@ui/ToastProvider.jsx';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
 import { addNotification } from '@services/business/notificationService';
 import { sendStudentNotification } from '@services/business/notificationService';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES } from '@constants/participationTypes';
-import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Select, DatePicker, Button, Card, CardBody } from '@ui';
 import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
@@ -40,6 +42,10 @@ const QRScannerPage = () => {
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const toast = useToast();
+  const showSuccess = toast?.showSuccess || ((msg) => console.log('SUCCESS:', msg));
+  const showError = toast?.showError || ((msg) => console.log('ERROR:', msg));
+  const showInfo = toast?.showInfo || ((msg) => console.log('INFO:', msg));
   const { startLoading } = useGlobalLoading();
 
   // Helper functions to save selections to localStorage
@@ -1137,56 +1143,150 @@ const QRScannerPage = () => {
     setSelectedStudentForAction(null);
   }, []);
 
-  // Export Official Report function
-  const exportOfficialReport = useCallback(async () => {
+  // Export Daily Report function
+  const exportDailyReport = useCallback(async () => {
     if (!selectedClassId || selectedClassId === 'all') {
-      alert(t('please_select_class') || 'Please select a class first');
+      showError(t('please_select_class') || 'Please select a class first');
       return;
     }
 
     try {
       // Get all attendance data for the selected class
-      const attendanceResponse = await getAttendanceByClass(selectedClassId, formatQatarDateOnly(selectedDate));
-      const attendanceData = attendanceResponse.success ? attendanceResponse.data : [];
+      const formattedDate = formatQatarDateOnly(selectedDate);
+      console.log('🔍 Export Debug - Fetching attendance with:', {
+        selectedClassId,
+        selectedDate,
+        formattedDate,
+        selectedDateType: typeof selectedDate,
+        formattedDateType: typeof formattedDate
+      });
+      
+      // Try different date formats
+      let attendanceResponse;
+      let attendanceData = [];
+      
+      // Try with formatted date first
+      attendanceResponse = await getAttendanceByClass(selectedClassId, formattedDate);
+      attendanceData = attendanceResponse.success ? attendanceResponse.data : [];
+      
+      console.log('🔍 Export Debug - First attempt result:', {
+        attendanceDataLength: attendanceData.length,
+        attendanceResponse
+      });
+      
+      // If still no data, try with raw date
+      if (attendanceData.length === 0) {
+        console.log('🔍 Export Debug - Trying with raw date...');
+        attendanceResponse = await getAttendanceByClass(selectedClassId, selectedDate);
+        attendanceData = attendanceResponse.success ? attendanceResponse.data : [];
+        
+        console.log('🔍 Export Debug - Second attempt result:', {
+          attendanceDataLength: attendanceData.length,
+          attendanceResponse
+        });
+      }
+      
+      console.log('🔍 Export Debug - Final Attendance Data:', {
+        attendanceDataLength: attendanceData.length,
+        selectedDate,
+        formattedDate,
+        sampleAttendanceRecord: attendanceData[0] || 'No records',
+        allAttendanceFields: attendanceData.length > 0 ? Object.keys(attendanceData[0]) : []
+      });
+      
+      // If no data found, try alternative methods
+      if (attendanceData.length === 0) {
+        console.log('🔍 Export Debug - No attendance data found, trying alternative methods...');
+        
+        // Skip alternative method for now since getAttendanceByDate is not available
+        console.log('🔍 Export Debug - Skipping alternative method (getAttendanceByDate not available)');
+      }
       
       // Get all student data
       const usersResponse = await getUsers();
       const allUsers = usersResponse.success ? usersResponse.data : [];
       
+      console.log('🔍 Export Debug - Users Response:', {
+        usersResponse,
+        allUsersLength: allUsers.length,
+        sampleUsers: allUsers.slice(0, 3).map(u => ({ studentNumber: u.studentNumber, displayName: u.displayName }))
+      });
+      
       // Enrich attendance data with student information
       const enrichedData = attendanceData.map(record => {
-        const student = allUsers.find(u => u.studentNumber === record.studentNumber);
+        // Find student by studentId (not studentNumber)
+        const student = allUsers.find(u => u.id === record.studentId);
+        
+        // Helper function to safely format date
+        const safeFormatDate = (timestamp, formatFunc) => {
+          if (!timestamp) return '';
+          try {
+            const date = new Date(timestamp);
+            if (isNaN(date.getTime())) return '';
+            return formatFunc(date);
+          } catch (error) {
+            console.log('🔍 Date formatting error:', error, timestamp);
+            return '';
+          }
+        };
+        
         return {
-          studentNumber: record.studentNumber,
-          studentName: student?.displayName || student?.realName || 'Unknown',
+          studentNumber: student?.studentNumber || record.studentId || '',
+          studentName: student?.displayName || student?.realName || '',
           status: record.status || 'present',
           date: record.date || formatQatarDateOnly(selectedDate),
-          time: record.timestamp ? new Date(record.timestamp).toLocaleTimeString('ar-QA', { 
+          time: safeFormatDate(record.timestamp, (date) => date.toLocaleTimeString(lang === 'ar' ? 'ar-QA' : 'en-US', { 
             hour: '2-digit', 
             minute: '2-digit',
             hour12: true 
-          }) : '',
+          })),
           method: record.method || 'manual',
           notes: record.notes || '',
-          markedBy: record.markedBy || '',
-          timestamp: record.timestamp ? new Date(record.timestamp).toLocaleString('ar-QA') : ''
+          markedBy: record.performedByName || record.markedByName || '',
+          timestamp: safeFormatDate(record.timestamp, (date) => date.toLocaleString(lang === 'ar' ? 'ar-QA' : 'en-US'))
         };
       });
 
-      // Create CSV content with Arabic headers
-      const headers = [
-        'الرقم العسكري',
-        'اسم الطالب',
-        'متواجد',
-        'غايب',
-        'مستأذن',
-        'حالة إنسانية',
-        'التاريخ',
-        'الوقت',
-        'الطريقة',
-        'الملاحظات',
-        'سجل بواسطة',
-        'الوقت والتاريخ'
+      console.log('🔍 Export Debug - Enriched Data:', {
+        enrichedData,
+        enrichedDataLength: enrichedData.length,
+        sampleRecords: enrichedData.slice(0, 3)
+      });
+      
+      // If no data, show message to user
+      if (enrichedData.length === 0) {
+        console.log('🔍 Export Debug - No attendance data found for export');
+        
+        const message = t('no_attendance_records_found') || 
+          (lang === 'ar' 
+            ? 'لا توجد سجلات حضور لهذا التاريخ. يرجى تسجيل الحضور أولاً.'
+            : 'No attendance records found for this date. Please mark attendance first.');
+        
+        showError(message);
+        return;
+      }
+
+      // Create CSV content with localized headers using constants
+      const headers = lang === 'ar' ? [
+        t('student_number') || 'الرقم العسكري',
+        t('student_name') || 'اسم الطالب',
+        ...ATTENDANCE_TYPES.map(type => type.label_ar),
+        t('date') || 'التاريخ',
+        t('time') || 'الوقت',
+        t('method') || 'الطريقة',
+        t('notes') || 'الملاحظات',
+        t('marked_by') || 'سجل بواسطة',
+        t('timestamp') || 'الوقت والتاريخ'
+      ] : [
+        t('student_number') || 'Student Number',
+        t('student_name') || 'Student Name',
+        ...ATTENDANCE_TYPES.map(type => type.label_en),
+        t('date') || 'Date',
+        t('time') || 'Time',
+        t('method') || 'Method',
+        t('notes') || 'Notes',
+        t('marked_by') || 'Marked By',
+        t('timestamp') || 'Timestamp'
       ];
 
       const csvContent = [
@@ -1194,50 +1294,70 @@ const QRScannerPage = () => {
         ...enrichedData.map(row => [
           `"${row.studentNumber}"`,
           `"${row.studentName}"`,
-          `"${row.status === 'present' ? 'X' : ''}"`,
-          `"${row.status === 'absent_no_excuse' ? 'X' : ''}"`,
-          `"${row.status === 'absent_with_excuse' || row.status === 'excused_leave' ? 'X' : ''}"`,
-          `"${row.status === 'human_case' ? 'X' : ''}"`,
+          ...ATTENDANCE_TYPES.map(type => `"${row.status === type.id ? 'X' : ''}"`),
           `"${row.date}"`,
           `"${row.time}"`,
-          `"${getArabicMethod(row.method)}"`,
+          `"${getAttendanceMethodLabel(row.method, t, lang)}"`,
           `"${row.notes}"`,
           `"${row.markedBy}"`,
           `"${row.timestamp}"`
         ].join(','))
       ].join('\n');
 
-      // Helper functions for Arabic translations
-      function getArabicStatus(status) {
-        const statusMap = {
-          'present': 'حاضر',
-          'late': 'متأخر',
-          'absent_no_excuse': 'غياب بدون عذر',
-          'absent_with_excuse': 'غياب بعذر',
-          'excused_leave': 'إجازة معتمدة',
-          'human_case': 'حالة إنسانية'
-        };
-        return statusMap[status] || status;
-      }
-
-      function getArabicMethod(method) {
-        const methodMap = {
-          'manual': 'يدوي',
-          'qr': 'QR كود',
-          'bulk': 'جماعي',
-          'quick': 'سريع'
-        };
-        return methodMap[method] || method;
-      }
+      console.log('🔍 Export Debug - Final CSV Content:', {
+        csvContentLength: csvContent.length,
+        csvContentPreview: csvContent.substring(0, 500) + (csvContent.length > 500 ? '...' : '')
+      });
 
       // Get program, subject, and class names for filename
-      const currentProgram = programs.find(p => p.id === selectedProgramId);
-      const currentSubject = subjects.find(s => s.id === selectedSubjectId);
-      const currentClass = classes.find(c => c.id === selectedClassId);
+      console.log('🔍 Export Debug - Selected IDs:', {
+        selectedProgramId,
+        selectedSubjectId,
+        selectedClassId,
+        programsState: programs.map(p => ({ id: p.id || p.docId, name: p.name || p.code })),
+        subjectsState: subjects.map(s => ({ id: s.id || s.docId, name: s.name || s.code })),
+        classesState: classes.map(c => ({ id: c.id || c.docId, name: c.name || c.code }))
+      });
       
-      const programName = currentProgram?.name || t('all_programs') || 'All';
-      const subjectName = currentSubject?.name || t('all_subjects') || 'All';
-      const className = currentClass?.name || t('all_classes') || 'All';
+      // Always fetch fresh data to ensure we have the latest
+      console.log('🔍 Export Debug - Fetching fresh data for filename...');
+      
+      const programsResponse = await getPrograms();
+      const allPrograms = programsResponse.success ? programsResponse.data : [];
+      const currentProgram = allPrograms.find(p => (p.id === selectedProgramId) || (p.docId === selectedProgramId));
+      
+      const subjectsResponse = await getSubjects(selectedProgramId);
+      const allSubjects = subjectsResponse.success ? subjectsResponse.data : [];
+      const currentSubject = allSubjects.find(s => (s.id === selectedSubjectId) || (s.docId === selectedSubjectId));
+      
+      const classesResponse = await getClasses(selectedSubjectId);
+      const allClasses = classesResponse.success ? classesResponse.data : [];
+      const currentClass = allClasses.find(c => (c.id === selectedClassId) || (c.docId === selectedClassId));
+      
+      console.log('🔍 Export Debug - Fresh Data Results:', {
+        allPrograms: allPrograms.map(p => ({ id: p.id || p.docId, name: p.name || p.code })),
+        allSubjects: allSubjects.map(s => ({ id: s.id || s.docId, name: s.name || s.code })),
+        allClasses: allClasses.map(c => ({ id: c.id || c.docId, name: c.name || c.code })),
+        foundProgram: currentProgram,
+        foundSubject: currentSubject,
+        foundClass: currentClass
+      });
+      
+      console.log('🔍 Export Debug - Found Items:', {
+        currentProgram,
+        currentSubject,
+        currentClass
+      });
+      
+      const programName = currentProgram?.nameEn || currentProgram?.name || t('all_programs') || 'All';
+      const subjectName = currentSubject?.nameEn || currentSubject?.name || t('all_subjects') || 'All';
+      const className = currentClass?.nameEn || currentClass?.name || t('all_classes') || 'All';
+      
+      console.log('🔍 Export Debug - Final Names:', {
+        programName,
+        subjectName,
+        className
+      });
       
       // Format date as YYYY-MM-DD
       const dateFormatted = new Date(selectedDate).toISOString().split('T')[0];
@@ -1246,6 +1366,12 @@ const QRScannerPage = () => {
       const filename = lang === 'ar' 
         ? `تقرير_الحضور_الرسمي_${programName}_${subjectName}_${className}_${dateFormatted}.csv`
         : `attendance_official_report_${programName}_${subjectName}_${className}_${dateFormatted}.csv`;
+      
+      console.log('🔍 Export Debug - Final Filename:', {
+        lang,
+        filename,
+        dateFormatted
+      });
 
       // Create and download file
       const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1258,9 +1384,17 @@ const QRScannerPage = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
+      // Show success message
+      const successMessage = t('report_exported_successfully') || 
+        (lang === 'ar' 
+          ? 'تم تصدير التقرير بنجاح'
+          : 'Report exported successfully');
+      showSuccess(successMessage);
+
     } catch (error) {
       console.error('Export failed:', error);
-      alert(t('export_failed') || 'Export failed: ' + error.message);
+      const errorMessage = (t('export_failed') || 'Export failed: ') + error.message;
+      showError(errorMessage);
     }
   }, [selectedClassId, selectedDate, selectedProgramId, selectedSubjectId, programs, subjects, classes, lang, t]);
 
@@ -1544,7 +1678,7 @@ const QRScannerPage = () => {
             </div>
             
             <button
-              onClick={exportOfficialReport}
+              onClick={exportDailyReport}
               style={{
                 padding: '0.5rem 1rem',
                 background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
@@ -1569,7 +1703,7 @@ const QRScannerPage = () => {
                 <line x1="16" y1="17" x2="8" y2="17"/>
                 <polyline points="10,9 9,9 8,9"/>
               </svg>
-              {t('export_official_report') || 'Export Official Report'}
+              {t('daily_report')}
             </button>
             
             <div 

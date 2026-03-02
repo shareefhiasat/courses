@@ -125,7 +125,16 @@ const BulkScanDialog = ({
         'الرقم',
         'الاسم',
         'الحالة',
-        'الوقت',
+        'المشاركة',
+        'السلوك',
+        'الجزاء',
+        'الحاضر',
+        'متأخر',
+        'غايب',
+        'غايب بعذر',
+        'إجازة',
+        'حالة إنسانية',
+        'وقت الحضور',
         'التاريخ',
         'اليوم'
       ],
@@ -133,6 +142,15 @@ const BulkScanDialog = ({
         student.studentNumber || '',
         student.studentName || '',
         getArabicStatus(student.status),
+        student.participation || '0',
+        student.behavior || '0',
+        student.penalty || '0',
+        student.attendanceStats?.present || '0',
+        student.attendanceStats?.late || '0',
+        student.attendanceStats?.absent || '0',
+        student.attendanceStats?.absentWithExcuse || '0',
+        student.attendanceStats?.excusedLeave || '0',
+        student.attendanceStats?.humanitarianCase || '0',
         formatTime(student.timestamp),
         formatDate(student.timestamp),
         getArabicDay(student.timestamp)
@@ -329,7 +347,7 @@ const BulkScanDialog = ({
             <div className={styles.chipsSection}>
               <div className={styles.chipsHeader}>
                 <span className={styles.chipsTitle}>
-                  {t('valid_student_numbers') || 'Valid Student Numbers'} ({parsedNumbers.length})
+                  {t('student_numbers') || 'Student Numbers'} ({parsedNumbers.length})
                 </span>
                 {validating && (
                   <span className={styles.validatingBadge}>
@@ -388,9 +406,6 @@ const BulkScanDialog = ({
           {parsedNumbers.length > 0 && (
             <div className={styles.controlsSection}>
               <div className={styles.controlGroup}>
-                <label className={styles.controlLabel}>
-                  {t('status') || 'Status'}
-                </label>
                 <div className={styles.statusCardsGrid}>
                   {ATTENDANCE_TYPES.map((type) => (
                     <button
@@ -433,9 +448,6 @@ const BulkScanDialog = ({
               </div>
 
               <div className={styles.controlGroup}>
-                <label htmlFor="date-select" className={styles.controlLabel}>
-                  {t('date') || 'Date'}
-                </label>
                 <input
                   id="date-select"
                   type="date"
@@ -450,24 +462,21 @@ const BulkScanDialog = ({
 
           {stats.found > 0 && (
             <div className={styles.summarySection}>
-              <div className={styles.summaryTitle}>
-                {t('preview_summary') || 'Preview Summary'}
-              </div>
               <div className={styles.summaryGrid}>
                 <div className={styles.summaryItem}>
                   <span className={styles.summaryLabel}>{t('total_input') || 'Total Input'}:</span>
                   <span className={styles.summaryValue}>{stats.totalInput}</span>
                 </div>
                 <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>{t('valid') || 'Valid'}:</span>
+                  <span className={styles.summaryLabel}>{t('processed') || 'Processed'}:</span>
                   <span className={styles.summaryValue}>{stats.validParsed}</span>
                 </div>
                 <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>{t('invalid') || 'Invalid'}:</span>
+                  <span className={styles.summaryLabel}>{t('issues_found') || 'Issues Found'}:</span>
                   <span className={styles.summaryValue}>{stats.invalid}</span>
                 </div>
                 <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>{t('duplicates') || 'Duplicates'}:</span>
+                  <span className={styles.summaryLabel}>{t('repeated_entries') || 'Repeated Entries'}:</span>
                   <span className={styles.summaryValue}>{stats.duplicates}</span>
                 </div>
                 <div className={styles.summaryItem}>
