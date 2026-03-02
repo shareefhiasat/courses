@@ -1221,8 +1221,20 @@ const QRScannerPage = () => {
         const safeFormatDate = (timestamp, formatFunc) => {
           if (!timestamp) return '';
           try {
-            const date = new Date(timestamp);
-            if (isNaN(date.getTime())) return '';
+            let date;
+            // Handle Firestore timestamp objects
+            if (timestamp && typeof timestamp === 'object' && timestamp.toDate) {
+              date = timestamp.toDate();
+            } else if (timestamp && typeof timestamp === 'object' && timestamp.seconds) {
+              date = new Date(timestamp.seconds * 1000);
+            } else {
+              date = new Date(timestamp);
+            }
+            
+            if (isNaN(date.getTime())) {
+              console.log('🔍 Invalid date detected:', timestamp);
+              return '';
+            }
             return formatFunc(date);
           } catch (error) {
             console.log('🔍 Date formatting error:', error, timestamp);
@@ -1268,6 +1280,7 @@ const QRScannerPage = () => {
 
       // Create CSV content with localized headers using constants
       const headers = lang === 'ar' ? [
+        '#',
         t('student_number') || 'الرقم العسكري',
         t('student_name') || 'اسم الطالب',
         ...ATTENDANCE_TYPES.map(type => type.label_ar),
@@ -1278,6 +1291,7 @@ const QRScannerPage = () => {
         t('marked_by') || 'سجل بواسطة',
         t('timestamp') || 'الوقت والتاريخ'
       ] : [
+        '#',
         t('student_number') || 'Student Number',
         t('student_name') || 'Student Name',
         ...ATTENDANCE_TYPES.map(type => type.label_en),
@@ -1291,7 +1305,8 @@ const QRScannerPage = () => {
 
       const csvContent = [
         headers.join(','),
-        ...enrichedData.map(row => [
+        ...enrichedData.map((row, index) => [
+          `"${index + 1}"`,
           `"${row.studentNumber}"`,
           `"${row.studentName}"`,
           ...ATTENDANCE_TYPES.map(type => `"${row.status === type.id ? 'X' : ''}"`),

@@ -2722,6 +2722,7 @@ const DICT = {
     attendance_excused: 'Excused',
     attendance_export_data: 'Export Data',
     attendance_refresh_data: 'Refresh Data',
+    daily_report: 'Daily Report',
     attendance_settings_saved: 'Settings saved successfully',
     attendance_error_saving_settings: 'Error saving settings',
     
@@ -6844,6 +6845,7 @@ const DICT = {
     attendance_excused: 'معذور',
     attendance_export_data: 'تصدير البيانات',
     attendance_refresh_data: 'تحديث البيانات',
+    daily_report: 'تقرير يومي',
     attendance_settings_saved: 'تم حفظ الإعدادات بنجاح',
     attendance_error_saving_settings: 'خطأ في حفظ الإعدادات',
     

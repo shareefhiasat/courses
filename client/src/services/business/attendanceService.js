@@ -133,7 +133,7 @@ export const markAttendance = async (attendanceData) => {
     // Use the date passed from caller, or default to today's Qatar date
     const date = validatedData.date || formatQatarDateOnly(getQatarNow());
     const today = date; // Use the passed date for consistency
-    const attendanceDocId = `${validatedData.classId}_${validatedData.studentNumber}_${today}`;
+    const attendanceDocId = `${validatedData.classId}_${validatedData.studentId}_${today}`;
     
     // Ensure we have programId and subjectId from class data
     // These should be passed from the calling code, but we validate here
