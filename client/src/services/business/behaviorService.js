@@ -87,6 +87,11 @@ export async function createBehavior({
 
     const result = await createBehaviorInDb(payload);
 
+    // Check if database operation was successful
+    if (!result || !result.success || !result.data || !result.data.id) {
+      throw new Error('Failed to create behavior record in database');
+    }
+
     if (sendNotification && studentId) {
       try {
         const actionLabel = points < 0 ? 'recorded' : 'added';
@@ -119,7 +124,7 @@ export async function createBehavior({
     // Log activity
     try {
       await logActivity(ACTIVITY_LOG_TYPES.BEHAVIOR_CREATED, {
-        behaviorId: result.id,
+        behaviorId: result.data?.id || 'unknown',
         studentId,
         classId,
         subjectId,
@@ -129,7 +134,7 @@ export async function createBehavior({
       logger.warn('Failed to log behavior creation:', logError);
     }
 
-    return { success: true, id: result.id };
+    return { success: true, id: result.data.id };
   } catch (error) {
     console.error('Error creating behavior record:', error);
     return { success: false, error: error.message };

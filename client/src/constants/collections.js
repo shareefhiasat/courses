@@ -51,10 +51,10 @@ export const COLLECTIONS = {
   EMAIL_TEMPLATES: 'emailTemplates',
   
   // Behavior & Gamification
-  BEHAVIOR: 'behavior',
+  BEHAVIOR: 'behaviors',
   PENALTIES: 'penalties',
   GAMIFICATION: 'gamification',
-  PARTICIPATION: 'participation',
+  PARTICIPATION: 'participations',
   
   // Bookmarks
   BOOKMARKS: 'bookmarks',

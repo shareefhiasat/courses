@@ -16,7 +16,7 @@
  * - Real-time listeners for live updates
  * - No business logic or validation (handled by business layer)
  * 
- * COLLECTION: 'participations'
+ * COLLECTION: COLLECTIONS.PARTICIPATION (which resolves to 'participations')
  * 
  * EXAMPLES:
  * ```javascript

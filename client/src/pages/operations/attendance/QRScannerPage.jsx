@@ -888,7 +888,10 @@ const QRScannerPage = () => {
             points: Math.abs(points), // Store as positive in Firebase
             reason: note,
             createdBy: user.uid,
-            ...performedByFields
+            ...performedByFields,
+            date: selectedDate,
+            sendNotification: sendNotifications,
+            className: classes.find(c => c.id === selectedClassId)?.name || ''
           });
         } else if (action.category === RECORD_TYPES.BEHAVIOR || action.category === RECORD_TYPES.PARTICIPATION) {
           if (action.category === RECORD_TYPES.BEHAVIOR) {
@@ -1468,9 +1471,9 @@ const QRScannerPage = () => {
 
     // Sort students
     const sorted = [...filtered].sort((a, b) => {
-      // Always prioritize studentOrder as primary sort key
-      const aOrder = a.studentOrder !== null && a.studentOrder !== undefined && a.studentOrder !== '' ? Number(a.studentOrder) : 999999;
-      const bOrder = b.studentOrder !== null && b.studentOrder !== undefined && b.studentOrder !== '' ? Number(b.studentOrder) : 999999;
+      // Always prioritize studentOrder as primary sort key, fallback to studentNumber
+      const aOrder = a.studentOrder !== null && a.studentOrder !== undefined && a.studentOrder !== '' ? Number(a.studentOrder) : (Number(a.studentNumber) || 999999);
+      const bOrder = b.studentOrder !== null && b.studentOrder !== undefined && b.studentOrder !== '' ? Number(b.studentOrder) : (Number(b.studentNumber) || 999999);
       
       // Primary sort: by studentOrder
       const primarySort = aOrder - bOrder;

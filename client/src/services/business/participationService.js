@@ -85,6 +85,11 @@ export async function createParticipation({
 
     const result = await createParticipationInDb(payload);
 
+    // Check if database operation was successful
+    if (!result || !result.success || !result.data || !result.data.id) {
+      throw new Error('Failed to create participation record in database');
+    }
+
     if (sendNotification && studentId) {
       try {
         const actionLabel = points > 0 ? 'added' : 'recorded';
@@ -117,7 +122,7 @@ export async function createParticipation({
     // Log activity
     try {
       await logActivity(ACTIVITY_LOG_TYPES.PARTICIPATION_CREATED, {
-        participationId: result.id,
+        participationId: result.data?.id || 'unknown',
         studentId,
         classId,
         subjectId,
@@ -127,7 +132,7 @@ export async function createParticipation({
       logger.warn('Failed to log participation creation:', logError);
     }
 
-    return { success: true, id: result.id };
+    return { success: true, id: result.data.id };
   } catch (error) {
     console.error('Error creating participation record:', error);
     return { success: false, error: error.message };

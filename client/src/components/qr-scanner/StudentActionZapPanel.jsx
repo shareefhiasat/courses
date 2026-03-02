@@ -496,15 +496,15 @@ export default function StudentActionZapPanel({
               if (aIsFavorite && !bIsFavorite) return -1;
               if (!aIsFavorite && bIsFavorite) return 1;
               
-              const aLabel = lang === 'ar' ? (a.label_ar || a.label_en) : a.label_en;
-              const bLabel = lang === 'ar' ? (b.label_ar || b.label_en) : b.label_en;
+              const aLabel = lang === 'ar' ? (a.label_ar || a.label_en || '') : (a.label_en || a.label_ar || '');
+              const bLabel = lang === 'ar' ? (b.label_ar || b.label_en || '') : (b.label_en || b.label_ar || '');
               return aLabel.localeCompare(bLabel);
             }).map((option) => {
               const isSelected = selectedActions.some(a => a.id === option.id);
               
               return (
                 <div
-                  key={option.id}
+                  key={option.id || option.label_en || option.label_ar || Math.random().toString(36).substr(2, 9)}
                   style={{
                     padding: viewMode === 'grid' ? '0.5rem' : '0.375rem 0.5rem',
                     borderRadius: '0.5rem',

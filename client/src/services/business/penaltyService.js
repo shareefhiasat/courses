@@ -86,13 +86,18 @@ export async function createPenalty({
 
     const result = await createPenaltyInDb(payload);
 
+    // Check if database operation was successful
+    if (!result || !result.success || !result.data || !result.data.id) {
+      throw new Error('Failed to create penalty record in database');
+    }
+
     if (sendNotification && studentId) {
       try {
         const actionLabel = points < 0 ? 'recorded' : 'added';
         const formattedDate = new Date(todayStr).toLocaleDateString('en-GB');
         
         // Use smart notification gateway
-        await notificationGateway.send(NOTIFICATION_TRIGGERS.PENALTY_RECORDED, {
+        await notificationGateway.send(NOTIFICATION_TRIGGERS.PENALTY_ISSUED, {
           userId: studentId,
           role: ROLE_STRINGS.STUDENT,
           classId: classId,
@@ -118,7 +123,7 @@ export async function createPenalty({
     // Log activity
     try {
       await logActivity(ACTIVITY_LOG_TYPES.PENALTY_CREATED, {
-        penaltyId: result.id,
+        penaltyId: result.data?.id || 'unknown',
         studentId,
         classId,
         subjectId,
@@ -128,7 +133,7 @@ export async function createPenalty({
       logger.warn('Failed to log penalty creation:', logError);
     }
 
-    return { success: true, id: result.id };
+    return { success: true, id: result.data.id };
   } catch (error) {
     console.error('Error creating penalty record:', error);
     return { success: false, error: error.message };
