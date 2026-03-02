@@ -1,4 +1,6 @@
 import logger from '@utils/logger';
+import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { db } from '../other/config';
 
 /**
  * Get user preferences from Firestore - with performance monitoring and memoization

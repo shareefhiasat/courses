@@ -1980,7 +1980,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 </PortalTooltip>
 
                 <PortalTooltip content={t('refresh_today_activity')} position="top">
-                <button
+                  <button
                     onClick={() => {
                       logger.log('🔧 Manual refresh button clicked');
                       // Force refresh with current students
@@ -2053,10 +2053,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 minWidth: '20px',
                 textAlign: 'center'
               }}>
-                {activityLoading ?
-                    t('loading') || 'Loading...' :
-                    `${recentActivity.length}`
-                }
+                {`${recentActivity.length}`}
               </span>
                   {/*<Button*/}
                   {/*    variant="ghost"*/}

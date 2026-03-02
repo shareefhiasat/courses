@@ -122,10 +122,9 @@ const BulkScanDialog = ({
     
     const csvContent = [
       [
-        'الرقم العسكري',
-        'اسم الطالب',
+        'الرقم',
+        'الاسم',
         'الحالة',
-        'الرسالة',
         'الوقت',
         'التاريخ',
         'اليوم'
@@ -134,7 +133,6 @@ const BulkScanDialog = ({
         student.studentNumber || '',
         student.studentName || '',
         getArabicStatus(student.status),
-        student.message || '',
         formatTime(student.timestamp),
         formatDate(student.timestamp),
         getArabicDay(student.timestamp)
@@ -566,8 +564,13 @@ const BulkScanDialog = ({
                     onClick={clearAll}
                     className={`${styles.clearNewButton} ${styles[theme]}`}
                     title={t('clear_and_new') || 'Clear & Start New Operation'}
+                    disabled={loading}
                   >
-                    <RefreshCw size={16} />
+                    {loading ? (
+                      <span className={styles.spinnerSmall} />
+                    ) : (
+                      <RefreshCw size={16} />
+                    )}
                     <span>{t('clear_new') || 'Clear & New'}</span>
                   </button>
                   <button
@@ -624,10 +627,7 @@ const BulkScanDialog = ({
             disabled={!canSubmit}
           >
             {loading ? (
-              <>
-                <span className={styles.spinner} />
-                {t('processing') || 'Processing...'}
-              </>
+              <span className={styles.spinner} />
             ) : (
               <>
                 <CheckCircle size={16} />

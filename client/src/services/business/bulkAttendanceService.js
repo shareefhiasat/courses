@@ -10,7 +10,8 @@ const BATCH_SIZE = 50;
 // Convert human-readable dateKey back to ISO format for database operations
 const convertDateKeyToISO = (dateKey) => {
   try {
-    // dateKey format: "March 2, 2026"
+    // dateKey format: "March 2, 2026" (from bulk scan UI)
+    // DB format: "February 28, 2026 at 7:07:53 AM UTC+3"
     logger.info('[BulkAttendanceService] Converting dateKey to ISO:', { dateKey });
     
     const date = new Date(dateKey);
@@ -33,7 +34,8 @@ const convertDateKeyToISO = (dateKey) => {
       isoDate,
       originalDate: date.toISOString(),
       formattedDate: date.toLocaleDateString(),
-      localDate: `${year}-${month}-${day}`
+      localDate: `${year}-${month}-${day}`,
+      note: 'DB stores dates like "February 28, 2026 at 7:07:53 AM UTC+3"'
     });
     return isoDate;
   } catch (error) {

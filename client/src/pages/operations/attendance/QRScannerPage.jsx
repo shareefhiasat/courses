@@ -1137,6 +1137,127 @@ const QRScannerPage = () => {
     setSelectedStudentForAction(null);
   }, []);
 
+  // Export Official Report function
+  const exportOfficialReport = useCallback(async () => {
+    if (!selectedClassId || selectedClassId === 'all') {
+      alert(t('please_select_class') || 'Please select a class first');
+      return;
+    }
+
+    try {
+      // Get all attendance data for the selected class
+      const attendanceResponse = await getAttendanceByClass(selectedClassId, formatQatarDateOnly(selectedDate));
+      const attendanceData = attendanceResponse.success ? attendanceResponse.data : [];
+      
+      // Get all student data
+      const usersResponse = await getUsers();
+      const allUsers = usersResponse.success ? usersResponse.data : [];
+      
+      // Enrich attendance data with student information
+      const enrichedData = attendanceData.map(record => {
+        const student = allUsers.find(u => u.studentNumber === record.studentNumber);
+        return {
+          studentNumber: record.studentNumber,
+          studentName: student?.displayName || student?.realName || 'Unknown',
+          status: record.status || 'present',
+          date: record.date || formatQatarDateOnly(selectedDate),
+          time: record.timestamp ? new Date(record.timestamp).toLocaleTimeString('ar-QA', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true 
+          }) : '',
+          method: record.method || 'manual',
+          notes: record.notes || '',
+          markedBy: record.markedBy || '',
+          timestamp: record.timestamp ? new Date(record.timestamp).toLocaleString('ar-QA') : ''
+        };
+      });
+
+      // Create CSV content with Arabic headers
+      const headers = [
+        'الرقم العسكري',
+        'اسم الطالب',
+        'الحالة',
+        'التاريخ',
+        'الوقت',
+        'الطريقة',
+        'الملاحظات',
+        'سجل بواسطة',
+        'الوقت والتاريخ'
+      ];
+
+      const csvContent = [
+        headers.join(','),
+        ...enrichedData.map(row => [
+          `"${row.studentNumber}"`,
+          `"${row.studentName}"`,
+          `"${getArabicStatus(row.status)}"`,
+          `"${row.date}"`,
+          `"${row.time}"`,
+          `"${getArabicMethod(row.method)}"`,
+          `"${row.notes}"`,
+          `"${row.markedBy}"`,
+          `"${row.timestamp}"`
+        ].join(','))
+      ].join('\n');
+
+      // Helper functions for Arabic translations
+      function getArabicStatus(status) {
+        const statusMap = {
+          'present': 'حاضر',
+          'late': 'متأخر',
+          'absent_no_excuse': 'غياب بدون عذر',
+          'absent_with_excuse': 'غياب بعذر',
+          'excused_leave': 'إجازة معتمدة',
+          'human_case': 'حالة إنسانية'
+        };
+        return statusMap[status] || status;
+      }
+
+      function getArabicMethod(method) {
+        const methodMap = {
+          'manual': 'يدوي',
+          'qr': 'QR كود',
+          'bulk': 'جماعي',
+          'quick': 'سريع'
+        };
+        return methodMap[method] || method;
+      }
+
+      // Get program, subject, and class names for filename
+      const currentProgram = programs.find(p => p.id === selectedProgramId);
+      const currentSubject = subjects.find(s => s.id === selectedSubjectId);
+      const currentClass = classes.find(c => c.id === selectedClassId);
+      
+      const programName = currentProgram?.name || 'Unknown';
+      const subjectName = currentSubject?.name || 'Unknown';
+      const className = currentClass?.name || 'Unknown';
+      
+      // Format date as YYYY-MM-DD
+      const dateFormatted = selectedDate.toISOString().split('T')[0];
+      
+      // Create filename based on language
+      const filename = lang === 'ar' 
+        ? `تقرير_الحضور_الرسمي_${programName}_${subjectName}_${className}_${dateFormatted}.csv`
+        : `attendance_official_report_${programName}_${subjectName}_${className}_${dateFormatted}.csv`;
+
+      // Create and download file
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert(t('export_failed') || 'Export failed: ' + error.message);
+    }
+  }, [selectedClassId, selectedDate, selectedProgramId, selectedSubjectId, programs, subjects, classes, lang, t]);
+
   // Memoized filtered students for performance
   const filteredStudents = useMemo(() => {
     let filtered = students;
@@ -1415,6 +1536,35 @@ const QRScannerPage = () => {
                 </div>
               )}
             </div>
+            
+            <button
+              onClick={exportOfficialReport}
+              style={{
+                padding: '0.5rem 1rem',
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s',
+                boxShadow: '0 2px 4px rgba(139, 92, 246, 0.2)'
+              }}
+              disabled={gridLoading || !selectedClassId || selectedClassId === 'all'}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10,9 9,9 8,9"/>
+              </svg>
+              {t('export_official_report') || 'Export Official Report'}
+            </button>
             
             <div 
               onClick={() => setSendNotifications(!sendNotifications)}

@@ -217,17 +217,10 @@ const StudentRosterHistory = ({
         {studentHistory[student.id] && studentHistory[student.id].length > 0 && (
           <PortalTooltip content={(() => {
             const allExpanded = groupedLogs.every(log => expandedDays.has(log.date));
-            return allExpanded ? t('collapse_all') : t('expand_all');
+            return t('expand_all');
           })()} position="top">
           <button
-            onClick={() => {
-              const allExpanded = groupedLogs.every(log => expandedDays.has(log.date));
-              if (allExpanded) {
-                collapseAllDays();
-              } else {
-                expandAllDays();
-              }
-            }}
+            onClick={expandAllDays}
             style={{
               display: isMobile ? 'none' : 'flex',
               alignItems: 'center',
@@ -242,24 +235,12 @@ const StudentRosterHistory = ({
               transition: 'all 0.2s'
             }}
           >
-            {(() => {
-              const allExpanded = groupedLogs.every(log => expandedDays.has(log.date));
-              return allExpanded ? (
-                <>
-                  <svg style={{ width: '14px', height: '14px', transform: 'rotate(180deg)' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                  {t('collapse_all')}
-                </>
-              ) : (
-                <>
+            <>
                   <svg style={{ width: '14px', height: '14px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
                   {t('expand_all')}
                 </>
-              );
-            })()}
           </button>
           </PortalTooltip>
         )}

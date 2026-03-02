@@ -2295,9 +2295,9 @@ export default function StudentActionStatsPanel({
                   </button>
                 </div>
                 {historicalLogs.length > 0 && (
-                    <PortalTooltip content={expandedDays.size === memoizedGroupedLogs.length ? t('collapse_all') : t('expand_all')} position="top">
+                    <PortalTooltip content={t('expand_all')} position="top">
                     <button
-                        onClick={expandedDays.size === memoizedGroupedLogs.length ? collapseAllDays : expandAllDays}
+                        onClick={expandAllDays}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -2312,21 +2312,12 @@ export default function StudentActionStatsPanel({
                           transition: 'all 0.2s'
                         }}
                     >
-                      {expandedDays.size === memoizedGroupedLogs.length ? (
-                          <>
-                            <span style={{ width: '14px', height: '14px', transform: 'rotate(180deg)', display: 'inline-block' }}>
-                              {getThemedIcon('ui', 'chevron_down', 16)}
-                            </span>
-                            {t('collapse_all')}
-                          </>
-                      ) : (
-                          <>
+                      <>
                             <span style={{ width: '14px', height: '14px', display: 'inline-block' }}>
                               {getThemedIcon('ui', 'chevron_down', 16)}
                             </span>
-                            {/*{t('expand_all') || 'Expand All'}*/}
+                            {t('expand_all')}
                           </>
-                      )}
                     </button>
                     </PortalTooltip>
                 )}
