@@ -482,7 +482,7 @@ export default function StudentActionZapPanel({
             display: viewMode === 'grid' ? 'grid' : 'flex',
             gridTemplateColumns: viewMode === 'grid' ? 'repeat(3, 1fr)' : 'none',
             flexDirection: viewMode === 'list' ? 'column' : 'row',
-            gap: viewMode === 'grid' ? '0.25rem' : '0.125rem'
+            gap: viewMode === 'grid' ? '0.35rem' : '0.225rem'
           }}>
             {options.filter(option => {
               if (activeTab === RECORD_TYPES.BEHAVIOR) return option.category === RECORD_TYPES.BEHAVIOR;
@@ -506,7 +506,7 @@ export default function StudentActionZapPanel({
                 <div
                   key={option.id || option.label_en || option.label_ar || Math.random().toString(36).substr(2, 9)}
                   style={{
-                    padding: viewMode === 'grid' ? '0.5rem' : '0.375rem 0.5rem',
+                    padding: viewMode === 'grid' ? '0.575rem' : '0.5125rem 0.5rem',
                     borderRadius: '0.5rem',
                     border: `2px solid ${isSelected ? 'var(--color-purple, #8b5cf6)' : 'var(--border, #e5e7eb)'}`,
                     background: isSelected ? 'var(--color-purple-light, rgba(139, 92, 246, 0.05))' : 'transparent',
@@ -520,153 +520,167 @@ export default function StudentActionZapPanel({
                     display: 'flex',
                     flexDirection: viewMode === 'grid' ? 'column' : 'row',
                     alignItems: viewMode === 'grid' ? 'center' : 'center',
-                    gap: viewMode === 'grid' ? '0.125rem' : '0.5rem',
-                    textAlign: viewMode === 'grid' ? 'center' : 'left'
+                    gap: viewMode === 'grid' ? '0.125rem' : '0.25rem',
+                    textAlign: viewMode === 'grid' ? 'center' : 'left',
+                    justifyContent: 'space-between',
+                    paddingInlineEnd: '0.5rem',
+                    paddingInlineStart: '0.5rem'
                   }}>
                     <div style={{
-                      width: viewMode === 'grid' ? '2rem' : '1.5rem',
-                      height: viewMode === 'grid' ? '2rem' : '1.5rem',
-                      borderRadius: '0.375rem',
-                      background: option.color + '20',
-                      color: option.color,
-                      border: `1px solid ${option.color}40`,
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
+                      gap: '0.5rem',
+                      flex: 1,
+                      overflow: 'hidden'
                     }}>
-                      {renderIcon(option.icon, { width: viewMode === 'grid' ? '1rem' : '0.875rem', height: viewMode === 'grid' ? '1rem' : '0.875rem' })}
-                    </div>
-                    <span style={{
-                      fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
-                      fontWeight: 500,
-                      color: 'var(--text, #111827)',
-                      lineHeight: '1.2',
-                      flex: 1
-                    }}>
-                      {lang === 'ar' ? (option.label_ar || option.label_en) : option.label_en}
-                    </span>
-                    {option.category !== RECORD_TYPES.ATTENDANCE && (
                       <div style={{
-                        fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
-                        fontWeight: 600,
-                        color: (actionPoints[option.id] || 0) >= 0 ? 'var(--color-success-dark, #059669)' : 'var(--color-danger-dark, #dc2626)',
-                        flexShrink: 0,
-                        marginLeft: '0.25rem'
-                      }}>
-                        {(actionPoints[option.id] || 0) >= 0 ? '+' : ''}{actionPoints[option.id] || 0}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <PortalTooltip content={favoriteBehaviors.includes(option.id) ? t('remove_from_favorites') : t('add_to_favorites')} position="top">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleFavorite(option.id);
-                    }}
-                    style={{
-                      position: 'absolute',
-                      top: '0.25rem',
-                      right: '0.5rem',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '0.125rem'
-                    }}
-                  >
-                    {getThemedIcon('ui', 'star', 12, theme)}
-                  </button>
-                  </PortalTooltip>
-                  
-                  {isSelected && (
-                    <div style={{
-                      marginTop: '0.25rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.125rem'
-                    }}>
-                      <PortalTooltip content={t('decrease_points')} position="top">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const currentValue = actionPoints[option.id] || 0;
-                          let newValue;
-                          if (option.category === RECORD_TYPES.PARTICIPATION) {
-                            newValue = Math.max(0, currentValue - 1);
-                          } else {
-                            newValue = Math.max(-10, currentValue - 1);
-                          }
-                          handlePointsChange(option.id, newValue);
-                        }}
-                        style={{
-                          width: '1.5rem',
-                          height: '1.5rem',
-                          borderRadius: '0.375rem',
-                          border: '1px solid var(--color-danger, #ef4444)',
-                          background: 'var(--color-danger-light, #fef2f2)',
-                          color: 'var(--color-danger, #ef4444)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '1rem',
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        −
-                      </button>
-                      </PortalTooltip>
-                      <div style={{
-                        width: '2rem',
-                        height: '1.5rem',
-                        border: '1px solid var(--border, #d1d5db)',
+                        width: viewMode === 'grid' ? '1.75rem' : '1.25rem',
+                        height: viewMode === 'grid' ? '1.75rem' : '1.25rem',
                         borderRadius: '0.375rem',
-                        background: 'var(--input-bg, #ffffff)',
+                        background: option.color + '20',
+                        color: option.color,
+                        border: `1px solid ${option.color}40`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '0.75rem',
-                        fontWeight: '700',
-                        color: 'var(--text, #111827)',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        flexShrink: 0
                       }}>
-                        {actionPoints[option.id] || 0}
+                        {renderIcon(option.icon, { width: viewMode === 'grid' ? '0.875rem' : '0.75rem', height: viewMode === 'grid' ? '0.875rem' : '0.75rem' })}
                       </div>
-                      <PortalTooltip content={t('increase_points')} position="top">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const currentValue = actionPoints[option.id] || 0;
-                          let newValue;
-                          if (option.category === RECORD_TYPES.PARTICIPATION) {
-                            newValue = Math.min(10, currentValue + 1);
-                          } else {
-                            newValue = Math.min(0, currentValue + 1);
-                          }
-                          handlePointsChange(option.id, newValue);
-                        }}
-                        style={{
-                          width: '1.5rem',
-                          height: '1.5rem',
-                          borderRadius: '0.375rem',
-                          border: '1px solid var(--color-success, #10b981)',
-                          background: 'var(--color-success-light, #f0fdf4)',
-                          color: 'var(--color-success, #10b981)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '1rem',
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        +
-                      </button>
-                      </PortalTooltip>
+                      <span style={{
+                        fontSize: viewMode === 'grid' ? '0.6875rem' : '0.75rem',
+                        fontWeight: 500,
+                        color: 'var(--text, #111827)',
+                        lineHeight: '1.2',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {lang === 'ar' ? (option.label_ar || option.label_en) : option.label_en}
+                      </span>
                     </div>
-                  )}
+                    {option.category !== RECORD_TYPES.ATTENDANCE && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        flexShrink: 0
+                      }}>
+                        {isSelected ? (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}>
+                            <PortalTooltip content={t('decrease_points')} position="top">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const currentValue = actionPoints[option.id] || 0;
+                                let newValue;
+                                if (option.category === RECORD_TYPES.PARTICIPATION) {
+                                  newValue = Math.max(0, currentValue - 1);
+                                } else {
+                                  newValue = Math.max(-10, currentValue - 1);
+                                }
+                                handlePointsChange(option.id, newValue);
+                              }}
+                              style={{
+                                width: '1.5rem',
+                                height: '1.5rem',
+                                borderRadius: '0.375rem',
+                                border: '1px solid var(--color-danger, #ef4444)',
+                                background: 'var(--color-danger-light, #fef2f2)',
+                                color: 'var(--color-danger, #ef4444)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '1rem',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              −
+                            </button>
+                            </PortalTooltip>
+                            <div style={{
+                              width: '2rem',
+                              height: '1.5rem',
+                              border: '1px solid var(--border, #d1d5db)',
+                              borderRadius: '0.375rem',
+                              background: 'var(--input-bg, #ffffff)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.75rem',
+                              fontWeight: '700',
+                              color: 'var(--text, #111827)',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                            }}>
+                              {actionPoints[option.id] || 0}
+                            </div>
+                            <PortalTooltip content={t('increase_points')} position="top">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const currentValue = actionPoints[option.id] || 0;
+                                let newValue;
+                                if (option.category === RECORD_TYPES.PARTICIPATION) {
+                                  newValue = Math.min(10, currentValue + 1);
+                                } else {
+                                  newValue = Math.min(0, currentValue + 1);
+                                }
+                                handlePointsChange(option.id, newValue);
+                              }}
+                              style={{
+                                width: '1.5rem',
+                                height: '1.5rem',
+                                borderRadius: '0.375rem',
+                                border: '1px solid var(--color-success, #10b981)',
+                                background: 'var(--color-success-light, #f0fdf4)',
+                                color: 'var(--color-success, #10b981)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '1rem',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              +
+                            </button>
+                            </PortalTooltip>
+                            <PortalTooltip content={favoriteBehaviors.includes(option.id) ? t('remove_from_favorites') : t('add_to_favorites')} position="top">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleFavorite(option.id);
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '0.125rem',
+                                flexShrink: 0
+                              }}
+                            >
+                              {getThemedIcon('ui', 'star', 12, theme)}
+                            </button>
+                            </PortalTooltip>
+                          </div>
+                        ) : (
+                          <div style={{
+                            fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
+                            fontWeight: 600,
+                            color: 'var(--color-danger-dark, #dc2626)',
+                            marginLeft: '0.25rem'
+                          }}>
+                            {(actionPoints[option.id] || 0) >= 0 ? '+' : ''}{actionPoints[option.id] || 0}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}

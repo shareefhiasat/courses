@@ -30,16 +30,6 @@ export const PENALTY_TYPES = [
     description_ar: "الغش في الاختبارات أو الواجبات باستخدام مواد غير مسموح بها",
     description_en: "Using unauthorized materials or methods during exams or assignments"
   },
-  {
-    id: "attempted_cheating",
-    label_ar: "غش",
-    label_en: "Cheat",
-    points: 5,
-    icon: <AlertTriangle size={16} />,
-    color: "#fca5a5",
-    description_ar: "محاولة الغش أو مساعدة الآخرين على الغش في الاختبارات",
-    description_en: "Attempting to cheat or assisting others in cheating during exams"
-  },
   { 
     id: "impersonation", 
     label_ar: "الانتحال", 
