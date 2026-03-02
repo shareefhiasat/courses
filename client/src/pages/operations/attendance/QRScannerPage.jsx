@@ -1177,7 +1177,10 @@ const QRScannerPage = () => {
       const headers = [
         'الرقم العسكري',
         'اسم الطالب',
-        'الحالة',
+        'متواجد',
+        'غايب',
+        'مستأذن',
+        'حالة إنسانية',
         'التاريخ',
         'الوقت',
         'الطريقة',
@@ -1191,7 +1194,10 @@ const QRScannerPage = () => {
         ...enrichedData.map(row => [
           `"${row.studentNumber}"`,
           `"${row.studentName}"`,
-          `"${getArabicStatus(row.status)}"`,
+          `"${row.status === 'present' ? 'X' : ''}"`,
+          `"${row.status === 'absent_no_excuse' ? 'X' : ''}"`,
+          `"${row.status === 'absent_with_excuse' || row.status === 'excused_leave' ? 'X' : ''}"`,
+          `"${row.status === 'human_case' ? 'X' : ''}"`,
           `"${row.date}"`,
           `"${row.time}"`,
           `"${getArabicMethod(row.method)}"`,
@@ -1229,12 +1235,12 @@ const QRScannerPage = () => {
       const currentSubject = subjects.find(s => s.id === selectedSubjectId);
       const currentClass = classes.find(c => c.id === selectedClassId);
       
-      const programName = currentProgram?.name || 'Unknown';
-      const subjectName = currentSubject?.name || 'Unknown';
-      const className = currentClass?.name || 'Unknown';
+      const programName = currentProgram?.name || t('all_programs') || 'All';
+      const subjectName = currentSubject?.name || t('all_subjects') || 'All';
+      const className = currentClass?.name || t('all_classes') || 'All';
       
       // Format date as YYYY-MM-DD
-      const dateFormatted = selectedDate.toISOString().split('T')[0];
+      const dateFormatted = new Date(selectedDate).toISOString().split('T')[0];
       
       // Create filename based on language
       const filename = lang === 'ar' 

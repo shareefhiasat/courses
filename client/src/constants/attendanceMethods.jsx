@@ -108,8 +108,8 @@ export const getAttendanceMethodColor = (method) => {
 
 // Helper function to determine if we should show method label instead of notes
 export const shouldShowMethodLabel = (method, notes) => {
-  // If method is a quick action, always show method label
-  if (method === ATTENDANCE_METHODS.ROSTER_QUICK_ACTION) {
+  // If method is a quick action or manual instructor, always show method label
+  if (method === ATTENDANCE_METHODS.ROSTER_QUICK_ACTION || method === ATTENDANCE_METHODS.MANUAL_INSTRUCTOR) {
     return true;
   }
   

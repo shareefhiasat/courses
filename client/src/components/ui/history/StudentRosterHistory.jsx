@@ -3,7 +3,7 @@ import { useIsMobile } from '@hooks/useIsMobile';
 import StudentHistory from './StudentHistory';
 import {
   CheckSmallIcon, MessageSquareIcon, ZapIcon, AlertCircleSmallIcon,
-  ParticipationIcon
+  ParticipationIcon, ChevronDownIcon
 } from "@utils/icons.jsx";
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import PortalTooltip from '@ui/PortalTooltip';
@@ -236,9 +236,7 @@ const StudentRosterHistory = ({
             }}
           >
             <>
-                  <svg style={{ width: '14px', height: '14px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
+                  <ChevronDownIcon style={{ width: '14px', height: '14px' }} />
                 </>
           </button>
           </PortalTooltip>
