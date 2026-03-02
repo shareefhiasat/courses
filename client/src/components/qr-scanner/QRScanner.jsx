@@ -1191,7 +1191,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         label: uniqueLogs[0]?.label,
         method: uniqueLogs[0]?.method,
         time: uniqueLogs[0]?.time
-      } : 'No activity logs');
+      } : t('no_activity_logs') || 'No activity logs');
 
       // Format time for display
       const formattedLogs = uniqueLogs.map(log => ({
@@ -1992,7 +1992,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         showResult('error', 'No students available to refresh');
                       }
                     }}
-                    disabled={!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0}
+                    disabled={!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0 || activityLoading}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -2000,16 +2000,22 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       padding: '0.375rem 0.5rem',
                       borderRadius: '0.375rem',
                       border: '1px solid var(--border, #e5e7eb)',
-                      background: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0) ? '#f3f4f6' : '#10b981',
-                      color: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0) ? '#9ca3af' : 'white',
+                      background: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0 || activityLoading) ? '#f3f4f6' : '#10b981',
+                      color: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0 || activityLoading) ? '#9ca3af' : 'white',
                       fontSize: '0.75rem',
                       fontWeight: 500,
-                      cursor: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0) ? 'not-allowed' : 'pointer',
+                      cursor: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0 || activityLoading) ? 'not-allowed' : 'pointer',
                       transition: 'all 0.2s',
-                      opacity: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0) ? 0.6 : 1
+                      opacity: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0 || activityLoading) ? 0.6 : 1
                     }}
                   >
-                    <RefreshIcon style={{ width: '14px', height: '14px' }} />
+                    <RefreshIcon 
+                      style={{ 
+                        width: '14px', 
+                        height: '14px',
+                        animation: activityLoading ? 'spin 1s linear infinite' : 'none'
+                      }} 
+                    />
                     {/*{t('refresh_today') || 'Refresh Today'}*/}
                   </button>
                 </PortalTooltip>

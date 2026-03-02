@@ -959,14 +959,16 @@ export default function StudentActionStatsPanel({
 
   // Memoized computed values for performance
   const avatarColor = useMemo(() => getAvatarColor(student?.name || ''), [student?.name, getAvatarColor]);
-  const attendanceStatus = useMemo(() => {
-    // Check if there are actual attendance records for today (not participation/behavior/penalty)
-    const hasTodayAttendance = todayLogs.some(log =>
+  
+  // Check if there are actual attendance records for today (not participation/behavior/penalty)
+  const hasTodayAttendance = useMemo(() => 
+    todayLogs.some(log =>
         log.type === RECORD_TYPES.ATTENDANCE &&
         log.status &&
         [ATTENDANCE_STATUS.PRESENT, ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, ATTENDANCE_STATUS.LATE, ATTENDANCE_STATUS.EXCUSED_LEAVE, ATTENDANCE_STATUS.HUMAN_CASE].includes(log.status)
-    );
-
+    ), [todayLogs]);
+  
+  const attendanceStatus = useMemo(() => {
     // If no actual attendance records for today, show None (matching roster)
     if (!hasTodayAttendance) {
       logger.debug('No attendance found - showing None');
@@ -993,10 +995,24 @@ export default function StudentActionStatsPanel({
       ar: t('none') || 'لا شيء',
       color: '#9ca3af'
     };
-  }, [student?.attendance, todayLogs, currentAttendanceStatus, t]);
+  }, [hasTodayAttendance, student?.attendance, todayLogs, currentAttendanceStatus, t]);
 
-  // Helper variable to check if attendance status is None
-  const isAttendanceNone = attendanceStatus?.en === 'None';
+  // Helper variable to check if attendance status is None (no attendance recorded)
+  const isAttendanceNone = !hasTodayAttendance;
+  
+  // Debug logs to track attendance state
+  logger.debug('StudentActionStatsPanel - Attendance State Debug:', {
+    studentId: student.id,
+    studentNumber: student.studentNumber,
+    hasTodayAttendance,
+    currentAttendanceStatus,
+    studentAttendance: student.attendance,
+    todayLogsCount: todayLogs.length,
+    attendanceLogs: todayLogs.filter(log => log.type === RECORD_TYPES.ATTENDANCE).map(log => ({
+      status: log.status,
+      timestamp: log.timestamp
+    }))
+  });
 
   // Memoized attendance statistics calculation (TODAY ONLY)
   const attendanceStats = useMemo(() => {
@@ -1264,15 +1280,15 @@ export default function StudentActionStatsPanel({
                     onClick={async () => {
                       await handleMarkAttendance(student.id, ATTENDANCE_STATUS.PRESENT);
                     }}
-                    disabled={showLoadingOverlay || isAttendanceNone}
+                    disabled={showLoadingOverlay}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid #10b981',
                       background: !isAttendanceNone && currentAttendanceStatus === 'present' ? 'var(--color-success, #10b981)' : 'var(--panel, white)',
                       color: !isAttendanceNone && currentAttendanceStatus === 'present' ? 'var(--text-on-success, white)' : 'var(--color-success, #10b981)',
-                      cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
-                      opacity: isAttendanceNone ? 0.5 : 1,
+                      cursor: showLoadingOverlay ? 'not-allowed' : 'pointer',
+                      opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -1306,15 +1322,15 @@ export default function StudentActionStatsPanel({
                     onClick={async () => {
                       await handleMarkAttendance(student.id, ATTENDANCE_STATUS.LATE);
                     }}
-                    disabled={showLoadingOverlay || isAttendanceNone}
+                    disabled={showLoadingOverlay}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid #f59e0b',
-                      background: !isAttendanceNone && currentAttendanceStatus === 'late' ? 'var(--color-warning, #f59e0b)' : 'var(--panel, white)',
-                      color: !isAttendanceNone && currentAttendanceStatus === 'late' ? 'var(--text-on-success, white)' : 'var(--color-warning, #f59e0b)',
-                      cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
-                      opacity: isAttendanceNone ? 0.5 : 1,
+                      background: !isAttendanceNone && currentAttendanceStatus === 'late' ? '#f59e0b' : 'var(--panel, white)',
+                      color: !isAttendanceNone && currentAttendanceStatus === 'late' ? 'white' : '#f59e0b',
+                      cursor: showLoadingOverlay ? 'not-allowed' : 'pointer',
+                      opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -1348,15 +1364,15 @@ export default function StudentActionStatsPanel({
                     onClick={async () => {
                       await handleMarkAttendance(student.id, ATTENDANCE_STATUS.ABSENT_NO_EXCUSE);
                     }}
-                    disabled={showLoadingOverlay || isAttendanceNone}
+                    disabled={showLoadingOverlay}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid var(--color-danger, #ef4444)',
                       background: !isAttendanceNone && currentAttendanceStatus === 'absent_no_excuse' ? 'var(--color-danger, #ef4444)' : 'var(--panel, white)',
                       color: !isAttendanceNone && currentAttendanceStatus === 'absent_no_excuse' ? 'var(--text-on-primary, white)' : 'var(--color-danger, #ef4444)',
-                      cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
-                      opacity: isAttendanceNone ? 0.5 : 1,
+                      cursor: showLoadingOverlay ? 'not-allowed' : 'pointer',
+                      opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -1390,15 +1406,15 @@ export default function StudentActionStatsPanel({
                     onClick={async () => {
                       await handleMarkAttendance(student.id, ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE);
                     }}
-                    disabled={showLoadingOverlay || isAttendanceNone}
+                    disabled={showLoadingOverlay}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid #ef4444',
                       background: !isAttendanceNone && currentAttendanceStatus === 'absent_with_excuse' ? 'var(--color-danger, #ef4444)' : 'var(--panel, white)',
                       color: !isAttendanceNone && currentAttendanceStatus === 'absent_with_excuse' ? 'var(--text-on-success, white)' : 'var(--color-danger, #ef4444)',
-                      cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
-                      opacity: isAttendanceNone ? 0.5 : 1,
+                      cursor: showLoadingOverlay ? 'not-allowed' : 'pointer',
+                      opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -1432,15 +1448,15 @@ export default function StudentActionStatsPanel({
                     onClick={async () => {
                       await handleMarkAttendance(student.id, ATTENDANCE_STATUS.EXCUSED_LEAVE);
                     }}
-                    disabled={showLoadingOverlay || isAttendanceNone}
+                    disabled={showLoadingOverlay}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid #ef4444',
                       background: !isAttendanceNone && currentAttendanceStatus === 'excused_leave' ? 'var(--color-danger, #ef4444)' : 'var(--panel, white)',
                       color: !isAttendanceNone && currentAttendanceStatus === 'excused_leave' ? 'var(--text-on-success, white)' : 'var(--color-danger, #ef4444)',
-                      cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
-                      opacity: isAttendanceNone ? 0.5 : 1,
+                      cursor: showLoadingOverlay ? 'not-allowed' : 'pointer',
+                      opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -1474,15 +1490,15 @@ export default function StudentActionStatsPanel({
                     onClick={async () => {
                       await handleMarkAttendance(student.id, ATTENDANCE_STATUS.HUMAN_CASE);
                     }}
-                    disabled={showLoadingOverlay || isAttendanceNone}
+                    disabled={showLoadingOverlay}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid #8b5cf6',
                       background: !isAttendanceNone && currentAttendanceStatus === 'human_case' ? 'var(--color-purple, #8b5cf6)' : 'var(--panel, white)',
                       color: !isAttendanceNone && currentAttendanceStatus === 'human_case' ? 'var(--text-on-success, white)' : 'var(--color-purple, #8b5cf6)',
-                      cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
-                      opacity: isAttendanceNone ? 0.5 : 1,
+                      cursor: showLoadingOverlay ? 'not-allowed' : 'pointer',
+                      opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -1714,7 +1730,9 @@ export default function StudentActionStatsPanel({
                 background: 'var(--panel-hover, #f8fafc)',
                 borderRadius: '0.5rem',
                 border: '1px solid var(--border-light, #e2e8f0)',
-                marginBottom: '0.5rem'
+                marginBottom: '0.5rem',
+                maxHeight: '60vh',
+                overflowY: 'auto'
               }}>
                 {/* Participation Section */}
                 <div style={{ marginBottom: '0.15rem' }}>
