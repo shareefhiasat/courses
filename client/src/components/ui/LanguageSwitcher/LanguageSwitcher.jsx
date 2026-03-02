@@ -1,18 +1,20 @@
 import React from 'react';
 import { useLang } from '@contexts/LangContext';
 import styles from './LanguageSwitcher.module.css';
+import PortalTooltip from '@ui/PortalTooltip';
 
 export default function LanguageSwitcher({ compact = true }) {
-  const { lang, toggleLang } = useLang();
+  const { lang, toggleLang, t } = useLang();
   if (compact) {
     return (
+      <PortalTooltip content={lang === 'en' ? 'العربية' : 'English'} position="bottom">
       <button
         className={styles.compact}
-        title={lang === 'en' ? 'العربية' : 'English'}
         onClick={toggleLang}
       >
         {lang === 'en' ? 'AR' : 'EN'}
       </button>
+      </PortalTooltip>
     );
   }
   return (

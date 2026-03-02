@@ -13,6 +13,7 @@ import {
 } from '@constants/emailTypes';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import PortalTooltip from '@ui/PortalTooltip';
 
 const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
   const toast = useToast();
@@ -242,6 +243,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
                 width: 100,
                 sortable: false,
                 renderCell: (params) => (
+                    <PortalTooltip content={t('view')} position="top">
                     <button
                         onClick={() => {
                           setSelectedLog(params.row);
@@ -256,10 +258,10 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
                           cursor: 'pointer',
                           fontSize: '0.85rem'
                         }}
-                        title="View"
                     >
                       {getThemedIcon('ui', 'eye', 16, theme)}
                     </button>
+                    </PortalTooltip>
                 )
               }
             ]}

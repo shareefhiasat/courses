@@ -1,5 +1,6 @@
 import React from 'react';
 import { getColoredIcon } from '@constants/iconTypes';
+import PortalTooltip from '@ui/PortalTooltip';
 
 /**
  * Reusable stats bar component
@@ -152,14 +153,14 @@ const StatsBar = ({
         color: isDark ? '#f8fafc' : '#111'
       }}>
       {statItems.map((item, idx) => (
+        <PortalTooltip key={idx} content={item.title} position="top">
         <div 
-          key={idx}
           style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-          title={item.title}
         >
           {getColoredIcon('ui', item.icon, 14, item.color, theme)}
           <span style={{ fontWeight: 700, color: item.color }}>{item.value}</span>
         </div>
+        </PortalTooltip>
       ))}
     </div>
   );

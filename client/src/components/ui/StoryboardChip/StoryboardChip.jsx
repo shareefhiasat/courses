@@ -1,4 +1,5 @@
 import React from 'react';
+import PortalTooltip from '@ui/PortalTooltip';
 import styles from './StoryboardChip.module.css';
 
 // Simple hash for stable color selection
@@ -46,16 +47,17 @@ export default function StoryboardChip({
     : { background: bg, color: fg, borderColor: 'transparent' };
 
   return (
+    <PortalTooltip content={title || label} position="top">
     <button
       type="button"
       className={`${styles.chip} ${styles[size]} ${active ? styles.active : ''} ${className}`}
       onClick={onClick}
       style={style}
-      title={title || label}
       aria-pressed={active}
     >
       {icon ? <span className={styles.icon}>{icon}</span> : null}
       <span className={styles.label}>{label}</span>
     </button>
+    </PortalTooltip>
   );
 }

@@ -413,9 +413,9 @@ const UnifiedCard = memo(({
               }
 
               return (
+                  <PortalTooltip content={getTypeLabel()} position="top">
                   <span
                       className="filter-button"
-                      title={getTypeLabel()}
                       style={{
                         padding: '4px 8px',
                         borderRadius: 999,
@@ -432,6 +432,7 @@ const UnifiedCard = memo(({
                 {getTypeIcon()}
                     <span>{getTypeLabel()}</span>
               </span>
+              </PortalTooltip>
               );
             })()}
 
@@ -606,6 +607,7 @@ const UnifiedCard = memo(({
               )}
               {onStart && showStartButton && !isReviewMode && (
                   flavor === RECORD_TYPES.ANNOUNCEMENT ? (
+                    <PortalTooltip content={t('view')} position="top">
                     <button
                       style={{
                         width: 28,
@@ -622,7 +624,6 @@ const UnifiedCard = memo(({
                       }}
                       onClick={() => onStart(item)}
                       aria-label={t('view') || 'View'}
-                      title={t('view') || 'View'}
                       onMouseEnter={(e) => {
                         e.target.style.backgroundColor = isDark ? '#4b5563' : '#f9fafb';
                       }}
@@ -632,7 +633,9 @@ const UnifiedCard = memo(({
                     >
                       {getThemedIcon('ui', 'eye', 14, theme)}
                     </button>
+                    </PortalTooltip>
                   ) : (
+                    <PortalTooltip content={t('start')} position="top">
                     <Button
                       variant="success"
                       size="small"
@@ -647,15 +650,16 @@ const UnifiedCard = memo(({
                       }}
                       onClick={() => onStart(item)}
                       aria-label={t('start') || 'Start'}
-                      title={t('start') || 'Start'}
                     >
                       {getWhiteIcon('ui', 'play', 14)}
                     </Button>
+                    </PortalTooltip>
                   )
               )}
 
               {/* Complete button for activities, resources, homework, labels (except announcements, not in review mode) */}
               {onComplete && flavor !== RECORD_TYPES.ANNOUNCEMENT && !isReviewMode && (
+                  <PortalTooltip content={isCompleted ? t('completed') : t('mark_complete')} position="top">
                   <Button
                       variant={isCompleted ? 'success' : 'outline'}
                       size="small"
@@ -679,7 +683,6 @@ const UnifiedCard = memo(({
                         onComplete(item);
                       }}
                       aria-label={isCompleted ? t('mark_incomplete') || 'Mark incomplete' : t('mark_complete') || 'Mark complete'}
-                      title={isCompleted ? t('completed') || 'Completed' : t('mark_complete') || 'Mark complete'}
                   >
                     {isCompleted ? (
                         getWhiteIcon('ui', 'check', 14)
@@ -687,6 +690,7 @@ const UnifiedCard = memo(({
                         getColoredIcon('ui', 'check', 14, '#16a34a', theme)
                     )}
                   </Button>
+                  </PortalTooltip>
               )}
             </div>
           </div>

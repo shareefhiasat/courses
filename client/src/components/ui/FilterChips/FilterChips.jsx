@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import PortalTooltip from '@ui/PortalTooltip';
 
 /**
  * Reusable filter chips component
@@ -84,10 +85,10 @@ export default function FilterChips({ filters = [], variant = 'custom', t = (key
         const isCircular = variant === 'status';
 
         return (
+          <PortalTooltip content={filter.title || filter.label} position="top">
           <button
             key={filter.id}
             onClick={filter.onClick}
-            title={filter.title || filter.label}
             style={{
               ...(isCircular ? {
                 width: 32,
@@ -127,6 +128,7 @@ export default function FilterChips({ filters = [], variant = 'custom', t = (key
             {Icon}
             {!isCircular && <span>{filter.label}</span>}
           </button>
+          </PortalTooltip>
         );
       })}
     </div>

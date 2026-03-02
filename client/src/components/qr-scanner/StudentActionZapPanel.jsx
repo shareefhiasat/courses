@@ -559,12 +559,12 @@ export default function StudentActionZapPanel({
                     )}
                   </div>
                   
+                  <PortalTooltip content={favoriteBehaviors.includes(option.id) ? t('remove_from_favorites') : t('add_to_favorites')} position="top">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onToggleFavorite(option.id);
                     }}
-                    title={favoriteBehaviors.includes(option.id) ? t('remove_from_favorites') : t('add_to_favorites')}
                     style={{
                       position: 'absolute',
                       top: '0.25rem',
@@ -577,6 +577,7 @@ export default function StudentActionZapPanel({
                   >
                     {getThemedIcon('ui', 'star', 12, theme)}
                   </button>
+                  </PortalTooltip>
                   
                   {isSelected && (
                     <div style={{
@@ -586,6 +587,7 @@ export default function StudentActionZapPanel({
                       justifyContent: 'center',
                       gap: '0.125rem'
                     }}>
+                      <PortalTooltip content={t('decrease_points')} position="top">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -598,7 +600,6 @@ export default function StudentActionZapPanel({
                           }
                           handlePointsChange(option.id, newValue);
                         }}
-                        title={t('decrease_points')}
                         style={{
                           width: '1.5rem',
                           height: '1.5rem',
@@ -616,6 +617,7 @@ export default function StudentActionZapPanel({
                       >
                         −
                       </button>
+                      </PortalTooltip>
                       <div style={{
                         width: '2rem',
                         height: '1.5rem',
@@ -632,6 +634,7 @@ export default function StudentActionZapPanel({
                       }}>
                         {actionPoints[option.id] || 0}
                       </div>
+                      <PortalTooltip content={t('increase_points')} position="top">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -644,7 +647,6 @@ export default function StudentActionZapPanel({
                           }
                           handlePointsChange(option.id, newValue);
                         }}
-                        title={t('increase_points')}
                         style={{
                           width: '1.5rem',
                           height: '1.5rem',
@@ -662,6 +664,7 @@ export default function StudentActionZapPanel({
                       >
                         +
                       </button>
+                      </PortalTooltip>
                     </div>
                   )}
                 </div>

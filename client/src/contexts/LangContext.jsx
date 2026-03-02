@@ -2042,6 +2042,85 @@ const DICT = {
     minimize: 'Minimize',
     maximize: 'Maximize',
     close: 'Close',
+    // Student actions
+    delete_all_entries: 'Delete all {type} entries',
+    collapse_all: 'Collapse all',
+    expand_all: 'Expand all',
+    // Zap panel actions
+    remove_from_favorites: 'Remove from favorites',
+    add_to_favorites: 'Add to favorites',
+    decrease_points: 'Decrease points',
+    increase_points: 'Increase points',
+    // ScratchPad actions
+    pen: 'Pen',
+    eraser: 'Eraser',
+    clear: 'Clear',
+    download: 'Download',
+    // DraggableClock actions
+    pin_to_navbar: 'Pin to navbar',
+    unpin_from_navbar: 'Unpin from navbar',
+    // QR Code actions
+    refresh_qr_code: 'Refresh QR Code',
+    download_qr_code: 'Download QR Code',
+    // Email actions
+    remove_email: 'Remove email',
+    view: 'View',
+    // UnifiedCard actions
+    start: 'Start',
+    mark_complete: 'Mark complete',
+    mark_incomplete: 'Mark incomplete',
+    completed: 'Completed',
+    // CollapsibleDashboardSection actions
+    restore_section: 'Restore {title}',
+    view_options: 'View options',
+    refreshing_data: 'Refreshing data',
+    refresh_data: 'Refresh data',
+    // CollapsibleSideWindow actions
+    expand: 'Expand',
+    collapse: 'Collapse',
+    minimize: 'Minimize',
+    close: 'Close',
+    // EmailTemplateEditor actions
+    click_to_copy_variable: 'Click to copy {variable}',
+    // EmailTemplateList actions
+    force_refresh_template_list: 'Force refresh template list',
+    debug_check_password_reset: 'Debug: Check if password_reset_default exists',
+    // NotificationDrawer actions
+    open_in_new_tab: 'Open in new tab',
+    test_browser_notification: 'Test Browser Notification',
+    mark_as_read: 'Mark as read',
+    mark_as_unread: 'Mark as unread',
+    archive: 'Archive',
+    delete: 'Delete',
+    // Navbar actions
+    expand_navbar: 'Expand navbar',
+    collapse_navbar: 'Collapse navbar',
+    exit_impersonation: 'Exit Impersonation',
+    viewing_as_student: 'Viewing as Student',
+    switch_to_arabic: 'Switch to Arabic',
+    switch_to_english: 'Switch to English',
+    help: 'Help',
+    information: 'Information',
+    dark_mode: 'Dark',
+    light_mode: 'Light',
+    normal_view: 'Normal View',
+    compact_view: 'Compact View',
+    minified_filters: 'Minified Filters',
+    full_filters: 'Full Filters',
+    super_admin: 'Super Admin',
+    admin: 'Admin',
+    instructor: 'Instructor',
+    hr: 'HR',
+    // HistoryEntry actions
+    delete_record: 'Delete {type} record',
+    // StudentCard actions
+    view_details: 'View Details',
+    actions: 'Actions',
+    stats: 'Stats',
+    open_qr_code: 'Open QR Code',
+    // StudentRosterHistory actions
+    expand_all: 'Expand All',
+    collapse_all: 'Collapse All',
     not_student_qr: 'This QR code is not for a student profile',
     enter_reference_id: 'Enter reference ID (STU-XXXXXX) or student email...',
     search_tips: 'Search tips:',
@@ -5985,6 +6064,85 @@ const DICT = {
     minimize: 'تصغير',
     maximize: 'تكبير',
     close: 'إغلاق',
+    // Student actions
+    delete_all_entries: 'حذف جميع إدخالات {type}',
+    collapse_all: 'طي الكل',
+    expand_all: 'توسيع الكل',
+    // Zap panel actions
+    remove_from_favorites: 'إزالة من المفضلة',
+    add_to_favorites: 'إضافة إلى المفضلة',
+    decrease_points: 'تقليل النقاط',
+    increase_points: 'زيادة النقاط',
+    // ScratchPad actions
+    pen: 'قلم',
+    eraser: 'ممحاة',
+    clear: 'مسح',
+    download: 'تنزيل',
+    // DraggableClock actions
+    pin_to_navbar: 'تثبيت في شريط التنقل',
+    unpin_from_navbar: 'إلغاء التثبيت من شريط التنقل',
+    // QR Code actions
+    refresh_qr_code: 'تحديث رمز QR',
+    download_qr_code: 'تنزيل رمز QR',
+    // Email actions
+    remove_email: 'إزالة البريد الإلكتروني',
+    view: 'عرض',
+    // UnifiedCard actions
+    start: 'بدء',
+    mark_complete: 'تحديد كمكتمل',
+    mark_incomplete: 'تحديد كغير مكتمل',
+    completed: 'مكتمل',
+    // CollapsibleDashboardSection actions
+    restore_section: 'استعادة {title}',
+    view_options: 'خيارات العرض',
+    refreshing_data: 'تحديث البيانات',
+    refresh_data: 'تحديث البيانات',
+    // CollapsibleSideWindow actions
+    expand: 'توسيع',
+    collapse: 'طي',
+    minimize: 'تصغير',
+    close: 'إغلاق',
+    // EmailTemplateEditor actions
+    click_to_copy_variable: 'انقر لنسخ {variable}',
+    // EmailTemplateList actions
+    force_refresh_template_list: 'تحديث القائمة بالقوة',
+    debug_check_password_reset: 'تصحيح: تحقق من وجود password_reset_default',
+    // NotificationDrawer actions
+    open_in_new_tab: 'فتح في علامة تبويب جديدة',
+    test_browser_notification: 'اختبار إشعار المتصفح',
+    mark_as_read: 'تحديد كمقروء',
+    mark_as_unread: 'تحديد كغير مقروء',
+    archive: 'أرشفة',
+    delete: 'حذف',
+    // Navbar actions
+    expand_navbar: 'توسيع شريط التنقل',
+    collapse_navbar: 'طي شريط التنقل',
+    exit_impersonation: 'خروج من التمثيل',
+    viewing_as_student: 'عرض كطالب',
+    switch_to_arabic: 'التبديل إلى العربية',
+    switch_to_english: 'التبديل إلى الإنجليزية',
+    help: 'مساعدة',
+    information: 'معلومات',
+    dark_mode: 'الوضع الليلي',
+    light_mode: 'الوضع النهاري',
+    normal_view: 'عرض عادي',
+    compact_view: 'عرض مكثف',
+    minified_filters: 'مرشحات مصغرة',
+    full_filters: 'مرشحات كاملة',
+    super_admin: 'مسؤول متميز',
+    admin: 'مسؤول',
+    instructor: 'مدرب',
+    hr: 'الموارد البشرية',
+    // HistoryEntry actions
+    delete_record: 'حذف سجل {type}',
+    // StudentCard actions
+    view_details: 'عرض التفاصيل',
+    actions: 'إجراءات',
+    stats: 'إحصائيات',
+    open_qr_code: 'فتح رمز QR',
+    // StudentRosterHistory actions
+    expand_all: 'توسيع الكل',
+    collapse_all: 'طي الكل',
     not_student_qr: 'هذا الرمز QR ليس لملف طالب',
     enter_reference_id: 'أدخل المعرف المرجعي (STU-XXXXXX) أو بريد الطالب...',
     search_tips: 'نصائح البحث:',

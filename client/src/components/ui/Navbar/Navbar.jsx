@@ -17,6 +17,7 @@ import { getTimeFormatPreference, setTimeFormatPreference } from '@utils/date';
 import { adjustColor, hexToRgbString, normalizeHexColor, DEFAULT_ACCENT } from '@utils/color';
 import { Select } from '@ui';
 import DraggableClock from '../DraggableClock/DraggableClock';
+import PortalTooltip from '@ui/PortalTooltip';
 
 const ACCENT_FALLBACK = DEFAULT_ACCENT;
 
@@ -171,14 +172,15 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
             )}
 
           {/* Collapse/Expand Navbar Button */}
+          <PortalTooltip content={isNavbarCollapsed ? t('expand_navbar') : t('collapse_navbar')} position="bottom">
           <button
             onClick={toggleNavbar}
             className="navbar-collapse-btn"
-            title={isNavbarCollapsed ? (t('expand_navbar') || 'Expand navbar') : (t('collapse_navbar') || 'Collapse navbar')}
             aria-label={isNavbarCollapsed ? (t('expand_navbar') || 'Expand navbar') : (t('collapse_navbar') || 'Collapse navbar')}
           >
             {getThemedIcon('ui', isNavbarCollapsed ? 'chevron_down' : 'chevron_up', 18, '#D4AF37')}
           </button>
+          </PortalTooltip>
 
           {/* Brand */}
           <div className="navbar-brand" style={{ 
@@ -205,6 +207,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
 
           {/* Impersonation Banner */}
           {impersonating && (
+            <PortalTooltip content={t('exit_impersonation')} position="bottom">
             <button
               onClick={() => {
                 stopImpersonation();
@@ -226,10 +229,10 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               }}
               onMouseEnter={(e) => e.target.style.background = '#f57c00'}
               onMouseLeave={(e) => e.target.style.background = '#ff9800'}
-              title={t('exit_impersonation') || 'Exit Impersonation'}
             >
-              {getThemedIcon('ui', 'user', 16, theme === 'light' ? 'white' : theme)} {t('viewing_as_student') || 'Viewing as Student'} <span style={{ marginLeft: '0.5rem' }}>✕</span>
+              {getThemedIcon('ui', 'user', 16, theme === 'light' ? 'white' : theme)} {t('viewing_as_student')} <span style={{ marginLeft: '0.5rem' }}>✕</span>
             </button>
+            </PortalTooltip>
           )}
           
           <div style={{ flex: 1 }} />
@@ -245,11 +248,11 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               }}>
                 <NotificationBell />
 
+                <PortalTooltip content={lang === 'en' ? 'العربية' : 'English'} position="bottom">
                 <button
                   className="nav-icon-btn nav-help"
                   onClick={toggleLang}
-                  title={lang === 'en' ? 'العربية' : 'English'}
-                  aria-label={lang === 'en' ? (t('switch_to_arabic') || 'Switch to Arabic') : (t('switch_to_english') || 'Switch to English')}
+                  aria-label={lang === 'en' ? t('switch_to_arabic') : t('switch_to_english')}
                   style={{
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
                     background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
@@ -265,7 +268,9 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 >
                   {lang === 'en' ? getThemedIcon('ui', 'globe', 16, theme === 'light' ? 'var(--text-primary)' : '#fff') : getThemedIcon('ui', 'globe2', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
                 </button>
+                </PortalTooltip>
 
+                <PortalTooltip content={t('help')} position="bottom">
                 <button
                   className="nav-icon-btn nav-help"
                   onClick={() => {
@@ -276,8 +281,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       window.dispatchEvent(new CustomEvent('app:joyride', { detail: { route: fullPath, search, hash } }));
                     } catch {}
                   }}
-                  title={t('help') || 'Help'}
-                  aria-label={t('help') || 'Help'}
+                  aria-label={t('help')}
                   style={{
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
                     background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
@@ -293,7 +297,9 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 >
                   {getThemedIcon('ui', 'help_circle', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
                 </button>
+                </PortalTooltip>
 
+                <PortalTooltip content={t('information')} position="bottom">
                 <button
                   className="nav-icon-btn"
                   onClick={() => {
@@ -311,8 +317,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       }));
                     } catch {}
                   }}
-                  title={t('information') || 'Information'}
-                  aria-label={t('information') || 'Information'}
+                  aria-label={t('information')}
                   style={{
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
                     background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
@@ -328,10 +333,11 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 >
                   {getThemedIcon('ui', 'info', 18, theme === 'light' ? 'var(--text-primary)' : '#fff')}
                 </button>
+                </PortalTooltip>
 
+                <PortalTooltip content={theme==='light'?t('dark_mode'):t('light_mode')} position="bottom">
                 <button
                   className="nav-icon-btn"
-                  title={theme==='light'?(t('dark_mode')||'Dark'):(t('light_mode')||'Light')}
                   onClick={toggleTheme}
                   style={{
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
@@ -348,6 +354,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 >
                   {theme==='light'?getThemedIcon('ui', 'moon', 16, 'var(--text-primary)'):getThemedIcon('ui', 'sun', 16, theme)}
                 </button>
+                </PortalTooltip>
                 {/* Temporarily hidden - Minified filter toggle button
                 <button
                   className="nav-icon-btn"
@@ -426,24 +433,32 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 {/* Multiple role badges stacked on the right side */}
                 <div style={{ position:'absolute', right:-8, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {isSuperAdmin && (
-                    <div title={t('super_admin') || 'Super Admin'} style={{ background:'#f59e0b', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                    <PortalTooltip content={t('super_admin')} position="left">
+                    <div style={{ background:'#f59e0b', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
                       {getThemedIcon('ui', 'crown', 10, theme === 'light' ? 'white' : theme)}
                     </div>
+                    </PortalTooltip>
                   )}
                   {isAdmin && !isSuperAdmin && (
-                    <div title={t('admin') || 'Admin'} style={{ background:'#4f46e5', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                    <PortalTooltip content={t('admin')} position="left">
+                    <div style={{ background:'#4f46e5', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
                       {getThemedIcon('ui', 'shield', 10, theme === 'light' ? 'white' : theme)}
                     </div>
+                    </PortalTooltip>
                   )}
                   {isInstructor && (
-                    <div title={t('instructor') || 'Instructor'} style={{ background:'#0ea5e9', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                    <PortalTooltip content={t('instructor')} position="left">
+                    <div style={{ background:'#0ea5e9', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
                       {getThemedIcon('ui', 'book_open', 10, theme === 'light' ? 'white' : theme)}
                     </div>
+                    </PortalTooltip>
                   )}
                   {isHR && (
-                    <div title={t('hr') || 'HR'} style={{ background:'#8b5cf6', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                    <PortalTooltip content={t('hr')} position="left">
+                    <div style={{ background:'#8b5cf6', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
                       {getThemedIcon('ui', 'users', 10, theme === 'light' ? 'white' : theme)}
                     </div>
+                    </PortalTooltip>
                   )}
                 </div>
                 {showDropdown && (
@@ -534,15 +549,21 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
 
               <NotificationBell />
               
-              <button onClick={toggleLang} className="icon-btn" title={lang==='en'?'العربية':'English'}>
+              <PortalTooltip content={lang==='en'?'العربية':'English'} position="bottom">
+              <button onClick={toggleLang} className="icon-btn">
                 {lang==='en'?'EN':'AR'}
               </button>
-              <button onClick={()=>setDensity(d=>d==='compact'?'normal':'compact')} className="icon-btn" title={density==='compact'?(t('normal_view')||'Normal View'):(t('compact_view')||'Compact View')}>
+              </PortalTooltip>
+              <PortalTooltip content={density==='compact'?t('normal_view'):t('compact_view')} position="bottom">
+              <button onClick={()=>setDensity(d=>d==='compact'?'normal':'compact')} className="icon-btn">
                 {density==='compact'?getThemedIcon('ui', 'zoom_in', 16, theme === 'light' ? 'var(--text-primary)' : theme):getThemedIcon('ui', 'ruler', 16, theme === 'light' ? 'var(--text-primary)' : theme)}
               </button>
-              <button onClick={toggleTheme} className="icon-btn" title={theme==='light'?(t('dark_mode')||'Dark'):(t('light_mode')||'Light')}>
+              </PortalTooltip>
+              <PortalTooltip content={theme==='light'?t('dark_mode'):t('light_mode')} position="bottom">
+              <button onClick={toggleTheme} className="icon-btn">
                 {theme==='light'?getThemedIcon('ui', 'moon', 16, 'var(--text-primary)'):getThemedIcon('ui', 'sun', 16, theme)}
               </button>
+              </PortalTooltip>
               
               <div className="navbar-user" onClick={() => setShowDropdown(!showDropdown)} ref={menuRef}>
                 <div className="user-avatar">
@@ -694,10 +715,10 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
 
       {/* Floating restore button when navbar is collapsed */}
       {isNavbarCollapsed && (
+        <PortalTooltip content={t('expand_navbar')} position="left">
         <button
           onClick={toggleNavbar}
-          title={t('expand_navbar') || 'Expand navbar'}
-          aria-label={t('expand_navbar') || 'Expand navbar'}
+          aria-label={t('expand_navbar')}
           style={{
             position: 'fixed',
             top: isMobile ? '15px' : '20px',
@@ -734,6 +755,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
         >
           {getThemedIcon('ui', 'chevron_down', isMobile ? 14 : 16, theme)}
         </button>
+        </PortalTooltip>
       )}
     </>
   );

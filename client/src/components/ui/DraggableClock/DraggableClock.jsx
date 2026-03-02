@@ -3,6 +3,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { formatLocalizedDateTime } from '@utils/date';
+import PortalTooltip from '@ui/PortalTooltip';
 import './DraggableClock.css';
 
 const DraggableClock = ({ 
@@ -131,26 +132,28 @@ const DraggableClock = ({
           <span className="clock-time">{formatTime(currentTime)}</span>
         </div>
         <div className="clock-controls">
+          <PortalTooltip content={isPinned ? t('unpin_from_navbar') : t('pin_to_navbar')} position="top">
           <button
             className="control-btn"
             onClick={(e) => {
               e.stopPropagation();
               setIsPinned(!isPinned);
             }}
-            title={isPinned ? (t('unpin_from_navbar') || 'Unpin from navbar') : (t('pin_to_navbar') || 'Pin to navbar')}
           >
             {isPinned ? getThemedIcon('ui', 'pin_off', 14, '#fff') : getThemedIcon('ui', 'pin', 14, '#fff')}
           </button>
+          </PortalTooltip>
+          <PortalTooltip content={isMinimized ? t('maximize') : t('minimize')} position="top">
           <button
             className="control-btn"
             onClick={(e) => {
               e.stopPropagation();
               setIsMinimized(!isMinimized);
             }}
-            title={isMinimized ? (t('maximize') || 'Maximize') : (t('minimize') || 'Minimize')}
           >
             {isMinimized ? getThemedIcon('ui', 'maximize', 14, '#fff') : getThemedIcon('ui', 'minus', 14, '#fff')}
           </button>
+          </PortalTooltip>
         </div>
       </div>
       {!isMinimized && (

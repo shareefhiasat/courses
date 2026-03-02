@@ -27,6 +27,7 @@ import { Button, Input, Select, Badge, ToggleSwitch } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
+import PortalTooltip from '@ui/PortalTooltip';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { ActivityLogger } from '@services/other/activityLogger';
 import useNotifications from '@hooks/useNotifications';
@@ -430,12 +431,12 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               Notifications
             </h2>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <PortalTooltip content={t('open_in_new_tab')} position="top">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open('/notifications', '_blank');
                 }}
-                title={t('open_in_new_tab') || 'Open in new tab'}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -450,6 +451,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               >
                 {getThemedIcon('ui', 'external_link', 18, theme)}
               </button>
+              </PortalTooltip>
               <button
                 onClick={onClose}
                 style={{
@@ -684,15 +686,16 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                       await updateSetting('browserNotificationsEnabled', checked);
                     }}
                   />
+                  <PortalTooltip content={t('test_browser_notification')} position="top">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleTestBrowserNotification}
-                    title={t('test_browser_notification') || 'Test Browser Notification'}
                     style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem' }}
                   >
                     {getThemedIcon('ui', 'test', 14, theme)}
                   </Button>
+                  </PortalTooltip>
                 </div>
               )}
             </div>
@@ -813,9 +816,9 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                       <span>{formatTime(notification.createdAt)}</span>
                       <div style={{ display: 'flex', gap: '0.25rem' }}>
                         {!notification.read ? (
+                          <PortalTooltip content={t('mark_as_read')} position="top">
                           <button
                             onClick={(e) => handleMarkAsRead(notification.id, e)}
-                            title={t('mark_as_read') || 'Mark as read'}
                             style={{
                               background: 'transparent',
                               border: 'none',
@@ -838,10 +841,11 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                           >
                             {getThemedIcon('ui', 'eye', 14, theme)}
                           </button>
+                          </PortalTooltip>
                         ) : (
+                          <PortalTooltip content={t('mark_as_unread')} position="top">
                           <button
                             onClick={(e) => handleMarkAsUnread(notification.id, e)}
-                            title={t('mark_as_unread') || 'Mark as unread'}
                             style={{
                               background: 'transparent',
                               border: 'none',
@@ -864,11 +868,12 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                           >
                             {getThemedIcon('ui', 'eye_off', 14, theme)}
                           </button>
+                          </PortalTooltip>
                         )}
                         {!notification.archived ? (
+                          <PortalTooltip content={t('archive')} position="top">
                           <button
                             onClick={(e) => handleArchive(notification.id, e)}
-                            title={t('archive') || 'Archive'}
                             style={{
                               background: 'transparent',
                               border: 'none',
@@ -891,10 +896,11 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                           >
                             {getThemedIcon('ui', 'archive', 14, theme)}
                           </button>
+                          </PortalTooltip>
                         ) : null}
+                        <PortalTooltip content={t('delete')} position="top">
                         <button
                           onClick={(e) => handleDelete(notification.id, e)}
-                          title={t('delete') || 'Delete'}
                           style={{
                             background: 'transparent',
                             border: 'none',
@@ -917,6 +923,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                         >
                           {getThemedIcon('ui', 'trash', 14, theme)}
                         </button>
+                        </PortalTooltip>
                       </div>
                     </div>
                   </div>

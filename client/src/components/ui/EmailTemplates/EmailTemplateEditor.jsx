@@ -10,6 +10,7 @@ import { Modal } from '@ui';
 import { formatDateTime } from '@utils/date';
 import { collection, doc, addDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@services/other/config';
+import PortalTooltip from '@ui/PortalTooltip';
 
 const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
   const toast = useToast();
@@ -450,6 +451,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
                       <strong>{t('key_variables') || 'Key Variables'}:</strong>
                       <div style={{ marginTop: 6, display:'flex', flexWrap:'wrap', gap:6 }}>
                         {Array.from(new Set(info.variables || [])).map(v => (
+                            <PortalTooltip content={t('click_to_copy_variable').replace('{variable}', `{{${v}}}`)} position="top">
                             <code
                                 key={v}
                                 style={{
@@ -462,11 +464,11 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
                                   fontSize:'0.8rem'
                                 }}
                                 onClick={() => copyVariable(v)}
-                                title={`Click to copy {{${v}}}`}
                             >
                               {`{{${v}}}`}
                               {getThemedIcon('ui', 'copy', 12, theme)}
                             </code>
+                            </PortalTooltip>
                         ))}
                       </div>
                     </div>

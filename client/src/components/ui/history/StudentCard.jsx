@@ -394,46 +394,50 @@ const StudentCard = ({
         flexWrap: isMobile ? 'wrap' : 'nowrap'
       }}>
         {isMobile && (
+          <PortalTooltip content={t('view_details')} position="top">
           <Button 
             variant="ghost" 
             size="icon"
             onClick={handleStudentSelect}
-            title={t('view_details') || 'View Details'}
           >
             {getThemedIcon('ui', 'sidebar_open', 16)}
           </Button>
+          </PortalTooltip>
         )}
+        <PortalTooltip content={t('actions')} position="top">
         <Button 
           variant="ghost" 
           size={isMobile ? 'icon' : 'sm'}
           onClick={handleStudentAction}
           style={isMobile ? {} : { flex: 1 }}
-          title={t('actions')}
         >
           {isMobile ? (
             <ZapIcon style={{ width: '16px', height: '16px', color: '#f59e0b' }} />
           ) : t('actions')}
         </Button>
+        </PortalTooltip>
         {!isMobile && (
+          <PortalTooltip content={t('stats')} position="top">
           <Button 
             variant="ghost" 
             size="sm"
             onClick={handleStudentSelect}
             style={{ flex: 1 }}
-            title={t('stats')}
           >
             {t('stats')}
           </Button>
+          </PortalTooltip>
         )}
+
         <PortalTooltip 
-          content={t('open_qr_code') || 'Open QR Code'}
+          content={t('open_qr_code')}
           position="top"
         >
           <Button 
             variant="ghost" 
             size="icon"
             onClick={handleQRNavigate}
-            aria-label={t('open_qr_code') || 'Open QR Code'}
+            aria-label={t('open_qr_code')}
           >
             {getThemedIcon('ui', 'qr_code', 16)}
           </Button>

@@ -1782,6 +1782,7 @@ export default function StudentActionStatsPanel({
                                     Count: ({stat.count})
                                   </div>
                                   {stat.count > 0 && (
+                                      <PortalTooltip content={t('delete_all_entries').replace('{type}', type.label_en)} position="top">
                                       <button
                                           onClick={() => {
                                             setDeleteType('participation');
@@ -1806,10 +1807,10 @@ export default function StudentActionStatsPanel({
                                             e.target.style.background = 'none';
                                             e.target.style.color = '#dc2626';
                                           }}
-                                          title={`Delete all ${type.label_en} entries`}
                                       >
                                         {getThemedIcon('ui', 'trash2', 14)}
                                       </button>
+                                    </PortalTooltip>
                                   )}
                                 </div>
                             );
@@ -1939,6 +1940,7 @@ export default function StudentActionStatsPanel({
                                     {t('count')}: ({stat.count})
                                   </div>
                                   {stat.count > 0 && (
+                                      <PortalTooltip content={t('delete_all_entries').replace('{type}', type.label_en)} position="top">
                                       <button
                                           onClick={() => {
                                             setDeleteType('behavior');
@@ -1963,10 +1965,10 @@ export default function StudentActionStatsPanel({
                                             e.target.style.background = 'none';
                                             e.target.style.color = '#dc2626';
                                           }}
-                                          title={`Delete all ${type.label_en} entries`}
                                       >
                                         {getThemedIcon('ui', 'trash2', 14)}
                                       </button>
+                                    </PortalTooltip>
                                   )}
                                 </div>
                             );
@@ -2096,6 +2098,7 @@ export default function StudentActionStatsPanel({
                                     Count: ({stat.count})
                                   </div>
                                   {stat.count > 0 && (
+                                      <PortalTooltip content={t('delete_all_entries').replace('{type}', type.label_en)} position="top">
                                       <button
                                           onClick={() => {
                                             setDeleteType('penalty');
@@ -2120,10 +2123,10 @@ export default function StudentActionStatsPanel({
                                             e.target.style.background = 'none';
                                             e.target.style.color = '#dc2626';
                                           }}
-                                          title={`Delete all ${type.label_en} entries`}
                                       >
                                         {getThemedIcon('ui', 'trash2', 14)}
                                       </button>
+                                    </PortalTooltip>
                                   )}
                                 </div>
                             );
@@ -2279,6 +2282,7 @@ export default function StudentActionStatsPanel({
                   </button>
                 </div>
                 {historicalLogs.length > 0 && (
+                    <PortalTooltip content={expandedDays.size === memoizedGroupedLogs.length ? t('collapse_all') : t('expand_all')} position="top">
                     <button
                         onClick={expandedDays.size === memoizedGroupedLogs.length ? collapseAllDays : expandAllDays}
                         style={{
@@ -2294,7 +2298,6 @@ export default function StudentActionStatsPanel({
                           cursor: 'pointer',
                           transition: 'all 0.2s'
                         }}
-                        title={expandedDays.size === memoizedGroupedLogs.length ? (t('collapse_all')) : (t('expand_all'))}
                     >
                       {expandedDays.size === memoizedGroupedLogs.length ? (
                           <>
@@ -2312,6 +2315,7 @@ export default function StudentActionStatsPanel({
                           </>
                       )}
                     </button>
+                    </PortalTooltip>
                 )}
               </div>
 

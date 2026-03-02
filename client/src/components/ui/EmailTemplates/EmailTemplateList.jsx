@@ -10,6 +10,7 @@ import { Timestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import emailDbService from '@services/business/emailDbService';
 import logger from '@utils/logger';
+import PortalTooltip from '@ui/PortalTooltip';
 
 const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   const toast = useToast();
@@ -280,6 +281,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                   color: '#000'
                 }}
             />
+            <PortalTooltip content={t('force_refresh_template_list')} position="top">
             <button
                 onClick={() => loadTemplates(true)}
                 style={{
@@ -291,10 +293,11 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                   cursor: 'pointer',
                   fontSize: '0.85rem'
                 }}
-                title="Force refresh template list"
             >
               {getThemedIcon('ui', 'refresh', 16, theme)} Force Refresh
             </button>
+            </PortalTooltip>
+            <PortalTooltip content={t('debug_check_password_reset')} position="top">
             <button
                 onClick={async () => {
                   const result = await emailDbService.verifyTemplateExists('password_reset_default');
@@ -309,10 +312,10 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                   cursor: 'pointer',
                   fontSize: '0.85rem'
                 }}
-                title="Debug: Check if password_reset_default exists"
             >
               🔍 Debug
             </button>
+            </PortalTooltip>
           </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <div style={{ 

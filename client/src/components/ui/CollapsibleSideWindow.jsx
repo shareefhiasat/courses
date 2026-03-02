@@ -3,6 +3,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Input } from '@ui';
+import PortalTooltip from '@ui/PortalTooltip';
 
 const CollapsibleSideWindow = ({ 
   isOpen, 
@@ -141,27 +142,30 @@ const CollapsibleSideWindow = ({
               {studentName && <span className="collapsible-side-window-subtitle">{studentName}</span>}
             </div>
             <div className="collapsible-side-window-header-actions">
+              <PortalTooltip content={isCollapsed ? t('expand') : t('collapse')} position="top">
               <button
                 className="collapsible-side-window-header-button"
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                title={isCollapsed ? 'Expand' : 'Collapse'}
               >
                 {isCollapsed ? getThemedIcon('ui', 'chevron_down', 18, theme) : getThemedIcon('ui', 'chevron_up', 18, theme)}
               </button>
+              </PortalTooltip>
+              <PortalTooltip content={t('minimize')} position="top">
               <button
                 className="collapsible-side-window-header-button"
                 onClick={() => setIsMinimized(true)}
-                title="Minimize"
               >
                 {getThemedIcon('ui', 'minimize', 18, theme)}
               </button>
+              </PortalTooltip>
+              <PortalTooltip content={t('close')} position="top">
               <button
                 className="collapsible-side-window-header-button"
                 onClick={onClose}
-                title="Close"
               >
                 {getThemedIcon('ui', 'close', 18, theme)}
               </button>
+              </PortalTooltip>
             </div>
           </div>
           {!isCollapsed && (

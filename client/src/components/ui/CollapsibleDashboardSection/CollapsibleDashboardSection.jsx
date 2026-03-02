@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
+import { useLang } from '@contexts/LangContext';
+import PortalTooltip from '@ui/PortalTooltip';
 import styles from './CollapsibleDashboardSection.module.css';
 
 // Collapse modes:
@@ -26,6 +28,7 @@ const CollapsibleDashboardSection = ({
   onRefresh = null, // Refresh callback function
   refreshing = false // Refresh state for visual feedback
 }) => {
+  const { t } = useLang();
   const [mode, setMode] = useState(defaultMode);
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
@@ -109,16 +112,17 @@ const CollapsibleDashboardSection = ({
   if (mode === 'minimize') {
     return (
       <div className={`${styles.minimizeSection} ${className}`}>
+        <PortalTooltip content={t('restore_section').replace('{title}', title)} position="top">
         <button
           className={styles.restoreButton}
           onClick={() => handleModeChange('full')}
-          title={`Restore ${title}`}
           style={{ '--color': color }}
         >
           {icon}
           <span>{title}</span>
           {getThemedIcon('ui', 'maximize', 12)}
         </button>
+        </PortalTooltip>
       </div>
     );
   }
@@ -161,13 +165,14 @@ const CollapsibleDashboardSection = ({
         <div className={styles.headerRight}>
           {headerRight}
           {showModeToggle && (
+            <PortalTooltip content={t('view_options')} position="top">
             <button
               className={styles.modeToggle}
               onClick={() => setIsModeMenuOpen(!isModeMenuOpen)}
-              title="View options"
             >
               {getThemedIcon('ui', 'more_vertical', 14)}
             </button>
+            </PortalTooltip>
           )}
         </div>
 
@@ -188,6 +193,7 @@ const CollapsibleDashboardSection = ({
               Full View
             </button>
             {onRefresh && (
+              <PortalTooltip content={refreshing ? t('refreshing_data') : t('refresh_data')} position="top">
               <button
                 onClick={() => {
                   onRefresh();
@@ -195,11 +201,11 @@ const CollapsibleDashboardSection = ({
                 }}
                 className={`${styles.refreshButton} ${refreshing ? styles.refreshing : ''}`}
                 disabled={refreshing}
-                title={refreshing ? "Refreshing..." : "Refresh data"}
               >
                 {getThemedIcon('ui', 'refresh', 14)}
                 {refreshing ? 'Refreshing...' : 'Refresh'}
               </button>
+              </PortalTooltip>
             )}
           </div>
         )}

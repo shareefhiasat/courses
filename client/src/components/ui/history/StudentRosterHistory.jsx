@@ -6,6 +6,7 @@ import {
   ParticipationIcon
 } from "@utils/icons.jsx";
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import PortalTooltip from '@ui/PortalTooltip';
 
 const StudentRosterHistory = ({ 
   student, 
@@ -214,6 +215,10 @@ const StudentRosterHistory = ({
         </div>
         
         {studentHistory[student.id] && studentHistory[student.id].length > 0 && (
+          <PortalTooltip content={(() => {
+            const allExpanded = groupedLogs.every(log => expandedDays.has(log.date));
+            return allExpanded ? t('collapse_all') : t('expand_all');
+          })()} position="top">
           <button
             onClick={() => {
               const allExpanded = groupedLogs.every(log => expandedDays.has(log.date));
@@ -236,10 +241,6 @@ const StudentRosterHistory = ({
               cursor: 'pointer',
               transition: 'all 0.2s'
             }}
-            title={(() => {
-              const allExpanded = groupedLogs.every(log => expandedDays.has(log.date));
-              return allExpanded ? (t('collapse_all')) : (t('expand_all'));
-            })()}
           >
             {(() => {
               const allExpanded = groupedLogs.every(log => expandedDays.has(log.date));
@@ -255,11 +256,12 @@ const StudentRosterHistory = ({
                   <svg style={{ width: '14px', height: '14px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
-                  {/*{t('expand_all') || 'Expand All'}*/}
+                  {t('expand_all')}
                 </>
               );
             })()}
           </button>
+          </PortalTooltip>
         )}
       </div>
 

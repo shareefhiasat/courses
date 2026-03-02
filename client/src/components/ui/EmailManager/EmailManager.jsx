@@ -3,6 +3,7 @@ import './EmailManager.css';
 import { Modal } from '@ui';
 import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
+import PortalTooltip from '@ui/PortalTooltip';
 
 const EmailManager = ({
   emails = [],
@@ -161,13 +162,14 @@ const EmailManager = ({
                             <span className="student-number">#{studentNumber}</span>
                           )}
                         </div>
+                        <PortalTooltip content={t('remove_email')} position="top">
                         <button
                             onClick={() => removeEmail(email)}
                             className="remove-btn"
-                            title="Remove email"
                         >
                           ✕
                         </button>
+                        </PortalTooltip>
                       </div>
                     );
                   })}

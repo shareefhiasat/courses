@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'react-qr-code';
 import { getThemedIcon } from '@constants/iconTypes';
+import { useLang } from '@contexts/LangContext';
+import PortalTooltip from '@ui/PortalTooltip';
 import './StudentQRCodeDisplay.css';
 
 const StudentQRCodeDisplay = ({ 
@@ -10,6 +12,7 @@ const StudentQRCodeDisplay = ({
   size = 200,
   className = ''
 }) => {
+  const { t } = useLang();
   const [qrData, setQrData] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -80,23 +83,25 @@ const StudentQRCodeDisplay = ({
         <h3>{student.name || student.displayName || 'Student'}</h3>
         <div className="qr-code-actions">
           {onRefresh && (
+            <PortalTooltip content={t('refresh_qr_code')} position="top">
             <button
               onClick={handleRefresh}
               disabled={loading}
               className="qr-code-refresh"
-              title="Refresh QR Code"
             >
               {getThemedIcon('ui', 'refresh_cw', 16)}
             </button>
+            </PortalTooltip>
           )}
           {showDownload && (
+            <PortalTooltip content={t('download_qr_code')} position="top">
             <button
               onClick={handleDownload}
               className="qr-code-download"
-              title="Download QR Code"
             >
               {getThemedIcon('ui', 'download', 16)}
             </button>
+            </PortalTooltip>
           )}
         </div>
       </div>

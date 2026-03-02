@@ -5,6 +5,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants';
 import logger from '@utils/logger';
+import PortalTooltip from '@ui/PortalTooltip';
 
 export const HistoryEntry = ({ 
   log, 
@@ -230,6 +231,7 @@ export const HistoryEntry = ({
       )}
       
       {showDeleteButton && onDelete && (
+        <PortalTooltip content={t('delete_record').replace('{type}', type)} position="top">
         <Button
           variant="ghost"
           size="icon"
@@ -242,10 +244,10 @@ export const HistoryEntry = ({
             color: 'var(--color-danger, #ef4444)',
             padding: isMobile ? '0.125rem' : '0.25rem'
           }}
-          title={t(`delete_${type}_record`) || `Delete ${type} record`}
         >
           {getThemedIcon('ui', 'trash2', isMobile ? 12 : 14)}
         </Button>
+        </PortalTooltip>
       )}
     </div>
   );

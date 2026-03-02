@@ -5,10 +5,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
+import { useLang } from '@contexts/LangContext';
 import { ActivityLogger } from '@services/other/activityLogger';
 import styles from './FormulaSheet.module.css';
+import PortalTooltip from '@ui/PortalTooltip';
 
 const FormulaSheet = ({ formulas = [], onClose }) => {
+  const { t } = useLang();
   const [expandedSections, setExpandedSections] = useState({});
 
   // Log formula sheet opened activity
@@ -63,9 +66,11 @@ const FormulaSheet = ({ formulas = [], onClose }) => {
       <div className={styles.header}>
         <h3>Formula Sheet</h3>
         <div className={styles.headerActions}>
-          <button onClick={downloadSheet} className={styles.downloadBtn} title="Download">
+          <PortalTooltip content={t('download')} position="top">
+          <button onClick={downloadSheet} className={styles.downloadBtn}>
             {getThemedIcon('ui', 'download', 16)}
           </button>
+          </PortalTooltip>
           <button onClick={onClose} className={styles.closeBtn}>
             {getThemedIcon('ui', 'close', 18)}
           </button>

@@ -6,11 +6,14 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useTheme } from '@contexts/ThemeContext';
+import { useLang } from '@contexts/LangContext';
 import { ActivityLogger } from '@services/other/activityLogger';
 import styles from './ScratchPad.module.css';
+import PortalTooltip from '@ui/PortalTooltip';
 
 const ScratchPad = ({ onClose, quizId, questionId }) => {
   const { theme } = useTheme();
+  const { t } = useLang();
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState('#000000');
@@ -132,20 +135,22 @@ const ScratchPad = ({ onClose, quizId, questionId }) => {
 
       <div className={styles.toolbar}>
         <div className={styles.tools}>
+          <PortalTooltip content={t('pen')} position="top">
           <button
             onClick={() => setTool('pen')}
             className={`${styles.toolBtn} ${tool === 'pen' ? styles.active : ''}`}
-            title="Pen"
           >
             {getThemedIcon('ui', 'edit', 18, theme)}
           </button>
+          </PortalTooltip>
+          <PortalTooltip content={t('eraser')} position="top">
           <button
             onClick={() => setTool('eraser')}
             className={`${styles.toolBtn} ${tool === 'eraser' ? styles.active : ''}`}
-            title="Eraser"
           >
             {getThemedIcon('ui', 'delete', 18, theme)}
           </button>
+          </PortalTooltip>
         </div>
 
         <div className={styles.colorPicker}>
@@ -170,12 +175,16 @@ const ScratchPad = ({ onClose, quizId, questionId }) => {
         </div>
 
         <div className={styles.actions}>
-          <button onClick={clearCanvas} className={styles.actionBtn} title="Clear">
+          <PortalTooltip content={t('clear')} position="top">
+          <button onClick={clearCanvas} className={styles.actionBtn}>
             {getThemedIcon('ui', 'trash2', 18, theme)}
           </button>
-          <button onClick={downloadImage} className={styles.actionBtn} title="Download">
+          </PortalTooltip>
+          <PortalTooltip content={t('download')} position="top">
+          <button onClick={downloadImage} className={styles.actionBtn}>
             {getThemedIcon('ui', 'download', 18, theme)}
           </button>
+          </PortalTooltip>
         </div>
       </div>
 
