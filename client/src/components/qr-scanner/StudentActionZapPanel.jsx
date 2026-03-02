@@ -13,6 +13,7 @@ import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getFavoriteBehaviors, addFavoriteBehavior, removeFavoriteBehavior } from '@services/business/userPreferenceService';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
+import PortalTooltip from '@ui/PortalTooltip';
 
 export default function StudentActionZapPanel({
   student,
@@ -337,9 +338,12 @@ export default function StudentActionZapPanel({
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0 }}>
+            <PortalTooltip 
+            content={sendNotifications ? t('notifications_on') : t('notifications_off')}
+            position="top"
+          >
             <div 
               onClick={onToggleNotifications}
-              title={sendNotifications ? t('notifications_on') : t('notifications_off')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -380,9 +384,12 @@ export default function StudentActionZapPanel({
                 {t('notifs')}
               </span>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} title={t('close_panel')}>
+          </PortalTooltip>
+            <PortalTooltip content={t('close_panel')} position="top">
+            <Button variant="ghost" size="icon" onClick={onClose}>
               {getThemedIcon('ui', 'close', 20, theme)}
             </Button>
+          </PortalTooltip>
           </div>
         </div>
       </div>

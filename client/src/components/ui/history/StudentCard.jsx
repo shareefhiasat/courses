@@ -6,6 +6,7 @@ import StudentRosterHistory from './StudentRosterHistory';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { CircleIcon, ZapIcon } from '@utils/icons.jsx';
 import { useNavigate } from 'react-router-dom';
+import PortalTooltip from '@ui/PortalTooltip';
 
 const StudentCard = ({ 
   student, 
@@ -117,8 +118,21 @@ const StudentCard = ({
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-              <div style={{ fontWeight: 500, color: 'var(--text, #111827)', fontSize: isMobile ? '0.8rem' : '0.875rem' }}>
+              <div style={{ fontWeight: 500, color: 'var(--text, #111827)', fontSize: isMobile ? '0.8rem' : '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {student.displayName || student.realName || student.name || student.email}
+                {student.studentOrder !== null && student.studentOrder !== undefined && student.studentOrder !== '' && (
+                  <span style={{
+                    background: 'var(--color-primary-light, #dbeafe)',
+                    color: 'var(--color-primary, #2563eb)',
+                    fontSize: '0.625rem',
+                    fontWeight: 600,
+                    padding: '0.125rem 0.375rem',
+                    borderRadius: '0.25rem',
+                    border: '1px solid var(--color-primary-border, #93c5fd)'
+                  }}>
+                    #{student.studentOrder}
+                  </span>
+                )}
               </div>
               {student.attendance && (
                 <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -411,84 +425,19 @@ const StudentCard = ({
             {t('stats')}
           </Button>
         )}
-        <div 
-          style={{
-            position: 'relative',
-            display: 'inline-block'
-          }}
-          onMouseEnter={(e) => {
-            // Remove any existing title attribute to prevent native tooltip
-            const button = e.currentTarget.querySelector('button');
-            if (button) {
-              button.removeAttribute('title');
-            }
-            const tooltip = e.currentTarget.querySelector('[data-tooltip]');
-            if (tooltip) {
-              // Small delay to prevent conflicts
-              setTimeout(() => {
-                tooltip.style.opacity = '1';
-                tooltip.style.visibility = 'visible';
-              }, 50);
-            }
-          }}
-          onMouseLeave={(e) => {
-            const tooltip = e.currentTarget.querySelector('[data-tooltip]');
-            if (tooltip) {
-              tooltip.style.opacity = '0';
-              tooltip.style.visibility = 'hidden';
-            }
-          }}
+        <PortalTooltip 
+          content={t('open_qr_code') || 'Open QR Code'}
+          position="top"
         >
           <Button 
             variant="ghost" 
             size="icon"
             onClick={handleQRNavigate}
             aria-label={t('open_qr_code') || 'Open QR Code'}
-            title=""  // Explicitly set empty title to override any default
           >
             {getThemedIcon('ui', 'qr_code', 16)}
           </Button>
-          <div 
-            data-tooltip
-            style={{
-              position: 'absolute',
-              bottom: '100%',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              marginBottom: '6px',
-              padding: '6px 10px',
-              backgroundColor: '#1f2937',
-              color: 'white',
-              fontSize: '11px',
-              fontWeight: '500',
-              borderRadius: '6px',
-              whiteSpace: 'nowrap',
-              maxWidth: '200px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              opacity: 0,
-              visibility: 'hidden',
-              transition: 'opacity 0.2s ease-in-out, visibility 0.2s ease-in-out',
-              zIndex: 1000,
-              pointerEvents: 'none',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
-            }}
-          >
-            {t('open_qr_code') || 'Open QR Code'}
-            <div 
-              style={{
-                position: 'absolute',
-                top: '100%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: 0,
-                height: 0,
-                border: '5px solid transparent',
-                borderTopColor: '#1f2937'
-              }}
-            />
-          </div>
-        </div>
+        </PortalTooltip>
       </div>
       
       {isExpanded && studentHistory[student.id] && (

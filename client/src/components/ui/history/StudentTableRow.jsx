@@ -8,6 +8,7 @@ import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getAt
 import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
 import { useNavigate } from 'react-router-dom';
 import { useLang } from '@contexts/LangContext';
+import PortalTooltip from '@ui/PortalTooltip';
 
 const StudentTableRow = ({ 
   student, 
@@ -211,8 +212,21 @@ const StudentTableRow = ({
               {getThemedIcon('ui', 'star', 16)}
             </button>
             <div>
-              <div style={{ fontWeight: 500, color: 'var(--text, #111827)' }}>
+              <div style={{ fontWeight: 500, color: 'var(--text, #111827)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {student.displayName || student.realName || student.name || student.email}
+                {student.studentOrder !== null && student.studentOrder !== undefined && student.studentOrder !== '' && (
+                  <span style={{
+                    background: 'var(--color-primary-light, #dbeafe)',
+                    color: 'var(--color-primary, #2563eb)',
+                    fontSize: '0.625rem',
+                    fontWeight: 600,
+                    padding: '0.125rem 0.375rem',
+                    borderRadius: '0.25rem',
+                    border: '1px solid var(--color-primary-border, #93c5fd)'
+                  }}>
+                    #{student.studentOrder}
+                  </span>
+                )}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
                 ID: {student.studentNumber || '0000'}
@@ -374,148 +388,160 @@ const StudentTableRow = ({
             {onQuickAttendance && (
               <>
                 {/* Quick Present Button */}
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    preventDoubleClick(e);
-                    await handleQuickAttendance(student, 'present');
-                  }}
-                  disabled={isSubmitting || student.attendance === 'present'}
-                  onDoubleClick={preventDoubleClick}
-                  style={{
-                    background: student.attendance === 'present' ? '#9ca3af' : getAttendanceColor('present'),
-                    border: 'none',
-                    color: 'white',
-                    borderRadius: '0.375rem',
-                    transition: 'all 0.2s ease',
-                    boxShadow: student.attendance === 'present' ? 'none' : `0 2px 4px ${getAttendanceColor('present')}30`,
-                    opacity: student.attendance === 'present' ? 0.6 : 1,
-                    cursor: student.attendance === 'present' ? 'not-allowed' : 'pointer'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (student.attendance !== 'present') {
-                      e.target.style.transform = 'translateY(-1px)';
-                      e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('present')}40`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (student.attendance !== 'present') {
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('present')}30`;
-                    }
-                  }}
-                  title={student.attendance === 'present' ? 'Already marked as present' : 'Mark Present'}
+                <PortalTooltip 
+                  content={student.attendance === 'present' ? 'Already marked as present' : 'Mark Present'}
+                  position="top"
                 >
-                  <CheckSmallIcon style={{ width: '0.875rem', height: '0.875rem' }} />
-                </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      preventDoubleClick(e);
+                      await handleQuickAttendance(student, 'present');
+                    }}
+                    disabled={isSubmitting || student.attendance === 'present'}
+                    onDoubleClick={preventDoubleClick}
+                    style={{
+                      background: student.attendance === 'present' ? '#9ca3af' : getAttendanceColor('present'),
+                      border: 'none',
+                      color: 'white',
+                      borderRadius: '0.375rem',
+                      transition: 'all 0.2s ease',
+                      boxShadow: student.attendance === 'present' ? 'none' : `0 2px 4px ${getAttendanceColor('present')}30`,
+                      opacity: student.attendance === 'present' ? 0.6 : 1,
+                      cursor: student.attendance === 'present' ? 'not-allowed' : 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (student.attendance !== 'present') {
+                        e.target.style.transform = 'translateY(-1px)';
+                        e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('present')}40`;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (student.attendance !== 'present') {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('present')}30`;
+                      }
+                    }}
+                  >
+                    <CheckSmallIcon style={{ width: '0.875rem', height: '0.875rem' }} />
+                  </Button>
+                </PortalTooltip>
 
                 {/* Quick Late Button */}
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    preventDoubleClick(e);
-                    await handleQuickAttendance(student, 'late');
-                  }}
-                  disabled={isSubmitting || student.attendance === 'late'}
-                  onDoubleClick={preventDoubleClick}
-                  style={{
-                    background: student.attendance === 'late' ? '#9ca3af' : getAttendanceColor('late'),
-                    border: 'none',
-                    color: 'white',
-                    borderRadius: '0.375rem',
-                    transition: 'all 0.2s ease',
-                    boxShadow: student.attendance === 'late' ? 'none' : `0 2px 4px ${getAttendanceColor('late')}30`,
-                    opacity: student.attendance === 'late' ? 0.6 : 1,
-                    cursor: student.attendance === 'late' ? 'not-allowed' : 'pointer'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (student.attendance !== 'late') {
-                      e.target.style.transform = 'translateY(-1px)';
-                      e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('late')}40`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (student.attendance !== 'late') {
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('late')}30`;
-                    }
-                  }}
-                  title={student.attendance === 'late' ? 'Already marked as late' : 'Mark Late'}
+                <PortalTooltip 
+                  content={student.attendance === 'late' ? 'Already marked as late' : 'Mark Late'}
+                  position="top"
                 >
-                  <ClockSmallIcon style={{ width: '0.875rem', height: '0.875rem' }} />
-                </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      preventDoubleClick(e);
+                      await handleQuickAttendance(student, 'late');
+                    }}
+                    disabled={isSubmitting || student.attendance === 'late'}
+                    onDoubleClick={preventDoubleClick}
+                    style={{
+                      background: student.attendance === 'late' ? '#9ca3af' : getAttendanceColor('late'),
+                      border: 'none',
+                      color: 'white',
+                      borderRadius: '0.375rem',
+                      transition: 'all 0.2s ease',
+                      boxShadow: student.attendance === 'late' ? 'none' : `0 2px 4px ${getAttendanceColor('late')}30`,
+                      opacity: student.attendance === 'late' ? 0.6 : 1,
+                      cursor: student.attendance === 'late' ? 'not-allowed' : 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (student.attendance !== 'late') {
+                        e.target.style.transform = 'translateY(-1px)';
+                        e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('late')}40`;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (student.attendance !== 'late') {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('late')}30`;
+                      }
+                    }}
+                  >
+                    <ClockSmallIcon style={{ width: '0.875rem', height: '0.875rem' }} />
+                  </Button>
+                </PortalTooltip>
               </>
             )}
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                try {
-                  onStudentAction(student);
-                } catch (error) {
-                  logger.error('Error calling onStudentAction:', error);
-                }
-              }}
-              title={t('actions')}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f59e0b' }}>
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-              </svg>
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              title={t('stats')}
-              onClick={(e) => {
-                e.stopPropagation();
-                onStudentSelect(student);
-              }}
-            >
-              {getThemedIcon('ui', 'sidebar_open', 16)}
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={async (e) => {
-                e.stopPropagation();
-                // Navigate to QR code display page with student number in new tab
-                const studentNumber = student.studentNumber || student.id;
-                const qrUrl = `/qrcode/${studentNumber}`;
-                window.open(qrUrl, '_blank');
-              }}
-              title={t('open_qr_code')}
-            >
-              {getThemedIcon('ui', 'qr_code', 16)}
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={async (e) => {
-                e.stopPropagation();
-                await sendStudentSummaryEmail(student);
-              }}
-              disabled={sendingEmails[student.id]?.summary}
-              title={t('send_summary_report')}
-            >
-              {sendingEmails[student.id]?.summary ? (
-                <div style={{
-                  width: '1rem',
-                  height: '1rem',
-                  border: '2px solid #6b7280',
-                  borderTop: '2px solid transparent',
-                  borderRight: '2px solid transparent',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }} />
-              ) : (
-                getThemedIcon('ui', 'mail', 16)
-              )}
-            </Button>
+            <PortalTooltip content={t('actions')} position="top">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  try {
+                    onStudentAction(student);
+                  } catch (error) {
+                    logger.error('Error calling onStudentAction:', error);
+                  }
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f59e0b' }}>
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+              </Button>
+            </PortalTooltip>
+            <PortalTooltip content={t('stats')} position="top">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStudentSelect(student);
+                }}
+              >
+                {getThemedIcon('ui', 'sidebar_open', 16)}
+              </Button>
+            </PortalTooltip>
+            <PortalTooltip content={t('open_qr_code')} position="top">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  // Navigate to QR code display page with student number in new tab
+                  const studentNumber = student.studentNumber || student.id;
+                  const qrUrl = `/qrcode/${studentNumber}`;
+                  window.open(qrUrl, '_blank');
+                }}
+              >
+                {getThemedIcon('ui', 'qr_code', 16)}
+              </Button>
+            </PortalTooltip>
+            <PortalTooltip content={t('send_summary_report')} position="top">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await sendStudentSummaryEmail(student);
+                }}
+                disabled={sendingEmails[student.id]?.summary}
+              >
+                {sendingEmails[student.id]?.summary ? (
+                  <div style={{
+                    width: '1rem',
+                    height: '1rem',
+                    border: '2px solid #6b7280',
+                    borderTop: '2px solid transparent',
+                    borderRight: '2px solid transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                ) : (
+                  getThemedIcon('ui', 'mail', 16)
+                )}
+              </Button>
+            </PortalTooltip>
           </div>
         </td>
       </tr>

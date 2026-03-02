@@ -7,6 +7,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
+import PortalTooltip from '@ui/PortalTooltip';
 import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
 import { getAttendanceByStudent, rosterQuickAction, deleteAttendance } from '@services/business/attendanceService';
 import { getPenalties } from '@services/business/penaltyService';
@@ -900,12 +901,16 @@ const StudentRoster = React.memo(function StudentRoster({
               >
                 {getThemedIcon('ui', 'star', 16, theme)}
               </Button>
-              <Button variant="ghost" size="icon" onClick={onDownload} title={t('export_csv')}>
-                {getThemedIcon('ui', 'download', 16, theme)}
-              </Button>
-              <Button variant="ghost" size="icon" onClick={onRefresh} title={t('refresh')}>
-                {getThemedIcon('ui', 'refresh', 16, theme)}
-              </Button>
+              <PortalTooltip content={t('export_csv')} position="top">
+                <Button variant="ghost" size="icon" onClick={onDownload}>
+                  {getThemedIcon('ui', 'download', 16, theme)}
+                </Button>
+              </PortalTooltip>
+              <PortalTooltip content={t('refresh')} position="top">
+                <Button variant="ghost" size="icon" onClick={onRefresh}>
+                  {getThemedIcon('ui', 'refresh', 16, theme)}
+                </Button>
+              </PortalTooltip>
             </div>
           )}
         </div>
@@ -940,20 +945,28 @@ const StudentRoster = React.memo(function StudentRoster({
               <Button variant="ghost" size="icon" onClick={onFilter}>
                 {getThemedIcon('ui', 'filter', 16, theme)}
               </Button>
-              <Button 
-                variant={showFavoritesOnly ? 'default' : 'ghost'} 
-                size="icon" 
-                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                title={showFavoritesOnly ? t('show_all_students') : t('show_favorites_only')}
+              <PortalTooltip 
+                content={showFavoritesOnly ? t('show_all_students') : t('show_favorites_only')} 
+                position="top"
               >
-                {getThemedIcon('ui', 'star', 16, theme)}
-              </Button>
-              <Button variant="ghost" size="icon" onClick={onDownload} title={t('export_csv')}>
-                {getThemedIcon('ui', 'download', 16, theme)}
-              </Button>
-              <Button variant="ghost" size="icon" onClick={onRefresh} title={t('refresh')}>
-                {getThemedIcon('ui', 'refresh', 16, theme)}
-              </Button>
+                <Button 
+                  variant={showFavoritesOnly ? 'default' : 'ghost'} 
+                  size="icon" 
+                  onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                >
+                  {getThemedIcon('ui', 'star', 16, theme)}
+                </Button>
+              </PortalTooltip>
+              <PortalTooltip content={t('export_csv')} position="top">
+                <Button variant="ghost" size="icon" onClick={onDownload}>
+                  {getThemedIcon('ui', 'download', 16, theme)}
+                </Button>
+              </PortalTooltip>
+              <PortalTooltip content={t('refresh')} position="top">
+                <Button variant="ghost" size="icon" onClick={onRefresh}>
+                  {getThemedIcon('ui', 'refresh', 16, theme)}
+                </Button>
+              </PortalTooltip>
             </div>
           )}
         </div>

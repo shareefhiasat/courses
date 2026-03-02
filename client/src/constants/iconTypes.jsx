@@ -2,6 +2,7 @@
 // Single source of truth for all icons used across the application
 
 import React from 'react';
+import PortalTooltip from '@ui/PortalTooltip';
 import {
   // User & Role Icons
   User, UserCheck, UserX, UserMinus, Users, Shield, Crown, UserPlus,
@@ -627,22 +628,23 @@ export const createAttendanceBadge = (count, iconType, color, tooltipText, theme
   if (!count || count <= 0) return null;
 
   return (
-    <span
-      style={{
-        background: `${color}15`,
-        color: color,
-        padding: '1px 4px',
-        borderRadius: 3,
-        fontWeight: 500,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '2px'
-      }}
-      title={tooltipText}
-    >
-      {getThemedIcon('ui', iconType, 10, getIconColor(color, theme))}
-      {count}
-    </span>
+    <PortalTooltip content={tooltipText} position="top">
+      <span
+        style={{
+          background: `${color}15`,
+          color: color,
+          padding: '1px 4px',
+          borderRadius: 3,
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '2px'
+        }}
+      >
+        {getThemedIcon('ui', iconType, 10, getIconColor(color, theme))}
+        {count}
+      </span>
+    </PortalTooltip>
   );
 };
 

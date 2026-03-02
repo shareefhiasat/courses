@@ -25,6 +25,7 @@ import { RECORD_TYPES, getRecordTypeLabel } from '@utils/sharedTypes';
 import {ParticipationIcon, PenaltyIcon, StudentHistory, DeleteModal} from '@ui/history';
 import {CircleIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, HelpCircleIcon, UserIcon, ZapIcon} from "@utils/icons.jsx";
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/attendanceMethods';
+import PortalTooltip from '@ui/PortalTooltip';
 
 export default function StudentActionStatsPanel({
   student,
@@ -1162,52 +1163,58 @@ export default function StudentActionStatsPanel({
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0 }}>
-                <div
-                    onClick={onToggleNotifications}
-                    title={sendNotifications ? t('notifications_on') : t('notifications_off')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.375rem',
-                      padding: '0.25rem 0.5rem',
-                      background: sendNotifications ? 'var(--color-success-light, #f0fdf4)' : 'var(--color-danger-light, #fef2f2)',
-                      borderRadius: '0.375rem',
-                      cursor: 'pointer',
-                      border: `1px solid ${sendNotifications ? 'var(--color-success-border, #bbf7d0)' : 'var(--color-danger-border, #fecaca)'}`,
-                      transition: 'all 0.2s',
-                      userSelect: 'none'
-                    }}
-                >
-                  <div style={{
-                    width: '1.75rem',
-                    height: '0.875rem',
-                    background: sendNotifications ? 'var(--color-success, #10b981)' : 'var(--color-danger, #ef4444)',
-                    borderRadius: '1rem',
-                    position: 'relative',
-                    transition: 'background 0.2s'
-                  }}>
-                    <div style={{
-                      width: '0.625rem',
-                      height: '0.625rem',
-                      background: 'var(--toggle-knob, white)',
-                      borderRadius: '50%',
-                      position: 'absolute',
-                      top: '0.125rem',
-                      left: sendNotifications ? (isRTL ? '0.125rem' : '1rem') : (isRTL ? '1rem' : '0.125rem'),
-                      transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    }} />
-                  </div>
-                  <span style={{
-                    fontSize: '0.625rem',
-                    fontWeight: 600,
-                    color: sendNotifications ? 'var(--color-success-dark, #166534)' : 'var(--color-danger-dark, #991b1b)',
-                  }}>
-                  {t('notifs')}
-                </span>
-                </div>
-                <Button variant="ghost" size="icon" onClick={onClose} title={t('close')}>
+                <PortalTooltip 
+                    content={sendNotifications ? t('notifications_on') : t('notifications_off')}
+                    position="top"
+                  >
+                    <div
+                        onClick={onToggleNotifications}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.375rem',
+                          padding: '0.25rem 0.5rem',
+                          background: sendNotifications ? 'var(--color-success-light, #f0fdf4)' : 'var(--color-danger-light, #fef2f2)',
+                          borderRadius: '0.375rem',
+                          cursor: 'pointer',
+                          border: `1px solid ${sendNotifications ? 'var(--color-success-border, #bbf7d0)' : 'var(--color-danger-border, #fecaca)'}`,
+                          transition: 'all 0.2s',
+                          userSelect: 'none'
+                        }}
+                    >
+                      <div style={{
+                        width: '1.75rem',
+                        height: '0.875rem',
+                        background: sendNotifications ? 'var(--color-success, #10b981)' : 'var(--color-danger, #ef4444)',
+                        borderRadius: '1rem',
+                        position: 'relative',
+                        transition: 'background 0.2s'
+                      }}>
+                        <div style={{
+                          width: '0.625rem',
+                          height: '0.625rem',
+                          background: 'var(--toggle-knob, white)',
+                          borderRadius: '50%',
+                          position: 'absolute',
+                          top: '0.125rem',
+                          left: sendNotifications ? (isRTL ? '0.125rem' : '1rem') : (isRTL ? '1rem' : '0.125rem'),
+                          transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        }} />
+                      </div>
+                      <span style={{
+                        fontSize: '0.625rem',
+                        fontWeight: 600,
+                        color: sendNotifications ? 'var(--color-success-dark, #166534)' : 'var(--color-danger-dark, #991b1b)',
+                      }}>
+                      {t('notifs')}
+                    </span>
+                    </div>
+                  </PortalTooltip>
+                <PortalTooltip content={t('close')} position="top">
+                <Button variant="ghost" size="icon" onClick={onClose}>
                   {getThemedIcon('ui', 'close', 20)}
                 </Button>
+              </PortalTooltip>
                 {/* <Button
                 variant="ghost"
                 size="icon"

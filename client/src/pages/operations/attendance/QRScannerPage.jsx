@@ -523,6 +523,7 @@ const QRScannerPage = () => {
             studentNumber: student.studentNumber,
             name: studentName,
             email: student.email,
+            studentOrder: student.studentOrder, // Add student order field
             attendance: todayAttendance?.status || 'absent_no_excuse',
             participation: participationTotal,
             behavior: behaviorTotal,
@@ -1191,6 +1192,17 @@ const QRScannerPage = () => {
 
     // Sort students
     const sorted = [...filtered].sort((a, b) => {
+      // Always prioritize studentOrder as primary sort key
+      const aOrder = a.studentOrder !== null && a.studentOrder !== undefined && a.studentOrder !== '' ? Number(a.studentOrder) : 999999;
+      const bOrder = b.studentOrder !== null && b.studentOrder !== undefined && b.studentOrder !== '' ? Number(b.studentOrder) : 999999;
+      
+      // Primary sort: by studentOrder
+      const primarySort = aOrder - bOrder;
+      if (primarySort !== 0) {
+        return primarySort;
+      }
+      
+      // Secondary sort: use the selected sort field for students with same or no studentOrder
       let aValue = a[sortField];
       let bValue = b[sortField];
 
