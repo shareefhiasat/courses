@@ -1224,7 +1224,6 @@ export default function StudentActionStatsPanel({
                   const newTab = window.open();
                   newTab.document.write(`<html><head><title>QR Code</title></head><body style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;background:#f3f4f6;"><img src="${qrDataUrl}" style="width:300px;height:300px;"/><h1 style="margin:1rem 0 0;">${student.displayName || student.name}</h1></body></html>`);
                 }}
-                title={t('open_qr_code')}
               >
                 {getThemedIcon('ui', 'external_link', 20)}
               </Button> */}

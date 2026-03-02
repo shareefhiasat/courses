@@ -14,7 +14,9 @@ const PortalTooltip = ({
   position = 'top',
   delay = 200,
   className = '',
-  disabled = false
+  disabled = false,
+  textColor = 'white',
+  backgroundColor = 'var(--color-primary, #3b82f6)'
 }) => {
   const { isRTL } = useLang();
   const [isVisible, setIsVisible] = useState(false);
@@ -50,7 +52,7 @@ const PortalTooltip = ({
 
     const tooltipHeight = 40; // Approximate height
     const tooltipWidth = 200; // Approximate max width
-    const offset = 8; // Distance from trigger
+    const offset = 4; // Distance from trigger
 
     let x = coords.x;
     let y = coords.y;
@@ -72,15 +74,6 @@ const PortalTooltip = ({
         y = coords.y - tooltipHeight / 2;
         x = coords.x + offset;
         break;
-    }
-
-    // RTL adjustments
-    if (isRTL) {
-      if (position === 'left') {
-        x = coords.x + offset;
-      } else if (position === 'right') {
-        x = coords.x - tooltipWidth - offset;
-      }
     }
 
     // Keep tooltip within viewport bounds
@@ -112,12 +105,11 @@ const PortalTooltip = ({
   const tooltipContent = isVisible && content ? (
     <div
       ref={tooltipRef}
-      style={getTooltipStyle()}
-      className={`portal-tooltip ${className}`}
-      css={{
+      style={{
+        ...getTooltipStyle(),
         padding: '0.5rem 0.75rem',
-        background: 'var(--color-gray-900, #212529)',
-        color: 'white',
+        background: backgroundColor,
+        color: textColor,
         fontSize: '0.875rem',
         borderRadius: '8px',
         whiteSpace: 'nowrap',
@@ -127,6 +119,7 @@ const PortalTooltip = ({
         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
         border: '1px solid var(--color-gray-700, #374151)'
       }}
+      className={`portal-tooltip ${className}`}
     >
       {content}
       <div
@@ -134,7 +127,7 @@ const PortalTooltip = ({
           position: 'absolute',
           width: '8px',
           height: '8px',
-          background: 'var(--color-gray-900, #212529)',
+          background: backgroundColor,
           transform: 'rotate(45deg)',
           // Arrow positioning based on position
           ...(position === 'top' && {

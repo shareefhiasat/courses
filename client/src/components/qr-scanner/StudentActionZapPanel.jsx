@@ -454,6 +454,7 @@ export default function StudentActionZapPanel({
             {t('penalty')}
           </button>
           <div style={{ position: 'absolute', right: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <PortalTooltip content={viewMode === 'grid' ? t('switch_to_list_view') : t('switch_to_grid_view')} position="top">
             <button
               onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
               style={{
@@ -469,10 +470,10 @@ export default function StudentActionZapPanel({
                 cursor: 'pointer',
                 boxShadow: 'none'
               }}
-              title={viewMode === 'grid' ? t('switch_to_list_view') : t('switch_to_grid_view')}
             >
               {viewMode === 'grid' ? getThemedIcon('ui', 'list', 14, theme) : getThemedIcon('ui', 'layout_grid', 14, theme)}
             </button>
+          </PortalTooltip>
           </div>
         </div>
 

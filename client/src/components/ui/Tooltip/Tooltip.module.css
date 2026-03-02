@@ -9,7 +9,7 @@
   position: absolute;
   z-index: var(--z-tooltip, 1070);
   padding: 0.5rem 0.75rem;
-  background: var(--color-gray-900, #212529);
+  background: var(--color-primary, #3b82f6);
   color: white;
   font-size: var(--font-size-sm, 0.875rem);
   border-radius: var(--radius-md, 8px);
@@ -28,7 +28,7 @@
   position: absolute;
   width: 8px;
   height: 8px;
-  background: var(--color-gray-900, #212529);
+  background: var(--color-primary, #3b82f6);
   transform: rotate(45deg);
 }
 

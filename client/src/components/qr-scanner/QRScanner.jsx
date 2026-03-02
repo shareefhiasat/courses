@@ -20,7 +20,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useToast } from '@ui';
-import { getThemedIcon } from '@constants/iconTypes';
+import PortalTooltip from '@ui/PortalTooltip';
 import { GENERAL_STATUS } from '@utils/sharedTypes';
 import StudentActionStatsPanel from './StudentActionStatsPanel';
 import StudentActionZapPanel from './StudentActionZapPanel';
@@ -1637,15 +1637,16 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 t('ready_to_scan') || 'Ready to scan'
             }
           </span>
+              <PortalTooltip content={t('toggle_minimization')} position="top">
               <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsMinimized(!isMinimized)}
-                  title={t('toggle_minimization')}
                   style={{ padding: '0.25rem' }}
               >
                 <MinimizeIcon style={{ width: '16px', height: '16px' }} />
               </Button>
+            </PortalTooltip>
             </div>
           }
       >
@@ -1849,6 +1850,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 justifyContent: 'center',
                 flexWrap: 'nowrap'
               }}>
+                <PortalTooltip content={vibrationEnabled ? (t('disable_vibration') || 'Disable vibration') : (t('enable_vibration') || 'Enable vibration')} position="top">
                 <button
                     onClick={() => setVibrationEnabled(!vibrationEnabled)}
                     style={{
@@ -1865,11 +1867,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       cursor: 'pointer',
                       transition: 'all 0.2s'
                     }}
-                    title={vibrationEnabled ? (t('disable_vibration') || 'Disable vibration') : (t('enable_vibration') || 'Enable vibration')}
-                >
-                  <VibrationIcon style={{ width: '14px', height: '14px' }} />
-                </button>
+                  >
+                    <VibrationIcon style={{ width: '14px', height: '14px' }} />
+                  </button>
+                </PortalTooltip>
 
+                <PortalTooltip content={soundEnabled ? (t('disable_sound') || 'Disable sound') : (t('enable_sound') || 'Enable sound')} position="top">
                 <button
                     onClick={() => setSoundEnabled(!soundEnabled)}
                     style={{
@@ -1886,10 +1889,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       cursor: 'pointer',
                       transition: 'all 0.2s'
                     }}
-                    title={soundEnabled ? (t('disable_sound') || 'Disable sound') : (t('enable_sound') || 'Enable sound')}
-                >
-                  <SoundIcon style={{ width: '14px', height: '14px' }} />
-                </button>
+                  >
+                    <SoundIcon style={{ width: '14px', height: '14px' }} />
+                  </button>
+                </PortalTooltip>
 
                 {/*<button*/}
                 {/*    onClick={() => setShowDebugBox(!showDebugBox)}*/}
@@ -1912,6 +1915,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 {/*  <DebugIcon style={{ width: '14px', height: '14px' }} />*/}
                 {/*</button>*/}
 
+                <PortalTooltip content={(!selectedProgramId || !selectedSubjectId || !selectedClassId) ? (t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning') : (t('manual_student_id_input') || 'Manual student ID input')} position="top">
                 <button
                     onClick={() => {
                       // Check if all required fields are selected before allowing manual input
@@ -1937,11 +1941,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       transition: 'all 0.2s',
                       opacity: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? 0.6 : 1
                     }}
-                    title={(!selectedProgramId || !selectedSubjectId || !selectedClassId) ? (t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning') : 'Manual student ID input'}
-                >
-                  <UserInputIcon style={{ width: '14px', height: '14px' }} />
-                </button>
+                  >
+                    <UserInputIcon style={{ width: '14px', height: '14px' }} />
+                  </button>
+                </PortalTooltip>
 
+                <PortalTooltip content={t('refresh_today_activity')} position="top">
                 <button
                     onClick={() => {
                       logger.log('🔧 Manual refresh button clicked');
@@ -1970,14 +1975,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       transition: 'all 0.2s',
                       opacity: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0) ? 0.6 : 1
                     }}
-                    title={t('refresh_today_activity')}
-                >
-                  <RefreshIcon style={{ width: '14px', height: '14px' }} />
-                  {/*{t('refresh_today') || 'Refresh Today'}*/}
-                </button>
+                  >
+                    <RefreshIcon style={{ width: '14px', height: '14px' }} />
+                    {/*{t('refresh_today') || 'Refresh Today'}*/}
+                  </button>
+                </PortalTooltip>
 
                 {/* Stop Scanner Button - Only show when scanning */}
                 {isScanning && (
+                    <PortalTooltip content={t('stop_scanner')} position="top">
                     <button
                         onClick={stopCamera}
                         style={{
@@ -1994,10 +2000,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           cursor: 'pointer',
                           transition: 'all 0.2s'
                         }}
-                        title={t('stop_scanner')}
-                    >
-                      <StopIcon style={{ width: '14px', height: '14px' }} />
-                    </button>
+                      >
+                        <StopIcon style={{ width: '14px', height: '14px' }} />
+                      </button>
+                    </PortalTooltip>
                 )}
 
                 <div style={{ 
@@ -2135,13 +2141,17 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         marginRight: '0.5rem'
                       }}>
                         {/* Quick Present Button */}
+                        <PortalTooltip content={(() => {
+                            const student = students.find(s => s.id === activity.studentId);
+                            return student?.attendance === 'present' ? t('already_marked_present') || 'Already marked as present' : t('mark_present') || 'Mark Present';
+                          })()} position="top">
                         <button
-                          onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation();
                             e.preventDefault();
                             const student = students.find(s => s.id === activity.studentId);
                             if (student) {
-                              handleQuickAttendance(student, 'present');
+                              await handleQuickAttendance(student, 'present');
                             }
                           }}
                           onDoubleClick={(e) => {
@@ -2196,22 +2206,23 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                               e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('present')}30`;
                             }
                           }}
-                          title={(() => {
-                            const student = students.find(s => s.id === activity.studentId);
-                            return student?.attendance === 'present' ? 'Already marked as present' : 'Mark Present';
-                          })()}
                         >
                           <CheckSmallIcon style={{ width: '12px', height: '12px' }} />
                         </button>
+                        </PortalTooltip>
 
                         {/* Quick Late Button */}
+                        <PortalTooltip content={(() => {
+                            const student = students.find(s => s.id === activity.studentId);
+                            return student?.attendance === 'late' ? t('already_marked_late') || 'Already marked as late' : t('mark_late') || 'Mark Late';
+                          })()} position="top">
                         <button
-                          onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation();
                             e.preventDefault();
                             const student = students.find(s => s.id === activity.studentId);
                             if (student) {
-                              handleQuickAttendance(student, 'late');
+                              await handleQuickAttendance(student, 'late');
                             }
                           }}
                           onDoubleClick={(e) => {
@@ -2266,17 +2277,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                               e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('late')}30`;
                             }
                           }}
-                          title={(() => {
-                            const student = students.find(s => s.id === activity.studentId);
-                            return student?.attendance === 'late' ? 'Already marked as late' : 'Mark Late';
-                          })()}
                         >
                           <ClockSmallIcon style={{ width: '12px', height: '12px' }} />
                         </button>
+                        </PortalTooltip>
                       </div>
                     )}
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                 {onDeleteActivity && (
+                                    <PortalTooltip content={t('delete_activity')} position="top">
                                     <button
                                         onClick={(e) => {
                                           e.stopPropagation();
@@ -2293,10 +2302,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                                           justifyContent: 'center',
                                           borderRadius: '0.25rem'
                                         }}
-                                        title={t('delete_activity')}
-                                    >
-                                      <DeleteIcon style={{ width: '14px', height: '14px' }} />
-                                    </button>
+                                      >
+                                        <DeleteIcon style={{ width: '14px', height: '14px' }} />
+                                      </button>
+                                    </PortalTooltip>
                                 )}
                                 <ChevronDownIcon
                                     style={{
