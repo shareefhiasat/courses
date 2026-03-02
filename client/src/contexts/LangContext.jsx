@@ -2045,7 +2045,7 @@ const DICT = {
     // Student actions
     delete_all_entries: 'Delete all {type} entries',
     collapse_all: 'Collapse all',
-    expand_all: 'Expand all',
+    expand_all: '',
     // Zap panel actions
     remove_from_favorites: 'Remove from favorites',
     add_to_favorites: 'Add to favorites',
@@ -2119,7 +2119,7 @@ const DICT = {
     stats: 'Stats',
     open_qr_code: 'Open QR Code',
     // StudentRosterHistory actions
-    expand_all: 'Expand All',
+    expand_all: '',
     collapse_all: 'Collapse All',
     not_student_qr: 'This QR code is not for a student profile',
     enter_reference_id: 'Enter reference ID (STU-XXXXXX) or student email...',

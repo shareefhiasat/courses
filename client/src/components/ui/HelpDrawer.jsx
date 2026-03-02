@@ -458,7 +458,6 @@ const HelpDrawer = () => {
                 }}
               >
                 {getThemedIcon('ui', 'chevrons_up', 14)}
-                <span>{t('expand_all', 'Expand All')}</span>
               </button>
               <button
                 onClick={collapseAllSections}
@@ -485,7 +484,6 @@ const HelpDrawer = () => {
                 }}
               >
                 {getThemedIcon('ui', 'chevrons_up_down', 14)}
-                <span>{t('collapse_all')}</span>
               </button>
             </div>
           </div>

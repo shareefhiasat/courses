@@ -2334,7 +2334,6 @@ export default function StudentActionStatsPanel({
                             <span style={{ width: '14px', height: '14px', display: 'inline-block' }}>
                               {getThemedIcon('ui', 'chevron_down', 16)}
                             </span>
-                            {t('expand_all')}
                           </>
                     </button>
                     </PortalTooltip>
