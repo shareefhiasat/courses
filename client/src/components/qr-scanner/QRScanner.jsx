@@ -962,6 +962,19 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       // Get today's penalties for this class
       const penaltiesResponse = await getPenaltiesByClassAndDate(classId, todayStr);
       const penaltyRecords = penaltiesResponse.success && penaltiesResponse.data ? penaltiesResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PENALTY })) : [];
+      
+      // Debug: Log penalty records to identify duplication issue
+      logger.debug('[QR Scanner] Penalty records fetched:', {
+        success: penaltiesResponse.success,
+        count: penaltyRecords.length,
+        records: penaltyRecords.map(p => ({
+          id: p.id,
+          studentId: p.studentId,
+          type: p.type,
+          date: p.date,
+          classId: p.classId
+        }))
+      });
 
       // Get today's participations for this class
       const participationsResponse = await getParticipationsByClassAndDate(classId, todayStr);
@@ -1022,6 +1035,16 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         });
       });
 
+      // Debug: Log complete student map to identify potential duplicates
+      logger.debug('[QR Scanner] Complete student map created:', {
+        totalMappings: Object.keys(studentMap).length,
+        mappings: Object.entries(studentMap).map(([key, value]) => ({ key, value })),
+        duplicateNames: Object.entries(studentMap).reduce((acc, [key, value]) => {
+          acc[value] = (acc[value] || 0) + 1;
+          return acc;
+        }, {})
+      });
+
       logger.log('🔧 QRScanner student map created:', {
         totalStudents: currentStudents.length,
         studentMapEntries: Object.entries(studentMap).map(([key, value]) => ({ key, value })),
@@ -1063,6 +1086,24 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const activityLogs = allRecords.map((record, index) => {
         const studentId = record.studentId;
         let studentName = studentMap[studentId];
+        
+        // Debug: Log record processing to identify duplication issue
+        if (record.type === 'cheating' || record.category === RECORD_TYPES.PENALTY) {
+          logger.debug('[QR Scanner] Processing cheating/penalty record:', {
+            recordIndex: index,
+            originalStudentId: studentId,
+            mappedStudentName: studentName,
+            recordDetails: {
+              id: record.id,
+              studentId: record.studentId,
+              type: record.type,
+              category: record.category,
+              date: record.date,
+              classId: record.classId
+            },
+            availableMappings: studentId ? Object.keys(studentMap).filter(key => key.includes(studentId) || studentMap[key] === studentName) : []
+          });
+        }
 
         // If not found in map, try to find the student by generating reference ID from user IDs
         if (!studentName && students.length > 0) {
@@ -4062,7 +4103,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             classId={selectedClassId}
             markedBy={user?.uid || 'unknown'}
             performedBy={user?.uid || 'unknown'}
-            performedByName={user?.displayName || user?.name || user?.email || 'Unknown User'}
+            performedByName={user?.displayName || user?.name || 'Unknown User'}
             performedByEmail={user?.email || 'unknown@example.com'}
             onSuccess={(result) => {
               showSuccess(t('bulk_operation_success') || `Successfully processed ${result.summary.succeeded} students`);
@@ -4087,6 +4128,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             }}
             t={t}
             lang={lang}
+            showSuccess={showSuccess}
+            showError={showError}
           />
 
           <style>{`

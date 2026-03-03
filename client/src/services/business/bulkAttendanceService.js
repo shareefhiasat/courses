@@ -192,7 +192,8 @@ export const bulkUpsertAttendance = async ({
   performedByName,
   performedByEmail,
   source = 'bulk',
-  notes = ''
+  notes = '',
+  onProgress = null
 }) => {
   try {
     logger.info('[BulkAttendanceService] Starting bulk upsert:', {
@@ -429,6 +430,19 @@ export const bulkUpsertAttendance = async ({
       });
 
       await Promise.all(batchPromises);
+      
+      // Report progress after each batch
+      if (onProgress) {
+        const processedCount = Math.min(i + BATCH_SIZE, studentIds.length);
+        const progress = Math.round((processedCount / studentIds.length) * 100);
+        onProgress({
+          processed: processedCount,
+          total: studentIds.length,
+          percentage: progress,
+          currentBatch: Math.floor(i / BATCH_SIZE) + 1,
+          totalBatches: Math.ceil(studentIds.length / BATCH_SIZE)
+        });
+      }
       
       if (i + BATCH_SIZE < studentIds.length) {
         logger.debug(`[BulkAttendanceService] Delaying before next batch...`);

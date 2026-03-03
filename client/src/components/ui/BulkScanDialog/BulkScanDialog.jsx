@@ -18,7 +18,9 @@ const BulkScanDialog = ({
   performedByEmail,
   onSuccess,
   t,
-  lang
+  lang,
+  showSuccess,
+  showError
 }) => {
   const { theme } = useTheme();
   const textareaRef = useRef(null);
@@ -40,6 +42,7 @@ const BulkScanDialog = ({
     validating,
     addingAll,
     error,
+    progress,
     result,
     parseInput,
     validateStudents,
@@ -62,7 +65,10 @@ const BulkScanDialog = ({
     onSuccess: (result) => {
       if (onSuccess) onSuccess(result);
       // Don't auto-close, let user see results
-    }
+    },
+    t,
+    showSuccess,
+    showError
   });
 
   useEffect(() => {
@@ -485,27 +491,27 @@ const BulkScanDialog = ({
             <div className={styles.summarySection}>
               <div className={styles.summaryGrid}>
                 <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>{t('total_input') || 'Total Input'}:</span>
+                  <span className={styles.summaryLabel}>{t('total_input') || 'Total Input'}</span>
                   <span className={styles.summaryValue}>{stats.totalInput}</span>
                 </div>
                 <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>{t('processed') || 'Processed'}:</span>
+                  <span className={styles.summaryLabel}>{t('processed') || 'Processed'}</span>
                   <span className={styles.summaryValue}>{stats.validParsed}</span>
                 </div>
                 <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>{t('issues_found') || 'Issues Found'}:</span>
+                  <span className={styles.summaryLabel}>{t('issues_found') || 'Issues Found'}</span>
                   <span className={styles.summaryValue}>{stats.invalid}</span>
                 </div>
                 <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>{t('repeated_entries') || 'Repeated Entries'}:</span>
+                  <span className={styles.summaryLabel}>{t('repeated_entries') || 'Repeated Entries'}</span>
                   <span className={styles.summaryValue}>{stats.duplicates}</span>
                 </div>
                 <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>{t('found') || 'Found'}:</span>
+                  <span className={styles.summaryLabel}>{t('found') || 'Found'}</span>
                   <span className={styles.summaryValue}>{stats.found}</span>
                 </div>
                 <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>{t('not_found') || 'Not Found'}:</span>
+                  <span className={styles.summaryLabel}>{t('not_found') || 'Not Found'}</span>
                   <span className={styles.summaryValue}>{stats.notFound}</span>
                 </div>
               </div>
@@ -559,7 +565,7 @@ const BulkScanDialog = ({
               {result.results?.detailed?.length > 0 && (
                 <div className={styles.bulkStudentsSection}>
                   <span className={styles.bulkStudentsLabel}>
-                    {t('marked_students') || 'Marked Students'}:
+                    {t('marked_students') || 'Marked Students'}
                   </span>
                   <div className={styles.bulkStudentsList}>
                     {result.results.detailed.slice(0, 8).map((student, index) => (
@@ -578,7 +584,31 @@ const BulkScanDialog = ({
             </div>
           )}
 
-                  </div>
+          {/* Progress Bar */}
+          {loading && progress.total > 0 && (
+            <div className={styles.progressSection}>
+              <div className={styles.progressInfo}>
+                <span className={styles.progressText}>
+                  {t('processing_students') || 'Processing students'}: {progress.processed}/{progress.total}
+                </span>
+                <span className={styles.progressPercentage}>
+                  {progress.percentage}%
+                </span>
+              </div>
+              <div className={styles.progressBar}>
+                <div 
+                  className={styles.progressFill}
+                  style={{ width: `${progress.percentage}%` }}
+                />
+              </div>
+              {progress.totalBatches > 1 && (
+                <div className={styles.batchInfo}>
+                  {t('batch') || 'Batch'} {progress.currentBatch}/{progress.totalBatches}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className={styles.footer}>
           <button

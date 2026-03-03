@@ -11,7 +11,7 @@ import { getStudentsByClass } from '@services/business/enrollmentService';
 import logger from '@utils/logger';
 import eventBus, { EVENTS } from '@utils/eventBus';
 
-const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedBy, performedByName, performedByEmail, onSuccess }) => {
+const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedBy, performedByName, performedByEmail, onSuccess, t, showSuccess, showError }) => {
   const [inputText, setInputText] = useState('');
   const [parsedNumbers, setParsedNumbers] = useState([]);
   const [invalidRows, setInvalidRows] = useState([]);
@@ -23,6 +23,7 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
   const [validating, setValidating] = useState(false);
   const [addingAll, setAddingAll] = useState(false);
   const [error, setError] = useState(null);
+  const [progress, setProgress] = useState({ processed: 0, total: 0, percentage: 0, currentBatch: 0, totalBatches: 0 });
   const [result, setResult] = useState(null);
 
   const dateKey = useMemo(() => computeDateKey(selectedDate), [selectedDate]);
@@ -259,6 +260,14 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
         duplicates: parseResult.duplicates.length
       });
 
+      // Show feedback about how many students were added
+      const addedCount = parseResult.parsed.length;
+      if (addedCount > 0) {
+        showSuccess(t('added_n_students_success', { count: addedCount }) || `Added ${addedCount} students successfully`);
+      } else {
+        showSuccess(t('no_new_students_to_add') || 'No new students to add');
+      }
+
       // Show warning if limited
       if (allStudents.length > 100) {
         setError(`Limited to first 100 students out of ${allStudents.length} total`);
@@ -303,6 +312,7 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
     setLoading(true);
     setError(null);
     setResult(null);
+    setProgress({ processed: 0, total: 0, percentage: 0, currentBatch: 0, totalBatches: 0 });
 
     logger.info('[useManualBulkScan] Starting bulk submission:', {
       studentCount: validatedStudents.found.length,
@@ -326,7 +336,11 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
         performedByName,
         performedByEmail,
         source: 'bulk',
-        notes: `Bulk attendance - ${validatedStudents.found.length} students`
+        notes: t('bulk_attendance_notes', { count: validatedStudents.found.length }) || `Bulk attendance - ${validatedStudents.found.length} students`,
+        onProgress: (progressData) => {
+          setProgress(progressData);
+          logger.debug('[useManualBulkScan] Progress update:', progressData);
+        }
       });
 
       if (bulkResult.success) {
@@ -524,7 +538,12 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
         await parseInput();
       } else {
         logger.warn('[useManualBulkScan] No students remaining after exclusions');
-        setError('No students remaining after exclusions');
+        setError(t('no_students_remaining_after_exclusions') || 'No students remaining after exclusions');
+        
+        // Clear the input and validated students since there are no students to add
+        setInputText('');
+        setParsedNumbers([]);
+        setValidatedStudents({ found: [], notFound: [] });
         return;
       }
 
@@ -539,6 +558,15 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
         invalid: parseResult.invalid.length,
         duplicates: parseResult.duplicates.length
       });
+
+      // Show feedback about how many students were added
+      const addedCount = parseResult.parsed.length;
+      const excludedCount = parsedNumbers.length;
+      if (addedCount > 0) {
+        showSuccess(t('added_n_students_excluded_m_success', { added: addedCount, excluded: excludedCount }) || `Added ${addedCount} students (excluded ${excludedCount})`);
+      } else {
+        showSuccess(t('no_students_to_add_after_exclusions') || `No students to add (excluded ${excludedCount})`);
+      }
 
       // Show warning if limited
       if (allStudents.length > 100) {
@@ -586,6 +614,7 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
     validating,
     addingAll,
     error,
+    progress,
     result,
     parseInput,
     validateStudents,

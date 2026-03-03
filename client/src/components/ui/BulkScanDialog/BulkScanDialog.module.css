@@ -1631,3 +1631,77 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Progress Bar Styles */
+.progressSection {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  background-color: #f8fafc;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.dark .progressSection {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.progressInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.dark .progressInfo {
+  color: #94a3b8;
+}
+
+.progressText {
+  font-weight: 500;
+}
+
+.progressPercentage {
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+.dark .progressPercentage {
+  color: #60a5fa;
+}
+
+.progressBar {
+  width: 100%;
+  height: 0.5rem;
+  background-color: #e2e8f0;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.dark .progressBar {
+  background-color: #334155;
+}
+
+.progressFill {
+  height: 100%;
+  background-color: #3b82f6;
+  border-radius: 0.25rem;
+  transition: width 0.3s ease-out;
+}
+
+.progressFill {
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.batchInfo {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-align: center;
+}
+
+.dark .batchInfo {
+  color: #94a3b8;
+}
