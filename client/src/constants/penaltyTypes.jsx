@@ -26,7 +26,7 @@ export const PENALTY_TYPES = [
     label_en: "Cheating",
     points: 10,
     icon: <AlertTriangle size={16} />,
-    color: "#fca5a5",
+    color: "#dc2626",
     description_ar: "الغش في الاختبارات أو الواجبات باستخدام مواد غير مسموح بها",
     description_en: "Using unauthorized materials or methods during exams or assignments"
   },
@@ -36,7 +36,7 @@ export const PENALTY_TYPES = [
     label_en: "Impersonation",
     points: 15,
     icon: <Users size={16} />,
-    color: "#fca5a5",
+    color: "#dc2626",
     description_ar: "انتحال شخصية طالب آخر أو السماح لشخص آخر بانتحال شخصيتك",
     description_en: "Pretending to be another student or allowing someone to take your place"
   },
@@ -46,7 +46,7 @@ export const PENALTY_TYPES = [
     label_en: "Exam System Disruption",
     points: 8,
     icon: <XCircle size={16} />,
-    color: "#fca5a5",
+    color: "#dc2626",
     description_ar: "إثارة الفوضى أو تعطيل سير الاختبار بشكل متعمد",
     description_en: "Causing disruption or intentionally interfering with exam proceedings"
   },
@@ -56,7 +56,7 @@ export const PENALTY_TYPES = [
     label_en: "Forgery in School Documents",
     points: 20,
     icon: <FileX size={16} />,
-    color: "#fca5a5",
+    color: "#dc2626",
     description_ar: "تزوير التوقيعات أو الوثائق المدرسية الرسمية",
     description_en: "Forging signatures or official school documents"
   },
@@ -66,7 +66,7 @@ export const PENALTY_TYPES = [
     label_en: "Other Violations Disrupting Public Order",
     points: 5,
     icon: <HelpCircle size={16} />,
-    color: "#fca5a5",
+    color: "#dc2626",
     description_ar: "أي مخالفات أخرى تؤثر على النظام العام للمدرسة",
     description_en: "Any other violations that disrupt the school's public order"
   },
@@ -80,7 +80,11 @@ export const PENALTY_TYPE_ICONS = PENALTY_TYPES.reduce((acc, type) => {
 
 // Helper functions
 export const getPenaltyTypeById = (id) => {
-  return PENALTY_TYPES.find(type => type.id === id);
+  console.log('🔍 [getPenaltyTypeById] Looking for:', { id });
+  console.log('🔍 [getPenaltyTypeById] Available penalty types:', PENALTY_TYPES.map(t => ({ id: t.id, color: t.color })));
+  const found = PENALTY_TYPES.find(type => type.id === id);
+  console.log('🔍 [getPenaltyTypeById] Found result:', { found, foundId: found?.id, foundColor: found?.color });
+  return found;
 };
 
 export const getPenaltyLabel = (id, lang = 'en') => {
@@ -99,6 +103,10 @@ export const getPenaltyIcon = (id) => {
 };
 
 export const getPenaltyColor = (id) => {
+  console.log('🎨 [getPenaltyColor] Called with:', { id });
   const type = getPenaltyTypeById(id);
-  return type ? type.color : '#dc2626';
+  console.log('🎨 [getPenaltyColor] Found type:', { type, typeId: type?.id, typeColor: type?.color });
+  const color = type ? type.color : '#dc2626';
+  console.log('🎨 [getPenaltyColor] Returning color:', { color, fallback: !type, isRed: color === '#fca5a5', isOrange: color === '#fed7aa' });
+  return color;
 };

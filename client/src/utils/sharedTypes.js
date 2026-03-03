@@ -8,7 +8,7 @@ import { BEHAVIOR_TYPES, getBehaviorTypeById, getBehaviorLabel, getBehaviorIcon,
 import { PARTICIPATION_TYPES, getParticipationTypeById, getParticipationLabel, getParticipationIcon, getParticipationColor } from '../constants/participationTypes';
 import { ABSENCE_TYPES, getAbsenceTypeById, getAbsenceLabel, getAbsenceIcon, getAbsenceColor } from '../constants/absenceTypes';
 import { PENALTY_TYPES, getPenaltyTypeById, getPenaltyLabel, getPenaltyIcon, getPenaltyColor } from '../constants/penaltyTypes';
-import { ATTENDANCE_STATUS_LABELS } from '../constants/attendanceTypes';
+import { ATTENDANCE_STATUS_LABELS, getAttendanceLabel } from '../constants/attendanceTypes';
 
 // Mode types for navigation and filtering
 export const MODE_TYPES = {
@@ -635,6 +635,36 @@ export const createTypeOptions = (category, lang = 'en', options = {}) => {
   }
   
   return optionsArray;
+};
+
+/**
+ * Get localized label for any action type using translation function
+ * @param {string} actionType - Action type (penalty, behavior, participation, attendance)
+ * @param {string} typeId - Specific type ID (cheating, talk_in_class, active_discussion, etc.)
+ * @param {Function} t - Translation function from LangContext
+ * @param {string} lang - Current language ('en' or 'ar')
+ * @returns {string} Localized label
+ */
+export const getLocalizedActionLabel = (actionType, typeId, t, lang = 'en') => {
+  // First try to get translation from LangContext
+  const translatedLabel = t(typeId);
+  if (translatedLabel && translatedLabel !== typeId) {
+    return translatedLabel;
+  }
+  
+  // Fallback to type-specific label functions
+  switch (actionType) {
+    case 'penalty':
+      return getPenaltyLabel(typeId, lang);
+    case 'behavior':
+      return getBehaviorLabel(typeId, lang);
+    case 'participation':
+      return getParticipationLabel(typeId, lang);
+    case 'attendance':
+      return getAttendanceLabel(typeId, lang);
+    default:
+      return typeId;
+  }
 };
 
 /**

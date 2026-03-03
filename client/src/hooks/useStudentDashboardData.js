@@ -11,6 +11,7 @@ import { getStudentMarks } from '@services/business/enrollmentMarksService';
 import { getActivitiesByClasses } from '@services/business/activitiesService';
 import { getSubmissionsByUser } from '@services/business/submissionsService';
 import { getQuizResultsByUser } from '@services/business/quizResultsService';
+import { getLocalizedActionLabel } from '@utils/sharedTypes';
 import logger from '@utils/logger';
 
 /**
@@ -144,6 +145,22 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
         submissionsRes = { status: 'fulfilled', value: { data: aggregatedData.submissions } };
         quizResultsRes = { status: 'fulfilled', value: { data: aggregatedData.quizResults } };
 
+        // Add localized labels for class mode data
+        aggregatedData.participations = aggregatedData.participations.map(p => ({
+          ...p,
+          label: getLocalizedActionLabel('participation', p.type, t, t('lang') || 'en')
+        }));
+
+        aggregatedData.behaviors = aggregatedData.behaviors.map(b => ({
+          ...b,
+          label: getLocalizedActionLabel('behavior', b.type, t, t('lang') || 'en')
+        }));
+
+        aggregatedData.penalties = aggregatedData.penalties.map(p => ({
+          ...p,
+          label: getLocalizedActionLabel('penalty', p.penaltyType, t, t('lang') || 'en')
+        }));
+
       } else {
         // Original single student logic
         [
@@ -176,6 +193,22 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
       const submissions = submissionsRes.status === 'fulfilled' ? (submissionsRes.value?.data || []) : [];
       const quizResults = quizResultsRes.status === 'fulfilled' ? (quizResultsRes.value?.data || []) : [];
 
+      // Add localized labels to action types
+      const participationsWithLabels = participations.map(p => ({
+        ...p,
+        label: getLocalizedActionLabel('participation', p.type, t, t('lang') || 'en')
+      }));
+
+      const behaviorsWithLabels = behaviors.map(b => ({
+        ...b,
+        label: getLocalizedActionLabel('behavior', b.type, t, t('lang') || 'en')
+      }));
+
+      const penaltiesWithLabels = penalties.map(p => ({
+        ...p,
+        label: getLocalizedActionLabel('penalty', p.penaltyType, t, t('lang') || 'en')
+      }));
+
       // Load activities for all enrolled classes
       const classIds = [...new Set(enrollments.map(e => e.classId).filter(Boolean))];
       let activities = [];
@@ -188,7 +221,7 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
         }
       }
 
-      setRawData({ enrollments, attendance, penalties, participations, behaviors, marks, activities, submissions, quizResults });
+      setRawData({ enrollments, attendance, penalties: penaltiesWithLabels, participations: participationsWithLabels, behaviors: behaviorsWithLabels, marks, activities, submissions, quizResults });
       
       // Comprehensive data verification logging
       const dataScope = isClassMode ? `ALL_STUDENTS_IN_CLASS (${classId})` : `SINGLE_STUDENT (${effectiveUserId})`;

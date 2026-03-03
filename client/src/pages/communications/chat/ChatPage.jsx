@@ -94,17 +94,6 @@ const ChatPage = memo(() => {
   // Initialize minimal state hook for gradual migration
   const minimalState = useChatStateMinimal(user);
   
-  // Debug: Verify minimal state works alongside existing state
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Minimal State:', {
-      showMembers: minimalState.showMembersMinimal,
-      selectedClass: minimalState.selectedClassMinimal,
-      sidebarWidth: minimalState.sidebarWidthMinimal,
-      chatType: minimalState.chatTypeMinimal,
-      chatId: minimalState.chatIdMinimal
-    });
-  }
-  
     
   // State
   const [loading, setLoading] = useState(true);
@@ -156,7 +145,84 @@ const ChatPage = memo(() => {
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState(['', '']);
   
+  // Profile name for senderName in messages/polls
+  const [profileName, setProfileName] = useState('');
+  
+  // Refs that need to be available for hooks
+  const messageInputRef = useRef(null);
+  
+  // State that needs to be available for hooks
+  const [highlightedMsgId, setHighlightedMsgId] = useState(null);
+  
+  // Memoized safe variables
+  const safeClasses = useMemo(() => (Array.isArray(classes) ? classes : []), [classes]);
+  const safeDirectRooms = useMemo(() => (Array.isArray(directRooms) ? directRooms : []), [directRooms]);
+  const safeClassMembers = useMemo(() => (Array.isArray(classMembers) ? classMembers : []), [classMembers]);
+  const safeAllUsers = useMemo(() => (Array.isArray(allUsers) ? allUsers : []), [allUsers]);
+  const safeMessages = useMemo(() => (Array.isArray(messages) ? messages : []), [messages]);
+  
+  // Functions that the hook expects
+  const resetInputState = useCallback(() => {
+    setNewMessage('');
+    setAudioBlob(null);
+    setAttachedFile(null);
+    setImagePreview(null);
+    setEditingMsg(null);
+  }, []);
+
+  const resetPollState = useCallback(() => {
+    setPollQuestion('');
+    setPollOptions(['', '']);
+    setShowPollModal(false);
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarCollapsed(prev => {
+      const newValue = !prev;
+      try { 
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SIDEBAR_COLLAPSED, String(newValue)); 
+      } catch {}
+      return newValue;
+    });
+  }, []);
+  
   // Use chat actions hook for functionality that will be moved to components
+  const chatState = {
+    selectedClass,
+    newMessage,
+    audioBlob,
+    attachedFile,
+    isUploading,
+    setIsUploading,
+    setMessages,
+    resetInputState,
+    setEditingMsg,
+    setReactionMenu,
+    setDmContextMenu,
+    setShowDeleteDMConfirm,
+    setSelectedClass,
+    setChatReads,
+    setHighlightedMsgId,
+    setShowMembers,
+    setNewMessage,
+    setAudioBlob,
+    setAttachedFile,
+    setImagePreview,
+    setShowPollModal,
+    setPollQuestion,
+    setPollOptions,
+    resetPollState,
+    setUserHasInteracted,
+    safeClasses,
+    safeDirectRooms,
+    isAdmin,
+    isSuperAdmin,
+    messageInputRef,
+    setShowEmojiPicker,
+    pollQuestion,
+    pollOptions
+  };
+
   const {
     sendMessage,
     startRecording,
@@ -172,36 +238,18 @@ const ChatPage = memo(() => {
     clearDMMessages,
     deleteDMConversation,
     createPollMessage
-  } = useChatActions({
-    user,
-    profileName,
-    selectedClass,
-    toast,
-    setNewMessage,
-    audioBlob,
-    setAudioBlob,
-    attachedFile,
-    setAttachedFile,
-    isUploading,
-    setIsUploading,
-    setImagePreview,
-    messages,
-    setMessages,
-    chatReads,
-    setChatReads,
-    safeClasses,
-    safeDirectRooms,
-    isAdmin,
-    isSuperAdmin,
-    t,
-    logger,
-    messageInputRef,
-    setShowEmojiPicker,
-    setPollQuestion,
-    setPollOptions,
-    pollQuestion,
-    pollOptions
-  });
+  } = useChatActions(user, chatState, toast, t);
+  
+  // Wrapper function for form submission
+  const handleSendMessage = useCallback((e) => {
+    e?.preventDefault();
+    sendMessage(newMessage);
+  }, [sendMessage, newMessage]);
+  
+  // Handle class change
+  const handleClassChange = useCallback((classId) => {
+    setSelectedClass(classId);
+  }, [setSelectedClass]);
   
   // Helper function to get user's theme color
   const getUserThemeColor = () => {
@@ -213,7 +261,6 @@ const ChatPage = memo(() => {
     // Fallback to default maroon
     return DEFAULT_ACCENT;
   };
-  const [highlightedMsgId, setHighlightedMsgId] = useState(null);
   
   
   // Refs
@@ -221,11 +268,8 @@ const ChatPage = memo(() => {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingIntervalRef = useRef(null);
-  const messageInputRef = useRef(null);
   const suppressAutoScrollRef = useRef(false);
   const messagesUnsubRef = useRef(null);
-  // Profile name for senderName in messages/polls
-  const [profileName, setProfileName] = useState('');
   const [archivedRooms, setArchivedRooms] = useState(null); // null = loading, {} = loaded
   const [archivedClasses, setArchivedClasses] = useState(null); // null = loading, {} = loaded
   const [showArchived, setShowArchived] = useState(false);
@@ -239,12 +283,6 @@ const ChatPage = memo(() => {
   const messagesEndRef = useRef(null);
   const [myMessageColor, setMyMessageColor] = useState(null);
   const hasHighlightedRef = useRef(null);
-
-  const safeClasses = useMemo(() => (Array.isArray(classes) ? classes : []), [classes]);
-  const safeDirectRooms = useMemo(() => (Array.isArray(directRooms) ? directRooms : []), [directRooms]);
-  const safeClassMembers = useMemo(() => (Array.isArray(classMembers) ? classMembers : []), [classMembers]);
-  const safeAllUsers = useMemo(() => (Array.isArray(allUsers) ? allUsers : []), [allUsers]);
-  const safeMessages = useMemo(() => (Array.isArray(messages) ? messages : []), [messages]);
 
   const loadClassMembers = useCallback(async (classId) => {
     logger.info('loadClassMembers called', { 
@@ -646,6 +684,13 @@ const ChatPage = memo(() => {
     return () => window.removeEventListener('focus', handleFocus);
   }, [user, selectedClass, chatReads]);
 
+  // Load class members when selected class changes
+  useEffect(() => {
+    if (selectedClass && user) {
+      loadClassMembers(selectedClass);
+    }
+  }, [selectedClass, user, loadClassMembers]);
+
   // Load classes and setup with real-time subscriptions
   useEffect(() => {
     if (authLoading || !user) return;
@@ -935,16 +980,9 @@ const ChatPage = memo(() => {
 
 
 
-  useEffect(() => {
-    logger.info('selectedClass changed', { 
-      newSelectedClass: selectedClass,
-      isGlobal: selectedClass === 'global',
-      isDM: selectedClass?.startsWith('dm:'),
-      timestamp: new Date().toISOString()
-    });
-  }, [selectedClass]);
-
   // Use GlobalLoading for initial data load only (not for chat transitions)
+  const hasLoadedInitialMessages = useRef(false);
+  
   useLayoutEffect(() => {
     logger.info('Global loading effect triggered', { 
       authLoading, 
@@ -958,8 +996,9 @@ const ChatPage = memo(() => {
     if (!user) return;
 
     // Only show loading for initial load, not for chat transitions
-    if (messages && messages.length > 0) {
+    if (hasLoadedInitialMessages.current || (messages && messages.length > 0)) {
       logger.info('Skipping global loading - messages already loaded', { messagesLength: messages.length });
+      hasLoadedInitialMessages.current = true;
       return;
     }
 
@@ -979,6 +1018,7 @@ const ChatPage = memo(() => {
         // Just wait for messages to load
         if (messages && messages.length > 0) {
           logger.info('Messages loaded, stopping global loading', { messagesLength: messages.length });
+          hasLoadedInitialMessages.current = true;
           safeStop();
         }
       } catch (error) {
@@ -991,6 +1031,7 @@ const ChatPage = memo(() => {
     // Wait a bit for messages to load, then stop loading
     const timeout = setTimeout(() => {
       logger.info('Global loading timeout reached, stopping loading', { messagesLength: messages?.length || 0 });
+      hasLoadedInitialMessages.current = true;
       safeStop();
     }, 1000);
 
@@ -998,7 +1039,7 @@ const ChatPage = memo(() => {
       clearTimeout(timeout);
       safeStop();
     };
-  }, [authLoading, user]); // Remove 'messages' from dependency array
+  }, [authLoading, user?.uid]); // Remove messages dependency to prevent loops
 
   return (
     <>

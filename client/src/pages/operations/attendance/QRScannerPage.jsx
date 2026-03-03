@@ -1284,26 +1284,26 @@ const QRScannerPage = () => {
       // Create CSV content with localized headers using constants
       const headers = lang === 'ar' ? [
         '#',
-        t('student_number') || 'الرقم العسكري',
-        t('student_name') || 'اسم الطالب',
+        t('student_number'),
+        t('student_name'),
         ...ATTENDANCE_TYPES.map(type => type.label_ar),
-        t('date') || 'التاريخ',
-        t('time') || 'الوقت',
-        t('method') || 'الطريقة',
-        t('notes') || 'الملاحظات',
-        t('marked_by') || 'سجل بواسطة',
-        t('timestamp') || 'الوقت والتاريخ'
+        t('date'),
+        t('time'),
+        t('method'),
+        t('notes'),
+        t('marked_by'),
+        t('timestamp')
       ] : [
         '#',
-        t('student_number') || 'Student Number',
-        t('student_name') || 'Student Name',
+        t('student_number'),
+        t('student_name'),
         ...ATTENDANCE_TYPES.map(type => type.label_en),
-        t('date') || 'Date',
-        t('time') || 'Time',
-        t('method') || 'Method',
-        t('notes') || 'Notes',
-        t('marked_by') || 'Marked By',
-        t('timestamp') || 'Timestamp'
+        t('date'),
+        t('time'),
+        t('method'),
+        t('notes'),
+        t('marked_by'),
+        t('timestamp')
       ];
 
       const csvContent = [

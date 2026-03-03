@@ -657,18 +657,76 @@ const HRAttendancePage = () => {
         return mark;
       }));
 
-      const headers = ['UID', 'Name', 'Email', 'Status', 'Reason', 'Feedback', 'Device Hash', 'Scanned At', 'Updated By'];
-      const csvRows = enriched.map(r => [
-        r.uid,
-        r.userName || '',
-        r.userEmail || '',
-        r.status || 'present',
-        r.reason || '',
-        r.feedback || '',
-        r.deviceHash || '',
-        (r.at && r.at.toDate ? r.at.toDate() : new Date()).toLocaleString('en-GB'),
-        r.updatedBy || ''
-      ]);
+      // Use Arabic headers based on language
+      const headers = [
+        '#',
+        'رقم الطالب',
+        'اسم الطالب',
+        'حاضر',
+        'غياب بدون عذر', 
+        'غياب بعذر',
+        'متأخر',
+        'استئذان',
+        'حالة إنسانية',
+        'التاريخ',
+        'الوقت',
+        'الطريقة',
+        'ملاحظات',
+        'سجل بواسطة',
+        'الطابع الزمني'
+      ];
+      
+      const csvRows = enriched.map((r, index) => {
+        const status = r.status || 'present';
+        let attendanceStatus = '';
+        
+        // Map status to Arabic columns
+        switch(status) {
+          case 'present':
+            attendanceStatus = 'X'; // حاضر
+            break;
+          case 'absent':
+            attendanceStatus = ''; // غياب بدون عذر
+            break;
+          case 'excused':
+            attendanceStatus = ''; // غياب بعذر  
+            break;
+          case 'late':
+            attendanceStatus = ''; // متأخر
+            break;
+          case 'permission':
+            attendanceStatus = ''; // استئذان
+            break;
+          case 'humanitarian':
+            attendanceStatus = ''; // حالة إنسانية
+            break;
+          default:
+            attendanceStatus = '';
+        }
+        
+        const scanDate = (r.at && r.at.toDate ? r.at.toDate() : new Date());
+        const dateStr = scanDate.toLocaleDateString('ar-SA');
+        const timeStr = scanDate.toLocaleTimeString('ar-SA', { hour12: true });
+        const timestamp = scanDate.toLocaleString('ar-SA');
+        
+        return [
+          index + 1,
+          r.uid || '',
+          r.userName || '',
+          attendanceStatus, // حاضر column
+          '', // غياب بدون عذر column
+          '', // غياب بعذر column  
+          '', // متأخر column
+          '', // استئذان column
+          '', // حالة إنسانية column
+          dateStr, // التاريخ
+          timeStr, // الوقت
+          'إجراء سريع', // الطريقة
+          'Quick Present', // ملاحظات
+          r.updatedBy || '', // marked by
+          timestamp // الطابع الزمني
+        ];
+      });
       const csv = [headers.join(','), ...csvRows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
