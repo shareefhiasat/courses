@@ -499,77 +499,17 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
       // the remaining students AFTER exclusion, not the excluded students themselves
 
       // Create validated students object for remaining students (after exclusion)
-      logger.info('[useManualBulkScan] Creating remaining students from validatableStudents:', {
-        validatableStudentsCount: validatableStudents.length,
-        validatableStudents: validatableStudents.map(s => ({
-          id: s.id,
-          displayName: s.displayName,
-          name: s.name,
-          studentNumber: s.studentNumber,
-          email: s.email,
-          isStudent: s.isStudent,
-          role: s.role
-        }))
-      });
-
-      const remainingStudents = validatableStudents.map(student => {
-        const mappedStudent = {
-          studentNumber: student.studentNumber,
-          studentId: student.id,
-          displayName: student.displayName || student.name,
-          email: student.email,
-          studentData: student
-        };
-
-        logger.info('[useManualBulkScan] Mapped remaining student:', {
-          originalId: student.id,
-          originalDisplayName: student.displayName,
-          originalName: student.name,
-          originalStudentNumber: student.studentNumber,
-          mappedStudentNumber: mappedStudent.studentNumber,
-          mappedStudentId: mappedStudent.studentId,
-          mappedDisplayName: mappedStudent.displayName,
-          mapping: {
-            studentNumberMatch: student.studentNumber === mappedStudent.studentNumber,
-            idMatch: student.id === mappedStudent.studentId,
-            displayNameMatch: (student.displayName || student.name) === mappedStudent.displayName
-          }
-        });
-
-        return mappedStudent;
-      });
-
-      logger.info('[useManualBulkScan] Setting validated students for remaining students (Add All Except):', {
-        remainingCount: remainingStudents.length,
-        remainingStudents: remainingStudents.map(s => ({
-          studentNumber: s.studentNumber,
-          studentId: s.studentId,
-          displayName: s.displayName,
-          email: s.email
-        }))
-      });
+      const remainingStudents = validatableStudents.map(student => ({
+        studentNumber: student.studentNumber,
+        studentId: student.id,
+        displayName: student.displayName || student.name,
+        email: student.email,
+        studentData: student
+      }));
 
       setValidatedStudents({
         found: remainingStudents,
         notFound: []
-      });
-
-      // Log what was actually set
-      logger.info('[useManualBulkScan] After setValidatedStudents - checking what will be submitted:', {
-        validatedStudentsFound: validatedStudents.found.length,
-        validatedStudentsFoundDetails: validatedStudents.found.map(s => ({
-          studentNumber: s.studentNumber,
-          studentId: s.studentId,
-          displayName: s.displayName,
-          email: s.email
-        })),
-        remainingStudentsCount: remainingStudents.length,
-        remainingStudentsDetails: remainingStudents.map(s => ({
-          studentNumber: s.studentNumber,
-          studentId: s.studentId,
-          displayName: s.displayName,
-          email: s.email
-        }))
       });
 
       // Populate input with remaining student numbers for review
@@ -577,19 +517,11 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
         const remainingStudentNumbers = remainingStudents.map(s => s.studentNumber);
         const inputText = remainingStudentNumbers.join('\n');
         
-        logger.info('[useManualBulkScan] Populating input with remaining students (Add All Except):', {
-          remainingCount: remainingStudents.length,
-          remainingStudentNumbers: remainingStudentNumbers,
-          inputText: inputText
-        });
-        
         // Set the input text with remaining students
         setInputText(inputText);
         
         // Trigger parse to show the students in the UI
         await parseInput();
-        
-        logger.info('[useManualBulkScan] Add All Except completed - students populated for review');
       } else {
         logger.warn('[useManualBulkScan] No students remaining after exclusions');
         setError('No students remaining after exclusions');

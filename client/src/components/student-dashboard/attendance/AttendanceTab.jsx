@@ -249,24 +249,86 @@ const AttendanceTab = React.memo(({
     });
 
     const resolveDate = (log) => {
-      // Use createdAt (Firestore timestamp) first, then date string
+      // Debug: Log the entire log object to understand the structure
+      logger.debug('[AttendanceTab] resolveDate called with:', {
+        logType: log.logType,
+        method: log.method,
+        hasDate: !!log.date,
+        hasTime: !!log.time,
+        hasTimestamp: !!log.timestamp,
+        hasCreatedAt: !!log.createdAt,
+        date: log.date,
+        time: log.time,
+        timestamp: log.timestamp,
+        createdAt: log.createdAt,
+        allKeys: Object.keys(log)
+      });
+      
+      // For attendance records, try multiple approaches to get a valid date
+      if (log.logType === RECORD_TYPES.ATTENDANCE) {
+        // Method 1: Combine date and time fields (most accurate)
+        if (log.date && log.time) {
+          const combinedDateTime = `${log.date}T${log.time}`;
+          const d = new Date(combinedDateTime);
+          if (!isNaN(d.getTime())) {
+            logger.debug('[AttendanceTab] Resolved date using date+time combination:', combinedDateTime);
+            return d;
+          }
+        }
+        
+        // Method 2: Use date field with current time (fallback)
+        if (log.date) {
+          const dateWithCurrentTime = `${log.date}T${new Date().toTimeString().split(' ')[0]}`;
+          const d = new Date(dateWithCurrentTime);
+          if (!isNaN(d.getTime())) {
+            logger.debug('[AttendanceTab] Resolved date using date+current time:', dateWithCurrentTime);
+            return d;
+          }
+        }
+        
+        // Method 3: Try date field alone (start of day)
+        if (log.date) {
+          const d = new Date(log.date);
+          if (!isNaN(d.getTime())) {
+            logger.debug('[AttendanceTab] Resolved date using date only:', log.date);
+            return d;
+          }
+        }
+      }
+      
+      // For non-attendance records, use standard approach
       const candidates = [
         log.createdAt?.toDate ? log.createdAt.toDate() : log.createdAt,
         log.date,
         log.updatedAt?.toDate ? log.updatedAt.toDate() : log.updatedAt,
-        log.time,
         log.timestamp,
       ];
+      
       for (const candidate of candidates) {
         if (!candidate) continue;
         if (candidate?.toDate) {
           const d = candidate.toDate();
-          if (!isNaN(d.getTime())) return d;
+          if (!isNaN(d.getTime())) {
+            logger.debug('[AttendanceTab] Resolved date using timestamp:', candidate);
+            return d;
+          }
         }
         const d = new Date(candidate);
-        if (!isNaN(d.getTime())) return d;
+        if (!isNaN(d.getTime())) {
+          logger.debug('[AttendanceTab] Resolved date using string candidate:', candidate);
+          return d;
+        }
       }
-      return null;
+      
+      // Ultimate fallback: use current date
+      logger.warn('[AttendanceTab] All date resolution failed, using current date as fallback for:', {
+        logType: log.logType,
+        hasDate: !!log.date,
+        hasTime: !!log.time,
+        hasCreatedAt: !!log.createdAt,
+        hasTimestamp: !!log.timestamp
+      });
+      return new Date();
     };
 
     // Create a student name mapping from the students roster

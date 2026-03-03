@@ -4,7 +4,7 @@ import { getUserById } from './userService';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import logger from '@utils/logger';
-import { formatQatarDateOnly, getQatarNow, getQatarTimestampString } from '@utils/qatarDate';
+import { formatQatarDateOnly, formatQatarTimeOnly, getQatarNow, getQatarTimestampString } from '@utils/qatarDate';
 import { 
   getAttendanceRecords as getAttendanceRecordsFromDb,
   getAttendanceRecord as getAttendanceRecordFromDb,
@@ -121,19 +121,42 @@ export const isStudentMarkedToday = async (classId, studentIdentifier) => {
 // Mark attendance (centralized - CONSOLIDATED from both files)
 export const markAttendance = async (attendanceData) => {
   try {
+    logger.info('[AttendanceService] markAttendance called with:', {
+      attendanceData,
+      hasTime: !!attendanceData.time,
+      hasDate: !!attendanceData.date,
+      studentId: attendanceData.studentId,
+      status: attendanceData.status
+    });
+
     // Validate required fields and provide defaults
     const validatedData = {
       ...attendanceData,
       markedBy: attendanceData.markedBy || 'unknown',
       performedBy: attendanceData.performedBy || 'unknown',
       performedByName: attendanceData.performedByName || 'Unknown User',
-      performedByEmail: attendanceData.performedByEmail || 'unknown@example.com'
+      performedByEmail: attendanceData.performedByEmail || 'unknown@example.com',
+      // Add time field if not present - use simple 24-hour Qatar time format
+      time: attendanceData.time || (() => {
+        const qatarTime = getQatarNow();
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${pad(qatarTime.getHours())}:${pad(qatarTime.getMinutes())}:${pad(qatarTime.getSeconds())}`;
+      })() // Get current Qatar time in HH:MM:SS 24-hour format
     };
 
     // Use the date passed from caller, or default to today's Qatar date
     const date = validatedData.date || formatQatarDateOnly(getQatarNow());
     const today = date; // Use the passed date for consistency
     const attendanceDocId = `${validatedData.classId}_${validatedData.studentId}_${today}`;
+
+    logger.info('[AttendanceService] Validated attendance data:', {
+      attendanceDocId,
+      studentId: validatedData.studentId,
+      status: validatedData.status,
+      date: validatedData.date,
+      time: validatedData.time,
+      method: validatedData.method
+    });
     
     // Ensure we have programId and subjectId from class data
     // These should be passed from the calling code, but we validate here
@@ -149,6 +172,7 @@ export const markAttendance = async (attendanceData) => {
         programId,
         subjectId,
         date: date, // Use the passed date (ISO format)
+        time: validatedData.time, // Ensure time is included
         updatedAt: getQatarTimestampString()
       });
       
@@ -188,6 +212,7 @@ export const markAttendance = async (attendanceData) => {
         programId,
         subjectId,
         date: date, // Use the passed date (ISO format)
+        time: validatedData.time, // Ensure time is included
         createdAt: getQatarTimestampString(),
         updatedAt: getQatarTimestampString()
       });

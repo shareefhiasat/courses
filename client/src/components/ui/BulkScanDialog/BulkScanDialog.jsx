@@ -578,70 +578,7 @@ const BulkScanDialog = ({
             </div>
           )}
 
-          {result && result.success && result.results?.detailed?.length > 0 && (
-            <div className={`${styles.detailedResults} ${styles[theme]}`}>
-              <div className={styles.detailedResultsHeader}>
-                <div className={styles.detailedResultsHeaderLeft}>
-                  <h3 className={styles.detailedResultsTitle}>
-                    {t('detailed_results') || 'Detailed Results'}
-                  </h3>
-                  <div className={styles.detailedResultsCount}>
-                    {result.results.detailed.length} {t('students') || 'students'}
                   </div>
-                </div>
-                <div className={styles.detailedResultsHeaderRight}>
-                  <button
-                    onClick={clearAll}
-                    className={`${styles.clearNewButton} ${styles[theme]}`}
-                    title={t('clear_and_new') || 'Clear & Start New Operation'}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <span className={styles.spinnerSmall} />
-                    ) : (
-                      <RefreshCw size={16} />
-                    )}
-                    <span>{t('clear_new') || 'Clear & New'}</span>
-                  </button>
-                  <button
-                    onClick={exportResults}
-                    className={`${styles.exportButton} ${styles[theme]}`}
-                    title={t('export_results') || 'Export Results'}
-                  >
-                    <Download size={16} />
-                    <span>{t('export') || 'Export'}</span>
-                  </button>
-                </div>
-              </div>
-              <div className={styles.detailedResultsGrid}>
-                {result.results.detailed.map((studentResult, index) => (
-                  <div 
-                    key={`${studentResult.studentId}-${index}`}
-                    className={`${styles.studentCard} ${styles[studentResult.status]} ${styles[theme]}`}
-                  >
-                    <div className={styles.studentCardHeader}>
-                      <div className={styles.studentCardInfo}>
-                        <div className={styles.studentCardNumber}>
-                          {studentResult.studentNumber}
-                        </div>
-                        <div className={styles.studentCardName}>
-                          {studentResult.studentName}
-                        </div>
-                      </div>
-                      <div className={`${styles.statusCardBadge} ${styles[studentResult.status]} ${styles[theme]}`}>
-                        {getStatusIcon(studentResult.status)}
-                        <span>{t(studentResult.status) || studentResult.status}</span>
-                      </div>
-                    </div>
-                    <div className={styles.studentCardMessage}>
-                      {studentResult.message}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
 
         <div className={styles.footer}>
           <button

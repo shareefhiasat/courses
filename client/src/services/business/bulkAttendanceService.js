@@ -236,7 +236,10 @@ export const bulkUpsertAttendance = async ({
           displayName: studentInfo.displayName,
           name: studentInfo.name,
           email: studentInfo.email,
-          studentInfoKeys: Object.keys(studentInfo)
+          studentInfoKeys: Object.keys(studentInfo),
+          batchIndex: batch.indexOf(studentInfo),
+          totalBatchSize: batch.length,
+          notes: notes
         });
         
         const detailedResult = {
@@ -347,15 +350,7 @@ export const bulkUpsertAttendance = async ({
             }
           } else {
             // Create new attendance record
-            logger.info('[BulkAttendanceService] Calling markAttendance for CREATE:', {
-              classId,
-              studentNumber,
-              date: isoDate,
-              status,
-              method: source
-            });
-            
-            const createResult = await markAttendance({
+            const attendanceData = {
               classId,
               programId,
               subjectId,
@@ -371,7 +366,15 @@ export const bulkUpsertAttendance = async ({
               notes: notes || `Bulk ${status} - ${source}`,
               timestamp: getQatarTimestampString(),
               studentInfo: studentInfo.studentData || null
+            };
+
+            logger.info('[BulkAttendanceService] Calling markAttendance for CREATE:', {
+              attendanceData,
+              batchIndex: batch.indexOf(studentInfo),
+              totalBatchSize: batch.length
             });
+            
+            const createResult = await markAttendance(attendanceData);
 
             if (createResult.success) {
               detailedResult.status = 'created';
