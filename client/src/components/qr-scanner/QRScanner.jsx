@@ -1026,13 +1026,28 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
         // Only map the Firebase user ID to the name (not reference ID)
         studentMap[studentId] = name;
-        studentMap[generateReferenceId(studentId)] = name; // Also map reference ID
+        const refId = generateReferenceId(studentId);
+        studentMap[refId] = name; // Also map reference ID
 
         logger.debug('[QR Scanner] Student map entry:', {
           firebaseId: studentId,
-          refId: generateReferenceId(studentId),
-          name: name
+          refId: refId,
+          name: name,
+          totalMappings: Object.keys(studentMap).length,
+          currentMap: Object.entries(studentMap)
         });
+        
+        // CRITICAL: Check for duplicate names during mapping
+        const existingMappings = Object.entries(studentMap).filter(([key, value]) => value === name);
+        if (existingMappings.length > 1) {
+          logger.error('[QR Scanner] DUPLICATE NAME CREATED:', {
+            name,
+            mappings: existingMappings,
+            newFirebaseId: studentId,
+            newRefId: refId,
+            warning: 'This will cause cheating record duplication!'
+          });
+        }
       });
 
       // Debug: Log complete student map to identify potential duplicates
@@ -1101,8 +1116,23 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               date: record.date,
               classId: record.classId
             },
-            availableMappings: studentId ? Object.keys(studentMap).filter(key => key.includes(studentId) || studentMap[key] === studentName) : []
+            availableMappings: studentId ? Object.keys(studentMap).filter(key => key.includes(studentId) || studentMap[key] === studentName) : [],
+            studentMapKeys: Object.keys(studentMap),
+            studentMapEntries: Object.entries(studentMap).slice(0, 10), // Show first 10 entries
+            allStudentsLength: students.length,
+            allStudentsIds: students.map(s => ({ id: s.id, name: s.displayName || s.name }))
           });
+          
+          // CRITICAL: Log if multiple students map to the same name
+          const sameNameMappings = Object.entries(studentMap).filter(([key, value]) => value === studentName);
+          if (sameNameMappings.length > 1) {
+            logger.error('[QR Scanner] DUPLICATE NAME DETECTED:', {
+              studentName,
+              mappings: sameNameMappings,
+              recordStudentId: studentId,
+              warning: 'This cheating record will appear for multiple students!'
+            });
+          }
         }
 
         // If not found in map, try to find the student by generating reference ID from user IDs
