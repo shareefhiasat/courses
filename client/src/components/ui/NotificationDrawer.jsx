@@ -88,8 +88,8 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
         if (latestNotification) {
           triggerNotification(
             latestNotification.type || 'default',
-            latestNotification.title || 'New Notification',
-            latestNotification.message || 'You have a new notification'
+            latestNotification.title || t('notifications.new_notification'),
+            latestNotification.message || t('notifications.new_notification_message')
           );
         }
       }
@@ -236,10 +236,10 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     const now = new Date();
     const diff = now - date;
     
-    if (diff < 60000) return 'Just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+    if (diff < 60000) return t('notifications.just_now');
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}${t('notifications.minutes_ago')}`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}${t('notifications.hours_ago')}`;
+    if (diff < 604800000) return `${Math.floor(diff / 86400000)}${t('notifications.days_ago')}`;
     return formatDateTime(date);
   }, [formatDateTime]);
 
@@ -304,7 +304,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
 
   const handleDelete = async (notificationId, e) => {
     e?.stopPropagation();
-    if (!confirm('Delete this notification?')) return;
+    if (!confirm(t('notifications.delete_confirmation'))) return;
     setLoading(true);
     try {
       await deleteNotification(notificationId);
@@ -428,7 +428,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: isDark ? '#fff' : '#111' }}>
-              Notifications
+              {t('notifications.title')}
             </h2>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <PortalTooltip content={t('open_in_new_tab')} position="top">
@@ -624,7 +624,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               value={filterYear}
               onChange={(e) => setFilterYear(e.target.value)}
               options={[
-                { value: 'all', label: 'All Years' },
+                { value: 'all', label: t('notifications.all_years') },
                 ...Array.from(new Set((classes || []).map(c => {
                   if (c.year) return String(c.year);
                   if (c.term && c.term.includes(' ')) {
@@ -643,7 +643,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               value={filterSemester}
               onChange={(e) => setFilterSemester(e.target.value)}
               options={[
-                { value: 'all', label: 'All Semesters' },
+                { value: 'all', label: t('notifications.all_semesters') },
                 ...Array.from(new Set((subjects || []).map(s => s.semester).filter(Boolean))).map(v => ({ value: v, label: v }))
               ]}
               size="small"
@@ -707,7 +707,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                   onClick={handleMarkAllAsRead}
                   disabled={loading}
                 >
-                  Mark all read
+                  {t('notifications.mark_all_read')}
                 </Button>
               )}
             </div>

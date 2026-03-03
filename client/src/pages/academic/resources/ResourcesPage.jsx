@@ -29,7 +29,7 @@ import { getUsers } from '@services/business/userService';
 
 const ResourcesPage = () => {
   const { user } = useAuth();
-  const { t, lang } = useLang();
+  const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const uiToast = useToast();

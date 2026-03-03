@@ -187,7 +187,7 @@ const ChatPage = memo(() => {
   }, []);
   
   // Use chat actions hook for functionality that will be moved to components
-  const chatState = {
+    const chatState = {
     selectedClass,
     newMessage,
     audioBlob,
@@ -214,17 +214,23 @@ const ChatPage = memo(() => {
     resetPollState,
     setUserHasInteracted,
     safeClasses,
+    safeAllUsers,
+    safeClassMembers,
     safeDirectRooms,
     isAdmin,
     isSuperAdmin,
     messageInputRef,
     setShowEmojiPicker,
     pollQuestion,
-    pollOptions
+    pollOptions,
+    profileName,
+    setAllUsers,
+    setClassMembers
   };
 
   const {
-    sendMessage,
+    loadClassMembers,
+    handleSendMessage: sendMessage,
     startRecording,
     stopRecording,
     cancelRecording,
@@ -270,8 +276,8 @@ const ChatPage = memo(() => {
   const recordingIntervalRef = useRef(null);
   const suppressAutoScrollRef = useRef(false);
   const messagesUnsubRef = useRef(null);
-  const [archivedRooms, setArchivedRooms] = useState(null); // null = loading, {} = loaded
-  const [archivedClasses, setArchivedClasses] = useState(null); // null = loading, {} = loaded
+  const [archivedRooms, setArchivedRooms] = useState({}); // Start with empty object
+  const [archivedClasses, setArchivedClasses] = useState({}); // Start with empty object to show classes
   const [showArchived, setShowArchived] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -283,79 +289,6 @@ const ChatPage = memo(() => {
   const messagesEndRef = useRef(null);
   const [myMessageColor, setMyMessageColor] = useState(null);
   const hasHighlightedRef = useRef(null);
-
-  const loadClassMembers = useCallback(async (classId) => {
-    logger.info('loadClassMembers called', { 
-      classId, 
-      hasUser: !!user,
-      userId: user?.uid,
-      safeAllUsersLength: safeAllUsers.length
-    });
-    
-    // Safety: if auth user not ready yet, bail early to avoid null uid errors
-    if (!user) {
-      logger.warn('loadClassMembers early return - no user');
-      return;
-    }
-    
-    if (classId === 'global') {
-      logger.info('Loading global chat members');
-      // Use cached allUsers if available to avoid unnecessary API calls
-      if (safeAllUsers.length > 0) {
-        logger.info('Using cached allUsers for global chat', { count: safeAllUsers.length });
-        setClassMembers(safeAllUsers.filter(u => u.docId !== user.uid && u.email !== user.email));
-      } else {
-        logger.info('Fetching allUsers for global chat');
-        const usersResult = await getUsers();
-        const all = usersResult.success ? (usersResult.data || []) : [];
-        logger.info('Fetched allUsers', { count: all.length, success: usersResult.success });
-        setAllUsers(all);
-        setClassMembers(all.filter(u => u.docId !== user.uid && u.email !== user.email));
-      }
-      return;
-    }
-    
-    logger.info('Loading class members', { classId });
-    
-    // Use cached allUsers if available
-    const allUsersToUse = safeAllUsers.length > 0 ? safeAllUsers : 
-      (() => {
-        logger.info('Fetching allUsers for class members');
-        const result = getUsers();
-        return result.success ? (result.data || []) : [];
-      })();
-    
-    // Prefer users who have this class id in enrolledClasses
-    let members = allUsersToUse.filter(u => Array.isArray(u.enrolledClasses) && u.enrolledClasses.includes(classId) && u.docId !== user.uid && u.email !== user.email);
-    
-    // Ensure instructor/owner is included at top
-    try {
-      const cls = safeClasses.find(c => c.docId === classId);
-      const instructor = cls?.instructorId ? allUsersToUse.find(u => u.docId === cls.instructorId)
-                        : allUsersToUse.find(u => u.email === cls?.ownerEmail);
-      if (instructor && instructor.docId !== user.uid && instructor.email !== user.email && !members.some(m => m.docId === instructor.docId)) {
-        members = [instructor, ...members];
-      }
-    } catch {}
-    
-    // Optionally include platform admins so students can DM an admin (but not self)
-    const admins = allUsersToUse.filter(u => u.role === ROLE_STRINGS.ADMIN && u.docId !== user.uid && u.email !== user.email);
-    admins.forEach(a => { if (!members.some(m => m.docId === a.docId)) members.push(a); });
-    
-    logger.info('Setting class members', { 
-      classId, 
-      membersCount: members.length,
-      adminsCount: admins.length
-    });
-    
-    setClassMembers(members);
-    
-    // Update allUsers if it was empty
-    if (safeAllUsers.length === 0) {
-      logger.info('Updating allUsers cache', { count: allUsersToUse.length });
-      setAllUsers(allUsersToUse);
-    }
-  }, [user, safeClasses, safeAllUsers]);
 
   const loadMessages = useCallback(() => {
     let chatType, chatId;
@@ -686,10 +619,10 @@ const ChatPage = memo(() => {
 
   // Load class members when selected class changes
   useEffect(() => {
-    if (selectedClass && user) {
+    if (selectedClass && user && selectedClass !== 'global' && !selectedClass.startsWith('dm:')) {
       loadClassMembers(selectedClass);
     }
-  }, [selectedClass, user, loadClassMembers]);
+  }, [selectedClass, user]); // Remove loadClassMembers from dependencies
 
   // Load classes and setup with real-time subscriptions
   useEffect(() => {
@@ -701,6 +634,29 @@ const ChatPage = memo(() => {
     const setupClassesSubscription = async () => {
       try {
         let ids = new Set();
+        
+        // Check if user is instructor for any classes (for all users including admins)
+        try {
+          logger.info('Checking for instructor classes', { userId: user.uid, userEmail: user.email });
+          const classesResult = await getClasses();
+          if (classesResult.success) {
+            const allClasses = classesResult.data || [];
+            logger.info('Total classes fetched', { count: allClasses.length });
+            const instructorClasses = allClasses.filter(cls => 
+              cls.instructorId === user.uid || cls.ownerEmail === user.email || cls.createdBy === user.uid
+            );
+            instructorClasses.forEach(cls => ids.add(cls.docId));
+            logger.info('Found instructor classes', { 
+              count: instructorClasses.length,
+              classIds: instructorClasses.map(c => ({ id: c.docId, name: c.name, instructorId: c.instructorId, ownerEmail: c.ownerEmail, createdBy: c.createdBy }))
+            });
+          } else {
+            logger.error('Failed to fetch classes', { error: classesResult.error });
+          }
+        } catch (error) {
+          logger.error('Error fetching instructor classes:', error);
+        }
+        
         if (!isAdmin && !isSuperAdmin) {
           // Student: get enrolled classes
           const enrollmentsResult = await getEnrollments();
@@ -711,17 +667,22 @@ const ChatPage = memo(() => {
             const byEmail = allEnr.filter(e => (e.userEmail || e.email) === user.email);
             mine = byEmail;
           }
-          ids = new Set(mine.map(e => e.classId));
+          mine.forEach(e => ids.add(e.classId));
+          
           if (ids.size === 0) {
             try {
               const me = await getUserProfile(user);
               const enrolled = Array.isArray(me?.enrolledClasses) ? me.enrolledClasses : [];
-              ids = new Set(enrolled);
+              enrolled.forEach(id => ids.add(id));
             } catch {}
           }
         }
         
         const unsub = chatService.subscribeToClasses((all) => {
+          logger.info('Classes received from subscription', { 
+            count: all.length,
+            classIds: all.map(c => ({ id: c.docId, name: c.name }))
+          });
           setClasses(all);
           
           // Auto-select first class for students if needed (only if no user interaction)
@@ -765,7 +726,7 @@ const ChatPage = memo(() => {
     unsubs.push(unsub);
     
     return () => unsubs.forEach(u => u());
-  }, [user, isAdmin, isSuperAdmin, authLoading, loadClassMembers, selectedClass]);
+  }, [user, isAdmin, isSuperAdmin, authLoading, selectedClass]); // Remove loadClassMembers from dependencies
 
   // Load all users once for DM labels
   useEffect(() => {
@@ -989,16 +950,24 @@ const ChatPage = memo(() => {
       hasUser: !!user,
       messagesLength: messages?.length || 0,
       userId: user?.uid,
-      isInitialLoad: !messages || messages.length === 0
+      isInitialLoad: !messages || messages.length === 0,
+      hasLoadedInitial: hasLoadedInitialMessages.current
     });
     
     if (authLoading) return;
     if (!user) return;
 
     // Only show loading for initial load, not for chat transitions
-    if (hasLoadedInitialMessages.current || (messages && messages.length > 0)) {
-      logger.info('Skipping global loading - messages already loaded', { messagesLength: messages.length });
-      hasLoadedInitialMessages.current = true;
+    if (hasLoadedInitialMessages.current) {
+      logger.info('Skipping global loading - already loaded initial messages');
+      return;
+    }
+
+    // Set flag immediately to prevent multiple triggers
+    hasLoadedInitialMessages.current = true;
+
+    if (messages && messages.length > 0) {
+      logger.info('Messages already loaded, marking as initial load complete', { messagesLength: messages.length });
       return;
     }
 
@@ -1012,27 +981,12 @@ const ChatPage = memo(() => {
       stopGlobalLoading();
     };
 
-    const loadData = async () => {
-      try {
-        // Chat data loading is handled by the existing useEffect hooks
-        // Just wait for messages to load
-        if (messages && messages.length > 0) {
-          logger.info('Messages loaded, stopping global loading', { messagesLength: messages.length });
-          hasLoadedInitialMessages.current = true;
-          safeStop();
-        }
-      } catch (error) {
-        console.error('Error loading chat data:', error);
-        logger.error('Error loading chat data', { error: error.message });
-        safeStop();
-      }
-    };
-
     // Wait a bit for messages to load, then stop loading
     const timeout = setTimeout(() => {
-      logger.info('Global loading timeout reached, stopping loading', { messagesLength: messages?.length || 0 });
-      hasLoadedInitialMessages.current = true;
-      safeStop();
+      if (!stopped) {
+        logger.info('Global loading timeout reached, stopping loading', { messagesLength: messages?.length || 0 });
+        safeStop();
+      }
     }, 1000);
 
     return () => {
@@ -1138,7 +1092,7 @@ const ChatPage = memo(() => {
           )}
 
           {/* Class Chats */}
-          {archivedClasses !== null && (Array.isArray(classes) ? classes : [])
+          {(Array.isArray(classes) ? classes : [])
             .filter(cls => showArchived || !archivedClasses[cls.docId])
             .map(cls => (
             <div
@@ -2966,56 +2920,67 @@ const ChatPage = memo(() => {
         {/* drawer */}
         <div onClick={(e)=>e.stopPropagation()} style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: 360, background: 'white', boxShadow: '-4px 0 16px rgba(0,0,0,0.15)', padding: '1rem', pointerEvents: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h3 style={{ margin: 0 }}>Class Members</h3>
+            <h3 style={{ margin: 0 }}>
+              {selectedClass?.startsWith('dm:') ? 'Direct Message' : 'Class Members'}
+            </h3>
             <button onClick={()=>setShowMembers(false)} style={{ background: 'transparent', border: 'none', fontSize: 18, cursor: 'pointer' }}>✕</button>
           </div>
-          {/* search + filter */}
-          <input
-            type="text"
-            placeholder="Search members..."
-            value={memberSearch}
-            onChange={(e) => setMemberSearch(e.target.value)}
-            style={{ padding: '8px 12px', border: '1px solid #ddd', borderRadius: 6, marginBottom: 8, fontSize: '0.95rem' }}
-          />
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={studentsOnly}
-              onChange={(e) => setStudentsOnly(e.target.checked)}
-            />
-            <span style={{ fontSize: '0.9rem' }}>Students only</span>
-          </label>
+          {/* search + filter - only show for class chats */}
+          {!selectedClass?.startsWith('dm:') && (
+            <>
+              <input
+                type="text"
+                placeholder="Search members..."
+                value={memberSearch}
+                onChange={(e) => setMemberSearch(e.target.value)}
+                style={{ padding: '8px 12px', border: '1px solid #ddd', borderRadius: 6, marginBottom: 8, fontSize: '0.95rem' }}
+              />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={studentsOnly}
+                  onChange={(e) => setStudentsOnly(e.target.checked)}
+                />
+                <span style={{ fontSize: '0.9rem' }}>Students only</span>
+              </label>
+            </>
+          )}
           <div style={{ flex: 1, overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
-            {(() => {
-              let filtered = classMembers || [];
-              if (memberSearch) {
-                const search = memberSearch.toLowerCase();
-                filtered = filtered.filter(m => 
-                  (m.displayName || '').toLowerCase().includes(search) ||
-                  (m.email || '').toLowerCase().includes(search)
-                );
-              }
-              if (studentsOnly) {
-                filtered = filtered.filter(m => m.role === ROLE_STRINGS.STUDENT);
-              }
-              // Filter out the logged-in user (by both docId and email for safety)
-              filtered = filtered.filter(m => {
-                const excludeByDocId = m.docId !== user?.uid;
-                const excludeByEmail = m.email !== user?.email;
-                return excludeByDocId && excludeByEmail;
-              });
-              return filtered;
-            })().map(m => {
-              // For class members: show X if unenrolled from this specific class
-              const isDeleted = !m || m.deleted;
-              const isDisabled = m?.disabled || m?.isDisabled;
-              const isUnenrolled = selectedClass && selectedClass !== 'global' && !selectedClass.startsWith('dm:') && 
-                m.role === ROLE_STRINGS.STUDENT && !(Array.isArray(m.enrolledClasses) && m.enrolledClasses.includes(selectedClass));
-              const showIndicator = isDeleted || isDisabled || isUnenrolled;
-              const indicatorTitle = isDeleted ? 'Deleted User' : (isDisabled ? 'Disabled User' : (isUnenrolled ? 'Unenrolled from this class' : ''));
-              
-              return (
-                <div key={m.docId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f0f0f0' }}>
+            {selectedClass?.startsWith('dm:') ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                <p>This is a direct message conversation.</p>
+                <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>Only you and the other participant can see these messages.</p>
+              </div>
+            ) : (
+              (() => {
+                let filtered = classMembers || [];
+                if (memberSearch) {
+                  const search = memberSearch.toLowerCase();
+                  filtered = filtered.filter(m => 
+                    (m.displayName || '').toLowerCase().includes(search) ||
+                    (m.email || '').toLowerCase().includes(search)
+                  );
+                }
+                if (studentsOnly) {
+                  filtered = filtered.filter(m => m.role === ROLE_STRINGS.STUDENT);
+                }
+                // Filter out the logged-in user (by both docId and email for safety)
+                filtered = filtered.filter(m => {
+                  const excludeByDocId = m.docId !== user?.uid;
+                  const excludeByEmail = m.email !== user?.email;
+                  return excludeByDocId && excludeByEmail;
+                });
+                return filtered.map(m => {
+                // For class members: show X if unenrolled from this specific class
+                const isDeleted = !m || m.deleted;
+                const isDisabled = m?.disabled || m?.isDisabled;
+                const isUnenrolled = selectedClass && selectedClass !== 'global' && !selectedClass.startsWith('dm:') && 
+                  m.role === ROLE_STRINGS.STUDENT && !(Array.isArray(m.enrolledClasses) && m.enrolledClasses.includes(selectedClass));
+                const showIndicator = isDeleted || isDisabled || isUnenrolled;
+                const indicatorTitle = isDeleted ? 'Deleted User' : (isDisabled ? 'Disabled User' : (isUnenrolled ? 'Unenrolled from this class' : ''));
+                
+                return (
+                  <div key={m.docId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f0f0f0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ position: 'relative' }}>
                       <div style={{ width: 32, height: 32, borderRadius: '50%', background: showIndicator ? '#999' : '#800020', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, opacity: showIndicator ? 0.5 : 1 }}>
@@ -3075,7 +3040,9 @@ const ChatPage = memo(() => {
                   )}
                 </div>
               );
-            })}
+              })();
+            })()
+            )}
           </div>
         </div>
       </div>

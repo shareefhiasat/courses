@@ -30,7 +30,7 @@ import { ProgramsSelect } from '@ui';
  * - Single continuous form (no tabs)
  */
 const AnnouncementsPage = () => {
-  const { t, lang } = useLang();
+  const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { user } = useAuth();
@@ -630,7 +630,7 @@ const AnnouncementsPage = () => {
 
       {/* Filters */}
       <div className="filters-container" style={{ 
-        display: 'none', 
+        display: 'flex', 
         flexDirection: 'column',
         gap: '1rem', 
         marginBottom: '1rem', 

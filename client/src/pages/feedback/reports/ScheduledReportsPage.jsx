@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } fro
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { 
   getScheduledReports, 
@@ -15,12 +16,14 @@ import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadin
 import { Container } from '@ui';
 import { ToggleSwitch, RibbonTabs } from '@ui';
 import { Plus, Edit, Trash2, Calendar, Mail, FileText, X, FileDown, Search, BarChart3, Users } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { formatDateTime } from '@utils/date';
 import styles from './ScheduledReportsPage.module.css';
 
 const ScheduledReportsPage = () => {
   const { user, isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
@@ -330,16 +333,14 @@ const ScheduledReportsPage = () => {
 
       {/* Search */}
       <div style={{ marginBottom: '1rem' }}>
-        <div style={{ position: 'relative', maxWidth: 400 }}>
-          <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#6b7280' }} />
-          <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search reports..."
-            style={{ paddingLeft: 40 }}
-            fullWidth
-          />
-        </div>
+        <Input
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder={lang === 'ar' ? 'بحث التقارير...' : 'Search reports...'}
+          prefixIcon={getThemedIcon('ui', 'search', 16, theme)}
+          style={{ maxWidth: 400 }}
+          fullWidth
+        />
       </div>
 
       {/* Add/Edit Form */}

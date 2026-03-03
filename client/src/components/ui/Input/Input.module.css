@@ -155,6 +155,72 @@
   transform: translateY(-50%);
 }
 
+/* LTR Support for Input Icons - Explicit English positioning */
+html[dir="ltr"] .inputWrapper .prefix,
+[dir="ltr"] .inputWrapper .prefix,
+html[dir="ltr"] .prefix,
+[dir="ltr"] .prefix {
+  left: 0.875rem !important;
+  right: auto !important;
+}
+
+html[dir="ltr"] .inputWrapper .suffix,
+[dir="ltr"] .inputWrapper .suffix,
+html[dir="ltr"] .suffix,
+[dir="ltr"] .suffix {
+  right: 0.75rem !important;
+  left: auto !important;
+}
+
+html[dir="ltr"] .inputWrapper .hasPrefix,
+[dir="ltr"] .inputWrapper .hasPrefix,
+html[dir="ltr"] .hasPrefix,
+[dir="ltr"] .hasPrefix {
+  padding-left: 2.75rem !important;
+  padding-right: 1rem !important;
+}
+
+html[dir="ltr"] .inputWrapper .hasSuffix,
+[dir="ltr"] .inputWrapper .hasSuffix,
+html[dir="ltr"] .hasSuffix,
+[dir="ltr"] .hasSuffix {
+  padding-right: 2.5rem !important;
+  padding-left: 1rem !important;
+}
+
+/* RTL Support for Input Icons - Comprehensive coverage */
+html[dir="rtl"] .inputWrapper .prefix,
+[dir="rtl"] .inputWrapper .prefix,
+html[dir="rtl"] .prefix,
+[dir="rtl"] .prefix {
+  right: 0.875rem !important;
+  left: auto !important;
+}
+
+html[dir="rtl"] .inputWrapper .suffix,
+[dir="rtl"] .inputWrapper .suffix,
+html[dir="rtl"] .suffix,
+[dir="rtl"] .suffix {
+  left: 0.75rem !important;
+  right: auto !important;
+}
+
+html[dir="rtl"] .inputWrapper .hasPrefix,
+[dir="rtl"] .inputWrapper .hasPrefix,
+html[dir="rtl"] .hasPrefix,
+[dir="rtl"] .hasPrefix {
+  padding-right: 2.75rem !important;
+  padding-left: 1rem !important;
+}
+
+html[dir="rtl"] .inputWrapper .hasSuffix,
+[dir="rtl"] .inputWrapper .hasSuffix,
+html[dir="rtl"] .hasSuffix,
+[dir="rtl"] .hasSuffix {
+  padding-left: 2.5rem !important;
+  padding-right: 1rem !important;
+}
+
 /* Error State */
 .error {
   border-color: var(--color-danger, #dc3545);

@@ -38,7 +38,7 @@ import { ProgramsSelect } from '@ui';
  */
 const ActivitiesPage = () => {
   
-  const { t, lang } = useLang();
+  const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { user } = useAuth();
