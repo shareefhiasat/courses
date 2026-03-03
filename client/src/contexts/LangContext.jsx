@@ -266,7 +266,7 @@ const DICT = {
     class_schedule: 'Class Schedule',
     last7: 'Last 7 Days',
     last30: 'Last 30 Days',
-    qr_scanner: 'QR Student Scanner',
+    qr_scanner: 'QR Scanner',
     scanner: 'Scanner',
     active: 'Active',
     ready: 'Ready',
@@ -4089,6 +4089,24 @@ const DICT = {
     failed_to_mark: 'Failed to mark attendance',
     failed_to_update: 'Failed to update attendance',
     unexpected_error: 'Unexpected error occurred',
+    
+    // Common notes for penalties, behaviors, and participations
+    quick_present: 'Quick Present',
+    excellent_participation: 'Excellent Participation',
+    good_contribution: 'Good Contribution',
+    disruptive_behavior: 'Disruptive Behavior',
+    talking_in_class: 'Talking in Class',
+    using_mobile_phone: 'Using Mobile Phone',
+    sleeping_in_class: 'Sleeping in Class',
+    frequent_bathroom_requests: 'Frequent Bathroom Requests',
+    inappropriate_language: 'Inappropriate Language',
+    cheating_detected: 'Cheating Detected',
+    impersonation_attempt: 'Impersonation Attempt',
+    exam_disruption: 'Exam Disruption',
+    forgery_attempt: 'Forgery Attempt',
+    other_violation: 'Other Violation',
+    note_added: 'Note added',
+    custom_note: 'Custom Note',
   },
   ar: {
     cancel_marks_distribution: 'إلغاء توزيع الدرجات',
@@ -4728,7 +4746,7 @@ const DICT = {
     today: 'اليوم',
     last7: 'آخر 7 أيام',
     last30: 'آخر 30 يوماً',
-    qr_scanner: 'ماسيح QR للطلاب',
+    qr_scanner: 'ماسح كيو اّر ',
     scanner: 'الماسح',
     active: 'نشط',
     ready: 'جاهز',
@@ -7932,7 +7950,71 @@ const DICT = {
     failed_to_mark: 'فشل في تحديد الحضور',
     failed_to_update: 'فشل في تحديث الحضور',
     unexpected_error: 'حدث خطأ غير متوقع',
+    
+    // Common notes for penalties, behaviors, and participations (Arabic)
+    quick_present: 'حضور سريع',
+    excellent_participation: 'مشاركة ممتازة',
+    good_contribution: 'مساهمة جيدة',
+    disruptive_behavior: 'سلوك مشتت',
+    talking_in_class: 'التحدث في الصف',
+    using_mobile_phone: 'استخدام الهاتف المحمول',
+    sleeping_in_class: 'النوم في الصف',
+    frequent_bathroom_requests: 'طلبات الحمام المتكررة',
+    inappropriate_language: 'لغة غير لائقة',
+    cheating_detected: 'تم اكتشاف الغش',
+    impersonation_attempt: 'محاولة الانتحال',
+    exam_disruption: 'تعطيل الاختبار',
+    forgery_attempt: 'محاولة التزوير',
+    other_violation: 'مخالفة أخرى',
+    note_added: 'تمت إضافة ملاحظة',
+    custom_note: 'ملاحظة مخصصة',
   },
+};
+
+// Bilingual notes utility - handles both system-defined and custom notes
+export const getBilingualNote = (note, customNoteAr, lang = 'en') => {
+  // If we have a custom Arabic note and language is Arabic, use it
+  if (lang === 'ar' && customNoteAr) {
+    return customNoteAr;
+  }
+  
+  // For system-defined notes, try to translate using the dictionary
+  if (typeof note === 'string') {
+    const translationKey = note.toLowerCase().replace(/\s+/g, '_');
+    const translated = DICT[lang]?.[translationKey];
+    if (translated && translated !== note) {
+      return translated;
+    }
+  }
+  
+  // Fallback to original note
+  return note;
+};
+
+// Helper to generate bilingual note object for database storage
+export const createBilingualNote = (noteEn, noteAr = null) => {
+  return {
+    en: noteEn,
+    ar: noteAr || noteEn, // Fallback to English if no Arabic provided
+    hasArabic: !!noteAr && noteAr !== noteEn
+  };
+};
+
+// Helper to extract appropriate note for display
+export const getLocalizedNote = (bilingualNote, lang = 'en') => {
+  if (!bilingualNote) return '';
+  
+  if (typeof bilingualNote === 'string') {
+    // Legacy format - just a string
+    return bilingualNote;
+  }
+  
+  if (typeof bilingualNote === 'object') {
+    // New bilingual format
+    return lang === 'ar' && bilingualNote.ar ? bilingualNote.ar : bilingualNote.en;
+  }
+  
+  return String(bilingualNote);
 };
 
 export const LangProvider = ({ children }) => {

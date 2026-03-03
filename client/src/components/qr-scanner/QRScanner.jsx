@@ -70,12 +70,32 @@ import {
   HelpCircleIcon
 } from '@utils/icons.jsx';
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/attendanceMethods';
+import { useBilingualNotes } from '@hooks/useBilingualNotes.js';
 
 export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, loading = false, students = [], onMinimizeChange }) {
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const { showSuccess, showError } = useToast();
+  
+  // Safe bilingual notes hook with fallback
+  let bilingualNotes = null;
+  try {
+    bilingualNotes = useBilingualNotes();
+  } catch (error) {
+    console.warn('Bilingual notes hook not available, using fallback:', error);
+    bilingualNotes = {
+      getNote: (note) => String(note || ''),
+      createNote: (noteEn, noteAr = null) => ({ 
+        en: String(noteEn || ''), 
+        ar: String(noteAr || noteEn || ''), 
+        hasArabic: !!noteAr && noteAr !== noteEn 
+      }),
+      getTranslatedNote: (noteKey, customArabic = null) => String(customArabic || noteKey || ''),
+    };
+  }
+  
+  const { getNote, createNote, getTranslatedNote } = bilingualNotes || {};
   const [isScanning, setIsScanning] = useState(false);
   const [recentScans, setRecentScans] = useState(0);
   const [error, setError] = useState('');
@@ -117,9 +137,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   // Detect mobile device
   useEffect(() => {
-    console.error('🚨 QR SCANNER COMPONENT MOUNTED 🚨');
-    console.warn('🚨 QR Scanner component has mounted successfully');
-    alert('QR SCANNER MOUNTED - Logging test');
     setIsMobile(isMobileDevice());
   }, []);
 
@@ -758,7 +775,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             subjectId: selectedSubjectId,
             type: behaviorTypeId,
             points: action.points,
-            description: note || '',
+            description: (createNote && getTranslatedNote) 
+              ? createNote(note || '', note ? getTranslatedNote(note) : null)
+              : (note || ''),
             createdBy: user.uid,
             ...performedByFields,
             date: today,
@@ -778,7 +797,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             subjectId: selectedSubjectId,
             type: participationTypeId,
             points: action.points,
-            description: note || '',
+            description: (createNote && getTranslatedNote) 
+              ? createNote(note || '', note ? getTranslatedNote(note) : null)
+              : (note || ''),
             createdBy: user.uid,
             ...performedByFields,
             date: today,
@@ -850,9 +871,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           subjectId: selectedSubjectId,
           type: penaltyTypeId, // Always use the specific penalty type ID
           points: -Math.abs(penalty.points || 0), // Always negative for penalties
-          reason: note || '',
-          note: note || '',
-          description: note || '', // Add description field to match behavior pattern
+          reason: (createNote && getTranslatedNote) 
+            ? createNote(note || '', note ? getTranslatedNote(note) : null)
+            : (note || ''),
+          note: (createNote && getTranslatedNote) 
+            ? createNote(note || '', note ? getTranslatedNote(note) : null)
+            : (note || ''),
+          description: (createNote && getTranslatedNote) 
+            ? createNote(note || '', note ? getTranslatedNote(note) : null)
+            : (note || ''), // Add description field to match behavior pattern
           createdBy: user.uid,
           ...performedByFields,
           date: today,
@@ -1082,7 +1109,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           computedType: record.category || (recordPoints ? (recordPoints > 0 ? RECORD_TYPES.PARTICIPATION : RECORD_TYPES.BEHAVIOR) : RECORD_TYPES.ATTENDANCE)
         });
 
-        const activityLabel = record.notes || record.note || record.reason || record.description || record.type || '';
+        const activityLabel = getNote 
+      ? getNote(record.notes || record.note || record.reason || record.description) || record.type || ''
+      : (record.notes || record.note || record.reason || record.description || record.type || '');
 
         // Resolve human-readable label per type
         let finalLabel = activityLabel;
@@ -1140,7 +1169,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           subject: selectedSubjectName,
           program: selectedProgramName,
           class: selectedClassName,
-          comment: record.notes || record.note || record.reason || record.description || '',
+          comment: getNote 
+          ? getNote(record.notes || record.note || record.reason || record.description) || ''
+          : (record.notes || record.note || record.reason || record.description || ''),
           // Preserve original types for color determination
           originalType: record.type,
           penaltyType: record.penaltyType || record.type,
@@ -1254,15 +1285,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   const getStatusColor = useCallback((status, type, delta, penaltyType, behaviorType) => {
     // Use specific color functions for penalties and behaviors
-    if (type === 'penalty' && penaltyType) {
+    if (type === RECORD_TYPES.PENALTY && penaltyType) {
       return getPenaltyColor(penaltyType);
     }
     
-    if (type === 'behavior' && behaviorType) {
+    if (type === RECORD_TYPES.BEHAVIOR && behaviorType) {
       return getBehaviorColor(behaviorType);
     }
     
-    if (type === 'participation') {
+    if (type === RECORD_TYPES.PARTICIPATION) {
       return '#16a34a'; // Green for participation
     }
     
@@ -1284,16 +1315,16 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
     // Use centralized attendance color system
     switch(status?.toLowerCase()) {
-      case 'present': 
+      case ATTENDANCE_STATUS.PRESENT: 
         return '#16a34a';
-      case 'late': 
+      case ATTENDANCE_STATUS.LATE: 
         return '#eab308';
-      case 'human_case': 
+      case ATTENDANCE_STATUS.HUMAN_CASE: 
         return '#8b5cf6';
-      case 'absent':
-      case 'absent_no_excuse':
-      case 'absent_with_excuse':
-      case 'excused_leave':
+      case ATTENDANCE_STATUS.ABSENT:
+      case ATTENDANCE_STATUS.ABSENT_NO_EXCUSE:
+      case ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE:
+      case ATTENDANCE_STATUS.EXCUSED_LEAVE:
         return '#dc2626';
       default: 
         return '#6b7280';
@@ -1312,7 +1343,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
 
     // Use unified attendance icons for attendance types
-    if (type === 'attendance' || status) {
+    if (type === RECORD_TYPES.ATTENDANCE || status) {
       const iconName = getAttendanceIcon(status);
       
       const iconMap = {
@@ -1333,14 +1364,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   const getStatusLabel = useCallback((status, type, delta) => {
     // Show only icons for behavior and participation to save space
-    if (type === 'participation' || delta > 0) return '';
-    if (type === 'behavior' || delta < 0) return '';
+    if (type === RECORD_TYPES.PARTICIPATION || delta > 0) return '';
+    if (type === RECORD_TYPES.BEHAVIOR || delta < 0) return '';
 
     // For penalties, show the label if available
-    if (type === 'penalty') return status || '';
+    if (type === RECORD_TYPES.PENALTY) return status || '';
 
     // Hide labels for all attendance types in Today grid - show only icons
-    if (type === 'attendance') return '';
+    if (type === RECORD_TYPES.ATTENDANCE) return '';
 
     // Fallback for any other types
     return '';
@@ -2170,7 +2201,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                                   // Removed debug logging for cleaner console
                                   return getStatusIcon(activity.status, activity.type, activity.delta);
                                 })()} {getStatusLabel(activity.status, activity.type, activity.delta)}
-                                {(activity.type === 'penalty' || activity.type === 'participation' || activity.type === 'behavior') && activity.points && (
+                                {(activity.type === RECORD_TYPES.PENALTY || activity.type === RECORD_TYPES.PARTICIPATION || activity.type === RECORD_TYPES.BEHAVIOR) && activity.points && (
                                   <span style={{ marginLeft: '0.25rem' }}>({activity.points})</span>
                                 )}
                               </div>
@@ -2179,7 +2210,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     </span>
                     
                     {/* Senior-Level Quick Actions - Only for Attendance Records */}
-                    {activity.studentId && activity.type === 'attendance' && (
+                    {activity.studentId && activity.type === RECORD_TYPES.ATTENDANCE && (
                       <div style={{ 
                         display: 'flex', 
                         alignItems: 'center', 
@@ -2406,18 +2437,17 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                                         {activity.comment}
                                       </div>
                                   )}
-                                  {activity.label && activity.type === 'penalty' && (
+                                  {activity.label && activity.type === RECORD_TYPES.PENALTY && (
                                       <div style={{ marginBottom: '0.25rem' }}>
-                                        {/*<strong>{t('penalty_type') || 'Penalty Type'}:</strong>*/}
-                                        {activity.label}
+                                        {activity.label || t('penalty_type') || 'Penalty Type'}
                                       </div>
                                   )}
-                                  {activity.type === 'participation' && (
+                                  {activity.type === RECORD_TYPES.PARTICIPATION && (
                                       <div style={{ marginBottom: '0.25rem' }}>
-                                        <strong>{t('participation_type') || 'Participation Type'}:</strong> {activity.label || t('participation') || 'Participation'}
+                                        {activity.label || t('participation') || 'Participation'}
                                       </div>
                                   )}
-                                  {activity.type === 'behavior' && (
+                                  {activity.type === RECORD_TYPES.BEHAVIOR && (
                                       <div style={{ marginBottom: '0.25rem' }}>
                                         {/*<strong>{t('behavior_type') || 'Behavior Type'}</strong> */}
                                         {activity.label || t('behavior') || 'Behavior'}
@@ -2895,7 +2925,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         style={{
                           padding: '0.875rem',
                           border: 'none',
-                          background: actionLoading && currentAction === 'penalty' ? '#94a3b8' : '#ef4444',
+                          background: actionLoading && currentAction === RECORD_TYPES.PENALTY ? '#94a3b8' : '#ef4444',
                           color: 'white',
                           borderRadius: '0.5rem',
                           fontSize: '0.875rem',
@@ -2924,7 +2954,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           }
                         }}
                     >
-                      {actionLoading && currentAction === 'penalty' ? (
+                      {actionLoading && currentAction === RECORD_TYPES.PENALTY ? (
                           <>
                             <div style={{
                               width: '16px',
@@ -2994,7 +3024,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         style={{
                           padding: '0.875rem',
                           border: 'none',
-                          background: actionLoading && currentAction === 'participation' ? '#94a3b8' : '#3b82f6',
+                          background: actionLoading && currentAction === RECORD_TYPES.PARTICIPATION ? '#94a3b8' : '#3b82f6',
                           color: 'white',
                           borderRadius: '0.5rem',
                           fontSize: '0.875rem',
@@ -3023,7 +3053,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           }
                         }}
                     >
-                      {actionLoading && currentAction === 'participation' ? (
+                      {actionLoading && currentAction === RECORD_TYPES.PARTICIPATION ? (
                           <>
                             <div style={{
                               width: '16px',
@@ -3596,19 +3626,19 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       }
                       
                       // Handle penalty types
-                      if (resultModalData.type === 'penalty' && resultModalData.penaltyType) {
+                      if (resultModalData.type === RECORD_TYPES.PENALTY && resultModalData.penaltyType) {
                         const color = getPenaltyColor(resultModalData.penaltyType);
                         return color;
                       }
                       
                       // Handle behavior types
-                      if (resultModalData.type === 'behavior' && resultModalData.behaviorType) {
+                      if (resultModalData.type === RECORD_TYPES.BEHAVIOR && resultModalData.behaviorType) {
                         const color = getBehaviorColor(resultModalData.behaviorType);
                         return color;
                       }
                       
                       // Handle participation types (use success color)
-                      if (resultModalData.type === 'participation') {
+                      if (resultModalData.type === RECORD_TYPES.PARTICIPATION) {
                         const color = '#16a34a'; // Green for participation
                         return color;
                       }
@@ -3889,10 +3919,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                             });
 
                             // Count different record types from attendance
-                            const behaviorRecords = attendanceRecords.filter(r => r.category === 'behavior');
-                            const participationRecords = attendanceRecords.filter(r => r.category === 'participation');
-                            const attendanceOnlyRecords = attendanceRecords.filter(r => r.category === 'attendance' || r.category === 'late' || r.category === 'present');
-                            const lateRecords = attendanceRecords.filter(r => r.category === 'late');
+                            const behaviorRecords = attendanceRecords.filter(r => r.category === RECORD_TYPES.BEHAVIOR);
+                            const participationRecords = attendanceRecords.filter(r => r.category === RECORD_TYPES.PARTICIPATION);
+                            const attendanceOnlyRecords = attendanceRecords.filter(r => r.category === RECORD_TYPES.ATTENDANCE || r.category === ATTENDANCE_STATUS.LATE || r.category === ATTENDANCE_STATUS.PRESENT);
+                            const lateRecords = attendanceRecords.filter(r => r.category === ATTENDANCE_STATUS.LATE);
 
                             logger.debug('Records to delete:', {
                               totalAttendanceRecords: attendanceRecords.length,

@@ -35,16 +35,26 @@ class ErrorBoundary extends React.Component {
 }
 
 const ErrorFallback = ({ error, errorInfo, resetError }) => {
-  const navigate = useNavigate();
+  // Safe navigation with fallback
+  let navigate = null;
+  try {
+    navigate = useNavigate();
+  } catch (navError) {
+    console.warn('useNavigate not available in ErrorFallback:', navError);
+    // Fallback: use window.location for navigation
+    navigate = (path) => {
+      window.location.href = path;
+    };
+  }
 
   const handleGoToLogin = () => {
     resetError();
-    navigate('/login');
+    if (navigate) navigate('/login');
   };
 
   const handleGoHome = () => {
     resetError();
-    navigate('/');
+    if (navigate) navigate('/');
   };
 
   const handleReload = () => {
