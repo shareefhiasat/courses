@@ -169,7 +169,9 @@ const StudentRosterHistory = ({
               placeholder={t('attendance.search_placeholder') || 'Search...'}
               style={{
                 width: '100%',
-                padding: isMobile ? '0.375rem 0.5rem 0.375rem 2rem' : '0.5rem 0.75rem 0.5rem 2.5rem',
+                padding: isMobile 
+                ? `0.375rem ${isRTL ? '2rem' : '0.5rem'} 0.375rem ${isRTL ? '0.5rem' : '2rem'}`
+                : `0.5rem ${isRTL ? '2.5rem' : '0.75rem'} 0.5rem ${isRTL ? '0.75rem' : '2.5rem'}`,
                 border: '1px solid #d1d5db',
                 borderRadius: '0.375rem',
                 fontSize: isMobile ? '0.75rem' : '0.8125rem',
@@ -182,7 +184,7 @@ const StudentRosterHistory = ({
             />
             <div style={{
               position: 'absolute',
-              left: isMobile ? '0.5rem' : '0.75rem',
+              [isRTL ? 'left' : 'right']: isMobile ? '0.5rem' : '0.75rem',
               top: '50%',
               transform: 'translateY(-50%)',
               color: '#6b7280'
@@ -194,7 +196,7 @@ const StudentRosterHistory = ({
                 onClick={() => setSearchQuery('')}
                 style={{
                   position: 'absolute',
-                  right: isMobile ? '0.5rem' : '0.75rem',
+                  [isRTL ? 'right' : 'left']: isMobile ? '0.5rem' : '0.75rem',
                   top: '50%',
                   transform: 'translateY(-50%)',
                   background: 'none',
