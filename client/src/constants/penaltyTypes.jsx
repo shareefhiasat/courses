@@ -80,11 +80,7 @@ export const PENALTY_TYPE_ICONS = PENALTY_TYPES.reduce((acc, type) => {
 
 // Helper functions
 export const getPenaltyTypeById = (id) => {
-  console.log('🔍 [getPenaltyTypeById] Looking for:', { id });
-  console.log('🔍 [getPenaltyTypeById] Available penalty types:', PENALTY_TYPES.map(t => ({ id: t.id, color: t.color })));
-  const found = PENALTY_TYPES.find(type => type.id === id);
-  console.log('🔍 [getPenaltyTypeById] Found result:', { found, foundId: found?.id, foundColor: found?.color });
-  return found;
+  return PENALTY_TYPES.find(type => type.id === id);
 };
 
 export const getPenaltyLabel = (id, lang = 'en') => {
@@ -103,10 +99,6 @@ export const getPenaltyIcon = (id) => {
 };
 
 export const getPenaltyColor = (id) => {
-  console.log('🎨 [getPenaltyColor] Called with:', { id });
   const type = getPenaltyTypeById(id);
-  console.log('🎨 [getPenaltyColor] Found type:', { type, typeId: type?.id, typeColor: type?.color });
-  const color = type ? type.color : '#dc2626';
-  console.log('🎨 [getPenaltyColor] Returning color:', { color, fallback: !type, isRed: color === '#fca5a5', isOrange: color === '#fed7aa' });
-  return color;
+  return type ? type.color : '#dc2626';
 };

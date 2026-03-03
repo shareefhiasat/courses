@@ -907,23 +907,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   // Memoized fetchRecentActivity for performance
   const fetchRecentActivity = useCallback(async () => {
-    console.error('🚨 FETCH RECENT ACTIVITY STARTED 🚨');
-    alert('FETCH RECENT ACTIVITY STARTED');
-    
-    if (!classId) {
-      console.error('🚨 No classId - returning');
-      return;
-    }
+    if (!classId) return;
 
     // Get the latest students state at the time of execution
     const currentStudents = students;
-    console.error('🚨 fetchRecentActivity captured students:', currentStudents.length);
-    logger.log('🔧 fetchRecentActivity captured students:', currentStudents.length);
 
     // Early return if no students available
     if (currentStudents.length === 0) {
-      console.error('🚨 No students available in fetchRecentActivity - returning');
-      logger.log('🔧 No students available in fetchRecentActivity - returning');
       setRecentActivity([]);
       setActivityLoading(false);
       return;
@@ -938,36 +928,21 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-      console.error('🚨 Date filtering:', { today: today.toISOString(), todayStr, classId });
-      logger.debug('[QR Scanner] Date filtering:', {
-        today: today.toISOString(),
-        todayStr: todayStr,
-        classId: classId
-      });
-
       // Get today's attendance records for this class
-      console.error('🚨 Fetching attendance records...');
       const attendanceResponse = await getAttendanceByClass(classId, todayStr);
       const attendanceRecords = attendanceResponse.success ? attendanceResponse.data.filter(r => r.status) : [];
-      console.error('🚨 Attendance records fetched:', { success: attendanceResponse.success, count: attendanceRecords.length, records: attendanceRecords });
 
       // Get today's penalties for this class
-      console.error('🚨 Fetching penalty records...');
       const penaltiesResponse = await getPenaltiesByClassAndDate(classId, todayStr);
       const penaltyRecords = penaltiesResponse.success && penaltiesResponse.data ? penaltiesResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PENALTY })) : [];
-      console.error('🚨 Penalty records fetched:', { success: penaltiesResponse.success, count: penaltyRecords.length, records: penaltyRecords });
 
       // Get today's participations for this class
-      console.error('🚨 Fetching participation records...');
       const participationsResponse = await getParticipationsByClassAndDate(classId, todayStr);
       const participationRecords = participationsResponse.success && participationsResponse.data ? participationsResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PARTICIPATION })) : [];
-      console.error('🚨 Participation records fetched:', { success: participationsResponse.success, count: participationRecords.length, records: participationRecords });
 
       // Get today's behaviors for this class
-      console.error('🚨 Fetching behavior records...');
       const behaviorsResponse = await getBehaviorsByClassAndDate(classId, todayStr);
       const behaviorRecords = behaviorsResponse.success && behaviorsResponse.data ? behaviorsResponse.data.map(b => ({ ...b, category: RECORD_TYPES.BEHAVIOR })) : [];
-      console.error('🚨 Behavior records fetched:', { success: behaviorsResponse.success, count: behaviorRecords.length, records: behaviorRecords });
 
       logger.debug('[QR Scanner] Attendance records fetched:', {
         success: attendanceResponse.success,
@@ -985,16 +960,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       // Combine attendance, penalty, participation, and behavior records
       const allRecords = [...attendanceRecords, ...penaltyRecords, ...participationRecords, ...behaviorRecords];
-      
-      console.error('🚨 FINAL RECORDS COMBINED:', {
-        totalRecords: allRecords.length,
-        attendanceCount: attendanceRecords.length,
-        penaltyCount: penaltyRecords.length,
-        participationCount: participationRecords.length,
-        behaviorCount: behaviorRecords.length,
-        allRecords: allRecords
-      });
-      
+
       logger.debug('[QR Scanner] Activity refresh found:', allRecords.length, 'total records');
 
       // Create a map of studentId to student name from captured students
@@ -1241,51 +1207,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         }) : log.time || '')
       }));
 
-      // Add logging to see what colors are being used for each activity item
-      console.error('🚨 ACTIVITY ITEMS WITH COLORS:', formattedLogs.map(log => ({
-        id: log.id,
-        type: log.type,
-        penaltyType: log.penaltyType,
-        behaviorType: log.behaviorType,
-        label: log.label,
-        // Simulate color logic
-        simulatedColor: (() => {
-          if (log.type === 'penalty' && log.penaltyType) {
-            return getPenaltyColor(log.penaltyType);
-          } else if (log.type === 'behavior' && log.behaviorType) {
-            return getBehaviorColor(log.behaviorType);
-          } else if (log.type === 'participation') {
-            return '#16a34a';
-          } else if (log.attendanceStatus) {
-            return getAttendanceColor(log.status);
-          } else {
-            return '#3b82f6';
-          }
-        })()
-      })));
-
-      // Direct test of penalty color function
-      console.error('🚨 DIRECT PENALTY COLOR TEST:');
-      console.error('🚨 getPenaltyColor("cheating"):', getPenaltyColor("cheating"));
-      console.error('🚨 getPenaltyColor("impersonation"):', getPenaltyColor("impersonation"));
-      
-      // Test behavior color too
-      console.error('🚨 DIRECT BEHAVIOR COLOR TEST:');
-      console.error('🚨 getBehaviorColor("disruptive"):', getBehaviorColor("disruptive"));
-      console.error('🚨 getBehaviorColor("talk_in_class"):', getBehaviorColor("talk_in_class"));
-
-      console.error('🚨 SETTING RECENT ACTIVITY STATE:', {
-        formattedLogsCount: formattedLogs.length,
-        formattedLogs: formattedLogs
-      });
-      
       setRecentActivity(formattedLogs);
     } catch (error) {
-      console.error('🚨 ERROR IN FETCH RECENT ACTIVITY:', error);
       logger.error('Error fetching recent activity:', error);
       setRecentActivity([]);
     } finally {
-      console.error('🚨 FETCH RECENT ACTIVITY FINISHED - setActivityLoading(false)');
       setActivityLoading(false);
     }
   }, [classId, students, user, selectedProgramName, selectedSubjectName, selectedClassName, lang, t]);
@@ -1329,17 +1255,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const getStatusColor = useCallback((status, type, delta, penaltyType, behaviorType) => {
     // Use specific color functions for penalties and behaviors
     if (type === 'penalty' && penaltyType) {
-      console.log('🎨 [getStatusColor] Using penalty color for:', penaltyType);
       return getPenaltyColor(penaltyType);
     }
     
     if (type === 'behavior' && behaviorType) {
-      console.log('🎨 [getStatusColor] Using behavior color for:', behaviorType);
       return getBehaviorColor(behaviorType);
     }
     
     if (type === 'participation') {
-      console.log('🎨 [getStatusColor] Using participation color');
       return '#16a34a'; // Green for participation
     }
     
@@ -2072,18 +1995,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 <PortalTooltip content={t('refresh_today_activity')} position="top">
                   <button
                     onClick={() => {
-                      console.error('🚨 REFRESH BUTTON CLICKED 🚨');
-                      console.warn('🚨 Refresh button clicked - students available:', students.length);
-                      alert(`REFRESH DEBUG: students.length=${students.length}`);
-                      logger.log('🔧 Manual refresh button clicked');
                       // Force refresh with current students
                       if (students && students.length > 0) {
-                        console.log('🔧 Manual refresh - students available:', students.length);
-                        logger.log('🔧 Manual refresh - students available:', students.length);
                         fetchRecentActivity();
                       } else {
-                        console.log('🔧 Manual refresh - no students available');
-                        logger.log('🔧 Manual refresh - no students available');
                         showResult('error', 'No students available to refresh');
                       }
                     }}
@@ -3674,96 +3589,31 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     height: '60px',
                     borderRadius: '50%',
                     background: (() => {
-                      // AGGRESSIVE DEBUGGING - Multiple logging methods
-                      console.error('🚨 QR COLOR DEBUG START 🚨');
-                      console.warn('🚨 Result Modal Data:', resultModalData);
-                      console.info('🚨 Action Type:', resultModalData.actionType);
-                      console.log('🚨 Penalty Type:', resultModalData.penaltyType);
-                      console.debug('🚨 Behavior Type:', resultModalData.behaviorType);
-                      console.log('🚨 Type:', resultModalData.type);
-                      console.log('🚨 All resultModalData keys:', Object.keys(resultModalData));
-                      
-                      // Also use alert for immediate visibility
-                      if (resultModalData.type === 'penalty' || resultModalData.penaltyType === 'cheating') {
-                        alert(`PENALTY COLOR DEBUG: type=${resultModalData.type}, penaltyType=${resultModalData.penaltyType}, originalType=${resultModalData.originalType}`);
-                      }
-                      
-                      // Debug logging to understand the issue
-                      console.log('🎨 [QRScanner] RESULT MODAL COLOR DEBUG - START');
-                      console.log('🎨 [QRScanner] Result Modal Data:', {
-                        attendanceStatus: resultModalData.attendanceStatus,
-                        type: resultModalData.type,
-                        actionType: resultModalData.actionType,
-                        penaltyType: resultModalData.penaltyType,
-                        behaviorType: resultModalData.behaviorType,
-                        fullData: resultModalData
-                      });
-                      
                       // Handle attendance statuses
                       if (resultModalData.attendanceStatus) {
-                        console.log('🎨 [QRScanner] Taking ATTENDANCE path');
                         const color = getAttendanceColor(resultModalData.attendanceStatus);
-                        console.log('🎨 [QRScanner] Attendance Color:', {
-                          status: resultModalData.attendanceStatus,
-                          color: color
-                        });
                         return color;
                       }
                       
                       // Handle penalty types
                       if (resultModalData.type === 'penalty' && resultModalData.penaltyType) {
-                        console.log('🎨 [QRScanner] Taking PENALTY path');
-                        console.log('🔍 [QRScanner] PENALTY DEBUG - Starting penalty color logic');
-                        console.log('🔍 [QRScanner] PENALTY DEBUG - Result modal data:', {
-                          type: resultModalData.type,
-                          penaltyType: resultModalData.penaltyType,
-                          originalType: resultModalData.originalType,
-                          actionType: resultModalData.actionType,
-                          fullData: resultModalData
-                        });
-                        
                         const color = getPenaltyColor(resultModalData.penaltyType);
-                        console.log('🎨 [QRScanner] Penalty Color:', {
-                          penaltyType: resultModalData.penaltyType,
-                          color: color,
-                          colorHex: color,
-                          isRed: color === '#fca5a5',
-                          isOrange: color === '#fed7aa',
-                          expectedPenaltyColor: '#fca5a5 (light red for penalties)',
-                          expectedBehaviorColor: '#fed7aa (light orange for behaviors)'
-                        });
-                        console.log('🔍 [QRScanner] PENALTY DEBUG - Final color being returned:', color);
                         return color;
                       }
                       
                       // Handle behavior types
                       if (resultModalData.type === 'behavior' && resultModalData.behaviorType) {
-                        console.log('🎨 [QRScanner] Taking BEHAVIOR path');
                         const color = getBehaviorColor(resultModalData.behaviorType);
-                        console.log('🎨 [QRScanner] Behavior Color:', {
-                          behaviorType: resultModalData.behaviorType,
-                          color: color,
-                          colorHex: color,
-                          isOrange: color === '#fed7aa',
-                          expectedColor: '#fed7aa (light orange for behaviors)'
-                        });
                         return color;
                       }
                       
                       // Handle participation types (use success color)
                       if (resultModalData.type === 'participation') {
-                        console.log('🎨 [QRScanner] Taking PARTICIPATION path');
                         const color = '#16a34a'; // Green for participation
-                        console.log('🎨 [QRScanner] Participation Color:', {
-                          type: resultModalData.type,
-                          originalType: resultModalData.originalType,
-                          color: color
-                        });
                         return color;
                       }
                       
                       // Fallback colors for generic types
-                      console.log('🎨 [QRScanner] Taking FALLBACK path - no specific action matched');
                       let fallbackColor;
                       if (resultModalData.type === 'success') {
                         fallbackColor = '#16a34a';

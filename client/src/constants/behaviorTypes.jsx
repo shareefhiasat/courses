@@ -76,11 +76,7 @@ export const BEHAVIOR_TYPES = [
 
 // Helper functions
 export const getBehaviorTypeById = (id) => {
-  console.log('🔍 [getBehaviorTypeById] Looking for:', { id });
-  console.log('🔍 [getBehaviorTypeById] Available types:', BEHAVIOR_TYPES.map(t => ({ id: t.id, color: t.color })));
-  const found = BEHAVIOR_TYPES.find(type => type.id === id);
-  console.log('🔍 [getBehaviorTypeById] Found result:', { found, foundId: found?.id, foundColor: found?.color });
-  return found;
+  return BEHAVIOR_TYPES.find(type => type.id === id);
 };
 
 export const getBehaviorLabel = (id, lang = 'en') => {
@@ -94,10 +90,6 @@ export const getBehaviorIcon = (id) => {
 };
 
 export const getBehaviorColor = (id) => {
-  console.log('🎨 [getBehaviorColor] Called with:', { id });
   const type = getBehaviorTypeById(id);
-  console.log('🎨 [getBehaviorColor] Found type:', { type, typeId: type?.id, typeColor: type?.color });
-  const color = type ? type.color : '#ef4444';
-  console.log('🎨 [getBehaviorColor] Returning color:', { color, fallback: !type });
-  return color;
+  return type ? type.color : '#ef4444';
 };
