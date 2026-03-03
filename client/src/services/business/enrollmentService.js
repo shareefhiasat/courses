@@ -140,25 +140,54 @@ export const getEnrollmentsByClass = async (classId) => {
  */
 export const getStudentsByClass = async (classId) => {
   try {
+    logger.info('[EnrollmentService] Getting students for class:', { classId });
+    
     // Get enrollments for this class
     const enrollmentsResult = await getEnrollmentsByClassFromDb(classId);
     
     if (!enrollmentsResult.success) {
+      logger.error('[EnrollmentService] Failed to get enrollments:', enrollmentsResult);
       return enrollmentsResult;
     }
+    
+    logger.info('[EnrollmentService] Found enrollments:', { 
+      count: enrollmentsResult.data.length,
+      enrollments: enrollmentsResult.data.map(e => ({
+        userId: e.userId,
+        role: e.role,
+        createdAt: e.createdAt
+      }))
+    });
     
     const enrollmentIds = enrollmentsResult.data
       .map(enrollment => enrollment.userId)
       .filter(Boolean);
     
     if (enrollmentIds.length === 0) {
+      logger.warn('[EnrollmentService] No enrollment IDs found');
       return { success: true, data: [] };
     }
+    
+    logger.info('[EnrollmentService] Fetching users for IDs:', { enrollmentIds });
     
     // Fetch user data for all enrolled students
     const studentsData = await Promise.all(
       enrollmentIds.map(async (studentId) => {
+        logger.info('[EnrollmentService] Fetching user:', { studentId });
         const userResult = await getUserById(studentId);
+        logger.info('[EnrollmentService] User result:', { 
+          studentId, 
+          success: userResult.success, 
+          hasData: !!userResult.data,
+          userData: userResult.data ? {
+            displayName: userResult.data.displayName,
+            email: userResult.data.email,
+            role: userResult.data.role,
+            isStudent: userResult.data.isStudent,
+            studentNumber: userResult.data.studentNumber
+          } : null
+        });
+        
         if (userResult.success && userResult.data) {
           const data = userResult.data;
           return { id: studentId, ...data, displayName: data.displayName || data.email };
@@ -169,6 +198,20 @@ export const getStudentsByClass = async (classId) => {
     
     // Filter out null values
     const students = studentsData.filter(Boolean);
+    
+    logger.info('[EnrollmentService] Final students result:', {
+      totalRequested: enrollmentIds.length,
+      successfulFetches: students.length,
+      students: students.map(s => ({
+        id: s.id,
+        displayName: s.displayName,
+        email: s.email,
+        role: s.role,
+        isStudent: s.isStudent,
+        studentNumber: s.studentNumber
+      }))
+    });
+    
     return { success: true, data: students };
   } catch (error) {
     logger.error('Error fetching students by class:', error);

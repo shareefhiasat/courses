@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { X, Upload, AlertCircle, CheckCircle, Trash2, Calendar, User, Clock, RefreshCw, Download, Users } from 'lucide-react';
+import { X, Upload, AlertCircle, CheckCircle, Trash2, Calendar, User, Clock, RefreshCw, Download, Users, RotateCcw } from 'lucide-react';
 import { ATTENDANCE_TYPES } from '@constants/attendanceTypes';
 import { getThemedIcon } from '@constants/iconTypes';
 import useManualBulkScan from '@hooks/useManualBulkScan';
@@ -45,7 +45,9 @@ const BulkScanDialog = ({
     validateStudents,
     removeChip,
     clearAll,
+    clearState,
     addAllStudents,
+    addAllExcept,
     submit,
     canSubmit,
     stats
@@ -249,7 +251,7 @@ const BulkScanDialog = ({
               onPaste={handlePaste}
               placeholder={t('bulk_paste_placeholder') || 'Paste student numbers here...\n12345\n67890\n...'}
               className={styles.textarea}
-              rows={8}
+              rows={4}
               disabled={loading}
               aria-describedby="bulk-input-help"
             />
@@ -269,7 +271,7 @@ const BulkScanDialog = ({
               <button
                 onClick={addAllStudents}
                 className={styles.addAllButton}
-                disabled={loading || validating || addingAll}
+                disabled={loading || validating || addingAll || result !== null}
                 title={t('add_all_students') || 'Add All Students from Program'}
               >
                 {addingAll ? (
@@ -285,12 +287,31 @@ const BulkScanDialog = ({
                 )}
               </button>
               <button
-                onClick={clearAll}
-                className={styles.clearButton}
-                disabled={loading}
+                onClick={addAllExcept}
+                className={styles.addAllExceptButton}
+                disabled={loading || validating || addingAll || parsedNumbers.length === 0 || result !== null}
+                title={`${t('add_all_except_tooltip') || 'Add All Students Except Listed Numbers'} (Parsed: ${parsedNumbers.length}, Input: ${inputText.length > 0 ? 'Yes' : 'No'})`}
               >
-                <Trash2 size={16} />
-                {t('clear_all') || 'Clear All'}
+                {addingAll ? (
+                  <>
+                    <span className={styles.spinner} />
+                    {t('adding_all') || 'Adding All...'}
+                  </>
+                ) : (
+                  <>
+                    <Users size={16} />
+                    {t('add_all_except') || 'Add All Except'}
+                  </>
+                )}
+              </button>
+              <button
+                onClick={clearState}
+                className={styles.clearButton}
+                disabled={loading || addingAll}
+                title={t('clear_and_new') || 'Clear All and Start New Operation'}
+              >
+                <RotateCcw size={16} />
+                {t('clear_new') || 'Clear/New'}
               </button>
             </div>
           </div>

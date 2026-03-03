@@ -1,6 +1,6 @@
 import React from 'react';
 import { Select } from '@ui';
-import { getUserStatus, getUserStatusSummary, getStatusIconProps, getStatusDescription, USER_STATUS } from '@utils/userStatus';
+import { getUserStatus, getUserStatusSummary, getStatusIconProps, getStatusDescription, USER_STATUS, USER_STATUS_LABELS } from '@utils/userStatus';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getThemeColor } from '@constants/dashboardTypes';
 import { ROLE_STRINGS } from '@constants';
@@ -69,22 +69,24 @@ const UserSelect = ({
     return iconMap[iconName] || getThemedIcon('ui', 'user', 16, theme);
   };
 
-  // Filter users by role if specified (using flag-based utilities)
+  // Filter users by role if specified (using both flag-based utilities and string role field)
   const filteredUsers = roleFilter && roleFilter.length > 0 
     ? users.filter(u => {
-        // Check each role in roleFilter against user flags
+        // Check each role in roleFilter against user flags and string role field
         return roleFilter.some(role => {
+          const userRoleString = (u.role || '').toLowerCase();
+          
           switch (role) {
             case ROLE_STRINGS.SUPER_ADMIN:
-              return isSuperAdmin(u);
+              return isSuperAdmin(u) || userRoleString === ROLE_STRINGS.SUPER_ADMIN;
             case ROLE_STRINGS.ADMIN:
-              return isAdmin(u);
+              return isAdmin(u) || userRoleString === ROLE_STRINGS.ADMIN;
             case ROLE_STRINGS.INSTRUCTOR:
-              return isInstructor(u);
+              return isInstructor(u) || userRoleString === ROLE_STRINGS.INSTRUCTOR;
             case ROLE_STRINGS.HR:
-              return isHR(u);
+              return isHR(u) || userRoleString === ROLE_STRINGS.HR;
             case ROLE_STRINGS.STUDENT:
-              return isStudent(u);
+              return isStudent(u) || userRoleString === ROLE_STRINGS.STUDENT;
             default:
               return false;
           }

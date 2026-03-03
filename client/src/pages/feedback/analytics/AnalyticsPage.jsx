@@ -89,7 +89,7 @@ export default function AnalyticsPage() {
       // Student analytics
       const usersResult = await getUsers();
       const allUsers = usersResult.success ? usersResult.data : [];
-      const students = allUsers.filter(u => !u.isAdmin && !u.isInstructor && !u.isHR && u.role === 'student');
+      const students = allUsers.filter(u => u.isStudent === true);
       setStudentStats({ total: students.length, active: students.length, inactive: 0 });
 
       // Submission analytics

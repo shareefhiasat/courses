@@ -2,6 +2,7 @@ import logger from '@utils/logger';
 import { formatQatarDateOnly, getQatarNow, getQatarTimestampString } from '@utils/qatarDate';
 import { getUsers } from './userService';
 import { markAttendance, getTodayAttendanceStatus } from './attendanceService';
+import { getStudentsByClass } from './enrollmentService';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 
 const BULK_OPERATION_LIMIT = 500;
@@ -109,36 +110,37 @@ export const parseBulkStudentNumbers = (inputText) => {
   };
 };
 
-export const bulkValidateStudents = async ({ programId, studentNumbers }) => {
+export const bulkValidateStudents = async ({ programId, classId, studentNumbers }) => {
   try {
     logger.debug('[BulkAttendanceService] Validating students:', {
       programId,
+      classId,
       count: studentNumbers.length
     });
 
-    const usersResult = await getUsers();
-    if (!usersResult.success) {
+    const studentsResult = await getStudentsByClass(classId);
+    if (!studentsResult.success) {
       return {
         success: false,
-        error: 'Failed to fetch student data',
+        error: 'Failed to fetch class students',
         found: [],
         notFound: studentNumbers
       };
     }
 
-    const allUsers = usersResult.data || [];
+    const classStudents = studentsResult.data || [];
     const found = [];
     const notFound = [];
 
     studentNumbers.forEach(studentNumber => {
-      const student = allUsers.find(user => {
+      const student = classStudents.find(user => {
         const matches = [
           user.studentNumber === studentNumber,
           user.referenceId === studentNumber,
           user.studentId === studentNumber,
           user.id === studentNumber
         ];
-        return matches.some(Boolean) && user.role === 'student';
+        return matches.some(Boolean) && user.isStudent === true;
       });
 
       if (student) {
@@ -226,6 +228,16 @@ export const bulkUpsertAttendance = async ({
         const studentId = studentInfo.studentId || studentInfo;
         const studentNumber = studentInfo.studentNumber || studentId;
         const studentName = studentInfo.displayName || studentInfo.name || 'Unknown';
+        
+        logger.info('[BulkAttendanceService] Processing student info:', {
+          studentNumber,
+          studentId,
+          studentName,
+          displayName: studentInfo.displayName,
+          name: studentInfo.name,
+          email: studentInfo.email,
+          studentInfoKeys: Object.keys(studentInfo)
+        });
         
         const detailedResult = {
           studentId,

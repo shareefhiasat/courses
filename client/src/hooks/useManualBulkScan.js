@@ -7,7 +7,7 @@ import {
 } from '@services/business/bulkAttendanceService';
 import { formatQatarDateOnly, getQatarNow } from '@utils/qatarDate';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
-import { getUsers } from '@services/business/userService';
+import { getStudentsByClass } from '@services/business/enrollmentService';
 import logger from '@utils/logger';
 import eventBus, { EVENTS } from '@utils/eventBus';
 
@@ -71,6 +71,7 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
     try {
       const validationResult = await bulkValidateStudents({
         programId,
+        classId,
         studentNumbers: parsedNumbers
       });
 
@@ -129,50 +130,82 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
     setError(null);
 
     try {
-      logger.info('[useManualBulkScan] Adding all students for program:', { programId });
+      logger.info('[useManualBulkScan] Adding all students for class:', { classId });
       
-      // Get all users and filter by program
-      const usersResponse = await getUsers();
+      // Get students enrolled in this specific class
+      const studentsResponse = await getStudentsByClass(classId);
       
-      if (!usersResponse.success || !usersResponse.data) {
-        logger.error('[useManualBulkScan] Failed to fetch users:', usersResponse);
-        setError('Failed to fetch users');
+      if (!studentsResponse.success || !studentsResponse.data) {
+        logger.error('[useManualBulkScan] Failed to fetch class students:', studentsResponse);
+        setError('Failed to fetch class students');
         return;
       }
 
-      const allUsers = usersResponse.data;
-      logger.info('[useManualBulkScan] Fetched all users:', { 
-        totalFetched: allUsers.length,
-        programId 
+      const classStudents = studentsResponse.data;
+      logger.info('[useManualBulkScan] Fetched class students:', { 
+        totalFetched: classStudents.length,
+        classId,
+        allStudents: classStudents.map(s => ({
+          id: s.id,
+          name: s.name || s.displayName || 'No name',
+          role: s.role,
+          hasStudentNumber: !!s.studentNumber,
+          studentNumber: s.studentNumber
+        }))
       });
 
-      // Filter users by program and role (student)
-      // Note: Users don't have programId directly, they have enrolledClasses
-      // We need to check if they're enrolled in the current class and are students
-      const programStudents = allUsers.filter(user => 
-        user.role === 'student' &&
-        user.studentNumber &&
-        user.enrolledClasses && 
-        user.enrolledClasses.includes(classId)
-      );
+      // Get ALL students for display, but separate those with/without numbers
+      const allStudents = classStudents.filter(student => student.isStudent === true);
+      const studentsWithNumbers = allStudents.filter(student => student.studentNumber);
+      const studentsWithoutNumbers = allStudents.filter(student => !student.studentNumber);
 
-      logger.info('[useManualBulkScan] Filtered students by program:', { 
-        totalUsers: allUsers.length,
-        programStudents: programStudents.length,
-        programId: programId
+      logger.info('[useManualBulkScan] Filtering details:', {
+        totalFetched: classStudents.length,
+        allStudentsCount: allStudents.length,
+        studentsWithNumbersCount: studentsWithNumbers.length,
+        studentsWithoutNumbersCount: studentsWithoutNumbers.length,
+        allStudentDetails: allStudents.map(s => ({
+          id: s.id,
+          name: s.name || s.displayName || 'No name',
+          role: s.role,
+          hasStudentNumber: !!s.studentNumber,
+          studentNumber: s.studentNumber
+        }))
       });
 
-      if (programStudents.length === 0) {
+      // Show ALL fetched people with their roles (not just students)
+      logger.info('[useManualBulkScan] All class members:', {
+        totalMembers: classStudents.length,
+        members: classStudents.map(s => ({
+          id: s.id,
+          name: s.name || s.displayName || 'No name',
+          role: s.role,
+          hasStudentNumber: !!s.studentNumber,
+          studentNumber: s.studentNumber,
+          isStudent: s.isStudent // Use actual isStudent flag, not computed from role
+        }))
+      });
+
+      logger.info('[useManualBulkScan] Student breakdown:', { 
+        totalStudents: allStudents.length,
+        withNumbers: studentsWithNumbers.length,
+        withoutNumbers: studentsWithoutNumbers.length,
+        classId: classId
+      });
+
+      if (allStudents.length === 0) {
         setError('No students found in this program');
         return;
       }
 
-      const studentNumbers = programStudents.map(student => student.studentNumber);
+      // Get student numbers for validation (only those with numbers)
+      const studentNumbers = studentsWithNumbers.map(student => student.studentNumber);
 
-      if (studentNumbers.length === 0) {
-        setError('No students found in this program');
-        return;
-      }
+      logger.info('[useManualBulkScan] Student numbers for validation:', {
+        totalStudents: allStudents.length,
+        validatableNumbers: studentNumbers.length,
+        nonValidatable: studentsWithoutNumbers.length
+      });
 
       // Limit to 100 students
       const limitedNumbers = studentNumbers.slice(0, 100);
@@ -201,11 +234,25 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
 
       // Validate students
       if (parseResult.parsed.length > 0) {
-        await validateStudents();
+        logger.info('[useManualBulkScan] About to validate students:', { 
+          studentCount: parseResult.parsed.length,
+          studentNumbers: parseResult.parsed
+        });
+        
+        try {
+          await validateStudents();
+          logger.info('[useManualBulkScan] Validation completed successfully');
+        } catch (validationError) {
+          logger.error('[useManualBulkScan] Validation failed:', validationError);
+          setError(`Validation failed: ${validationError.message}`);
+          return;
+        }
       }
 
       logger.info('[useManualBulkScan] Added all students:', { 
-        totalStudents: programStudents.length,
+        totalStudents: allStudents.length,
+        withNumbers: studentsWithNumbers.length,
+        withoutNumbers: studentsWithoutNumbers.length,
         limitedTo: limitedNumbers.length,
         validNumbers: parseResult.parsed.length,
         invalid: parseResult.invalid.length,
@@ -213,8 +260,8 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
       });
 
       // Show warning if limited
-      if (programStudents.length > 100) {
-        setError(`Limited to first 100 students out of ${programStudents.length} total`);
+      if (allStudents.length > 100) {
+        setError(`Limited to first 100 students out of ${allStudents.length} total`);
       }
 
     } catch (error) {
@@ -229,6 +276,19 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
     }
   }, [programId, parseBulkStudentNumbers, validateStudents, setInputText, setParsedNumbers, setInvalidRows, setDuplicates, setError, setAddingAll]);
 
+  // Clear all state for fresh operations
+  const clearState = useCallback(() => {
+    setInputText('');
+    setParsedNumbers([]);
+    setInvalidRows([]);
+    setDuplicates([]);
+    setValidatedStudents({ found: [], notFound: [] });
+    setError(null);
+    setResult(null);
+    logger.info('[useManualBulkScan] State cleared for fresh operation');
+  }, [setInputText, setParsedNumbers, setInvalidRows, setDuplicates, setValidatedStudents, setError, setResult]);
+
+  // Submit attendance for validated students
   const submit = useCallback(async () => {
     if (validatedStudents.found.length === 0) {
       setError('No valid students to submit');
@@ -336,6 +396,236 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
     clearAll
   ]);
 
+  // Add all students EXCEPT the ones listed
+  const addAllExcept = useCallback(async () => {
+    if (!programId) {
+      setError('Program ID is required to add all students');
+      return;
+    }
+
+    if (parsedNumbers.length === 0) {
+      setError('Please enter student numbers to exclude first');
+      return;
+    }
+
+    // Clear previous results but keep input for this operation
+    setValidatedStudents({ found: [], notFound: [] });
+    setError(null);
+    setResult(null);
+
+    setAddingAll(true);
+    setError(null);
+
+    try {
+      logger.info('[useManualBulkScan] Adding all students EXCEPT listed ones:', { 
+        classId,
+        excludeCount: parsedNumbers.length,
+        excludedNumbers: parsedNumbers
+      });
+      
+      // Get students enrolled in this specific class
+      const studentsResponse = await getStudentsByClass(classId);
+      
+      if (!studentsResponse.success || !studentsResponse.data) {
+        logger.error('[useManualBulkScan] Failed to fetch class students:', studentsResponse);
+        setError('Failed to fetch class students');
+        return;
+      }
+
+      const classStudents = studentsResponse.data;
+      logger.info('[useManualBulkScan] Fetched class students:', { 
+        totalFetched: classStudents.length,
+        classId 
+      });
+
+      // Get ALL students for display, then filter for validation
+      const allStudents = classStudents.filter(student => student.isStudent === true);
+      const studentsWithNumbers = allStudents.filter(student => student.studentNumber);
+      const studentsWithoutNumbers = allStudents.filter(student => !student.studentNumber);
+      
+      // For validation, exclude listed student numbers
+      const validatableStudents = studentsWithNumbers.filter(student => 
+        !parsedNumbers.includes(student.studentNumber) // Exclude listed student numbers
+      );
+
+      logger.info('[useManualBulkScan] Filtered students (excluding listed):', { 
+        totalStudents: allStudents.length,
+        withNumbers: studentsWithNumbers.length,
+        withoutNumbers: studentsWithoutNumbers.length,
+        validatableAfterExclusion: validatableStudents.length,
+        excludedCount: parsedNumbers.length,
+        classId: classId
+      });
+
+      if (validatableStudents.length === 0 && studentsWithoutNumbers.length === 0) {
+        setError('No students found after exclusions');
+        return;
+      }
+
+      const studentNumbers = validatableStudents.map(student => student.studentNumber);
+
+      if (validatableStudents.length === 0 && studentsWithoutNumbers.length > 0) {
+        setError('Only students without student numbers remain after exclusions');
+        return;
+      }
+
+      // Limit to 100 students
+      const limitedNumbers = studentNumbers.slice(0, 100);
+      if (validatableStudents.length > 100) {
+        logger.warn('[useManualBulkScan] Limited students to 100:', { 
+          total: validatableStudents.length, 
+          limited: limitedNumbers.length 
+        });
+      }
+
+      // Create input text with student numbers
+      const allStudentsText = limitedNumbers.join('\n');
+      
+      // Parse and validate all students
+      setInputText(allStudentsText);
+      const parseResult = parseBulkStudentNumbers(allStudentsText);
+      
+      if (!parseResult.success) {
+        setError(parseResult.error);
+        return;
+      }
+
+      setParsedNumbers(parseResult.parsed);
+      setInvalidRows(parseResult.invalid);
+      setDuplicates(parseResult.duplicates);
+
+      // Validate students
+      // Note: We don't call validateStudents() here because we want to validate
+      // the remaining students AFTER exclusion, not the excluded students themselves
+
+      // Create validated students object for remaining students (after exclusion)
+      logger.info('[useManualBulkScan] Creating remaining students from validatableStudents:', {
+        validatableStudentsCount: validatableStudents.length,
+        validatableStudents: validatableStudents.map(s => ({
+          id: s.id,
+          displayName: s.displayName,
+          name: s.name,
+          studentNumber: s.studentNumber,
+          email: s.email,
+          isStudent: s.isStudent,
+          role: s.role
+        }))
+      });
+
+      const remainingStudents = validatableStudents.map(student => {
+        const mappedStudent = {
+          studentNumber: student.studentNumber,
+          studentId: student.id,
+          displayName: student.displayName || student.name,
+          email: student.email,
+          studentData: student
+        };
+
+        logger.info('[useManualBulkScan] Mapped remaining student:', {
+          originalId: student.id,
+          originalDisplayName: student.displayName,
+          originalName: student.name,
+          originalStudentNumber: student.studentNumber,
+          mappedStudentNumber: mappedStudent.studentNumber,
+          mappedStudentId: mappedStudent.studentId,
+          mappedDisplayName: mappedStudent.displayName,
+          mapping: {
+            studentNumberMatch: student.studentNumber === mappedStudent.studentNumber,
+            idMatch: student.id === mappedStudent.studentId,
+            displayNameMatch: (student.displayName || student.name) === mappedStudent.displayName
+          }
+        });
+
+        return mappedStudent;
+      });
+
+      logger.info('[useManualBulkScan] Setting validated students for remaining students (Add All Except):', {
+        remainingCount: remainingStudents.length,
+        remainingStudents: remainingStudents.map(s => ({
+          studentNumber: s.studentNumber,
+          studentId: s.studentId,
+          displayName: s.displayName,
+          email: s.email
+        }))
+      });
+
+      setValidatedStudents({
+        found: remainingStudents,
+        notFound: []
+      });
+
+      // Log what was actually set
+      logger.info('[useManualBulkScan] After setValidatedStudents - checking what will be submitted:', {
+        validatedStudentsFound: validatedStudents.found.length,
+        validatedStudentsFoundDetails: validatedStudents.found.map(s => ({
+          studentNumber: s.studentNumber,
+          studentId: s.studentId,
+          displayName: s.displayName,
+          email: s.email
+        })),
+        remainingStudentsCount: remainingStudents.length,
+        remainingStudentsDetails: remainingStudents.map(s => ({
+          studentNumber: s.studentNumber,
+          studentId: s.studentId,
+          displayName: s.displayName,
+          email: s.email
+        }))
+      });
+
+      // Populate input with remaining student numbers for review
+      if (remainingStudents.length > 0) {
+        const remainingStudentNumbers = remainingStudents.map(s => s.studentNumber);
+        const inputText = remainingStudentNumbers.join('\n');
+        
+        logger.info('[useManualBulkScan] Populating input with remaining students (Add All Except):', {
+          remainingCount: remainingStudents.length,
+          remainingStudentNumbers: remainingStudentNumbers,
+          inputText: inputText
+        });
+        
+        // Set the input text with remaining students
+        setInputText(inputText);
+        
+        // Trigger parse to show the students in the UI
+        await parseInput();
+        
+        logger.info('[useManualBulkScan] Add All Except completed - students populated for review');
+      } else {
+        logger.warn('[useManualBulkScan] No students remaining after exclusions');
+        setError('No students remaining after exclusions');
+        return;
+      }
+
+      logger.info('[useManualBulkScan] Added all students except listed:', { 
+        totalStudents: allStudents.length,
+        withNumbers: studentsWithNumbers.length,
+        withoutNumbers: studentsWithoutNumbers.length,
+        validatableAfterExclusion: validatableStudents.length,
+        excludedCount: parsedNumbers.length,
+        limitedTo: limitedNumbers.length,
+        validNumbers: parseResult.parsed.length,
+        invalid: parseResult.invalid.length,
+        duplicates: parseResult.duplicates.length
+      });
+
+      // Show warning if limited
+      if (allStudents.length > 100) {
+        setError(`Limited to first 100 students out of ${allStudents.length} total (after exclusions)`);
+      }
+
+    } catch (error) {
+      logger.error('[useManualBulkScan] Error adding all except:', {
+        error: error.message,
+        stack: error.stack,
+        programId
+      });
+      setError('Failed to add all students. Please try again.');
+    } finally {
+      setAddingAll(false);
+    }
+  }, [programId, classId, parsedNumbers, parseBulkStudentNumbers, parseInput, submit, setValidatedStudents, setError, setResult, setAddingAll]);
+
+  
   const canSubmit = useMemo(() => {
     return (
       validatedStudents.found.length > 0 &&
@@ -369,7 +659,9 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
     validateStudents,
     removeChip,
     clearAll,
+    clearState,
     addAllStudents,
+    addAllExcept,
     submit,
     canSubmit,
     stats: {

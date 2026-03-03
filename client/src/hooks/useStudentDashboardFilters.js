@@ -106,8 +106,8 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
       setSubjects(subjectsData);
       setClasses(classesData);
       
-      const filteredStudents = shouldLoadStudents ? studentsData.filter(u => u.role === 'student') : [];
-      logger.log('[StudentDashboardFilters] Filtered students (role=student):', filteredStudents.length);
+      const filteredStudents = shouldLoadStudents ? studentsData.filter(u => u.isStudent === true) : [];
+      logger.log('[StudentDashboardFilters] Filtered students (isStudent=true):', filteredStudents.length);
       setStudents(filteredStudents);
     } catch (error) {
       logger.error('Failed to load dashboard filters', error);

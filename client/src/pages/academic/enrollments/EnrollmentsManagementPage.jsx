@@ -210,7 +210,9 @@ const EnrollmentsManagementPage = () => {
   const studentUsers = useMemo(() => {
     return users.filter(u => {
       const role = (u.role || '').toLowerCase();
-      return role === (ROLE_STRINGS.STUDENT || 'student');
+      const isStudentByRole = role === (ROLE_STRINGS.STUDENT || 'student');
+      const isStudentByFlag = u.isStudent === true;
+      return isStudentByRole || isStudentByFlag;
     });
   }, [users]);
 

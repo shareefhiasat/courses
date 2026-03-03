@@ -249,8 +249,8 @@ const ChatPage = memo(() => {
   // Wrapper function for form submission
   const handleSendMessage = useCallback((e) => {
     e?.preventDefault();
-    sendMessage(newMessage);
-  }, [sendMessage, newMessage]);
+    sendMessage(e); // Pass the event to the hook's sendMessage
+  }, [sendMessage]);
   
   // Handle class change
   const handleClassChange = useCallback((classId) => {
@@ -2182,7 +2182,7 @@ const ChatPage = memo(() => {
                                   ? (allUsers || []).map(u => u.docId).filter(id => id && id !== user.uid)
                                   : (selectedClass?.startsWith('dm:')
                                       ? (directRooms.find(r => r.id === selectedClass.slice(3))?.participants || []).filter(id => id && id !== user.uid)
-                                      : (classMembers || []).map(m => m.docId).filter(id => id && id !== user.uid)
+                                      : (Array.isArray(classMembers) ? classMembers : []).map(m => m.docId).filter(id => id && id !== user.uid)
                                     );
                                 return recipients.filter(id => memberReads[id] && memberReads[id] >= msgTime).length;
                               })(),
@@ -2191,7 +2191,7 @@ const ChatPage = memo(() => {
                                   ? (allUsers || []).map(u => u.docId).filter(id => id && id !== user.uid)
                                   : (selectedClass?.startsWith('dm:')
                                       ? (directRooms.find(r => r.id === selectedClass.slice(3))?.participants || []).filter(id => id && id !== user.uid)
-                                        : (classMembers || []).map(m => m.docId).filter(id => id && id !== user.uid)
+                                        : (Array.isArray(classMembers) ? classMembers : []).map(m => m.docId).filter(id => id && id !== user.uid)
                                     );
                                 return recipients.length;
                               })()
@@ -2953,7 +2953,7 @@ const ChatPage = memo(() => {
               </div>
             ) : (
               (() => {
-                let filtered = classMembers || [];
+                let filtered = Array.isArray(classMembers) ? classMembers : [];
                 if (memberSearch) {
                   const search = memberSearch.toLowerCase();
                   filtered = filtered.filter(m => 
@@ -2962,7 +2962,7 @@ const ChatPage = memo(() => {
                   );
                 }
                 if (studentsOnly) {
-                  filtered = filtered.filter(m => m.role === ROLE_STRINGS.STUDENT);
+                  filtered = filtered.filter(m => m.isStudent === true);
                 }
                 // Filter out the logged-in user (by both docId and email for safety)
                 filtered = filtered.filter(m => {
@@ -2970,12 +2970,15 @@ const ChatPage = memo(() => {
                   const excludeByEmail = m.email !== user?.email;
                   return excludeByDocId && excludeByEmail;
                 });
+                if (!Array.isArray(filtered)) {
+                  filtered = [];
+                }
                 return filtered.map(m => {
                 // For class members: show X if unenrolled from this specific class
                 const isDeleted = !m || m.deleted;
                 const isDisabled = m?.disabled || m?.isDisabled;
                 const isUnenrolled = selectedClass && selectedClass !== 'global' && !selectedClass.startsWith('dm:') && 
-                  m.role === ROLE_STRINGS.STUDENT && !(Array.isArray(m.enrolledClasses) && m.enrolledClasses.includes(selectedClass));
+                  m.isStudent === true && !(Array.isArray(m.enrolledClasses) && m.enrolledClasses.includes(selectedClass));
                 const showIndicator = isDeleted || isDisabled || isUnenrolled;
                 const indicatorTitle = isDeleted ? 'Deleted User' : (isDisabled ? 'Disabled User' : (isUnenrolled ? 'Unenrolled from this class' : ''));
                 

@@ -443,27 +443,27 @@ const AnalyticsDashboardPage = memo(() => {
             {[
               {
                 type: 'students',
-                value: users.filter(u => u.role === 'student').length,
+                value: users.filter(u => u.isStudent === true).length,
                 tooltip: t('total_students_system') || 'Total number of students in the system'
               },
               {
                 type: 'instructors',
-                value: users.filter(u => u.role === 'instructor' || u.role === 'teacher').length,
+                value: users.filter(u => u.isInstructor === true).length,
                 tooltip: t('total_instructors_system') || 'Total number of instructors/teachers in the system'
               },
               {
                 type: 'hr',
-                value: users.filter(u => u.role === 'hr').length,
+                value: users.filter(u => u.isHR === true).length,
                 tooltip: t('total_hr_system') || 'Total number of HR users in the system'
               },
               {
                 type: 'admins',
-                value: users.filter(u => u.role === 'admin').length,
+                value: users.filter(u => u.isAdmin === true).length,
                 tooltip: t('total_admins_system') || 'Total number of admin users in the system'
               },
               {
                 type: 'superadmins',
-                value: users.filter(u => u.role === 'superadmin').length,
+                value: users.filter(u => u.isSuperAdmin === true).length,
                 tooltip: t('total_superadmins_system') || 'Total number of super admin users in the system'
               }
             ].map((stat, idx) => {

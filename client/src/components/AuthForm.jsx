@@ -340,6 +340,13 @@ const AuthForm = () => {
               displayName: displayName || null,
               realName: realName || null,
               studentNumber: studentNumber || null,
+              // Set proper student flags for consistency
+              isStudent: true,
+              isAdmin: false,
+              isSuperAdmin: false,
+              isHR: false,
+              isInstructor: false,
+              role: 'student', // For backward compatibility
             }, { merge: true });
             
             // Log user creation activity

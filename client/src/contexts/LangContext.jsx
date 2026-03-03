@@ -4140,6 +4140,10 @@ const DICT = {
     already_marked_as_late: 'Already marked as late',
     mark_present: 'Mark Present',
     mark_late: 'Mark Late',
+    
+    // Bulk scan translations
+    add_all_except: 'Add All Except',
+    add_all_except_tooltip: 'Add All Students Except Listed Numbers',
   },
   ar: {
     cancel_marks_distribution: 'إلغاء توزيع الدرجات',
@@ -8034,6 +8038,10 @@ const DICT = {
     already_marked_as_late: 'مسجل بالفعل كمتأخر',
     mark_present: 'تسجيل الحضور',
     mark_late: 'تسجيل التأخير',
+    
+    // Bulk scan translations
+    add_all_except: 'إضافة الكل ما عدا',
+    add_all_except_tooltip: 'إضافة جميع الطلاب باستثناء الأرقام المدرجة',
   },
 };
 

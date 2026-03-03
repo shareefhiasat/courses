@@ -116,12 +116,14 @@ export const useChatActions = (user, state, toast, t) => {
     
     logger.info('Loading class members', { classId });
     
-    const allUsersToUse = safeAllUsers.length > 0 ? safeAllUsers : 
-      (() => {
-        logger.info('Fetching allUsers for class members');
-        const result = getUsers();
-        return result.success ? (result.data || []) : [];
-      })();
+    let allUsersToUse;
+    if (safeAllUsers.length > 0) {
+      allUsersToUse = safeAllUsers;
+    } else {
+      logger.info('Fetching allUsers for class members');
+      const result = await getUsers();
+      allUsersToUse = result.success ? (result.data || []) : [];
+    }
     
     let members = allUsersToUse.filter(u => 
       Array.isArray(u.enrolledClasses) && 
