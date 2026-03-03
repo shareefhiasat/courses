@@ -618,11 +618,18 @@ const ChatPage = memo(() => {
   }, [user, selectedClass, chatReads]);
 
   // Load class members when selected class changes
+  const loadingClassMembersRef = useRef(new Set());
   useEffect(() => {
     if (selectedClass && user && selectedClass !== 'global' && !selectedClass.startsWith('dm:')) {
+      // Prevent loading the same class multiple times
+      if (loadingClassMembersRef.current.has(selectedClass)) {
+        logger.info('Skipping loadClassMembers - already loaded', { selectedClass });
+        return;
+      }
+      loadingClassMembersRef.current.add(selectedClass);
       loadClassMembers(selectedClass);
     }
-  }, [selectedClass, user]); // Remove loadClassMembers from dependencies
+  }, [selectedClass, user?.uid]); // Use user.uid instead of user object
 
   // Load classes and setup with real-time subscriptions
   useEffect(() => {
@@ -2953,26 +2960,37 @@ const ChatPage = memo(() => {
               </div>
             ) : (
               (() => {
-                let filtered = Array.isArray(classMembers) ? classMembers : [];
-                if (memberSearch) {
+                // Start with a guaranteed array
+                let filtered = Array.isArray(classMembers) ? [...classMembers] : [];
+                
+                // Apply search filter if needed
+                if (memberSearch && Array.isArray(filtered)) {
                   const search = memberSearch.toLowerCase();
                   filtered = filtered.filter(m => 
                     (m.displayName || '').toLowerCase().includes(search) ||
                     (m.email || '').toLowerCase().includes(search)
                   );
                 }
-                if (studentsOnly) {
+                
+                // Apply students only filter if needed
+                if (studentsOnly && Array.isArray(filtered)) {
                   filtered = filtered.filter(m => m.isStudent === true);
                 }
-                // Filter out the logged-in user (by both docId and email for safety)
-                filtered = filtered.filter(m => {
-                  const excludeByDocId = m.docId !== user?.uid;
-                  const excludeByEmail = m.email !== user?.email;
-                  return excludeByDocId && excludeByEmail;
-                });
+                
+                // Filter out the logged-in user if needed
+                if (Array.isArray(filtered)) {
+                  filtered = filtered.filter(m => {
+                    const excludeByDocId = m.docId !== user?.uid;
+                    const excludeByEmail = m.email !== user?.email;
+                    return excludeByDocId && excludeByEmail;
+                  });
+                }
+                
+                // Final safety check - ensure we always have an array
                 if (!Array.isArray(filtered)) {
                   filtered = [];
                 }
+                
                 return filtered.map(m => {
                 // For class members: show X if unenrolled from this specific class
                 const isDeleted = !m || m.deleted;

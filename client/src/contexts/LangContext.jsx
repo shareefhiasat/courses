@@ -823,6 +823,24 @@ const DICT = {
     'attendance.collapse_all': ' ',
     'bulk_attendance_notes': 'Bulk attendance - {{count}} students',
     
+    // Semester Report translations
+    'semester_report': 'Semester Report',
+    'semester_report_tooltip': 'Export cumulative semester attendance report',
+    'semester_report_exported_successfully': 'Semester report exported successfully',
+    'total_sessions': 'Total Sessions',
+    'attendance_percentage': 'Attendance %',
+    'present': 'Present',
+    'late': 'Late',
+    'absent_no_excuse': 'Absent (No Excuse)',
+    'absent_with_excuse': 'Absent (With Excuse)',
+    'excused_leave': 'Excused Leave',
+    'human_case': 'Human Case',
+    'absent_no_excuse_deduction': 'Absent No Excuse Deduction (×1.0)',
+    'absent_with_excuse_deduction': 'Absent With Excuse Deduction (×0.5)',
+    'excused_leave_deduction': 'Excused Leave Deduction (×0.5)',
+    'human_case_deduction': 'Human Case Deduction (×0.25)',
+    'total_mark_deduction': 'Total Mark Deduction',
+    
     // Bulk Scan Dialog translations
     'issues_found': 'Issues Found',
     'repeated_entries': 'Repeated Entries', 
@@ -4238,6 +4256,24 @@ const DICT = {
     'attendance.expand_all': 'توسيع الكل',
     'attendance.collapse_all': ' ',
     'bulk_attendance_notes': 'حضور جماعي - {{count}} طلاب',
+    
+    // Semester Report translations (Arabic)
+    'semester_report': 'تقرير الفصل الدراسي',
+    'semester_report_tooltip': 'تصدير تقرير الحضور التراكمي للفصل الدراسي',
+    'semester_report_exported_successfully': 'تم تصدير تقرير الفصل الدراسي بنجاح',
+    'total_sessions': 'إجمالي الجلسات',
+    'attendance_percentage': 'نسبة الحضور',
+    'present': 'حاضر',
+    'late': 'متأخر',
+    'absent_no_excuse': 'غائب بدون عذر',
+    'absent_with_excuse': 'غائب مع عذر',
+    'excused_leave': 'استئذان',
+    'human_case': 'حالة إنسانية',
+    'absent_no_excuse_deduction': 'خصم الغياب بدون عذر (×1.0)',
+    'absent_with_excuse_deduction': 'خصم الغياب مع عذر (×0.5)',
+    'excused_leave_deduction': 'خصم الاستئذان (×0.5)',
+    'human_case_deduction': 'خصم الحالة (×0.25)',
+    'total_mark_deduction': 'إجمالي الخصم',
     
     // Bulk Scan Dialog translations (Arabic)
     'issues_found': 'مشكلات تم العثور عليها',

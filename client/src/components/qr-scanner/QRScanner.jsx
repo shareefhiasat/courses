@@ -73,10 +73,41 @@ import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/atte
 import { useBilingualNotes } from '@hooks/useBilingualNotes.js';
 
 export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, loading = false, students = [], onMinimizeChange }) {
-  const { user } = useAuth();
+  const auth = useAuth();
+  const { user } = auth;
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const { showSuccess, showError } = useToast();
+
+  // Handle auth loading state to prevent white screen
+  if (auth.loading || (!user && auth.hasProfile)) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '400px',
+        padding: '2rem',
+        background: 'white',
+        borderRadius: '0.5rem',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+      }}>
+        <div style={{
+          width: '3rem',
+          height: '3rem',
+          border: '3px solid #e5e7eb',
+          borderTop: '3px solid #3b82f6',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          margin: '0 auto 1rem'
+        }}></div>
+        <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>
+          {t('loading') || 'Loading...'}
+        </p>
+      </div>
+    );
+  }
   
   // Safe bilingual notes hook with fallback
   let bilingualNotes = null;
@@ -1025,29 +1056,17 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         const name = student.displayName || student.realName || student.name || (student.email ? student.email.split('@')[0] : 'Unknown');
 
         // Only map the Firebase user ID to the name (not reference ID)
+        // This prevents duplicate mappings that cause cheating record duplication
         studentMap[studentId] = name;
-        const refId = generateReferenceId(studentId);
-        studentMap[refId] = name; // Also map reference ID
+        // Note: We don't map reference ID anymore to avoid duplicates
+        // Penalty/behavior records use Firebase ID directly, so reference ID mapping is unnecessary
 
         logger.debug('[QR Scanner] Student map entry:', {
           firebaseId: studentId,
-          refId: refId,
           name: name,
           totalMappings: Object.keys(studentMap).length,
           currentMap: Object.entries(studentMap)
         });
-        
-        // CRITICAL: Check for duplicate names during mapping
-        const existingMappings = Object.entries(studentMap).filter(([key, value]) => value === name);
-        if (existingMappings.length > 1) {
-          logger.error('[QR Scanner] DUPLICATE NAME CREATED:', {
-            name,
-            mappings: existingMappings,
-            newFirebaseId: studentId,
-            newRefId: refId,
-            warning: 'This will cause cheating record duplication!'
-          });
-        }
       });
 
       // Debug: Log complete student map to identify potential duplicates
@@ -1100,11 +1119,29 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       const activityLogs = allRecords.map((record, index) => {
         const studentId = record.studentId;
-        let studentName = studentMap[studentId];
+        let studentName;
         
-        // Debug: Log record processing to identify duplication issue
-        if (record.type === 'cheating' || record.category === RECORD_TYPES.PENALTY) {
-          logger.debug('[QR Scanner] Processing cheating/penalty record:', {
+        // For penalty/behavior records, always use Firebase ID as primary key (no name-based mapping)
+        // Note: 'cheating' is a penalty type, not a record type. Record types are: attendance, penalty, participation, behavior, etc.
+        if (record.type === RECORD_TYPES.PENALTY || record.category === RECORD_TYPES.PENALTY || record.category === RECORD_TYPES.BEHAVIOR) {
+          // Find student by Firebase ID directly
+          const foundStudent = students.find(s => s.id === studentId);
+          if (foundStudent) {
+            studentName = foundStudent.displayName || foundStudent.name || foundStudent.email?.split('@')[0] || 'Unknown Student';
+          } else {
+            // Fallback: try reference ID
+            const foundStudentByRef = students.find(s => {
+              const generatedRefId = generateReferenceId(s.id);
+              return generatedRefId === studentId;
+            });
+            if (foundStudentByRef) {
+              studentName = foundStudentByRef.displayName || foundStudentByRef.name || foundStudentByRef.email?.split('@')[0] || 'Unknown Student';
+            } else {
+              studentName = 'Unknown Student';
+            }
+          }
+          
+          logger.debug('[QR Scanner] Processing penalty/behavior record with Firebase ID mapping:', {
             recordIndex: index,
             originalStudentId: studentId,
             mappedStudentName: studentName,
@@ -1116,23 +1153,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               date: record.date,
               classId: record.classId
             },
-            availableMappings: studentId ? Object.keys(studentMap).filter(key => key.includes(studentId) || studentMap[key] === studentName) : [],
-            studentMapKeys: Object.keys(studentMap),
-            studentMapEntries: Object.entries(studentMap).slice(0, 10), // Show first 10 entries
-            allStudentsLength: students.length,
-            allStudentsIds: students.map(s => ({ id: s.id, name: s.displayName || s.name }))
+            foundByFirebaseId: !!students.find(s => s.id === studentId),
+            foundByReferenceId: !!students.find(s => generateReferenceId(s.id) === studentId)
           });
-          
-          // CRITICAL: Log if multiple students map to the same name
-          const sameNameMappings = Object.entries(studentMap).filter(([key, value]) => value === studentName);
-          if (sameNameMappings.length > 1) {
-            logger.error('[QR Scanner] DUPLICATE NAME DETECTED:', {
-              studentName,
-              mappings: sameNameMappings,
-              recordStudentId: studentId,
-              warning: 'This cheating record will appear for multiple students!'
-            });
-          }
+        } else {
+          // For other records (attendance, etc.), use the original name-based mapping
+          studentName = studentMap[studentId];
         }
 
         // If not found in map, try to find the student by generating reference ID from user IDs

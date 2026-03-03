@@ -10,6 +10,7 @@ import { getEnrollments } from '@services/business/enrollmentService';
 import { getClasses } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { markAttendance, getAttendanceByClass, getAttendanceByStudent, deleteAttendance } from '@services/business/attendanceService';
+import { getAttendanceRecords } from '@services/db/attendanceDbService';
 import { createPenalty, getPenalties, deletePenalty } from '@services/business/penaltyService';
 import { createParticipation, getParticipations, deleteParticipation } from '@services/business/participationService';
 import { createBehavior, getBehaviors, deleteBehavior } from '@services/business/behaviorService';
@@ -1416,6 +1417,228 @@ const QRScannerPage = () => {
     }
   }, [selectedClassId, selectedDate, selectedProgramId, selectedSubjectId, programs, subjects, classes, lang, t]);
 
+  // Export Semester Report function
+  const exportSemesterReport = useCallback(async () => {
+    if (!selectedClassId) {
+      showError(t('please_select_class') || 'Please select a class first');
+      return;
+    }
+
+    try {
+      console.log('📊 Semester Report - Starting export for class:', selectedClassId);
+
+      // Get all attendance data for the class (no date filter for semester-wide data)
+      const attendanceResponse = await getAttendanceRecords({ 
+        classId: selectedClassId
+      });
+      
+      const attendanceData = attendanceResponse.success ? attendanceResponse.data : [];
+      
+      console.log('📊 Semester Report - Attendance Data:', {
+        totalRecords: attendanceData.length,
+        sampleRecord: attendanceData[0]
+      });
+
+      // Get all students
+      const usersResponse = await getUsers();
+      const allUsers = usersResponse.success ? usersResponse.data : [];
+
+      // Aggregate attendance data by student
+      const studentAttendanceMap = {};
+      
+      attendanceData.forEach(record => {
+        const studentId = record.studentId;
+        
+        if (!studentAttendanceMap[studentId]) {
+          studentAttendanceMap[studentId] = {
+            present: 0,
+            late: 0,
+            absentNoExcuse: 0,
+            absentWithExcuse: 0,
+            excusedLeave: 0,
+            humanCase: 0,
+            total: 0
+          };
+        }
+        
+        const status = record.status?.toLowerCase() || 'present';
+        studentAttendanceMap[studentId].total++;
+        
+        // Map status to counters - handle all 6 attendance types
+        if (status === 'present') {
+          studentAttendanceMap[studentId].present++;
+        } else if (status === 'late') {
+          studentAttendanceMap[studentId].late++;
+        } else if (status === 'absent_no_excuse' || status === 'absent') {
+          studentAttendanceMap[studentId].absentNoExcuse++;
+        } else if (status === 'absent_with_excuse' || status === 'absence_excused' || status === 'absenceexcused') {
+          studentAttendanceMap[studentId].absentWithExcuse++;
+        } else if (status === 'excused_leave' || status === 'leave') {
+          studentAttendanceMap[studentId].excusedLeave++;
+        } else if (status === 'human_case' || status === 'humancase') {
+          studentAttendanceMap[studentId].humanCase++;
+        }
+      });
+
+      console.log('📊 Semester Report - Aggregated Data:', {
+        totalStudents: Object.keys(studentAttendanceMap).length,
+        sampleStudent: Object.entries(studentAttendanceMap)[0]
+      });
+
+      // Create enriched data with calculations
+      const enrichedData = Object.entries(studentAttendanceMap).map(([studentId, stats]) => {
+        const student = allUsers.find(u => u.id === studentId);
+        
+        // Calculate attendance percentage
+        const attendancePercentage = stats.total > 0 
+          ? ((stats.present / stats.total) * 100).toFixed(2)
+          : '0.00';
+        
+        // Calculate mark deductions for each type
+        const absentNoExcuseDeduction = stats.absentNoExcuse * 1.0;      // 1.0 mark per absent
+        const absentWithExcuseDeduction = stats.absentWithExcuse * 0.5;  // 0.5 mark per excused absent
+        const excusedLeaveDeduction = stats.excusedLeave * 0.5;        // 0.5 mark per excused leave
+        const humanCaseDeduction = stats.humanCase * 0.25;             // 0.25 mark per human case
+        
+        // Total deductions
+        const totalDeduction = absentNoExcuseDeduction + absentWithExcuseDeduction + excusedLeaveDeduction + humanCaseDeduction;
+        
+        return {
+          studentNumber: student?.studentNumber || studentId || '',
+          studentName: student?.displayName || student?.realName || '',
+          present: stats.present,
+          late: stats.late,
+          absentNoExcuse: stats.absentNoExcuse,
+          absentWithExcuse: stats.absentWithExcuse,
+          excusedLeave: stats.excusedLeave,
+          humanCase: stats.humanCase,
+          totalSessions: stats.total,
+          attendancePercentage: attendancePercentage + '%',
+          absentNoExcuseDeduction: absentNoExcuseDeduction.toFixed(2),
+          absentWithExcuseDeduction: absentWithExcuseDeduction.toFixed(2),
+          excusedLeaveDeduction: excusedLeaveDeduction.toFixed(2),
+          humanCaseDeduction: humanCaseDeduction.toFixed(2),
+          totalMarkDeduction: totalDeduction.toFixed(2)
+        };
+      });
+
+      // Sort by student number
+      enrichedData.sort((a, b) => {
+        const numA = parseInt(a.studentNumber) || 0;
+        const numB = parseInt(b.studentNumber) || 0;
+        return numA - numB;
+      });
+
+      console.log('📊 Semester Report - Enriched Data:', {
+        totalStudents: enrichedData.length,
+        sampleStudent: enrichedData[0]
+      });
+
+      if (enrichedData.length === 0) {
+        showError(t('no_attendance_records_found') || 'No attendance records found for this semester');
+        return;
+      }
+
+      // Create CSV content with headers for all 6 attendance types
+      const headers = lang === 'ar' ? [
+        '#',
+        t('student_number') || 'رقم الطالب',
+        t('student_name') || 'اسم الطالب',
+        t('present') || 'حاضر',
+        t('late') || 'متأخر',
+        t('absent_no_excuse') || 'غائب بدون عذر',
+        t('absent_with_excuse') || 'غائب مع عذر',
+        t('excused_leave') || 'استئذان',
+        t('human_case') || 'حالة إنسانية',
+        t('total_sessions') || 'إجمالي الجلسات',
+        t('attendance_percentage') || 'نسبة الحضور',
+        t('absent_no_excuse_deduction') || 'خصم الغياب بدون عذر (×1.0)',
+        t('absent_with_excuse_deduction') || 'خصم الغياب مع عذر (×0.5)',
+        t('excused_leave_deduction') || 'خصم الاستئذان (×0.5)',
+        t('human_case_deduction') || 'خصم الحالة (×0.25)',
+        t('total_mark_deduction') || 'إجمالي الخصم'
+      ] : [
+        '#',
+        t('student_number') || 'Student Number',
+        t('student_name') || 'Student Name',
+        t('present') || 'Present',
+        t('late') || 'Late',
+        t('absent_no_excuse') || 'Absent (No Excuse)',
+        t('absent_with_excuse') || 'Absent (With Excuse)',
+        t('excused_leave') || 'Excused Leave',
+        t('human_case') || 'Human Case',
+        t('total_sessions') || 'Total Sessions',
+        t('attendance_percentage') || 'Attendance %',
+        t('absent_no_excuse_deduction') || 'Absent No Excuse Deduction (×1.0)',
+        t('absent_with_excuse_deduction') || 'Absent With Excuse Deduction (×0.5)',
+        t('excused_leave_deduction') || 'Excused Leave Deduction (×0.5)',
+        t('human_case_deduction') || 'Human Case Deduction (×0.25)',
+        t('total_mark_deduction') || 'Total Mark Deduction'
+      ];
+
+      const csvContent = [
+        headers.join(','),
+        ...enrichedData.map((row, index) => [
+          `"${index + 1}"`,
+          `"${row.studentNumber}"`,
+          `"${row.studentName}"`,
+          `"${row.present}"`,
+          `"${row.late}"`,
+          `"${row.absentNoExcuse}"`,
+          `"${row.absentWithExcuse}"`,
+          `"${row.excusedLeave}"`,
+          `"${row.humanCase}"`,
+          `"${row.totalSessions}"`,
+          `"${row.attendancePercentage}"`,
+          `"${row.absentNoExcuseDeduction}"`,
+          `"${row.absentWithExcuseDeduction}"`,
+          `"${row.excusedLeaveDeduction}"`,
+          `"${row.humanCaseDeduction}"`,
+          `"${row.totalMarkDeduction}"`
+        ].join(','))
+      ].join('\n');
+
+      // Get names for filename
+      const programsResponse = await getPrograms();
+      const allPrograms = programsResponse.success ? programsResponse.data : [];
+      const currentProgram = allPrograms.find(p => (p.id === selectedProgramId) || (p.docId === selectedProgramId));
+      
+      const subjectsResponse = await getSubjects(selectedProgramId);
+      const allSubjects = subjectsResponse.success ? subjectsResponse.data : [];
+      const currentSubject = allSubjects.find(s => (s.id === selectedSubjectId) || (s.docId === selectedSubjectId));
+      
+      const classesResponse = await getClasses(selectedSubjectId);
+      const allClasses = classesResponse.success ? classesResponse.data : [];
+      const currentClass = allClasses.find(c => (c.id === selectedClassId) || (c.docId === selectedClassId));
+      
+      const programName = currentProgram?.nameEn || currentProgram?.name || 'All';
+      const subjectName = currentSubject?.nameEn || currentSubject?.name || 'All';
+      const className = currentClass?.nameEn || currentClass?.name || 'All';
+      
+      // Create filename
+      const filename = lang === 'ar' 
+        ? `تقرير_الفصل_الدراسي_${programName}_${subjectName}_${className}.csv`
+        : `semester_report_${programName}_${subjectName}_${className}.csv`;
+
+      // Create and download file
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showSuccess(t('semester_report_exported_successfully') || 'Semester report exported successfully');
+
+    } catch (error) {
+      console.error('Semester Report Export failed:', error);
+      showError((t('export_failed') || 'Export failed: ') + error.message);
+    }
+  }, [selectedClassId, selectedSubjectId, selectedProgramId, programs, subjects, classes, lang, t, showError, showSuccess]);
+
   // Memoized filtered students for performance
   const filteredStudents = useMemo(() => {
     let filtered = students;
@@ -1716,6 +1939,30 @@ const QRScannerPage = () => {
             >
               {getThemedIcon('ui', 'file', 16, theme)}
               {t('daily_report')}
+            </button>
+
+            <button
+              onClick={exportSemesterReport}
+              style={{
+                padding: '0.5rem 1rem',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s',
+                boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
+              }}
+              disabled={gridLoading || !selectedClassId}
+              title={t('semester_report_tooltip') || 'Export cumulative semester attendance report'}
+            >
+              {getThemedIcon('ui', 'file', 16, theme)}
+              {t('semester_report') || 'Semester Report'}
             </button>
             
             <div 
