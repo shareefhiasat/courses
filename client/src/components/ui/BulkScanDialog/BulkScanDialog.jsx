@@ -241,6 +241,31 @@ const BulkScanDialog = ({
           </button>
         </div>
 
+        {/* Progress Bar - Positioned at top for maximum visibility */}
+        {loading && progress.total > 0 && (
+          <div className={styles.progressSection}>
+            <div className={styles.progressInfo}>
+              <span className={styles.progressText}>
+                {t('processing_students') || 'Processing students'}: {progress.processed}/{progress.total}
+              </span>
+              <span className={styles.progressPercentage}>
+                {progress.percentage}%
+              </span>
+            </div>
+            <div className={styles.progressBar}>
+              <div 
+                className={styles.progressFill}
+                style={{ width: `${progress.percentage}%` }}
+              />
+            </div>
+            {progress.totalBatches > 1 && (
+              <div className={styles.batchInfo}>
+                {t('batch') || 'Batch'} {progress.currentBatch}/{progress.totalBatches}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className={styles.content}>
           <div className={styles.inputSection}>
             <label htmlFor="bulk-input" className={styles.label}>
@@ -583,33 +608,8 @@ const BulkScanDialog = ({
               )}
             </div>
           )}
-
-          {/* Progress Bar */}
-          {loading && progress.total > 0 && (
-            <div className={styles.progressSection}>
-              <div className={styles.progressInfo}>
-                <span className={styles.progressText}>
-                  {t('processing_students') || 'Processing students'}: {progress.processed}/{progress.total}
-                </span>
-                <span className={styles.progressPercentage}>
-                  {progress.percentage}%
-                </span>
-              </div>
-              <div className={styles.progressBar}>
-                <div 
-                  className={styles.progressFill}
-                  style={{ width: `${progress.percentage}%` }}
-                />
-              </div>
-              {progress.totalBatches > 1 && (
-                <div className={styles.batchInfo}>
-                  {t('batch') || 'Batch'} {progress.currentBatch}/{progress.totalBatches}
-                </div>
-              )}
-            </div>
-          )}
         </div>
-
+          
         <div className={styles.footer}>
           <button
             onClick={handleClose}
