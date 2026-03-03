@@ -146,6 +146,14 @@ const QRScannerPage = () => {
   const [sendNotifications, setSendNotifications] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
   const [isScannerMinimized, setIsScannerMinimized] = useState(false);
+  
+  // Semester report confirmation modal state
+  const [showSemesterReportConfirm, setShowSemesterReportConfirm] = useState(false);
+  const [semesterReportConfirmData, setSemesterReportConfirmData] = useState({
+    scope: '',
+    scopeName: '',
+    onConfirm: null
+  });
 
   // Debounced resize handler for performance
   useEffect(() => {
@@ -1419,18 +1427,74 @@ const QRScannerPage = () => {
 
   // Export Semester Report function
   const exportSemesterReport = useCallback(async () => {
-    if (!selectedClassId) {
-      showError(t('please_select_class') || 'Please select a class first');
+    // Determine export scope and validate
+    let scope = 'class';
+    let scopeId = selectedClassId;
+    let scopeName = '';
+    
+    if (!selectedClassId && !selectedProgramId) {
+      showError(t('please_select_class_or_program') || 'Please select a class or program first');
       return;
     }
+    
+    if (selectedClassId) {
+      scope = 'class';
+      scopeId = selectedClassId;
+      const selectedClass = classes.find(c => c.id === selectedClassId);
+      scopeName = selectedClass?.name || 'Unknown Class';
+    } else if (selectedProgramId) {
+      scope = 'program';
+      scopeId = selectedProgramId;
+      const selectedProgram = programs.find(p => p.id === selectedProgramId);
+      scopeName = selectedProgram?.name || 'Unknown Program';
+    }
 
+    // Show confirmation modal with better UI
+    const scopeText = scope === 'class' 
+      ? (t('class_level_report') || 'Class Level Report')
+      : (t('program_level_report') || 'Program Level Report');
+    
+    // Set up confirmation modal data
+    setSemesterReportConfirmData({
+      scope,
+      scopeName,
+      onConfirm: () => {
+        // This will be called when user confirms
+        performSemesterReportExport(scope, scopeId, scopeName);
+      }
+    });
+    
+    // Show confirmation modal
+    setShowSemesterReportConfirm(true);
+    return;
+  }, [selectedClassId, selectedProgramId, programs, classes, subjects, lang, t, showError, showSuccess]);
+
+  // Separate function for performing the actual export
+  const performSemesterReportExport = useCallback(async (scope, scopeId, scopeName) => {
     try {
-      console.log('📊 Semester Report - Starting export for class:', selectedClassId);
+      console.log('📊 Semester Report - Starting export:', { scope, scopeId, scopeName });
 
-      // Get all attendance data for the class (no date filter for semester-wide data)
-      const attendanceResponse = await getAttendanceRecords({ 
-        classId: selectedClassId
-      });
+      // Get all attendance data based on scope
+      let attendanceResponse;
+      if (scope === 'class') {
+        attendanceResponse = await getAttendanceRecords({ classId: scopeId });
+      } else {
+        // For program scope, get all classes in the program
+        const programClasses = classes.filter(c => c.programId === scopeId);
+        const classIds = programClasses.map(c => c.id);
+        
+        // Get attendance for all classes in the program
+        const attendancePromises = classIds.map(classId => 
+          getAttendanceRecords({ classId }).catch(err => ({ success: false, error: err.message }))
+        );
+        
+        const attendanceResults = await Promise.all(attendancePromises);
+        const allAttendanceData = attendanceResults
+          .filter(result => result.success)
+          .flatMap(result => result.data);
+        
+        attendanceResponse = { success: true, data: allAttendanceData };
+      }
       
       const attendanceData = attendanceResponse.success ? attendanceResponse.data : [];
       
@@ -1615,10 +1679,18 @@ const QRScannerPage = () => {
       const subjectName = currentSubject?.nameEn || currentSubject?.name || 'All';
       const className = currentClass?.nameEn || currentClass?.name || 'All';
       
-      // Create filename
-      const filename = lang === 'ar' 
-        ? `تقرير_الفصل_الدراسي_${programName}_${subjectName}_${className}.csv`
-        : `semester_report_${programName}_${subjectName}_${className}.csv`;
+      // Create localized filename based on scope with current date
+      const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      let filename;
+      if (scope === 'class') {
+        filename = lang === 'ar' 
+          ? `تقرير_الفصل_الدراسي_${scopeName}_${programName}_${subjectName}_${currentDate}.csv`
+          : `semester_report_${scopeName}_${programName}_${subjectName}_${currentDate}.csv`;
+      } else {
+        filename = lang === 'ar' 
+          ? `تقرير_الفصل_الدراسي_${scopeName}_البرنامج_${currentDate}.csv`
+          : `semester_report_${scopeName}_program_${currentDate}.csv`;
+      }
 
       // Create and download file
       const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1884,87 +1956,134 @@ const QRScannerPage = () => {
             </div>
           </div>
 
-          {/* Date picker and notification on same row */}
+          {/* Date picker and export buttons section */}
           <div style={{ 
             display: 'flex', 
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            flexDirection: 'column',
             gap: '1rem',
-            marginTop: '0.5rem',
-            flexWrap: 'wrap'
+            marginTop: '0.5rem'
           }}>
-            <div style={{ width: '100%', maxWidth: '300px' }}>
-              {!gridLoading && selectedClassId && selectedClassId !== 'all' && (
-                <DatePicker
-                  value={selectedDate}
-                  onChange={(date) => setSelectedDate(date)}
-                  format="yyyy-MM-dd"
-                />
-              )}
-              {gridLoading && (
-                <div style={{
-                  height: '38px',
-                  background: '#f3f4f6',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '0.375rem',
+            {/* Date picker row */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'flex-start',
+              alignItems: 'center',
+              gap: '1rem',
+              flexWrap: 'wrap'
+            }}>
+              <div style={{ width: '100%', maxWidth: '300px' }}>
+                {!gridLoading && selectedClassId && selectedClassId !== 'all' && (
+                  <DatePicker
+                    value={selectedDate}
+                    onChange={(date) => setSelectedDate(date)}
+                    format="yyyy-MM-dd"
+                  />
+                )}
+                {gridLoading && (
+                  <div style={{
+                    height: '38px',
+                    background: '#f3f4f6',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.375rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#9ca3af',
+                    fontSize: '0.875rem'
+                  }}>
+                    {t('loading') || 'Loading...'}
+                  </div>
+                )}
+              </div>
+              
+              {/* Current scope information display */}
+              <div style={{
+                padding: '0.5rem 1rem',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                color: '#166534',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                {getThemedIcon('ui', 'info', 16, theme)}
+                {selectedClassId 
+                  ? `${t('exporting_for_class') || 'Exporting for class'}: ${classes.find(c => c.id === selectedClassId)?.name || 'Unknown'}`
+                  : `${t('exporting_for_program') || 'Exporting for program'}: ${programs.find(p => p.id === selectedProgramId)?.name || 'Unknown'}`
+                }
+              </div>
+            </div>
+
+            {/* Export buttons row */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: '0.75rem',
+              flexWrap: 'wrap'
+            }}>
+              <button
+                onClick={exportDailyReport}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#9ca3af',
-                  fontSize: '0.875rem'
-                }}>
-                  {t('loading') || 'Loading...'}
-                </div>
-              )}
-            </div>
-            
-            <button
-              onClick={exportDailyReport}
-              style={{
-                padding: '0.5rem 1rem',
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.5rem',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                transition: 'all 0.2s',
-                boxShadow: '0 2px 4px rgba(139, 92, 246, 0.2)'
-              }}
-              disabled={gridLoading || !selectedClassId || selectedClassId === 'all'}
-            >
-              {getThemedIcon('ui', 'file', 16, theme)}
-              {t('daily_report')}
-            </button>
+                  gap: '0.5rem',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 4px rgba(139, 92, 246, 0.2)',
+                  minWidth: '140px',
+                  justifyContent: 'center'
+                }}
+                disabled={gridLoading || !selectedClassId || selectedClassId === 'all'}
+              >
+                {getThemedIcon('ui', 'file', 16, theme)}
+                {t('daily_report') || 'Daily Report'}
+              </button>
 
-            <button
-              onClick={exportSemesterReport}
-              style={{
-                padding: '0.5rem 1rem',
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.5rem',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                transition: 'all 0.2s',
-                boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
-              }}
-              disabled={gridLoading || !selectedClassId}
-              title={t('semester_report_tooltip') || 'Export cumulative semester attendance report'}
-            >
-              {getThemedIcon('ui', 'file', 16, theme)}
-              {t('semester_report') || 'Semester Report'}
-            </button>
-            
+              <button
+                onClick={exportSemesterReport}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)',
+                  minWidth: '140px',
+                  justifyContent: 'center'
+                }}
+                disabled={gridLoading || (!selectedClassId && !selectedProgramId)}
+                title={
+                  selectedClassId 
+                    ? (t('export_class_semester_report') || 'Export semester report for selected class')
+                    : (t('export_program_semester_report') || 'Export semester report for selected program (includes all classes)')
+                }
+              >
+                {getThemedIcon('ui', 'file', 16, theme)}
+                {selectedClassId 
+                  ? (t('class_semester_report') || 'Class Report')
+                  : (t('program_semester_report') || 'Program Report')
+                }
+              </button>
+            </div>
+          </div>
+
             <div 
               onClick={() => setSendNotifications(!sendNotifications)}
               style={{
@@ -2017,7 +2136,6 @@ const QRScannerPage = () => {
               </div>
             </div>
           </div>
-        </div>
       </header>
 
       <div style={{

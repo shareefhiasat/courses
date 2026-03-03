@@ -4070,7 +4070,17 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       });
                     }
                   }}
-                  options={getActivityTypeOptions()}
+                  options={() => {
+                    const opts = getActivityTypeOptions();
+                    logger.info('[QR Scanner] StudentActionZapPanel options:', {
+                      totalOptions: opts.length,
+                      behaviorOptions: opts.filter(o => o.category === 'behavior').length,
+                      participationOptions: opts.filter(o => o.category === 'participation').length,
+                      penaltyOptions: opts.filter(o => o.category === 'penalty').length,
+                      options: opts
+                    });
+                    return opts;
+                  }}
               />
           )}
 

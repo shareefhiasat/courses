@@ -841,6 +841,21 @@ const DICT = {
     'human_case_deduction': 'Human Case Deduction (×0.25)',
     'total_mark_deduction': 'Total Mark Deduction',
     
+    // Enhanced Semester Report translations
+    'please_select_class_or_program': 'Please select a class or program first',
+    'class_level_report': 'Class Level Report',
+    'program_level_report': 'Program Level Report',
+    'export_class_semester_report_confirm': 'Export semester report for class: {{className}}?',
+    'export_program_semester_report_confirm': 'Export semester report for program: {{programName}}? This will include ALL classes in the program.',
+    'export_class_semester_report': 'Export semester report for selected class',
+    'export_program_semester_report': 'Export semester report for selected program (includes all classes)',
+    'class_semester_report': 'Class Semester Report',
+    'program_semester_report': 'Program Semester Report',
+    
+    // Additional semester report UI translations
+    'exporting_for_class': 'Exporting for class',
+    'exporting_for_program': 'Exporting for program',
+    
     // Bulk Scan Dialog translations
     'issues_found': 'Issues Found',
     'repeated_entries': 'Repeated Entries', 
@@ -4274,6 +4289,21 @@ const DICT = {
     'excused_leave_deduction': 'خصم الاستئذان (×0.5)',
     'human_case_deduction': 'خصم الحالة (×0.25)',
     'total_mark_deduction': 'إجمالي الخصم',
+    
+    // Enhanced Semester Report translations (Arabic)
+    'please_select_class_or_program': 'يرجى اختيار فصل أو برنامج أولاً',
+    'class_level_report': 'تقرير على مستوى الفصل',
+    'program_level_report': 'تقرير على مستوى البرنامج',
+    'export_class_semester_report_confirm': 'تصدير تقرير الفصل الدراسي للفصل: {{className}}؟',
+    'export_program_semester_report_confirm': 'تصدير تقرير الفصل الدراسي للبرنامج: {{programName}}؟ سيشمل هذا جميع الفصول في البرنامج.',
+    'export_class_semester_report': 'تصدير تقرير الفصل الدراسي للفصل المحدد',
+    'export_program_semester_report': 'تصدير تقرير الفصل الدراسي للبرنامج المحدد (يشمل جميع الفصول)',
+    'class_semester_report': 'تقرير فصل دراسي للفصل',
+    'program_semester_report': 'تقرير فصل دراسي للبرنامج',
+    
+    // Additional semester report UI translations (Arabic)
+    'exporting_for_class': 'تصدير للفصل',
+    'exporting_for_program': 'تصدير للبرنامج',
     
     // Bulk Scan Dialog translations (Arabic)
     'issues_found': 'مشكلات تم العثور عليها',
