@@ -4107,6 +4107,11 @@ const DICT = {
     other_violation: 'Other Violation',
     note_added: 'Note added',
     custom_note: 'Custom Note',
+    
+    // Additional common translations
+    present: 'Present',
+    id: 'ID',
+    none: 'None',
   },
   ar: {
     cancel_marks_distribution: 'إلغاء توزيع الدرجات',
@@ -7968,6 +7973,11 @@ const DICT = {
     other_violation: 'مخالفة أخرى',
     note_added: 'تمت إضافة ملاحظة',
     custom_note: 'ملاحظة مخصصة',
+    
+    // Additional common translations
+    present: 'حاضر',
+    id: 'رقم الهوية',
+    none: 'لا شيء',
   },
 };
 

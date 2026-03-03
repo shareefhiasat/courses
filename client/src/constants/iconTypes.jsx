@@ -74,7 +74,12 @@ export const ICON_TYPES = {
     absent_no_excuse: <XCircle size={16} />,
     absent_with_excuse: <AlertCircle size={16} />,
     excused_leave: <Info size={16} />,
-    human_case: <HelpCircle size={16} />
+    human_case: <HelpCircle size={16} />,
+    none: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+      </svg>
+    )
   },
   
   // Behavior Type Icons
@@ -678,11 +683,11 @@ export const createClassStatBadge = (count, iconType, color, tooltipText, theme)
 /**
  * Gets attendance status color and label
  */
-export const getAttendanceStatusInfo = (status) => {
+export const getAttendanceStatusInfo = (status, lang = 'en') => {
   const statusInfo = ATTENDANCE_STATUS_LABELS[status] || ATTENDANCE_STATUS_LABELS.present;
   return {
     color: statusInfo.color || '#6b7280',
-    label: statusInfo.en || status,
+    label: lang === 'ar' ? (statusInfo.ar || statusInfo.en) : (statusInfo.en || status),
     icon: getAttendanceIcon(status)
   };
 };

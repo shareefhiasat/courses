@@ -9,6 +9,7 @@ import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } fro
 import { useNavigate } from 'react-router-dom';
 import { useLang } from '@contexts/LangContext';
 import PortalTooltip from '@ui/PortalTooltip';
+import { ICON_TYPES } from '@constants/iconTypes';
 
 const StudentTableRow = ({ 
   student, 
@@ -55,10 +56,10 @@ const StudentTableRow = ({
     if (!statusInfo) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-          </svg>
-          <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 500 }}>None</span>
+          {ICON_TYPES.attendance_status.none}
+          <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 500 }}>
+            {t('none') || 'None'}
+          </span>
         </div>
       );
     }
@@ -86,7 +87,7 @@ const StudentTableRow = ({
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
         {getIcon(status)}
         <span style={{ fontSize: '0.75rem', color: statusInfo.color, fontWeight: 500 }}>
-          {statusInfo.en}
+          {lang === 'ar' ? (statusInfo.ar || statusInfo.en) : statusInfo.en}
         </span>
       </div>
     );
@@ -229,7 +230,7 @@ const StudentTableRow = ({
                 )}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-                ID: {student.studentNumber || '0000'}
+                {t('id')}: {student.studentNumber || '0000'}
               </div>
             </div>
           </div>

@@ -1104,11 +1104,11 @@ const StudentRoster = React.memo(function StudentRoster({
                   fontSize: '0.75rem',
                   fontWeight: 500,
                   color: 'var(--text-muted, #6b7280)',
-                  textTransform: 'uppercase',
+                  textTransform: isRTL ? 'none' : 'uppercase',
                   letterSpacing: '0.05em',
                   width: '80px'
                 }}>
-                  {t('present') || 'Present'}
+                  {t('present')}
                 </th>
                 <th style={{
                   textAlign: 'center',
@@ -1116,11 +1116,11 @@ const StudentRoster = React.memo(function StudentRoster({
                   fontSize: '0.75rem',
                   fontWeight: 500,
                   color: 'var(--text-muted, #6b7280)',
-                  textTransform: 'uppercase',
+                  textTransform: isRTL ? 'none' : 'uppercase',
                   letterSpacing: '0.05em',
                   width: '80px'
                 }}>
-                  {t('late') || 'Late'}
+                  {t('late')}
                 </th>
                 <th style={{
                   textAlign: 'center',
@@ -1128,11 +1128,11 @@ const StudentRoster = React.memo(function StudentRoster({
                   fontSize: '0.75rem',
                   fontWeight: 500,
                   color: 'var(--text-muted, #6b7280)',
-                  textTransform: 'uppercase',
+                  textTransform: isRTL ? 'none' : 'uppercase',
                   letterSpacing: '0.05em',
                   width: '80px'
                 }}>
-                  {t('absent') || 'Absent'}
+                  {t('absent')}
                 </th>
                 <th style={{
                   textAlign: 'center',
@@ -1140,11 +1140,11 @@ const StudentRoster = React.memo(function StudentRoster({
                   fontSize: '0.75rem',
                   fontWeight: 500,
                   color: 'var(--text-muted, #6b7280)',
-                  textTransform: 'uppercase',
+                  textTransform: isRTL ? 'none' : 'uppercase',
                   letterSpacing: '0.05em',
                   width: '80px'
                 }}>
-                  {t('absent_excused') || 'Absent Excused'}
+                  {t('absent_excused')}
                 </th>
                 <th style={{
                   textAlign: 'center',
@@ -1152,11 +1152,11 @@ const StudentRoster = React.memo(function StudentRoster({
                   fontSize: '0.75rem',
                   fontWeight: 500,
                   color: 'var(--text-muted, #6b7280)',
-                  textTransform: 'uppercase',
+                  textTransform: isRTL ? 'none' : 'uppercase',
                   letterSpacing: '0.05em',
                   width: '80px'
                 }}>
-                  {t('excused_leave') || 'Excused Leave'}
+                  {t('excused_leave')}
                 </th>
                 <th style={{
                   textAlign: 'center',
@@ -1164,11 +1164,11 @@ const StudentRoster = React.memo(function StudentRoster({
                   fontSize: '0.75rem',
                   fontWeight: 500,
                   color: 'var(--text-muted, #6b7280)',
-                  textTransform: 'uppercase',
+                  textTransform: isRTL ? 'none' : 'uppercase',
                   letterSpacing: '0.05em',
                   width: '80px'
                 }}>
-                  {t('human') || 'Human'}
+                  {t('human')}
                 </th>
                 <th style={{
                   textAlign: 'center',
