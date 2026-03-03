@@ -4746,7 +4746,7 @@ const DICT = {
     today: 'اليوم',
     last7: 'آخر 7 أيام',
     last30: 'آخر 30 يوماً',
-    qr_scanner: 'ماسح كيو اّر ',
+    qr_scanner: 'ماسح كيو ار ',
     scanner: 'الماسح',
     active: 'نشط',
     ready: 'جاهز',

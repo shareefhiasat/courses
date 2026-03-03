@@ -1739,7 +1739,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             position: 'relative',
             overflow: 'hidden',
             width: '100%',
-            maxWidth: isMobile ? '100%' : '600px',
+            maxWidth: isMobile ? '100%' : '550px',
             margin: isMobile ? '0 auto 1rem auto' : '0 auto 1rem auto'
           }}>
             {loading ? (
@@ -2144,10 +2144,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.75rem',
-                [isRTL ? 'paddingRight' : 'paddingLeft']: '1rem',
+                [isRTL ? 'paddingRight' : 'paddingLeft']: '0.5rem',
                 [isRTL ? 'borderRight' : 'borderLeft']: '3px solid #8b5cf6',
                 maxHeight: '400px', // Limit height
-                overflowY: 'auto' // Add vertical scrollbar
+                overflowY: 'auto', // Add vertical scrollbar
+                overflowX: 'hidden' // Prevent horizontal scroll
               }}>
                 {/* Real activity logs from Firebase */}
                 {activityLoading ? (
@@ -2398,13 +2399,16 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
                             {expandedActivities.has(activity.id) && (
                                 <div style={{
-                                  paddingLeft: '0.5rem',
+                                  paddingLeft: isMobile ? '0.25rem' : '0.5rem',
                                   paddingTop: '0.5rem',
                                   fontSize: '0.75rem',
                                   color: '#6b7280',
                                   display: isMobile ? 'flex' : 'block',
                                   flexDirection: isMobile ? 'column' : 'none',
-                                  gap: isMobile ? '0.15rem' : '0'
+                                  gap: isMobile ? '0.15rem' : '0',
+                                  maxWidth: '100%',
+                                  overflow: 'hidden',
+                                  wordWrap: 'break-word'
                                 }}>
                                   <div style={{ marginBottom: '0.15rem' }}>
                                     {/*<strong>{t('date') || 'Date'}:</strong> */}
@@ -2499,10 +2503,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 <div style={{
                   background: 'white',
                   borderRadius: isMobile ? '0' : '0.5rem',
-                  padding: isMobile ? '1rem' : '1.5rem',
-                  width: isMobile ? '100vw' : '400px',
-                  maxWidth: isMobile ? '100vw' : '400px',
-                  minWidth: isMobile ? '100vw' : '350px',
+                  padding: isMobile ? '0.75rem' : '1rem',
+                  width: isMobile ? '95vw' : '350px',
+                  maxWidth: isMobile ? '95vw' : '350px',
+                  minWidth: isMobile ? 'auto' : '300px',
                   height: isMobile ? '100vh' : 'auto',
                   maxHeight: isMobile ? '100vh' : '80vh',
                   overflow: 'auto',
