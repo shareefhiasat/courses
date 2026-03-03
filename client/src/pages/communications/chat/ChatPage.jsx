@@ -2960,45 +2960,66 @@ const ChatPage = memo(() => {
               </div>
             ) : (
               (() => {
-                // Start with a guaranteed array
-                let filtered = Array.isArray(classMembers) ? [...classMembers] : [];
-                
-                // Apply search filter if needed
-                if (memberSearch && Array.isArray(filtered)) {
-                  const search = memberSearch.toLowerCase();
-                  filtered = filtered.filter(m => 
-                    (m.displayName || '').toLowerCase().includes(search) ||
-                    (m.email || '').toLowerCase().includes(search)
-                  );
-                }
-                
-                // Apply students only filter if needed
-                if (studentsOnly && Array.isArray(filtered)) {
-                  filtered = filtered.filter(m => m.isStudent === true);
-                }
-                
-                // Filter out the logged-in user if needed
-                if (Array.isArray(filtered)) {
-                  filtered = filtered.filter(m => {
-                    const excludeByDocId = m.docId !== user?.uid;
-                    const excludeByEmail = m.email !== user?.email;
-                    return excludeByDocId && excludeByEmail;
-                  });
-                }
-                
-                // Final safety check - ensure we always have an array
-                if (!Array.isArray(filtered)) {
-                  filtered = [];
-                }
-                
-                return filtered.map(m => {
-                // For class members: show X if unenrolled from this specific class
-                const isDeleted = !m || m.deleted;
-                const isDisabled = m?.disabled || m?.isDisabled;
-                const isUnenrolled = selectedClass && selectedClass !== 'global' && !selectedClass.startsWith('dm:') && 
-                  m.isStudent === true && !(Array.isArray(m.enrolledClasses) && m.enrolledClasses.includes(selectedClass));
-                const showIndicator = isDeleted || isDisabled || isUnenrolled;
-                const indicatorTitle = isDeleted ? 'Deleted User' : (isDisabled ? 'Disabled User' : (isUnenrolled ? 'Unenrolled from this class' : ''));
+                try {
+                  // Start with a guaranteed array - use multiple safety layers
+                  let filtered = [];
+                  
+                  // Layer 1: Ensure classMembers is an array
+                  if (Array.isArray(classMembers)) {
+                    filtered = [...classMembers]; // Create a copy to avoid mutations
+                  } else if (classMembers && typeof classMembers === 'object') {
+                    // Layer 2: Handle object that might be array-like
+                    filtered = Object.values(classMembers).filter(item => item && typeof item === 'object');
+                  }
+                  
+                  // Layer 3: Apply search filter if needed
+                  if (memberSearch && Array.isArray(filtered) && filtered.length > 0) {
+                    const search = memberSearch.toLowerCase();
+                    filtered = filtered.filter(m => {
+                      if (!m || typeof m !== 'object') return false;
+                      const displayName = (m.displayName || '').toLowerCase();
+                      const email = (m.email || '').toLowerCase();
+                      return displayName.includes(search) || email.includes(search);
+                    });
+                  }
+                  
+                  // Layer 4: Apply students only filter if needed
+                  if (studentsOnly && Array.isArray(filtered) && filtered.length > 0) {
+                    filtered = filtered.filter(m => {
+                      if (!m || typeof m !== 'object') return false;
+                      return m.isStudent === true;
+                    });
+                  }
+                  
+                  // Layer 5: Filter out the logged-in user if needed
+                  if (Array.isArray(filtered) && filtered.length > 0 && user) {
+                    filtered = filtered.filter(m => {
+                      if (!m || typeof m !== 'object') return false;
+                      const excludeByDocId = m.docId !== user.uid;
+                      const excludeByEmail = m.email !== user.email;
+                      return excludeByDocId && excludeByEmail;
+                    });
+                  }
+                  
+                  // Layer 6: Final absolute safety check
+                  if (!Array.isArray(filtered)) {
+                    console.warn('[ChatPage] filtered is not an array, using empty array', { filtered, classMembers });
+                    filtered = [];
+                  }
+                  
+                  // Layer 7: Ensure all items are valid objects
+                  filtered = filtered.filter(m => m && typeof m === 'object' && m.docId);
+                  
+                  // Layer 8: Bulletproof map with try-catch for each item
+                  return filtered.map((m, index) => {
+                    try {
+                      // For class members: show X if unenrolled from this specific class
+                      const isDeleted = !m || m.deleted;
+                      const isDisabled = m?.disabled || m?.isDisabled;
+                      const isUnenrolled = selectedClass && selectedClass !== 'global' && !selectedClass.startsWith('dm:') && 
+                        m.isStudent === true && !(Array.isArray(m.enrolledClasses) && m.enrolledClasses.includes(selectedClass));
+                      const showIndicator = isDeleted || isDisabled || isUnenrolled;
+                      const indicatorTitle = isDeleted ? 'Deleted User' : (isDisabled ? 'Disabled User' : (isUnenrolled ? 'Unenrolled from this class' : ''));
                 
                 return (
                   <div key={m.docId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f0f0f0' }}>
@@ -3061,8 +3082,24 @@ const ChatPage = memo(() => {
                   )}
                 </div>
               );
-              })();
-            })()
+            } catch (itemError) {
+              console.error('[ChatPage] Error rendering member item:', { itemError, member: m, index });
+              return (
+                <div key={`error-${index}`} style={{ padding: '0.5rem', color: '#999', fontStyle: 'italic' }}>
+                  Error loading member
+                </div>
+              );
+            }
+          });
+        } catch (error) {
+          console.error('[ChatPage] Error in member list rendering:', { error, classMembers, memberSearch, studentsOnly });
+          return (
+            <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+              Unable to load members. Please refresh the page.
+            </div>
+          );
+        }
+      })()
             )}
           </div>
         </div>

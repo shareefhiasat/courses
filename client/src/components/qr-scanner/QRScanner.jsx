@@ -1061,12 +1061,31 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         // Note: We don't map reference ID anymore to avoid duplicates
         // Penalty/behavior records use Firebase ID directly, so reference ID mapping is unnecessary
 
-        logger.debug('[QR Scanner] Student map entry:', {
+        logger.info('[QR Scanner] STUDENT MAP ENTRY:', {
           firebaseId: studentId,
+          studentNumber: student.studentNumber,
           name: name,
           totalMappings: Object.keys(studentMap).length,
-          currentMap: Object.entries(studentMap)
+          currentMap: Object.entries(studentMap),
+          allStudentsWithSameName: currentStudents.filter(s => (s.displayName || s.name) === name).map(s => ({
+            id: s.id,
+            studentNumber: s.studentNumber,
+            name: s.displayName || s.name
+          }))
         });
+        
+        // CRITICAL: Check for duplicate names during mapping (for debugging)
+        const existingMappings = Object.entries(studentMap).filter(([key, value]) => value === name);
+        if (existingMappings.length > 1) {
+          logger.error('[QR Scanner] DUPLICATE NAME CREATED:', {
+            name,
+            mappings: existingMappings,
+            newFirebaseId: studentId,
+            newStudentNumber: student.studentNumber,
+            warning: 'This will cause cheating record duplication!',
+            explanation: 'Multiple Firebase IDs are being mapped to the same student name. Cheating records will appear for all students with this name.'
+          });
+        }
       });
 
       // Debug: Log complete student map to identify potential duplicates
@@ -1175,6 +1194,43 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           }
         }
 
+        // CRITICAL: Log if multiple students map to the same name (for cheating/penalty records)
+        if (record.type === RECORD_TYPES.PENALTY || record.category === RECORD_TYPES.PENALTY || record.category === RECORD_TYPES.BEHAVIOR) {
+          const sameNameMappings = Object.entries(studentMap).filter(([key, value]) => value === studentName);
+          
+          // ALWAYS log cheating record processing details
+          logger.info('[QR Scanner] CHEATING RECORD PROCESSING:', {
+            recordId: record.id,
+            recordStudentId: studentId,
+            mappedStudentName: studentName,
+            recordType: record.type,
+            recordCategory: record.category,
+            penaltyType: record.penaltyType || record.type,
+            date: record.date,
+            classId: record.classId,
+            allStudentsWithSameName: students.filter(s => (s.displayName || s.name) === studentName).map(s => ({
+              id: s.id,
+              name: s.displayName || s.name,
+              studentNumber: s.studentNumber
+            })),
+            studentMapEntries: Object.entries(studentMap).filter(([key, value]) => value === studentName),
+            foundByFirebaseId: !!students.find(s => s.id === studentId),
+            isDuplicateName: sameNameMappings.length > 1
+          });
+          
+          if (sameNameMappings.length > 1) {
+            logger.error('[QR Scanner] DUPLICATE NAME DETECTED:', {
+              studentName,
+              mappings: sameNameMappings,
+              recordStudentId: studentId,
+              recordType: record.type,
+              recordCategory: record.category,
+              warning: 'This cheating record will appear for multiple students!',
+              explanation: 'Multiple Firebase IDs map to the same name. The record will be displayed for all students with this name.'
+            });
+          }
+        }
+
         // Final fallback
         if (!studentName) {
           studentName = 'Unknown Student';
@@ -1250,6 +1306,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
         const finalActivityLog = {
           id: record.id || `attendance-${Math.random()}`,
+          recordId: record.id, // Preserve original record ID for deduplication
           time: record.timestamp || record.updatedAt || record.date || record.createdAt,
           type: computedType,
           studentId,
@@ -1283,22 +1340,66 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         return timeB - timeA; // Descending order (newest first)
       }).slice(0, 15);
 
+      // Debug: Log all activity logs to identify duplication source
+      logger.info('[QR Scanner] ALL ACTIVITY LOGS BEFORE DEDUPLICATION:', {
+        totalLogs: activityLogs.length,
+        logs: activityLogs.map(log => ({
+          recordId: log.recordId,
+          studentId: log.studentId,
+          studentName: log.studentName,
+          type: log.type,
+          category: log.category,
+          label: log.label,
+          computedType: log.computedType
+        }))
+      });
+
       // Remove duplicate attendance records for same student
       const uniqueLogs = [];
       const seen = new Set();
+      const recordIdsSeen = new Set(); // Track record IDs to catch true duplicates
 
       activityLogs.forEach(log => {
-        // Create a unique key based on student and action type
-        // For attendance, we only want the latest one
-        if (log.type === RECORD_TYPES.ATTENDANCE) {
-          const key = `${log.studentId}-${log.type}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            uniqueLogs.push(log);
-          }
+        // Create a unique key based on record ID (most reliable)
+        // For records with recordId, use it to prevent true duplicates
+        // For attendance without recordId, use studentId-type combination
+        let uniqueKey;
+        if (log.recordId) {
+          uniqueKey = `record-${log.recordId}`;
+        } else if (log.type === RECORD_TYPES.ATTENDANCE) {
+          uniqueKey = `${log.studentId}-${log.type}`;
         } else {
-          // For behavior/participation/penalty, show all
+          uniqueKey = `${log.studentId}-${log.type}-${log.time}`;
+        }
+        
+        // CRITICAL: Check for duplicate record IDs (same database record appearing multiple times)
+        if (log.recordId && recordIdsSeen.has(log.recordId)) {
+          logger.error('[QR Scanner] DUPLICATE RECORD ID DETECTED:', {
+            recordId: log.recordId,
+            studentId: log.studentId,
+            studentName: log.studentName,
+            type: log.type,
+            category: log.category,
+            uniqueKey: uniqueKey,
+            warning: 'Same database record is being processed multiple times - SKIPPING!'
+          });
+          // Skip this duplicate record
+          return;
+        } else if (log.recordId) {
+          recordIdsSeen.add(log.recordId);
+        }
+        
+        // Add to unique logs if not seen before
+        if (!seen.has(uniqueKey)) {
+          seen.add(uniqueKey);
           uniqueLogs.push(log);
+        } else {
+          logger.debug('[QR Scanner] Skipping duplicate log:', {
+            uniqueKey: uniqueKey,
+            recordId: log.recordId,
+            studentName: log.studentName,
+            type: log.type
+          });
         }
       });
 
