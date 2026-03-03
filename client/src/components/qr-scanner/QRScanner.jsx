@@ -994,18 +994,21 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const penaltiesResponse = await getPenaltiesByClassAndDate(classId, todayStr);
       const penaltyRecords = penaltiesResponse.success && penaltiesResponse.data ? penaltiesResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PENALTY })) : [];
       
-      // Debug: Log penalty records to identify duplication issue
-      logger.debug('[QR Scanner] Penalty records fetched:', {
-        success: penaltiesResponse.success,
-        count: penaltyRecords.length,
-        records: penaltyRecords.map(p => ({
-          id: p.id,
+      // CRITICAL: Log penalty records with full details to identify duplication
+      logger.info('[QR Scanner] ===== PENALTY RECORDS FETCHED FROM DATABASE =====');
+      logger.info('[QR Scanner] Total penalty records:', penaltyRecords.length);
+      penaltyRecords.forEach((p, index) => {
+        logger.info(`[QR Scanner] Penalty ${index + 1}:`, {
+          databaseId: p.id,
           studentId: p.studentId,
           type: p.type,
           date: p.date,
-          classId: p.classId
-        }))
+          classId: p.classId,
+          createdAt: p.createdAt,
+          category: p.category
+        });
       });
+      logger.info('[QR Scanner] ===== END PENALTY RECORDS =====');
 
       // Get today's participations for this class
       const participationsResponse = await getParticipationsByClassAndDate(classId, todayStr);
@@ -1304,8 +1307,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             ? RECORD_TYPES.PENALTY
             : (record.category || (record.status ? RECORD_TYPES.ATTENDANCE : (recordPoints > 0 ? RECORD_TYPES.PARTICIPATION : (recordPoints < 0 ? RECORD_TYPES.BEHAVIOR : RECORD_TYPES.ATTENDANCE))));
 
+        // Create truly unique ID for UI rendering to prevent expansion conflicts
+        // Use record.id if available, otherwise create composite unique ID
+        const uniqueActivityId = record.id || 
+          `${record.studentId || 'unknown'}-${record.type || 'unknown'}-${record.date || 'unknown'}-${record.timestamp || Date.now()}-${Math.random()}`;
+        
         const finalActivityLog = {
-          id: record.id || `attendance-${Math.random()}`,
+          id: uniqueActivityId,
           recordId: record.id, // Preserve original record ID for deduplication
           time: record.timestamp || record.updatedAt || record.date || record.createdAt,
           type: computedType,
@@ -1340,26 +1348,32 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         return timeB - timeA; // Descending order (newest first)
       }).slice(0, 15);
 
-      // Debug: Log all activity logs to identify duplication source
-      logger.info('[QR Scanner] ALL ACTIVITY LOGS BEFORE DEDUPLICATION:', {
-        totalLogs: activityLogs.length,
-        logs: activityLogs.map(log => ({
+      // CRITICAL: Log all activity logs with full recordId details
+      logger.info('[QR Scanner] ===== ALL ACTIVITY LOGS BEFORE DEDUPLICATION =====');
+      logger.info('[QR Scanner] Total activity logs:', activityLogs.length);
+      activityLogs.forEach((log, index) => {
+        logger.info(`[QR Scanner] Activity Log ${index + 1}:`, {
           recordId: log.recordId,
+          id: log.id,
           studentId: log.studentId,
           studentName: log.studentName,
           type: log.type,
           category: log.category,
           label: log.label,
-          computedType: log.computedType
-        }))
+          hasRecordId: !!log.recordId,
+          recordIdValue: log.recordId || 'UNDEFINED'
+        });
       });
+      logger.info('[QR Scanner] ===== END ACTIVITY LOGS =====');
 
       // Remove duplicate attendance records for same student
       const uniqueLogs = [];
       const seen = new Set();
       const recordIdsSeen = new Set(); // Track record IDs to catch true duplicates
 
-      activityLogs.forEach(log => {
+      logger.info('[QR Scanner] ===== STARTING DEDUPLICATION PROCESS =====');
+      
+      activityLogs.forEach((log, index) => {
         // Create a unique key based on record ID (most reliable)
         // For records with recordId, use it to prevent true duplicates
         // For attendance without recordId, use studentId-type combination
@@ -1372,29 +1386,46 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           uniqueKey = `${log.studentId}-${log.type}-${log.time}`;
         }
         
+        logger.info(`[QR Scanner] Processing log ${index + 1}:`, {
+          recordId: log.recordId,
+          uniqueKey: uniqueKey,
+          studentName: log.studentName,
+          type: log.type,
+          label: log.label,
+          alreadySeenRecordId: log.recordId ? recordIdsSeen.has(log.recordId) : false,
+          alreadySeenUniqueKey: seen.has(uniqueKey)
+        });
+        
         // CRITICAL: Check for duplicate record IDs (same database record appearing multiple times)
         if (log.recordId && recordIdsSeen.has(log.recordId)) {
-          logger.error('[QR Scanner] DUPLICATE RECORD ID DETECTED:', {
+          logger.error('[QR Scanner] ❌ DUPLICATE RECORD ID DETECTED - SKIPPING:', {
             recordId: log.recordId,
             studentId: log.studentId,
             studentName: log.studentName,
             type: log.type,
             category: log.category,
             uniqueKey: uniqueKey,
-            warning: 'Same database record is being processed multiple times - SKIPPING!'
+            warning: 'Same database record is being processed multiple times!'
           });
           // Skip this duplicate record
           return;
         } else if (log.recordId) {
           recordIdsSeen.add(log.recordId);
+          logger.info(`[QR Scanner] ✅ Added recordId to seen set:`, log.recordId);
         }
         
         // Add to unique logs if not seen before
         if (!seen.has(uniqueKey)) {
           seen.add(uniqueKey);
           uniqueLogs.push(log);
+          logger.info(`[QR Scanner] ✅ Added to uniqueLogs (total: ${uniqueLogs.length}):`, {
+            recordId: log.recordId,
+            studentName: log.studentName,
+            type: log.type,
+            label: log.label
+          });
         } else {
-          logger.debug('[QR Scanner] Skipping duplicate log:', {
+          logger.warn('[QR Scanner] ⚠️ Skipping duplicate by uniqueKey:', {
             uniqueKey: uniqueKey,
             recordId: log.recordId,
             studentName: log.studentName,
@@ -1402,6 +1433,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           });
         }
       });
+      
+      logger.info('[QR Scanner] ===== DEDUPLICATION COMPLETE =====');
+      logger.info('[QR Scanner] Final unique logs count:', uniqueLogs.length);
+      logger.info('[QR Scanner] Original logs count:', activityLogs.length);
+      logger.info('[QR Scanner] Duplicates removed:', activityLogs.length - uniqueLogs.length);
 
       // Sort by time (newest first)
       uniqueLogs.sort((a, b) => {

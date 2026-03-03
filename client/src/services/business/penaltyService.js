@@ -302,9 +302,24 @@ export const getPenaltiesByClassAndDate = async (classId, date) => {
   }
 };
 
-export const getPenalties = async () => {
+export const getPenalties = async (studentId = null) => {
   try {
+    // If studentId is provided, filter by student
+    if (studentId) {
+      const result = await getPenaltiesByStudentFromDb(studentId);
+      return { success: true, data: result.data };
+    }
+    // Otherwise return all penalties
     const result = await getPenaltiesFromDb();
+    return { success: true, data: result.data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const getPenaltiesByStudent = async (studentId) => {
+  try {
+    const result = await getPenaltiesByStudentFromDb(studentId);
     return { success: true, data: result.data };
   } catch (error) {
     return { success: false, error: error.message };
