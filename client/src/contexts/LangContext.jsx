@@ -815,6 +815,10 @@ const DICT = {
 
     // Additional attendance translations
     'attendance.no_history_available': 'No history available',
+    'attendance.search_placeholder': 'Search...',
+    'attendance.no_students_available_to_refresh': 'No students available to refresh',
+    'attendance.unable_to_access_camera': 'Unable to access camera. Please check permissions.',
+    'attendance.camera_api_not_available': 'Camera API not available in this browser. Please try using a modern browser like Chrome, Firefox, or Safari.',
     'attendance.expand_all': '',
     'attendance.collapse_all': ' ',
     'attendance.view_by_day': 'View by Day',
@@ -4112,6 +4116,17 @@ const DICT = {
     present: 'Present',
     id: 'ID',
     none: 'None',
+    
+    // Attendance marking messages
+    successfully_marked: 'Successfully marked',
+    failed_to_mark: 'Failed to mark',
+    already_marked_as: 'Student is already marked as',
+    
+    // Tooltip messages
+    already_marked_as_present: 'Already marked as present',
+    already_marked_as_late: 'Already marked as late',
+    mark_present: 'Mark Present',
+    mark_late: 'Mark Late',
   },
   ar: {
     cancel_marks_distribution: 'إلغاء توزيع الدرجات',
@@ -4175,6 +4190,10 @@ const DICT = {
 
     // Additional attendance translations (Arabic)
     'attendance.no_history_available': 'لا توجد سجلات',
+    'attendance.search_placeholder': 'البحث...',
+    'attendance.no_students_available_to_refresh': 'لا يوجد طلاب متاحون للتحديث',
+    'attendance.unable_to_access_camera': 'غير قادر على الوصول إلى الكاميرا. يرجى فحص الأذونات.',
+    'attendance.camera_api_not_available': 'واجهة برمجة تطبيقات الكاميرا غير متاحة في هذا المتصفح. يرجى استخدام متصفح حديث مثل Chrome أو Firefox أو Safari.',
     'attendance.expand_all': 'توسيع الكل',
     'attendance.collapse_all': ' ',
     'attendance.view_by_day': 'عرض باليوم',
@@ -7978,6 +7997,17 @@ const DICT = {
     present: 'حاضر',
     id: 'رقم الهوية',
     none: 'لا شيء',
+    
+    // Attendance marking messages
+    successfully_marked: 'تم تسجيل',
+    failed_to_mark: 'فشل في تسجيل',
+    already_marked_as: 'الطالب مسجل بالفعل كـ',
+    
+    // Tooltip messages
+    already_marked_as_present: 'مسجل بالفعل كحاضر',
+    already_marked_as_late: 'مسجل بالفعل كمتأخر',
+    mark_present: 'تسجيل الحضور',
+    mark_late: 'تسجيل التأخير',
   },
 };
 

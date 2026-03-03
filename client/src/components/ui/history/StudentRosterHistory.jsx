@@ -7,6 +7,7 @@ import {
 } from "@utils/icons.jsx";
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import PortalTooltip from '@ui/PortalTooltip';
+import { getThemedIcon } from '@constants/iconTypes';
 
 const StudentRosterHistory = ({ 
   student, 
@@ -27,7 +28,8 @@ const StudentRosterHistory = ({
   lang = 'en',
   studentName,
   searchQuery = '',
-  setSearchQuery = () => {}
+  setSearchQuery = () => {},
+  theme = 'light'
 }) => {
   const isMobile = useIsMobile();
   const groupedLogs = useMemo(
@@ -164,7 +166,7 @@ const StudentRosterHistory = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('search_placeholder') || 'Search...'}
+              placeholder={t('attendance.search_placeholder') || 'Search...'}
               style={{
                 width: '100%',
                 padding: isMobile ? '0.375rem 0.5rem 0.375rem 2rem' : '0.5rem 0.75rem 0.5rem 2.5rem',
@@ -185,10 +187,7 @@ const StudentRosterHistory = ({
               transform: 'translateY(-50%)',
               color: '#6b7280'
             }}>
-              <svg style={{ width: isMobile ? '14px' : '16px', height: isMobile ? '14px' : '16px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <path d="m21 21-4.35-4.35"></path>
-              </svg>
+              {getThemedIcon('ui', 'search', isMobile ? 14 : 16, theme)}
             </div>
             {searchQuery && (
               <button
@@ -205,10 +204,7 @@ const StudentRosterHistory = ({
                   padding: '0.25rem'
                 }}
               >
-                <svg style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                {getThemedIcon('ui', 'x', isMobile ? 12 : 14, theme)}
               </button>
             )}
           </div>

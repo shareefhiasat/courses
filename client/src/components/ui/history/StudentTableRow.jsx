@@ -119,7 +119,7 @@ const StudentTableRow = ({
     // Check if student already has this status
     const currentStatus = student.attendance;
     if (currentStatus === status) {
-      showResult('info', `Student is already marked as ${getAttendanceLabel(status, lang)}`, status);
+      showResult('info', `${t('already_marked_as')} ${getAttendanceLabel(status, lang)}`, status);
       return;
     }
     
@@ -128,14 +128,14 @@ const StudentTableRow = ({
     try {
       await onQuickAttendance(student, status);
       // Show modal immediately, delay table refresh
-      showResult('success', `Successfully marked ${getAttendanceLabel(status, lang)}`, status);
+      showResult('success', `${t('successfully_marked')} ${getAttendanceLabel(status, lang)}`, status);
       
       // Delay to let user see the modal before table refresh
       setTimeout(() => {
         setIsSubmitting(false);
       }, 2000); // 2 seconds delay
     } catch (error) {
-      showResult('error', `Failed to mark ${getAttendanceLabel(status, lang)}: ${error.message}`, status);
+      showResult('error', `${t('failed_to_mark')} ${getAttendanceLabel(status, lang)}: ${error.message}`, status);
       
       // Delay to let user see the error modal
       setTimeout(() => {
@@ -390,7 +390,7 @@ const StudentTableRow = ({
               <>
                 {/* Quick Present Button */}
                 <PortalTooltip 
-                  content={student.attendance === 'present' ? 'Already marked as present' : 'Mark Present'}
+                  content={student.attendance === 'present' ? t('already_marked_as_present') : t('mark_present')}
                   position="top"
                 >
                   <Button 
@@ -432,7 +432,7 @@ const StudentTableRow = ({
 
                 {/* Quick Late Button */}
                 <PortalTooltip 
-                  content={student.attendance === 'late' ? 'Already marked as late' : 'Mark Late'}
+                  content={student.attendance === 'late' ? t('already_marked_as_late') : t('mark_late')}
                   position="top"
                 >
                   <Button 

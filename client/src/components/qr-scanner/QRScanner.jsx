@@ -512,7 +512,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       // Check if mediaDevices is available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera API not available in this browser. Please try using a modern browser like Chrome, Firefox, or Safari.');
+        throw new Error(t('attendance.camera_api_not_available'));
       }
       
       // Request camera access with appropriate constraints
@@ -541,7 +541,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       scanIntervalRef.current = setInterval(scanQRCode, 100);
     } catch (err) {
       logger.error('Error accessing camera:', err);
-      setError(err.message || 'Unable to access camera. Please check permissions.');
+      setError(err.message || t('attendance.unable_to_access_camera'));
       setIsScanning(false);
       // Play error feedback for camera errors
       playFeedbackSound('error');
@@ -2030,7 +2030,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       if (students && students.length > 0) {
                         fetchRecentActivity();
                       } else {
-                        showResult('error', 'No students available to refresh');
+                        showResult('error', t('attendance.no_students_available_to_refresh'));
                       }
                     }}
                     disabled={!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0 || activityLoading}
