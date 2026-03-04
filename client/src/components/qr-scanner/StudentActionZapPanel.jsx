@@ -22,7 +22,7 @@ export default function StudentActionZapPanel({
   onParticipationSubmit,
   onPenaltySubmit,
   onMarkAttendance,
-  options,
+  options = [],
   showFavoritesOnly = false,
   onToggleFavorites = () => {},
   selectedDate,
@@ -150,6 +150,9 @@ export default function StudentActionZapPanel({
   };
 
   const filteredOptions = useMemo(() => {
+    if (!Array.isArray(options)) {
+      return [];
+    }
     return options.filter(option => {
       if (attendanceStatus && attendanceStatus.en === 'None') {
         return option.category !== RECORD_TYPES.ATTENDANCE;
@@ -484,12 +487,12 @@ export default function StudentActionZapPanel({
             flexDirection: viewMode === 'list' ? 'column' : 'row',
             gap: viewMode === 'grid' ? '0.35rem' : '0.225rem'
           }}>
-            {options.filter(option => {
+            {(Array.isArray(options) ? options.filter(option => {
               if (activeTab === RECORD_TYPES.BEHAVIOR) return option.category === RECORD_TYPES.BEHAVIOR;
               if (activeTab === RECORD_TYPES.PARTICIPATION) return option.category === RECORD_TYPES.PARTICIPATION;
               if (activeTab === RECORD_TYPES.PENALTY) return option.category === RECORD_TYPES.PENALTY;
               return true;
-            }).sort((a, b) => {
+            }) : []).sort((a, b) => {
               const aIsFavorite = favoriteBehaviors.includes(a.id);
               const bIsFavorite = favoriteBehaviors.includes(b.id);
               

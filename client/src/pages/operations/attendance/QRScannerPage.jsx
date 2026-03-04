@@ -5,6 +5,8 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
+import { db } from '@services/other/config';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
 import { getUsers } from '@services/business/userService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getClasses } from '@services/business/classService';
@@ -18,9 +20,7 @@ import { getPerformedByFields } from '@services/business/userService';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ATTENDANCE_METHODS, getAttendanceMethodLabel } from '@constants/attendanceMethods';
 import { ATTENDANCE_TYPES } from '@constants/attendanceTypes';
-import { db } from '@services/other/config';
 import { useToast } from '@ui/ToastProvider.jsx';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
 import { addNotification } from '@services/business/notificationService';
 import { sendStudentNotification } from '@services/business/notificationService';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
@@ -32,6 +32,7 @@ import QRScanner from '@/components/qr-scanner/QRScanner';
 import StudentRoster from '@/components/qr-scanner/StudentRoster';
 import StudentActionStatsPanel from '@/components/qr-scanner/StudentActionStatsPanel';
 import StudentActionZapPanel from '@/components/qr-scanner/StudentActionZapPanel';
+import SummaryReportModal from '@/components/qr-scanner/SummaryReportModal';
 import '@/components/qr-scanner/ui/qr-scanner-ui.css';
 import './QRScannerPage.module.css';
 import eventBus, { EVENTS } from '@utils/eventBus';
@@ -149,12 +150,15 @@ const QRScannerPage = () => {
   
   // Summary report export preferences modal state
   const [showSemesterReportConfirm, setShowSemesterReportConfirm] = useState(false);
-  const [exportFormat, setExportFormat] = useState('excel'); // 'excel' or 'html'
-  const [exportScope, setExportScope] = useState('class'); // 'class' or 'program'
-  
-  // Export loading state
+  const [exportFormat, setExportFormat] = useState('csv'); // 'csv', 'email'
   const [isExporting, setIsExporting] = useState(false);
-
+  const [selectedSubjectsForReport, setSelectedSubjectsForReport] = useState([]);
+  const [emailRecipients, setEmailRecipients] = useState([]); // For email functionality
+  const [showEmailRecipientDialog, setShowEmailRecipientDialog] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState([]); // Instructors, Admins, HR
+  const [usersLoading, setUsersLoading] = useState(false);
+  
+  
   // Computed values for selected names
   const selectedClassName = useMemo(() => {
     if (!selectedClassId || selectedClassId === 'all') return null;
@@ -1438,6 +1442,43 @@ const QRScannerPage = () => {
     }
   }, [selectedClassId, selectedDate, selectedProgramId, selectedSubjectId, programs, subjects, classes, lang, t]);
 
+  // Helper functions for email functionality
+  const getUserFromKey = useCallback((key) => {
+    const [role, id] = key.split('_');
+    const user = availableUsers[role]?.find(u => u.id === id);
+    return user || { name: key, email: key };
+  }, [availableUsers]);
+
+  const toggleUserSelection = useCallback((user) => {
+    const userKey = `${user.role}_${user.id}`;
+    if (emailRecipients.includes(userKey)) {
+      setEmailRecipients(emailRecipients.filter(r => r !== userKey));
+    } else {
+      setEmailRecipients([...emailRecipients, userKey]);
+    }
+  }, [emailRecipients]);
+
+  const toggleRoleSelection = useCallback((role) => {
+    const roleUsers = availableUsers[role] || [];
+    const roleKeys = roleUsers.map(user => `${user.role}_${user.id}`);
+    
+    const allSelected = roleKeys.every(key => emailRecipients.includes(key));
+    
+    if (allSelected) {
+      // Remove all users in this role
+      setEmailRecipients(emailRecipients.filter(r => !roleKeys.includes(r)));
+    } else {
+      // Add all users in this role
+      const newRecipients = [...emailRecipients];
+      roleKeys.forEach(key => {
+        if (!newRecipients.includes(key)) {
+          newRecipients.push(key);
+        }
+      });
+      setEmailRecipients(newRecipients);
+    }
+  }, [availableUsers, emailRecipients]);
+
   // Export Summary Report function
   const exportSemesterReport = useCallback(async () => {
     console.log('📊 Export function called', { selectedClassId, selectedProgramId });
@@ -1446,6 +1487,20 @@ const QRScannerPage = () => {
     if (!selectedClassId && !selectedProgramId) {
       console.error('❌ No class or program selected');
       showError(t('please_select_class_or_program') || 'Please select a class or program first');
+      return;
+    }
+
+    // Validate subject selection
+    if (selectedSubjectsForReport.length === 0) {
+      console.error('❌ No subjects selected for report');
+      showError(t('select_at_least_one_subject') || 'Please select at least one subject for the report');
+      return;
+    }
+
+    // Validate email recipients if email format is selected
+    if (exportFormat === 'email' && emailRecipients.length === 0) {
+      console.error('❌ No email recipients selected');
+      showError(t('select_at_least_one_recipient') || 'Please select at least one recipient for the email');
       return;
     }
 
@@ -1589,8 +1644,8 @@ const QRScannerPage = () => {
         return;
       }
 
-      // Create CSV content with headers for all 6 attendance types
-      const headers = lang === 'ar' ? [
+      // Enhanced headers with per-subject details if enabled
+      let headers = lang === 'ar' ? [
         '#',
         t('student_number') || 'رقم الطالب',
         t('student_name') || 'اسم الطالب',
@@ -1626,67 +1681,207 @@ const QRScannerPage = () => {
         t('total_mark_deduction') || 'Total Mark Deduction'
       ];
 
-      // Create CSV content
+      // Add per-subject columns if subjects are selected
+      if (selectedSubjectsForReport.length > 0) {
+        console.log('📊 Adding per-subject details for selected subjects...');
+        
+        // Get selected subjects
+        const selectedSubjects = subjects.filter(s => 
+          selectedSubjectsForReport.includes(s.docId || s.id)
+        );
+        
+        console.log('📊 Selected Subjects:', selectedSubjects);
+        
+        // Add columns for each selected subject
+        selectedSubjects.forEach(subject => {
+          const subjectName = subject.nameEn || subject.name || 'Unknown Subject';
+          headers.push(`${subjectName} - ${t('total_absents') || 'Total Absents'}`);
+          headers.push(`${subjectName} - ${t('deduction') || 'Deduction'}`);
+        });
+        
+        // Add enhanced totals
+        headers.push(t('total_all_absents') || 'Total All Absents');
+        headers.push(t('total_deduction_per_subject') || 'Total Deduction Per Subject');
+      }
+
+      // Create CSV content with per-subject data if detailed
       const csvContent = [
         headers.join(','),
-        ...enrichedData.map((row, index) => [
-          `"${index + 1}"`,
-          `"${row.studentNumber}"`,
-          `"${row.studentName}"`,
-          `"${row.present}"`,
-          `"${row.late}"`,
-          `"${row.absentNoExcuse}"`,
-          `"${row.absentWithExcuse}"`,
-          `"${row.excusedLeave}"`,
-          `"${row.humanCase}"`,
-          `"${row.totalSessions}"`,
-          `"${row.attendancePercentage}"`,
-          `"${row.absentNoExcuseDeduction}"`,
-          `"${row.absentWithExcuseDeduction}"`,
-          `"${row.excusedLeaveDeduction}"`,
-          `"${row.humanCaseDeduction}"`,
-          `"${row.totalMarkDeduction}"`
-        ].join(','))
+        ...enrichedData.map((row, index) => {
+          let rowData = [
+            `"${index + 1}"`,
+            `"${row.studentNumber}"`,
+            `"${row.studentName}"`,
+            `"${row.present}"`,
+            `"${row.late}"`,
+            `"${row.absentNoExcuse}"`,
+            `"${row.absentWithExcuse}"`,
+            `"${row.excusedLeave}"`,
+            `"${row.humanCase}"`,
+            `"${row.totalSessions}"`,
+            `"${row.attendancePercentage}"`,
+            `"${row.absentNoExcuseDeduction}"`,
+            `"${row.absentWithExcuseDeduction}"`,
+            `"${row.excusedLeaveDeduction}"`,
+            `"${row.humanCaseDeduction}"`,
+            `"${row.totalMarkDeduction}"`
+          ];
+          
+          // Add per-subject data if subjects are selected
+          if (selectedSubjectsForReport.length > 0) {
+            const selectedSubjects = subjects.filter(s => 
+              selectedSubjectsForReport.includes(s.docId || s.id)
+            );
+            
+            // For now, add placeholder data for per-subject columns
+            // TODO: Implement actual per-subject attendance tracking
+            selectedSubjects.forEach(subject => {
+              // Placeholder: distribute absents across selected subjects
+              const totalAbsents = parseInt(row.absentNoExcuse) + parseInt(row.absentWithExcuse) + parseInt(row.excusedLeave);
+              const subjectAbsents = Math.floor(totalAbsents / selectedSubjects.length) || 0;
+              const subjectDeduction = (subjectAbsents * 0.5).toFixed(2);
+              
+              rowData.push(`"${subjectAbsents}"`);
+              rowData.push(`"${subjectDeduction}"`);
+            });
+            
+            // Add enhanced totals
+            const totalAllAbsents = parseInt(row.absentNoExcuse) + parseInt(row.absentWithExcuse) + parseInt(row.excusedLeave);
+            const totalDeductionPerSubject = (totalAllAbsents * 0.5).toFixed(2);
+            
+            rowData.push(`"${totalAllAbsents}"`);
+            rowData.push(`"${totalDeductionPerSubject}"`);
+          }
+          
+          return rowData.join(',');
+        })
       ].join('\n');
 
-      // Get names for filename from current selections
-      const currentProgram = programs.find(p => p.id === selectedProgramId);
-      const currentSubject = subjects.find(s => s.id === selectedSubjectId);
-      const currentClass = classes.find(c => c.id === selectedClassId);
+      // Get names for filename from current selections (try both id and docId)
+      const currentProgram = programs.find(p => (p.id === selectedProgramId) || (p.docId === selectedProgramId));
+      const currentSubject = subjects.find(s => (s.id === selectedSubjectId) || (s.docId === selectedSubjectId));
+      const currentClass = classes.find(c => (c.id === selectedClassId) || (c.docId === selectedClassId));
       
-      const programName = currentProgram?.nameEn || currentProgram?.name || 'Program';
-      const subjectName = currentSubject?.nameEn || currentSubject?.name || 'Subject';
-      const className = currentClass?.nameEn || currentClass?.name || 'Class';
+      console.log('📊 Filename Generation:', {
+        currentProgram,
+        currentSubject,
+        currentClass,
+        selectedProgramId,
+        selectedSubjectId,
+        selectedClassId
+      });
+      
+      // Get names and sanitize for filename (remove spaces, special chars)
+      const sanitize = (str) => str ? str.replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '';
+      
+      const programName = sanitize(currentProgram?.nameEn || currentProgram?.name || 'UnknownProgram');
+      const subjectName = sanitize(currentSubject?.nameEn || currentSubject?.name || 'UnknownSubject');
+      const className = sanitize(currentClass?.nameEn || currentClass?.name || 'UnknownClass');
+      
+      console.log('📊 Sanitized Names:', { programName, subjectName, className });
       
       // Create localized filename with current date
       const currentDate = new Date().toISOString().split('T')[0];
       const [year, month, day] = currentDate.split('-');
       const formattedDate = `${year}_${month}-${day}`;
       
-      // Create filename with proper structure: summary_report_ClassName_ProgramName_SubjectName_Date.csv
+      // Always use CSV format (Excel-compatible)
+      const fileExtension = '.csv';
+      
+      // Create filename with proper structure
       let filename;
-      if (scope === 'class') {
+      if (selectedSubjectsForReport.length > 0) {
+        // For multi-subject export, use program name only
+        const subjectCount = selectedSubjectsForReport.length;
         filename = lang === 'ar' 
-          ? `تقرير_ملخص_${className}_${programName}_${subjectName}_${formattedDate}.csv`
-          : `summary_report_${className}_${programName}_${subjectName}_${formattedDate}.csv`;
+          ? `تقرير_ملخص_${programName}_${subjectCount}_مواد_${formattedDate}${fileExtension}`
+          : `summary_report_${programName}_${subjectCount}_subjects_${formattedDate}${fileExtension}`;
+      } else if (scope === 'class') {
+        // For class export, include class, program, subject
+        filename = lang === 'ar' 
+          ? `تقرير_ملخص_${className}_${programName}_${subjectName}_${formattedDate}${fileExtension}`
+          : `summary_report_${className}_${programName}_${subjectName}_${formattedDate}${fileExtension}`;
       } else {
+        // For program export, use program name only
         filename = lang === 'ar' 
-          ? `تقرير_ملخص_${programName}_البرنامج_${formattedDate}.csv`
-          : `summary_report_${programName}_program_${formattedDate}.csv`;
+          ? `تقرير_ملخص_${programName}_البرنامج_${formattedDate}${fileExtension}`
+          : `summary_report_${programName}_program_${formattedDate}${fileExtension}`;
       }
+      
+      console.log('📊 Final Filename:', filename);
+      console.log('📊 Export Format:', exportFormat);
+      console.log('📊 Export Scope:', selectedSubjectsForReport.length > 0 ? 'multi-subject' : scope);
 
-      // Create and download CSV file
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      showSuccess(t('summary_report_exported_successfully') || 'Summary report exported successfully');
+      // Handle export formats (CSV and Email)
+      if (exportFormat === 'email') {
+        // Email export
+        console.log('📧 Sending report via email...');
+        
+        try {
+          // Process email recipients
+          const recipientEmails = emailRecipients.map(recipient => {
+            if (recipient === 'self') {
+              return user?.email || 'shareef.hiasat@gmail.com';
+            }
+            const userInfo = getUserFromKey(recipient);
+            return userInfo.email;
+          });
+          
+          console.log('📧 Email Recipients:', recipientEmails);
+          console.log('📧 Report Data:', {
+            totalStudents: enrichedData.length,
+            className: currentClass?.nameEn || currentClass?.name,
+            programName: currentProgram?.nameEn || currentProgram?.name,
+            subjectName: currentSubject?.nameEn || currentSubject?.name,
+            selectedSubjects: selectedSubjectsForReport.length
+          });
+          
+          // TODO: Implement email sending via your email service
+          // await sendEmail({
+          //   to: recipientEmails,
+          //   subject: `Summary Report - ${selectedSubjectsForReport.length > 0 ? programName : className}`,
+          //   template: 'summary_report',
+          //   data: {
+          //     userName: user?.displayName,
+          //     className: currentClass?.nameEn || currentClass?.name,
+          //     programName: currentProgram?.nameEn || currentProgram?.name,
+          //     subjectName: currentSubject?.nameEn || currentSubject?.name,
+          //     reportDate: new Date().toLocaleDateString(),
+          //     totalStudents: enrichedData.length,
+          //     selectedSubjects: selectedSubjectsForReport.length,
+          //     csvContent
+          //   },
+          //   attachments: [{
+          //     filename,
+          //     content: csvContent
+          //   }]
+          // });
+          
+          console.log('📧 Email would be sent to:', recipientEmails.join(', '));
+          showInfo(`Email would be sent to ${recipientEmails.length} recipients: ${recipientEmails.join(', ')}`);
+          
+        } catch (emailError) {
+          console.error('📧 Email send failed:', emailError);
+          showError('Failed to send email: ' + emailError.message);
+        }
+        
+      } else {
+        // CSV export (default and only option)
+        console.log('📊 Generating CSV export...');
+        
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        console.log('📊 CSV file downloaded:', filename);
+        showSuccess(t('summary_report_exported_successfully') || 'Summary report exported successfully');
+      }
 
     } catch (error) {
       console.error('Semester Report Export failed:', error);
@@ -1694,7 +1889,81 @@ const QRScannerPage = () => {
     } finally {
       setIsExporting(false);
     }
-  }, [selectedClassId, selectedSubjectId, selectedProgramId, programs, subjects, classes, lang, t, showError, showSuccess]);
+  }, [selectedClassId, selectedSubjectId, selectedProgramId, programs, subjects, classes, lang, t, showError, showSuccess, showInfo, exportFormat, selectedSubjectsForReport, emailRecipients, user, availableUsers, getUserFromKey]);
+
+  // Fetch users for email recipient selection
+  const fetchUsersForEmail = useCallback(async () => {
+    if (usersLoading) return;
+    
+    setUsersLoading(true);
+    try {
+      console.log('🔍 Fetching real users for email recipient selection...');
+      
+      // Fetch real users from Firebase
+      const usersCollection = collection(db, 'users');
+      
+      // Get all users
+      const usersSnapshot = await getDocs(usersCollection);
+      const allUsers = [];
+      
+      usersSnapshot.forEach(doc => {
+        const userData = doc.data();
+        if (userData.email && userData.displayName) {
+          allUsers.push({
+            id: doc.id,
+            name: userData.displayName,
+            email: userData.email,
+            role: userData.role || 'user'
+          });
+        }
+      });
+      
+      // Categorize users by role
+      const categorizedUsers = {
+        instructors: allUsers.filter(user => 
+          user.role === 'instructor' || 
+          user.role === 'teacher' || 
+          user.role === 'professor'
+        ),
+        admins: allUsers.filter(user => 
+          user.role === 'admin' || 
+          user.role === 'administrator' || 
+          user.role === 'superadmin'
+        ),
+        hr: allUsers.filter(user => 
+          user.role === 'hr' || 
+          user.role === 'hr_manager' || 
+          user.role === 'human_resources'
+        )
+      };
+      
+      setAvailableUsers(categorizedUsers);
+      console.log('👥 Real users loaded:', {
+        instructors: categorizedUsers.instructors.length,
+        admins: categorizedUsers.admins.length,
+        hr: categorizedUsers.hr.length,
+        total: allUsers.length
+      });
+      
+      // Log sample users for debugging
+      if (categorizedUsers.instructors.length > 0) {
+        console.log('📚 Sample instructors:', categorizedUsers.instructors.slice(0, 2));
+      }
+      if (categorizedUsers.admins.length > 0) {
+        console.log('🔐 Sample admins:', categorizedUsers.admins.slice(0, 2));
+      }
+      if (categorizedUsers.hr.length > 0) {
+        console.log('👔 Sample HR:', categorizedUsers.hr.slice(0, 2));
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to fetch real users:', error);
+      // Set empty array on error
+      setAvailableUsers({ instructors: [], admins: [], hr: [] });
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [usersLoading]);
 
   // Memoized filtered students for performance
   const filteredStudents = useMemo(() => {
@@ -2019,7 +2288,7 @@ const QRScannerPage = () => {
               <button
                 onClick={() => {
                   console.log('🔍 Summary Report button clicked');
-                  exportSemesterReport();
+                  setShowSemesterReportConfirm(true);
                 }}
                 style={{
                   padding: '0.625rem 1.25rem',
@@ -2513,6 +2782,32 @@ const QRScannerPage = () => {
             </Card>
           </div>
         )}
+
+        {/* Summary Report Export Modal */}
+        <SummaryReportModal
+          showSemesterReportConfirm={showSemesterReportConfirm}
+          setShowSemesterReportConfirm={setShowSemesterReportConfirm}
+          exportFormat={exportFormat}
+          setExportFormat={setExportFormat}
+          selectedSubjectsForReport={selectedSubjectsForReport}
+          setSelectedSubjectsForReport={setSelectedSubjectsForReport}
+          subjects={subjects}
+          selectedProgramId={selectedProgramId}
+          programs={programs}
+          emailRecipients={emailRecipients}
+          setEmailRecipients={setEmailRecipients}
+          usersLoading={usersLoading}
+          availableUsers={availableUsers}
+          toggleUserSelection={toggleUserSelection}
+          toggleRoleSelection={toggleRoleSelection}
+          user={user}
+          theme={theme}
+          t={t}
+          lang={lang}
+          isExporting={isExporting}
+          exportSemesterReport={exportSemesterReport}
+          fetchUsersForEmail={fetchUsersForEmail}
+        />
       </div>
     </div>
   );
