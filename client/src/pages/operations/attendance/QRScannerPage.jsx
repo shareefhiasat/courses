@@ -1450,19 +1450,35 @@ const QRScannerPage = () => {
   const getUserFromKey = useCallback((key) => {
     const [role, id] = key.split('_');
     
+    console.log('🔍 getUserFromKey debug:', { key, role, id, availableUsersKeys: Object.keys(availableUsers) });
+    
     // Search across all user categories
-    const allUserCategories = ['admins', 'instructors', 'hr', 'students'];
+    const allUserCategories = [USER_ROLES.ADMIN, USER_ROLES.INSTRUCTOR, USER_ROLES.HR, USER_ROLES.STUDENT];
     for (const category of allUserCategories) {
-      const user = availableUsers[category]?.find(u => u.id === id);
+      const users = availableUsers[category];
+      console.log(`🔍 Searching in category ${category}:`, users?.length || 0, 'users');
+      const user = users?.find(u => u.id === id);
       if (user) {
+        console.log('✅ Found user in', category, ':', user);
         return user;
       }
+    }
+    
+    // Check if this is the current user - use their actual email
+    if (id === user?.uid) {
+      console.log('✅ Using current user email fallback:', user.email);
+      return { 
+        name: user.displayName || user.email, 
+        email: user.email,
+        id: user.uid,
+        role: user.role || 'user'
+      };
     }
     
     // Fallback: return key as both name and email
     console.warn('⚠️ User not found for key:', key);
     return { name: key, email: key };
-  }, [availableUsers]);
+  }, [availableUsers, user]);
 
   const toggleUserSelection = useCallback((user) => {
     const userKey = `${user.role}_${user.id}`;
@@ -1898,7 +1914,8 @@ const QRScannerPage = () => {
                       totalStudents: enrichedData.length,
                       selectedSubjects: selectedSubjectsForReport.length,
                       recipientCount: 1,
-                      reportData: csvContent.substring(0, 500) + '...'
+                      reportData: csvContent.substring(0, 500) + '...',
+                      csvContent: csvContent // Full CSV content for attachment
                     }
                   }
                 );

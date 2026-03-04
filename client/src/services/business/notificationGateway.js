@@ -1,6 +1,7 @@
 import { addNotification } from './notificationService';
 import { sendEmail } from './emailService';
 import { sendViaGmailFallback } from './emailService';
+import { sendEmailWithFallbacks } from './emailFallbackService';
 import { NOTIFICATION_CHANNELS, NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { EMAIL_TEMPLATE_TYPES } from '@constants/templateTypes';
 import { DICT } from '@contexts/LangContext';
@@ -79,43 +80,103 @@ export const notificationGateway = {
       console.log('🔍 DEBUG: Notification gateway - final templateId:', templateId);
       console.log('🔍 DEBUG: Notification gateway - email settings check:', settings.email);
       console.log('🔍 DEBUG: Notification gateway - recipient email:', details.email);
-      console.log('🔍 DEBUG: Notification gateway - will send email:', !!(settings.email && details.email && templateId));
+      console.log('🔍 DEBUG: Notification gateway - will send email:', !!(settings.email && details.email));
 
-      if (settings.email && details.email && templateId) {
+      if (settings.email && details.email) {
         // Get bilingual content for email templates
-        const titleEn = this.getLocalizedText('en', `notify.${trigger}.title`, details.variables) || details.title || '🎓 Your Student QR Code';
-        const messageEn = this.getLocalizedText('en', `notify.${trigger}.message`, details.variables) || details.message || 'Your QR code is ready! Click the link to access it instantly.';
-        const titleAr = this.getLocalizedText('ar', `notify.${trigger}.title`, details.variables) || details.title || '🎓 رمز الطالب الخاص بك';
-        const messageAr = this.getLocalizedText('ar', `notify.${trigger}.message`, details.variables) || details.message || 'رمز الاستجابة السريعة جاهز! انقر على الرابط للوصول إليه فوراً.';
+        const titleEn = this.getLocalizedText('en', `notify.${trigger}.title`, details.variables) || details.title || 'Notification';
+        const messageEn = this.getLocalizedText('en', `notify.${trigger}.message`, details.variables) || details.message || 'You have a new notification.';
+        const titleAr = this.getLocalizedText('ar', `notify.${trigger}.title`, details.variables) || details.title || 'إشعار';
+        const messageAr = this.getLocalizedText('ar', `notify.${trigger}.message`, details.variables) || details.message || 'لديك إشعار جديد.';
 
         let emailResult;
-        // Skip template complexity - go straight to Gmail
-        emailResult = await sendViaGmailFallback({
-          to: details.email,
-          subject: titleEn || 'Welcome to QAF Learning Hub',
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #4f46e5;">${titleEn || 'Welcome to QAF Learning Hub'}</h2>
-              <p>${messageEn || 'Welcome to our learning platform!'}</p>
-              <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3>Your Details:</h3>
-                <p><strong>Email:</strong> ${details.email}</p>
-                <p><strong>Role:</strong> ${details.variables?.role || 'Student'}</p>
-                <p><strong>Name:</strong> ${details.variables?.displayName || details.email}</p>
+        
+        try {
+          // Try primary email sending first
+          console.log('📧 Attempting primary email sending via Gmail fallback...');
+          emailResult = await sendViaGmailFallback({
+            to: details.email,
+            subject: titleEn || 'Notification',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #4f46e5; border-bottom: 2px solid #10b981; padding-bottom: 10px;">
+                  ${titleEn || 'Notification'}
+                </h2>
+                <p>${messageEn || 'You have a new notification.'}</p>
+                
+                ${details.variables ? `
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                  <h3 style="color: #374151; margin-top: 0;">Details</h3>
+                  ${Object.entries(details.variables).map(([key, value]) => 
+                    `<p><strong>${key}:</strong> ${value}</p>`
+                  ).join('')}
+                </div>
+                ` : ''}
+                
+                <div style="text-align: center; margin-top: 20px; padding: 15px; background: #f3f4f6; border-radius: 8px;">
+                  <p style="color: #6b7280; margin: 0;">
+                    This notification was sent from QAF Learning Hub
+                  </p>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                <p style="color: #6b7280; font-size: 14px;">
+                  This email was sent by QAF Learning Hub. If you have questions, please contact support.
+                </p>
               </div>
-              <p>
-                <a href="${window.location.origin}" style="background: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                  Access QAF Learning Hub
-                </a>
-              </p>
-              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
-              <p style="color: #6b7280; font-size: 14px;">
-                This email was sent by QAF Learning Hub. If you have questions, please contact support.
-              </p>
-            </div>
-          `,
-          text: `Welcome to QAF Learning Hub!\n\nEmail: ${details.email}\nRole: ${details.variables?.role || 'Student'}\n\nAccess the platform at: ${window.location.origin}`
-        });
+            `,
+            text: `${titleEn || 'Notification'}\n\n${messageEn || 'You have a new notification.'}\n\n${details.variables ? 
+              Object.entries(details.variables).map(([key, value]) => `${key}: ${value}`).join('\n') : 
+              ''}\n\nThis notification was sent from QAF Learning Hub.`,
+            attachments: details.variables?.csvContent ? [{
+              filename: `${trigger}_${details.variables?.programName || 'attachment'}_${new Date().toISOString().split('T')[0]}.csv`,
+              content: details.variables.csvContent
+            }] : []
+          });
+          console.log('✅ Primary email sending succeeded');
+        } catch (primaryError) {
+          console.error('❌ Primary email sending failed:', primaryError);
+          console.log('🔄 Switching to fallback email strategies...');
+          
+          // Use fallback strategies
+          emailResult = await sendEmailWithFallbacks({
+            to: details.email,
+            subject: titleEn || 'Notification',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #4f46e5; border-bottom: 2px solid #10b981; padding-bottom: 10px;">
+                  ${titleEn || 'Notification'}
+                </h2>
+                <p>${messageEn || 'You have a new notification.'}</p>
+                
+                ${details.variables ? `
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                  <h3 style="color: #374151; margin-top: 0;">Details</h3>
+                  ${Object.entries(details.variables).map(([key, value]) => 
+                    `<p><strong>${key}:</strong> ${value}</p>`
+                  ).join('')}
+                </div>
+                ` : ''}
+                
+                <div style="text-align: center; margin-top: 20px; padding: 15px; background: #f3f4f6; border-radius: 8px;">
+                  <p style="color: #6b7280; margin: 0;">
+                    This notification was sent from QAF Learning Hub
+                  </p>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                <p style="color: #6b7280; font-size: 14px;">
+                  This email was sent by QAF Learning Hub. If you have questions, please contact support.
+                </p>
+              </div>
+            `,
+            text: `${titleEn || 'Notification'}\n\n${messageEn || 'You have a new notification.'}\n\n${details.variables ? 
+              Object.entries(details.variables).map(([key, value]) => `${key}: ${value}`).join('\n') : 
+              ''}\n\nThis notification was sent from QAF Learning Hub.`
+          });
+          
+          console.log('✅ Fallback email strategies completed');
+        }
 
         results[NOTIFICATION_CHANNELS.EMAIL] = emailResult;
 
@@ -201,7 +262,8 @@ export const notificationGateway = {
       [NOTIFICATION_TRIGGERS.QR_CODE_SENT]: EMAIL_TEMPLATE_TYPES.QR_CODE_STUDENT,
       [NOTIFICATION_TRIGGERS.WELCOME_SIGNUP]: EMAIL_TEMPLATE_TYPES.WELCOME_DEFAULT,
       [NOTIFICATION_TRIGGERS.PASSWORD_RESET]: EMAIL_TEMPLATE_TYPES.PASSWORD_DEFAULT,
-      [NOTIFICATION_TRIGGERS.CHAT_MESSAGE]: EMAIL_TEMPLATE_TYPES.CHAT_DIGEST_DEFAULT
+      [NOTIFICATION_TRIGGERS.CHAT_MESSAGE]: EMAIL_TEMPLATE_TYPES.CHAT_DIGEST_DEFAULT,
+      [NOTIFICATION_TRIGGERS.SUMMARY_REPORT]: EMAIL_TEMPLATE_TYPES.SUMMARY_REPORT_DEFAULT
     };
     
     console.log('🔍 DEBUG: Full template mapping:', mapping);
