@@ -26,7 +26,8 @@ const ReportExportModal = ({
   lang,
   isExporting,
   onExport,
-  fetchUsersForEmail
+  fetchUsersForEmail,
+  showError // Add toast support
 }) => {
   useEffect(() => {
     if (isOpen && availableUsers.students?.length > 20) {
@@ -148,7 +149,8 @@ const ReportExportModal = ({
   );
 };
 
-const SubjectSelection = ({
+  // Helper Components
+  const SubjectSelection = ({
   selectedSubjectsForReport,
   setSelectedSubjectsForReport,
   subjects,
@@ -658,7 +660,9 @@ const ActionButtons = ({
           if (isSummaryReport) {
             if (!selectedSubjectsForReport || selectedSubjectsForReport.length === 0) {
               console.error('❌ No subjects selected for report');
-              alert(t('select_at_least_one_subject') || 'Please select at least one subject for the report');
+              if (showError) {
+                showError(t('select_at_least_one_subject') || 'Please select at least one subject for the report');
+              }
               return;
             }
           }
@@ -666,7 +670,9 @@ const ActionButtons = ({
           if (exportFormat === 'email') {
             if (!emailRecipients || emailRecipients.length === 0) {
               console.error('❌ No email recipients selected');
-              alert(t('select_at_least_one_recipient') || 'Please select at least one email recipient');
+              if (showError) {
+                showError(t('select_at_least_one_recipient') || 'Please select at least one email recipient');
+              }
               return;
             }
           }

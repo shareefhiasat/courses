@@ -201,6 +201,9 @@ const StudentTableRow = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                console.log('🔖 Bookmark clicked for student:', student.id, student.displayName || student.name);
+                console.log('🔖 Current favorite status:', favoriteStudents.includes(student.id));
+                console.log('🔖 All favorite students:', favoriteStudents);
                 toggleFavorite(student.id);
               }}
               style={{
@@ -210,7 +213,10 @@ const StudentTableRow = ({
                 padding: 0
               }}
             >
-              {getThemedIcon('ui', 'star', 16)}
+              {favoriteStudents.includes(student.id) 
+                ? getThemedIcon('ui', 'star', 16, '#fbbf24') // Yellow when favorited
+                : getThemedIcon('ui', 'star', 16, '#9ca3af') // Gray when not favorited
+              }
             </button>
             <div>
               <div style={{ fontWeight: 500, color: 'var(--text, #111827)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

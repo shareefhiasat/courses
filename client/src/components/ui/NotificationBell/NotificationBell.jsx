@@ -87,14 +87,16 @@ const NotificationBell = () => {
               background: '#dc3545',
               color: 'white',
               borderRadius: '50%',
-              width: '18px',
+              minWidth: '18px',
               height: '18px',
-              fontSize: '0.7rem',
+              fontSize: '0.65rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 'bold',
-              border: '2px solid white'
+              border: '2px solid white',
+              padding: '0 4px',
+              boxSizing: 'border-box'
             }}>
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>

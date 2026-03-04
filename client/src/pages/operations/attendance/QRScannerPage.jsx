@@ -3276,6 +3276,7 @@ const QRScannerPage = () => {
           isExporting={isExporting}
           onExport={exportSemesterReport}
           fetchUsersForEmail={fetchUsersForEmail}
+          showError={showError}
         />
 
         {/* Daily Report Export Modal */}
@@ -3303,6 +3304,7 @@ const QRScannerPage = () => {
           isExporting={isExporting}
           onExport={exportDailyReport}
           fetchUsersForEmail={fetchUsersForEmail}
+          showError={showError}
         />
 
         {/* Success Confirmation Modal */}

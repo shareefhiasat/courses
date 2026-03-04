@@ -530,18 +530,35 @@ const StudentRoster = React.memo(function StudentRoster({
     if (!user?.uid) return;
 
     const isFavorite = favoriteStudents.includes(studentId);
+    console.log('🔖 Filter toggleFavorite called for student:', studentId);
+    console.log('🔖 Filter isFavorite before toggle:', isFavorite);
+    console.log('🔖 Filter current favoriteStudents:', favoriteStudents);
+    
     let success = false;
 
     if (isFavorite) {
+      console.log('🔖 Filter Removing student from favorites:', studentId);
       success = await removeFavoriteStudent(user.uid, studentId);
-      setFavoriteStudents(prev => prev.filter(id => id !== studentId));
+      setFavoriteStudents(prev => {
+        const newFavorites = prev.filter(id => id !== studentId);
+        console.log('🔖 Filter Favorites after removal:', newFavorites);
+        return newFavorites;
+      });
     } else {
+      console.log('🔖 Filter Adding student to favorites:', studentId);
       success = await addFavoriteStudent(user.uid, studentId);
-      setFavoriteStudents(prev => [...prev, studentId]);
+      setFavoriteStudents(prev => {
+        const newFavorites = [...prev, studentId];
+        console.log('🔖 Filter Favorites after addition:', newFavorites);
+        return newFavorites;
+      });
     }
 
     if (!success) {
       logger.error('Failed to update favorite status');
+      console.error('🔖 Filter Failed to update favorite status for student:', studentId);
+    } else {
+      console.log('🔖 Filter Successfully updated favorite status for student:', studentId, 'isFavorite:', !isFavorite);
     }
   }, [user?.uid, favoriteStudents]);
 
@@ -952,9 +969,12 @@ const StudentRoster = React.memo(function StudentRoster({
                 <Button 
                   variant={showFavoritesOnly ? 'default' : 'ghost'} 
                   size="icon" 
-                  onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                  onClick={() => {
+                    console.log('🔖 Filter Filter button clicked, showFavoritesOnly:', showFavoritesOnly);
+                    setShowFavoritesOnly(!showFavoritesOnly);
+                  }}
                 >
-                  {getThemedIcon('ui', 'star', 16, theme)}
+                  {getThemedIcon('ui', 'star', 16, showFavoritesOnly ? '#fbbf24' : theme)}
                 </Button>
               </PortalTooltip>
               <PortalTooltip content={t('export_csv')} position="top">
