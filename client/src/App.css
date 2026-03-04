@@ -47,3 +47,8 @@ html, body, #root {
   h1 { font-size: 1.6rem; }
   h2 { font-size: 1.3rem; }
 }
+
+/* Spinner animation for loading states */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

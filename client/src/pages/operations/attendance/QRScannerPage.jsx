@@ -147,13 +147,26 @@ const QRScannerPage = () => {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
   const [isScannerMinimized, setIsScannerMinimized] = useState(false);
   
-  // Semester report confirmation modal state
+  // Summary report export preferences modal state
   const [showSemesterReportConfirm, setShowSemesterReportConfirm] = useState(false);
-  const [semesterReportConfirmData, setSemesterReportConfirmData] = useState({
-    scope: '',
-    scopeName: '',
-    onConfirm: null
-  });
+  const [exportFormat, setExportFormat] = useState('excel'); // 'excel' or 'html'
+  const [exportScope, setExportScope] = useState('class'); // 'class' or 'program'
+  
+  // Export loading state
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Computed values for selected names
+  const selectedClassName = useMemo(() => {
+    if (!selectedClassId || selectedClassId === 'all') return null;
+    const selectedClass = classes.find(c => c.id === selectedClassId);
+    return selectedClass?.name || selectedClass?.nameEn || 'Unknown Class';
+  }, [selectedClassId, classes]);
+
+  const selectedProgramName = useMemo(() => {
+    if (!selectedProgramId || selectedProgramId === 'all') return null;
+    const selectedProgram = programs.find(p => p.id === selectedProgramId);
+    return selectedProgram?.name || selectedProgram?.nameEn || 'Unknown Program';
+  }, [selectedProgramId, programs]);
 
   // Debounced resize handler for performance
   useEffect(() => {
@@ -1425,54 +1438,26 @@ const QRScannerPage = () => {
     }
   }, [selectedClassId, selectedDate, selectedProgramId, selectedSubjectId, programs, subjects, classes, lang, t]);
 
-  // Export Semester Report function
+  // Export Summary Report function
   const exportSemesterReport = useCallback(async () => {
-    // Determine export scope and validate
-    let scope = 'class';
-    let scopeId = selectedClassId;
-    let scopeName = '';
+    console.log('📊 Export function called', { selectedClassId, selectedProgramId });
     
+    // Validate selection
     if (!selectedClassId && !selectedProgramId) {
+      console.error('❌ No class or program selected');
       showError(t('please_select_class_or_program') || 'Please select a class or program first');
       return;
     }
-    
-    if (selectedClassId) {
-      scope = 'class';
-      scopeId = selectedClassId;
-      const selectedClass = classes.find(c => c.id === selectedClassId);
-      scopeName = selectedClass?.name || 'Unknown Class';
-    } else if (selectedProgramId) {
-      scope = 'program';
-      scopeId = selectedProgramId;
-      const selectedProgram = programs.find(p => p.id === selectedProgramId);
-      scopeName = selectedProgram?.name || 'Unknown Program';
-    }
 
-    // Show confirmation modal with better UI
-    const scopeText = scope === 'class' 
-      ? (t('class_level_report') || 'Class Level Report')
-      : (t('program_level_report') || 'Program Level Report');
-    
-    // Set up confirmation modal data
-    setSemesterReportConfirmData({
-      scope,
-      scopeName,
-      onConfirm: () => {
-        // This will be called when user confirms
-        performSemesterReportExport(scope, scopeId, scopeName);
-      }
-    });
-    
-    // Show confirmation modal
-    setShowSemesterReportConfirm(true);
-    return;
-  }, [selectedClassId, selectedProgramId, programs, classes, subjects, lang, t, showError, showSuccess]);
+    // Set loading state
+    setIsExporting(true);
+    console.log('✅ Loading state set, starting export...');
 
-  // Separate function for performing the actual export
-  const performSemesterReportExport = useCallback(async (scope, scopeId, scopeName) => {
     try {
-      console.log('📊 Semester Report - Starting export:', { scope, scopeId, scopeName });
+      // Determine export scope
+      const scope = selectedClassId ? 'class' : 'program';
+      const scopeId = selectedClassId || selectedProgramId;
+      console.log('📊 Export scope:', { scope, scopeId });
 
       // Get all attendance data based on scope
       let attendanceResponse;
@@ -1599,6 +1584,7 @@ const QRScannerPage = () => {
       });
 
       if (enrichedData.length === 0) {
+        setIsExporting(false);
         showError(t('no_attendance_records_found') || 'No attendance records found for this semester');
         return;
       }
@@ -1640,6 +1626,7 @@ const QRScannerPage = () => {
         t('total_mark_deduction') || 'Total Mark Deduction'
       ];
 
+      // Create CSV content
       const csvContent = [
         headers.join(','),
         ...enrichedData.map((row, index) => [
@@ -1662,37 +1649,33 @@ const QRScannerPage = () => {
         ].join(','))
       ].join('\n');
 
-      // Get names for filename
-      const programsResponse = await getPrograms();
-      const allPrograms = programsResponse.success ? programsResponse.data : [];
-      const currentProgram = allPrograms.find(p => (p.id === selectedProgramId) || (p.docId === selectedProgramId));
+      // Get names for filename from current selections
+      const currentProgram = programs.find(p => p.id === selectedProgramId);
+      const currentSubject = subjects.find(s => s.id === selectedSubjectId);
+      const currentClass = classes.find(c => c.id === selectedClassId);
       
-      const subjectsResponse = await getSubjects(selectedProgramId);
-      const allSubjects = subjectsResponse.success ? subjectsResponse.data : [];
-      const currentSubject = allSubjects.find(s => (s.id === selectedSubjectId) || (s.docId === selectedSubjectId));
+      const programName = currentProgram?.nameEn || currentProgram?.name || 'Program';
+      const subjectName = currentSubject?.nameEn || currentSubject?.name || 'Subject';
+      const className = currentClass?.nameEn || currentClass?.name || 'Class';
       
-      const classesResponse = await getClasses(selectedSubjectId);
-      const allClasses = classesResponse.success ? classesResponse.data : [];
-      const currentClass = allClasses.find(c => (c.id === selectedClassId) || (c.docId === selectedClassId));
+      // Create localized filename with current date
+      const currentDate = new Date().toISOString().split('T')[0];
+      const [year, month, day] = currentDate.split('-');
+      const formattedDate = `${year}_${month}-${day}`;
       
-      const programName = currentProgram?.nameEn || currentProgram?.name || 'All';
-      const subjectName = currentSubject?.nameEn || currentSubject?.name || 'All';
-      const className = currentClass?.nameEn || currentClass?.name || 'All';
-      
-      // Create localized filename based on scope with current date
-      const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      // Create filename with proper structure: summary_report_ClassName_ProgramName_SubjectName_Date.csv
       let filename;
       if (scope === 'class') {
         filename = lang === 'ar' 
-          ? `تقرير_الفصل_الدراسي_${scopeName}_${programName}_${subjectName}_${currentDate}.csv`
-          : `semester_report_${scopeName}_${programName}_${subjectName}_${currentDate}.csv`;
+          ? `تقرير_ملخص_${className}_${programName}_${subjectName}_${formattedDate}.csv`
+          : `summary_report_${className}_${programName}_${subjectName}_${formattedDate}.csv`;
       } else {
         filename = lang === 'ar' 
-          ? `تقرير_الفصل_الدراسي_${scopeName}_البرنامج_${currentDate}.csv`
-          : `semester_report_${scopeName}_program_${currentDate}.csv`;
+          ? `تقرير_ملخص_${programName}_البرنامج_${formattedDate}.csv`
+          : `summary_report_${programName}_program_${formattedDate}.csv`;
       }
 
-      // Create and download file
+      // Create and download CSV file
       const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -1703,11 +1686,13 @@ const QRScannerPage = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      showSuccess(t('semester_report_exported_successfully') || 'Semester report exported successfully');
+      showSuccess(t('summary_report_exported_successfully') || 'Summary report exported successfully');
 
     } catch (error) {
       console.error('Semester Report Export failed:', error);
       showError((t('export_failed') || 'Export failed: ') + error.message);
+    } finally {
+      setIsExporting(false);
     }
   }, [selectedClassId, selectedSubjectId, selectedProgramId, programs, subjects, classes, lang, t, showError, showSuccess]);
 
@@ -1995,33 +1980,14 @@ const QRScannerPage = () => {
                   </div>
                 )}
               </div>
-              
-              {/* Current scope information display */}
-              <div style={{
-                padding: '0.5rem 1rem',
-                background: '#f0fdf4',
-                border: '1px solid #bbf7d0',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                color: '#166534',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}>
-                {getThemedIcon('ui', 'info', 16, theme)}
-                {selectedClassId 
-                  ? `${t('exporting_for_class') || 'Exporting for class'}: ${classes.find(c => c.id === selectedClassId)?.name || 'Unknown'}`
-                  : `${t('exporting_for_program') || 'Exporting for program'}: ${programs.find(p => p.id === selectedProgramId)?.name || 'Unknown'}`
-                }
-              </div>
             </div>
 
             {/* Export buttons row */}
             <div style={{
               display: 'flex',
-              justifyContent: 'flex-end',
+              justifyContent: 'center',
               alignItems: 'center',
-              gap: '0.75rem',
+              gap: '1rem',
               flexWrap: 'wrap'
             }}>
               <button
@@ -2034,55 +2000,88 @@ const QRScannerPage = () => {
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: isExporting ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
                   transition: 'all 0.2s',
                   boxShadow: '0 2px 4px rgba(139, 92, 246, 0.2)',
                   minWidth: '140px',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  opacity: isExporting ? 0.6 : 1
                 }}
-                disabled={gridLoading || !selectedClassId || selectedClassId === 'all'}
+                disabled={gridLoading || !selectedClassId || selectedClassId === 'all' || isExporting}
               >
                 {getThemedIcon('ui', 'file', 16, theme)}
                 {t('daily_report') || 'Daily Report'}
               </button>
 
               <button
-                onClick={exportSemesterReport}
+                onClick={() => {
+                  console.log('🔍 Summary Report button clicked');
+                  exportSemesterReport();
+                }}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  background: isExporting ? '#94a3b8' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                   color: 'white',
                   border: 'none',
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: isExporting ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
                   transition: 'all 0.2s',
                   boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)',
                   minWidth: '140px',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  opacity: isExporting ? 0.6 : 1
                 }}
-                disabled={gridLoading || (!selectedClassId && !selectedProgramId)}
-                title={
-                  selectedClassId 
-                    ? (t('export_class_semester_report') || 'Export semester report for selected class')
-                    : (t('export_program_semester_report') || 'Export semester report for selected program (includes all classes)')
-                }
+                disabled={gridLoading || (!selectedClassId && !selectedProgramId) || isExporting}
+                title={t('export_summary_report') || 'Export comprehensive summary report'}
               >
                 {getThemedIcon('ui', 'file', 16, theme)}
-                {selectedClassId 
-                  ? (t('class_semester_report') || 'Class Report')
-                  : (t('program_semester_report') || 'Program Report')
-                }
+                {t('summary_report') || 'Summary Report'}
               </button>
             </div>
           </div>
+
+          {/* Export Loading Animation */}
+          {isExporting && (
+            <div style={{
+              position: 'fixed',
+              bottom: '2rem',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'white',
+              padding: '1rem 2rem',
+              borderRadius: '0.5rem',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              zIndex: 1000,
+              border: '1px solid #e5e7eb'
+            }}>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                border: '2px solid #e5e7eb',
+                borderTop: '2px solid #10b981',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+              <span style={{
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: '#374151'
+              }}>
+                {t('exporting_report') || 'Exporting report...'}
+              </span>
+            </div>
+          )}
 
             <div 
               onClick={() => setSendNotifications(!sendNotifications)}

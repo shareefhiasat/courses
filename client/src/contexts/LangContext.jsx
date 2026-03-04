@@ -855,6 +855,13 @@ const DICT = {
     // Additional semester report UI translations
     'exporting_for_class': 'Exporting for class',
     'exporting_for_program': 'Exporting for program',
+    'exporting_report': 'Exporting report...',
+    'generated_on': 'Generated on',
+    'scope': 'Scope',
+    'total_students': 'Total Students',
+    'summary_report': 'Summary Report',
+    'export_summary_report': 'Export comprehensive summary report',
+    'summary_report_exported_successfully': 'Summary report exported successfully',
     
     // Bulk Scan Dialog translations
     'issues_found': 'Issues Found',
@@ -4304,6 +4311,13 @@ const DICT = {
     // Additional semester report UI translations (Arabic)
     'exporting_for_class': 'تصدير للفصل',
     'exporting_for_program': 'تصدير للبرنامج',
+    'exporting_report': 'جاري تصدير التقرير...',
+    'generated_on': 'تم الإنشاء في',
+    'scope': 'النطاق',
+    'total_students': 'إجمالي الطلاب',
+    'summary_report': 'تقرير ملخص',
+    'export_summary_report': 'تصدير تقرير ملخص شامل',
+    'summary_report_exported_successfully': 'تم تصدير التقرير الملخص بنجاح',
     
     // Bulk Scan Dialog translations (Arabic)
     'issues_found': 'مشكلات تم العثور عليها',
