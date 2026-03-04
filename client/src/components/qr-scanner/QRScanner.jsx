@@ -3247,6 +3247,22 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                               setShowScanDialog(false);
                               addDebugLog(`✅ Found student for participation: ${studentData.name || studentData.email}`, 'success');
                               addDebugLog(`🔍 Setting studentForAction and showing new panel`, 'info');
+                              
+                              // 🔍 DEBUG: Log manual scan student data structure
+                              console.log('🔍 MANUAL SCAN Student Data Structure:', {
+                                source: 'manual_scan_participation',
+                                studentData: studentData,
+                                originalLastScannedStudent: lastScannedStudent,
+                                keys: Object.keys(studentData),
+                                hasAttendance: !!studentData.attendance,
+                                hasParticipation: !!studentData.participation,
+                                hasBehavior: !!studentData.behavior,
+                                hasPenalty: !!studentData.penalty,
+                                attendanceValue: studentData.attendance,
+                                participationValue: studentData.participation,
+                                behaviorValue: studentData.behavior,
+                                penaltyValue: studentData.penalty
+                              });
                             } else {
                               showResult('error', 'Student not found with this reference ID');
                             }
@@ -3366,6 +3382,27 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                             if (studentReferenceId) {
                               const studentData = await processStudentData(studentReferenceId);
                               if (studentData) {
+                                // 🔍 DEBUG: Log QR scan student data structure
+                                console.log('🔍 QR SCAN Student Data Structure:', {
+                                  source: 'qr_scan_details',
+                                  studentData: studentData,
+                                  keys: Object.keys(studentData),
+                                  hasAttendance: !!studentData.attendance,
+                                  hasParticipation: !!studentData.participation,
+                                  hasBehavior: !!studentData.behavior,
+                                  hasPenalty: !!studentData.penalty,
+                                  attendanceValue: studentData.attendance,
+                                  participationValue: studentData.participation,
+                                  behaviorValue: studentData.behavior,
+                                  penaltyValue: studentData.penalty,
+                                  hasBehaviorHistory: !!studentData.behaviorHistory,
+                                  hasParticipationHistory: !!studentData.participationHistory,
+                                  hasPenaltyHistory: !!studentData.penaltyHistory,
+                                  behaviorHistoryLength: studentData.behaviorHistory?.length || 0,
+                                  participationHistoryLength: studentData.participationHistory?.length || 0,
+                                  penaltyHistoryLength: studentData.penaltyHistory?.length || 0
+                                });
+                                
                                 setStudentForAction(studentData);
                                 setShowStudentActionStatsPanel(true); // Use the Stats panel for details
                                 setShowScanDialog(false);

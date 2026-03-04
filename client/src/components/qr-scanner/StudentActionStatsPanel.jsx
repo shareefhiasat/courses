@@ -45,6 +45,27 @@ export default function StudentActionStatsPanel({
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const { showSuccess, showError } = useToast();
+  
+  // 🔍 DEBUG: Log incoming student data structure
+  console.log('🔍 StudentActionStatsPanel - Incoming Student Data:', {
+    student: student,
+    keys: student ? Object.keys(student) : 'no student',
+    hasAttendance: !!student?.attendance,
+    hasParticipation: !!student?.participation,
+    hasBehavior: !!student?.behavior,
+    hasPenalty: !!student?.penalty,
+    attendanceValue: student?.attendance,
+    participationValue: student?.participation,
+    behaviorValue: student?.behavior,
+    penaltyValue: student?.penalty,
+    hasBehaviorHistory: !!student?.behaviorHistory,
+    hasParticipationHistory: !!student?.participationHistory,
+    hasPenaltyHistory: !!student?.penaltyHistory,
+    behaviorHistoryLength: student?.behaviorHistory?.length || 0,
+    participationHistoryLength: student?.participationHistory?.length || 0,
+    penaltyHistoryLength: student?.penaltyHistory?.length || 0
+  });
+  
   const [selectedActions, setSelectedActions] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);

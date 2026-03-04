@@ -879,6 +879,40 @@ const StudentRoster = React.memo(function StudentRoster({
     return sortDirection === 'asc' ? '↑' : '↓';
   }, [sortField, sortDirection]);
 
+  // Calculate column sums for footer
+  const columnSums = useMemo(() => {
+    const displayStudents = students.filter(student => !showFavoritesOnly || favoriteStudents.includes(student.id));
+    
+    const sums = {
+      participation: 0,
+      behavior: 0,
+      penalty: 0,
+      present: 0,
+      late: 0,
+      absent: 0,
+      absentExcused: 0,
+      excusedLeave: 0,
+      human: 0
+    };
+
+    displayStudents.forEach(student => {
+      sums.participation += student.participation || 0;
+      sums.behavior += student.behavior || 0;
+      sums.penalty += student.penalty || 0;
+      
+      // Attendance statistics
+      const stats = student.attendanceStats || {};
+      sums.present += stats.present || 0;
+      sums.late += stats.late || 0;
+      sums.absent += stats.absent || 0;
+      sums.absentExcused += stats.absentWithExcuse || 0;
+      sums.excusedLeave += stats.excusedLeave || 0;
+      sums.human += stats.humanitarianCase || 0;
+    });
+
+    return sums;
+  }, [students, showFavoritesOnly, favoriteStudents]);
+
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} style={{
       background: 'var(--panel, white)',
@@ -959,11 +993,11 @@ const StudentRoster = React.memo(function StudentRoster({
           </div>
           {!isMobile && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Button variant="ghost" size="icon" onClick={onFilter}>
+              {/* <Button variant="ghost" size="icon" onClick={onFilter}>
                 {getThemedIcon('ui', 'filter', 16, theme)}
-              </Button>
+              </Button> */}
               <PortalTooltip 
-                content={showFavoritesOnly ? t('show_all_students') : t('show_favorites_only')} 
+                content={`${showFavoritesOnly ? t('show_all_students') : t('show_favorites_only')} (${favoriteStudents.length} ${t('bookmarked') || 'bookmarked'})`} 
                 position="top"
               >
                 <Button 
@@ -971,10 +1005,32 @@ const StudentRoster = React.memo(function StudentRoster({
                   size="icon" 
                   onClick={() => {
                     console.log('🔖 Filter Filter button clicked, showFavoritesOnly:', showFavoritesOnly);
+                    console.log('🔖 Filter Total bookmarked students:', favoriteStudents.length);
                     setShowFavoritesOnly(!showFavoritesOnly);
                   }}
+                  style={{ position: 'relative' }}
                 >
                   {getThemedIcon('ui', 'star', 16, showFavoritesOnly ? '#fbbf24' : theme)}
+                  {favoriteStudents.length > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      background: '#ef4444',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '16px',
+                      height: '16px',
+                      fontSize: '0.625rem',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px solid white'
+                    }}>
+                      {favoriteStudents.length > 99 ? '99+' : favoriteStudents.length}
+                    </span>
+                  )}
                 </Button>
               </PortalTooltip>
               <PortalTooltip content={t('export_csv')} position="top">
@@ -1241,6 +1297,128 @@ const StudentRoster = React.memo(function StudentRoster({
                   />
                 ))}
             </tbody>
+            {/* Footer Row with Sums */}
+            <tfoot>
+              <tr style={{
+                borderTop: '2px solid var(--border, #e5e7eb)',
+                background: 'var(--background-secondary, #f9fafb)',
+                fontWeight: 600
+              }}>
+                <td style={{ 
+                  padding: '0.75rem 0.5rem',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
+                  color: 'var(--text-primary, #111827)'
+                }}>
+                  {t('total') || 'Total'}
+                </td>
+                <td style={{ 
+                  padding: '0.75rem',
+                  textAlign: isRTL ? 'right' : 'left',
+                  fontSize: '0.875rem',
+                  color: 'var(--text-primary, #111827)'
+                }}>
+                  {students.filter(student => !showFavoritesOnly || favoriteStudents.includes(student.id)).length} {t('students') || 'students'}
+                </td>
+                <td style={{ 
+                  padding: '0.75rem',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
+                  color: 'var(--text-muted, #6b7280)'
+                }}>
+                  -
+                </td>
+                <td style={{ 
+                  padding: '0.75rem',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
+                  color: 'var(--color-info, #3b82f6)',
+                  fontWeight: 700
+                }}>
+                  {columnSums.participation}
+                </td>
+                <td style={{ 
+                  padding: '0.75rem',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
+                  color: 'var(--color-warning, #f59e0b)',
+                  fontWeight: 700
+                }}>
+                  {columnSums.behavior}
+                </td>
+                <td style={{ 
+                  padding: '0.75rem',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
+                  color: 'var(--color-danger, #ef4444)',
+                  fontWeight: 700
+                }}>
+                  {columnSums.penalty}
+                </td>
+                <td style={{ 
+                  padding: '0.75rem',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
+                  color: 'var(--color-success, #10b981)',
+                  fontWeight: 700
+                }}>
+                  {columnSums.present}
+                </td>
+                <td style={{ 
+                  padding: '0.75rem',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
+                  color: 'var(--color-warning, #f59e0b)',
+                  fontWeight: 700
+                }}>
+                  {columnSums.late}
+                </td>
+                <td style={{ 
+                  padding: '0.75rem',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
+                  color: 'var(--color-danger, #ef4444)',
+                  fontWeight: 700
+                }}>
+                  {columnSums.absent}
+                </td>
+                <td style={{ 
+                  padding: '0.75rem',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
+                  color: 'var(--color-danger, #ef4444)',
+                  fontWeight: 700
+                }}>
+                  {columnSums.absentExcused}
+                </td>
+                <td style={{ 
+                  padding: '0.75rem',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
+                  color: 'var(--color-danger, #ef4444)',
+                  fontWeight: 700
+                }}>
+                  {columnSums.excusedLeave}
+                </td>
+                <td style={{ 
+                  padding: '0.75rem',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
+                  color: '#8b5cf6',
+                  fontWeight: 700
+                }}>
+                  {columnSums.human}
+                </td>
+                <td style={{ 
+                  padding: '0.75rem',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
+                  color: 'var(--text-muted, #6b7280)'
+                }}>
+                  -
+                </td>
+              </tr>
+            </tfoot>
           </table>
         )}
       </div>

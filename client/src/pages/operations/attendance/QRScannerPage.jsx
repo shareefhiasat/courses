@@ -50,6 +50,28 @@ const QRScannerPage = () => {
   const { user, loading: authLoading, isAdmin, isSuperAdmin, isHR, isInstructor, role } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
+  
+  // Auth level logging for debugging color issues
+  console.log('🎨 QR Scanner Auth Debug:', {
+    user: user?.displayName || user?.email,
+    userId: user?.uid,
+    role: role,
+    isAdmin,
+    isSuperAdmin,
+    isHR,
+    isInstructor,
+    theme,
+    primaryColor: user?.primaryColor,
+    userPhotoURL: user?.photoURL,
+    themeObject: theme,
+    themeKeys: theme ? Object.keys(theme) : 'no theme',
+    themeColors: theme ? {
+      primary: theme.primary,
+      colorPrimary: theme.colorPrimary,
+      brand: theme.brand,
+      primaryColor: theme.primaryColor
+    } : 'no theme colors'
+  });
   const navigate = useNavigate();
   const toast = useToast();
   const showSuccess = toast?.showSuccess || ((msg) => console.log('SUCCESS:', msg));
@@ -1646,6 +1668,8 @@ const QRScannerPage = () => {
     }
   }, [dailyEmailRecipients]);
 
+  // Advanced filter handler
+  
   const toggleRoleSelection = useCallback((role) => {
     const roleUsers = availableUsers[role] || [];
     const roleKeys = roleUsers.map(user => `${user.role}_${user.id}`);
@@ -2427,8 +2451,8 @@ const QRScannerPage = () => {
     }
   }, [usersLoading]);
 
-  // Memoized filtered students for performance
-  const filteredStudents = useMemo(() => {
+  // Memoized filtered and sorted students for performance
+  const filteredAndSortedStudents = useMemo(() => {
     let filtered = students;
 
     // Apply search filter
@@ -2520,9 +2544,9 @@ const QRScannerPage = () => {
   }, [students, debouncedSearchQuery, attendanceFilter, participationMin, participationMax, penaltyFilter, sortField, sortDirection]);
 
   // Calculate pagination
-  const total = filteredStudents.length;
+  const total = filteredAndSortedStudents.length;
   const totalPages = Math.ceil(total / pageSize);
-  const paginatedStudents = filteredStudents.slice(
+  const paginatedStudents = filteredAndSortedStudents.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
@@ -2991,6 +3015,29 @@ const QRScannerPage = () => {
         {selectedStudent && (
           <>
             {gridLoading && <GlobalLoadingFallback />}
+            {/* 🔍 DEBUG: Log student data from roster before passing to panel */}
+            {(() => {
+              console.log('🔍 QRScannerPage - Student Data from Roster:', {
+                source: 'student_roster',
+                student: selectedStudent,
+                keys: Object.keys(selectedStudent),
+                hasAttendance: !!selectedStudent.attendance,
+                hasParticipation: !!selectedStudent.participation,
+                hasBehavior: !!selectedStudent.behavior,
+                hasPenalty: !!selectedStudent.penalty,
+                attendanceValue: selectedStudent.attendance,
+                participationValue: selectedStudent.participation,
+                behaviorValue: selectedStudent.behavior,
+                penaltyValue: selectedStudent.penalty,
+                hasBehaviorHistory: !!selectedStudent.behaviorHistory,
+                hasParticipationHistory: !!selectedStudent.participationHistory,
+                hasPenaltyHistory: !!selectedStudent.penaltyHistory,
+                behaviorHistoryLength: selectedStudent.behaviorHistory?.length || 0,
+                participationHistoryLength: selectedStudent.participationHistory?.length || 0,
+                penaltyHistoryLength: selectedStudent.penaltyHistory?.length || 0
+              });
+              return null;
+            })()}
             <StudentActionStatsPanel
               student={selectedStudent}
               onClose={handleClosePanel}
@@ -3458,7 +3505,8 @@ const QRScannerPage = () => {
             </div>
           )}
         </Modal>
-      </div>
+
+              </div>
     </div>
   );
 };

@@ -192,7 +192,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
             gap: '0.5rem',
             marginLeft: '0.5rem'
           }}>
-            <img src="/qaf_logo_transparent.png" alt="QAF" style={{ width: 18, height: 18, objectFit: 'cover', borderRadius: '50%' }} />
+            <img src="/qaf_logo_transparent.png" alt="QAF" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: '50%' }} />
           </div>
 
           {/* DraggableClock - Always visible, positioned at top center by default */}

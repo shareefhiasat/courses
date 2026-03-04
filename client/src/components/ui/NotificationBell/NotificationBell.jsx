@@ -82,20 +82,19 @@ const NotificationBell = () => {
           {unreadCount > 0 && (
             <span style={{
               position: 'absolute',
-              top: '-2px',
-              right: '-2px',
-              background: '#dc3545',
+              top: '-5px',
+              right: '-5px',
+              background: 'rgba(220, 53, 69, 0.3)',
               color: 'white',
               borderRadius: '50%',
-              minWidth: '18px',
-              height: '18px',
-              fontSize: '0.65rem',
+              width: '20px',
+              height: '20px',
+              fontSize: '0.7rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 'bold',
               border: '2px solid white',
-              padding: '0 4px',
               boxSizing: 'border-box'
             }}>
               {unreadCount > 9 ? '9+' : unreadCount}
