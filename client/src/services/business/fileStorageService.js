@@ -33,6 +33,12 @@ export const uploadFile = async ({ file, filename, folder, userId, metadata = {}
     
     // Create storage reference
     const timestamp = Date.now();
+    
+    // Safety check for filename
+    if (!filename || typeof filename !== 'string') {
+      throw new Error('Filename must be a non-empty string');
+    }
+    
     const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
     const storagePath = `${folder}/${timestamp}_${sanitizedFilename}`;
     const storageRef = ref(storage, storagePath);
@@ -104,26 +110,36 @@ export const uploadReport = async ({ csvContent, filename, userId, reportMetadat
   try {
     logger.info('[FileStorage] Uploading report', { filename, userId });
     
+    // Filter out undefined values to prevent Firebase errors
+    const filteredMetadata = {
+      type: 'report',
+      reportType: reportMetadata.reportType || REPORT_TYPES.SUMMARY_REPORT,
+      programId: reportMetadata.programId,
+      programName: reportMetadata.programName,
+      classId: reportMetadata.classId,
+      className: reportMetadata.className,
+      subjectId: reportMetadata.subjectId,
+      subjectName: reportMetadata.subjectName,
+      generatedAt: new Date().toISOString(),
+      totalStudents: reportMetadata.totalStudents,
+      selectedSubjects: reportMetadata.selectedSubjects,
+      contentType: STORAGE_CONSTANTS.CONTENT_TYPES.CSV,
+      allowedRoles: ['admin', 'super_admin', 'hr', 'instructor']
+    };
+
+    // Remove undefined values
+    Object.keys(filteredMetadata).forEach(key => {
+      if (filteredMetadata[key] === undefined) {
+        delete filteredMetadata[key];
+      }
+    });
+
     const result = await uploadFile({
       file: csvContent,
       filename,
       folder: STORAGE_CONSTANTS.FOLDERS.REPORTS,
       userId,
-      metadata: {
-        type: 'report',
-        reportType: reportMetadata.reportType || REPORT_TYPES.SUMMARY_REPORT,
-        programId: reportMetadata.programId,
-        programName: reportMetadata.programName,
-        classId: reportMetadata.classId,
-        className: reportMetadata.className,
-        subjectId: reportMetadata.subjectId,
-        subjectName: reportMetadata.subjectName,
-        generatedAt: new Date().toISOString(),
-        totalStudents: reportMetadata.totalStudents,
-        selectedSubjects: reportMetadata.selectedSubjects,
-        contentType: STORAGE_CONSTANTS.CONTENT_TYPES.CSV,
-        allowedRoles: ['admin', 'super_admin', 'hr', 'instructor']
-      }
+      metadata: filteredMetadata
     });
     
     logger.info('[FileStorage] Report uploaded successfully', { fileId: result.fileId });

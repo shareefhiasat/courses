@@ -593,6 +593,7 @@ const ActionButtons = ({
   t
 }) => {
   const isSummaryReport = reportType === 'summary';
+  const isDailyReport = reportType === 'daily';
 
   return (
     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
@@ -606,6 +607,14 @@ const ActionButtons = ({
       <Button 
         variant="primary" 
         onClick={() => {
+          console.log('🔍 Modal validation debug:', {
+            reportType,
+            isSummaryReport,
+            isDailyReport,
+            selectedSubjectsForReport,
+            selectedSubjectsLength: selectedSubjectsForReport?.length
+          });
+          
           if (isSummaryReport) {
             if (!selectedSubjectsForReport || selectedSubjectsForReport.length === 0) {
               console.error('❌ No subjects selected for report');

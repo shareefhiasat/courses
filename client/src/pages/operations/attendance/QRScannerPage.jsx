@@ -39,7 +39,6 @@ import QRScanner from '@/components/qr-scanner/QRScanner';
 import StudentRoster from '@/components/qr-scanner/StudentRoster';
 import StudentActionStatsPanel from '@/components/qr-scanner/StudentActionStatsPanel';
 import StudentActionZapPanel from '@/components/qr-scanner/StudentActionZapPanel';
-import SummaryReportModal from '@/components/qr-scanner/SummaryReportModal';
 import ReportExportModal from '@/components/qr-scanner/ReportExportModal';
 import '@/components/qr-scanner/ui/qr-scanner-ui.css';
 import './QRScannerPage.module.css';
@@ -1462,31 +1461,51 @@ const QRScannerPage = () => {
       // Format date as YYYY-MM-DD
       const dateFormatted = new Date(selectedDate).toISOString().split('T')[0];
       
-      // Create filename based on language
+      // Create filename based on language with safety checks
+      const safeProgramName = programName || 'UnknownProgram';
+      const safeSubjectName = subjectName || 'UnknownSubject';
+      const safeClassName = className || 'UnknownClass';
+      
       const filename = lang === 'ar' 
-        ? `تقرير_الحضور_الرسمي_${programName}_${subjectName}_${className}_${dateFormatted}.csv`
-        : `attendance_official_report_${programName}_${subjectName}_${className}_${dateFormatted}.csv`;
+        ? `تقرير_الحضور_الرسمي_${safeProgramName}_${safeSubjectName}_${safeClassName}_${dateFormatted}.csv`
+        : `attendance_official_report_${safeProgramName}_${safeSubjectName}_${safeClassName}_${dateFormatted}.csv`;
       
       console.log('🔍 Export Debug - Final Filename:', {
         lang,
         filename,
-        dateFormatted
+        dateFormatted,
+        programName,
+        subjectName,
+        className,
+        filenameUndefined: filename === undefined,
+        filenameType: typeof filename
       });
 
       // Handle export based on format
       if (dailyExportFormat === 'email') {
         console.log('📧 Sending daily report via email...');
         
+        // Set loading state
+        setIsExporting(true);
+        console.log('✅ Daily report loading state set, starting export...');
+        
         try {
           // Upload CSV to Firebase Storage
-          const uploadResult = await uploadReport(csvContent, filename, {
-            reportType: REPORT_TYPES.DAILY_ATTENDANCE,
-            programId: selectedProgramId,
-            subjectId: selectedSubjectId,
-            classId: selectedClassId,
-            date: selectedDate,
-            uploadedBy: user?.uid,
-            uploadedByName: user?.displayName || user?.email
+          const uploadResult = await uploadReport({
+            csvContent,
+            filename,
+            userId: user?.uid,
+            reportMetadata: {
+              reportType: REPORT_TYPES.ATTENDANCE_REPORT,
+              programId: selectedProgramId,
+              programName: programName,
+              subjectId: selectedSubjectId,
+              subjectName: subjectName,
+              classId: selectedClassId,
+              className: className,
+              date: selectedDate,
+              totalStudents: enrichedData.length
+            }
           });
 
           if (!uploadResult.success) {
@@ -1601,6 +1620,9 @@ const QRScannerPage = () => {
       console.error('Export failed:', error);
       const errorMessage = (t('export_failed') || 'Export failed: ') + error.message;
       showError(errorMessage);
+    } finally {
+      // Reset loading state
+      setIsExporting(false);
     }
   }, [selectedClassId, selectedDate, selectedProgramId, selectedSubjectId, programs, subjects, classes, lang, t, dailyExportFormat, dailyEmailRecipients, user, availableUsers, showError, showSuccess]);
 
@@ -3230,9 +3252,10 @@ const QRScannerPage = () => {
         )}
 
         {/* Summary Report Export Modal */}
-        <SummaryReportModal
-          showSemesterReportConfirm={showSemesterReportConfirm}
-          setShowSemesterReportConfirm={setShowSemesterReportConfirm}
+        <ReportExportModal
+          isOpen={showSemesterReportConfirm}
+          onClose={() => setShowSemesterReportConfirm(false)}
+          reportType="summary"
           exportFormat={exportFormat}
           setExportFormat={setExportFormat}
           selectedSubjectsForReport={selectedSubjectsForReport}
@@ -3251,7 +3274,7 @@ const QRScannerPage = () => {
           t={t}
           lang={lang}
           isExporting={isExporting}
-          exportSemesterReport={exportSemesterReport}
+          onExport={exportSemesterReport}
           fetchUsersForEmail={fetchUsersForEmail}
         />
 
