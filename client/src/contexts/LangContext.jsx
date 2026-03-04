@@ -886,9 +886,11 @@ const DICT = {
     'instructors': 'Instructors',
     'admins': 'Admins',
     'hr': 'HR',
+    'students': 'Students',
     'select_all': 'Select All',
     'deselect_all': 'Deselect All',
     'loading_recipients': 'Loading recipients...',
+    'no_users_found': 'No users found',
     'select_at_least_one_recipient': 'Please select at least one recipient for the email',
     'recipients_selected': 'Recipients selected',
     
@@ -4371,9 +4373,11 @@ const DICT = {
     'instructors': 'المدرسون',
     'admins': 'المسؤولون',
     'hr': 'الموارد البشرية',
+    'students': 'الطلاب',
     'select_all': 'اختر الكل',
     'deselect_all': 'إلغاء اختيار الكل',
     'loading_recipients': 'جاري تحميل المستلمين...',
+    'no_users_found': 'لم يتم العثور على مستخدمين',
     'select_at_least_one_recipient': 'يرجى اختيار مستلم واحد على الأقل للبريد الإلكتروني',
     'recipients_selected': 'المستلمون المختارون',
     

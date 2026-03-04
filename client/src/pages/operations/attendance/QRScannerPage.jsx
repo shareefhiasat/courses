@@ -26,6 +26,7 @@ import { sendStudentNotification } from '@services/business/notificationService'
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import { USER_ROLES } from '@constants/activityTypes';
 import { Select, DatePicker, Button, Card, CardBody } from '@ui';
 import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 import QRScanner from '@/components/qr-scanner/QRScanner';
@@ -40,7 +41,7 @@ import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadin
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 const QRScannerPage = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isAdmin, isSuperAdmin, isHR, isInstructor, role } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const navigate = useNavigate();
@@ -1918,32 +1919,103 @@ const QRScannerPage = () => {
         }
       });
       
-      // Categorize users by role
+      // Categorize users by role using constants with priority logic
+      // Priority: Super Admin > Admin > HR > Instructor > Student
+      // Each user appears in only one category based on their highest priority role
       const categorizedUsers = {
-        instructors: allUsers.filter(user => 
-          user.role === 'instructor' || 
-          user.role === 'teacher' || 
-          user.role === 'professor'
-        ),
-        admins: allUsers.filter(user => 
-          user.role === 'admin' || 
-          user.role === 'administrator' || 
-          user.role === 'superadmin'
-        ),
-        hr: allUsers.filter(user => 
-          user.role === 'hr' || 
-          user.role === 'hr_manager' || 
-          user.role === 'human_resources'
-        )
+        admins: [],
+        hr: [],
+        instructors: [],
+        students: []
       };
+      
+      allUsers.forEach(firebaseUser => {
+        // Check if this is the current logged-in user and use AuthContext role data
+        if (firebaseUser.email === user?.email) {
+          // Use AuthContext role information for current user
+          if (isSuperAdmin || isAdmin) {
+            categorizedUsers.admins.push(firebaseUser);
+          } else if (isHR) {
+            categorizedUsers.hr.push(firebaseUser);
+          } else if (isInstructor) {
+            categorizedUsers.instructors.push(firebaseUser);
+          } else {
+            categorizedUsers.students.push(firebaseUser);
+          }
+        } else {
+          // Use Firebase user data for other users
+          if (firebaseUser.role === USER_ROLES.SUPER_ADMIN || 
+              firebaseUser.role === USER_ROLES.ADMIN ||
+              firebaseUser.isSuperAdmin === true ||
+              firebaseUser.isAdmin === true) {
+            categorizedUsers.admins.push(firebaseUser);
+          } else if (firebaseUser.role === USER_ROLES.HR || 
+                     firebaseUser.isHR === true) {
+            categorizedUsers.hr.push(firebaseUser);
+          } else if (firebaseUser.role === USER_ROLES.INSTRUCTOR || 
+                     firebaseUser.isInstructor === true) {
+            categorizedUsers.instructors.push(firebaseUser);
+          } else if (firebaseUser.role === USER_ROLES.STUDENT || 
+                     firebaseUser.isStudent === true) {
+            categorizedUsers.students.push(firebaseUser);
+          } else {
+            // Default to students for unknown roles
+            categorizedUsers.students.push(firebaseUser);
+          }
+        }
+      });
       
       setAvailableUsers(categorizedUsers);
       console.log('👥 Real users loaded:', {
         instructors: categorizedUsers.instructors.length,
         admins: categorizedUsers.admins.length,
         hr: categorizedUsers.hr.length,
+        students: categorizedUsers.students.length,
         total: allUsers.length
       });
+      
+      // Debug: Show all users found
+      if (allUsers.length > 0) {
+        console.log('📋 All users found:', allUsers.slice(0, 5));
+        console.log('👤 User roles found:', allUsers.map(u => u.role));
+      console.log('🔍 Full user data for debugging:', allUsers.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        isAdmin: u.isAdmin,
+        isSuperAdmin: u.isSuperAdmin,
+        isInstructor: u.isInstructor,
+        isHR: u.isHR,
+        isStudent: u.isStudent
+      })));
+      
+      // Debug: Show current logged-in user data
+      console.log('🔐 Current logged-in user data:', {
+        uid: user?.uid,
+        email: user?.email,
+        displayName: user?.displayName,
+        role: user?.role,
+        isAdmin: user?.isAdmin,
+        isSuperAdmin: user?.isSuperAdmin,
+        isInstructor: user?.isInstructor,
+        isHR: user?.isHR,
+        isStudent: user?.isStudent,
+        emailVerified: user?.emailVerified,
+        customClaims: user?.customClaims
+      });
+      
+      // Debug: Show AuthContext role information
+      console.log('👑 AuthContext role data:', {
+        role: role,
+        isAdmin: isAdmin,
+        isSuperAdmin: isSuperAdmin,
+        isHR: isHR,
+        isInstructor: isInstructor
+      });
+      } else {
+        console.log('⚠️ No users found in Firebase collection');
+      }
       
       // Log sample users for debugging
       if (categorizedUsers.instructors.length > 0) {
@@ -1955,11 +2027,25 @@ const QRScannerPage = () => {
       if (categorizedUsers.hr.length > 0) {
         console.log('👔 Sample HR:', categorizedUsers.hr.slice(0, 2));
       }
+      if (categorizedUsers.students.length > 0) {
+        console.log('🎓 Sample students:', categorizedUsers.students.slice(0, 2));
+      }
+      
+      // If no categorized users, show all users as "other" for debugging
+      if (categorizedUsers.instructors.length === 0 && 
+          categorizedUsers.admins.length === 0 && 
+          categorizedUsers.hr.length === 0 && 
+          categorizedUsers.students.length === 0 && 
+          allUsers.length > 0) {
+        console.log('🔍 Users found but no matching roles. Adding all users to instructors for testing:');
+        categorizedUsers.instructors = allUsers.slice(0, 5); // Show first 5 users as instructors
+        setAvailableUsers(categorizedUsers);
+      }
       
     } catch (error) {
       console.error('❌ Failed to fetch real users:', error);
       // Set empty array on error
-      setAvailableUsers({ instructors: [], admins: [], hr: [] });
+      setAvailableUsers({ instructors: [], admins: [], hr: [], students: [] });
     } finally {
       setUsersLoading(false);
     }
@@ -2311,7 +2397,7 @@ const QRScannerPage = () => {
                 disabled={gridLoading || (!selectedClassId && !selectedProgramId) || isExporting}
                 title={t('export_summary_report') || 'Export comprehensive summary report'}
               >
-                {getThemedIcon('ui', 'file', 16, theme)}
+                {getThemedIcon('communication', 'mail', 16, theme)}
                 {t('summary_report') || 'Summary Report'}
               </button>
             </div>

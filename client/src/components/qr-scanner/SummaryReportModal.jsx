@@ -370,6 +370,19 @@ const OtherRecipients = ({
         t={t}
         chipColor="#ef4444"
       />
+      
+      <RoleSection
+        role="students"
+        title={t('students') || 'Students'}
+        icon="users"
+        users={availableUsers.students || []}
+        emailRecipients={emailRecipients}
+        toggleUserSelection={toggleUserSelection}
+        toggleRoleSelection={toggleRoleSelection}
+        theme={theme}
+        t={t}
+        chipColor="#8b5cf6"
+      />
     </div>
   );
 };
@@ -427,15 +440,30 @@ const RoleSection = ({
         </button>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-        {users.map(user => (
-          <UserChip
-            key={user.id}
-            user={user}
-            emailRecipients={emailRecipients}
-            toggleUserSelection={toggleUserSelection}
-            chipColor={chipColor}
-          />
-        ))}
+        {users.length > 0 ? (
+          users.map(user => (
+            <UserChip
+              key={user.id}
+              user={user}
+              emailRecipients={emailRecipients}
+              toggleUserSelection={toggleUserSelection}
+              chipColor={chipColor}
+            />
+          ))
+        ) : (
+          <div style={{
+            padding: '0.75rem',
+            fontSize: '0.875rem',
+            color: '#9ca3af',
+            fontStyle: 'italic',
+            background: '#f9fafb',
+            border: '1px dashed #e5e7eb',
+            borderRadius: '0.375rem',
+            width: '100%'
+          }}>
+            {t('no_users_found') || 'No users found'}
+          </div>
+        )}
       </div>
     </div>
   );

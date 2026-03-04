@@ -19,7 +19,6 @@ export const USER_ACTIVITY_TYPES = {
 // User Role Types
 export const USER_ROLES = {
   STUDENT: 'student',
-  STAFF: 'staff',
   INSTRUCTOR: 'instructor',
   HR: 'hr',
   ADMIN: 'admin',
@@ -41,5 +40,5 @@ export const getUserRole = (userData) => {
   if (userData.isHR) return USER_ROLES.HR;
   if (userData.isInstructor) return USER_ROLES.INSTRUCTOR;
   if (userData.isStudent) return USER_ROLES.STUDENT;
-  return USER_ROLES.STAFF;
+  return USER_ROLES.STUDENT; // Default to student for unknown roles
 };
