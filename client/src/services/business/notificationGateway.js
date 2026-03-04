@@ -7,6 +7,7 @@ import { EMAIL_TEMPLATE_TYPES } from '@constants/templateTypes';
 import { DICT } from '@contexts/LangContext';
 import { logNotificationActivity } from './notificationService';
 import logger from '@utils/logger';
+import { getThemedIcon } from '@constants/iconTypes';
 
 /**
  * Smart Notification Gateway
@@ -104,12 +105,40 @@ export const notificationGateway = {
                 </h2>
                 <p>${messageEn || 'You have a new notification.'}</p>
                 
+                ${details.variables?.downloadURL ? `
+                <div style="text-align: center; margin: 20px 0;">
+                  <a href="${details.variables.downloadURL}" 
+                     style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+                            color: white; padding: 12px 32px; text-decoration: none; border-radius: 8px; 
+                            font-weight: 600; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
+                    ${this.getLocalizedText('en', 'email_download_file', details.variables) || 'Download'} ${details.variables.filename || 'Report'}
+                  </a>
+                  <p style="color: #6b7280; font-size: 12px; margin-top: 10px;">
+                    ${this.getLocalizedText('en', 'email_file_id', details.variables) || 'File ID'}: ${details.variables.fileId || 'N/A'}
+                  </p>
+                  <p style="color: #6b7280; font-size: 12px; margin-top: 5px;">
+                    ${this.getLocalizedText('en', 'email_public_link', details.variables) || 'Public Link'}: <a href="${details.variables.downloadURL}" style="color: #10b981;">${details.variables.downloadURL}</a>
+                  </p>
+                </div>
+                ` : ''}
+                ${details.variables?.storageFailed ? `
+                <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #fecaca;">
+                  <p style="color: #dc2626; margin: 0; font-weight: 600;">
+                    File storage temporarily unavailable - CSV content preview below
+                  </p>
+                  <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 12px; overflow-x: auto;">
+${details.variables.csvContent || 'No preview available'}
+                  </pre>
+                </div>
+                ` : ''}
+                
                 ${details.variables ? `
                 <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;">
                   <h3 style="color: #374151; margin-top: 0;">Details</h3>
-                  ${Object.entries(details.variables).map(([key, value]) => 
-                    `<p><strong>${key}:</strong> ${value}</p>`
-                  ).join('')}
+                  ${Object.entries(details.variables)
+                    .filter(([key]) => !['downloadURL', 'fileId', 'filename', 'csvContent'].includes(key))
+                    .map(([key, value]) => `<p><strong>${key}:</strong> ${value}</p>`)
+                    .join('')}
                 </div>
                 ` : ''}
                 
@@ -125,13 +154,13 @@ export const notificationGateway = {
                 </p>
               </div>
             `,
-            text: `${titleEn || 'Notification'}\n\n${messageEn || 'You have a new notification.'}\n\n${details.variables ? 
-              Object.entries(details.variables).map(([key, value]) => `${key}: ${value}`).join('\n') : 
+            text: `${titleEn || 'Notification'}\n\n${messageEn || 'You have a new notification.'}\n\n${details.variables?.downloadURL ? `Download: ${details.variables.downloadURL}\nFile ID: ${details.variables.fileId}\n\n` : ''}${details.variables ? 
+              Object.entries(details.variables)
+                .filter(([key]) => !['downloadURL', 'fileId', 'filename', 'csvContent'].includes(key))
+                .map(([key, value]) => `${key}: ${value}`)
+                .join('\n') : 
               ''}\n\nThis notification was sent from QAF Learning Hub.`,
-            attachments: details.variables?.csvContent ? [{
-              filename: `${trigger}_${details.variables?.programName || 'attachment'}_${new Date().toISOString().split('T')[0]}.csv`,
-              content: details.variables.csvContent
-            }] : []
+            attachments: []
           });
           console.log('✅ Primary email sending succeeded');
         } catch (primaryError) {
@@ -149,12 +178,40 @@ export const notificationGateway = {
                 </h2>
                 <p>${messageEn || 'You have a new notification.'}</p>
                 
+                ${details.variables?.downloadURL ? `
+                <div style="text-align: center; margin: 20px 0;">
+                  <a href="${details.variables.downloadURL}" 
+                     style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+                            color: white; padding: 12px 32px; text-decoration: none; border-radius: 8px; 
+                            font-weight: 600; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
+                    ${this.getLocalizedText('en', 'email_download_file', details.variables) || 'Download'} ${details.variables.filename || 'Report'}
+                  </a>
+                  <p style="color: #6b7280; font-size: 12px; margin-top: 10px;">
+                    ${this.getLocalizedText('en', 'email_file_id', details.variables) || 'File ID'}: ${details.variables.fileId || 'N/A'}
+                  </p>
+                  <p style="color: #6b7280; font-size: 12px; margin-top: 5px;">
+                    ${this.getLocalizedText('en', 'email_public_link', details.variables) || 'Public Link'}: <a href="${details.variables.downloadURL}" style="color: #10b981;">${details.variables.downloadURL}</a>
+                  </p>
+                </div>
+                ` : ''}
+                ${details.variables?.storageFailed ? `
+                <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #fecaca;">
+                  <p style="color: #dc2626; margin: 0; font-weight: 600;">
+                    File storage temporarily unavailable - CSV content preview below
+                  </p>
+                  <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 12px; overflow-x: auto;">
+${details.variables.csvContent || 'No preview available'}
+                  </pre>
+                </div>
+                ` : ''}
+                
                 ${details.variables ? `
                 <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;">
                   <h3 style="color: #374151; margin-top: 0;">Details</h3>
-                  ${Object.entries(details.variables).map(([key, value]) => 
-                    `<p><strong>${key}:</strong> ${value}</p>`
-                  ).join('')}
+                  ${Object.entries(details.variables)
+                    .filter(([key]) => !['downloadURL', 'fileId', 'filename', 'csvContent'].includes(key))
+                    .map(([key, value]) => `<p><strong>${key}:</strong> ${value}</p>`)
+                    .join('')}
                 </div>
                 ` : ''}
                 
@@ -170,8 +227,11 @@ export const notificationGateway = {
                 </p>
               </div>
             `,
-            text: `${titleEn || 'Notification'}\n\n${messageEn || 'You have a new notification.'}\n\n${details.variables ? 
-              Object.entries(details.variables).map(([key, value]) => `${key}: ${value}`).join('\n') : 
+            text: `${titleEn || 'Notification'}\n\n${messageEn || 'You have a new notification.'}\n\n${details.variables?.downloadURL ? `Download: ${details.variables.downloadURL}\nFile ID: ${details.variables.fileId}\n\n` : ''}${details.variables ? 
+              Object.entries(details.variables)
+                .filter(([key]) => !['downloadURL', 'fileId', 'filename', 'csvContent'].includes(key))
+                .map(([key, value]) => `${key}: ${value}`)
+                .join('\n') : 
               ''}\n\nThis notification was sent from QAF Learning Hub.`
           });
           

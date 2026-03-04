@@ -48,6 +48,22 @@ const DICT = {
     // Email Templates Help
     email_templates: 'Email Templates',
     help_templates_purpose: 'Manage email templates for various system notifications.',
+    
+    // Email download and file sharing
+    email_download_file: 'Download',
+    email_file_id: 'File ID',
+    email_public_link: 'Public Link',
+    email_share_file: 'Share File',
+    email_download_report: 'Download Report',
+    email_file_uploaded_successfully: 'File uploaded successfully',
+    email_file_upload_failed: 'File upload failed',
+    email_download_ready: 'Your file is ready for download',
+    email_click_to_download: 'Click to download your file',
+    email_file_details: 'File Details',
+    email_uploaded_by: 'Uploaded by',
+    email_uploaded_at: 'Uploaded at',
+    email_file_size: 'File Size',
+    email_download_count: 'Downloads',
     edit_template: 'Edit Template',
     help_template_edit: 'Customize the content and design of email notifications.',
     help_template_vars: 'Use dynamic variables like {{name}} to personalize emails.',

@@ -12,6 +12,10 @@ import { getEnrollments } from '@services/business/enrollmentService';
 import { getClasses } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { notificationGateway } from '@services/business/notificationGateway';
+import { uploadReport } from '@services/business/fileStorageService';
+import { REPORT_TYPES, STORAGE_CONSTANTS } from '@constants/reportConstants';
+import { BarChart3, FileSignature, Tag, Mail, Download, CheckCircle, ExternalLink } from 'lucide-react';
+import Modal from '@ui/Modal/Modal';
 import { markAttendance, getAttendanceByClass, getAttendanceByStudent, deleteAttendance } from '@services/business/attendanceService';
 import { getAttendanceRecords } from '@services/db/attendanceDbService';
 import { createPenalty, getPenalties, deletePenalty } from '@services/business/penaltyService';
@@ -94,6 +98,10 @@ const QRScannerPage = () => {
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
+  
+  // Success modal state
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successData, setSuccessData] = useState(null);
   const [selectedProgramId, setSelectedProgramId] = useState(() => {
     // Try to get saved selection from localStorage, fallback to 'all'
     try {
@@ -1891,7 +1899,46 @@ const QRScannerPage = () => {
           console.log('📧 Starting email send process via notification gateway...');
           
           try {
-            // Send to each recipient using notification gateway
+            // Step 1: Upload CSV to Firebase Storage for audit trail and sharing
+            console.log('📤 Uploading CSV report to Firebase Storage...');
+            let uploadResult;
+            
+            try {
+              uploadResult = await uploadReport({
+                csvContent,
+                filename: `${filename.replace('.csv', '')}.csv`,
+                userId: user?.uid,
+                reportMetadata: {
+                  reportType: REPORT_TYPES.SUMMARY_REPORT,
+                  programId: selectedProgramId,
+                  programName: currentProgram?.nameEn || currentProgram?.name || 'N/A',
+                  classId: selectedClassId,
+                  className: currentClass?.nameEn || currentClass?.name || 'N/A',
+                  subjectId: selectedSubjectId,
+                  subjectName: currentSubject?.nameEn || currentSubject?.name || 'N/A',
+                  totalStudents: enrichedData.length,
+                  selectedSubjects: selectedSubjectsForReport.length
+                }
+              });
+              
+              console.log('✅ CSV uploaded to Firebase Storage:', {
+                fileId: uploadResult.fileId,
+                downloadURL: uploadResult.downloadURL
+              });
+            } catch (storageError) {
+              console.error('❌ Firebase Storage upload failed:', storageError);
+              console.log('🔄 Continuing without storage upload - sending email with CSV content...');
+              
+              // Fallback: use a mock upload result for email sending
+              uploadResult = {
+                fileId: STORAGE_CONSTANTS.ERROR_PREFIXES.STORAGE_FAILED + Date.now(),
+                downloadURL: null,
+                filename: filename,
+                storageFailed: true
+              };
+            }
+            
+            // Step 2: Send email with download link
             const emailPromises = recipientEmails.map(async (recipientEmail) => {
               console.log('📧 Sending to recipient:', recipientEmail);
               
@@ -1903,7 +1950,7 @@ const QRScannerPage = () => {
                     role: 'admin',
                     email: recipientEmail,
                     title: `📊 Summary Report - ${currentProgram?.nameEn || currentProgram?.name || 'N/A'}`,
-                    message: `A summary report has been generated for ${currentProgram?.nameEn || currentProgram?.name || 'N/A'} with ${enrichedData.length} students.`,
+                    message: `A summary report has been generated for ${currentProgram?.nameEn || currentProgram?.name || 'N/A'} with ${enrichedData.length} students. Download the CSV report using the link below.`,
                     variables: {
                       userName: user?.displayName || 'Admin',
                       userEmail: user?.email,
@@ -1913,9 +1960,12 @@ const QRScannerPage = () => {
                       reportDate: new Date().toLocaleDateString(),
                       totalStudents: enrichedData.length,
                       selectedSubjects: selectedSubjectsForReport.length,
-                      recipientCount: 1,
-                      reportData: csvContent.substring(0, 500) + '...',
-                      csvContent: csvContent // Full CSV content for attachment
+                      recipientCount: recipientEmails.length,
+                      downloadURL: uploadResult.downloadURL,
+                      fileId: uploadResult.fileId,
+                      filename: uploadResult.filename,
+                      storageFailed: uploadResult.storageFailed || false,
+                      csvContent: uploadResult.storageFailed ? csvContent.substring(0, 1000) + '...' : null // Include preview if storage failed
                     }
                   }
                 );
@@ -1949,7 +1999,47 @@ const QRScannerPage = () => {
             
             if (successful > 0) {
               console.log('✅ Email sent successfully to', successful, 'recipients');
-              showSuccess(`Report sent successfully to ${successful} recipient${successful > 1 ? 's' : ''}`);
+              
+              // Show detailed success message with download link
+              if (uploadResult && uploadResult.downloadURL) {
+                const successMessage = `
+BarChart3 Report sent successfully to ${successful} recipient${successful > 1 ? 's' : ''}!
+
+FileSignature File: ${uploadResult.filename}
+Tag File ID: ${uploadResult.fileId}
+Mail Sent to: ${recipientEmails.join(', ')}
+
+Download Download: ${uploadResult.downloadURL}
+                `.trim();
+                
+                showSuccess(successMessage);
+                
+                // Show success modal with visual confirmation
+                setSuccessData({
+                  filename: uploadResult.filename,
+                  fileId: uploadResult.fileId,
+                  downloadURL: uploadResult.downloadURL,
+                  recipients: recipientEmails,
+                  totalRecipients: successful,
+                  reportData: {
+                    programName: currentProgram?.nameEn || currentProgram?.name || 'N/A',
+                    className: currentClass?.nameEn || currentClass?.name || 'N/A',
+                    totalStudents: enrichedData.length,
+                    selectedSubjects: selectedSubjectsForReport.length
+                  }
+                });
+                setShowSuccessModal(true);
+                
+                // Also show the download link in console for easy access
+                console.log('📥 Download Link:', uploadResult.downloadURL);
+                console.log('📁 File Details:', {
+                  filename: uploadResult.filename,
+                  fileId: uploadResult.fileId,
+                  sentTo: recipientEmails
+                });
+              } else {
+                showSuccess(`Report sent successfully to ${successful} recipient${successful > 1 ? 's' : ''}`);
+              }
               
               if (failed > 0) {
                 console.warn('⚠️ Some emails failed:', failed);
@@ -2999,6 +3089,156 @@ const QRScannerPage = () => {
           exportSemesterReport={exportSemesterReport}
           fetchUsersForEmail={fetchUsersForEmail}
         />
+
+        {/* Success Confirmation Modal */}
+        <Modal
+          isOpen={showSuccessModal}
+          onClose={() => setShowSuccessModal(false)}
+          title="Report Export Successful"
+          size="medium"
+          showCloseButton={true}
+        >
+          {successData && (
+            <div style={{ padding: '20px 0' }}>
+              {/* Success Header */}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px', 
+                marginBottom: '20px',
+                padding: '16px',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: '8px'
+              }}>
+                <CheckCircle size={24} style={{ color: '#16a34a' }} />
+                <div>
+                  <div style={{ fontWeight: 600, color: '#15803d', fontSize: '16px' }}>
+                    Report sent successfully to {successData.totalRecipients} recipient{successData.totalRecipients > 1 ? 's' : ''}!
+                  </div>
+                  <div style={{ color: '#16a34a', fontSize: '14px', marginTop: '2px' }}>
+                    Email delivered and file uploaded to cloud storage
+                  </div>
+                </div>
+              </div>
+
+              {/* File Details */}
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '14px', fontWeight: 600 }}>
+                  File Details
+                </h4>
+                <div style={{ 
+                  background: '#f8fafc', 
+                  padding: '12px', 
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  lineHeight: '1.5'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#6b7280' }}>File:</span>
+                    <span style={{ fontWeight: 500 }}>{successData.filename}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#6b7280' }}>File ID:</span>
+                    <span style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '12px' }}>
+                      {successData.fileId}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#6b7280' }}>Sent to:</span>
+                    <span style={{ fontWeight: 500 }}>{successData.recipients.join(', ')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Report Details */}
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '14px', fontWeight: 600 }}>
+                  Report Summary
+                </h4>
+                <div style={{ 
+                  background: '#f8fafc', 
+                  padding: '12px', 
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  lineHeight: '1.5'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#6b7280' }}>Program:</span>
+                    <span style={{ fontWeight: 500 }}>{successData.reportData.programName}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#6b7280' }}>Class:</span>
+                    <span style={{ fontWeight: 500 }}>{successData.reportData.className}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#6b7280' }}>Students:</span>
+                    <span style={{ fontWeight: 500 }}>{successData.reportData.totalStudents}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#6b7280' }}>Subjects:</span>
+                    <span style={{ fontWeight: 500 }}>{successData.reportData.selectedSubjects}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Download Actions */}
+              <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
+                <a
+                  href={successData.downloadURL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    background: '#10b981',
+                    color: 'white',
+                    padding: '12px 20px',
+                    textDecoration: 'none',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#059669'}
+                  onMouseOut={(e) => e.target.style.backgroundColor = '#10b981'}
+                >
+                  <Download size={16} />
+                  Download CSV Report
+                </a>
+                
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(successData.downloadURL);
+                    // You could add a toast notification here
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    background: '#f3f4f6',
+                    color: '#374151',
+                    border: '1px solid #d1d5db',
+                    padding: '12px 20px',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                  onMouseOut={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                >
+                  <ExternalLink size={16} />
+                  Copy Download Link
+                </button>
+              </div>
+            </div>
+          )}
+        </Modal>
       </div>
     </div>
   );
