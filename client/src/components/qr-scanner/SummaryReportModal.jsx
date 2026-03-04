@@ -196,7 +196,7 @@ const EmailOption = ({
           style={{ width: '18px', height: '18px' }}
         />
         <span style={{ fontSize: '0.875rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {getThemedIcon('ui', 'mail', 16, theme)}
+          {getThemedIcon('ui', 'send', 16, theme)}
           {t('send_via_email') || 'Send via Email instead of downloading'}
         </span>
       </label>
@@ -516,6 +516,13 @@ const ActionButtons = ({
       <Button 
         variant="primary" 
         onClick={() => {
+          // Validate subject selection
+          if (selectedSubjectsForReport.length === 0) {
+            console.error('❌ No subjects selected for report');
+            alert('Please select at least one subject for the report');
+            return;
+          }
+          
           setShowSemesterReportConfirm(false);
           exportSemesterReport();
         }}
@@ -530,7 +537,7 @@ const ActionButtons = ({
         {exportFormat === 'email' 
           ? (
             <>
-              {getThemedIcon('ui', 'mail', 16, theme)}
+              {getThemedIcon('ui', 'send', 16, theme)}
               {t('send_email') || 'Send Email'}
             </>
           )

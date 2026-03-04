@@ -2397,7 +2397,7 @@ const QRScannerPage = () => {
                 disabled={gridLoading || (!selectedClassId && !selectedProgramId) || isExporting}
                 title={t('export_summary_report') || 'Export comprehensive summary report'}
               >
-                {getThemedIcon('communication', 'mail', 16, theme)}
+                {getThemedIcon('ui', 'send', 16, theme)}
                 {t('summary_report') || 'Summary Report'}
               </button>
             </div>
