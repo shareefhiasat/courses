@@ -64,6 +64,24 @@ const DICT = {
     email_uploaded_at: 'Uploaded at',
     email_file_size: 'File Size',
     email_download_count: 'Downloads',
+    
+    // Success Modal
+    report_export_successful: 'Report Export Successful',
+    report_sent_successfully: 'Report sent successfully to {{count}} recipient{{plural}}!',
+    email_delivered_and_file_uploaded: 'Email delivered and file uploaded to cloud storage',
+    file_details: 'File Details',
+    report_summary: 'Report Summary',
+    download_csv_report: 'Download CSV Report',
+    copy_download_link: 'Copy Download Link',
+    
+    // Field Labels
+    file: 'File',
+    file_id: 'File ID',
+    sent_to: 'Sent to',
+    program: 'Program',
+    class: 'Class',
+    students: 'Students',
+    subjects: 'Subjects',
     edit_template: 'Edit Template',
     help_template_edit: 'Customize the content and design of email notifications.',
     help_template_vars: 'Use dynamic variables like {{name}} to personalize emails.',
@@ -4394,6 +4412,24 @@ const DICT = {
     'deselect_all': 'إلغاء اختيار الكل',
     'loading_recipients': 'جاري تحميل المستلمين...',
     'no_users_found': 'لم يتم العثور على مستخدمين',
+    
+    // Success Modal Field Labels
+    'report_export_successful': 'تم تصدير التقرير بنجاح',
+    'report_sent_successfully': 'تم إرسال التقرير بنجاح إلى {{count}} {{plural}}!',
+    'email_delivered_and_file_uploaded': 'تم تسليم البريد الإلكتروني ورفع الملف إلى التخزين السحابي',
+    'file_details': 'تفاصيل الملف',
+    'report_summary': 'ملخص التقرير',
+    'download_csv_report': 'تحميل تقرير CSV',
+    'copy_download_link': 'نسخ رابط التحميل',
+    
+    // Field Labels
+    'file': 'ملف',
+    'file_id': 'معرف الملف',
+    'sent_to': 'أرسل إلى',
+    'program': 'البرنامج',
+    'class': 'الفصل',
+    'students': 'الطلاب',
+    'subjects': 'المواد',
     'select_at_least_one_recipient': 'يرجى اختيار مستلم واحد على الأقل للبريد الإلكتروني',
     'recipients_selected': 'المستلمون المختارون',
     

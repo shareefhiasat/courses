@@ -14,7 +14,7 @@ import { getPrograms, getSubjects } from '@services/business/programService';
 import { notificationGateway } from '@services/business/notificationGateway';
 import { uploadReport } from '@services/business/fileStorageService';
 import { REPORT_TYPES, STORAGE_CONSTANTS } from '@constants/reportConstants';
-import { BarChart3, FileSignature, Tag, Mail, Download, CheckCircle, ExternalLink } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import Modal from '@ui/Modal/Modal';
 import { markAttendance, getAttendanceByClass, getAttendanceByStudent, deleteAttendance } from '@services/business/attendanceService';
 import { getAttendanceRecords } from '@services/db/attendanceDbService';
@@ -35,7 +35,6 @@ import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { USER_ROLES } from '@constants/activityTypes';
 import { Select, DatePicker, Button, Card, CardBody } from '@ui';
-import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 import QRScanner from '@/components/qr-scanner/QRScanner';
 import StudentRoster from '@/components/qr-scanner/StudentRoster';
 import StudentActionStatsPanel from '@/components/qr-scanner/StudentActionStatsPanel';
@@ -2003,13 +2002,13 @@ const QRScannerPage = () => {
               // Show detailed success message with download link
               if (uploadResult && uploadResult.downloadURL) {
                 const successMessage = `
-BarChart3 Report sent successfully to ${successful} recipient${successful > 1 ? 's' : ''}!
+${getThemedIcon('BarChart3')} Report sent successfully to ${successful} recipient${successful > 1 ? 's' : ''}!
 
-FileSignature File: ${uploadResult.filename}
-Tag File ID: ${uploadResult.fileId}
-Mail Sent to: ${recipientEmails.join(', ')}
+${getThemedIcon('FileSignature')} File: ${uploadResult.filename}
+${getThemedIcon('Tag')} File ID: ${uploadResult.fileId}
+${getThemedIcon('Mail')} Sent to: ${recipientEmails.join(', ')}
 
-Download Download: ${uploadResult.downloadURL}
+${getThemedIcon('Download')} Download: ${uploadResult.downloadURL}
                 `.trim();
                 
                 showSuccess(successMessage);
@@ -3094,7 +3093,7 @@ Download Download: ${uploadResult.downloadURL}
         <Modal
           isOpen={showSuccessModal}
           onClose={() => setShowSuccessModal(false)}
-          title="Report Export Successful"
+          title={t('report_export_successful')}
           size="medium"
           showCloseButton={true}
         >
@@ -3102,22 +3101,24 @@ Download Download: ${uploadResult.downloadURL}
             <div style={{ padding: '20px 0' }}>
               {/* Success Header */}
               <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '12px', 
                 marginBottom: '20px',
                 padding: '16px',
                 background: '#f0fdf4',
                 border: '1px solid #bbf7d0',
                 borderRadius: '8px'
               }}>
-                <CheckCircle size={24} style={{ color: '#16a34a' }} />
                 <div>
                   <div style={{ fontWeight: 600, color: '#15803d', fontSize: '16px' }}>
-                    Report sent successfully to {successData.totalRecipients} recipient{successData.totalRecipients > 1 ? 's' : ''}!
+                    {t('report_sent_successfully')
+                      .replace('{{count}}', successData.totalRecipients)
+                      .replace('{{plural}}', lang === 'ar' 
+                        ? (successData.totalRecipients > 1 ? 'مستلمين' : 'مستلم')
+                        : (successData.totalRecipients > 1 ? 's' : '')
+                      )
+                    }
                   </div>
                   <div style={{ color: '#16a34a', fontSize: '14px', marginTop: '2px' }}>
-                    Email delivered and file uploaded to cloud storage
+                    {t('email_delivered_and_file_uploaded')}
                   </div>
                 </div>
               </div>
@@ -3125,7 +3126,7 @@ Download Download: ${uploadResult.downloadURL}
               {/* File Details */}
               <div style={{ marginBottom: '20px' }}>
                 <h4 style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '14px', fontWeight: 600 }}>
-                  File Details
+                  {t('file_details')}
                 </h4>
                 <div style={{ 
                   background: '#f8fafc', 
@@ -3135,17 +3136,17 @@ Download Download: ${uploadResult.downloadURL}
                   lineHeight: '1.5'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: '#6b7280' }}>File:</span>
+                    <span style={{ color: '#6b7280' }}>{t('file')}</span>
                     <span style={{ fontWeight: 500 }}>{successData.filename}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: '#6b7280' }}>File ID:</span>
+                    <span style={{ color: '#6b7280' }}>{t('file_id')}</span>
                     <span style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '12px' }}>
                       {successData.fileId}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: '#6b7280' }}>Sent to:</span>
+                    <span style={{ color: '#6b7280' }}>{t('sent_to')}</span>
                     <span style={{ fontWeight: 500 }}>{successData.recipients.join(', ')}</span>
                   </div>
                 </div>
@@ -3154,7 +3155,7 @@ Download Download: ${uploadResult.downloadURL}
               {/* Report Details */}
               <div style={{ marginBottom: '20px' }}>
                 <h4 style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '14px', fontWeight: 600 }}>
-                  Report Summary
+                  {t('report_summary')}
                 </h4>
                 <div style={{ 
                   background: '#f8fafc', 
@@ -3164,19 +3165,19 @@ Download Download: ${uploadResult.downloadURL}
                   lineHeight: '1.5'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: '#6b7280' }}>Program:</span>
+                    <span style={{ color: '#6b7280' }}>{t('program')}</span>
                     <span style={{ fontWeight: 500 }}>{successData.reportData.programName}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: '#6b7280' }}>Class:</span>
+                    <span style={{ color: '#6b7280' }}>{t('class')}</span>
                     <span style={{ fontWeight: 500 }}>{successData.reportData.className}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: '#6b7280' }}>Students:</span>
+                    <span style={{ color: '#6b7280' }}>{t('students')}</span>
                     <span style={{ fontWeight: 500 }}>{successData.reportData.totalStudents}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#6b7280' }}>Subjects:</span>
+                    <span style={{ color: '#6b7280' }}>{t('subjects')}</span>
                     <span style={{ fontWeight: 500 }}>{successData.reportData.selectedSubjects}</span>
                   </div>
                 </div>
@@ -3205,8 +3206,8 @@ Download Download: ${uploadResult.downloadURL}
                   onMouseOver={(e) => e.target.style.backgroundColor = '#059669'}
                   onMouseOut={(e) => e.target.style.backgroundColor = '#10b981'}
                 >
-                  <Download size={16} />
-                  Download CSV Report
+                  {getThemedIcon('Download', { size: 16 })}
+                  {t('download_csv_report')}
                 </a>
                 
                 <button
@@ -3232,8 +3233,8 @@ Download Download: ${uploadResult.downloadURL}
                   onMouseOver={(e) => e.target.style.backgroundColor = '#e5e7eb'}
                   onMouseOut={(e) => e.target.style.backgroundColor = '#f3f4f6'}
                 >
-                  <ExternalLink size={16} />
-                  Copy Download Link
+                  {getThemedIcon('ExternalLink', { size: 16 })}
+                  {t('copy_download_link')}
                 </button>
               </div>
             </div>

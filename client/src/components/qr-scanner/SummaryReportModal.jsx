@@ -601,15 +601,8 @@ const ActionButtons = ({
         }}
       >
         {exportFormat === 'email' 
-          ? (
-            <>
-              {getThemedIcon('ui', 'send', 16, theme)}
-              {t('send_email') || 'Send Email'}
-            </>
-          )
-          : (
-            t('export_csv_excel') || 'Export CSV (Excel)'
-          )
+          ? t('send_email') || 'Send Email'
+          : t('export_csv_excel') || 'Export CSV (Excel)'
         }
       </Button>
     </div>
