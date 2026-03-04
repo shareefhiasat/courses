@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@contexts/AuthContext';
-import { subscribeToNotifications } from '@services/business/notificationService';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
+import { subscribeToNotifications } from '@services/business/notificationService';
 import { NotificationDrawer } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 // import useNotifications from '@hooks/useNotifications';
@@ -9,6 +10,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 const NotificationBell = () => {
   const { user } = useAuth();
   const { t } = useLang();
+  const { theme } = useTheme();
   // const { triggerNotification } = useNotifications();
   const [notifications, setNotifications] = useState([]);
   const [showDrawer, setShowDrawer] = useState(false);
@@ -84,7 +86,7 @@ const NotificationBell = () => {
               position: 'absolute',
               top: '-5px',
               right: '-5px',
-              background: 'rgba(220, 53, 69, 0.3)',
+              background: 'rgb(255,215,31)',
               color: 'white',
               borderRadius: '50%',
               width: '20px',

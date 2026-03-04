@@ -50,28 +50,6 @@ const QRScannerPage = () => {
   const { user, loading: authLoading, isAdmin, isSuperAdmin, isHR, isInstructor, role } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
-  
-  // Auth level logging for debugging color issues
-  console.log('🎨 QR Scanner Auth Debug:', {
-    user: user?.displayName || user?.email,
-    userId: user?.uid,
-    role: role,
-    isAdmin,
-    isSuperAdmin,
-    isHR,
-    isInstructor,
-    theme,
-    primaryColor: user?.primaryColor,
-    userPhotoURL: user?.photoURL,
-    themeObject: theme,
-    themeKeys: theme ? Object.keys(theme) : 'no theme',
-    themeColors: theme ? {
-      primary: theme.primary,
-      colorPrimary: theme.colorPrimary,
-      brand: theme.brand,
-      primaryColor: theme.primaryColor
-    } : 'no theme colors'
-  });
   const navigate = useNavigate();
   const toast = useToast();
   const showSuccess = toast?.showSuccess || ((msg) => console.log('SUCCESS:', msg));
@@ -1171,6 +1149,7 @@ const QRScannerPage = () => {
   }, [selectedClassId, selectedDate, loadStudents, triggerActivityRefresh]);
 
   const handleSort = useCallback((field) => {
+    console.log('🔄 Sort clicked:', field, 'current sortField:', sortField, 'current direction:', sortDirection);
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -2506,19 +2485,36 @@ const QRScannerPage = () => {
 
     // Sort students
     const sorted = [...filtered].sort((a, b) => {
-      // Always prioritize studentOrder as primary sort key, fallback to studentNumber
-      const aOrder = a.studentOrder !== null && a.studentOrder !== undefined && a.studentOrder !== '' ? Number(a.studentOrder) : (Number(a.studentNumber) || 999999);
-      const bOrder = b.studentOrder !== null && b.studentOrder !== undefined && b.studentOrder !== '' ? Number(b.studentOrder) : (Number(b.studentNumber) || 999999);
-      
-      // Primary sort: by studentOrder
-      const primarySort = aOrder - bOrder;
-      if (primarySort !== 0) {
-        return primarySort;
-      }
-      
-      // Secondary sort: use the selected sort field for students with same or no studentOrder
+      // Primary sort: use the selected sort field
       let aValue = a[sortField];
       let bValue = b[sortField];
+
+      // Handle attendance field specifically
+      if (sortField === 'attendance') {
+        aValue = a.attendance || a.status || 'absent_no_excuse';
+        bValue = b.attendance || b.status || 'absent_no_excuse';
+      }
+
+      // Handle attendance statistics fields
+      const attendanceStatsFields = ['present', 'late', 'absent', 'absentExcused', 'excusedLeave', 'human'];
+      if (attendanceStatsFields.includes(sortField)) {
+        const stats = a.attendanceStats || {};
+        const statsB = b.attendanceStats || {};
+        
+        // Map field names to attendance stats property names
+        const fieldMapping = {
+          'present': 'present',
+          'late': 'late',
+          'absent': 'absent',
+          'absentExcused': 'absentWithExcuse',
+          'excusedLeave': 'excusedLeave',
+          'human': 'humanitarianCase'
+        };
+        
+        const statProperty = fieldMapping[sortField];
+        aValue = stats[statProperty] || 0;
+        bValue = statsB[statProperty] || 0;
+      }
 
       // Handle nested values
       if (sortField === 'name') {
@@ -2535,9 +2531,20 @@ const QRScannerPage = () => {
       aValue = aValue?.toString() || '';
       bValue = bValue?.toString() || '';
 
-      return sortDirection === 'asc' 
+      const primarySort = sortDirection === 'asc' 
         ? aValue.localeCompare(bValue)
         : bValue.localeCompare(aValue);
+
+      // If primary sort results in a tie, use studentOrder as secondary sort
+      if (primarySort !== 0) {
+        return primarySort;
+      }
+
+      // Secondary sort: by studentOrder
+      const aOrder = a.studentOrder !== null && a.studentOrder !== undefined && a.studentOrder !== '' ? Number(a.studentOrder) : (Number(a.studentNumber) || 999999);
+      const bOrder = b.studentOrder !== null && b.studentOrder !== undefined && b.studentOrder !== '' ? Number(b.studentOrder) : (Number(b.studentNumber) || 999999);
+      
+      return aOrder - bOrder;
     });
 
     return sorted;
@@ -3006,6 +3013,7 @@ const QRScannerPage = () => {
               selectedClassId={selectedClassId}
               selectedDate={selectedDate}
               autoExpand={isScannerMinimized}
+              showSuccess={showSuccess}
             />
             </div>
           )}

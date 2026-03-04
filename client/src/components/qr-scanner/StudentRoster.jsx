@@ -24,6 +24,8 @@ import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '@services/business/userPreferenceService';
 import { getUserProfile } from '@services/business/userService';
+import { notificationGateway } from '@services/business/notificationGateway';
+import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { StudentHistory, StudentRosterHistory } from '@ui/history';
 import { DeleteModal } from '@ui';
 import { StudentCard, StudentTableRow } from '@ui/history';
@@ -50,7 +52,8 @@ const StudentRoster = React.memo(function StudentRoster({
   selectedProgramId,
   selectedSubjectId,
   selectedClassId,
-  selectedDate
+  selectedDate,
+  showSuccess = (msg) => console.log('SUCCESS:', msg)
 }) {
   const {user} = useAuth();
   const {theme} = useTheme();
@@ -662,13 +665,79 @@ const StudentRoster = React.memo(function StudentRoster({
       [student.id]: {...prev[student.id], summary: true}
     }));
     try {
-      // Email functionality would go here
       logger.log('Sending summary email to:', student.email);
-      // await sendStudentSummaryEmail(student.email, student.id);
-      alert('Summary email sent successfully!');
+      
+      // Create student summary data
+      const attendanceStats = student.attendanceStats || {};
+      const summaryData = {
+        studentName: student.name,
+        studentEmail: student.email,
+        studentId: student.studentId || student.id,
+        participation: student.participation || 0,
+        behavior: student.behavior || 0,
+        penalty: student.penalty || 0,
+        attendanceStatus: student.attendance || 'absent_no_excuse',
+        presentCount: attendanceStats.present || 0,
+        lateCount: attendanceStats.late || 0,
+        absentCount: attendanceStats.absent || 0,
+        absentExcusedCount: attendanceStats.absentWithExcuse || 0,
+        excusedLeaveCount: attendanceStats.excusedLeave || 0,
+        humanCaseCount: attendanceStats.humanitarianCase || 0,
+        totalAttendance: student.totalAttendance || 0,
+        selectedDate: selectedDate,
+        className: selectedClassId // This will be resolved in the notification
+      };
+
+      // Send the summary email using notificationGateway (same as export function)
+      const result = await notificationGateway.send(
+        NOTIFICATION_TRIGGERS.SUMMARY_REPORT,
+        {
+          userId: student.id,
+          role: 'student',
+          email: student.email,
+          title: `📊 ${t('student_summary_report') || 'Student Summary Report'} - ${student.name}`,
+          message: t('student_summary_email_message', {
+            studentName: student.name,
+            participation: student.participation || 0,
+            behavior: student.behavior || 0,
+            penalty: student.penalty || 0,
+            attendanceStatus: getLocalizedAttendanceLabel(student.attendance || 'absent_no_excuse', t, lang)
+          }) || `Hello ${student.name}, here is your summary report: Participation: ${student.participation || 0}, Behavior: ${student.behavior || 0}, Penalties: ${student.penalty || 0}, Attendance: ${getLocalizedAttendanceLabel(student.attendance || 'absent_no_excuse', t, lang)}`,
+          variables: {
+            userName: student.name,
+            userEmail: student.email,
+            studentName: student.name,
+            studentEmail: student.email,
+            studentId: student.studentId || student.id,
+            participation: student.participation || 0,
+            behavior: student.behavior || 0,
+            penalty: student.penalty || 0,
+            attendanceStatus: getLocalizedAttendanceLabel(student.attendance || 'absent_no_excuse', t, lang),
+            presentCount: attendanceStats.present || 0,
+            lateCount: attendanceStats.late || 0,
+            absentCount: attendanceStats.absent || 0,
+            absentExcusedCount: attendanceStats.absentWithExcuse || 0,
+            excusedLeaveCount: attendanceStats.excusedLeave || 0,
+            humanCaseCount: attendanceStats.humanitarianCase || 0,
+            totalAttendance: student.totalAttendance || 0,
+            selectedDate: selectedDate,
+            reportDate: new Date().toLocaleDateString(),
+            totalStudents: 1, // Single student report
+            recipientCount: 1,
+            downloadURL: null, // No file download for individual summary
+            fileId: null,
+            filename: null,
+            storageFailed: false
+          }
+        }
+      );
+      
+      showSuccess(t('summary_email_sent_successfully') || 'Summary email sent successfully!');
+      logger.log('✅ Summary email sent successfully to:', student.email);
     } catch (error) {
-      logger.error('Error sending summary email:', error);
-      alert('Failed to send summary email');
+      logger.error('❌ Error sending summary email:', error);
+      // Show user-friendly error message
+      alert(t('failed_to_send_email') || 'Failed to send summary email. Please try again.');
     } finally {
       setSendingEmails(prev => ({
         ...prev,
@@ -1174,77 +1243,107 @@ const StudentRoster = React.memo(function StudentRoster({
                   {t('penalties')} {getSortIcon('penalty')}
                 </th>
                 {/* Attendance Statistics Headers */}
-                <th style={{
-                  textAlign: 'center',
-                  padding: '0.75rem 0.5rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 500,
-                  color: 'var(--text-muted, #6b7280)',
-                  textTransform: isRTL ? 'none' : 'uppercase',
-                  letterSpacing: '0.05em',
-                  width: '80px'
-                }}>
-                  {t('present')}
+                <th 
+                  onClick={() => onSort('present')}
+                  style={{
+                    textAlign: 'center',
+                    padding: '0.75rem 0.5rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'var(--text-muted, #6b7280)',
+                    textTransform: isRTL ? 'none' : 'uppercase',
+                    letterSpacing: '0.05em',
+                    width: '80px',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  {t('present')} {getSortIcon('present')}
                 </th>
-                <th style={{
-                  textAlign: 'center',
-                  padding: '0.75rem 0.5rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 500,
-                  color: 'var(--text-muted, #6b7280)',
-                  textTransform: isRTL ? 'none' : 'uppercase',
-                  letterSpacing: '0.05em',
-                  width: '80px'
-                }}>
-                  {t('late')}
+                <th 
+                  onClick={() => onSort('late')}
+                  style={{
+                    textAlign: 'center',
+                    padding: '0.75rem 0.5rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'var(--text-muted, #6b7280)',
+                    textTransform: isRTL ? 'none' : 'uppercase',
+                    letterSpacing: '0.05em',
+                    width: '80px',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  {t('late')} {getSortIcon('late')}
                 </th>
-                <th style={{
-                  textAlign: 'center',
-                  padding: '0.75rem 0.5rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 500,
-                  color: 'var(--text-muted, #6b7280)',
-                  textTransform: isRTL ? 'none' : 'uppercase',
-                  letterSpacing: '0.05em',
-                  width: '80px'
-                }}>
-                  {t('absent')}
+                <th 
+                  onClick={() => onSort('absent')}
+                  style={{
+                    textAlign: 'center',
+                    padding: '0.75rem 0.5rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'var(--text-muted, #6b7280)',
+                    textTransform: isRTL ? 'none' : 'uppercase',
+                    letterSpacing: '0.05em',
+                    width: '80px',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  {t('absent')} {getSortIcon('absent')}
                 </th>
-                <th style={{
-                  textAlign: 'center',
-                  padding: '0.75rem 0.5rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 500,
-                  color: 'var(--text-muted, #6b7280)',
-                  textTransform: isRTL ? 'none' : 'uppercase',
-                  letterSpacing: '0.05em',
-                  width: '80px'
-                }}>
-                  {t('absent_excused')}
+                <th 
+                  onClick={() => onSort('absentExcused')}
+                  style={{
+                    textAlign: 'center',
+                    padding: '0.75rem 0.5rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'var(--text-muted, #6b7280)',
+                    textTransform: isRTL ? 'none' : 'uppercase',
+                    letterSpacing: '0.05em',
+                    width: '80px',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  {t('absent_excused')} {getSortIcon('absentExcused')}
                 </th>
-                <th style={{
-                  textAlign: 'center',
-                  padding: '0.75rem 0.5rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 500,
-                  color: 'var(--text-muted, #6b7280)',
-                  textTransform: isRTL ? 'none' : 'uppercase',
-                  letterSpacing: '0.05em',
-                  width: '80px'
-                }}>
-                  {t('excused_leave')}
+                <th 
+                  onClick={() => onSort('excusedLeave')}
+                  style={{
+                    textAlign: 'center',
+                    padding: '0.75rem 0.5rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'var(--text-muted, #6b7280)',
+                    textTransform: isRTL ? 'none' : 'uppercase',
+                    letterSpacing: '0.05em',
+                    width: '80px',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  {t('excused_leave')} {getSortIcon('excusedLeave')}
                 </th>
-                <th style={{
-                  textAlign: 'center',
-                  padding: '0.75rem 0.5rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 500,
-                  color: 'var(--text-muted, #6b7280)',
-                  textTransform: isRTL ? 'none' : 'uppercase',
-                  letterSpacing: '0.05em',
-                  width: '80px'
-                }}>
-                  {t('human')}
+                <th 
+                  onClick={() => onSort('human')}
+                  style={{
+                    textAlign: 'center',
+                    padding: '0.75rem 0.5rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'var(--text-muted, #6b7280)',
+                    textTransform: isRTL ? 'none' : 'uppercase',
+                    letterSpacing: '0.05em',
+                    width: '80px',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  {t('human')} {getSortIcon('human')}
                 </th>
                 <th style={{
                   textAlign: 'center',

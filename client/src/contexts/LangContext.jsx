@@ -138,6 +138,11 @@ const DICT = {
     // Footer totals
     total: 'Total',
     students: 'students',
+    // Student summary email
+    student_summary_report: 'Student Summary Report',
+    student_summary_email_message: 'Hello {{studentName}}, here is your summary report: Participation: {{participation}}, Behavior: {{behavior}}, Penalties: {{penalty}}, Attendance: {{attendanceStatus}}',
+    summary_email_sent_successfully: 'Summary email sent successfully!',
+    failed_to_send_email: 'Failed to send summary email. Please try again.',
     edit_template: 'Edit Template',
     help_template_edit: 'Customize the content and design of email notifications.',
     help_template_vars: 'Use dynamic variables like {{name}} to personalize emails.',
@@ -4542,6 +4547,11 @@ const DICT = {
     // Footer totals
     'total': 'المجموع',
     'students': 'طلاب',
+    // Student summary email
+    'student_summary_report': 'تقرير ملخص الطالب',
+    'student_summary_email_message': 'مرحباً {{studentName}}، إليك تقريرك الملخص: المشاركة: {{participation}}، السلوك: {{behavior}}، العقوبات: {{penalty}}، الحضور: {{attendanceStatus}}',
+    'summary_email_sent_successfully': 'تم إرسال البريد الإلكتروني الملخص بنجاح!',
+    'failed_to_send_email': 'فشل في إرسال البريد الإلكتروني الملخص. يرجى المحاولة مرة أخرى.',
     'select_at_least_one_recipient': 'يرجى اختيار مستلم واحد على الأقل للبريد الإلكتروني',
     'recipients_selected': 'المستلمون المختارون',
     
