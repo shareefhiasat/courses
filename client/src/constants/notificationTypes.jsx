@@ -130,6 +130,7 @@ export const NOTIFICATION_TRIGGERS = {
   WELCOME_SIGNUP: 'welcome_signup',
   PASSWORD_RESET: 'password_reset',
   QR_CODE_SENT: 'qr_code_sent',
+  SUMMARY_REPORT: 'summary_report',
   
   // Communication
   CHAT_MESSAGE: 'chat_message',

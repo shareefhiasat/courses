@@ -47,7 +47,10 @@ export const EMAIL_TEMPLATE_TYPES = {
   
   // Report Templates
   REPORT_GENERATED: 'report_generated',
-  REPORT_SCHEDULED: 'report_scheduled'
+  REPORT_SCHEDULED: 'report_scheduled',
+  
+  // Summary Report Templates
+  SUMMARY_REPORT_DEFAULT: 'summary_report_default'
 };
 
 export default EMAIL_TEMPLATE_TYPES;

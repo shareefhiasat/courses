@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button, Card, CardBody } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 
@@ -26,6 +26,19 @@ const SummaryReportModal = ({
   exportSemesterReport,
   fetchUsersForEmail
 }) => {
+  // Auto-scroll to students if there are many students when modal opens
+  useEffect(() => {
+    if (showSemesterReportConfirm && availableUsers.students?.length > 20) {
+      // Small delay to ensure modal is fully rendered
+      setTimeout(() => {
+        const studentsSection = document.getElementById('students-section');
+        if (studentsSection) {
+          studentsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+    }
+  }, [showSemesterReportConfirm, availableUsers.students]);
+
   if (!showSemesterReportConfirm) return null;
 
   return (
@@ -79,6 +92,8 @@ const SummaryReportModal = ({
             exportSemesterReport={exportSemesterReport}
             isExporting={isExporting}
             exportFormat={exportFormat}
+            selectedSubjectsForReport={selectedSubjectsForReport}
+            emailRecipients={emailRecipients}
             theme={theme}
             t={t}
           />
@@ -321,6 +336,15 @@ const OtherRecipients = ({
   theme,
   t
 }) => {
+  const scrollToStudents = () => {
+    const studentsSection = document.getElementById('students-section');
+    if (studentsSection) {
+      studentsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  const studentCount = availableUsers.students?.length || 0;
+  
   return (
     <div style={{
       padding: '0.75rem',
@@ -328,8 +352,35 @@ const OtherRecipients = ({
       border: '1px solid #e2e8f0',
       borderRadius: '0.5rem'
     }}>
-      <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.75rem', fontWeight: 500 }}>
-        {t('additional_recipients') || 'Additional Recipients'}
+      <div style={{ 
+        fontSize: '0.875rem', 
+        color: '#64748b', 
+        marginBottom: '0.75rem', 
+        fontWeight: 500,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <span>{t('additional_recipients') || 'Additional Recipients'}</span>
+        {studentCount > 10 && (
+          <button
+            onClick={scrollToStudents}
+            style={{
+              fontSize: '0.75rem',
+              padding: '0.25rem 0.5rem',
+              background: '#8b5cf6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.25rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => e.target.style.background = '#7c3aed'}
+            onMouseOut={(e) => e.target.style.background = '#8b5cf6'}
+          >
+            {t('scroll_to_students') || `Scroll to Students (${studentCount})`}
+          </button>
+        )}
       </div>
       
       <RoleSection
@@ -371,18 +422,20 @@ const OtherRecipients = ({
         chipColor="#ef4444"
       />
       
-      <RoleSection
-        role="students"
-        title={t('students') || 'Students'}
-        icon="users"
-        users={availableUsers.students || []}
-        emailRecipients={emailRecipients}
-        toggleUserSelection={toggleUserSelection}
-        toggleRoleSelection={toggleRoleSelection}
-        theme={theme}
-        t={t}
-        chipColor="#8b5cf6"
-      />
+      <div id="students-section">
+        <RoleSection
+          role="students"
+          title={t('students') || 'Students'}
+          icon="users"
+          users={availableUsers.students || []}
+          emailRecipients={emailRecipients}
+          toggleUserSelection={toggleUserSelection}
+          toggleRoleSelection={toggleRoleSelection}
+          theme={theme}
+          t={t}
+          chipColor="#8b5cf6"
+        />
+      </div>
     </div>
   );
 };
@@ -501,6 +554,8 @@ const ActionButtons = ({
   exportSemesterReport,
   isExporting,
   exportFormat,
+  selectedSubjectsForReport,
+  emailRecipients,
   theme,
   t
 }) => {
@@ -516,11 +571,22 @@ const ActionButtons = ({
       <Button 
         variant="primary" 
         onClick={() => {
-          // Validate subject selection
-          if (selectedSubjectsForReport.length === 0) {
+          // Validate subject selection with safety check
+          if (!selectedSubjectsForReport || selectedSubjectsForReport.length === 0) {
             console.error('❌ No subjects selected for report');
+            // Use toast instead of alert - we'll need to import this properly
             alert('Please select at least one subject for the report');
             return;
+          }
+          
+          // Validate email recipients if email format
+          if (exportFormat === 'email') {
+            console.log('🔍 Email validation debug:', { emailRecipients, exportFormat });
+            if (!emailRecipients || emailRecipients.length === 0) {
+              console.error('❌ No email recipients selected');
+              alert('Please select at least one email recipient');
+              return;
+            }
           }
           
           setShowSemesterReportConfirm(false);

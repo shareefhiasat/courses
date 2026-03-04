@@ -11,6 +11,7 @@ import { getUsers } from '@services/business/userService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getClasses } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
+import { notificationGateway } from '@services/business/notificationGateway';
 import { markAttendance, getAttendanceByClass, getAttendanceByStudent, deleteAttendance } from '@services/business/attendanceService';
 import { getAttendanceRecords } from '@services/db/attendanceDbService';
 import { createPenalty, getPenalties, deletePenalty } from '@services/business/penaltyService';
@@ -20,6 +21,8 @@ import { getPerformedByFields } from '@services/business/userService';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ATTENDANCE_METHODS, getAttendanceMethodLabel } from '@constants/attendanceMethods';
 import { ATTENDANCE_TYPES } from '@constants/attendanceTypes';
+import { EMAIL_TEMPLATE_TYPES } from '@constants/templateTypes';
+import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { useToast } from '@ui/ToastProvider.jsx';
 import { addNotification } from '@services/business/notificationService';
 import { sendStudentNotification } from '@services/business/notificationService';
@@ -1446,8 +1449,19 @@ const QRScannerPage = () => {
   // Helper functions for email functionality
   const getUserFromKey = useCallback((key) => {
     const [role, id] = key.split('_');
-    const user = availableUsers[role]?.find(u => u.id === id);
-    return user || { name: key, email: key };
+    
+    // Search across all user categories
+    const allUserCategories = ['admins', 'instructors', 'hr', 'students'];
+    for (const category of allUserCategories) {
+      const user = availableUsers[category]?.find(u => u.id === id);
+      if (user) {
+        return user;
+      }
+    }
+    
+    // Fallback: return key as both name and email
+    console.warn('⚠️ User not found for key:', key);
+    return { name: key, email: key };
   }, [availableUsers]);
 
   const toggleUserSelection = useCallback((user) => {
@@ -1821,14 +1835,34 @@ const QRScannerPage = () => {
         try {
           // Process email recipients
           const recipientEmails = emailRecipients.map(recipient => {
+            console.log('📧 Processing recipient:', recipient);
+            
             if (recipient === 'self') {
-              return user?.email || 'shareef.hiasat@gmail.com';
+              const selfEmail = user?.email || 'shareef.hiasat@gmail.com';
+              console.log('📧 Self email:', selfEmail);
+              return selfEmail;
             }
+            
             const userInfo = getUserFromKey(recipient);
+            console.log('📧 User info for', recipient, ':', userInfo);
+            
+            if (!userInfo || !userInfo.email) {
+              console.error('❌ No email found for recipient:', recipient);
+              return null;
+            }
+            
             return userInfo.email;
-          });
+          }).filter(email => email !== null); // Filter out null emails
           
           console.log('📧 Email Recipients:', recipientEmails);
+          
+          // Validate that we have valid email addresses
+          if (recipientEmails.length === 0) {
+            console.error('❌ No valid email addresses found after processing');
+            showError('No valid email recipients found');
+            return;
+          }
+          
           console.log('📧 Report Data:', {
             totalStudents: enrichedData.length,
             className: currentClass?.nameEn || currentClass?.name,
@@ -1837,29 +1871,83 @@ const QRScannerPage = () => {
             selectedSubjects: selectedSubjectsForReport.length
           });
           
-          // TODO: Implement email sending via your email service
-          // await sendEmail({
-          //   to: recipientEmails,
-          //   subject: `Summary Report - ${selectedSubjectsForReport.length > 0 ? programName : className}`,
-          //   template: 'summary_report',
-          //   data: {
-          //     userName: user?.displayName,
-          //     className: currentClass?.nameEn || currentClass?.name,
-          //     programName: currentProgram?.nameEn || currentProgram?.name,
-          //     subjectName: currentSubject?.nameEn || currentSubject?.name,
-          //     reportDate: new Date().toLocaleDateString(),
-          //     totalStudents: enrichedData.length,
-          //     selectedSubjects: selectedSubjectsForReport.length,
-          //     csvContent
-          //   },
-          //   attachments: [{
-          //     filename,
-          //     content: csvContent
-          //   }]
-          // });
+          // Send email using notification gateway (same as other system emails)
+          console.log('📧 Starting email send process via notification gateway...');
           
-          console.log('📧 Email would be sent to:', recipientEmails.join(', '));
-          showInfo(`Email would be sent to ${recipientEmails.length} recipients: ${recipientEmails.join(', ')}`);
+          try {
+            // Send to each recipient using notification gateway
+            const emailPromises = recipientEmails.map(async (recipientEmail) => {
+              console.log('📧 Sending to recipient:', recipientEmail);
+              
+              try {
+                const result = await notificationGateway.send(
+                  NOTIFICATION_TRIGGERS.SUMMARY_REPORT,
+                  {
+                    userId: user?.uid,
+                    role: 'admin',
+                    email: recipientEmail,
+                    title: `📊 Summary Report - ${currentProgram?.nameEn || currentProgram?.name || 'N/A'}`,
+                    message: `A summary report has been generated for ${currentProgram?.nameEn || currentProgram?.name || 'N/A'} with ${enrichedData.length} students.`,
+                    variables: {
+                      userName: user?.displayName || 'Admin',
+                      userEmail: user?.email,
+                      programName: currentProgram?.nameEn || currentProgram?.name || 'N/A',
+                      className: currentClass?.nameEn || currentClass?.name || 'N/A',
+                      subjectName: currentSubject?.nameEn || currentSubject?.name || 'N/A',
+                      reportDate: new Date().toLocaleDateString(),
+                      totalStudents: enrichedData.length,
+                      selectedSubjects: selectedSubjectsForReport.length,
+                      recipientCount: 1,
+                      reportData: csvContent.substring(0, 500) + '...'
+                    }
+                  }
+                );
+                
+                console.log('📧 Notification gateway result for', recipientEmail, ':', result);
+                return result;
+              } catch (error) {
+                console.error('📧 Notification gateway error for', recipientEmail, ':', error);
+                return { success: false, error: error.message };
+              }
+            });
+            
+            const results = await Promise.allSettled(emailPromises);
+            
+            console.log('📧 Raw results from Promise.allSettled:', results);
+            
+            // Check results
+            const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+            const failed = results.length - successful;
+            
+            console.log('📧 Email results:', { successful, failed, total: results.length });
+            
+            // Log each result for debugging
+            results.forEach((result, index) => {
+              if (result.status === 'fulfilled') {
+                console.log(`📧 Result ${index}:`, result.value);
+              } else {
+                console.log(`📧 Result ${index} (rejected):`, result.reason);
+              }
+            });
+            
+            if (successful > 0) {
+              console.log('✅ Email sent successfully to', successful, 'recipients');
+              showSuccess(`Report sent successfully to ${successful} recipient${successful > 1 ? 's' : ''}`);
+              
+              if (failed > 0) {
+                console.warn('⚠️ Some emails failed:', failed);
+                showError(`${failed} email${failed > 1 ? 's' : ''} failed to send`);
+              }
+            } else {
+              console.error('❌ All emails failed');
+              showError('Failed to send any emails');
+            }
+            
+          } catch (emailError) {
+            console.error('❌ Email send failed:', emailError);
+            console.log('📧 Error details:', emailError);
+            showError(`Failed to send email: ${emailError.message}`);
+          }
           
         } catch (emailError) {
           console.error('📧 Email send failed:', emailError);
