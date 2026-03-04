@@ -2002,14 +2002,14 @@ const QRScannerPage = () => {
               // Show detailed success message with download link
               if (uploadResult && uploadResult.downloadURL) {
                 const successMessage = `
-${getThemedIcon('BarChart3')} Report sent successfully to ${successful} recipient${successful > 1 ? 's' : ''}!
-
-${getThemedIcon('FileSignature')} File: ${uploadResult.filename}
-${getThemedIcon('Tag')} File ID: ${uploadResult.fileId}
-${getThemedIcon('Mail')} Sent to: ${recipientEmails.join(', ')}
-
-${getThemedIcon('Download')} Download: ${uploadResult.downloadURL}
-                `.trim();
+                ${getThemedIcon('ui', 'bar_chart_3', 16, theme)} Report sent successfully to ${successful} recipient${successful > 1 ? 's' : ''}!
+                
+                ${getThemedIcon('ui', 'file_signature', 16, theme)} File: ${uploadResult.filename}
+                ${getThemedIcon('ui', 'tag', 16, theme)} File ID: ${uploadResult.fileId}
+                ${getThemedIcon('ui', 'mail', 16, theme)} Sent to: ${recipientEmails.join(', ')}
+                
+                ${getThemedIcon('ui', 'download', 16, theme)} Download: ${uploadResult.downloadURL}
+                                `.trim();
                 
                 showSuccess(successMessage);
                 
@@ -3206,7 +3206,7 @@ ${getThemedIcon('Download')} Download: ${uploadResult.downloadURL}
                   onMouseOver={(e) => e.target.style.backgroundColor = '#059669'}
                   onMouseOut={(e) => e.target.style.backgroundColor = '#10b981'}
                 >
-                  {getThemedIcon('Download', { size: 16 })}
+                  {getThemedIcon('ui', 'download', 16, theme)}
                   {t('download_csv_report')}
                 </a>
                 
@@ -3233,7 +3233,7 @@ ${getThemedIcon('Download')} Download: ${uploadResult.downloadURL}
                   onMouseOver={(e) => e.target.style.backgroundColor = '#e5e7eb'}
                   onMouseOut={(e) => e.target.style.backgroundColor = '#f3f4f6'}
                 >
-                  {getThemedIcon('ExternalLink', { size: 16 })}
+                  {getThemedIcon('ui', 'external_link', 16, theme)}
                   {t('copy_download_link')}
                 </button>
               </div>
