@@ -40,6 +40,7 @@ import StudentRoster from '@/components/qr-scanner/StudentRoster';
 import StudentActionStatsPanel from '@/components/qr-scanner/StudentActionStatsPanel';
 import StudentActionZapPanel from '@/components/qr-scanner/StudentActionZapPanel';
 import SummaryReportModal from '@/components/qr-scanner/SummaryReportModal';
+import ReportExportModal from '@/components/qr-scanner/ReportExportModal';
 import '@/components/qr-scanner/ui/qr-scanner-ui.css';
 import './QRScannerPage.module.css';
 import eventBus, { EVENTS } from '@utils/eventBus';
@@ -159,12 +160,15 @@ const QRScannerPage = () => {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
   const [isScannerMinimized, setIsScannerMinimized] = useState(false);
   
-  // Summary report export preferences modal state
+  // Report export modal state (unified for both daily and summary)
+  const [showDailyReportModal, setShowDailyReportModal] = useState(false);
   const [showSemesterReportConfirm, setShowSemesterReportConfirm] = useState(false);
   const [exportFormat, setExportFormat] = useState('csv'); // 'csv', 'email'
+  const [dailyExportFormat, setDailyExportFormat] = useState('csv'); // For daily report
   const [isExporting, setIsExporting] = useState(false);
   const [selectedSubjectsForReport, setSelectedSubjectsForReport] = useState([]);
   const [emailRecipients, setEmailRecipients] = useState([]); // For email functionality
+  const [dailyEmailRecipients, setDailyEmailRecipients] = useState([]); // For daily report email
   const [showEmailRecipientDialog, setShowEmailRecipientDialog] = useState(false);
   const [availableUsers, setAvailableUsers] = useState([]); // Instructors, Admins, HR
   const [usersLoading, setUsersLoading] = useState(false);
@@ -1183,6 +1187,40 @@ const QRScannerPage = () => {
     setSelectedStudentForAction(null);
   }, []);
 
+  // Helper functions for email functionality
+  const getUserFromKey = useCallback((key) => {
+    const [role, id] = key.split('_');
+    
+    console.log('🔍 getUserFromKey debug:', { key, role, id, availableUsersKeys: Object.keys(availableUsers) });
+    
+    // Search across all user categories using the correct keys
+    const allUserCategories = ['admins', 'instructors', 'hr', 'students'];
+    for (const category of allUserCategories) {
+      const users = availableUsers[category];
+      console.log(`🔍 Searching in category ${category}:`, users?.length || 0, 'users');
+      const user = users?.find(u => u.id === id);
+      if (user) {
+        console.log('✅ Found user in', category, ':', user);
+        return user;
+      }
+    }
+    
+    // Check if this is the current user - use their actual email
+    if (id === user?.uid) {
+      console.log('✅ Using current user email fallback:', user.email);
+      return { 
+        name: user.displayName || user.email, 
+        email: user.email,
+        id: user.uid,
+        role: user.role || 'user'
+      };
+    }
+    
+    // Fallback: return key as both name and email
+    console.warn('⚠️ User not found for key:', key);
+    return { name: key, email: key };
+  }, [availableUsers, user]);
+
   // Export Daily Report function
   const exportDailyReport = useCallback(async () => {
     if (!selectedClassId || selectedClassId === 'all') {
@@ -1315,6 +1353,13 @@ const QRScannerPage = () => {
             : 'No attendance records found for this date. Please mark attendance first.');
         
         showError(message);
+        
+        // Also show info about how to mark attendance
+        const helpMessage = lang === 'ar' 
+          ? '💡 نصيحة: استخدم ماسح QR ل تسجيل حضور الطلاب أولاً'
+          : '💡 Tip: Use the QR scanner to mark student attendance first';
+        
+        showInfo(helpMessage);
         return;
       }
 
@@ -1428,65 +1473,138 @@ const QRScannerPage = () => {
         dateFormatted
       });
 
-      // Create and download file
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      // Handle export based on format
+      if (dailyExportFormat === 'email') {
+        console.log('📧 Sending daily report via email...');
+        
+        try {
+          // Upload CSV to Firebase Storage
+          const uploadResult = await uploadReport(csvContent, filename, {
+            reportType: REPORT_TYPES.DAILY_ATTENDANCE,
+            programId: selectedProgramId,
+            subjectId: selectedSubjectId,
+            classId: selectedClassId,
+            date: selectedDate,
+            uploadedBy: user?.uid,
+            uploadedByName: user?.displayName || user?.email
+          });
 
-      // Show success message
-      const successMessage = t('report_exported_successfully') || 
-        (lang === 'ar' 
-          ? 'تم تصدير التقرير بنجاح'
-          : 'Report exported successfully');
-      showSuccess(successMessage);
+          if (!uploadResult.success) {
+            throw new Error(uploadResult.error || 'Failed to upload report');
+          }
+
+          console.log('📤 File uploaded successfully:', uploadResult);
+
+          // Process email recipients
+          const recipientEmails = [];
+          
+          for (const recipient of dailyEmailRecipients) {
+            if (recipient === 'self') {
+              recipientEmails.push(user?.email);
+            } else {
+              const recipientUser = getUserFromKey(recipient);
+              if (recipientUser && recipientUser.email) {
+                recipientEmails.push(recipientUser.email);
+              }
+            }
+          }
+
+          console.log('📧 Sending to recipients:', recipientEmails);
+
+          // Send emails
+          const emailPromises = recipientEmails.map(async (recipientEmail) => {
+            try {
+              const result = await notificationGateway.send(
+                NOTIFICATION_TRIGGERS.SUMMARY_REPORT,
+                {
+                  userId: user?.uid,
+                  role: 'admin',
+                  email: recipientEmail,
+                  title: `📊 Daily Attendance Report - ${className}`,
+                  message: `Daily attendance report for ${className} on ${dateFormatted}`,
+                  variables: {
+                    reportType: 'Daily Attendance Report',
+                    programName: programName,
+                    subjectName: subjectName,
+                    className: className,
+                    date: dateFormatted,
+                    totalRecords: enrichedData.length,
+                    downloadURL: uploadResult.downloadURL,
+                    filename: uploadResult.filename,
+                    fileId: uploadResult.fileId
+                  }
+                }
+              );
+              return result;
+            } catch (error) {
+              console.error('📧 Email error for', recipientEmail, ':', error);
+              return { success: false, error: error.message };
+            }
+          });
+
+          const results = await Promise.allSettled(emailPromises);
+          const successful = results.filter(r => r.status === 'fulfilled' && r.value?.success).length;
+          const failed = results.length - successful;
+
+          if (successful > 0) {
+            console.log('✅ Email sent successfully to', successful, 'recipients');
+            
+            setSuccessData({
+              filename: uploadResult.filename,
+              fileId: uploadResult.fileId,
+              downloadURL: uploadResult.downloadURL,
+              recipients: recipientEmails,
+              totalRecipients: successful,
+              reportData: {
+                programName,
+                className,
+                totalStudents: enrichedData.length,
+                selectedSubjects: 1
+              }
+            });
+            setShowSuccessModal(true);
+
+            if (failed > 0) {
+              console.warn('⚠️ Some emails failed:', failed);
+              showError(`${failed} email${failed > 1 ? 's' : ''} failed to send`);
+            }
+          } else {
+            console.error('❌ All emails failed');
+            showError('Failed to send any emails');
+          }
+        } catch (emailError) {
+          console.error('📧 Email send failed:', emailError);
+          showError('Failed to send email: ' + emailError.message);
+        }
+      } else {
+        // CSV export (default)
+        console.log('📊 Generating CSV export...');
+        
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        const successMessage = t('report_exported_successfully') || 
+          (lang === 'ar' 
+            ? 'تم تصدير التقرير بنجاح'
+            : 'Report exported successfully');
+        showSuccess(successMessage);
+      }
 
     } catch (error) {
       console.error('Export failed:', error);
       const errorMessage = (t('export_failed') || 'Export failed: ') + error.message;
       showError(errorMessage);
     }
-  }, [selectedClassId, selectedDate, selectedProgramId, selectedSubjectId, programs, subjects, classes, lang, t]);
+  }, [selectedClassId, selectedDate, selectedProgramId, selectedSubjectId, programs, subjects, classes, lang, t, dailyExportFormat, dailyEmailRecipients, user, availableUsers, showError, showSuccess]);
 
-  // Helper functions for email functionality
-  const getUserFromKey = useCallback((key) => {
-    const [role, id] = key.split('_');
-    
-    console.log('🔍 getUserFromKey debug:', { key, role, id, availableUsersKeys: Object.keys(availableUsers) });
-    
-    // Search across all user categories
-    const allUserCategories = [USER_ROLES.ADMIN, USER_ROLES.INSTRUCTOR, USER_ROLES.HR, USER_ROLES.STUDENT];
-    for (const category of allUserCategories) {
-      const users = availableUsers[category];
-      console.log(`🔍 Searching in category ${category}:`, users?.length || 0, 'users');
-      const user = users?.find(u => u.id === id);
-      if (user) {
-        console.log('✅ Found user in', category, ':', user);
-        return user;
-      }
-    }
-    
-    // Check if this is the current user - use their actual email
-    if (id === user?.uid) {
-      console.log('✅ Using current user email fallback:', user.email);
-      return { 
-        name: user.displayName || user.email, 
-        email: user.email,
-        id: user.uid,
-        role: user.role || 'user'
-      };
-    }
-    
-    // Fallback: return key as both name and email
-    console.warn('⚠️ User not found for key:', key);
-    return { name: key, email: key };
-  }, [availableUsers, user]);
-
+  
   const toggleUserSelection = useCallback((user) => {
     const userKey = `${user.role}_${user.id}`;
     if (emailRecipients.includes(userKey)) {
@@ -1495,6 +1613,16 @@ const QRScannerPage = () => {
       setEmailRecipients([...emailRecipients, userKey]);
     }
   }, [emailRecipients]);
+
+  // Separate toggle function for daily report email recipients
+  const toggleDailyUserSelection = useCallback((user) => {
+    const userKey = `${user.role}_${user.id}`;
+    if (dailyEmailRecipients.includes(userKey)) {
+      setDailyEmailRecipients(dailyEmailRecipients.filter(r => r !== userKey));
+    } else {
+      setDailyEmailRecipients([...dailyEmailRecipients, userKey]);
+    }
+  }, [dailyEmailRecipients]);
 
   const toggleRoleSelection = useCallback((role) => {
     const roleUsers = availableUsers[role] || [];
@@ -1516,6 +1644,28 @@ const QRScannerPage = () => {
       setEmailRecipients(newRecipients);
     }
   }, [availableUsers, emailRecipients]);
+
+  // Separate toggle function for daily report role selection
+  const toggleDailyRoleSelection = useCallback((role) => {
+    const roleUsers = availableUsers[role] || [];
+    const roleKeys = roleUsers.map(user => `${user.role}_${user.id}`);
+    
+    const allSelected = roleKeys.every(key => dailyEmailRecipients.includes(key));
+    
+    if (allSelected) {
+      // Remove all users in this role
+      setDailyEmailRecipients(dailyEmailRecipients.filter(r => !roleKeys.includes(r)));
+    } else {
+      // Add all users in this role
+      const newRecipients = [...dailyEmailRecipients];
+      roleKeys.forEach(key => {
+        if (!newRecipients.includes(key)) {
+          newRecipients.push(key);
+        }
+      });
+      setDailyEmailRecipients(newRecipients);
+    }
+  }, [availableUsers, dailyEmailRecipients]);
 
   // Export Summary Report function
   const exportSemesterReport = useCallback(async () => {
@@ -1861,9 +2011,12 @@ const QRScannerPage = () => {
             console.log('📧 Processing recipient:', recipient);
             
             if (recipient === 'self') {
-              const selfEmail = user?.email || 'shareef.hiasat@gmail.com';
-              console.log('📧 Self email:', selfEmail);
-              return selfEmail;
+              if (!user?.email) {
+                console.warn('⚠️ No user email available for self recipient');
+                return null;
+              }
+              console.log('📧 Self email:', user.email);
+              return user.email;
             }
             
             const userInfo = getUserFromKey(recipient);
@@ -2138,23 +2291,30 @@ const QRScannerPage = () => {
           }
         } else {
           // Use Firebase user data for other users
+          console.log('🔍 Categorizing user:', firebaseUser.email, 'with role:', firebaseUser.role);
+          
           if (firebaseUser.role === USER_ROLES.SUPER_ADMIN || 
               firebaseUser.role === USER_ROLES.ADMIN ||
               firebaseUser.isSuperAdmin === true ||
               firebaseUser.isAdmin === true) {
             categorizedUsers.admins.push(firebaseUser);
+            console.log('✅ Added to admins:', firebaseUser.email);
           } else if (firebaseUser.role === USER_ROLES.HR || 
                      firebaseUser.isHR === true) {
             categorizedUsers.hr.push(firebaseUser);
+            console.log('✅ Added to HR:', firebaseUser.email);
           } else if (firebaseUser.role === USER_ROLES.INSTRUCTOR || 
                      firebaseUser.isInstructor === true) {
             categorizedUsers.instructors.push(firebaseUser);
+            console.log('✅ Added to instructors:', firebaseUser.email);
           } else if (firebaseUser.role === USER_ROLES.STUDENT || 
                      firebaseUser.isStudent === true) {
             categorizedUsers.students.push(firebaseUser);
+            console.log('✅ Added to students:', firebaseUser.email);
           } else {
-            // Default to students for unknown roles
+            // Default to students for unknown roles, but add debug info
             categorizedUsers.students.push(firebaseUser);
+            console.log('⚠️ Added to students (unknown role):', firebaseUser.email, 'role:', firebaseUser.role);
           }
         }
       });
@@ -2540,7 +2700,13 @@ const QRScannerPage = () => {
               flexWrap: 'wrap'
             }}>
               <button
-                onClick={exportDailyReport}
+                onClick={() => {
+                  if (!selectedClassId || selectedClassId === 'all') {
+                    showError(t('please_select_class') || 'Please select a class first');
+                    return;
+                  }
+                  setShowDailyReportModal(true);
+                }}
                 style={{
                   padding: '0.625rem 1.25rem',
                   background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
@@ -3086,6 +3252,33 @@ const QRScannerPage = () => {
           lang={lang}
           isExporting={isExporting}
           exportSemesterReport={exportSemesterReport}
+          fetchUsersForEmail={fetchUsersForEmail}
+        />
+
+        {/* Daily Report Export Modal */}
+        <ReportExportModal
+          isOpen={showDailyReportModal}
+          onClose={() => setShowDailyReportModal(false)}
+          reportType="daily"
+          exportFormat={dailyExportFormat}
+          setExportFormat={setDailyExportFormat}
+          selectedSubjectsForReport={[]}
+          setSelectedSubjectsForReport={() => {}}
+          subjects={subjects}
+          selectedProgramId={selectedProgramId}
+          programs={programs}
+          emailRecipients={dailyEmailRecipients}
+          setEmailRecipients={setDailyEmailRecipients}
+          usersLoading={usersLoading}
+          availableUsers={availableUsers}
+          toggleUserSelection={toggleDailyUserSelection}
+          toggleRoleSelection={toggleDailyRoleSelection}
+          user={user}
+          theme={theme}
+          t={t}
+          lang={lang}
+          isExporting={isExporting}
+          onExport={exportDailyReport}
           fetchUsersForEmail={fetchUsersForEmail}
         />
 

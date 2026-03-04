@@ -82,6 +82,11 @@ const DICT = {
     class: 'Class',
     students: 'Students',
     subjects: 'Subjects',
+    
+    // Daily Report
+    daily_report_preferences: 'Daily Report Export Preferences',
+    no_attendance_records_found: 'No attendance records found for this date. Please mark attendance first.',
+    clear_all: 'Clear All',
     edit_template: 'Edit Template',
     help_template_edit: 'Customize the content and design of email notifications.',
     help_template_vars: 'Use dynamic variables like {{name}} to personalize emails.',
@@ -4430,6 +4435,11 @@ const DICT = {
     'class': 'الفصل',
     'students': 'الطلاب',
     'subjects': 'المواد',
+    
+    // Daily Report
+    'daily_report_preferences': 'تفضيلات تصدير التقرير اليومي',
+    'no_attendance_records_found': 'لا توجد سجلات حضور لهذا التاريخ. يرجى تسجيل الحضور أولاً.',
+    'clear_all': 'مسح الكل',
     'select_at_least_one_recipient': 'يرجى اختيار مستلم واحد على الأقل للبريد الإلكتروني',
     'recipients_selected': 'المستلمون المختارون',
     

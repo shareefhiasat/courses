@@ -2,9 +2,10 @@ import React, { useEffect } from 'react';
 import { Button, Card, CardBody } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 
-const SummaryReportModal = ({
-  showSemesterReportConfirm,
-  setShowSemesterReportConfirm,
+const ReportExportModal = ({
+  isOpen,
+  onClose,
+  reportType, // 'daily' or 'summary'
   exportFormat,
   setExportFormat,
   selectedSubjectsForReport,
@@ -23,13 +24,11 @@ const SummaryReportModal = ({
   t,
   lang,
   isExporting,
-  exportSemesterReport,
+  onExport,
   fetchUsersForEmail
 }) => {
-  // Auto-scroll to students if there are many students when modal opens
   useEffect(() => {
-    if (showSemesterReportConfirm && availableUsers.students?.length > 20) {
-      // Small delay to ensure modal is fully rendered
+    if (isOpen && availableUsers.students?.length > 20) {
       setTimeout(() => {
         const studentsSection = document.getElementById('students-section');
         if (studentsSection) {
@@ -37,9 +36,12 @@ const SummaryReportModal = ({
         }
       }, 300);
     }
-  }, [showSemesterReportConfirm, availableUsers.students]);
+  }, [isOpen, availableUsers.students]);
 
-  if (!showSemesterReportConfirm) return null;
+  if (!isOpen) return null;
+
+  const isSummaryReport = reportType === 'summary';
+  const isDailyReport = reportType === 'daily';
 
   return (
     <div style={{
@@ -54,23 +56,26 @@ const SummaryReportModal = ({
       justifyContent: 'center',
       zIndex: 1000
     }}>
-      <Card style={{ maxWidth: '600px', margin: '1rem', width: '100%' }}>
+      <Card style={{ maxWidth: '600px', margin: '1rem', width: '100%', maxHeight: '90vh', overflow: 'auto' }}>
         <CardBody>
           <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem', fontWeight: 600 }}>
-            {t('summary_report_preferences') || 'Summary Report Export Preferences'}
+            {isSummaryReport 
+              ? (t('summary_report_preferences') || 'Summary Report Export Preferences')
+              : (t('daily_report_preferences') || 'Daily Report Export Preferences')
+            }
           </h3>
           
-          {/* Subject Selection */}
-          <SubjectSelection
-            selectedSubjectsForReport={selectedSubjectsForReport}
-            setSelectedSubjectsForReport={setSelectedSubjectsForReport}
-            subjects={subjects}
-            selectedProgramId={selectedProgramId}
-            programs={programs}
-            t={t}
-          />
+          {isSummaryReport && (
+            <SubjectSelection
+              selectedSubjectsForReport={selectedSubjectsForReport}
+              setSelectedSubjectsForReport={setSelectedSubjectsForReport}
+              subjects={subjects}
+              selectedProgramId={selectedProgramId}
+              programs={programs}
+              t={t}
+            />
+          )}
 
-          {/* Email Option */}
           <EmailOption
             exportFormat={exportFormat}
             setExportFormat={setExportFormat}
@@ -86,14 +91,14 @@ const SummaryReportModal = ({
             fetchUsersForEmail={fetchUsersForEmail}
           />
 
-          {/* Action Buttons */}
           <ActionButtons
-            setShowSemesterReportConfirm={setShowSemesterReportConfirm}
-            exportSemesterReport={exportSemesterReport}
+            onClose={onClose}
+            onExport={onExport}
             isExporting={isExporting}
             exportFormat={exportFormat}
             selectedSubjectsForReport={selectedSubjectsForReport}
             emailRecipients={emailRecipients}
+            reportType={reportType}
             theme={theme}
             t={t}
           />
@@ -203,7 +208,6 @@ const EmailOption = ({
             const isEmail = e.target.checked;
             setExportFormat(isEmail ? 'email' : 'csv');
             
-            // Fetch users when email is selected
             if (isEmail && availableUsers.length === 0) {
               fetchUsersForEmail();
             }
@@ -318,7 +322,7 @@ const SelfEmailChip = ({ emailRecipients, setEmailRecipients, user, theme, t }) 
           fontWeight: 500
         }}
       >
-        {t('send_to_myself') || 'Send to myself'} ({user?.email || 'shareef.hiasat@gmail.com'})
+        {t('send_to_myself') || 'Send to myself'} ({user?.email || ''})
         {emailRecipients.includes('self') && (
           <span style={{ marginLeft: '0.5rem', fontWeight: '600' }}>✓</span>
         )}
@@ -578,20 +582,23 @@ const UserChip = ({ user, emailRecipients, toggleUserSelection, chipColor }) => 
 };
 
 const ActionButtons = ({
-  setShowSemesterReportConfirm,
-  exportSemesterReport,
+  onClose,
+  onExport,
   isExporting,
   exportFormat,
   selectedSubjectsForReport,
   emailRecipients,
+  reportType,
   theme,
   t
 }) => {
+  const isSummaryReport = reportType === 'summary';
+
   return (
     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
       <Button 
         variant="outline" 
-        onClick={() => setShowSemesterReportConfirm(false)}
+        onClick={onClose}
         disabled={isExporting}
       >
         {t('cancel')}
@@ -599,26 +606,24 @@ const ActionButtons = ({
       <Button 
         variant="primary" 
         onClick={() => {
-          // Validate subject selection with safety check
-          if (!selectedSubjectsForReport || selectedSubjectsForReport.length === 0) {
-            console.error('❌ No subjects selected for report');
-            // Use toast instead of alert - we'll need to import this properly
-            alert('Please select at least one subject for the report');
-            return;
-          }
-          
-          // Validate email recipients if email format
-          if (exportFormat === 'email') {
-            console.log('🔍 Email validation debug:', { emailRecipients, exportFormat });
-            if (!emailRecipients || emailRecipients.length === 0) {
-              console.error('❌ No email recipients selected');
-              alert('Please select at least one email recipient');
+          if (isSummaryReport) {
+            if (!selectedSubjectsForReport || selectedSubjectsForReport.length === 0) {
+              console.error('❌ No subjects selected for report');
+              alert(t('select_at_least_one_subject') || 'Please select at least one subject for the report');
               return;
             }
           }
           
-          setShowSemesterReportConfirm(false);
-          exportSemesterReport();
+          if (exportFormat === 'email') {
+            if (!emailRecipients || emailRecipients.length === 0) {
+              console.error('❌ No email recipients selected');
+              alert(t('select_at_least_one_recipient') || 'Please select at least one email recipient');
+              return;
+            }
+          }
+          
+          onClose();
+          onExport();
         }}
         loading={isExporting}
         style={{ 
@@ -637,4 +642,4 @@ const ActionButtons = ({
   );
 };
 
-export default SummaryReportModal;
+export default ReportExportModal;
