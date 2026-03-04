@@ -13,7 +13,7 @@ import { getClasses } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { notificationGateway } from '@services/business/notificationGateway';
 import { uploadReport } from '@services/business/fileStorageService';
-import { REPORT_TYPES, STORAGE_CONSTANTS } from '@constants/reportConstants';
+import { REPORT_TYPES, STORAGE_CONSTANTS, REPORT_TYPE_IDS } from '@constants/reportConstants';
 import { getThemedIcon } from '@constants/iconTypes';
 import Modal from '@ui/Modal/Modal';
 import { markAttendance, getAttendanceByClass, getAttendanceByStudent, deleteAttendance } from '@services/business/attendanceService';
@@ -3255,7 +3255,7 @@ const QRScannerPage = () => {
         <ReportExportModal
           isOpen={showSemesterReportConfirm}
           onClose={() => setShowSemesterReportConfirm(false)}
-          reportType="summary"
+          reportType={REPORT_TYPE_IDS.SUMMARY}
           exportFormat={exportFormat}
           setExportFormat={setExportFormat}
           selectedSubjectsForReport={selectedSubjectsForReport}
@@ -3282,7 +3282,7 @@ const QRScannerPage = () => {
         <ReportExportModal
           isOpen={showDailyReportModal}
           onClose={() => setShowDailyReportModal(false)}
-          reportType="daily"
+          reportType={REPORT_TYPE_IDS.DAILY}
           exportFormat={dailyExportFormat}
           setExportFormat={setDailyExportFormat}
           selectedSubjectsForReport={[]}

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Button, Card, CardBody } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
+import { REPORT_TYPE_IDS, RECIPIENT_ROLES } from '@constants/reportConstants';
 
 const ReportExportModal = ({
   isOpen,
@@ -40,8 +41,8 @@ const ReportExportModal = ({
 
   if (!isOpen) return null;
 
-  const isSummaryReport = reportType === 'summary';
-  const isDailyReport = reportType === 'daily';
+  const isSummaryReport = reportType === REPORT_TYPE_IDS.SUMMARY;
+  const isDailyReport = reportType === REPORT_TYPE_IDS.DAILY;
 
   return (
     <div style={{
@@ -58,11 +59,50 @@ const ReportExportModal = ({
     }}>
       <Card style={{ maxWidth: '600px', margin: '1rem', width: '100%', maxHeight: '90vh', overflow: 'auto' }}>
         <CardBody>
+          {/* Report Type Header */}
+          <div style={{
+            background: isSummaryReport ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: 'white',
+            padding: '1rem 1.5rem',
+            borderRadius: '0.5rem',
+            marginBottom: '1.5rem',
+            textAlign: 'center'
+          }}>
+            <h2 style={{ 
+              margin: 0, 
+              fontSize: '1.5rem', 
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
+            }}>
+              {isSummaryReport ? (
+                <>
+                  {getThemedIcon('chart_bar', 'white')}
+                  {t('summary_report') || 'Summary Report'}
+                </>
+              ) : (
+                <>
+                  {getThemedIcon('calendar', 'white')}
+                  {t('daily_report') || 'Daily Report'}
+                </>
+              )}
+            </h2>
+            <p style={{ 
+              margin: '0.5rem 0 0 0', 
+              fontSize: '0.875rem', 
+              opacity: 0.9 
+            }}>
+              {isSummaryReport 
+                ? (t('summary_report_description') || 'Generate comprehensive reports across multiple subjects and time periods')
+                : (t('daily_report_description') || 'Export attendance data for a specific date')
+              }
+            </p>
+          </div>
+
           <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem', fontWeight: 600 }}>
-            {isSummaryReport 
-              ? (t('summary_report_preferences') || 'Summary Report Export Preferences')
-              : (t('daily_report_preferences') || 'Daily Report Export Preferences')
-            }
+            {t('export_preferences') || 'Export Preferences'}
           </h3>
           
           {isSummaryReport && (
@@ -416,7 +456,7 @@ const OtherRecipients = ({
       </div>
       
       <RoleSection
-        role="instructors"
+        role={RECIPIENT_ROLES.INSTRUCTORS}
         title={t('instructors') || 'Instructors'}
         icon="users"
         users={availableUsers.instructors || []}
@@ -429,7 +469,7 @@ const OtherRecipients = ({
       />
       
       <RoleSection
-        role="admins"
+        role={RECIPIENT_ROLES.ADMINS}
         title={t('admins') || 'Admins'}
         icon="shield"
         users={availableUsers.admins || []}
@@ -442,7 +482,7 @@ const OtherRecipients = ({
       />
       
       <RoleSection
-        role="hr"
+        role={RECIPIENT_ROLES.HR}
         title={t('hr') || 'HR'}
         icon="user_check"
         users={availableUsers.hr || []}
@@ -456,7 +496,7 @@ const OtherRecipients = ({
       
       <div id="students-section">
         <RoleSection
-          role="students"
+          role={RECIPIENT_ROLES.STUDENTS}
           title={t('students') || 'Students'}
           icon="users"
           users={availableUsers.students || []}
@@ -592,8 +632,8 @@ const ActionButtons = ({
   theme,
   t
 }) => {
-  const isSummaryReport = reportType === 'summary';
-  const isDailyReport = reportType === 'daily';
+  const isSummaryReport = reportType === REPORT_TYPE_IDS.SUMMARY;
+  const isDailyReport = reportType === REPORT_TYPE_IDS.DAILY;
 
   return (
     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>

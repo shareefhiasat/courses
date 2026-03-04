@@ -15,6 +15,20 @@ export const REPORT_TYPES = {
   BEHAVIOR_REPORT: 'behavior_report'
 };
 
+// Report Type Identifiers for UI
+export const REPORT_TYPE_IDS = {
+  DAILY: 'daily',
+  SUMMARY: 'summary'
+};
+
+// Role Categories for Email Recipients
+export const RECIPIENT_ROLES = {
+  INSTRUCTORS: 'instructors',
+  ADMINS: 'admins', 
+  HR: 'hr',
+  STUDENTS: 'students'
+};
+
 // File Storage Constants
 export const STORAGE_CONSTANTS = {
   // Folders
