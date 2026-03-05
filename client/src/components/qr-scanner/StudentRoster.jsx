@@ -1439,6 +1439,15 @@ const StudentRoster = React.memo(function StudentRoster({
                   padding: '0.75rem',
                   textAlign: 'center',
                   fontSize: '0.875rem',
+                  color: 'var(--color-info, #3b82f6)',
+                  fontWeight: 700
+                }}>
+                  -
+                </td>
+                <td style={{ 
+                  padding: '0.75rem',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
                   color: 'var(--text-muted, #6b7280)'
                 }}>
                   -
@@ -1447,8 +1456,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   padding: '0.75rem',
                   textAlign: 'center',
                   fontSize: '0.875rem',
-                  color: 'var(--color-info, #3b82f6)',
-                  fontWeight: 700
+                  color: 'var(--text-muted, #6b7280)'
                 }}>
                   {columnSums.participation}
                 </td>
@@ -1477,7 +1485,10 @@ const StudentRoster = React.memo(function StudentRoster({
                   color: 'var(--color-success, #10b981)',
                   fontWeight: 700
                 }}>
-                  {columnSums.present}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                    {getThemedIcon('ui', 'check_circle', 16, '#10b981')}
+                    {columnSums.present}
+                  </div>
                 </td>
                 <td style={{ 
                   padding: '0.75rem',
@@ -1486,7 +1497,10 @@ const StudentRoster = React.memo(function StudentRoster({
                   color: 'var(--color-warning, #f59e0b)',
                   fontWeight: 700
                 }}>
-                  {columnSums.late}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                    {getThemedIcon('ui', 'clock', 16, '#f59e0b')}
+                    {columnSums.late}
+                  </div>
                 </td>
                 <td style={{ 
                   padding: '0.75rem',
@@ -1495,7 +1509,10 @@ const StudentRoster = React.memo(function StudentRoster({
                   color: 'var(--color-danger, #ef4444)',
                   fontWeight: 700
                 }}>
-                  {columnSums.absent}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                    {getThemedIcon('ui', 'x_circle', 16, '#ef4444')}
+                    {columnSums.absent}
+                  </div>
                 </td>
                 <td style={{ 
                   padding: '0.75rem',
@@ -1504,7 +1521,10 @@ const StudentRoster = React.memo(function StudentRoster({
                   color: 'var(--color-danger, #ef4444)',
                   fontWeight: 700
                 }}>
-                  {columnSums.absentExcused}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                    {getThemedIcon('ui', 'x_circle', 16, '#ef4444')}
+                    {columnSums.absentExcused}
+                  </div>
                 </td>
                 <td style={{ 
                   padding: '0.75rem',
@@ -1513,7 +1533,10 @@ const StudentRoster = React.memo(function StudentRoster({
                   color: 'var(--color-danger, #ef4444)',
                   fontWeight: 700
                 }}>
-                  {columnSums.excusedLeave}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                    {getThemedIcon('ui', 'x_circle', 16, '#ef4444')}
+                    {columnSums.excusedLeave}
+                  </div>
                 </td>
                 <td style={{ 
                   padding: '0.75rem',
@@ -1522,15 +1545,10 @@ const StudentRoster = React.memo(function StudentRoster({
                   color: '#8b5cf6',
                   fontWeight: 700
                 }}>
-                  {columnSums.human}
-                </td>
-                <td style={{ 
-                  padding: '0.75rem',
-                  textAlign: 'center',
-                  fontSize: '0.875rem',
-                  color: 'var(--text-muted, #6b7280)'
-                }}>
-                  -
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                    {getThemedIcon('ui', 'heart', 16, '#8b5cf6')}
+                    {columnSums.human}
+                  </div>
                 </td>
               </tr>
             </tfoot>

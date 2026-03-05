@@ -702,9 +702,11 @@ const BulkScanDialog = ({
         </div>
           
         <div className={styles.footer}>
-          <button
-            onClick={handleClose}
-            className={styles.cancelButton}
+          <div style={{ flex: 1 }}></div>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={handleClose}
+              className={styles.cancelButton}
             disabled={loading}
           >
             {t('cancel') || 'Cancel'}
@@ -723,6 +725,7 @@ const BulkScanDialog = ({
               </>
             )}
           </button>
+          </div>
         </div>
       </div>
     </div>
