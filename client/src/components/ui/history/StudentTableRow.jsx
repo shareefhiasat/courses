@@ -253,6 +253,18 @@ const StudentTableRow = ({
             )}
           </div>
         </td>
+        <td style={{ padding: '0.5rem 0.75rem' }} onClick={() => onStudentSelect(student)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {student.standupStatus && student.standupStatus !== 'absent_no_excuse' ? getAttendanceDisplay(student.standupStatus) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                </svg>
+                <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 500 }}>None</span>
+              </div>
+            )}
+          </div>
+        </td>
         <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
           <span style={{
             display: 'inline-flex',

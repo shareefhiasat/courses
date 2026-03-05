@@ -47,6 +47,45 @@ export const ATTENDANCE_TYPES = [
     label_en: 'Human Case', 
     icon: 'Heart',
     color: '#8b5cf6'
+  },
+  { 
+    id: 'clinic', 
+    label_ar: 'عيادة', 
+    label_en: 'Clinic', 
+    icon: 'Heart',
+    color: '#06b6d4'
+  }
+];
+
+// Standup-specific attendance types (subset for daily standup)
+export const STANDUP_ATTENDANCE_TYPES = [
+  { 
+    id: 'present', 
+    label_ar: 'حاضر', 
+    label_en: 'Present', 
+    icon: 'CheckCircle',
+    color: '#22c55e'
+  },
+  { 
+    id: 'absent_no_excuse', 
+    label_ar: 'غائب', 
+    label_en: 'Absent', 
+    icon: 'XCircle',
+    color: '#ef4444'
+  },
+  { 
+    id: 'clinic', 
+    label_ar: 'عيادة', 
+    label_en: 'Clinic', 
+    icon: 'Heart',
+    color: '#06b6d4'
+  },
+  { 
+    id: 'late', 
+    label_ar: 'متأخر', 
+    label_en: 'Late', 
+    icon: 'Clock',
+    color: '#eab308'
   }
 ];
 
@@ -57,7 +96,14 @@ export const ATTENDANCE_STATUS = {
   ABSENT_WITH_EXCUSE: 'absent_with_excuse',
   LATE: 'late',
   EXCUSED_LEAVE: 'excused_leave',
-  HUMAN_CASE: 'human_case'
+  HUMAN_CASE: 'human_case',
+  CLINIC: 'clinic'
+};
+
+// Attendance type categories
+export const ATTENDANCE_TYPE_CATEGORY = {
+  REGULAR: 'regular',
+  STANDUP: 'standup'
 };
 
 // Helper functions

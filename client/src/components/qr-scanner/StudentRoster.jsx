@@ -1195,6 +1195,22 @@ const StudentRoster = React.memo(function StudentRoster({
                   {t('todays_attendance') || "TODAY"} {getSortIcon(RECORD_TYPES.ATTENDANCE)}
                 </th>
                 <th 
+                  onClick={() => onSort('standupStatus')}
+                  style={{
+                    textAlign: isRTL ? 'right' : 'left',
+                    padding: '0.5rem 0.75rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'var(--text-muted, #6b7280)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  {t('standup') || "STANDUP"} {getSortIcon('standupStatus')}
+                </th>
+                <th 
                   onClick={() => onSort('participation')}
                   style={{
                     textAlign: 'center',
