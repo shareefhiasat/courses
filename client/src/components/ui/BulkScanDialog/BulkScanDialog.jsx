@@ -16,6 +16,7 @@ const BulkScanDialog = ({
   performedBy,
   performedByName,
   performedByEmail,
+  attendanceMode = 'regular',
   onSuccess,
   t,
   lang,
@@ -62,6 +63,7 @@ const BulkScanDialog = ({
     performedBy,
     performedByName,
     performedByEmail,
+    attendanceMode,
     onSuccess: (result) => {
       if (onSuccess) onSuccess(result);
       // Don't auto-close, let user see results

@@ -401,6 +401,25 @@ export default function StudentActionZapPanel({
       <div style={{ flex: 1, overflow: 'auto', padding: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', position: 'relative' }}>
           <button
+            onClick={() => setActiveTab(RECORD_TYPES.ATTENDANCE)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.8125rem',
+              borderRadius: '0.375rem',
+              border: '1px solid var(--border, #e2e8f0)',
+              background: activeTab === RECORD_TYPES.ATTENDANCE ? 'var(--color-success, #22c55e)' : 'var(--panel-hover, #f8fafc)',
+              color: activeTab === RECORD_TYPES.ATTENDANCE ? 'white' : 'var(--text-muted, #64748b)',
+              cursor: 'pointer',
+              boxShadow: activeTab === RECORD_TYPES.ATTENDANCE ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            }}
+          >
+            {getThemedIcon('ui', 'check_circle', 14, theme)}
+            {t(attendanceMode === 'standup' ? 'standup' : 'attendance')}
+          </button>
+          <button
             onClick={() => setActiveTab(RECORD_TYPES.PARTICIPATION)}
             style={{
               display: 'flex',
@@ -488,12 +507,56 @@ export default function StudentActionZapPanel({
             flexDirection: viewMode === 'list' ? 'column' : 'row',
             gap: viewMode === 'grid' ? '0.35rem' : '0.225rem'
           }}>
-            {(Array.isArray(options) ? options.filter(option => {
-              if (activeTab === RECORD_TYPES.BEHAVIOR) return option.category === RECORD_TYPES.BEHAVIOR;
-              if (activeTab === RECORD_TYPES.PARTICIPATION) return option.category === RECORD_TYPES.PARTICIPATION;
-              if (activeTab === RECORD_TYPES.PENALTY) return option.category === RECORD_TYPES.PENALTY;
-              return true;
-            }) : []).sort((a, b) => {
+            {activeTab === RECORD_TYPES.ATTENDANCE ? (
+              // Attendance Cards - Show standup or regular based on mode
+              (attendanceMode === 'standup' ? STANDUP_ATTENDANCE_TYPES : ATTENDANCE_TYPES).map((attendanceType) => (
+                <button
+                  key={attendanceType.id}
+                  onClick={async () => {
+                    if (onMarkAttendance && student) {
+                      await onMarkAttendance(student.id, attendanceType.id);
+                      onClose();
+                    }
+                  }}
+                  style={{
+                    padding: '1rem',
+                    borderRadius: '0.5rem',
+                    border: `2px solid ${attendanceType.color}`,
+                    background: `${attendanceType.color}15`,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                    e.currentTarget.style.boxShadow = `0 4px 12px ${attendanceType.color}40`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <div style={{ fontSize: '2rem' }}>{attendanceType.icon}</div>
+                  <span style={{ 
+                    fontSize: '0.875rem', 
+                    fontWeight: 600,
+                    color: attendanceType.color 
+                  }}>
+                    {lang === 'ar' ? attendanceType.label_ar : attendanceType.label_en}
+                  </span>
+                </button>
+              ))
+            ) : (
+              // Behavior/Participation/Penalty Cards
+              (Array.isArray(options) ? options.filter(option => {
+                if (activeTab === RECORD_TYPES.BEHAVIOR) return option.category === RECORD_TYPES.BEHAVIOR;
+                if (activeTab === RECORD_TYPES.PARTICIPATION) return option.category === RECORD_TYPES.PARTICIPATION;
+                if (activeTab === RECORD_TYPES.PENALTY) return option.category === RECORD_TYPES.PENALTY;
+                return true;
+              }) : []).sort((a, b) => {
               const aIsFavorite = favoriteBehaviors.includes(a.id);
               const bIsFavorite = favoriteBehaviors.includes(b.id);
               
@@ -687,7 +750,8 @@ export default function StudentActionZapPanel({
                   </div>
                 </div>
               );
-            })}
+            })
+            )}
           </div>
         </div>
 

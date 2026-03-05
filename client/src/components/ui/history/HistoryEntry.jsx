@@ -51,6 +51,7 @@ export const HistoryEntry = ({
   };
 
   const timeDisplay = getTimeDisplay();
+  const isStandupEntry = type === RECORD_TYPES.ATTENDANCE && log.attendanceCategory === 'standup';
 
     return (
     <div style={{ 
@@ -82,6 +83,24 @@ export const HistoryEntry = ({
         }}>
           {icon}
         </div>
+      )}
+      
+      {isStandupEntry && (
+        <PortalTooltip content={t('standup_attendance') || 'Standup Attendance'} position="top">
+          <span style={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            color: 'white',
+            fontSize: isMobile ? '0.5rem' : '0.625rem',
+            fontWeight: 600,
+            padding: '0.125rem 0.375rem',
+            borderRadius: '0.25rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.025em',
+            flexShrink: 0
+          }}>
+            {t('standup') || 'Standup'}
+          </span>
+        </PortalTooltip>
       )}
       
       <span style={{ 
