@@ -570,17 +570,17 @@ const BulkScanDialog = ({
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        {type.id === 'present' && getThemedIcon('ui', 'check_circle', 14, theme)}
-                        {type.id === 'late' && getThemedIcon('ui', 'clock', 14, theme)}
-                        {type.id === 'absent_no_excuse' && getThemedIcon('ui', 'x_circle', 14, theme)}
-                        {type.id === 'absent_with_excuse' && getThemedIcon('ui', 'alert_circle', 14, theme)}
-                        {type.id === 'excused_leave' && getThemedIcon('ui', 'users', 14, theme)}
-                        {type.id === 'human_case' && getThemedIcon('ui', 'alert_circle', 14, theme)}
+                        {type.id === 'present' && getThemedIcon('ui', 'check_circle', 14, selectedStatus === type.id ? 'white' : '#22c55e')}
+                        {type.id === 'late' && getThemedIcon('ui', 'clock', 14, selectedStatus === type.id ? 'white' : '#eab308')}
+                        {type.id === 'absent_no_excuse' && getThemedIcon('ui', 'x_circle', 14, selectedStatus === type.id ? 'white' : '#ef4444')}
+                        {type.id === 'absent_with_excuse' && getThemedIcon('ui', 'x_circle', 14, selectedStatus === type.id ? 'white' : '#ef4444')}
+                        {type.id === 'excused_leave' && getThemedIcon('ui', 'x_circle', 14, selectedStatus === type.id ? 'white' : '#ef4444')}
+                        {type.id === 'human_case' && getThemedIcon('ui', 'heart', 14, selectedStatus === type.id ? 'white' : '#8b5cf6')}
                         {/* Standup attendance icons */}
-                        {type.id === 'standup_present' && getThemedIcon('ui', 'star', 14, theme)}
-                        {type.id === 'standup_absent' && getThemedIcon('ui', 'x', 14, theme)}
-                        {type.id === 'standup_clinic' && getThemedIcon('ui', 'heart', 14, theme)}
-                        {type.id === 'standup_late' && getThemedIcon('ui', 'clock', 14, theme)}
+                        {type.id === 'standup_present' && getThemedIcon('ui', 'star', 14, selectedStatus === type.id ? 'white' : '#10b981')}
+                        {type.id === 'standup_absent' && getThemedIcon('ui', 'x', 14, selectedStatus === type.id ? 'white' : '#dc2626')}
+                        {type.id === 'standup_clinic' && getThemedIcon('ui', 'heart', 14, selectedStatus === type.id ? 'white' : '#0891b2')}
+                        {type.id === 'standup_late' && getThemedIcon('ui', 'clock', 14, selectedStatus === type.id ? 'white' : '#f59e0b')}
                       </div>
                       <span style={{ fontSize: '0.7rem', textAlign: 'center' }}>
                         {lang === 'ar' ? type.label_ar : type.label_en}

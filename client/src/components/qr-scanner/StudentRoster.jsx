@@ -1456,9 +1456,13 @@ const StudentRoster = React.memo(function StudentRoster({
                   padding: '0.75rem',
                   textAlign: 'center',
                   fontSize: '0.875rem',
-                  color: 'var(--text-muted, #6b7280)'
+                  color: 'var(--color-info, #3b82f6)',
+                  fontWeight: 700
                 }}>
-                  {columnSums.participation}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                    {getThemedIcon('ui', 'users', 16, '#3b82f6')}
+                    {columnSums.participation}
+                  </div>
                 </td>
                 <td style={{ 
                   padding: '0.75rem',
@@ -1467,7 +1471,10 @@ const StudentRoster = React.memo(function StudentRoster({
                   color: 'var(--color-warning, #f59e0b)',
                   fontWeight: 700
                 }}>
-                  {columnSums.behavior}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                    {getThemedIcon('ui', 'zap', 16, '#f59e0b')}
+                    {columnSums.behavior}
+                  </div>
                 </td>
                 <td style={{ 
                   padding: '0.75rem',
@@ -1476,7 +1483,10 @@ const StudentRoster = React.memo(function StudentRoster({
                   color: 'var(--color-danger, #ef4444)',
                   fontWeight: 700
                 }}>
-                  {columnSums.penalty}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                    {getThemedIcon('ui', 'alert_triangle', 16, '#ef4444')}
+                    {columnSums.penalty}
+                  </div>
                 </td>
                 <td style={{ 
                   padding: '0.75rem',
