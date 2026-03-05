@@ -84,6 +84,7 @@ export default function StudentActionZapPanel({
     attendanceType: null,
     studentName: ''
   });
+  const [isReloading, setIsReloading] = useState(false);
 
   useEffect(() => {
     const loadFavoriteBehaviors = async () => {
@@ -309,7 +310,7 @@ export default function StudentActionZapPanel({
         overflow: 'hidden'
       }}>
       {/* Global Loading Overlay */}
-      {isSubmitting && (
+      {isSubmitting && !isReloading && (
         <div style={{
           position: 'absolute',
           top: 0,
@@ -344,6 +345,50 @@ export default function StudentActionZapPanel({
               color: 'var(--text, #111827)'
             }}>
               {t('saving') || 'Saving...'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reload Indicator Overlay */}
+      {isReloading && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          borderRadius: '0.75rem'
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1rem'
+          }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: '3px solid #f3f3f3',
+              borderTop: '3px solid var(--color-success, #22c55e)',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+            <div style={{
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: 'var(--color-success, #22c55e)'
+            }}>
+              {getThemedIcon('ui', 'refresh_cw', 20, theme)}
+              <span style={{ marginLeft: '0.5rem' }}>
+                {t('reloading') || 'Reloading...'}
+              </span>
             </div>
           </div>
         </div>
@@ -1013,10 +1058,13 @@ export default function StudentActionZapPanel({
                 setConfirmModal({ isOpen: false, attendanceType: null, studentName: '' });
                 try {
                   await onMarkAttendance(student.id, confirmModal.attendanceType.id);
-                  onClose();
+                  // Show reload indicator before closing
+                  setIsReloading(true);
+                  setTimeout(() => {
+                    onClose();
+                  }, 800); // Brief delay to show reload state
                 } catch (error) {
                   console.error('Error marking attendance:', error);
-                } finally {
                   setIsSubmitting(false);
                 }
               }

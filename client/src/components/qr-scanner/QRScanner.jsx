@@ -70,6 +70,7 @@ import {
   HelpCircleIcon
 } from '@utils/icons.jsx';
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/attendanceMethods';
+import { getThemedIcon } from '@constants/iconTypes';
 import { useBilingualNotes } from '@hooks/useBilingualNotes.js';
 import { FeatureFlagWrapper } from '@ui/FeatureFlagWrapper';
 import { useFeatureFlags } from '@hooks/useFeatureFlags';
@@ -1577,6 +1578,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         AlertCircle: <AlertCircleIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />,
         XCircle: <XSmallIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />,
         Heart: <HeartIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />,
+        Star: getThemedIcon('ui', 'star', 16, '#ffffff'),
         HelpCircle: <HelpCircleIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />
       };
       
