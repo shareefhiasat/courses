@@ -5,6 +5,7 @@ import { HistoryEntry } from './HistoryEntry';
 import { AttendanceIcon, ParticipationIcon, ZapIcon, PenaltyIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, HelpCircleIcon } from '@utils/icons.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getAttendanceIcon, getAttendanceColor } from '@constants/attendanceTypes';
+import { getThemedIcon } from '@constants/iconTypes';
 import { formatLocalizedDate } from '@utils/date';
 import logger from '@utils/logger';
 
@@ -155,6 +156,7 @@ const StudentHistory = React.memo(({
                       AlertCircle: <XSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
                       XCircle: <XSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
                       Heart: <HeartIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
+                      Star: getThemedIcon('ui', 'star', 12, statusColor),
                       HelpCircle: <HelpCircleIcon style={{ width: '12px', height: '12px', color: statusColor }} />
                     };
                     
