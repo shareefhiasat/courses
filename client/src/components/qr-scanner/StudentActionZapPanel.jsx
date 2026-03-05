@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import logger from '@utils/logger';
-import { Button, Input } from '@ui';
+import { Button, Input, Modal } from '@ui';
 import { useAuth } from '@contexts/AuthContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
@@ -79,6 +79,11 @@ export default function StudentActionZapPanel({
   const [sendingSummary, setSendingSummary] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [viewMode, setViewMode] = useState('list');
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    attendanceType: null,
+    studentName: ''
+  });
 
   useEffect(() => {
     const loadFavoriteBehaviors = async () => {
@@ -303,6 +308,46 @@ export default function StudentActionZapPanel({
         maxHeight: '100%',
         overflow: 'hidden'
       }}>
+      {/* Global Loading Overlay */}
+      {isSubmitting && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          borderRadius: '0.75rem'
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1rem'
+          }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              border: '3px solid #f3f3f3',
+              borderTop: '3px solid var(--color-primary, #3b82f6)',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+            <div style={{
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: 'var(--text, #111827)'
+            }}>
+              {t('saving') || 'Saving...'}
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{ padding: '0.8rem', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
         <div style={{
           display: 'flex',
@@ -541,17 +586,13 @@ export default function StudentActionZapPanel({
               })().map((attendanceType) => (
                 <button
                   key={attendanceType.id}
-                  onClick={async () => {
+                  onClick={() => {
                     if (onMarkAttendance && student && !isSubmitting) {
-                      setIsSubmitting(true);
-                      try {
-                        await onMarkAttendance(student.id, attendanceType.id);
-                        onClose();
-                      } catch (error) {
-                        console.error('Error marking attendance:', error);
-                      } finally {
-                        setIsSubmitting(false);
-                      }
+                      setConfirmModal({
+                        isOpen: true,
+                        attendanceType: attendanceType,
+                        studentName: student.displayName || student.realName || student.name
+                      });
                     }
                   }}
                   disabled={isSubmitting}
@@ -567,9 +608,7 @@ export default function StudentActionZapPanel({
                     alignItems: 'center',
                     gap: '0.375rem',
                     minHeight: '2rem',
-                    width: 'auto',
-                    minWidth: '100px',
-                    maxWidth: '120px',
+                    width: '100%',
                     position: 'relative',
                     overflow: 'hidden',
                     opacity: isSubmitting ? 0.7 : 1
@@ -590,17 +629,7 @@ export default function StudentActionZapPanel({
                     flexShrink: 0
                   }}>
                     {(() => {
-                      const iconMap = {
-                        // Regular attendance icons
-                        CheckCircle: getThemedIcon('ui', 'check_circle', 16, theme),
-                        XCircle: getThemedIcon('ui', 'x_circle', 16, theme),
-                        Clock: getThemedIcon('ui', 'clock', 16, theme),
-                        Heart: getThemedIcon('ui', 'heart', 16, theme),
-                        // Standup attendance icons
-                        Star: getThemedIcon('ui', 'star', 16, theme),
-                        X: getThemedIcon('ui', 'x', 16, theme),
-                      };
-                      return iconMap[attendanceType.icon] || getThemedIcon('ui', 'help_circle', 16, theme);
+                      return getIconWithColor('ui', attendanceType.icon.toLowerCase(), 16, attendanceType.color);
                     })()}
                   </div>
                   <span style={{
@@ -616,29 +645,6 @@ export default function StudentActionZapPanel({
                   }}>
                     {lang === 'ar' ? attendanceType.label_ar : attendanceType.label_en}
                   </span>
-                  {isSubmitting && (
-                    <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      background: 'rgba(255, 255, 255, 0.8)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: '0.75rem'
-                    }}>
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        border: '2px solid #f3f3f3',
-                        borderTop: `2px solid ${attendanceType.color}`,
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite'
-                      }}></div>
-                    </div>
-                  )}
                 </button>
               ))
             ) : (
@@ -839,23 +845,7 @@ export default function StudentActionZapPanel({
                               +
                             </button>
                             </PortalTooltip>
-                            <PortalTooltip content={favoriteBehaviors.includes(option.id) ? t('remove_from_favorites') : t('add_to_favorites')} position="top">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onToggleFavorite(option.id);
-                              }}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: '0.125rem',
-                                flexShrink: 0
-                              }}
-                            >
-                              {favoriteBehaviors.includes(option.id) ? getIconWithColor('ui', 'star', 12, '#fbbf24') : getThemedIcon('ui', 'star', 12, theme)}
-                            </button>
-                            </PortalTooltip>
+                            {/* Don't show bookmark star here - it's already shown above for all bookmarked items */}
                           </div>
                         ) : (
                           <div style={{
@@ -935,12 +925,12 @@ export default function StudentActionZapPanel({
 
       {activeTab !== RECORD_TYPES.ATTENDANCE && (
       <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border, #e5e7eb)' }}>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <Button
             onClick={handleSaveActions}
             disabled={selectedActions.length === 0 || isSubmitting}
+            fullWidth={true}
             style={{ 
-              flex: 1, 
               fontSize: '0.875rem',
               display: 'flex',
               alignItems: 'center',
@@ -967,13 +957,76 @@ export default function StudentActionZapPanel({
           <Button
             variant="ghost"
             onClick={onClose}
-            style={{ fontSize: '0.875rem' }}
+            fullWidth={true}
+            style={{ 
+              fontSize: '0.875rem' 
+            }}
           >
             {t('cancel')}
           </Button>
         </div>
       </div>
       )}
+
+      {/* Confirmation Modal */}
+      <Modal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, attendanceType: null, studentName: '' })}
+        title={t('confirm_attendance') || 'Confirm Attendance'}
+        size="small"
+        showCloseButton={true}
+        closeOnOverlayClick={true}
+        closeOnEscape={true}
+      >
+        <div style={{ padding: '1rem 0' }}>
+          <p style={{ 
+            fontSize: '0.875rem', 
+            lineHeight: 1.5,
+            color: 'var(--text, #111827)',
+            marginBottom: '1.5rem'
+          }}>
+            {t('mark_attendance_confirmation', {
+              studentName: confirmModal.studentName,
+              attendanceType: confirmModal.attendanceType ? 
+                (lang === 'ar' ? confirmModal.attendanceType.label_ar : confirmModal.attendanceType.label_en) : ''
+            }) || `${t('mark')} ${confirmModal.studentName} ${t('as')} ${confirmModal.attendanceType ? 
+              (lang === 'ar' ? confirmModal.attendanceType.label_ar : confirmModal.attendanceType.label_en) : ''}?`}
+          </p>
+        </div>
+        <div style={{ 
+          display: 'flex', 
+          gap: '0.5rem', 
+          justifyContent: 'flex-end',
+          padding: '1rem 0 0 0',
+          borderTop: '1px solid var(--border, #e5e7eb)'
+        }}>
+          <Button
+            variant="ghost"
+            onClick={() => setConfirmModal({ isOpen: false, attendanceType: null, studentName: '' })}
+          >
+            {t('cancel') || 'Cancel'}
+          </Button>
+          <Button
+            onClick={async () => {
+              if (confirmModal.attendanceType && onMarkAttendance && student && !isSubmitting) {
+                setIsSubmitting(true);
+                setConfirmModal({ isOpen: false, attendanceType: null, studentName: '' });
+                try {
+                  await onMarkAttendance(student.id, confirmModal.attendanceType.id);
+                  onClose();
+                } catch (error) {
+                  console.error('Error marking attendance:', error);
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }
+            }}
+            disabled={isSubmitting}
+          >
+            {t('confirm') || 'Confirm'}
+          </Button>
+        </div>
+      </Modal>
     </div>
     </>
   );
