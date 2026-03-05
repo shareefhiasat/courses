@@ -5,7 +5,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { markAttendance } from '@services/business/attendanceService';
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPES, STANDUP_ATTENDANCE_TYPES, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
@@ -22,6 +22,7 @@ export default function StudentActionZapPanel({
   onParticipationSubmit,
   onPenaltySubmit,
   onMarkAttendance,
+  attendanceMode = 'regular',
   options = [],
   showFavoritesOnly = false,
   onToggleFavorites = () => {},

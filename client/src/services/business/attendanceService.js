@@ -173,6 +173,7 @@ export const markAttendance = async (attendanceData) => {
         subjectId,
         date: date, // Use the passed date (ISO format)
         time: validatedData.time, // Ensure time is included
+        attendanceCategory: validatedData.attendanceCategory || 'regular', // 'regular' or 'standup'
         updatedAt: getQatarTimestampString()
       });
       
@@ -213,6 +214,7 @@ export const markAttendance = async (attendanceData) => {
         subjectId,
         date: date, // Use the passed date (ISO format)
         time: validatedData.time, // Ensure time is included
+        attendanceCategory: validatedData.attendanceCategory || 'regular', // 'regular' or 'standup'
         createdAt: getQatarTimestampString(),
         updatedAt: getQatarTimestampString()
       });

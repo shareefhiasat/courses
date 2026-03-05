@@ -135,6 +135,7 @@ const QRScannerPage = () => {
     const qatarNow = getQatarNow();
     return qatarNow.toISOString().split('T')[0]; // Format as yyyy-MM-dd
   });
+  const [attendanceMode, setAttendanceMode] = useState('regular'); // 'regular' or 'standup'
   const [showFilterDialog, setShowFilterDialog] = useState(false);
   const [attendanceFilter, setAttendanceFilter] = useState('all');
   const [participationMin, setParticipationMin] = useState('');
@@ -788,6 +789,7 @@ const QRScannerPage = () => {
         notes,
         method,
         markedBy: user.uid,
+        attendanceCategory: attendanceMode, // 'regular' or 'standup'
         ...performedByFields
       });
 
@@ -2710,7 +2712,7 @@ const QRScannerPage = () => {
             gap: '1rem',
             marginTop: '0.5rem'
           }}>
-            {/* Date picker row */}
+            {/* Date picker and mode toggle row */}
             <div style={{ 
               display: 'flex', 
               justifyContent: 'flex-start',
@@ -2741,6 +2743,57 @@ const QRScannerPage = () => {
                     {t('loading') || 'Loading...'}
                   </div>
                 )}
+              </div>
+
+              {/* Attendance Mode Toggle */}
+              <div style={{
+                display: 'flex',
+                gap: '0.5rem',
+                background: 'var(--background-secondary, #f3f4f6)',
+                padding: '0.25rem',
+                borderRadius: '0.5rem',
+                border: '1px solid var(--border, #e5e7eb)'
+              }}>
+                <button
+                  onClick={() => setAttendanceMode('regular')}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: attendanceMode === 'regular' ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                    color: attendanceMode === 'regular' ? 'white' : 'var(--text-muted, #6b7280)',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem'
+                  }}
+                >
+                  {getThemedIcon('ui', 'check_circle', 16, attendanceMode === 'regular' ? 'white' : theme)}
+                  {t('attendance_mode') || 'Attendance'}
+                </button>
+                <button
+                  onClick={() => setAttendanceMode('standup')}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: attendanceMode === 'standup' ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                    color: attendanceMode === 'standup' ? 'white' : 'var(--text-muted, #6b7280)',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem'
+                  }}
+                >
+                  {getThemedIcon('ui', 'users', 16, attendanceMode === 'standup' ? 'white' : theme)}
+                  {t('standup_mode') || 'Standup'}
+                </button>
               </div>
             </div>
 
@@ -3079,6 +3132,7 @@ const QRScannerPage = () => {
               onParticipationSubmit={handleBehaviorSubmit}
               onPenaltySubmit={handleBehaviorSubmit}
               onMarkAttendance={handleMarkAttendance}
+              attendanceMode={attendanceMode}
               options={[
                 ...BEHAVIOR_TYPES.map(type => ({ ...type, category: RECORD_TYPES.BEHAVIOR })),
                 ...PARTICIPATION_TYPES.map(type => ({ ...type, category: RECORD_TYPES.PARTICIPATION })),
