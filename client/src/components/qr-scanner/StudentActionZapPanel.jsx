@@ -3,7 +3,7 @@ import logger from '@utils/logger';
 import { Button, Input } from '@ui';
 import { useAuth } from '@contexts/AuthContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
 import { markAttendance } from '@services/business/attendanceService';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPES, STANDUP_ATTENDANCE_TYPES, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
@@ -433,12 +433,12 @@ export default function StudentActionZapPanel({
               borderRadius: '0.375rem',
               border: '1px solid var(--border, #e2e8f0)',
               background: activeTab === RECORD_TYPES.ATTENDANCE ? 'var(--color-success, #22c55e)' : 'var(--panel-hover, #f8fafc)',
-              color: activeTab === RECORD_TYPES.ATTENDANCE ? 'white' : 'var(--text-muted, #64748b)',
+              color: activeTab === RECORD_TYPES.ATTENDANCE ? 'white' : 'var(--color-success, #22c55e)',
               cursor: 'pointer',
               boxShadow: activeTab === RECORD_TYPES.ATTENDANCE ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
-            {getThemedIcon('ui', 'check_circle', 14, theme)}
+            {activeTab === RECORD_TYPES.ATTENDANCE ? getIconWithColor('ui', 'check_circle', 14, 'white') : getIconWithColor('ui', 'check_circle', 14, 'var(--color-success, #22c55e)')}
             {t(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'standup' : 'attendance')}
           </button>
           <button
@@ -451,13 +451,13 @@ export default function StudentActionZapPanel({
               fontSize: '0.8125rem',
               borderRadius: '0.375rem',
               border: '1px solid var(--border, #e2e8f0)',
-              background: activeTab === RECORD_TYPES.PARTICIPATION ? 'var(--color-primary, #3b82f6)' : 'var(--panel-hover, #f8fafc)',
-              color: activeTab === RECORD_TYPES.PARTICIPATION ? 'white' : 'var(--text-muted, #64748b)',
+              background: activeTab === RECORD_TYPES.PARTICIPATION ? 'var(--color-info, #3b82f6)' : 'var(--panel-hover, #f8fafc)',
+              color: activeTab === RECORD_TYPES.PARTICIPATION ? 'white' : 'var(--color-info, #3b82f6)',
               cursor: 'pointer',
               boxShadow: activeTab === RECORD_TYPES.PARTICIPATION ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
-            {getThemedIcon('ui', 'users', 14, theme)}
+            {activeTab === RECORD_TYPES.PARTICIPATION ? getIconWithColor('ui', 'users', 14, 'white') : getIconWithColor('ui', 'users', 14, 'var(--color-info, #3b82f6)')}
             {t('participation')}
           </button>
           <button
@@ -471,12 +471,12 @@ export default function StudentActionZapPanel({
               borderRadius: '0.375rem',
               border: '1px solid var(--border, #e2e8f0)',
               background: activeTab === RECORD_TYPES.BEHAVIOR ? 'var(--color-warning, #f97316)' : 'var(--panel-hover, #f8fafc)',
-              color: activeTab === RECORD_TYPES.BEHAVIOR ? 'white' : 'var(--text-muted, #64748b)',
+              color: activeTab === RECORD_TYPES.BEHAVIOR ? 'white' : 'var(--color-warning, #f97316)',
               cursor: 'pointer',
               boxShadow: activeTab === RECORD_TYPES.BEHAVIOR ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
-            {getThemedIcon('ui', 'zap', 14, theme)}
+            {activeTab === RECORD_TYPES.BEHAVIOR ? getIconWithColor('ui', 'zap', 14, 'white') : getIconWithColor('ui', 'zap', 14, 'var(--color-warning, #f97316)')}
             {t('behavior')}
           </button>
           <button
@@ -490,16 +490,15 @@ export default function StudentActionZapPanel({
               borderRadius: '0.375rem',
               border: '1px solid var(--border, #e2e8f0)',
               background: activeTab === RECORD_TYPES.PENALTY ? 'var(--color-danger, #dc2626)' : 'var(--panel-hover, #f8fafc)',
-              color: activeTab === RECORD_TYPES.PENALTY ? 'white' : 'var(--text-muted, #64748b)',
+              color: activeTab === RECORD_TYPES.PENALTY ? 'white' : 'var(--color-danger, #dc2626)',
               cursor: 'pointer',
               boxShadow: activeTab === RECORD_TYPES.PENALTY ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
-            {getThemedIcon('ui', 'alert_circle', 14, theme)}
+            {activeTab === RECORD_TYPES.PENALTY ? getIconWithColor('ui', 'alert_circle', 14, 'white') : getIconWithColor('ui', 'alert_circle', 14, 'var(--color-danger, #dc2626)')}
             {t('penalty')}
           </button>
-          <div style={{ position: 'absolute', right: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <PortalTooltip content={viewMode === 'grid' ? t('switch_to_list_view') : t('switch_to_grid_view')} position="top">
+          <PortalTooltip content={viewMode === 'grid' ? t('switch_to_list_view') : t('switch_to_grid_view')} position="top">
             <button
               onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
               style={{
@@ -519,15 +518,15 @@ export default function StudentActionZapPanel({
               {viewMode === 'grid' ? getThemedIcon('ui', 'list', 14, theme) : getThemedIcon('ui', 'layout_grid', 14, theme)}
             </button>
           </PortalTooltip>
-          </div>
         </div>
 
         <div style={{ marginBottom: '0.5rem', marginTop: '1rem' }}>
           <div style={{
             display: viewMode === 'grid' ? 'grid' : 'flex',
-            gridTemplateColumns: viewMode === 'grid' ? 'repeat(auto-fit, minmax(120px, 1fr))' : 'none',
+            gridTemplateColumns: viewMode === 'grid' ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'none',
             flexDirection: viewMode === 'list' ? 'column' : 'row',
-            gap: viewMode === 'grid' ? '0.5rem' : '0.225rem'
+            gap: viewMode === 'grid' ? '0.5rem' : '0.225rem',
+            width: '100%'
           }}>
             {activeTab === RECORD_TYPES.ATTENDANCE ? (
               // Attendance Cards - Show standup or regular based on mode
@@ -557,7 +556,7 @@ export default function StudentActionZapPanel({
                   }}
                   disabled={isSubmitting}
                   style={{
-                    padding: '0.5rem 0.75rem',
+                    padding: '0.375rem 0.5rem',
                     borderRadius: '0.5rem',
                     border: `2px solid ${attendanceType.color}`,
                     background: `linear-gradient(135deg, ${attendanceType.color}08 0%, ${attendanceType.color}15 100%)`,
@@ -566,11 +565,11 @@ export default function StudentActionZapPanel({
                     display: 'flex',
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: '0.5rem',
-                    minHeight: '2.5rem',
+                    gap: '0.375rem',
+                    minHeight: '2rem',
                     width: 'auto',
-                    minWidth: '120px',
-                    maxWidth: '140px',
+                    minWidth: '100px',
+                    maxWidth: '120px',
                     position: 'relative',
                     overflow: 'hidden',
                     opacity: isSubmitting ? 0.7 : 1
@@ -584,8 +583,8 @@ export default function StudentActionZapPanel({
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
-                  <div style={{ 
-                    fontSize: '1rem', 
+                  <div style={{
+                    fontSize: '0.875rem',
                     lineHeight: 1,
                     filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))',
                     flexShrink: 0
@@ -593,19 +592,19 @@ export default function StudentActionZapPanel({
                     {(() => {
                       const iconMap = {
                         // Regular attendance icons
-                        CheckCircle: getThemedIcon('ui', 'check_circle', 18, theme),
-                        XCircle: getThemedIcon('ui', 'x_circle', 18, theme),
-                        Clock: getThemedIcon('ui', 'clock', 18, theme),
-                        Heart: getThemedIcon('ui', 'heart', 18, theme),
+                        CheckCircle: getThemedIcon('ui', 'check_circle', 16, theme),
+                        XCircle: getThemedIcon('ui', 'x_circle', 16, theme),
+                        Clock: getThemedIcon('ui', 'clock', 16, theme),
+                        Heart: getThemedIcon('ui', 'heart', 16, theme),
                         // Standup attendance icons
-                        Star: getThemedIcon('ui', 'star', 18, theme),
-                        X: getThemedIcon('ui', 'x', 18, theme),
+                        Star: getThemedIcon('ui', 'star', 16, theme),
+                        X: getThemedIcon('ui', 'x', 16, theme),
                       };
-                      return iconMap[attendanceType.icon] || getThemedIcon('ui', 'help_circle', 18, theme);
+                      return iconMap[attendanceType.icon] || getThemedIcon('ui', 'help_circle', 16, theme);
                     })()}
                   </div>
-                  <span style={{ 
-                    fontSize: '0.7rem', 
+                  <span style={{
+                    fontSize: '0.7rem',
                     fontWeight: 600,
                     color: attendanceType.color,
                     textAlign: 'left',
@@ -652,16 +651,16 @@ export default function StudentActionZapPanel({
               }) : []).sort((a, b) => {
               const aIsFavorite = favoriteBehaviors.includes(a.id);
               const bIsFavorite = favoriteBehaviors.includes(b.id);
-              
+
               if (aIsFavorite && !bIsFavorite) return -1;
               if (!aIsFavorite && bIsFavorite) return 1;
-              
+
               const aLabel = lang === 'ar' ? (a.label_ar || a.label_en || '') : (a.label_en || a.label_ar || '');
               const bLabel = lang === 'ar' ? (b.label_ar || b.label_en || '') : (b.label_en || b.label_ar || '');
               return aLabel.localeCompare(bLabel);
             }).map((option) => {
               const isSelected = selectedActions.some(a => a.id === option.id);
-              
+
               return (
                 <div
                   key={option.id || option.label_en || option.label_ar || Math.random().toString(36).substr(2, 9)}
@@ -672,38 +671,44 @@ export default function StudentActionZapPanel({
                     background: isSelected ? 'var(--color-purple-light, rgba(139, 92, 246, 0.05))' : 'transparent',
                     transition: 'all 0.2s',
                     position: 'relative',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    minHeight: viewMode === 'grid' ? '4.5rem' : 'auto',
+                    display: 'flex',
+                    flexDirection: 'column'
                   }}
                   onClick={() => toggleAction(option)}
                 >
                   <div style={{
                     display: 'flex',
                     flexDirection: viewMode === 'grid' ? 'column' : 'row',
-                    alignItems: viewMode === 'grid' ? 'center' : 'center',
+                    alignItems: viewMode === 'grid' ? (isRTL ? 'flex-end' : 'flex-start') : 'center',
                     gap: viewMode === 'grid' ? '0.125rem' : '0.25rem',
-                    textAlign: viewMode === 'grid' ? 'center' : 'left',
-                    justifyContent: 'space-between',
+                    textAlign: viewMode === 'grid' ? (isRTL ? 'right' : 'left') : (isRTL ? 'right' : 'left'),
+                    justifyContent: viewMode === 'grid' ? 'space-between' : 'space-between',
                     paddingInlineEnd: '0.5rem',
-                    paddingInlineStart: '0.5rem'
+                    paddingInlineStart: '0.5rem',
+                    flex: 1
                   }}>
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.5rem',
                       flex: 1,
-                      overflow: 'hidden'
+                      overflow: 'hidden',
+                      justifyContent: viewMode === 'grid' ? (isRTL ? 'flex-end' : 'flex-start') : 'center'
                     }}>
                       <div style={{
                         width: viewMode === 'grid' ? '1.75rem' : '1.25rem',
                         height: viewMode === 'grid' ? '1.75rem' : '1.25rem',
                         borderRadius: '0.375rem',
-                        background: option.color + '20',
-                        color: option.color,
-                        border: `1px solid ${option.color}40`,
+                        background: isSelected ? (option.color + '20') : (option.color + '15'),
+                        color: isSelected ? option.color : (option.color + 'CC'),
+                        border: `1px solid ${isSelected ? option.color : (option.color + '40')}`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        flexShrink: 0
+                        flexShrink: 0,
+                        transition: 'all 0.2s ease'
                       }}>
                         {renderIcon(option.icon, { width: viewMode === 'grid' ? '0.875rem' : '0.75rem', height: viewMode === 'grid' ? '0.875rem' : '0.75rem' })}
                       </div>
@@ -711,10 +716,14 @@ export default function StudentActionZapPanel({
                         fontSize: viewMode === 'grid' ? '0.6875rem' : '0.75rem',
                         fontWeight: 500,
                         color: 'var(--text, #111827)',
-                        lineHeight: '1.2',
+                        lineHeight: viewMode === 'grid' ? '1.3' : '1.2',
                         overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
+                        textOverflow: viewMode === 'grid' ? 'ellipsis' : 'ellipsis',
+                        whiteSpace: viewMode === 'grid' ? 'normal' : 'normal',
+                        wordWrap: 'break-word',
+                        flex: 1,
+                        display: viewMode === 'grid' ? 'block' : 'inline',
+                        maxHeight: viewMode === 'grid' ? '2.6rem' : 'none'
                       }}>
                         {lang === 'ar' ? (option.label_ar || option.label_en) : option.label_en}
                       </span>
@@ -726,6 +735,26 @@ export default function StudentActionZapPanel({
                         gap: '0.25rem',
                         flexShrink: 0
                       }}>
+                        {/* Always show bookmark star if item is bookmarked */}
+                        {favoriteBehaviors.includes(option.id) && (
+                          <PortalTooltip content={t('remove_from_favorites')} position="top">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleFavorite(option.id);
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '0.125rem',
+                                flexShrink: 0
+                              }}
+                            >
+                              {getIconWithColor('ui', 'star', 12, '#fbbf24')}
+                            </button>
+                          </PortalTooltip>
+                        )}
                         {isSelected ? (
                           <div style={{
                             display: 'flex',
@@ -824,18 +853,57 @@ export default function StudentActionZapPanel({
                                 flexShrink: 0
                               }}
                             >
-                              {getThemedIcon('ui', 'star', 12, theme)}
+                              {favoriteBehaviors.includes(option.id) ? getIconWithColor('ui', 'star', 12, '#fbbf24') : getThemedIcon('ui', 'star', 12, theme)}
                             </button>
                             </PortalTooltip>
                           </div>
                         ) : (
                           <div style={{
-                            fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
-                            fontWeight: 600,
-                            color: 'var(--color-danger-dark, #dc2626)',
-                            marginLeft: '0.25rem'
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            flexShrink: 0
                           }}>
-                            {(actionPoints[option.id] || 0) >= 0 ? '+' : ''}{actionPoints[option.id] || 0}
+                            {/* Show bookmark star for unselected but bookmarked items */}
+                            {favoriteBehaviors.includes(option.id) && (
+                              <PortalTooltip content={t('remove_from_favorites')} position="top">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onToggleFavorite(option.id);
+                                  }}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: '0.125rem',
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  {getIconWithColor('ui', 'star', 12, '#fbbf24')}
+                                </button>
+                              </PortalTooltip>
+                            )}
+                            {/* Show bookmark/unbookmark button for non-bookmarked items */}
+                            {!favoriteBehaviors.includes(option.id) && (
+                              <PortalTooltip content={t('add_to_favorites')} position="top">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onToggleFavorite(option.id);
+                                  }}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: '0.125rem',
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  {getThemedIcon('ui', 'star', 12, theme)}
+                                </button>
+                              </PortalTooltip>
+                            )}
                           </div>
                         )}
                       </div>
@@ -849,17 +917,7 @@ export default function StudentActionZapPanel({
         </div>
 
         {activeTab !== RECORD_TYPES.ATTENDANCE && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h4 style={{
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              color: 'var(--text-muted, #6b7280)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '0.75rem'
-            }}>
-              {t('internal_note')}
-            </h4>
+          <div style={{ marginBottom: '1rem' }}>
             <Input
               type="text"
               placeholder={t('add_details')}

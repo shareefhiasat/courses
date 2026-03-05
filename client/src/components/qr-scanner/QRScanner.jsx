@@ -71,14 +71,19 @@ import {
 } from '@utils/icons.jsx';
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/attendanceMethods';
 import { useBilingualNotes } from '@hooks/useBilingualNotes.js';
+import { FeatureFlagWrapper } from '@ui/FeatureFlagWrapper';
+import { useFeatureFlags } from '@hooks/useFeatureFlags';
+import { ROLE_STRINGS } from '@utils/userUtils';
 
 export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, loading = false, students = [], onMinimizeChange }) {
   const auth = useAuth();
-  const { user } = auth;
+  const { user, role, isSuperAdmin } = auth;
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const { showSuccess, showError } = useToast();
+  const { isEnabled, loading: featureLoading } = useFeatureFlags();
 
+  
   // Handle auth loading state to prevent white screen
   if (auth.loading || (!user && auth.hasProfile)) {
     return (
@@ -1547,22 +1552,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       return '#f97316'; // Negative changes
     }
 
-    // Use centralized attendance color system
-    switch(status?.toLowerCase()) {
-      case ATTENDANCE_STATUS.PRESENT: 
-        return '#16a34a';
-      case ATTENDANCE_STATUS.LATE: 
-        return '#eab308';
-      case ATTENDANCE_STATUS.HUMAN_CASE: 
-        return '#8b5cf6';
-      case ATTENDANCE_STATUS.ABSENT:
-      case ATTENDANCE_STATUS.ABSENT_NO_EXCUSE:
-      case ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE:
-      case ATTENDANCE_STATUS.EXCUSED_LEAVE:
-        return '#dc2626';
-      default: 
-        return '#6b7280';
-    }
+    // Use centralized attendance color system (same as roster)
+    return getAttendanceColor(status);
   }, []);
 
   const getStatusIcon = useCallback((status, type, delta) => {
@@ -1898,6 +1889,23 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, [showStudentActionZapPanel, studentForAction, addDebugLog]);
 
   return (
+    <FeatureFlagWrapper 
+      featureId="QR_SCANNER_ACCESS"
+      fallback={
+        <div dir={isRTL ? 'rtl' : 'ltr'} style={{
+          padding: '2rem',
+          textAlign: 'center',
+          color: 'var(--text-secondary, #6b7280)',
+          background: 'var(--panel, white)',
+          borderRadius: '0.75rem',
+          border: '1px solid var(--border, #e5e7eb)'
+        }}>
+          <p style={{ margin: 0, fontSize: '0.875rem' }}>
+            {t('qr_scanner_not_available') || 'QR Scanner is not available for your role.'}
+          </p>
+                  </div>
+      }
+    >
       <CollapsibleSection
           ref={scannerRef}
           sectionId="qr-scanner"
@@ -4383,5 +4391,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           `}</style>
         </div>
       </CollapsibleSection>
+    </FeatureFlagWrapper>
   );
 }
