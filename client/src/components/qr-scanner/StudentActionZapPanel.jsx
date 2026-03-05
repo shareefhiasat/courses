@@ -5,7 +5,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { markAttendance } from '@services/business/attendanceService';
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPES, STANDUP_ATTENDANCE_TYPES, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPES, STANDUP_ATTENDANCE_TYPES, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
@@ -22,15 +22,37 @@ export default function StudentActionZapPanel({
   onParticipationSubmit,
   onPenaltySubmit,
   onMarkAttendance,
-  attendanceMode = 'regular',
+  attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR,
   options = [],
   showFavoritesOnly = false,
   onToggleFavorites = () => {},
   selectedDate,
   sendNotifications = false,
   onToggleNotifications,
-  initialTab = RECORD_TYPES.PARTICIPATION
+  initialTab = RECORD_TYPES.ATTENDANCE
 }) {
+  // DEBUG: Log attendanceMode prop
+  logger.log('🔍 [DEBUG] StudentActionZapPanel received:', {
+    attendanceMode,
+    studentName: student?.name,
+    constants: ATTENDANCE_TYPE_CATEGORY
+  });
+
+  // Add CSS animation for spinner
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   const { user } = useAuth();
   const { theme } = useTheme();
   const { t, lang, isRTL } = useLang();
@@ -417,7 +439,7 @@ export default function StudentActionZapPanel({
             }}
           >
             {getThemedIcon('ui', 'check_circle', 14, theme)}
-            {t(attendanceMode === 'standup' ? 'standup' : 'attendance')}
+            {t(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'standup' : 'attendance')}
           </button>
           <button
             onClick={() => setActiveTab(RECORD_TYPES.PARTICIPATION)}
@@ -503,32 +525,55 @@ export default function StudentActionZapPanel({
         <div style={{ marginBottom: '0.5rem', marginTop: '1rem' }}>
           <div style={{
             display: viewMode === 'grid' ? 'grid' : 'flex',
-            gridTemplateColumns: viewMode === 'grid' ? 'repeat(3, 1fr)' : 'none',
+            gridTemplateColumns: viewMode === 'grid' ? 'repeat(auto-fit, minmax(120px, 1fr))' : 'none',
             flexDirection: viewMode === 'list' ? 'column' : 'row',
-            gap: viewMode === 'grid' ? '0.35rem' : '0.225rem'
+            gap: viewMode === 'grid' ? '0.5rem' : '0.225rem'
           }}>
             {activeTab === RECORD_TYPES.ATTENDANCE ? (
               // Attendance Cards - Show standup or regular based on mode
-              (attendanceMode === 'standup' ? STANDUP_ATTENDANCE_TYPES : ATTENDANCE_TYPES).map((attendanceType) => (
+              (() => {
+                const attendanceTypes = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? STANDUP_ATTENDANCE_TYPES : ATTENDANCE_TYPES;
+                logger.log('🔍 [DEBUG] Attendance tab rendering:', {
+                  attendanceMode,
+                  isStandupMode: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP,
+                  attendanceTypes: attendanceTypes.map(t => ({ id: t.id, label: t.label_en }))
+                });
+                return attendanceTypes;
+              })().map((attendanceType) => (
                 <button
                   key={attendanceType.id}
                   onClick={async () => {
-                    if (onMarkAttendance && student) {
-                      await onMarkAttendance(student.id, attendanceType.id);
-                      onClose();
+                    if (onMarkAttendance && student && !isSubmitting) {
+                      setIsSubmitting(true);
+                      try {
+                        await onMarkAttendance(student.id, attendanceType.id);
+                        onClose();
+                      } catch (error) {
+                        console.error('Error marking attendance:', error);
+                      } finally {
+                        setIsSubmitting(false);
+                      }
                     }
                   }}
+                  disabled={isSubmitting}
                   style={{
-                    padding: '1rem',
+                    padding: '0.5rem 0.75rem',
                     borderRadius: '0.5rem',
                     border: `2px solid ${attendanceType.color}`,
-                    background: `${attendanceType.color}15`,
-                    cursor: 'pointer',
+                    background: `linear-gradient(135deg, ${attendanceType.color}08 0%, ${attendanceType.color}15 100%)`,
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s',
                     display: 'flex',
-                    flexDirection: 'column',
+                    flexDirection: 'row',
                     alignItems: 'center',
-                    gap: '0.5rem'
+                    gap: '0.5rem',
+                    minHeight: '2.5rem',
+                    width: 'auto',
+                    minWidth: '120px',
+                    maxWidth: '140px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    opacity: isSubmitting ? 0.7 : 1
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'scale(1.02)';
@@ -539,14 +584,62 @@ export default function StudentActionZapPanel({
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
-                  <div style={{ fontSize: '2rem' }}>{attendanceType.icon}</div>
+                  <div style={{ 
+                    fontSize: '1rem', 
+                    lineHeight: 1,
+                    filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))',
+                    flexShrink: 0
+                  }}>
+                    {(() => {
+                      const iconMap = {
+                        // Regular attendance icons
+                        CheckCircle: getThemedIcon('ui', 'check_circle', 18, theme),
+                        XCircle: getThemedIcon('ui', 'x_circle', 18, theme),
+                        Clock: getThemedIcon('ui', 'clock', 18, theme),
+                        Heart: getThemedIcon('ui', 'heart', 18, theme),
+                        // Standup attendance icons
+                        Star: getThemedIcon('ui', 'star', 18, theme),
+                        X: getThemedIcon('ui', 'x', 18, theme),
+                      };
+                      return iconMap[attendanceType.icon] || getThemedIcon('ui', 'help_circle', 18, theme);
+                    })()}
+                  </div>
                   <span style={{ 
-                    fontSize: '0.875rem', 
+                    fontSize: '0.7rem', 
                     fontWeight: 600,
-                    color: attendanceType.color 
+                    color: attendanceType.color,
+                    textAlign: 'left',
+                    lineHeight: 1.1,
+                    textShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
                   }}>
                     {lang === 'ar' ? attendanceType.label_ar : attendanceType.label_en}
                   </span>
+                  {isSubmitting && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      background: 'rgba(255, 255, 255, 0.8)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '0.75rem'
+                    }}>
+                      <div style={{
+                        width: '20px',
+                        height: '20px',
+                        border: '2px solid #f3f3f3',
+                        borderTop: `2px solid ${attendanceType.color}`,
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                      }}></div>
+                    </div>
+                  )}
                 </button>
               ))
             ) : (

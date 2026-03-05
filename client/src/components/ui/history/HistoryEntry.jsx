@@ -3,6 +3,7 @@ import { useIsMobile } from '@hooks/useIsMobile';
 import { Button, InfoTooltip, PerformedBy } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants';
 import logger from '@utils/logger';
 import PortalTooltip from '@ui/PortalTooltip';
@@ -51,7 +52,7 @@ export const HistoryEntry = ({
   };
 
   const timeDisplay = getTimeDisplay();
-  const isStandupEntry = type === RECORD_TYPES.ATTENDANCE && log.attendanceCategory === 'standup';
+  const isStandupEntry = type === RECORD_TYPES.ATTENDANCE && log.status?.startsWith('standup_');
 
     return (
     <div style={{ 

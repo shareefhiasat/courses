@@ -6,12 +6,12 @@ import {
   computeDateKey 
 } from '@services/business/bulkAttendanceService';
 import { formatQatarDateOnly, getQatarNow } from '@utils/qatarDate';
-import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import { getStudentsByClass } from '@services/business/enrollmentService';
 import logger from '@utils/logger';
 import eventBus, { EVENTS } from '@utils/eventBus';
 
-const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedBy, performedByName, performedByEmail, attendanceMode = 'regular', onSuccess, t, showSuccess, showError }) => {
+const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedBy, performedByName, performedByEmail, attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR, onSuccess, t, showSuccess, showError }) => {
   const [inputText, setInputText] = useState('');
   const [parsedNumbers, setParsedNumbers] = useState([]);
   const [invalidRows, setInvalidRows] = useState([]);
@@ -335,7 +335,6 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
         performedBy,
         performedByName,
         performedByEmail,
-        attendanceCategory: attendanceMode, // 'regular' or 'standup'
         source: 'bulk',
         notes: t('bulk_attendance_notes', { count: validatedStudents.found.length }) || `Bulk attendance - ${validatedStudents.found.length} students`,
         onProgress: (progressData) => {

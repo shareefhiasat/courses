@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { X, Upload, AlertCircle, CheckCircle, Trash2, Calendar, User, Clock, RefreshCw, Download, Users, RotateCcw } from 'lucide-react';
-import { ATTENDANCE_TYPES } from '@constants/attendanceTypes';
+import { X, Upload, Trash2, Calendar, RefreshCw, Download, RotateCcw, Users, CheckCircle, AlertCircle } from 'lucide-react';
+import { ATTENDANCE_TYPES, STANDUP_ATTENDANCE_TYPES, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import { getThemedIcon } from '@constants/iconTypes';
 import useManualBulkScan from '@hooks/useManualBulkScan';
 import { useTheme } from '@contexts/ThemeContext';
@@ -16,13 +16,23 @@ const BulkScanDialog = ({
   performedBy,
   performedByName,
   performedByEmail,
-  attendanceMode = 'regular',
+  attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR,
+  onModeChange,
   onSuccess,
   t,
   lang,
   showSuccess,
   showError
 }) => {
+  // DEBUG: Log dialog props
+  console.log('🔍 [DEBUG] BulkScanDialog props:', {
+    isOpen,
+    attendanceMode,
+    hasOnModeChange: !!onModeChange,
+    classId,
+    programId
+  });
+
   const { theme } = useTheme();
   const textareaRef = useRef(null);
   const isRTL = lang === 'ar';
@@ -98,7 +108,8 @@ const BulkScanDialog = ({
     
     // Helper function to get Arabic status using shared constants
     const getArabicStatus = (status) => {
-      const attendanceType = ATTENDANCE_TYPES.find(type => type.id === status);
+      const allAttendanceTypes = [...ATTENDANCE_TYPES, ...STANDUP_ATTENDANCE_TYPES];
+      const attendanceType = allAttendanceTypes.find(type => type.id === status);
       return attendanceType ? attendanceType.label_ar : status;
     };
     
@@ -459,9 +470,82 @@ const BulkScanDialog = ({
 
           {parsedNumbers.length > 0 && (
             <div className={styles.controlsSection}>
+              {/* Attendance Mode Toggle */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                marginBottom: '1rem',
+                padding: '0 1rem'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  gap: '0.5rem',
+                  background: 'var(--background-secondary, #f3f4f6)',
+                  padding: '0.25rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid var(--border, #e5e7eb)'
+                }}>
+                  <button
+                    onClick={() => {
+                    console.log('🔍 [DEBUG] BulkScanDialog Regular mode clicked', {
+                      currentMode: attendanceMode,
+                      hasOnModeChange: !!onModeChange
+                    });
+                    onModeChange && onModeChange(ATTENDANCE_TYPE_CATEGORY.REGULAR);
+                  }}
+                    disabled={!onModeChange}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                      color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : 'var(--text-muted, #6b7280)',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      cursor: onModeChange ? 'pointer' : 'default',
+                      opacity: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {getThemedIcon('ui', 'check_circle', 16, attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : theme)}
+                    {t('attendance_mode') || 'Attendance'}
+                  </button>
+                  <button
+                    onClick={() => {
+                    console.log('🔍 [DEBUG] BulkScanDialog Standup mode clicked', {
+                      currentMode: attendanceMode,
+                      hasOnModeChange: !!onModeChange
+                    });
+                    onModeChange && onModeChange(ATTENDANCE_TYPE_CATEGORY.STANDUP);
+                  }}
+                    disabled={!onModeChange}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                      color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : 'var(--text-muted, #6b7280)',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      cursor: onModeChange ? 'pointer' : 'default',
+                      opacity: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {getThemedIcon('ui', 'users', 16, attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : theme)}
+                    {t('standup_mode') || 'Standup'}
+                  </button>
+                </div>
+              </div>
               <div className={styles.controlGroup}>
                 <div className={styles.statusCardsGrid}>
-                  {ATTENDANCE_TYPES.map((type) => (
+                  {(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? STANDUP_ATTENDANCE_TYPES : ATTENDANCE_TYPES).map((type) => (
                     <button
                       key={type.id}
                       onClick={() => setSelectedStatus(type.id)}
@@ -486,12 +570,17 @@ const BulkScanDialog = ({
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        {type.id === 'present' && <CheckCircle size={14} />}
-                        {type.id === 'late' && <Clock size={14} />}
-                        {type.id === 'absent_no_excuse' && <X size={14} />}
-                        {type.id === 'absent_with_excuse' && <AlertCircle size={14} />}
-                        {type.id === 'excused_leave' && <User size={14} />}
-                        {type.id === 'human_case' && <AlertCircle size={14} />}
+                        {type.id === 'present' && getThemedIcon('ui', 'check_circle', 14, theme)}
+                        {type.id === 'late' && getThemedIcon('ui', 'clock', 14, theme)}
+                        {type.id === 'absent_no_excuse' && getThemedIcon('ui', 'x_circle', 14, theme)}
+                        {type.id === 'absent_with_excuse' && getThemedIcon('ui', 'alert_circle', 14, theme)}
+                        {type.id === 'excused_leave' && getThemedIcon('ui', 'users', 14, theme)}
+                        {type.id === 'human_case' && getThemedIcon('ui', 'alert_circle', 14, theme)}
+                        {/* Standup attendance icons */}
+                        {type.id === 'standup_present' && getThemedIcon('ui', 'star', 14, theme)}
+                        {type.id === 'standup_absent' && getThemedIcon('ui', 'x', 14, theme)}
+                        {type.id === 'standup_clinic' && getThemedIcon('ui', 'heart', 14, theme)}
+                        {type.id === 'standup_late' && getThemedIcon('ui', 'clock', 14, theme)}
                       </div>
                       <span style={{ fontSize: '0.7rem', textAlign: 'center' }}>
                         {lang === 'ar' ? type.label_ar : type.label_en}

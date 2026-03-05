@@ -47,45 +47,39 @@ export const ATTENDANCE_TYPES = [
     label_en: 'Human Case', 
     icon: 'Heart',
     color: '#8b5cf6'
-  },
-  { 
-    id: 'clinic', 
-    label_ar: 'عيادة', 
-    label_en: 'Clinic', 
-    icon: 'Heart',
-    color: '#06b6d4'
   }
 ];
 
 // Standup-specific attendance types (subset for daily standup)
+// Using prefixed IDs to differentiate from regular attendance
 export const STANDUP_ATTENDANCE_TYPES = [
   { 
-    id: 'present', 
+    id: 'standup_present', 
     label_ar: 'حاضر', 
     label_en: 'Present', 
-    icon: 'CheckCircle',
-    color: '#22c55e'
+    icon: 'Star', // Lucide star icon for standup present
+    color: '#10b981' // Emerald green
   },
   { 
-    id: 'absent_no_excuse', 
+    id: 'standup_absent', 
     label_ar: 'غائب', 
     label_en: 'Absent', 
-    icon: 'XCircle',
-    color: '#ef4444'
+    icon: 'X', // Lucide X icon for standup absent
+    color: '#dc2626' // Strong red
   },
   { 
-    id: 'clinic', 
+    id: 'standup_clinic', 
     label_ar: 'عيادة', 
     label_en: 'Clinic', 
-    icon: 'Heart',
-    color: '#06b6d4'
+    icon: 'Heart', // Lucide heart icon for clinic
+    color: '#0891b2' // Cyan blue
   },
   { 
-    id: 'late', 
+    id: 'standup_late', 
     label_ar: 'متأخر', 
     label_en: 'Late', 
-    icon: 'Clock',
-    color: '#eab308'
+    icon: 'Clock', // Lucide clock icon for late
+    color: '#f59e0b' // Amber orange
   }
 ];
 
@@ -97,7 +91,11 @@ export const ATTENDANCE_STATUS = {
   LATE: 'late',
   EXCUSED_LEAVE: 'excused_leave',
   HUMAN_CASE: 'human_case',
-  CLINIC: 'clinic'
+  // Standup statuses
+  STANDUP_PRESENT: 'standup_present',
+  STANDUP_ABSENT: 'standup_absent',
+  STANDUP_CLINIC: 'standup_clinic',
+  STANDUP_LATE: 'standup_late'
 };
 
 // Attendance type categories
@@ -108,7 +106,9 @@ export const ATTENDANCE_TYPE_CATEGORY = {
 
 // Helper functions
 export const getAttendanceTypeById = (id) => {
-  return ATTENDANCE_TYPES.find(type => type.id === id);
+  // Search in both regular and standup attendance types
+  return ATTENDANCE_TYPES.find(type => type.id === id) || 
+         STANDUP_ATTENDANCE_TYPES.find(type => type.id === id);
 };
 
 export const getAttendanceLabel = (id, lang = 'en') => {
@@ -145,7 +145,7 @@ export const getAttendanceColor = (id) => {
 };
 
 // Backward compatibility - keep the old object structure
-export const ATTENDANCE_STATUS_LABELS = ATTENDANCE_TYPES.reduce((acc, type) => {
+export const ATTENDANCE_STATUS_LABELS = [...ATTENDANCE_TYPES, ...STANDUP_ATTENDANCE_TYPES].reduce((acc, type) => {
   acc[type.id] = {
     en: type.label_en,
     ar: type.label_ar,

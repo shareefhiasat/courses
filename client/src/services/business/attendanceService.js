@@ -129,6 +129,15 @@ export const markAttendance = async (attendanceData) => {
       status: attendanceData.status
     });
 
+    // DEBUG: Log status details
+    logger.log('🔍 [DEBUG] Attendance service details:', {
+      status: attendanceData.status,
+      isStandup: attendanceData.status?.startsWith('standup_'),
+      studentId: attendanceData.studentId,
+      date: attendanceData.date,
+      timestamp: new Date().toISOString()
+    });
+
     // Validate required fields and provide defaults
     const validatedData = {
       ...attendanceData,
@@ -173,7 +182,6 @@ export const markAttendance = async (attendanceData) => {
         subjectId,
         date: date, // Use the passed date (ISO format)
         time: validatedData.time, // Ensure time is included
-        attendanceCategory: validatedData.attendanceCategory || 'regular', // 'regular' or 'standup'
         updatedAt: getQatarTimestampString()
       });
       
@@ -214,7 +222,6 @@ export const markAttendance = async (attendanceData) => {
         subjectId,
         date: date, // Use the passed date (ISO format)
         time: validatedData.time, // Ensure time is included
-        attendanceCategory: validatedData.attendanceCategory || 'regular', // 'regular' or 'standup'
         createdAt: getQatarTimestampString(),
         updatedAt: getQatarTimestampString()
       });

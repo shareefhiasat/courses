@@ -24,7 +24,7 @@ import { createBehavior, getBehaviors, deleteBehavior } from '@services/business
 import { getPerformedByFields } from '@services/business/userService';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ATTENDANCE_METHODS, getAttendanceMethodLabel } from '@constants/attendanceMethods';
-import { ATTENDANCE_TYPES } from '@constants/attendanceTypes';
+import { ATTENDANCE_TYPES, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import { EMAIL_TEMPLATE_TYPES } from '@constants/templateTypes';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { useToast } from '@ui/ToastProvider.jsx';
@@ -39,6 +39,7 @@ import QRScanner from '@/components/qr-scanner/QRScanner';
 import StudentRoster from '@/components/qr-scanner/StudentRoster';
 import StudentActionStatsPanel from '@/components/qr-scanner/StudentActionStatsPanel';
 import StudentActionZapPanel from '@/components/qr-scanner/StudentActionZapPanel';
+import BulkScanDialog from '@components/ui/BulkScanDialog/BulkScanDialog';
 import ReportExportModal from '@/components/qr-scanner/ReportExportModal';
 import '@/components/qr-scanner/ui/qr-scanner-ui.css';
 import './QRScannerPage.module.css';
@@ -135,8 +136,17 @@ const QRScannerPage = () => {
     const qatarNow = getQatarNow();
     return qatarNow.toISOString().split('T')[0]; // Format as yyyy-MM-dd
   });
-  const [attendanceMode, setAttendanceMode] = useState('regular'); // 'regular' or 'standup'
+  const [attendanceMode, setAttendanceMode] = useState(ATTENDANCE_TYPE_CATEGORY.REGULAR); // 'regular' or 'standup'
+
+  // DEBUG: Track attendanceMode changes
+  useEffect(() => {
+    logger.log('🔍 [DEBUG] attendanceMode changed:', {
+      attendanceMode,
+      constants: ATTENDANCE_TYPE_CATEGORY
+    });
+  }, [attendanceMode]);
   const [showFilterDialog, setShowFilterDialog] = useState(false);
+  const [showBulkScanDialog, setShowBulkScanDialog] = useState(false);
   const [attendanceFilter, setAttendanceFilter] = useState('all');
   const [participationMin, setParticipationMin] = useState('');
   const [participationMax, setParticipationMax] = useState('');
@@ -401,6 +411,11 @@ const QRScannerPage = () => {
 
   // Memoized loadStudents function for performance
   const loadStudents = useCallback(async (classId, date) => {
+    logger.log('🔍 [DEBUG] loadStudents called from BulkScanDialog:', {
+      classId,
+      date,
+      timestamp: new Date().toISOString()
+    });
     try {
       logger.debug('[QR Scanner] Loading students for class:', classId, 'date:', date);
       setLoading(true);
@@ -437,6 +452,20 @@ const QRScannerPage = () => {
       const dateStr = date;
       const attendanceResponse = await getAttendanceByClass(classId, dateStr);
       const attendance = attendanceResponse.success ? attendanceResponse.data : [];
+      
+      // DEBUG: Log attendance data
+      logger.log('🔍 [DEBUG] Attendance data loaded:', {
+        classId,
+        dateStr,
+        totalRecords: attendance.length,
+        records: attendance.map(a => ({
+          studentId: a.studentId,
+          status: a.status,
+          isStandup: a.status?.startsWith('standup_'),
+          date: a.date
+        }))
+      });
+      
       setAttendanceRecords(attendance);
 
       // Create penalty map for O(1) lookup
@@ -481,11 +510,42 @@ const QRScannerPage = () => {
           
           // Find the primary attendance record
           const studentRecords = attendance.filter(a => a.studentId === studentId);
-          const todayAttendance = studentRecords.find(a => !a.delta) || studentRecords[0];
+          
+          // DEBUG: Log student records
+          logger.log('🔍 [DEBUG] Student attendance records:', {
+            studentId,
+            studentName,
+            totalRecords: studentRecords.length,
+            records: studentRecords.map(r => ({
+              status: r.status,
+              isStandup: r.status?.startsWith('standup_'),
+              date: r.date,
+              delta: r.delta
+            }))
+          });
+          
+          // Separate regular and standup attendance records by status prefix
+          const regularAttendance = studentRecords.filter(a => !a.status?.startsWith('standup_'));
+          const standupAttendance = studentRecords.filter(a => a.status?.startsWith('standup_'));
+          
+          const todayAttendance = regularAttendance.find(a => !a.delta) || regularAttendance[0];
+          const todayStandupAttendance = standupAttendance.find(a => !a.delta) || standupAttendance[0];
+
+          // DEBUG: Log separated records
+          logger.log('🔍 [DEBUG] Separated attendance:', {
+            regularCount: regularAttendance.length,
+            standupCount: standupAttendance.length,
+            todayAttendance: todayAttendance?.status,
+            todayStandupAttendance: todayStandupAttendance?.status
+          });
 
           // Fetch all attendance records for this student (attendance only)
           const studentAttendanceResponse = await getAttendanceByStudent(studentId);
           const studentAttendanceRecords = studentAttendanceResponse.success ? studentAttendanceResponse.data : [];
+          
+          // Separate regular and standup attendance for statistics by status prefix
+          const regularAttendanceRecords = studentAttendanceRecords.filter(r => !r.status?.startsWith('standup_'));
+          const standupAttendanceRecords = studentAttendanceRecords.filter(r => r.status?.startsWith('standup_'));
 
           // Attendance total should count status records only
           let totalAttendanceCount = 0;
@@ -498,7 +558,8 @@ const QRScannerPage = () => {
             humanitarianCase: 0
           };
 
-          studentAttendanceRecords.forEach(record => {
+          // Only count regular attendance for statistics
+          regularAttendanceRecords.forEach(record => {
             if (record.status === 'present' || record.status === 'late') {
               totalAttendanceCount++;
             }
@@ -563,7 +624,8 @@ const QRScannerPage = () => {
             return sum;
           }, 0);
 
-          return {
+          // DEBUG: Log final student object creation
+          const studentObject = {
             id: studentId,
             docId: student.docId,
             studentId: student.studentId || studentId,
@@ -571,7 +633,8 @@ const QRScannerPage = () => {
             name: studentName,
             email: student.email,
             studentOrder: student.studentOrder, // Add student order field
-            attendance: todayAttendance?.status || 'absent_no_excuse',
+            attendance: todayAttendance?.status || 'absent_no_excuse', // Regular attendance
+            standupStatus: todayStandupAttendance?.status || null, // Standup attendance (null if none)
             participation: participationTotal,
             behavior: behaviorTotal,
             penalty: penaltyTotal,
@@ -582,6 +645,17 @@ const QRScannerPage = () => {
             participationHistory: studentParticipationHistory,
             penaltyHistory: penalties
           };
+
+          logger.log('🔍 [DEBUG] Student object created:', {
+            studentId,
+            studentName,
+            attendance: studentObject.attendance,
+            standupStatus: studentObject.standupStatus,
+            attendanceIsStandup: studentObject.attendance?.startsWith('standup_'),
+            standupIsStandup: studentObject.standupStatus?.startsWith('standup_')
+          });
+
+          return studentObject;
         }));
         
         studentsWithData.push(...batchResults);
@@ -758,6 +832,17 @@ const QRScannerPage = () => {
 
   const handleMarkAttendance = useCallback(async (studentId, status, notes = '', method = ATTENDANCE_METHODS.MANUAL_INSTRUCTOR) => {
     try {
+      // DEBUG: Log attendance marking attempt
+      logger.log('🔍 [DEBUG] handleMarkAttendance called:', {
+        studentId,
+        status,
+        attendanceMode,
+        isStandup: status?.startsWith('standup_'),
+        notes,
+        method,
+        timestamp: new Date().toISOString()
+      });
+
       // Get performedBy fields using shared service
       const performedByFields = await getPerformedByFields(user);
       
@@ -789,7 +874,6 @@ const QRScannerPage = () => {
         notes,
         method,
         markedBy: user.uid,
-        attendanceCategory: attendanceMode, // 'regular' or 'standup'
         ...performedByFields
       });
 
@@ -2755,11 +2839,18 @@ const QRScannerPage = () => {
                 border: '1px solid var(--border, #e5e7eb)'
               }}>
                 <button
-                  onClick={() => setAttendanceMode('regular')}
+                  onClick={() => {
+                  logger.log('🔍 [DEBUG] Regular mode clicked', {
+                    currentMode: attendanceMode,
+                    newMode: ATTENDANCE_TYPE_CATEGORY.REGULAR,
+                    constants: ATTENDANCE_TYPE_CATEGORY
+                  });
+                  setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.REGULAR);
+                }}
                   style={{
                     padding: '0.5rem 1rem',
-                    background: attendanceMode === 'regular' ? 'var(--color-primary, #3b82f6)' : 'transparent',
-                    color: attendanceMode === 'regular' ? 'white' : 'var(--text-muted, #6b7280)',
+                    background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                    color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : 'var(--text-muted, #6b7280)',
                     border: 'none',
                     borderRadius: '0.375rem',
                     fontSize: '0.875rem',
@@ -2771,15 +2862,22 @@ const QRScannerPage = () => {
                     gap: '0.375rem'
                   }}
                 >
-                  {getThemedIcon('ui', 'check_circle', 16, attendanceMode === 'regular' ? 'white' : theme)}
+                  {getThemedIcon('ui', 'check_circle', 16, attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : theme)}
                   {t('attendance_mode') || 'Attendance'}
                 </button>
                 <button
-                  onClick={() => setAttendanceMode('standup')}
+                  onClick={() => {
+                  logger.log('🔍 [DEBUG] Standup mode clicked', {
+                    currentMode: attendanceMode,
+                    newMode: ATTENDANCE_TYPE_CATEGORY.STANDUP,
+                    constants: ATTENDANCE_TYPE_CATEGORY
+                  });
+                  setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.STANDUP);
+                }}
                   style={{
                     padding: '0.5rem 1rem',
-                    background: attendanceMode === 'standup' ? 'var(--color-primary, #3b82f6)' : 'transparent',
-                    color: attendanceMode === 'standup' ? 'white' : 'var(--text-muted, #6b7280)',
+                    background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                    color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : 'var(--text-muted, #6b7280)',
                     border: 'none',
                     borderRadius: '0.375rem',
                     fontSize: '0.875rem',
@@ -2791,7 +2889,7 @@ const QRScannerPage = () => {
                     gap: '0.375rem'
                   }}
                 >
-                  {getThemedIcon('ui', 'users', 16, attendanceMode === 'standup' ? 'white' : theme)}
+                  {getThemedIcon('ui', 'users', 16, attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : theme)}
                   {t('standup_mode') || 'Standup'}
                 </button>
               </div>
@@ -2865,6 +2963,37 @@ const QRScannerPage = () => {
               >
                 {getThemedIcon('ui', 'send', 16, theme)}
                 {t('summary_report') || 'Summary Report'}
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (!selectedClassId || selectedClassId === 'all') {
+                    showError(t('please_select_class') || 'Please select a class first');
+                    return;
+                  }
+                  setShowBulkScanDialog(true);
+                }}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 4px rgba(245, 158, 11, 0.2)',
+                  minWidth: '140px',
+                  justifyContent: 'center'
+                }}
+                title={t('bulk_scan_attendance') || 'Bulk scan attendance for multiple students'}
+              >
+                {getThemedIcon('ui', 'users', 16, theme)}
+                {t('bulk_scan') || 'Bulk Scan'}
               </button>
             </div>
           </div>
@@ -3567,6 +3696,34 @@ const QRScannerPage = () => {
             </div>
           )}
         </Modal>
+
+        {/* BulkScanDialog */}
+        <BulkScanDialog
+          isOpen={showBulkScanDialog}
+          onClose={() => setShowBulkScanDialog(false)}
+          programId={selectedProgramId}
+          subjectId={selectedSubjectId}
+          classId={selectedClassId}
+          markedBy={user?.uid}
+          performedBy={user?.uid}
+          performedByName={user?.displayName || user?.name || 'Unknown'}
+          performedByEmail={user?.email}
+          attendanceMode={attendanceMode}
+          onModeChange={setAttendanceMode}
+          onSuccess={() => {
+            logger.log('🔍 [DEBUG] BulkScanDialog onSuccess called:', {
+              selectedClassId,
+              selectedDate,
+              attendanceMode
+            });
+            setShowBulkScanDialog(false);
+            loadStudents(selectedClassId, selectedDate);
+          }}
+          t={t}
+          lang={lang}
+          showSuccess={showSuccess}
+          showError={showError}
+        />
 
               </div>
     </div>

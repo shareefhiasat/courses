@@ -78,6 +78,19 @@ const StudentTableRow = ({
           return <XSmallIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
         case 'human_case':
           return <HeartIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
+        // Standup attendance icons
+        case 'standup_present':
+          return (
+            <span style={{ fontSize: '16px', color: statusInfo.color }}>⭐</span>
+          );
+        case 'standup_absent':
+          return (
+            <span style={{ fontSize: '16px', color: statusInfo.color }}>❌</span>
+          );
+        case 'standup_clinic':
+          return <HeartIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
+        case 'standup_late':
+          return <ClockSmallIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
         default: 
           return <CircleIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
       }
