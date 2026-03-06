@@ -1,0 +1,436 @@
+// Prisma Schema with MongoDB Provider - Exact Firebase Structure
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// --- 1. ACADEMIC STRUCTURE ---
+
+model Program {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  nameEn      String   @map("nameEn")
+  nameAr      String?  @map("nameAr")
+  code        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("createdAt")
+  updatedAt   DateTime @updatedAt @map("updatedAt")
+  createdBy   String   @map("createdBy")
+  
+  subjects    Subject[]
+  courses     Course[]
+  classes     Class[]
+  
+  @@map("programs")
+}
+
+model Course {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  nameEn      String   @map("nameEn")
+  nameAr      String?  @map("nameAr")
+  code        String   @unique
+  description String?
+  programId   String   @map("programId") @db.ObjectId
+  order       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("createdAt")
+  updatedAt   DateTime @updatedAt @map("updatedAt")
+  createdBy   String   @map("createdBy")
+  
+  program     Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  subjects    Subject[]
+  
+  @@map("courses")
+}
+
+model Subject {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  nameEn      String   @map("nameEn")
+  nameAr      String?  @map("nameAr")
+  code        String   @unique
+  description String?
+  programId   String   @map("programId") @db.ObjectId
+  courseId    String   @map("courseId") @db.ObjectId
+  order       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("createdAt")
+  updatedAt   DateTime @updatedAt @map("updatedAt")
+  createdBy   String   @map("createdBy")
+  
+  program     Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  classes     Class[]
+  activities  Activity[]
+  resources   Resource[]
+  
+  @@map("subjects")
+}
+
+model Class {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  programId       String   @map("programId") @db.ObjectId
+  subjectId       String   @map("subjectId") @db.ObjectId
+  instructorIds   String[] @map("instructorIds") // Array of instructor IDs
+  schedule        Json     // Flexible schedule object
+  holidays        DateTime[] @map("holidays")
+  createdAt       DateTime @default(now()) @map("createdAt")
+  updatedAt       DateTime @updatedAt @map("updatedAt")
+  createdBy       String   @map("createdBy")
+  
+  program         Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  subject         Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  enrollments     Enrollment[]
+  attendance      Attendance[]
+  activities      Activity[]
+  resources       Resource[]
+  announcements   Announcement[]
+  
+  @@map("classes")
+}
+
+model Category {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  nameEn      String   @map("nameEn")
+  nameAr      String   @map("nameAr")
+  type        String   // "activity", "resource"
+  color       String   // Hex color code
+  createdAt   DateTime @default(now()) @map("createdAt")
+  updatedAt   DateTime @updatedAt @map("updatedAt")
+  createdBy   String   @map("createdBy")
+  
+  activities  Activity[]
+  resources   Resource[]
+  
+  @@map("categories")
+}
+
+// --- 2. USERS & ENROLLMENT ---
+
+model User {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  realName              String   @map("realName")
+  displayName           String   @map("displayName")
+  email                 String   @unique
+  phoneNumber           String?  @map("phoneNumber")
+  passwordHash          String   @map("passwordHash")
+  isAdmin               Boolean  @default(false) @map("isAdmin")
+  isStudent             Boolean  @default(true) @map("isStudent")
+  isInstructor          Boolean  @default(false) @map("isInstructor")
+  isHR                  Boolean  @default(false) @map("isHR")
+  isSuperAdmin          Boolean  @default(false) @map("isSuperAdmin")
+  isDisabled            Boolean  @default(false) @map("isDisabled")
+  enrolledClasses       String[] @map("enrolledClasses") // Array of class IDs
+  resourceProgress      Json     @map("resourceProgress") // Map of activity progress
+  bookmarks             Json     @map("bookmarks") // Map of bookmarks
+  chatReads             Json     @map("chatReads") // Map of class read timestamps
+  preferences           Json     @map("preferences") // User preferences
+  createdAt             DateTime @default(now()) @map("createdAt")
+  updatedAt             DateTime @updatedAt @map("updatedAt")
+  enabledAt             DateTime? @map("enabledAt")
+  enabledBy             String?  @map("enabledBy")
+  disabledAt            DateTime? @map("disabledAt")
+  disabledBy            String?  @map("disabledBy")
+  
+  enrollments           Enrollment[]
+  attendance            Attendance[]
+  createdActivities     Activity[]      @relation("ActivityCreator")
+  createdResources      Resource[]      @relation("ResourceCreator")
+  createdAnnouncements  Announcement[]  @relation("AnnouncementCreator")
+  participations        Participation[]
+  behaviors             Behavior[]
+  penalties             Penalty[]
+  notifications         Notification[]
+  activityLogs          ActivityLog[]
+  files                 File[]
+  
+  @@map("users")
+}
+
+model Enrollment {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @map("userId") @db.ObjectId
+  classId       String   @map("classId") @db.ObjectId
+  programId     String   @map("programId") @db.ObjectId
+  status        String   @default("active") // active, pending, completed, cancelled, suspended, withdrawn
+  enrolledAt    DateTime @default(now()) @map("enrolledAt")
+  completedAt   DateTime? @map("completedAt")
+  finalGrade    Int?     @map("finalGrade")
+  createdBy     String   @map("createdBy")
+  
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class         Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, classId])
+  @@map("enrollments")
+}
+
+// --- 3. CONTENT & ACTIVITIES ---
+
+model Activity {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  titleEn         String   @map("titleEn")
+  titleAr         String?  @map("titleAr")
+  descriptionEn   String   @map("descriptionEn") // HTML content
+  descriptionAr   String?  @map("descriptionAr") // HTML content
+  type            String   // homework, quiz, assignment
+  difficulty      String?
+  maxScore        Int      @map("maxScore") @default(100)
+  programId       String?  @map("programId") @db.ObjectId
+  subjectId       String?  @map("subjectId") @db.ObjectId
+  classId         String?  @map("classId") @db.ObjectId
+  categoryId      String?  @map("categoryId") @db.ObjectId
+  createdBy       String   @map("createdBy") @db.ObjectId
+  settings        Json     // allowRetake, requiresSubmission, show, featured
+  createdAt       DateTime @default(now()) @map("createdAt")
+  updatedAt       DateTime @updatedAt @map("updatedAt")
+  
+  subject         Subject? @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  class           Class?   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  category        Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  creator         User     @relation("ActivityCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  participations  Participation[]
+  
+  @@map("activities")
+}
+
+model Resource {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  titleEn     String   @map("titleEn")
+  titleAr     String?  @map("titleAr")
+  type        String   // video, pdf, link, document
+  url         String
+  filePath    String?  @map("filePath")
+  fileSize    BigInt?  @map("fileSize")
+  mimeType    String?  @map("mimeType")
+  classId     String?  @map("classId") @db.ObjectId
+  subjectId   String?  @map("subjectId") @db.ObjectId
+  categoryId  String?  @map("categoryId") @db.ObjectId
+  createdBy   String   @map("createdBy") @db.ObjectId
+  show        Boolean  @default(true)
+  tags        String[] // Array of tags
+  createdAt   DateTime @default(now()) @map("createdAt")
+  updatedAt   DateTime @updatedAt @map("updatedAt")
+  
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  class       Class?   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  creator     User     @relation("ResourceCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  
+  @@map("resources")
+}
+
+model Participation {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @map("userId") @db.ObjectId
+  activityId  String   @map("activityId") @db.ObjectId
+  score       Int?
+  feedback    String?
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now()) @map("createdAt")
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, activityId])
+  @@map("participations")
+}
+
+// --- 4. BEHAVIOR & ATTENDANCE ---
+
+model Attendance {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @map("userId") @db.ObjectId
+  classId     String   @map("classId") @db.ObjectId
+  date        DateTime
+  status      String   // present, absent, late, clinic, standup_present, etc.
+  method      String   @default("manual") // qr, manual, biometric, face_recognition
+  notes       String?
+  recordedBy  String   @map("recordBy") @db.ObjectId
+  performedBy String   @map("performedBy") @db.ObjectId
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now()) @map("createdAt")
+  updatedAt   DateTime @updatedAt @map("updatedAt")
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, classId, date])
+  @@map("attendance")
+}
+
+model Behavior {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @map("userId") @db.ObjectId
+  behaviorId  String   @map("behaviorId") @db.ObjectId
+  type        String   // positive, negative, disruptive
+  points      Int
+  classId     String?  @map("classId") @db.ObjectId
+  notes       String?
+  createdAt   DateTime @default(now()) @map("createdAt")
+  updatedAt   DateTime @updatedAt @map("updatedAt")
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("behaviors")
+}
+
+model Penalty {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @map("userId") @db.ObjectId
+  type        String   // disciplinary, academic
+  points      Int
+  classId     String?  @map("classId") @db.ObjectId
+  notes       String?
+  createdAt   DateTime @default(now()) @map("createdAt")
+  updatedAt   DateTime @updatedAt @map("updatedAt")
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("penalties")
+}
+
+// --- 5. LOGS & SYSTEM ---
+
+model ActivityLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  type      String   // USER_ENABLED, LOGIN, user_updated, etc.
+  userId    String?  @map("userId") @db.ObjectId
+  userName  String?  @map("userName")
+  userEmail String?  @map("userEmail")
+  url       String?
+  userAgent String?  @map("userAgent")
+  details   Json     // Dynamic metadata
+  metadata  Json     // Contextual data like role or method
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now()) @map("createdAt")
+  
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("activityLogs")
+}
+
+model Config {
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  data  Json   // Stores triggers and SMTP config
+  
+  @@map("config")
+}
+
+model File {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  filename     String   @map("filename")
+  storagePath  String?  @map("storagePath")
+  downloadURL  String?  @map("downloadURL")
+  metadata     Json     // reportType, totalStudents, programId
+  accessControl Json    // public, allowedRoles, sharedWith
+  uploadedAt   DateTime @default(now()) @map("uploadedAt")
+  uploadedBy   String   @map("uploadedBy") @db.ObjectId
+  
+  user         User     @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  
+  @@map("files")
+}
+
+// --- 6. COMMUNICATION ---
+
+model Announcement {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     String   @map("title")
+  titleEn   String?  @map("titleEn")
+  titleAr   String?  @map("titleAr")
+  contentEn String   @map("contentEn") // HTML content
+  contentAr String?  @map("contentAr") // HTML content
+  target    String   // global, class, program, subject
+  classId   String?  @map("classId") @db.ObjectId
+  programId String?  @map("programId") @db.ObjectId
+  subjectId String?  @map("subjectId") @db.ObjectId
+  featured  Boolean  @default(false)
+  createdBy String   @map("createdBy") @db.ObjectId
+  createdAt DateTime @default(now()) @map("createdAt")
+  updatedAt DateTime @updatedAt @map("updatedAt")
+  
+  class     Class?   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  creator   User     @relation("AnnouncementCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  
+  @@map("announcements")
+}
+
+model DirectRoom {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  participants String[] // Array of user IDs
+  starBy      String[] @map("starBy") // Array of user IDs who starred
+  archivedBy  String[] @map("archivedBy") // Array of user IDs who archived
+  lastMessage Json     // { text, senderId, timestamp }
+  createdAt   DateTime @default(now()) @map("createdAt")
+  updatedAt   DateTime @updatedAt @map("updatedAt")
+  
+  @@map("directRooms")
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @map("userId") @db.ObjectId
+  title     String
+  message   String
+  type      String   // attendance, behavior, system
+  read      Boolean  @default(false)
+  archived  Boolean  @default(false)
+  metadata  Json     // { classId, trigger, studentName }
+  createdAt DateTime @default(now()) @map("createdAt")
+  expiresAt DateTime? @map("expiresAt")
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("notifications")
+}
+
+model NotificationLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  trigger   String   // attendance_recorded, welcome_signup
+  userId    String?  @map("userId") @db.ObjectId
+  role      String?  // student, admin
+  channel   String   // web, email
+  success   Boolean
+  details   Json     // Dynamic map
+  title     String?
+  message   String?
+  templateId String?  @map("templateId")
+  recipient String?  // Email address
+  variables Json     // Template variables
+  studentName String? @map("studentName")
+  status    String?
+  date      String?
+  csvContent String? @map("csvContent") // Used for report logs
+  timestamp DateTime @default(now())
+  
+  @@map("notificationLogs")
+}
+
+model EmailTemplate {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  subject   String
+  html      String   // HTML/Handlebars content
+  category  String   // reports, warnings
+  variables String[] // List of allowed placeholder keys
+  createdAt DateTime @default(now()) @map("createdAt")
+  updatedAt DateTime @updatedAt @map("updatedAt")
+  
+  @@map("emailTemplates")
+}
+
+model Email {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  to         String
+  subject    String
+  templateId String   @map("templateId") @db.ObjectId
+  status     Json     // { sent: Boolean, error: String }
+  deliveredAt DateTime? @map("deliveredAt")
+  data       Json     // Template variables used
+  createdAt  DateTime @default(now()) @map("createdAt")
+  
+  @@map("emails")
+}
