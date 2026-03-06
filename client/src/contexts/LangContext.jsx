@@ -925,7 +925,7 @@ const DICT = {
     'attendance.camera_api_not_available': 'Camera API not available in this browser. Please try using a modern browser like Chrome, Firefox, or Safari.',
     'attendance.expand_all': '',
     'attendance.collapse_all': ' ',
-    'bulk_attendance_notes': 'Bulk attendance - {{count}} students',
+    'bulk_attendance_notes': 'Bulk attendance ({{count}} students)',
     
     // Semester Report translations
     'semester_report': 'Semester Report',

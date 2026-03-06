@@ -166,6 +166,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const [manualStudentId, setManualStudentId] = useState('');
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
   const [showBulkScanDialog, setShowBulkScanDialog] = useState(false);
+  const [performedByFields, setPerformedByFields] = useState({
+    performedBy: user?.uid || 'unknown',
+    performedByName: 'Unknown User',
+    performedByEmail: user?.email || 'unknown@example.com'
+  });
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -176,6 +181,24 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   useEffect(() => {
     setIsMobile(isMobileDevice());
   }, []);
+
+  // Fetch performed by fields when user is available
+  useEffect(() => {
+    console.log('🔍 QRScanner - useEffect for performedByFields running, user:', !!user);
+    const fetchPerformedByFields = async () => {
+      if (user) {
+        console.log('🔍 QRScanner - Calling getPerformedByFields...');
+        try {
+          const fields = await getPerformedByFields(user);
+          console.log('🔍 QRScanner - Fetched performedByFields:', fields);
+          setPerformedByFields(fields);
+        } catch (error) {
+          console.error('🔍 QRScanner - Error fetching performedByFields:', error);
+        }
+      }
+    };
+    fetchPerformedByFields();
+  }, [user]);
 
   // Get available cameras
   useEffect(() => {
@@ -4085,6 +4108,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   }}
                   onBehaviorSubmit={handleBehaviorSubmit}
                   onMarkAttendance={handleMarkAttendance}
+                  attendanceMode={attendanceMode}
                   onUpdate={() => {
                     if (onActivityUpdate) {
                       onActivityUpdate(() => {
@@ -4345,16 +4369,23 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           )}
 
           {/* Bulk Scan Dialog */}
+          {console.log('🔍 QRScanner - User data for BulkScanDialog:', {
+            uid: user?.uid,
+            displayName: user?.displayName,
+            name: user?.name,
+            email: user?.email,
+            performedByName: user?.displayName || user?.name || 'Unknown User'
+          })}
           <BulkScanDialog
             isOpen={showBulkScanDialog}
             onClose={() => setShowBulkScanDialog(false)}
             programId={selectedProgramId}
             subjectId={selectedSubjectId}
             classId={selectedClassId}
-            markedBy={user?.uid || 'unknown'}
-            performedBy={user?.uid || 'unknown'}
-            performedByName={user?.displayName || user?.name || 'Unknown User'}
-            performedByEmail={user?.email || 'unknown@example.com'}
+            markedBy={performedByFields.performedBy}
+            performedBy={performedByFields.performedBy}
+            performedByName={performedByFields.performedByName}
+            performedByEmail={performedByFields.performedByEmail}
             onSuccess={(result) => {
               showSuccess(t('bulk_operation_success') || `Successfully processed ${result.summary.succeeded} students`);
               

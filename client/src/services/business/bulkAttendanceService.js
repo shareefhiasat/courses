@@ -204,6 +204,10 @@ export const bulkUpsertAttendance = async ({
       studentCount: studentIds.length,
       status,
       source,
+      markedBy,
+      performedBy,
+      performedByName,
+      performedByEmail,
       timestamp: getQatarTimestampString()
     });
 
@@ -297,7 +301,11 @@ export const bulkUpsertAttendance = async ({
                 studentNumber,
                 date: isoDate,
                 status,
-                method: source
+                method: source,
+                markedBy,
+                performedBy,
+                performedByName,
+                performedByEmail
               });
               
               const updateResult = await markAttendance({
@@ -372,7 +380,11 @@ export const bulkUpsertAttendance = async ({
             logger.info('[BulkAttendanceService] Calling markAttendance for CREATE:', {
               attendanceData,
               batchIndex: batch.indexOf(studentInfo),
-              totalBatchSize: batch.length
+              totalBatchSize: batch.length,
+              markedBy,
+              performedBy,
+              performedByName,
+              performedByEmail
             });
             
             const createResult = await markAttendance(attendanceData);

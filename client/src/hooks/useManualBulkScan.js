@@ -57,12 +57,12 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
 
   const validateStudents = useCallback(async () => {
     if (parsedNumbers.length === 0) {
-      setError('No valid student numbers to validate');
+      setError(t('no_valid_student_numbers_to_validate') || 'No valid student numbers to validate');
       return;
     }
 
     if (!programId) {
-      setError('Program ID is required for validation');
+      setError(t('program_id_required_for_validation') || 'Program ID is required for validation');
       return;
     }
 
@@ -70,6 +70,11 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
     setError(null);
 
     try {
+      logger.info('[useManualBulkScan] About to validate with parsedNumbers:', {
+        parsedNumbersCount: parsedNumbers.length,
+        parsedNumbers: parsedNumbers
+      });
+      
       const validationResult = await bulkValidateStudents({
         programId,
         classId,
@@ -92,7 +97,7 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
       }
     } catch (err) {
       logger.error('[useManualBulkScan] Validation error:', err);
-      setError(err.message || 'Failed to validate students');
+      setError(err.message || (t('failed_to_validate_students') || 'Failed to validate students'));
       setValidatedStudents({ found: [], notFound: parsedNumbers });
     } finally {
       setValidating(false);
@@ -123,10 +128,12 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
   // Auto-add all students functionality
   const addAllStudents = useCallback(async () => {
     if (!programId) {
-      setError('Program ID is required to add all students');
+      setError(t('program_id_required_to_add_all_students') || 'Program ID is required to add all students');
       return;
     }
 
+    // Clear previous state before adding all students
+    clearState();
     setAddingAll(true);
     setError(null);
 
@@ -138,7 +145,7 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
       
       if (!studentsResponse.success || !studentsResponse.data) {
         logger.error('[useManualBulkScan] Failed to fetch class students:', studentsResponse);
-        setError('Failed to fetch class students');
+        setError(t('failed_to_fetch_class_students') || 'Failed to fetch class students');
         return;
       }
 
@@ -195,7 +202,7 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
       });
 
       if (allStudents.length === 0) {
-        setError('No students found in this program');
+        setError(t('no_students_found_in_this_program') || 'No students found in this program');
         return;
       }
 
@@ -220,6 +227,12 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
       // Create input text with student numbers
       const allStudentsText = limitedNumbers.join('\n');
       
+      logger.info('[useManualBulkScan] About to set input text for Add All:', {
+        studentCount: limitedNumbers.length,
+        studentNumbers: limitedNumbers,
+        inputText: allStudentsText
+      });
+      
       // Parse and validate all students
       setInputText(allStudentsText);
       const parseResult = parseBulkStudentNumbers(allStudentsText);
@@ -233,7 +246,7 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
       setInvalidRows(parseResult.invalid);
       setDuplicates(parseResult.duplicates);
 
-      // Validate students
+      // Validate students using the freshly parsed numbers
       if (parseResult.parsed.length > 0) {
         logger.info('[useManualBulkScan] About to validate students:', { 
           studentCount: parseResult.parsed.length,
@@ -241,8 +254,34 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
         });
         
         try {
-          await validateStudents();
+          // Validate with the fresh parsed numbers directly, not relying on state
+          const validationResult = await bulkValidateStudents({
+            programId,
+            classId,
+            studentNumbers: parseResult.parsed  // Use fresh parsed numbers
+          });
+
+          if (!validationResult.success) {
+            setError(validationResult.error);
+            setValidatedStudents({ found: [], notFound: parseResult.parsed });
+          } else {
+            setValidatedStudents({
+              found: validationResult.found,
+              notFound: validationResult.notFound
+            });
+
+            logger.debug('[useManualBulkScan] Validation complete:', {
+              found: validationResult.found.length,
+              notFound: validationResult.notFound.length
+            });
+          }
+          
           logger.info('[useManualBulkScan] Validation completed successfully');
+          logger.info('[useManualBulkScan] Validated students after validation:', {
+            foundCount: validatedStudents.found.length,
+            notFoundCount: validatedStudents.notFound.length,
+            foundStudents: validatedStudents.found.map(s => ({ studentNumber: s.studentNumber, displayName: s.displayName }))
+          });
         } catch (validationError) {
           logger.error('[useManualBulkScan] Validation failed:', validationError);
           setError(`Validation failed: ${validationError.message}`);
@@ -262,10 +301,13 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
 
       // Show feedback about how many students were added
       const addedCount = parseResult.parsed.length;
+      const addedStudentNumbers = parseResult.parsed.join(', ');
+      
       if (addedCount > 0) {
-        showSuccess(t('added_n_students_success', { count: addedCount }) || `Added ${addedCount} students successfully`);
+        const message = `Added ${addedCount} students: ${addedStudentNumbers}`;
+        showSuccess(message);
       } else {
-        showSuccess(t('no_new_students_to_add') || 'No new students to add');
+        showSuccess('No new students to add');
       }
 
       // Show warning if limited
@@ -279,7 +321,7 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
         stack: error.stack,
         programId
       });
-      setError('Failed to add all students. Please try again.');
+      setError(t('failed_to_add_all_students_please_try_again') || 'Failed to add all students. Please try again.');
     } finally {
       setAddingAll(false);
     }
@@ -300,12 +342,12 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
   // Submit attendance for validated students
   const submit = useCallback(async () => {
     if (validatedStudents.found.length === 0) {
-      setError('No valid students to submit');
+      setError(t('no_valid_students_to_submit') || 'No valid students to submit');
       return;
     }
 
     if (!classId || !programId || !subjectId) {
-      setError('Class, Program, and Subject are required');
+      setError(t('class_program_and_subject_are_required') || 'Class, Program, and Subject are required');
       return;
     }
 
@@ -336,7 +378,7 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
         performedByName,
         performedByEmail,
         source: 'bulk',
-        notes: t('bulk_attendance_notes', { count: validatedStudents.found.length }) || `Bulk attendance - ${validatedStudents.found.length} students`,
+        notes: t('bulk_attendance_notes', { count: validatedStudents.found.length }) || `Bulk attendance (${validatedStudents.found.length} students)`,
         onProgress: (progressData) => {
           setProgress(progressData);
           logger.debug('[useManualBulkScan] Progress update:', progressData);
@@ -413,28 +455,44 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
   // Add all students EXCEPT the ones listed
   const addAllExcept = useCallback(async () => {
     if (!programId) {
-      setError('Program ID is required to add all students');
+      setError(t('program_id_required_to_add_all_students') || 'Program ID is required to add all students');
       return;
     }
 
-    if (parsedNumbers.length === 0) {
-      setError('Please enter student numbers to exclude first');
+    // For "Add All Except", we need to parse the input first if not already parsed
+    let excludeNumbers = parsedNumbers;
+    
+    if (excludeNumbers.length === 0 && inputText.trim()) {
+      // Parse the input to get student numbers to exclude
+      const parseResult = parseBulkStudentNumbers(inputText);
+      if (!parseResult.success) {
+        setError(parseResult.error);
+        return;
+      }
+      excludeNumbers = parseResult.parsed || [];
+      
+      if (excludeNumbers.length === 0) {
+        setError(t('please_enter_valid_student_numbers_to_exclude_first') || 'Please enter valid student numbers to exclude first');
+        return;
+      }
+    } else if (excludeNumbers.length === 0 && !inputText.trim()) {
+      setError(t('please_enter_student_numbers_to_exclude_first') || 'Please enter student numbers to exclude first');
       return;
     }
 
-    // Clear previous results but keep input for this operation
-    setValidatedStudents({ found: [], notFound: [] });
-    setError(null);
-    setResult(null);
-
+    // Clear previous state but preserve input text and parsed numbers for "add all except"
+    const currentInputText = inputText;
+    clearState();
+    setInputText(currentInputText); // Restore input text
+    setParsedNumbers(excludeNumbers); // Set the parsed exclude numbers
     setAddingAll(true);
     setError(null);
 
     try {
       logger.info('[useManualBulkScan] Adding all students EXCEPT listed ones:', { 
         classId,
-        excludeCount: parsedNumbers.length,
-        excludedNumbers: parsedNumbers
+        excludeCount: excludeNumbers.length,
+        excludedNumbers: excludeNumbers
       });
       
       // Get students enrolled in this specific class
@@ -442,7 +500,7 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
       
       if (!studentsResponse.success || !studentsResponse.data) {
         logger.error('[useManualBulkScan] Failed to fetch class students:', studentsResponse);
-        setError('Failed to fetch class students');
+        setError(t('failed_to_fetch_class_students') || 'Failed to fetch class students');
         return;
       }
 
@@ -459,7 +517,7 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
       
       // For validation, exclude listed student numbers
       const validatableStudents = studentsWithNumbers.filter(student => 
-        !parsedNumbers.includes(student.studentNumber) // Exclude listed student numbers
+        !excludeNumbers.includes(student.studentNumber) // Exclude listed student numbers
       );
 
       logger.info('[useManualBulkScan] Filtered students (excluding listed):', { 
@@ -467,19 +525,19 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
         withNumbers: studentsWithNumbers.length,
         withoutNumbers: studentsWithoutNumbers.length,
         validatableAfterExclusion: validatableStudents.length,
-        excludedCount: parsedNumbers.length,
+        excludedCount: excludeNumbers.length,
         classId: classId
       });
 
       if (validatableStudents.length === 0 && studentsWithoutNumbers.length === 0) {
-        setError('No students found after exclusions');
+        setError(t('no_students_found_after_exclusions') || 'No students found after exclusions');
         return;
       }
 
       const studentNumbers = validatableStudents.map(student => student.studentNumber);
 
       if (validatableStudents.length === 0 && studentsWithoutNumbers.length > 0) {
-        setError('Only students without student numbers remain after exclusions');
+        setError(t('only_students_without_numbers_remain_after_exclusions') || 'Only students without student numbers remain after exclusions');
         return;
       }
 
@@ -508,34 +566,62 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
       setInvalidRows(parseResult.invalid);
       setDuplicates(parseResult.duplicates);
 
-      // Validate students
-      // Note: We don't call validateStudents() here because we want to validate
-      // the remaining students AFTER exclusion, not the excluded students themselves
+      // Validate the remaining students (after exclusion) using direct validation
+      const remainingStudentNumbers = validatableStudents.map(student => student.studentNumber);
+      
+      if (remainingStudentNumbers.length > 0) {
+        logger.info('[useManualBulkScan] About to validate remaining students for Add All Except:', { 
+          studentCount: remainingStudentNumbers.length,
+          studentNumbers: remainingStudentNumbers
+        });
+        
+        try {
+          // Validate the remaining students directly
+          const validationResult = await bulkValidateStudents({
+            programId,
+            classId,
+            studentNumbers: remainingStudentNumbers
+          });
 
-      // Create validated students object for remaining students (after exclusion)
-      const remainingStudents = validatableStudents.map(student => ({
-        studentNumber: student.studentNumber,
-        studentId: student.id,
-        displayName: student.displayName || student.name,
-        email: student.email,
-        studentData: student
-      }));
+          if (!validationResult.success) {
+            setError(validationResult.error);
+            setValidatedStudents({ found: [], notFound: remainingStudentNumbers });
+          } else {
+            setValidatedStudents({
+              found: validationResult.found,
+              notFound: validationResult.notFound
+            });
 
-      setValidatedStudents({
-        found: remainingStudents,
-        notFound: []
-      });
+            logger.debug('[useManualBulkScan] Add All Except validation complete:', {
+              found: validationResult.found.length,
+              notFound: validationResult.notFound.length
+            });
+          }
+        } catch (validationError) {
+          logger.error('[useManualBulkScan] Add All Except validation failed:', validationError);
+          setError(`Validation failed: ${validationError.message}`);
+          return;
+        }
+      } else {
+        // No remaining students
+        setValidatedStudents({ found: [], notFound: [] });
+      }
 
       // Populate input with remaining student numbers for review
-      if (remainingStudents.length > 0) {
-        const remainingStudentNumbers = remainingStudents.map(s => s.studentNumber);
+      if (remainingStudentNumbers.length > 0) {
         const inputText = remainingStudentNumbers.join('\n');
+        
+        logger.info('[useManualBulkScan] Setting input text with remaining students:', {
+          remainingCount: remainingStudentNumbers.length,
+          studentNumbers: remainingStudentNumbers,
+          inputText: inputText
+        });
         
         // Set the input text with remaining students
         setInputText(inputText);
         
-        // Trigger parse to show the students in the UI
-        await parseInput();
+        // Set parsed numbers to match the remaining students
+        setParsedNumbers(remainingStudentNumbers);
       } else {
         logger.warn('[useManualBulkScan] No students remaining after exclusions');
         setError(t('no_students_remaining_after_exclusions') || 'No students remaining after exclusions');
@@ -562,10 +648,16 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
       // Show feedback about how many students were added
       const addedCount = parseResult.parsed.length;
       const excludedCount = parsedNumbers.length;
+      const addedStudentNumbers = parseResult.parsed.join(', ');
+      const excludedStudentNumbers = parsedNumbers.join(', ');
+      
       if (addedCount > 0) {
-        showSuccess(t('added_n_students_excluded_m_success', { added: addedCount, excluded: excludedCount }) || `Added ${addedCount} students (excluded ${excludedCount})`);
+        const message = excludedCount > 0 
+          ? `Added ${addedCount} students: ${addedStudentNumbers} (excluded ${excludedCount}: ${excludedStudentNumbers})`
+          : `Added ${addedCount} students: ${addedStudentNumbers}`;
+        showSuccess(message);
       } else {
-        showSuccess(t('no_students_to_add_after_exclusions') || `No students to add (excluded ${excludedCount})`);
+        showSuccess(`No students to add (excluded ${excludedCount}: ${excludedStudentNumbers})`);
       }
 
       // Show warning if limited
@@ -579,7 +671,7 @@ const useManualBulkScan = ({ programId, subjectId, classId, markedBy, performedB
         stack: error.stack,
         programId
       });
-      setError('Failed to add all students. Please try again.');
+      setError(t('failed_to_add_all_students_please_try_again') || 'Failed to add all students. Please try again.');
     } finally {
       setAddingAll(false);
     }

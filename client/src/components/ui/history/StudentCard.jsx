@@ -34,7 +34,8 @@ const StudentCard = ({
   sendingEmails,
   setSendingEmails,
   sendStudentSummaryEmail,
-  lang = 'en'
+  lang = 'en',
+  historyLoading = {}
 }) => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -463,6 +464,7 @@ const StudentCard = ({
             groupLogsByDay={groupLogsByDay}
             toggleFilter={toggleFilter}
             lang={lang}
+            historyLoading={historyLoading}
           />
         </div>
       )}

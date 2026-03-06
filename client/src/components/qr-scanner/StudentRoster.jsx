@@ -8,7 +8,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 import PortalTooltip from '@ui/PortalTooltip';
-import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import { getAttendanceByStudent, rosterQuickAction, deleteAttendance } from '@services/business/attendanceService';
 import { getPenalties, deletePenalty } from '@services/business/penaltyService';
 import { getParticipations, deleteParticipation } from '@services/business/participationService';
@@ -53,17 +53,22 @@ const StudentRoster = React.memo(function StudentRoster({
   selectedSubjectId,
   selectedClassId,
   selectedDate,
+  attendanceMode = 'regular',
   showSuccess = (msg) => console.log('SUCCESS:', msg)
 }) {
   const {user} = useAuth();
   const {theme} = useTheme();
   const {t, lang, isRTL} = useLang();
+  
+  // DEBUG: Log attendanceMode
+  console.log('🔍 StudentRoster - attendanceMode:', attendanceMode);
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteType, setDeleteType] = useState('');
   const [deleteLogId, setDeleteLogId] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState({});
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -107,6 +112,11 @@ const StudentRoster = React.memo(function StudentRoster({
 
   // Memoized fetchStudentHistory to prevent unnecessary re-renders
   const fetchStudentHistory = useCallback(async (studentId) => {
+    console.log('🔍 StudentRoster - fetchStudentHistory called for student:', studentId);
+    
+    // Set loading state for this student
+    setHistoryLoading(prev => ({ ...prev, [studentId]: true }));
+    
     try {
       // Get all attendance records for this student
       const attendanceResponse = await getAttendanceByStudent(studentId);
@@ -248,8 +258,16 @@ const StudentRoster = React.memo(function StudentRoster({
         ...prev,
         [studentId]: logs
       }));
+      
+      console.log('🔍 StudentRoster - fetchStudentHistory completed for student:', studentId, {
+        logsCount: logs.length
+      });
     } catch (error) {
       logger.error('Error fetching student history:', error);
+    } finally {
+      // Clear loading state for this student
+      setHistoryLoading(prev => ({ ...prev, [studentId]: false }));
+      console.log('🔍 StudentRoster - historyLoading set to FALSE for student:', studentId);
     }
   }, [lang, t, toYmd]);
 
@@ -588,6 +606,18 @@ const StudentRoster = React.memo(function StudentRoster({
   // Senior-Level Quick Attendance Handler for Roster
   const handleQuickAttendance = useCallback(async (student, status) => {
     if (!student || !status || !selectedClassId) return;
+    
+    // Prevent Present and Late marking when in stand-up mode
+    console.log('🔍 StudentRoster handleQuickAttendance - attendanceMode:', attendanceMode);
+    console.log('🔍 StudentRoster handleQuickAttendance - status:', status);
+    console.log('🔍 StudentRoster handleQuickAttendance - isStandupMode:', attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP);
+    console.log('🔍 StudentRoster handleQuickAttendance - shouldBlock:', attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (status === ATTENDANCE_STATUS.PRESENT || status === ATTENDANCE_STATUS.LATE));
+    
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && 
+        (status === ATTENDANCE_STATUS.PRESENT || status === ATTENDANCE_STATUS.LATE)) {
+      logger.log('🚫 Present/Late marking blocked in stand-up mode:', { status, attendanceMode });
+      return;
+    }
     
     try {
       // Get user profile to get proper display name
@@ -1153,6 +1183,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   setSendingEmails={setSendingEmails}
                   sendStudentSummaryEmail={sendStudentSummaryEmail}
                   lang={lang}
+                  historyLoading={historyLoading}
                 />
               ))}
           </div>
@@ -1392,6 +1423,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     expandedDays={expandedDays}
                     activeFilters={activeFilters}
                     toggleDayExpansion={toggleDayExpansion}
+                    attendanceMode={attendanceMode}
                     expandAllDays={expandAllDays}
                     collapseAllDays={collapseAllDays}
                     handleDeleteAttendance={handleDeleteAttendance}
@@ -1409,6 +1441,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     groupLogsByDay={groupLogsByDay}
                     toggleFilter={toggleFilter}
                     lang={lang}
+                    historyLoading={historyLoading}
                   />
                 ))}
             </tbody>

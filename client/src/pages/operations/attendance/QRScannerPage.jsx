@@ -145,8 +145,32 @@ const QRScannerPage = () => {
       constants: ATTENDANCE_TYPE_CATEGORY
     });
   }, [attendanceMode]);
+
+  // Fetch performed by fields when user is available
+  useEffect(() => {
+    console.log('🔍 QRScannerPage - useEffect for performedByFields running, user:', !!user);
+    const fetchPerformedByFields = async () => {
+      if (user) {
+        console.log('🔍 QRScannerPage - Calling getPerformedByFields...');
+        try {
+          const fields = await getPerformedByFields(user);
+          console.log('🔍 QRScannerPage - Fetched performedByFields:', fields);
+          setPerformedByFields(fields);
+        } catch (error) {
+          console.error('🔍 QRScannerPage - Error fetching performedByFields:', error);
+        }
+      }
+    };
+    fetchPerformedByFields();
+  }, [user]);
+
   const [showFilterDialog, setShowFilterDialog] = useState(false);
   const [showBulkScanDialog, setShowBulkScanDialog] = useState(false);
+  const [performedByFields, setPerformedByFields] = useState({
+    performedBy: user?.uid || 'unknown',
+    performedByName: 'Unknown User',
+    performedByEmail: user?.email || 'unknown@example.com'
+  });
   const [attendanceFilter, setAttendanceFilter] = useState('all');
   const [participationMin, setParticipationMin] = useState('');
   const [participationMax, setParticipationMax] = useState('');
@@ -2931,7 +2955,7 @@ const QRScannerPage = () => {
                 }}
                 disabled={gridLoading || !selectedClassId || selectedClassId === 'all' || isExporting}
               >
-                {getThemedIcon('ui', 'file', 16, theme)}
+                {getThemedIcon('ui', 'file', 16, 'white')}
                 {t('daily_report') || 'Daily Report'}
               </button>
 
@@ -2961,7 +2985,7 @@ const QRScannerPage = () => {
                 disabled={gridLoading || (!selectedClassId && !selectedProgramId) || isExporting}
                 title={t('export_summary_report') || 'Export comprehensive summary report'}
               >
-                {getThemedIcon('ui', 'send', 16, theme)}
+                {getThemedIcon('ui', 'send', 16, 'white')}
                 {t('summary_report') || 'Summary Report'}
               </button>
               
@@ -2992,7 +3016,7 @@ const QRScannerPage = () => {
                 }}
                 title={t('bulk_scan_attendance') || 'Bulk scan attendance for multiple students'}
               >
-                {getThemedIcon('ui', 'users', 16, theme)}
+                {getThemedIcon('ui', 'users', 16, 'white')}
                 {t('bulk_scan') || 'Bulk Scan'}
               </button>
             </div>
@@ -3194,6 +3218,7 @@ const QRScannerPage = () => {
               selectedSubjectId={selectedSubjectId}
               selectedClassId={selectedClassId}
               selectedDate={selectedDate}
+              attendanceMode={attendanceMode}
               autoExpand={isScannerMinimized}
               showSuccess={showSuccess}
             />
@@ -3237,6 +3262,7 @@ const QRScannerPage = () => {
               participationTypes={showFavoritesOnly ? PARTICIPATION_TYPES.filter(p => favoriteBehaviors.includes(p.id)) : PARTICIPATION_TYPES}
               showFavoritesOnly={showFavoritesOnly}
               onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              attendanceMode={attendanceMode}
               favoriteBehaviors={favoriteBehaviors}
               onToggleFavorite={(behaviorId) => {
                 setFavoriteBehaviors(prev => 
@@ -3698,16 +3724,23 @@ const QRScannerPage = () => {
         </Modal>
 
         {/* BulkScanDialog */}
+        {console.log('🔍 QRScannerPage - User data for BulkScanDialog:', {
+          uid: user?.uid,
+          displayName: user?.displayName,
+          name: user?.name,
+          email: user?.email,
+          performedByName: user?.displayName || user?.name || 'Unknown'
+        })}
         <BulkScanDialog
           isOpen={showBulkScanDialog}
           onClose={() => setShowBulkScanDialog(false)}
           programId={selectedProgramId}
           subjectId={selectedSubjectId}
           classId={selectedClassId}
-          markedBy={user?.uid}
-          performedBy={user?.uid}
-          performedByName={user?.displayName || user?.name || 'Unknown'}
-          performedByEmail={user?.email}
+          markedBy={performedByFields.performedBy}
+          performedBy={performedByFields.performedBy}
+          performedByName={performedByFields.performedByName}
+          performedByEmail={performedByFields.performedByEmail}
           attendanceMode={attendanceMode}
           onModeChange={setAttendanceMode}
           onSuccess={() => {

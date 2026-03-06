@@ -1704,3 +1704,31 @@
 .dark .batchInfo {
   color: #94a3b8;
 }
+
+.infoIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #e2e8f0;
+  color: #64748b;
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.infoIcon:hover {
+  background-color: #cbd5e1;
+  color: #475569;
+}
+
+.dark .infoIcon {
+  background-color: #374151;
+  color: #9ca3af;
+}
+
+.dark .infoIcon:hover {
+  background-color: #4b5563;
+  color: #d1d5db;
+}

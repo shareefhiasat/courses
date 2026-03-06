@@ -29,6 +29,7 @@ const StudentRosterHistory = ({
   studentName,
   searchQuery = '',
   setSearchQuery = () => {},
+  historyLoading = {},
   theme = 'light'
 }) => {
   const isMobile = useIsMobile();
@@ -36,6 +37,32 @@ const StudentRosterHistory = ({
     () => groupLogsByDay(studentHistory[student.id] || []),
     [groupLogsByDay, studentHistory, student.id]
   );
+  // Show loading state while fetching history
+  if (historyLoading[student.id]) {
+    return (
+      <div style={{
+        padding: '2rem',
+        textAlign: 'center',
+        color: 'var(--text-muted, #9ca3af)',
+        fontSize: '0.875rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem'
+      }}>
+        <div style={{
+          width: '16px',
+          height: '16px',
+          border: '2px solid var(--text-muted, #9ca3af)',
+          borderTop: '2px solid transparent',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        {t('loading')}...
+      </div>
+    );
+  }
+
   if (!studentHistory[student.id]) {
     return (
       <div style={{

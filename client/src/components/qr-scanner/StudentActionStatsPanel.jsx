@@ -1,12 +1,8 @@
-// Student Action Stats Panel - Shows detailed statistics and history for a student
-// This component provides comprehensive student data viewing and management capabilities
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
-import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getAttendanceByStudent, deleteAttendance } from '@services/business/attendanceService';
 import { getPenalties, deletePenalty } from '@services/business/penaltyService';
 import { getParticipations, deleteParticipation } from '@services/business/participationService';
@@ -14,10 +10,6 @@ import { getBehaviors, deleteBehavior } from '@services/business/behaviorService
 import { getFunctions } from '@services/other/config';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { SimpleLoading } from '@ui';
-import { useAuth } from '@contexts/AuthContext';
-import { useLang } from '@contexts/LangContext';
-import { useTheme } from '@contexts/ThemeContext';
-import { useToast } from '@ui';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
@@ -25,7 +17,12 @@ import { RECORD_TYPES, getRecordTypeLabel } from '@utils/sharedTypes';
 import {ParticipationIcon, PenaltyIcon, StudentHistory, DeleteModal} from '@ui/history';
 import {CircleIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, HelpCircleIcon, UserIcon, ZapIcon} from "@utils/icons.jsx";
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/attendanceMethods';
+import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import PortalTooltip from '@ui/PortalTooltip';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
+import { useToast } from '@ui';
 
 export default function StudentActionStatsPanel({
   student,
@@ -39,12 +36,18 @@ export default function StudentActionStatsPanel({
   favoriteBehaviors = [],
   onToggleFavorite,
   sendNotifications = false,
-  onToggleNotifications
+  onToggleNotifications,
+  attendanceMode = 'regular'
 }) {
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const { showSuccess, showError } = useToast();
+  
+  // DEBUG: Log attendanceMode
+  console.log('🔍 StudentActionStatsPanel - attendanceMode:', attendanceMode);
+  console.log('🔍 StudentActionStatsPanel - ATTENDANCE_TYPE_CATEGORY.STANDUP:', ATTENDANCE_TYPE_CATEGORY.STANDUP);
+  console.log('🔍 StudentActionStatsPanel - isStandupMode:', attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP);
   
   // 🔍 DEBUG: Log incoming student data structure
   console.log('🔍 StudentActionStatsPanel - Incoming Student Data:', {
@@ -80,7 +83,7 @@ export default function StudentActionStatsPanel({
   const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
   const [todayLogs, setTodayLogs] = useState([]);
   const [historicalLogs, setHistoricalLogs] = useState([]);
-  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsLoading, setLogsLoading] = useState(!!student?.id);
   const [logsError, setLogsError] = useState('');
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
@@ -364,8 +367,17 @@ export default function StudentActionStatsPanel({
 
   // Fetch historical logs for student - defined before usage
   const fetchHistoricalLogs = useCallback(async () => {
-    if (!student?.id) return;
+    console.log('🔍 StudentActionStatsPanel - fetchHistoricalLogs called:', {
+      studentId: student?.id,
+      studentName: student?.displayName || student?.name
+    });
+    
+    if (!student?.id) {
+      console.log('🔍 StudentActionStatsPanel - No student ID, returning');
+      return;
+    }
 
+    console.log('🔍 StudentActionStatsPanel - Setting logsLoading to TRUE in fetchHistoricalLogs');
     setLogsLoading(true);
     try {
       // Small delay to ensure Firestore has processed the update
@@ -484,6 +496,15 @@ export default function StudentActionStatsPanel({
       logger.debug('StudentActionStatsPanel - today logs filtered:', todayLogsFiltered.length);
       logger.debug('StudentActionStatsPanel - historical logs to set:', logs.length);
 
+      console.log('🔍 StudentActionStatsPanel - Fetch results:', {
+        totalLogs: logs.length,
+        todayLogs: todayLogsFiltered.length,
+        attendanceRecords: attendanceRecords.length,
+        studentPenalties: studentPenalties.length,
+        studentBehaviors: studentBehaviors.length,
+        studentParticipations: studentParticipations.length
+      });
+
       // Set historicalLogs to ALL logs (including today)
       setHistoricalLogs(logs);
       // Set todayLogs to only today's logs
@@ -493,13 +514,16 @@ export default function StudentActionStatsPanel({
       setExpandedDays(new Set());
 
       setLogsError('');
+      console.log('🔍 StudentActionStatsPanel - Setting logsLoading to FALSE (success)');
     } catch (error) {
       logger.error('Error fetching historical logs:', error);
       setLogsError('Failed to load history');
       setHistoricalLogs([]);
       setTodayLogs([]);
+      console.log('🔍 StudentActionStatsPanel - Setting logsLoading to FALSE (error)');
     } finally {
       setLogsLoading(false);
+      console.log('🔍 StudentActionStatsPanel - fetchHistoricalLogs completed, logsLoading set to FALSE');
     }
   }, [student?.id]);
 
@@ -515,6 +539,23 @@ export default function StudentActionStatsPanel({
       fetchHistoricalLogs();
     }
   }, [student?.id, historyRefreshKey, fetchHistoricalLogs]);
+
+  // Reset loading state when student changes
+  useEffect(() => {
+    console.log('🔍 StudentActionStatsPanel - Student changed:', {
+      studentId: student?.id,
+      studentName: student?.displayName || student?.name,
+      logsLoading: logsLoading
+    });
+
+    if (student?.id) {
+      setLogsLoading(true);
+      console.log('🔍 StudentActionStatsPanel - Set logsLoading to TRUE');
+    } else {
+      setLogsLoading(false);
+      console.log('🔍 StudentActionStatsPanel - Set logsLoading to FALSE');
+    }
+  }, [student?.id]);
 
   // Real-time updates for history
   useEffect(() => {
@@ -1299,9 +1340,10 @@ export default function StudentActionStatsPanel({
               }}>
                 <button
                     onClick={async () => {
+                      console.log('🔍 Present button clicked - attendanceMode:', attendanceMode);
                       await handleMarkAttendance(student.id, ATTENDANCE_STATUS.PRESENT);
                     }}
-                    disabled={showLoadingOverlay}
+                    disabled={showLoadingOverlay || attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
@@ -1343,7 +1385,7 @@ export default function StudentActionStatsPanel({
                     onClick={async () => {
                       await handleMarkAttendance(student.id, ATTENDANCE_STATUS.LATE);
                     }}
-                    disabled={showLoadingOverlay}
+                    disabled={showLoadingOverlay || attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
@@ -2366,7 +2408,16 @@ export default function StudentActionStatsPanel({
                 flexDirection: 'column',
                 gap: '0.15rem'
               }}>
-                {logsLoading ? (
+
+                {(() => {
+                  console.log('🔍 StudentActionStatsPanel - Render state:', {
+                    logsLoading,
+                    historicalLogsLength: historicalLogs.length,
+                    studentId: student?.id,
+                    studentName: student?.displayName || student?.name
+                  });
+
+                  return logsLoading ? (
                     <div style={{
                       padding: '1rem',
                       color: 'var(--text-muted, #9ca3af)',
@@ -2396,7 +2447,8 @@ export default function StudentActionStatsPanel({
                         isRTL={isRTL}
                         studentId={student?.id}
                     />
-                )}
+                  );
+                })()}
               </div>
             </div>
           </div>

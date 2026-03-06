@@ -38,7 +38,8 @@ const StudentTableRow = ({
   sendStudentSummaryEmail, 
   isRTL,
   groupLogsByDay,
-  toggleFilter 
+  toggleFilter,
+  historyLoading = {}
 }) => {
   const navigate = useNavigate();
   const { t, lang } = useLang();
@@ -595,6 +596,7 @@ const StudentTableRow = ({
               groupLogsByDay={groupLogsByDay}
               toggleFilter={toggleFilter}
               lang={lang}
+              historyLoading={historyLoading}
             />
           </td>
         </tr>

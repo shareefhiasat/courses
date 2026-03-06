@@ -1,9 +1,10 @@
-import React, { useRef, useEffect, useCallback } from 'react';
-import { X, Upload, Trash2, Calendar, RefreshCw, Download, RotateCcw, Users, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
+import { X, Upload, Trash2, Calendar, RefreshCw, Download, RotateCcw, Users, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { ATTENDANCE_TYPES, STANDUP_ATTENDANCE_TYPES, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import { getThemedIcon } from '@constants/iconTypes';
 import useManualBulkScan from '@hooks/useManualBulkScan';
 import { useTheme } from '@contexts/ThemeContext';
+import Tabs from '@components/ui/Tabs/Tabs';
 import styles from './BulkScanDialog.module.css';
 
 const BulkScanDialog = ({
@@ -36,6 +37,73 @@ const BulkScanDialog = ({
   const { theme } = useTheme();
   const textareaRef = useRef(null);
   const isRTL = lang === 'ar';
+
+  // Tab state for bulk operations
+  const [activeTab, setActiveTab] = useState(null); // null, 'manual', 'addAll', 'addAllExcept'
+
+  // Tab handlers - just change tab, don't auto-execute
+  const handleTabChange = (tab) => {
+    // Clear stale data when switching between different operation types
+    if (activeTab !== tab) {
+      // Clear parsed results and validation when switching tabs
+      // But preserve input text for "Add All Except" if coming from manual
+      const currentInput = inputText;
+      if (tab === 'addAllExcept' && activeTab === 'manual') {
+        // Preserve input text when going from manual to addAllExcept
+        clearState();
+        setInputText(currentInput);
+      } else {
+        // Clear everything for other tab switches
+        clearState();
+      }
+    }
+    setActiveTab(tab);
+  };
+
+  // Execute bulk operations
+  const executeBulkOperation = () => {
+    if (activeTab === 'addAll') {
+      addAllStudents();
+    } else if (activeTab === 'addAllExcept') {
+      addAllExcept();
+    }
+  };
+
+  // Remove individual student number
+  const removeStudentNumber = (numberToRemove) => {
+    const currentInput = inputText.split('\n').filter(line => line.trim() !== numberToRemove.toString()).join('\n');
+    
+    // Update input text
+    setInputText(currentInput);
+    
+    // Use the hook's removeChip function to remove from parsed numbers and validated students
+    removeChip(numberToRemove);
+    
+    // If no numbers left, clear everything
+    const remainingNumbers = parsedNumbers.filter(num => num !== numberToRemove);
+    if (remainingNumbers.length === 0) {
+      clearState();
+    }
+  };
+
+  // Define tabs for the Tabs component
+  const bulkTabs = [
+    {
+      value: 'manual',
+      label: t('manual_input') || 'Manual Input',
+      icon: <Upload size={16} />
+    },
+    {
+      value: 'addAll',
+      label: t('add_all') || 'Add All',
+      icon: <Users size={16} />
+    },
+    {
+      value: 'addAllExcept',
+      label: t('add_all_except') || 'Add All Except',
+      icon: <Users size={16} />
+    }
+  ];
 
   const {
     inputText,
@@ -280,9 +348,69 @@ const BulkScanDialog = ({
         )}
 
         <div className={styles.content}>
+          {/* Beautiful Tab Navigation - Moved to Top */}
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <Tabs
+                tabs={bulkTabs}
+                activeTab={activeTab}
+                onTabChange={handleTabChange}
+                variant="default"
+                size="md"
+                style={{ flex: 1 }}
+              />
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                {activeTab === 'manual' && (
+                  <button
+                    onClick={handleParseClick}
+                    className={styles.parseButton}
+                    disabled={!inputText.trim() || loading}
+                  >
+                    <Upload size={16} />
+                    {t('parse_input') || 'Parse Input'}
+                  </button>
+                )}
+                {(activeTab === 'addAll' || activeTab === 'addAllExcept') && (
+                  <button
+                    onClick={executeBulkOperation}
+                    className={activeTab === 'addAll' ? styles.addAllButton : styles.addAllExceptButton}
+                    disabled={loading || validating || addingAll || (activeTab === 'addAllExcept' && inputText.trim() === '') || result !== null}
+                  >
+                    {addingAll ? (
+                      <>
+                        <span className={styles.spinner} />
+                        {t('adding_all') || 'Adding All...'}
+                      </>
+                    ) : (
+                      <>
+                        <Users size={16} />
+                        {activeTab === 'addAll' ? (t('add_all') || 'Add All') : (t('add_all_except') || 'Add All Except')}
+                      </>
+                    )}
+                  </button>
+                )}
+                <button
+                  onClick={clearState}
+                  className={styles.clearButton}
+                  disabled={loading || addingAll}
+                  title={t('clear_and_new') || 'Clear All and Start New Operation'}
+                  style={{ marginLeft: '0.5rem' }}
+                >
+                  <RotateCcw size={16} />
+                  {t('clear_new') || 'Clear/New'}
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className={styles.inputSection}>
             <label htmlFor="bulk-input" className={styles.label}>
-              {t('paste_student_numbers') || 'Paste Student Numbers'}
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {t('paste_student_numbers') || 'Paste Student Numbers'}
+                <div className={styles.infoIcon} title={t('bulk_input_help') || 'Maximum 500 student numbers per operation'}>
+                  <Info size={14} />
+                </div>
+              </span>
               <span className={styles.hint}>
                 {t('one_per_line') || '(One per line, numeric only)'}
               </span>
@@ -297,67 +425,7 @@ const BulkScanDialog = ({
               className={styles.textarea}
               rows={4}
               disabled={loading}
-              aria-describedby="bulk-input-help"
             />
-            <div id="bulk-input-help" className={styles.helpText}>
-              {t('bulk_input_help') || 'Maximum 500 student numbers per operation'}
-            </div>
-
-            <div className={styles.actionRow}>
-              <button
-                onClick={handleParseClick}
-                className={styles.parseButton}
-                disabled={!inputText.trim() || loading}
-              >
-                <Upload size={16} />
-                {t('parse_input') || 'Parse Input'}
-              </button>
-              <button
-                onClick={addAllStudents}
-                className={styles.addAllButton}
-                disabled={loading || validating || addingAll || result !== null}
-                title={t('add_all_students') || 'Add All Students from Program'}
-              >
-                {addingAll ? (
-                  <>
-                    <span className={styles.spinner} />
-                    {t('adding_all') || 'Adding All...'}
-                  </>
-                ) : (
-                  <>
-                    <Users size={16} />
-                    {t('add_all') || 'Add All'}
-                  </>
-                )}
-              </button>
-              <button
-                onClick={addAllExcept}
-                className={styles.addAllExceptButton}
-                disabled={loading || validating || addingAll || parsedNumbers.length === 0 || result !== null}
-                title={`${t('add_all_except_tooltip') || 'Add All Students Except Listed Numbers'} (Parsed: ${parsedNumbers.length}, Input: ${inputText.length > 0 ? 'Yes' : 'No'})`}
-              >
-                {addingAll ? (
-                  <>
-                    <span className={styles.spinner} />
-                    {t('adding_all') || 'Adding All...'}
-                  </>
-                ) : (
-                  <>
-                    <Users size={16} />
-                    {t('add_all_except') || 'Add All Except'}
-                  </>
-                )}
-              </button>
-              <button
-                onClick={clearState}
-                className={styles.clearButton}
-                disabled={loading || addingAll}
-                title={t('clear_and_new') || 'Clear All and Start New Operation'}
-              >
-                <RotateCcw size={16} />
-                {t('clear_new') || 'Clear/New'}
-              </button>
-            </div>
           </div>
 
           {(invalidRows.length > 0 || duplicates.length > 0) && (
@@ -441,12 +509,12 @@ const BulkScanDialog = ({
                         )}
                       </span>
                       <button
-                        onClick={() => removeChip(number)}
+                        onClick={() => removeStudentNumber(number)}
                         className={styles.chipRemove}
-                        aria-label={`${t('remove') || 'Remove'} ${number}`}
-                        disabled={loading}
+                        aria-label={`Remove student ${number}`}
+                        title={`Remove student ${number}`}
                       >
-                        <X size={14} />
+                        <X size={12} />
                       </button>
                     </div>
                   );
@@ -471,79 +539,7 @@ const BulkScanDialog = ({
           {parsedNumbers.length > 0 && (
             <div className={styles.controlsSection}>
               {/* Attendance Mode Toggle */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                marginBottom: '1rem',
-                padding: '0 1rem'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  gap: '0.5rem',
-                  background: 'var(--background-secondary, #f3f4f6)',
-                  padding: '0.25rem',
-                  borderRadius: '0.5rem',
-                  border: '1px solid var(--border, #e5e7eb)'
-                }}>
-                  <button
-                    onClick={() => {
-                    console.log('🔍 [DEBUG] BulkScanDialog Regular mode clicked', {
-                      currentMode: attendanceMode,
-                      hasOnModeChange: !!onModeChange
-                    });
-                    onModeChange && onModeChange(ATTENDANCE_TYPE_CATEGORY.REGULAR);
-                  }}
-                    disabled={!onModeChange}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'var(--color-primary, #3b82f6)' : 'transparent',
-                      color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : 'var(--text-muted, #6b7280)',
-                      border: 'none',
-                      borderRadius: '0.375rem',
-                      fontSize: '0.875rem',
-                      fontWeight: 500,
-                      cursor: onModeChange ? 'pointer' : 'default',
-                      opacity: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.375rem',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {getThemedIcon('ui', 'check_circle', 16, attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : theme)}
-                    {t('attendance_mode') || 'Attendance'}
-                  </button>
-                  <button
-                    onClick={() => {
-                    console.log('🔍 [DEBUG] BulkScanDialog Standup mode clicked', {
-                      currentMode: attendanceMode,
-                      hasOnModeChange: !!onModeChange
-                    });
-                    onModeChange && onModeChange(ATTENDANCE_TYPE_CATEGORY.STANDUP);
-                  }}
-                    disabled={!onModeChange}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'var(--color-primary, #3b82f6)' : 'transparent',
-                      color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : 'var(--text-muted, #6b7280)',
-                      border: 'none',
-                      borderRadius: '0.375rem',
-                      fontSize: '0.875rem',
-                      fontWeight: 500,
-                      cursor: onModeChange ? 'pointer' : 'default',
-                      opacity: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.375rem',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {getThemedIcon('ui', 'users', 16, attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : theme)}
-                    {t('standup_mode') || 'Standup'}
-                  </button>
-                </div>
-              </div>
-              <div className={styles.controlGroup}>
+                            <div className={styles.controlGroup}>
                 <div className={styles.statusCardsGrid}>
                   {(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? STANDUP_ATTENDANCE_TYPES : ATTENDANCE_TYPES).map((type) => (
                     <button
