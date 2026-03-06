@@ -1,0 +1,385 @@
+{
+  "users": [
+    {
+      "_id": {
+        "$oid": "65f8a1b2c3d4e5f6a7b8c9d0"
+      },
+      "email": "shareef.hiasat@gmail.com",
+      "displayName": "Sharif Shaker",
+      "realName": "شريف شاكر الحياصات",
+      "passwordHash": "$2b$10$placeholderHashForTesting",
+      "isAdmin": true,
+      "isSuperAdmin": true,
+      "isHR": false,
+      "isInstructor": true,
+      "isStudent": false,
+      "isDisabled": false,
+      "studentNumber": null,
+      "phoneNumber": "",
+      "enrolledClasses": [],
+      "status": "active",
+      "language": "en",
+      "timezone": "UTC",
+      "notificationsEnabled": true,
+      "browserNotificationsEnabled": false,
+      "preferOTPLogin": false,
+      "preferences": {
+        "favoriteBehaviors": ["active_discussion"]
+      },
+      "resourceProgress": {},
+      "archivedClasses": {},
+      "archivedRooms": {},
+      "bookmarks": {},
+      "chatReads": {},
+      "createdAt": {
+        "$date": "2026-03-01T21:14:46.000Z"
+      },
+      "updatedAt": {
+        "$date": "2026-02-27T16:39:29.000Z"
+      },
+      "enabledAt": {
+        "$date": "2026-03-01T21:14:46.000Z"
+      },
+      "enabledBy": null,
+      "disabledAt": null,
+      "disabledBy": null
+    }
+  ],
+  "config": [
+    {
+      "_id": "allowlist",
+      "adminEmails": ["shareef.hiasat@gmail.com"],
+      "allowedEmails": [],
+      "allowedHr": [],
+      "allowedInstructors": [],
+      "allowedStudents": [],
+      "superAdmins": ["shareef.hiasat@gmail.com"],
+      "enabled": true,
+      "requireApproval": false,
+      "updatedAt": {
+        "$date": "2026-03-04T18:07:25.000Z"
+      },
+      "updatedBy": null
+    },
+    {
+      "_id": "attendance",
+      "lateMode": false,
+      "rotationSeconds": 30,
+      "sessionMinutes": 5,
+      "strictDeviceBinding": true
+    },
+    {
+      "_id": "emailSettings",
+      "activity": {
+        "enabled": true,
+        "template": "activity_default"
+      },
+      "activityComplete": {
+        "enabled": false,
+        "template": "activity_complete_default"
+      },
+      "activityGraded": {
+        "enabled": true,
+        "template": "activity_graded_default"
+      },
+      "activity_complete": {
+        "enabled": true,
+        "template": "activity_complete_default"
+      },
+      "activity_graded": {
+        "enabled": true,
+        "template": "activity_graded_default"
+      },
+      "announcement": {
+        "enabled": true,
+        "template": "announcement_default"
+      },
+      "chatDigest": {
+        "enabled": false,
+        "template": "chat_digest_default"
+      },
+      "chat_digest": {
+        "enabled": true,
+        "template": "chat_digest_default"
+      },
+      "enrollment": {
+        "enabled": true,
+        "template": "enrollment_default"
+      },
+      "passwordReset": {
+        "enabled": true,
+        "template": "password_default"
+      },
+      "resource": {
+        "enabled": true,
+        "template": "resource_default"
+      },
+      "welcomeSignup": {
+        "enabled": true,
+        "template": "welcome_signup_default"
+      }
+    },
+    {
+      "_id": "notificationSettings",
+      "absence_detected": {
+        "category": "Attendance",
+        "description": "When a student is marked absent",
+        "name": "Student Absence Detected",
+        "roles": {
+          "admin": {
+            "email": false,
+            "web": true
+          },
+          "hr": {
+            "email": true,
+            "web": true
+          },
+          "instructor": {
+            "email": true,
+            "web": true
+          },
+          "student": {
+            "email": false,
+            "web": false
+          }
+        },
+        "source": "AttendanceService -> checkAbsences",
+        "technicalNotes": "Triggered when attendance status is \"absent\"",
+        "templateType": "absence_alert"
+      },
+      "announcement_posted": {
+        "category": "Communication",
+        "description": "When a new announcement is posted",
+        "name": "New Announcement Posted",
+        "roles": {
+          "admin": {
+            "email": false,
+            "web": true
+          },
+          "hr": {
+            "email": false,
+            "web": true
+          },
+          "instructor": {
+            "email": false,
+            "web": true
+          },
+          "student": {
+            "email": true,
+            "web": true
+          }
+        },
+        "source": "AnnouncementController -> createAnnouncement",
+        "technicalNotes": "Triggered when announcement is published",
+        "templateType": "announcement_notification"
+      },
+      "assignment_graded": {
+        "category": "Workflow",
+        "description": "When an assignment is graded by instructor",
+        "name": "Assignment Graded",
+        "roles": {
+          "admin": {
+            "email": false,
+            "web": false
+          },
+          "hr": {
+            "email": false,
+            "web": false
+          },
+          "instructor": {
+            "email": false,
+            "web": false
+          },
+          "student": {
+            "email": true,
+            "web": true
+          }
+        },
+        "source": "GradingController -> updateGrade",
+        "technicalNotes": "Triggered when grade is saved to database",
+        "templateType": "grade_notification"
+      },
+      "attendance_marked": {
+        "category": "Attendance",
+        "description": "When attendance is marked for a class",
+        "name": "Attendance Marked",
+        "roles": {
+          "admin": {
+            "email": false,
+            "web": true
+          },
+          "hr": {
+            "email": true,
+            "web": true
+          },
+          "instructor": {
+            "email": false,
+            "web": false
+          },
+          "student": {
+            "email": true,
+            "web": true
+          }
+        },
+        "source": "AttendanceController -> markAttendance",
+        "technicalNotes": "Triggered when attendance record is saved",
+        "templateType": "attendance_notification"
+      }
+    },
+    {
+      "_id": "roleScreens",
+      "admin": {
+        "activities": true,
+        "advancedAnalytics": true,
+        "analytics": true,
+        "attendance": true,
+        "chat": true,
+        "classSchedule": false,
+        "classSchedules": true,
+        "classes": false,
+        "dashboard": true,
+        "enrollments": false,
+        "home": true,
+        "hrAttendance": true,
+        "hrPenalties": true,
+        "instructorBehavior": true,
+        "instructorParticipation": true,
+        "manageEnrollments": true,
+        "manualAttendance": true,
+        "marksEntry": false,
+        "myAttendance": false,
+        "myEnrollments": true,
+        "notifications": true,
+        "profile": true,
+        "programs": false,
+        "progress": true,
+        "quizBuilder": true,
+        "quizManagement": true,
+        "quizResults": true,
+        "resources": true,
+        "reviewResults": true,
+        "scheduledReports": true,
+        "studentDashboard": true,
+        "studentProfile": true,
+        "studentProgress": true,
+        "subjects": false,
+        "timer": true
+      },
+      "hr": {
+        "activities": false,
+        "advancedAnalytics": false,
+        "analytics": true,
+        "attendance": false,
+        "chat": false,
+        "classSchedule": false,
+        "classSchedules": false,
+        "classes": false,
+        "dashboard": false,
+        "enrollments": false,
+        "home": true,
+        "hrAttendance": true,
+        "hrPenalties": true,
+        "instructorBehavior": false,
+        "instructorParticipation": false,
+        "manageEnrollments": false,
+        "manualAttendance": false,
+        "marksEntry": false,
+        "myAttendance": false,
+        "myEnrollments": false,
+        "notifications": true,
+        "profile": true,
+        "programs": false,
+        "progress": false,
+        "quizBuilder": false,
+        "quizManagement": false,
+        "quizResults": false,
+        "resources": false,
+        "studentDashboard": false,
+        "studentProfile": true,
+        "studentProgress": false,
+        "subjects": false,
+        "timer": false
+      },
+      "instructor": {
+        "activities": true,
+        "advancedAnalytics": false,
+        "analytics": true,
+        "attendance": true,
+        "chat": true,
+        "classSchedule": false,
+        "classSchedules": true,
+        "classes": false,
+        "dashboard": false,
+        "enrollments": false,
+        "home": true,
+        "hrAttendance": false,
+        "hrPenalties": false,
+        "instructorBehavior": true,
+        "instructorParticipation": true,
+        "manageEnrollments": true,
+        "manualAttendance": false,
+        "marksEntry": true,
+        "myAttendance": false,
+        "myEnrollments": false,
+        "notifications": true,
+        "profile": true,
+        "programs": false,
+        "progress": false,
+        "quizBuilder": true,
+        "quizManagement": true,
+        "quizResults": true,
+        "resources": true,
+        "studentDashboard": false,
+        "studentProfile": true,
+        "studentProgress": true,
+        "subjects": false,
+        "timer": false
+      },
+      "student": {
+        "activities": true,
+        "advancedAnalytics": false,
+        "analytics": false,
+        "attendance": false,
+        "attendanceManagement": false,
+        "chat": true,
+        "classSchedule": false,
+        "classSchedules": false,
+        "classes": false,
+        "dashboard": false,
+        "enrollments": false,
+        "home": true,
+        "hrAttendance": false,
+        "hrPenalties": false,
+        "instructorBehavior": false,
+        "instructorParticipation": false,
+        "manageEnrollments": false,
+        "manualAttendance": false,
+        "marksEntry": false,
+        "myAttendance": true,
+        "myEnrollments": true,
+        "notifications": true,
+        "profile": true,
+        "programs": false,
+        "progress": true,
+        "quizBuilder": false,
+        "quizManagement": false,
+        "quizResults": true,
+        "resources": true,
+        "studentDashboard": true,
+        "studentProfile": true,
+        "studentProgress": false,
+        "subjects": false,
+        "timer": false
+      }
+    },
+    {
+      "_id": "smtp",
+      "host": "smtp.gmail.com",
+      "password": "uwuo evra vstf puiu",
+      "port": 587,
+      "secure": false,
+      "senderName": "QAF Learning Hub",
+      "user": "shareef.hiasat@gmail.com"
+    }
+  ]
+}
