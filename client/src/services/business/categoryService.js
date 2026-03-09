@@ -1,4 +1,5 @@
 import logger from '@utils/logger';
+import axios from 'axios';
 import { API_BASE, getApiHeaders } from '@services/api/apiConfig';
 
 /**
@@ -6,11 +7,10 @@ import { API_BASE, getApiHeaders } from '@services/api/apiConfig';
  */
 export const getCategories = async () => {
   try {
-    const response = await fetch(API_BASE, {
+    const response = await axios.get(API_BASE, {
       headers: getApiHeaders()
     });
-    const result = await response.json();
-    return result;
+    return response.data;
   } catch (error) {
     logger.error('CATEGORY: Failed to fetch categories', { error: error.message });
     return { success: false, error: error.message };

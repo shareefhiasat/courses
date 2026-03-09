@@ -6,22 +6,22 @@ services:
     image: mongo:7.0
     container_name: courses-mongodb
     restart: unless-stopped
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=admin123
       - MONGO_INITDB_DATABASE=lms_dev
     volumes:
       - mongodb_dev_data:/data/db
-      - ./scripts/mongo-init:/docker-entrypoint-initdb.d
+      - mongodb_dev_config:/data/configdb
+      - ./scripts/mongo-replica-set.js:/docker-entrypoint-initdb.d/mongo-replica-set.js:ro
     networks:
       - lms-network
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD", "mongosh", "--eval", "try { rs.status() } catch(err) { rs.initiate() }"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   # Redis Cache and Session Storage
   redis:
@@ -115,6 +115,8 @@ services:
 
 volumes:
   mongodb_dev_data:
+    driver: local
+  mongodb_dev_config:
     driver: local
   redis_dev_data:
     driver: local

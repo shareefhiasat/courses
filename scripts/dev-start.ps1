@@ -1,101 +1,112 @@
 # Military LMS Development Environment Startup Script
+# ONE SCRIPT TO RULE THEM ALL
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $Host.UI.RawUI.WindowTitle = "Military LMS Development"
 
-# Change to project root directory
+# Change to project root
 Set-Location $PSScriptRoot\..
 
-Write-Host "Starting Military LMS Development Environment..." -ForegroundColor Green
+Write-Host "🚀 Starting Military LMS Development Environment..." -ForegroundColor Green
 
-# Check if Docker is running
+# Check Docker
 try {
     docker info > $null 2>&1
 } catch {
-    Write-Host "ERROR: Docker is not running. Please start Docker first." -ForegroundColor Red
+    Write-Host "❌ ERROR: Docker is not running. Please start Docker first." -ForegroundColor Red
     exit 1
 }
 
 # Clean up previous containers
-Write-Host "Cleaning up previous containers..." -ForegroundColor Blue
+Write-Host "🧹 Cleaning up previous containers..." -ForegroundColor Blue
 docker-compose -f docker-compose.dev.yml down -v 2>$null
 
-# Prune Docker system
-Write-Host "Pruning Docker system..." -ForegroundColor Blue
-docker system prune -f 2>$null
-
-# Create necessary directories
-Write-Host "Creating necessary directories..." -ForegroundColor Blue
-New-Item -ItemType Directory -Force -Path "logs", "uploads", "backups" | Out-Null
-
-# Start infrastructure services only
-Write-Host "Starting Docker containers..." -ForegroundColor Blue
+# Start infrastructure
+Write-Host "🐳 Starting infrastructure services..." -ForegroundColor Blue
 docker-compose -f docker-compose.dev.yml up -d
 
-# Wait for services to be ready
-Write-Host "Waiting for services to start..." -ForegroundColor Yellow
-Start-Sleep -Seconds 30
+# Wait for MongoDB
+Write-Host "⏳ Waiting for MongoDB..." -ForegroundColor Yellow
+Start-Sleep -Seconds 10
+
+# Initialize MongoDB replica set
+Write-Host "🔧 Initializing MongoDB replica set..." -ForegroundColor Blue
+try {
+    $rsStatus = docker exec courses-mongodb mongosh --eval "rs.status()" --quiet 2>$null
+    if ($rsStatus -match "ok: 1") {
+        Write-Host "✅ MongoDB replica set already initialized" -ForegroundColor Green
+    } else {
+        docker exec courses-mongodb mongosh --eval "rs.initiate()" --quiet 2>$null
+        Start-Sleep -Seconds 5
+        Write-Host "✅ MongoDB replica set initialized" -ForegroundColor Green
+    }
+} catch {
+    Write-Host "⚠️ Could not initialize replica set (MongoDB may still be starting)" -ForegroundColor Yellow
+}
+
+# Wait for all services
+Write-Host "⏳ Waiting for all services to start..." -ForegroundColor Yellow
+Start-Sleep -Seconds 20
+
+# Start Frontend and API Server
+Write-Host "🌐 Starting application services..." -ForegroundColor Blue
+Set-Location client
+
+# Start API Server in background
+Start-Process -FilePath "pnpm" -ArgumentList "run", "api" -WindowStyle Minimized
+
+# Start Frontend in background
+Start-Process -FilePath "pnpm" -ArgumentList "run", "dev" -WindowStyle Minimized
+
+Set-Location ..
 
 # Check service health
-Write-Host "Checking service health..." -ForegroundColor Cyan
+Write-Host "🏥 Checking service health..." -ForegroundColor Cyan
 
-$mongodbCheck = try { docker-compose -f docker-compose.dev.yml exec -T mongodb mongosh --eval "db.adminCommand('ping')" 2>$null } catch { $null }
-Write-Host "   MongoDB: $(if ($LASTEXITCODE -eq 0) { 'Ready' } else { 'Not ready' })"
+$mongodbCheck = try { docker exec courses-mongodb mongosh --eval "db.adminCommand('ping')" 2>$null } catch { $null }
+Write-Host "   MongoDB: $(if ($LASTEXITCODE -eq 0) { '✅ Ready' } else { '❌ Not ready' })"
+
+$redisCheck = try { docker exec courses-redis redis-cli ping 2>$null } catch { $null }
+Write-Host "   Redis: $(if ($redisCheck -eq "PONG") { '✅ Ready' } else { '❌ Not ready' })"
 
 $keycloakCheck = try { Invoke-WebRequest -Uri "http://localhost:8080/realms/master" -UseBasicParsing -TimeoutSec 5 2>$null } catch { $null }
-Write-Host "   Keycloak: $(if ($keycloakCheck) { 'Ready' } else { 'Starting...' })"
+Write-Host "   Keycloak: $(if ($keycloakCheck) { '✅ Ready' } else { '⏳ Starting...' })"
 
 $minioCheck = try { Invoke-WebRequest -Uri "http://localhost:9000/minio/health/live" -UseBasicParsing -TimeoutSec 5 2>$null } catch { $null }
-Write-Host "   MinIO: $(if ($minioCheck) { 'Ready' } else { 'Not ready' })"
-
-$redisCheck = try { docker-compose -f docker-compose.dev.yml exec -T redis redis-cli ping 2>$null } catch { $null }
-Write-Host "   Redis: $(if ($redisCheck -eq "PONG") { 'Ready' } else { 'Not ready' })"
-
-$keycloakDbCheck = try { docker-compose -f docker-compose.dev.yml exec -T keycloak-db pg_isready -U keycloak -d keycloak 2>$null } catch { $null }
-Write-Host "   Keycloak DB: $(if ($keycloakDbCheck) { 'Ready' } else { 'Not ready' })"
+Write-Host "   MinIO: $(if ($minioCheck) { '✅ Ready' } else { '❌ Not ready' })"
 
 Write-Host ""
-Write-Host "Infrastructure is ready!" -ForegroundColor Green
+Write-Host "🎉 Development Environment Ready!" -ForegroundColor Green
 Write-Host ""
-Write-Host "Next Steps:" -ForegroundColor Cyan
-Write-Host "   1. From project root run: pnpm run dev"
-Write-Host "   2. Visit: http://localhost:3000"
+Write-Host "🌐 Application URLs:" -ForegroundColor Cyan
+Write-Host "   Frontend:   http://localhost:5174"
+Write-Host "   API Server: https://localhost:3000"
+Write-Host "   Prisma:    http://localhost:5555 (when running pnpm run db:studio)"
 Write-Host ""
-Write-Host "Available Infrastructure Services:" -ForegroundColor Cyan
-Write-Host "   MongoDB:     localhost:27017"
-Write-Host "   Redis:       localhost:6379"
-Write-Host "   MinIO:       http://localhost:9000 (API) / http://localhost:9001 (Console)"
-Write-Host "   Keycloak:    http://localhost:8080 (Auth) / http://localhost:8080/admin (Admin)"
-Write-Host "   PostgreSQL:  localhost:5432 (Keycloak DB)"
+Write-Host "🔧 Infrastructure Services:" -ForegroundColor Cyan
+Write-Host "   MongoDB:   localhost:27017 (Replica Set: rs0)"
+Write-Host "   Redis:     localhost:6379"
+Write-Host "   MinIO:     http://localhost:9000 / http://localhost:9001"
+Write-Host "   Keycloak:  http://localhost:8080 / http://localhost:8080/admin"
 Write-Host ""
-Write-Host "Default Credentials:" -ForegroundColor Yellow
-Write-Host "   MongoDB:     admin / admin123"
-Write-Host "   MinIO:       minioadmin / minioadmin"
-Write-Host "   Keycloak:    admin / admin123"
-Write-Host "   Redis:       Password: redis123"
+Write-Host "🔑 Default Credentials:" -ForegroundColor Yellow
+Write-Host "   MongoDB:   admin / admin123"
+Write-Host "   MinIO:     minioadmin / minioadmin"
+Write-Host "   Keycloak:  admin / admin123"
+Write-Host "   Redis:     Password: redis123"
 Write-Host ""
-Write-Host "Useful Commands:" -ForegroundColor Cyan
+Write-Host "🛠️ Useful Commands:" -ForegroundColor Cyan
+Write-Host "   Stop everything:     docker-compose -f docker-compose.dev.yml down"
 Write-Host "   View logs:           docker-compose -f docker-compose.dev.yml logs -f [service]"
-Write-Host "   Stop services:       docker-compose -f docker-compose.dev.yml down"
-Write-Host "   Reset everything:     docker-compose -f docker-compose.dev.yml down -v; docker system prune -f"
-Write-Host "   Access MongoDB:      docker-compose -f docker-compose.dev.yml exec mongodb mongosh -u admin -p admin123 --authenticationDatabase admin"
-Write-Host "   Access Redis:        docker-compose -f docker-compose.dev.yml exec redis redis-cli -a redis123"
-Write-Host "   Access MinIO:         docker-compose -f docker-compose.dev.yml exec minio mc ls local"
+Write-Host "   Access MongoDB:      docker exec courses-mongodb mongosh"
+Write-Host "   Restart services:    docker-compose -f docker-compose.dev.yml restart"
 Write-Host ""
-Write-Host "Application Commands:" -ForegroundColor Magenta
-Write-Host "   Start frontend:      pnpm run dev"
-Write-Host "   Generate Prisma:     pnpm run db:generate"
-Write-Host "   Prisma Studio:       pnpm run db:studio"
-Write-Host "   Build for prod:      pnpm run build"
-Write-Host ""
-Write-Host "Architecture Info:" -ForegroundColor Magenta
-Write-Host "   - Single Vite build (Frontend plus Database Services)"
-Write-Host "   - Infrastructure runs in Docker only"
-Write-Host "   - No backend container needed"
-Write-Host "   - Application connects to localhost services"
-Write-Host ""
-Write-Host "Development Tips:" -ForegroundColor Magenta
-Write-Host "   - Frontend hot-reload is enabled"
-Write-Host "   - Prisma auto-generates client on schema changes"
-Write-Host "   - Database operations use MongoDB via Prisma"
+Write-Host "🎯 Development Tips:" -ForegroundColor Magenta
+Write-Host "   - Frontend hot-reload enabled"
+Write-Host "   - API server auto-restarts on changes"
+Write-Host "   - MongoDB replica set enabled for Prisma transactions"
 Write-Host "   - All services accessible via localhost"
+Write-Host ""
+Write-Host "⚡ Quick Test:" -ForegroundColor Green
+Write-Host "   Test Categories: https://localhost:5174/dashboard?tab=categories"
+Write-Host "   Test API:        curl https://localhost:3000/api/v1/health"

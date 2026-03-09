@@ -5,7 +5,8 @@
  * CommonJS version for Node.js compatibility
  */
 
-const dbService = require('../../src/services/db/categoryDbService-hybrid.cjs');
+const { getApiUrl, API_VERSION } = require('../../src/services/api/apiConfig.cjs');
+const dbService = require('../../src/services/db/categoryDbService-mongodb.cjs');
 const getCategoriesFromDb = dbService.getCategories;
 const getCategoryByIdFromDb = dbService.getCategoryById;
 const createCategoryToDb = dbService.create;
@@ -14,7 +15,7 @@ const deleteCategoryFromDb = dbService.deleteCategory;
 
 function handler(req, res) {
   const { method } = req;
-  console.log(`[API Route] 📨 ${method} /api/categories - Query:`, req.query, 'Body:', req.body);
+  console.log(`[API Route] 📨 ${method} /api/${API_VERSION}/categories - Query:`, req.query, 'Body:', req.body);
 
   switch (method) {
     case 'GET':
