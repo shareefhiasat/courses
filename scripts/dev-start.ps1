@@ -19,11 +19,11 @@ try {
 
 # Clean up previous containers
 Write-Host "🧹 Cleaning up previous containers..." -ForegroundColor Blue
-docker-compose -f docker-compose.dev.yml down -v 2>$null
+docker-compose -f scripts/docker/docker-compose.dev.yml down -v 2>$null
 
 # Start infrastructure
 Write-Host "🐳 Starting infrastructure services..." -ForegroundColor Blue
-docker-compose -f docker-compose.dev.yml up -d
+docker-compose -f scripts/docker/docker-compose.dev.yml up -d
 
 # Wait for MongoDB
 Write-Host "⏳ Waiting for MongoDB..." -ForegroundColor Yellow
@@ -89,17 +89,24 @@ Write-Host "   Redis:     localhost:6379"
 Write-Host "   MinIO:     http://localhost:9000 / http://localhost:9001"
 Write-Host "   Keycloak:  http://localhost:8080 / http://localhost:8080/admin"
 Write-Host ""
+Write-Host "📊 Monitoring & Logging:" -ForegroundColor Cyan
+Write-Host "   Kibana:        http://localhost:5601 (Logs)"
+Write-Host "   Grafana:       http://localhost:3001 (Metrics)"
+Write-Host "   Prometheus:    http://localhost:9090 (Metrics)"
+Write-Host "   Elasticsearch: http://localhost:9200 (Search)"
+Write-Host ""
 Write-Host "🔑 Default Credentials:" -ForegroundColor Yellow
 Write-Host "   MongoDB:   admin / admin123"
 Write-Host "   MinIO:     minioadmin / minioadmin"
 Write-Host "   Keycloak:  admin / admin123"
+Write-Host "   Grafana:   admin / admin123"
 Write-Host "   Redis:     Password: redis123"
 Write-Host ""
 Write-Host "🛠️ Useful Commands:" -ForegroundColor Cyan
-Write-Host "   Stop everything:     docker-compose -f docker-compose.dev.yml down"
-Write-Host "   View logs:           docker-compose -f docker-compose.dev.yml logs -f [service]"
+Write-Host "   Stop everything:     docker-compose -f scripts/docker/docker-compose.dev.yml down"
+Write-Host "   View logs:           docker-compose -f scripts/docker/docker-compose.dev.yml logs -f [service]"
 Write-Host "   Access MongoDB:      docker exec courses-mongodb mongosh"
-Write-Host "   Restart services:    docker-compose -f docker-compose.dev.yml restart"
+Write-Host "   Restart services:    docker-compose -f scripts/docker/docker-compose.dev.yml restart"
 Write-Host ""
 Write-Host "🎯 Development Tips:" -ForegroundColor Magenta
 Write-Host "   - Frontend hot-reload enabled"

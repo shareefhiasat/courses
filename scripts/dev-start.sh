@@ -13,7 +13,7 @@ fi
 
 # Clean up previous containers (optional clean start)
 echo "🧹 Cleaning up previous containers..."
-docker-compose -f docker-compose.dev.yml down -v 2>/dev/null
+docker-compose -f scripts/docker/docker-compose.dev.yml down -v 2>/dev/null
 
 # Prune Docker system (optional)
 echo "🧹 Pruning Docker system..."
@@ -25,7 +25,7 @@ mkdir -p logs uploads backups
 
 # Start infrastructure services only
 echo "🐳 Starting Docker containers (Infrastructure Only)..."
-docker-compose -f docker-compose.dev.yml up -d
+docker-compose -f scripts/docker/docker-compose.dev.yml up -d
 
 # Wait for services to be ready
 echo "⏳ Waiting for services to start..."
@@ -34,7 +34,7 @@ sleep 30
 # Check service health
 echo "🏥 Checking service health..."
 
-if docker-compose -f docker-compose.dev.yml exec -T mongodb mongosh --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+if docker-compose -f scripts/docker/docker-compose.dev.yml exec -T mongodb mongosh --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
     echo "   MongoDB: ✅ Ready"
 else
     echo "   MongoDB: ❌ Not ready"
@@ -52,13 +52,13 @@ else
     echo "   MinIO: ❌ Not ready"
 fi
 
-if docker-compose -f docker-compose.dev.yml exec -T redis redis-cli ping 2>/dev/null | grep -q "PONG"; then
+if docker-compose -f scripts/docker/docker-compose.dev.yml exec -T redis redis-cli ping 2>/dev/null | grep -q "PONG"; then
     echo "   Redis: ✅ Ready"
 else
     echo "   Redis: ❌ Not ready"
 fi
 
-if docker-compose -f docker-compose.dev.yml exec -T keycloak-db pg_isready -U keycloak -d keycloak >/dev/null 2>&1; then
+if docker-compose -f scripts/docker/docker-compose.dev.yml exec -T keycloak-db pg_isready -U keycloak -d keycloak >/dev/null 2>&1; then
     echo "   Keycloak DB: ✅ Ready"
 else
     echo "   Keycloak DB: ❌ Not ready"
@@ -85,12 +85,12 @@ echo "   Keycloak:    admin / admin123"
 echo "   Redis:       Password: redis123"
 echo ""
 echo "🛠️ Useful Commands:"
-echo "   View logs:           docker-compose -f docker-compose.dev.yml logs -f [service]"
-echo "   Stop services:       docker-compose -f docker-compose.dev.yml down"
-echo "   Reset everything:     docker-compose -f docker-compose.dev.yml down -v; docker system prune -f"
-echo "   Access MongoDB:      docker-compose -f docker-compose.dev.yml exec mongodb mongosh -u admin -p admin123 --authenticationDatabase admin"
-echo "   Access Redis:        docker-compose -f docker-compose.dev.yml exec redis redis-cli -a redis123"
-echo "   Access MinIO:         docker-compose -f docker-compose.dev.yml exec minio mc ls local"
+echo "   View logs:           docker-compose -f scripts/docker/docker-compose.dev.yml logs -f [service]"
+echo "   Stop services:       docker-compose -f scripts/docker/docker-compose.dev.yml down"
+echo "   Reset everything:    docker-compose -f scripts/docker/docker-compose.dev.yml down -v; docker system prune -f"
+echo "   Access MongoDB:      docker exec courses-mongodb mongosh"
+echo "   Access Redis:        docker exec courses-redis redis-cli -a redis123"
+echo "   Access MinIO:        docker exec courses-minio mc ls local"
 echo ""
 echo "💻 Application Commands:"
 echo "   Start frontend:      cd client && pnpm run dev"
