@@ -203,15 +203,33 @@
  */
 
 const { getApiUrl, API_VERSION } = require('../../src/services/api/apiConfig.cjs');
-const dbService = require('../../src/services/db/categoryDbService-mongodb.cjs');
-const getCategoriesFromDb = dbService.getCategories;
-const getCategoryByIdFromDb = dbService.getCategoryById;
-const createCategoryToDb = dbService.create;
-const updateCategoryInDb = dbService.update;
-const deleteCategoryFromDb = dbService.deleteCategory;
+const logger = require('../../src/services/utils/logger');
+const categoryDbService = require('../../src/services/db/categoryDbService-mongodb.cjs');
+
+// Use aliases for cleaner code
+const {
+  getCategories,
+  getCategoryById,
+  create: createCategory,
+  update: updateCategory,
+  deleteCategory: deleteCategory
+} = categoryDbService;
 
 function handler(req, res) {
   const { method } = req;
+  const startTime = Date.now();
+  
+  // Log request with structured data
+  logger.info('API request received', {
+    service: 'CategoriesAPI',
+    method,
+    url: `/api/${API_VERSION}/categories`,
+    query: req.query,
+    body: req.body,
+    userAgent: req.headers['user-agent'],
+    ip: req.ip || req.connection.remoteAddress
+  });
+  
   console.log(`[API Route] 📨 ${method} /api/${API_VERSION}/categories - Query:`, req.query, 'Body:', req.body);
 
   switch (method) {
@@ -224,6 +242,12 @@ function handler(req, res) {
     case 'DELETE':
       return handleDelete(req, res);
     default:
+      const duration = Date.now() - startTime;
+      logger.warn('Method not allowed', {
+        service: 'CategoriesAPI',
+        method,
+        duration: `${duration}ms`
+      });
       console.log(`[API Route] ❌ Method not allowed: ${method}`);
       res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
       return res.status(405).json({ success: false, error: `Method ${method} Not Allowed` });
@@ -231,24 +255,59 @@ function handler(req, res) {
 }
 
 async function handleGet(req, res) {
+  const startTime = Date.now();
   try {
     const { id } = req.query;
+    logger.info('GET categories request', {
+      service: 'CategoriesAPI',
+      operation: 'handleGet',
+      categoryId: id || 'all'
+    });
+    
     console.log(`[API Route] 📥 GET handler - ID: ${id || 'all'}`);
     
     if (id) {
       // Get specific category
       console.log(`[API Route] Fetching category by ID: ${id}`);
-      const result = await getCategoryByIdFromDb(id);
+      const result = await getCategoryById(id);
+      const duration = Date.now() - startTime;
+      
+      logger.info('Category retrieved successfully', {
+        service: 'CategoriesAPI',
+        operation: 'handleGet',
+        categoryId: id,
+        success: result.success,
+        duration: `${duration}ms`
+      });
+      
       console.log(`[API Route] ✅ GET result:`, result);
       return res.status(200).json(result);
     } else {
       // Get all categories
       console.log('[API Route] Fetching all categories');
-      const result = await getCategoriesFromDb();
+      const result = await getCategories();
+      const duration = Date.now() - startTime;
+      
+      logger.info('Categories retrieved successfully', {
+        service: 'CategoriesAPI',
+        operation: 'handleGet',
+        count: result.data?.length || 0,
+        success: result.success,
+        duration: `${duration}ms`
+      });
+      
       console.log(`[API Route] ✅ GET result: ${result.data?.length || 0} categories`);
       return res.status(200).json(result);
     }
   } catch (error) {
+    const duration = Date.now() - startTime;
+    logger.error('Error in GET handler', {
+      service: 'CategoriesAPI',
+      operation: 'handleGet',
+      error: error.message,
+      stack: error.stack,
+      duration: `${duration}ms`
+    });
     console.error('[API Route] ❌ Error in GET handler:', error);
     return res.status(500).json({ success: false, error: error.message });
   }

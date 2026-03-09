@@ -12,6 +12,7 @@
  */
 
 const { PrismaClient } = require('@prisma/client');
+const logger = require('../utils/logger');
 
 console.log('[CategoryDbService] Initializing Prisma Client...');
 const prisma = new PrismaClient({
@@ -19,24 +20,54 @@ const prisma = new PrismaClient({
 });
 
 prisma.$connect()
-  .then(() => console.log('[CategoryDbService] ✅ Prisma connected successfully'))
-  .catch((err) => console.error('[CategoryDbService] ❌ Prisma connection failed:', err));
+  .then(() => {
+    console.log('[CategoryDbService] ✅ Prisma connected successfully');
+    logger.info('Prisma connected successfully', { service: 'CategoryDbService' });
+  })
+  .catch((err) => {
+    console.error('[CategoryDbService] ❌ Prisma connection failed:', err);
+    logger.error('Prisma connection failed', { 
+      service: 'CategoryDbService', 
+      error: err.message,
+      stack: err.stack 
+    });
+  });
 
 /**
  * Get all categories from MongoDB
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}
  */
 const getCategories = async () => {
+  const startTime = Date.now();
   try {
-    console.log('[CategoryDbService] 📥 Getting all categories...');
+    logger.info('Getting all categories', { 
+      service: 'CategoryDbService', 
+      operation: 'getCategories' 
+    });
     
     const categories = await prisma.category.findMany({
       orderBy: { order: 'asc' }
     });
     
-    console.log(`[CategoryDbService] ✅ Retrieved ${categories.length} categories`);
+    const duration = Date.now() - startTime;
+    logger.info('Categories retrieved successfully', { 
+      service: 'CategoryDbService', 
+      operation: 'getCategories',
+      count: categories.length,
+      duration: `${duration}ms`
+    });
+    
+    console.log(`[CategoryDbService] ✅ Retrieved ${categories.length} categories in ${duration}ms`);
     return { success: true, data: categories };
   } catch (error) {
+    const duration = Date.now() - startTime;
+    logger.error('Error getting categories', { 
+      service: 'CategoryDbService', 
+      operation: 'getCategories',
+      error: error.message,
+      stack: error.stack,
+      duration: `${duration}ms`
+    });
     console.error('[CategoryDbService] ❌ Error getting categories:', error);
     return { success: false, error: error.message };
   }
