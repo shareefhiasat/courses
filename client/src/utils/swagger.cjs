@@ -180,7 +180,7 @@ const swaggerDefinition = {
 const options = {
   definition: swaggerDefinition,
   apis: [
-    './src/pages/api/**/*.cjs',      // API routes
+    './pages/api/**/*.cjs',          // API routes
     './src/services/**/*.js',        // Service files
     './src/utils/**/*.js',           // Utility files
   ],

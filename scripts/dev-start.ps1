@@ -80,7 +80,7 @@ Write-Host "   Elasticsearch: $(if ($elasticsearchCheck) { 'Ready' } else { 'Sta
 $kibanaCheck = try { Invoke-WebRequest -Uri "http://localhost:5601/api/status" -UseBasicParsing -TimeoutSec 5 2>$null } catch { $null }
 Write-Host "   Kibana: $(if ($kibanaCheck) { 'Ready' } else { 'Starting...' })"
 
-$grafanaCheck = try { Invoke-WebRequest -Uri "http://localhost:3001/api/health" -UseBasicParsing -TimeoutSec 5 2>$null } catch { $null }
+$grafanaCheck = try { Invoke-WebRequest -Uri "http://localhost:3002/api/health" -UseBasicParsing -TimeoutSec 5 2>$null } catch { $null }
 Write-Host "   Grafana: $(if ($grafanaCheck) { 'Ready' } else { 'Starting...' })"
 
 $maildevCheck = try { Invoke-WebRequest -Uri "http://localhost:1080" -UseBasicParsing -TimeoutSec 5 2>$null } catch { $null }

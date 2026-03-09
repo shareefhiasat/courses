@@ -10,7 +10,7 @@ const cors = require('cors');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
-const { swaggerSpec, swaggerUi, swaggerUiOptions } = require('./src/utils/swagger');
+const { swaggerSpec, swaggerUi, swaggerUiOptions } = require('./src/utils/swagger.cjs');
 
 async function startServer() {
   const app = express();
@@ -66,7 +66,8 @@ async function startServer() {
   });
 
   // Swagger API documentation
-  app.get('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+  app.use('/api-docs', swaggerUi.serveFiles(swaggerSpec, swaggerUiOptions));
+  app.get('/api-docs', swaggerUi.setup(swaggerSpec, swaggerUiOptions));
   app.get('/api-docs.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);
