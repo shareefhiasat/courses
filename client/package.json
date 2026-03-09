@@ -62,7 +62,9 @@
     "react-joyride": "^2.7.0",
     "react-qr-code": "^2.0.18",
     "react-router-dom": "^7.9.3",
-    "recharts": "^3.3.0"
+    "recharts": "^3.3.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -1,10 +1,8 @@
-version: '3.8'
-
 services:
   # MongoDB Database (Primary Data Store)
   mongodb:
     image: mongo:7.0
-    container_name: courses-mongodb
+    container_name: lms-qaf-mongodb
     restart: unless-stopped
     command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
@@ -14,8 +12,10 @@ services:
     volumes:
       - mongodb_dev_data:/data/db
       - mongodb_dev_config:/data/configdb
+      - ./mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./mongo/setup-replica-set.js:/docker-entrypoint-initdb.d/setup-replica-set.js:ro
     networks:
-      - lms-network
+      - lms-qaf
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "try { rs.status() } catch(err) { rs.initiate() }"]
       interval: 10s
@@ -25,7 +25,7 @@ services:
   # Redis Cache and Session Storage
   redis:
     image: redis:7-alpine
-    container_name: courses-redis
+    container_name: lms-qaf-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -33,7 +33,7 @@ services:
     volumes:
       - redis_dev_data:/data
     networks:
-      - lms-network
+      - lms-qaf
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 10s
@@ -43,7 +43,7 @@ services:
   # MinIO Object Storage (File Storage)
   minio:
     image: minio/minio:latest
-    container_name: courses-minio
+    container_name: lms-qaf-minio
     restart: unless-stopped
     ports:
       - "9000:9000"
@@ -54,7 +54,7 @@ services:
     volumes:
       - minio_dev_data:/data
     networks:
-      - lms-network
+      - lms-qaf
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
@@ -65,7 +65,7 @@ services:
   # PostgreSQL Database (for Keycloak only)
   keycloak-db:
     image: postgres:15-alpine
-    container_name: courses-keycloak-db
+    container_name: lms-qaf-keycloak-db
     restart: unless-stopped
     environment:
       - POSTGRES_DB=keycloak
@@ -76,7 +76,7 @@ services:
     volumes:
       - keycloak_db_data:/var/lib/postgresql/data
     networks:
-      - lms-network
+      - lms-qaf
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
       interval: 10s
@@ -86,7 +86,7 @@ services:
   # Keycloak Authentication Service
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
-    container_name: courses-keycloak
+    container_name: lms-qaf-keycloak
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -104,7 +104,7 @@ services:
       keycloak-db:
         condition: service_healthy
     networks:
-      - lms-network
+      - lms-qaf
     command: ["start-dev"]
     healthcheck:
       test: ["CMD-SHELL", "exec", "keycloak", "health", "--server"]
@@ -115,7 +115,7 @@ services:
   # Elasticsearch - Search and Analytics Engine
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: courses-elasticsearch
+    container_name: lms-qaf-elasticsearch
     restart: unless-stopped
     environment:
       - discovery.type=single-node
@@ -132,7 +132,7 @@ services:
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
-      - lms-network
+      - lms-qaf
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
       interval: 30s
@@ -142,7 +142,7 @@ services:
   # Logstash - Log Processing Pipeline
   logstash:
     image: docker.elastic.co/logstash/logstash:8.11.0
-    container_name: courses-logstash
+    container_name: lms-qaf-logstash
     restart: unless-stopped
     ports:
       - "5000:5000/tcp"
@@ -156,7 +156,7 @@ services:
       - ./logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
       - logstash_data:/usr/share/logstash/data
     networks:
-      - lms-network
+      - lms-qaf
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -169,7 +169,7 @@ services:
   # Kibana - Data Visualization
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.0
-    container_name: courses-kibana
+    container_name: lms-qaf-kibana
     restart: unless-stopped
     ports:
       - "5601:5601"
@@ -178,7 +178,7 @@ services:
       - SERVER_NAME=kibana
       - SERVER_HOST=0.0.0.0
     networks:
-      - lms-network
+      - lms-qaf
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -191,21 +191,22 @@ services:
   # Grafana - Metrics Visualization
   grafana:
     image: grafana/grafana:10.2.0
-    container_name: courses-grafana
+    container_name: lms-qaf-grafana
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "3002:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin123
-      - GF_INSTALL_PLUGINS=grafana-clock-panel
+      - GF_INSTALL_PLUGINS=
+      - GF_PLUGINS_ENABLE_MARKETPLACE=false
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
     networks:
-      - lms-network
+      - lms-qaf
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -213,10 +214,10 @@ services:
   # Prometheus - Metrics Collection
   prometheus:
     image: prom/prometheus:v2.48.0
-    container_name: courses-prometheus
+    container_name: lms-qaf-prometheus
     restart: unless-stopped
     ports:
-      - "9090:9090"
+      - "9091:9090"
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -226,9 +227,25 @@ services:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     networks:
-      - lms-network
+      - lms-qaf
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # MailDev - Email Development Server
+  maildev:
+    image: maildev/maildev:latest
+    container_name: lms-qaf-maildev
+    restart: unless-stopped
+    ports:
+      - "1080:1080"  # Web interface
+      - "1025:1025"  # SMTP server
+    networks:
+      - lms-qaf
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:1080 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -254,7 +271,7 @@ volumes:
     driver: local
 
 networks:
-  lms-network:
+  lms-qaf:
     driver: bridge
     ipam:
       config:

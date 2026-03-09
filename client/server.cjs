@@ -10,6 +10,7 @@ const cors = require('cors');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const { swaggerSpec, swaggerUi, swaggerUiOptions } = require('./src/utils/swagger');
 
 async function startServer() {
   const app = express();
@@ -64,6 +65,13 @@ async function startServer() {
     });
   });
 
+  // Swagger API documentation
+  app.get('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+  app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
+
   // Error handling
   app.use((err, req, res, next) => {
     console.error('[API Server v1] Error:', err);
@@ -87,6 +95,8 @@ async function startServer() {
     console.log('[API Server v1] Available routes:');
     console.log('  - GET/POST/PUT/DELETE https://localhost:3000/api/v1/categories');
     console.log('  - GET https://localhost:3000/api/v1/health');
+    console.log('  - GET https://localhost:3000/api-docs (Swagger UI)');
+    console.log('  - GET https://localhost:3000/api-docs.json (Swagger Spec)');
     console.log('  - Legacy: GET/POST/PUT/DELETE https://localhost:3000/api/categories');
   });
 }
