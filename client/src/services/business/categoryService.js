@@ -1,22 +1,19 @@
 import logger from '@utils/logger';
-import { 
-  getCategories as getCategoriesFromDb,
-  getCategoryById as getCategoryByIdFromDb,
-  create as createCategoryToDb,
-  update as updateCategoryInDb,
-  deleteCategory as deleteCategoryFromDb
-} from '../db/categoryDbService';
+import { API_BASE, getApiHeaders } from '@services/api/apiConfig';
 
 /**
  * Get all categories - with performance monitoring and memoization
  */
 export const getCategories = async () => {
   try {
-    const result = await getCategoriesFromDb();
+    const response = await fetch(API_BASE, {
+      headers: getApiHeaders()
+    });
+    const result = await response.json();
     return result;
   } catch (error) {
     logger.error('CATEGORY: Failed to fetch categories', { error: error.message });
-    return handleServiceError(error, { operation: 'getCategories' });
+    return { success: false, error: error.message };
   }
 };
 
@@ -69,7 +66,7 @@ export const seedDefaultCategories = async () => {
     const results = [];
     for (const category of defaultCategories) {
       try {
-        const result = await createCategoryToDb(category, { uid: 'system' });
+        const result = await addCategory(category, { uid: 'system' });
         if (result.success) {
           logger.info('CATEGORY: Successfully seeded category', { name: category.nameEn, docId: result.id });
           results.push({ action: 'created', category: category.nameEn, success: true, id: result.id });
@@ -98,7 +95,13 @@ export const addCategory = async (categoryData, user = null) => {
   try {
     logger.info('CATEGORY: Adding new category', { name: categoryData.nameEn });
     
-    const result = await createCategoryToDb(categoryData, user);
+    const response = await fetch(API_BASE, {
+      method: 'POST',
+      headers: getApiHeaders(),
+      body: JSON.stringify(categoryData),
+    });
+    
+    const result = await response.json();
     
     if (result.success) {
       logger.info('CATEGORY: Successfully added category', { name: categoryData.nameEn, docId: result.id });
@@ -120,7 +123,13 @@ export const updateCategory = async (docId, categoryData, user = null) => {
   try {
     logger.info('CATEGORY: Updating category', { docId, name: categoryData.nameEn });
     
-    const result = await updateCategoryInDb(docId, categoryData, user);
+    const response = await fetch(API_BASE, {
+      method: 'PUT',
+      headers: getApiHeaders(),
+      body: JSON.stringify({ id: docId, ...categoryData }),
+    });
+    
+    const result = await response.json();
     
     if (result.success) {
       logger.info('CATEGORY: Successfully updated category', { docId, name: categoryData.nameEn });
@@ -142,7 +151,12 @@ export const deleteCategory = async (docId) => {
   try {
     logger.info('CATEGORY: Deleting category', { docId });
     
-    const result = await deleteCategoryFromDb(docId);
+    const response = await fetch(`${API_BASE}?id=${docId}`, {
+      method: 'DELETE',
+      headers: getApiHeaders(),
+    });
+    
+    const result = await response.json();
     
     if (result.success) {
       logger.info('CATEGORY: Successfully deleted category', { docId });
@@ -162,7 +176,10 @@ export const deleteCategory = async (docId) => {
  */
 export const getCategoryById = async (docId) => {
   try {
-    const result = await getCategoryByIdFromDb(docId);
+    const response = await fetch(`${API_BASE}?id=${docId}`, {
+      headers: getApiHeaders()
+    });
+    const result = await response.json();
     return result;
   } catch (error) {
     logger.error('CATEGORY: Error fetching category by ID', { docId, error: error.message });

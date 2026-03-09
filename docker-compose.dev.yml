@@ -1,69 +1,77 @@
-services:
-  # Frontend (React)
-  frontend:
-    build: 
-      context: ./client
-      dockerfile: Dockerfile.dev
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./client:/app
-      - /app/node_modules
-    environment:
-      - REACT_APP_API_URL=http://localhost:5000
-      - REACT_APP_KEYCLOAK_URL=http://localhost:8080
-      - REACT_APP_MINIO_URL=http://localhost:9000
-      - REACT_APP_ENV=development
-      - REACT_APP_IS_DOCKER=true
-    depends_on:
-      - backend
-      - mongodb
-    networks:
-      - lms-network
+version: '3.8'
 
-  # Backend (Node.js + Express)
-  backend:
-    build:
-      context: ./server
-      dockerfile: Dockerfile.dev
+services:
+  # MongoDB Database (Primary Data Store)
+  mongodb:
+    image: mongo:7.0
+    container_name: courses-mongodb
+    restart: unless-stopped
     ports:
-      - "5000:5000"
-      - "5555:5555"  # Prisma Studio
-    volumes:
-      - ./server:/app
-      - /app/node_modules
-      - ./scripts/backups:/app/backups  # Mount backups directory
+      - "27017:27017"
     environment:
-      - NODE_ENV=development
-      - DATABASE_URL=mongodb://admin:admin123@host.docker.internal:27017/lms_dev?authSource=admin
-      - KEYCLOAK_URL=http://keycloak:8080
-      - KEYCLOAK_REALM=lms-military
-      - KEYCLOAK_CLIENT_ID=lms-frontend
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
-      - MINIO_USE_SSL=false
-      - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
-      - CORS_ORIGIN=http://localhost:3000
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin123
+      - MONGO_INITDB_DATABASE=lms_dev
+    volumes:
+      - mongodb_dev_data:/data/db
+      - ./scripts/mongo-init:/docker-entrypoint-initdb.d
     networks:
       - lms-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache and Session Storage
+  redis:
+    image: redis:7-alpine
+    container_name: courses-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass redis123
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - lms-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # MinIO Object Storage (File Storage)
+  minio:
+    image: minio/minio:latest
+    container_name: courses-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio_dev_data:/data
+    networks:
+      - lms-network
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
 
   # PostgreSQL Database (for Keycloak only)
   keycloak-db:
     image: postgres:15-alpine
+    container_name: courses-keycloak-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: keycloak
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: keycloak123
+      - POSTGRES_DB=keycloak
+      - POSTGRES_USER=keycloak
+      - POSTGRES_PASSWORD=keycloak123
     ports:
       - "5432:5432"
     volumes:
@@ -76,185 +84,43 @@ services:
       timeout: 5s
       retries: 5
 
-  # MongoDB Database (for LMS Application)
-  mongodb:
-    image: mongo:7.0
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=admin123
-      - MONGO_INITDB_DATABASE=lms_dev
-    volumes:
-      - mongodb_dev_data:/data/db
-      - ./server/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    networks:
-      - lms-network
-
-  # Keycloak Authentication (Stable Version)
+  # Keycloak Authentication Service
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
+    container_name: courses-keycloak
+    restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
-      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
-      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin123
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin123
       - KC_DB=postgres
-      - KC_DB_URL_HOST=keycloak-db
-      - KC_DB_URL_PORT=5432
+      - KC_DB_URL=jdbc:postgresql://keycloak-db:5432/keycloak
       - KC_DB_USERNAME=keycloak
       - KC_DB_PASSWORD=keycloak123
-      - KC_DB_DATABASE=keycloak
       - KC_HOSTNAME=localhost
+      - KC_HOSTNAME_PORT=8080
       - KC_HTTP_ENABLED=true
-      - KC_METRICS_ENABLED=true
-      - KC_HEALTH_ENABLED=true
-    command: ["start-dev", "--import-realm"]
     depends_on:
       keycloak-db:
         condition: service_healthy
     networks:
       - lms-network
-
-  # MinIO Object Storage
-  minio:
-    image: minio/minio:latest
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
-      - MINIO_BROWSER_REDIRECT_URL=http://localhost:9001
-    volumes:
-      - minio_dev_data:/data
-    command: server /data --console-address ":9001"
+    command: ["start-dev"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-      start_period: 30s
-    networks:
-      - lms-network
-
-  # Redis for Caching & Sessions (Stable Version)
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_dev_data:/data
-    command: redis-server --appendonly yes --requirepass redis123
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    networks:
-      - lms-network
-
-  # ELK Stack - Elasticsearch
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
-    ports:
-      - "9200:9200"
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - bootstrap.memory_lock=true
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    volumes:
-      - elasticsearch_dev_data:/usr/share/elasticsearch/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      test: ["CMD-SHELL", "exec", "keycloak", "health", "--server"]
       interval: 30s
       timeout: 10s
-      retries: 5
-    networks:
-      - lms-network
-
-  # ELK Stack - Logstash
-  logstash:
-    image: docker.elastic.co/logstash/logstash:8.15.0
-    ports:
-      - "5044:5044"
-      - "9600:9600"
-    environment:
-      - "LS_JAVA_OPTS=-Xmx256m -Xms256m"
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    networks:
-      - lms-network
-
-  # ELK Stack - Kibana
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.15.0
-    ports:
-      - "5601:5601"
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - XPACK_SECURITY_ENABLED=false
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    networks:
-      - lms-network
-
-  # Jasper Reports Server (Community Edition)
-# TODO: Add back in Phase 3 for reporting features
-# jasper:
-#   image: jasperreports/jasperreports-community:latest
-#   ports:
-#     - "8081:8080"
-#   environment:
-#     - DB_TYPE=postgresql
-#     - DB_HOST=postgres
-#     - DB_NAME=jasper
-#     - DB_USER=postgres
-#     - DB_PASSWORD=password
-#   volumes:
-#     - jasper_dev_data:/opt/jasperreports
-#   depends_on:
-#     postgres:
-#       condition: service_healthy
-#   networks:
-#     - lms-network
-
-  # MailDev - Local email testing
-  maildev:
-    image: djfarrelly/maildev
-    ports:
-      - "1080:80"   # Web interface (container port 80 -> host 1080)
-      - "1025:25"   # SMTP server (container port 25 -> host 1025)
-    networks:
-      - lms-network
+      retries: 3
 
 volumes:
   mongodb_dev_data:
     driver: local
-  keycloak_db_data:
-    driver: local
-  keycloak_dev_data:
+  redis_dev_data:
     driver: local
   minio_dev_data:
     driver: local
-  redis_dev_data:
-    driver: local
-  elasticsearch_dev_data:
-    driver: local
-  jasper_dev_data:
+  keycloak_db_data:
     driver: local
 
 networks:
