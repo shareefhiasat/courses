@@ -52,6 +52,11 @@
 - ✅ **Winston Logging**: Structured logging with ELK integration
 - ✅ **Swagger API**: Auto-generated API documentation
 - ✅ **Email Development**: MailDev for offline email testing
+- ✅ **Enterprise Security**: Rate limiting, sanitization, JWT auth
+- ✅ **Centralized Middleware**: Security, logging, error handling
+- ✅ **Debug Levels**: ERROR, WARN, INFO, DEBUG, TRACE
+- ✅ **Service Templates**: Quick scaffolding for new APIs
+- ✅ **Documentation Site**: Docusaurus with Swagger integration
 
 ---
 
@@ -83,12 +88,13 @@ cd /path/to/courses
 ### 2. Access Services
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| **Frontend** | http://localhost:5174 | - |
+| **Frontend** | https://localhost:5174 | - |
 | **API Server** | https://localhost:3000 | - |
 | **Swagger Docs** | https://localhost:3000/api-docs | - |
+| **Documentation** | http://localhost:3001 | - |
 | **Kibana (Logs)** | http://localhost:5601 | - |
-| **Grafana (Metrics)** | http://localhost:3001 | admin/admin123 |
-| **Prometheus** | http://localhost:9090 | - |
+| **Grafana (Metrics)** | http://localhost:3002 | admin/admin123 |
+| **Prometheus** | http://localhost:9091 | - |
 | **MailDev** | http://localhost:1080 | - |
 | **MinIO** | http://localhost:9000 | minioadmin/minioadmin |
 | **Keycloak** | http://localhost:8080 | admin/admin123 |
@@ -1182,6 +1188,175 @@ server {
     }
 }
 ```
+
+---
+
+---
+
+## 🏗️ API Development Guide
+
+### Creating New Services
+
+Follow our standardized pattern to create new API services:
+
+#### 1. Create Database Service
+```bash
+cp client/src/services/db/baseDbService-mongodb.cjs client/src/services/db/yourServiceDbService.cjs
+```
+
+#### 2. Create API Route
+```bash
+cp client/src/services/utils/serviceTemplate.cjs client/pages/api/yourService.cjs
+```
+
+#### 3. Add to Server
+Edit `client/server.cjs`:
+```javascript
+const yourServiceHandler = require('./pages/api/yourService.cjs');
+app.all('/api/v1/your-service', (req, res) => {
+  yourServiceHandler(req, res);
+});
+```
+
+#### 4. Add Swagger Schemas
+Edit `client/src/utils/swagger.cjs` to add your service schemas and tags.
+
+### Service Architecture
+
+```
+┌─────────────────────────────────────────┐
+│         Client Request                   │
+└─────────────────┬───────────────────────┘
+                  │
+┌─────────────────▼───────────────────────┐
+│    Security Middleware                   │
+│  - Rate Limiting (100 req/15min)         │
+│  - Request Sanitization (XSS)            │
+│  - Security Headers (Helmet)             │
+└─────────────────┬───────────────────────┘
+                  │
+┌─────────────────▼───────────────────────┐
+│    Logging Middleware                    │
+│  - Request/Response Logging              │
+│  - Performance Monitoring                │
+│  - Debug Levels (ERROR→TRACE)            │
+└─────────────────┬───────────────────────┘
+                  │
+┌─────────────────▼───────────────────────┐
+│    API Routes                            │
+│  - /api/v1/categories                    │
+│  - /api/v1/programs                      │
+│  - /api/v1/subjects (next)               │
+└─────────────────┬───────────────────────┘
+                  │
+┌─────────────────▼───────────────────────┐
+│    Database Services                     │
+│  - MongoDB/Prisma Operations             │
+│  - ELK Logging Integration               │
+│  - Performance Timing                    │
+└─────────────────┬───────────────────────┘
+                  │
+┌─────────────────▼───────────────────────┐
+│    Error Handling                        │
+│  - Centralized Error Handler             │
+│  - Custom Error Classes                  │
+│  - Security Event Logging                │
+└─────────────────────────────────────────┘
+```
+
+### Environment Configuration
+
+Create `client/.env` from `client/.env.example`:
+
+```env
+# API Server
+NODE_ENV=development
+LOG_LEVEL=debug
+API_KEY=your_api_key_here
+JWT_SECRET=your_jwt_secret_here
+
+# MongoDB
+DATABASE_URL=mongodb://localhost:27017/lms_dev?replicaSet=rs0
+
+# ELK Stack
+ELASTICSEARCH_URL=http://localhost:9200
+ELASTICSEARCH_INDEX=military-lms-logs
+
+# Security
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+ALLOWED_ORIGINS=https://localhost:5174,http://localhost:5174
+```
+
+### Logging Levels
+
+Set `LOG_LEVEL` in `.env`:
+- **ERROR** - Only errors
+- **WARN** - Warnings and errors
+- **INFO** - General information (default)
+- **DEBUG** - Detailed debugging information
+- **TRACE** - Very detailed trace information
+
+### Available API Endpoints
+
+#### Categories API
+```
+GET    /api/v1/categories      - Get all categories
+GET    /api/v1/categories?id=  - Get category by ID
+POST   /api/v1/categories      - Create new category
+PUT    /api/v1/categories?id=  - Update category
+DELETE /api/v1/categories?id=  - Delete category
+```
+
+#### Programs API
+```
+GET    /api/v1/programs        - Get all programs
+GET    /api/v1/programs?id=    - Get program by ID
+POST   /api/v1/programs        - Create new program
+PUT    /api/v1/programs?id=    - Update program
+DELETE /api/v1/programs?id=    - Delete program
+```
+
+### Migration Status
+
+| Service | Status | Files |
+|---------|--------|-------|
+| Categories | ✅ Complete | `categoryDbService.cjs`, `categories.cjs` |
+| Programs | ✅ Complete | `programDbService.cjs`, `programs.cjs` |
+| Subjects | ✅ Complete | `subjectDbService.cjs`, `subjects.cjs` |
+| Classes | ✅ Complete | `classDbService.cjs`, `classes.cjs` |
+| Activities | ✅ Complete | `activityDbService.cjs`, `activities.cjs` |
+| Announcements | ✅ Complete | `announcementDbService.cjs`, `announcements.cjs` |
+| Resources | ✅ Complete | `resourceDbService.cjs`, `resources.cjs` |
+| Users | ✅ Complete | `userDbService.cjs`, `users.cjs` |
+| Penalties | ✅ Complete | `penaltyDbService.cjs`, `penalties.cjs` |
+| Participations | ✅ Complete | `participationDbService.cjs`, `participations.cjs` |
+| Behaviors | ✅ Complete | `behaviorDbService.cjs`, `behaviors.cjs` |
+| Quiz Results | ✅ Complete | `quizResultsDbService.cjs`, `quiz-results.cjs` |
+| Quiz Submissions | ✅ Complete | `quizSubmissionsDbService.cjs`, `quiz-submissions.cjs` |
+| Notifications | ✅ Complete | `notificationDbService.cjs`, `notifications.cjs` |
+| Schedules | ✅ Complete | `scheduleDbService.cjs`, `schedules.cjs` |
+| Templates | ✅ Complete | `templatesDbService.cjs`, `templates.cjs` |
+| Gamifications | ✅ Complete | `gamificationDbService.cjs`, `gamifications.cjs` |
+| Bookmarks | ✅ Complete | `bookmarkDbService.cjs`, `bookmarks.cjs` |
+| Attendance | ✅ Complete | `attendanceDbService.cjs`, `attendance.cjs` |
+| Attendance Sessions | ✅ Complete | `attendanceSessionsDbService.cjs`, `attendance-sessions.cjs` |
+| Activity Logs | ✅ Complete | `activityLogDbService.cjs`, `activity-logs.cjs` |
+| Dashboards | ✅ Complete | `dashboardDbService.cjs`, `dashboards.cjs` |
+| Enrollments | ✅ Complete | `enrollmentDbService.cjs`, `enrollments.cjs` |
+| Question Bank | ✅ Complete | `questionBankDbService.cjs`, `question-bank.cjs` |
+| Chat | ✅ Complete | `chatDbService.cjs`, `chat.cjs` |
+| Quizzes | ✅ Complete | `quizzesDbService.cjs`, `quizzes.cjs` |
+| Subject Enrollments | ✅ Complete | `subjectEnrollmentsDbService.cjs`, `subject-enrollments.cjs` |
+
+**Total Migrated Services: 26/26 Complete**
+
+### Documentation
+
+- **API Reference**: https://localhost:3000/api-docs (Swagger UI)
+- **Full Documentation**: http://localhost:3001 (Docusaurus)
+- **Migration Plan**: See `MIGRATION-PLAN.md`
+- **Service Guide**: See `client/README-SERVICES.md`
 
 ---
 

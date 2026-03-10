@@ -1,29 +1,13 @@
 /**
- * API Service Template
- * 
- * PURPOSE:
- * Provides a reusable template for creating API route handlers
- * Can be copied and adapted for any collection/model
- * 
- * USAGE:
- * 1. Copy this file: serviceTemplate.cjs -> newCollectionApi.cjs
- * 2. Replace 'Collection' with your collection name
- * 3. Replace 'collection' with your collection name (lowercase)
- * 4. Update the import path to your database service
- * 5. Add/modify endpoints as needed
- * 6. Add Swagger documentation
- */
-
-/**
  * @swagger
- * /api/v1/collections:
+ * /api/v1/programs:
  *   get:
- *     summary: Get all collections
- *     description: Retrieve a list of all collections in the system
- *     tags: [Collections]
+ *     summary: Get all programs
+ *     description: Retrieve a list of all programs in the system
+ *     tags: [Programs]
  *     responses:
  *       200:
- *         description: List of collections retrieved successfully
+ *         description: List of programs retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -35,7 +19,7 @@
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Collection'
+ *                     $ref: '#/components/schemas/Program'
  *       500:
  *         description: Server error
  *         content:
@@ -44,9 +28,9 @@
  *               $ref: '#/components/schemas/ErrorResponse'
  *   
  *   post:
- *     summary: Create a new collection
- *     description: Create a new collection with the provided data
- *     tags: [Collections]
+ *     summary: Create a new program
+ *     description: Create a new program with the provided data
+ *     tags: [Programs]
  *     security:
  *       - ApiKeyAuth: []
  *     requestBody:
@@ -54,10 +38,10 @@
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CollectionInput'
+ *             $ref: '#/components/schemas/ProgramInput'
  *     responses:
  *       201:
- *         description: Collection created successfully
+ *         description: Program created successfully
  *         content:
  *           application/json:
  *             schema:
@@ -67,7 +51,7 @@
  *                   type: boolean
  *                   example: true
  *                 data:
- *                   $ref: '#/components/schemas/Collection'
+ *                   $ref: '#/components/schemas/Program'
  *       400:
  *         description: Bad request
  *         content:
@@ -81,21 +65,21 @@
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  * 
- * /api/v1/collections/{id}:
+ * /api/v1/programs/{id}:
  *   get:
- *     summary: Get collection by ID
- *     description: Retrieve a specific collection by its ID
- *     tags: [Collections]
+ *     summary: Get program by ID
+ *     description: Retrieve a specific program by its ID
+ *     tags: [Programs]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: Collection ID
+ *         description: Program ID
  *     responses:
  *       200:
- *         description: Collection retrieved successfully
+ *         description: Program retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -105,9 +89,9 @@
  *                   type: boolean
  *                   example: true
  *                 data:
- *                   $ref: '#/components/schemas/Collection'
+ *                   $ref: '#/components/schemas/Program'
  *       404:
- *         description: Collection not found
+ *         description: Program not found
  *         content:
  *           application/json:
  *             schema:
@@ -120,9 +104,9 @@
  *               $ref: '#/components/schemas/ErrorResponse'
  *   
  *   put:
- *     summary: Update a collection
- *     description: Update an existing collection with new data
- *     tags: [Collections]
+ *     summary: Update a program
+ *     description: Update an existing program with new data
+ *     tags: [Programs]
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
@@ -131,16 +115,16 @@
  *         required: true
  *         schema:
  *           type: string
- *         description: Collection ID
+ *         description: Program ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CollectionInput'
+ *             $ref: '#/components/schemas/ProgramInput'
  *     responses:
  *       200:
- *         description: Collection updated successfully
+ *         description: Program updated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -150,7 +134,7 @@
  *                   type: boolean
  *                   example: true
  *                 data:
- *                   $ref: '#/components/schemas/Collection'
+ *                   $ref: '#/components/schemas/Program'
  *       400:
  *         description: Bad request
  *         content:
@@ -158,7 +142,7 @@
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
- *         description: Collection not found
+ *         description: Program not found
  *         content:
  *           application/json:
  *             schema:
@@ -171,9 +155,9 @@
  *               $ref: '#/components/schemas/ErrorResponse'
  *   
  *   delete:
- *     summary: Delete a collection
- *     description: Delete a collection by its ID
- *     tags: [Collections]
+ *     summary: Delete a program
+ *     description: Delete a program by its ID
+ *     tags: [Programs]
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
@@ -182,10 +166,10 @@
  *         required: true
  *         schema:
  *           type: string
- *         description: Collection ID
+ *         description: Program ID
  *     responses:
  *       200:
- *         description: Collection deleted successfully
+ *         description: Program deleted successfully
  *         content:
  *           application/json:
  *             schema:
@@ -196,9 +180,9 @@
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Collection deleted successfully"
+ *                   example: "Program deleted successfully"
  *       404:
- *         description: Collection not found
+ *         description: Program not found
  *         content:
  *           application/json:
  *             schema:
@@ -212,24 +196,24 @@
  */
 
 /**
- * Collections API Route
- * Handles all collection operations for the frontend
+ * Programs API Route
+ * Handles all program operations for the frontend
  * Uses MongoDB/Prisma on the server side
  * CommonJS version for Node.js compatibility
  */
 
 const { getApiUrl, API_VERSION } = require('@services/api/apiConfig.cjs');
 const { logger, logSecurityEvent } = require('@services/utils/logger');
-const collectionDbService = require('@services/db/collectionDbService.cjs');
+const programDbService = require('@services/db/programDbService.cjs');
 
 // Use aliases for cleaner code
 const {
-  getCollections,
-  getCollectionById,
-  create: createCollection,
-  update: updateCollection,
-  deleteCollection: deleteCollection
-} = collectionDbService;
+  getPrograms,
+  getProgramById,
+  create: createProgram,
+  update: updateProgram,
+  deleteProgram: deleteProgram
+} = programDbService;
 
 function handler(req, res) {
   const { method } = req;
@@ -237,16 +221,16 @@ function handler(req, res) {
   
   // Log request with structured data
   logger.info('API request received', {
-    service: 'CollectionsAPI',
+    service: 'ProgramsAPI',
     method,
-    url: `/api/${API_VERSION}/collections`,
+    url: `/api/${API_VERSION}/programs`,
     query: req.query,
     body: req.body,
     userAgent: req.headers['user-agent'],
     ip: req.ip || req.connection.remoteAddress
   });
   
-  console.log(`[API Route] 📨 ${method} /api/${API_VERSION}/collections - Query:`, req.query, 'Body:', req.body);
+  console.log(`[API Route] 📨 ${method} /api/${API_VERSION}/programs - Query:`, req.query, 'Body:', req.body);
 
   switch (method) {
     case 'GET':
@@ -260,7 +244,7 @@ function handler(req, res) {
     default:
       const duration = Date.now() - startTime;
       logger.warn('Method not allowed', {
-        service: 'CollectionsAPI',
+        service: 'ProgramsAPI',
         method,
         duration: `${duration}ms`
       });
@@ -274,24 +258,24 @@ async function handleGet(req, res) {
   const startTime = Date.now();
   try {
     const { id } = req.query;
-    logger.info('GET collections request', {
-      service: 'CollectionsAPI',
+    logger.info('GET programs request', {
+      service: 'ProgramsAPI',
       operation: 'handleGet',
-      collectionId: id || 'all'
+      programId: id || 'all'
     });
     
     console.log(`[API Route] 📥 GET handler - ID: ${id || 'all'}`);
     
     if (id) {
-      // Get specific collection
-      console.log(`[API Route] Fetching collection by ID: ${id}`);
-      const result = await getCollectionById(id);
+      // Get specific program
+      console.log(`[API Route] Fetching program by ID: ${id}`);
+      const result = await getProgramById(id);
       const duration = Date.now() - startTime;
       
-      logger.info('Collection retrieved successfully', {
-        service: 'CollectionsAPI',
+      logger.info('Program retrieved successfully', {
+        service: 'ProgramsAPI',
         operation: 'handleGet',
-        collectionId: id,
+        programId: id,
         success: result.success,
         duration: `${duration}ms`
       });
@@ -299,26 +283,26 @@ async function handleGet(req, res) {
       console.log(`[API Route] ✅ GET result:`, result);
       return res.status(200).json(result);
     } else {
-      // Get all collections
-      console.log('[API Route] Fetching all collections');
-      const result = await getCollections();
+      // Get all programs
+      console.log('[API Route] Fetching all programs');
+      const result = await getPrograms();
       const duration = Date.now() - startTime;
       
-      logger.info('Collections retrieved successfully', {
-        service: 'CollectionsAPI',
+      logger.info('Programs retrieved successfully', {
+        service: 'ProgramsAPI',
         operation: 'handleGet',
         count: result.data?.length || 0,
         success: result.success,
         duration: `${duration}ms`
       });
       
-      console.log(`[API Route] ✅ GET result: ${result.data?.length || 0} collections`);
+      console.log(`[API Route] ✅ GET result: ${result.data?.length || 0} programs`);
       return res.status(200).json(result);
     }
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error('Error in GET handler', {
-      service: 'CollectionsAPI',
+      service: 'ProgramsAPI',
       operation: 'handleGet',
       error: error.message,
       stack: error.stack,
@@ -332,41 +316,41 @@ async function handleGet(req, res) {
 async function handlePost(req, res) {
   const startTime = Date.now();
   try {
-    const collectionData = req.body;
-    logger.info('POST collection request', {
-      service: 'CollectionsAPI',
+    const programData = req.body;
+    logger.info('POST program request', {
+      service: 'ProgramsAPI',
       operation: 'handlePost',
-      data: collectionData
+      data: programData
     });
     
-    console.log('[API Route] 📝 POST handler - Creating collection:', collectionData.name || 'unnamed');
+    console.log('[API Route] 📝 POST handler - Creating program:', programData.nameEn || 'unnamed');
     
     // Validate required fields
-    if (!collectionData.name) {
+    if (!programData.nameEn || !programData.code) {
       const duration = Date.now() - startTime;
-      logger.warn('Missing required field: name', {
-        service: 'CollectionsAPI',
+      logger.warn('Missing required fields', {
+        service: 'ProgramsAPI',
         operation: 'handlePost',
         duration: `${duration}ms`
       });
-      return res.status(400).json({ success: false, error: 'Name is required' });
+      return res.status(400).json({ success: false, error: 'Name (nameEn) and code are required' });
     }
     
-    const result = await createCollection(collectionData);
+    const result = await createProgram(programData);
     const duration = Date.now() - startTime;
     
     if (result.success) {
-      logger.info('Collection created successfully', {
-        service: 'CollectionsAPI',
+      logger.info('Program created successfully', {
+        service: 'ProgramsAPI',
         operation: 'handlePost',
-        collectionId: result.data.id,
+        programId: result.data.id,
         duration: `${duration}ms`
       });
       console.log('[API Route] ✅ POST result:', result);
       return res.status(201).json(result);
     } else {
-      logger.error('Failed to create collection', {
-        service: 'CollectionsAPI',
+      logger.error('Failed to create program', {
+        service: 'ProgramsAPI',
         operation: 'handlePost',
         error: result.error,
         duration: `${duration}ms`
@@ -377,7 +361,7 @@ async function handlePost(req, res) {
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error('Error in POST handler', {
-      service: 'CollectionsAPI',
+      service: 'ProgramsAPI',
       operation: 'handlePost',
       error: error.message,
       stack: error.stack,
@@ -394,42 +378,42 @@ async function handlePut(req, res) {
     const { id } = req.query;
     const updateData = req.body;
     
-    logger.info('PUT collection request', {
-      service: 'CollectionsAPI',
+    logger.info('PUT program request', {
+      service: 'ProgramsAPI',
       operation: 'handlePut',
-      collectionId: id,
+      programId: id,
       data: updateData
     });
     
-    console.log(`[API Route] 🔄 PUT handler - Updating collection: ${id}`);
+    console.log(`[API Route] 🔄 PUT handler - Updating program: ${id}`);
     
     if (!id) {
       const duration = Date.now() - startTime;
-      logger.warn('Missing collection ID', {
-        service: 'CollectionsAPI',
+      logger.warn('Missing program ID', {
+        service: 'ProgramsAPI',
         operation: 'handlePut',
         duration: `${duration}ms`
       });
-      return res.status(400).json({ success: false, error: 'Collection ID is required' });
+      return res.status(400).json({ success: false, error: 'Program ID is required' });
     }
     
-    const result = await updateCollection(id, updateData);
+    const result = await updateProgram(id, updateData);
     const duration = Date.now() - startTime;
     
     if (result.success) {
-      logger.info('Collection updated successfully', {
-        service: 'CollectionsAPI',
+      logger.info('Program updated successfully', {
+        service: 'ProgramsAPI',
         operation: 'handlePut',
-        collectionId: id,
+        programId: id,
         duration: `${duration}ms`
       });
       console.log('[API Route] ✅ PUT result:', result);
       return res.status(200).json(result);
     } else {
-      logger.error('Failed to update collection', {
-        service: 'CollectionsAPI',
+      logger.error('Failed to update program', {
+        service: 'ProgramsAPI',
         operation: 'handlePut',
-        collectionId: id,
+        programId: id,
         error: result.error,
         duration: `${duration}ms`
       });
@@ -439,7 +423,7 @@ async function handlePut(req, res) {
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error('Error in PUT handler', {
-      service: 'CollectionsAPI',
+      service: 'ProgramsAPI',
       operation: 'handlePut',
       error: error.message,
       stack: error.stack,
@@ -455,41 +439,41 @@ async function handleDelete(req, res) {
   try {
     const { id } = req.query;
     
-    logger.info('DELETE collection request', {
-      service: 'CollectionsAPI',
+    logger.info('DELETE program request', {
+      service: 'ProgramsAPI',
       operation: 'handleDelete',
-      collectionId: id
+      programId: id
     });
     
-    console.log(`[API Route] 🗑️ DELETE handler - Deleting collection: ${id}`);
+    console.log(`[API Route] 🗑️ DELETE handler - Deleting program: ${id}`);
     
     if (!id) {
       const duration = Date.now() - startTime;
-      logger.warn('Missing collection ID', {
-        service: 'CollectionsAPI',
+      logger.warn('Missing program ID', {
+        service: 'ProgramsAPI',
         operation: 'handleDelete',
         duration: `${duration}ms`
       });
-      return res.status(400).json({ success: false, error: 'Collection ID is required' });
+      return res.status(400).json({ success: false, error: 'Program ID is required' });
     }
     
-    const result = await deleteCollection(id);
+    const result = await deleteProgram(id);
     const duration = Date.now() - startTime;
     
     if (result.success) {
-      logger.info('Collection deleted successfully', {
-        service: 'CollectionsAPI',
+      logger.info('Program deleted successfully', {
+        service: 'ProgramsAPI',
         operation: 'handleDelete',
-        collectionId: id,
+        programId: id,
         duration: `${duration}ms`
       });
       console.log('[API Route] ✅ DELETE result:', result);
       return res.status(200).json(result);
     } else {
-      logger.error('Failed to delete collection', {
-        service: 'CollectionsAPI',
+      logger.error('Failed to delete program', {
+        service: 'ProgramsAPI',
         operation: 'handleDelete',
-        collectionId: id,
+        programId: id,
         error: result.error,
         duration: `${duration}ms`
       });
@@ -499,7 +483,7 @@ async function handleDelete(req, res) {
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error('Error in DELETE handler', {
-      service: 'CollectionsAPI',
+      service: 'ProgramsAPI',
       operation: 'handleDelete',
       error: error.message,
       stack: error.stack,

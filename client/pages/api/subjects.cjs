@@ -1,29 +1,13 @@
 /**
- * API Service Template
- * 
- * PURPOSE:
- * Provides a reusable template for creating API route handlers
- * Can be copied and adapted for any collection/model
- * 
- * USAGE:
- * 1. Copy this file: serviceTemplate.cjs -> newCollectionApi.cjs
- * 2. Replace 'Collection' with your collection name
- * 3. Replace 'collection' with your collection name (lowercase)
- * 4. Update the import path to your database service
- * 5. Add/modify endpoints as needed
- * 6. Add Swagger documentation
- */
-
-/**
  * @swagger
- * /api/v1/collections:
+ * /api/v1/subjects:
  *   get:
- *     summary: Get all collections
- *     description: Retrieve a list of all collections in the system
- *     tags: [Collections]
+ *     summary: Get all subjects
+ *     description: Retrieve a list of all subjects in the system
+ *     tags: [Subjects]
  *     responses:
  *       200:
- *         description: List of collections retrieved successfully
+ *         description: List of subjects retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -35,7 +19,7 @@
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Collection'
+ *                     $ref: '#/components/schemas/Subject'
  *       500:
  *         description: Server error
  *         content:
@@ -44,9 +28,9 @@
  *               $ref: '#/components/schemas/ErrorResponse'
  *   
  *   post:
- *     summary: Create a new collection
- *     description: Create a new collection with the provided data
- *     tags: [Collections]
+ *     summary: Create a new subject
+ *     description: Create a new subject with the provided data
+ *     tags: [Subjects]
  *     security:
  *       - ApiKeyAuth: []
  *     requestBody:
@@ -54,10 +38,10 @@
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CollectionInput'
+ *             $ref: '#/components/schemas/SubjectInput'
  *     responses:
  *       201:
- *         description: Collection created successfully
+ *         description: Subject created successfully
  *         content:
  *           application/json:
  *             schema:
@@ -67,7 +51,7 @@
  *                   type: boolean
  *                   example: true
  *                 data:
- *                   $ref: '#/components/schemas/Collection'
+ *                   $ref: '#/components/schemas/Subject'
  *       400:
  *         description: Bad request
  *         content:
@@ -81,21 +65,21 @@
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  * 
- * /api/v1/collections/{id}:
+ * /api/v1/subjects/{id}:
  *   get:
- *     summary: Get collection by ID
- *     description: Retrieve a specific collection by its ID
- *     tags: [Collections]
+ *     summary: Get subject by ID
+ *     description: Retrieve a specific subject by its ID
+ *     tags: [Subjects]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: Collection ID
+ *         description: Subject ID
  *     responses:
  *       200:
- *         description: Collection retrieved successfully
+ *         description: Subject retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -105,9 +89,9 @@
  *                   type: boolean
  *                   example: true
  *                 data:
- *                   $ref: '#/components/schemas/Collection'
+ *                   $ref: '#/components/schemas/Subject'
  *       404:
- *         description: Collection not found
+ *         description: Subject not found
  *         content:
  *           application/json:
  *             schema:
@@ -120,9 +104,9 @@
  *               $ref: '#/components/schemas/ErrorResponse'
  *   
  *   put:
- *     summary: Update a collection
- *     description: Update an existing collection with new data
- *     tags: [Collections]
+ *     summary: Update a subject
+ *     description: Update an existing subject with new data
+ *     tags: [Subjects]
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
@@ -131,16 +115,16 @@
  *         required: true
  *         schema:
  *           type: string
- *         description: Collection ID
+ *         description: Subject ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CollectionInput'
+ *             $ref: '#/components/schemas/SubjectInput'
  *     responses:
  *       200:
- *         description: Collection updated successfully
+ *         description: Subject updated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -150,7 +134,7 @@
  *                   type: boolean
  *                   example: true
  *                 data:
- *                   $ref: '#/components/schemas/Collection'
+ *                   $ref: '#/components/schemas/Subject'
  *       400:
  *         description: Bad request
  *         content:
@@ -158,7 +142,7 @@
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
- *         description: Collection not found
+ *         description: Subject not found
  *         content:
  *           application/json:
  *             schema:
@@ -171,9 +155,9 @@
  *               $ref: '#/components/schemas/ErrorResponse'
  *   
  *   delete:
- *     summary: Delete a collection
- *     description: Delete a collection by its ID
- *     tags: [Collections]
+ *     summary: Delete a subject
+ *     description: Delete a subject by its ID
+ *     tags: [Subjects]
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
@@ -182,10 +166,10 @@
  *         required: true
  *         schema:
  *           type: string
- *         description: Collection ID
+ *         description: Subject ID
  *     responses:
  *       200:
- *         description: Collection deleted successfully
+ *         description: Subject deleted successfully
  *         content:
  *           application/json:
  *             schema:
@@ -196,9 +180,9 @@
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Collection deleted successfully"
+ *                   example: "Subject deleted successfully"
  *       404:
- *         description: Collection not found
+ *         description: Subject not found
  *         content:
  *           application/json:
  *             schema:
@@ -212,41 +196,39 @@
  */
 
 /**
- * Collections API Route
- * Handles all collection operations for the frontend
+ * Subjects API Route
+ * Handles all subject operations for the frontend
  * Uses MongoDB/Prisma on the server side
  * CommonJS version for Node.js compatibility
  */
 
 const { getApiUrl, API_VERSION } = require('@services/api/apiConfig.cjs');
 const { logger, logSecurityEvent } = require('@services/utils/logger');
-const collectionDbService = require('@services/db/collectionDbService.cjs');
+const subjectDbService = require('@services/db/subjectDbService.cjs');
 
-// Use aliases for cleaner code
 const {
-  getCollections,
-  getCollectionById,
-  create: createCollection,
-  update: updateCollection,
-  deleteCollection: deleteCollection
-} = collectionDbService;
+  getSubjects,
+  getSubjectById,
+  create: createSubject,
+  update: updateSubject,
+  deleteSubject: deleteSubject
+} = subjectDbService;
 
 function handler(req, res) {
   const { method } = req;
   const startTime = Date.now();
   
-  // Log request with structured data
   logger.info('API request received', {
-    service: 'CollectionsAPI',
+    service: 'SubjectsAPI',
     method,
-    url: `/api/${API_VERSION}/collections`,
+    url: `/api/${API_VERSION}/subjects`,
     query: req.query,
     body: req.body,
     userAgent: req.headers['user-agent'],
     ip: req.ip || req.connection.remoteAddress
   });
   
-  console.log(`[API Route] 📨 ${method} /api/${API_VERSION}/collections - Query:`, req.query, 'Body:', req.body);
+  console.log(`[API Route] 📨 ${method} /api/${API_VERSION}/subjects - Query:`, req.query, 'Body:', req.body);
 
   switch (method) {
     case 'GET':
@@ -260,7 +242,7 @@ function handler(req, res) {
     default:
       const duration = Date.now() - startTime;
       logger.warn('Method not allowed', {
-        service: 'CollectionsAPI',
+        service: 'SubjectsAPI',
         method,
         duration: `${duration}ms`
       });
@@ -274,24 +256,23 @@ async function handleGet(req, res) {
   const startTime = Date.now();
   try {
     const { id } = req.query;
-    logger.info('GET collections request', {
-      service: 'CollectionsAPI',
+    logger.info('GET subjects request', {
+      service: 'SubjectsAPI',
       operation: 'handleGet',
-      collectionId: id || 'all'
+      subjectId: id || 'all'
     });
     
     console.log(`[API Route] 📥 GET handler - ID: ${id || 'all'}`);
     
     if (id) {
-      // Get specific collection
-      console.log(`[API Route] Fetching collection by ID: ${id}`);
-      const result = await getCollectionById(id);
+      console.log(`[API Route] Fetching subject by ID: ${id}`);
+      const result = await getSubjectById(id);
       const duration = Date.now() - startTime;
       
-      logger.info('Collection retrieved successfully', {
-        service: 'CollectionsAPI',
+      logger.info('Subject retrieved successfully', {
+        service: 'SubjectsAPI',
         operation: 'handleGet',
-        collectionId: id,
+        subjectId: id,
         success: result.success,
         duration: `${duration}ms`
       });
@@ -299,26 +280,25 @@ async function handleGet(req, res) {
       console.log(`[API Route] ✅ GET result:`, result);
       return res.status(200).json(result);
     } else {
-      // Get all collections
-      console.log('[API Route] Fetching all collections');
-      const result = await getCollections();
+      console.log('[API Route] Fetching all subjects');
+      const result = await getSubjects();
       const duration = Date.now() - startTime;
       
-      logger.info('Collections retrieved successfully', {
-        service: 'CollectionsAPI',
+      logger.info('Subjects retrieved successfully', {
+        service: 'SubjectsAPI',
         operation: 'handleGet',
         count: result.data?.length || 0,
         success: result.success,
         duration: `${duration}ms`
       });
       
-      console.log(`[API Route] ✅ GET result: ${result.data?.length || 0} collections`);
+      console.log(`[API Route] ✅ GET result: ${result.data?.length || 0} subjects`);
       return res.status(200).json(result);
     }
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error('Error in GET handler', {
-      service: 'CollectionsAPI',
+      service: 'SubjectsAPI',
       operation: 'handleGet',
       error: error.message,
       stack: error.stack,
@@ -332,41 +312,43 @@ async function handleGet(req, res) {
 async function handlePost(req, res) {
   const startTime = Date.now();
   try {
-    const collectionData = req.body;
-    logger.info('POST collection request', {
-      service: 'CollectionsAPI',
+    const subjectData = req.body;
+    logger.info('POST subject request', {
+      service: 'SubjectsAPI',
       operation: 'handlePost',
-      data: collectionData
+      data: subjectData
     });
     
-    console.log('[API Route] 📝 POST handler - Creating collection:', collectionData.name || 'unnamed');
+    console.log('[API Route] 📝 POST handler - Creating subject:', subjectData.nameEn || 'unnamed');
     
-    // Validate required fields
-    if (!collectionData.name) {
+    if (!subjectData.nameEn || !subjectData.code || !subjectData.programId) {
       const duration = Date.now() - startTime;
-      logger.warn('Missing required field: name', {
-        service: 'CollectionsAPI',
+      logger.warn('Missing required fields', {
+        service: 'SubjectsAPI',
         operation: 'handlePost',
         duration: `${duration}ms`
       });
-      return res.status(400).json({ success: false, error: 'Name is required' });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Name (nameEn), code, and programId are required' 
+      });
     }
     
-    const result = await createCollection(collectionData);
+    const result = await createSubject(subjectData);
     const duration = Date.now() - startTime;
     
     if (result.success) {
-      logger.info('Collection created successfully', {
-        service: 'CollectionsAPI',
+      logger.info('Subject created successfully', {
+        service: 'SubjectsAPI',
         operation: 'handlePost',
-        collectionId: result.data.id,
+        subjectId: result.data.id,
         duration: `${duration}ms`
       });
       console.log('[API Route] ✅ POST result:', result);
       return res.status(201).json(result);
     } else {
-      logger.error('Failed to create collection', {
-        service: 'CollectionsAPI',
+      logger.error('Failed to create subject', {
+        service: 'SubjectsAPI',
         operation: 'handlePost',
         error: result.error,
         duration: `${duration}ms`
@@ -377,7 +359,7 @@ async function handlePost(req, res) {
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error('Error in POST handler', {
-      service: 'CollectionsAPI',
+      service: 'SubjectsAPI',
       operation: 'handlePost',
       error: error.message,
       stack: error.stack,
@@ -394,42 +376,42 @@ async function handlePut(req, res) {
     const { id } = req.query;
     const updateData = req.body;
     
-    logger.info('PUT collection request', {
-      service: 'CollectionsAPI',
+    logger.info('PUT subject request', {
+      service: 'SubjectsAPI',
       operation: 'handlePut',
-      collectionId: id,
+      subjectId: id,
       data: updateData
     });
     
-    console.log(`[API Route] 🔄 PUT handler - Updating collection: ${id}`);
+    console.log(`[API Route] 🔄 PUT handler - Updating subject: ${id}`);
     
     if (!id) {
       const duration = Date.now() - startTime;
-      logger.warn('Missing collection ID', {
-        service: 'CollectionsAPI',
+      logger.warn('Missing subject ID', {
+        service: 'SubjectsAPI',
         operation: 'handlePut',
         duration: `${duration}ms`
       });
-      return res.status(400).json({ success: false, error: 'Collection ID is required' });
+      return res.status(400).json({ success: false, error: 'Subject ID is required' });
     }
     
-    const result = await updateCollection(id, updateData);
+    const result = await updateSubject(id, updateData);
     const duration = Date.now() - startTime;
     
     if (result.success) {
-      logger.info('Collection updated successfully', {
-        service: 'CollectionsAPI',
+      logger.info('Subject updated successfully', {
+        service: 'SubjectsAPI',
         operation: 'handlePut',
-        collectionId: id,
+        subjectId: id,
         duration: `${duration}ms`
       });
       console.log('[API Route] ✅ PUT result:', result);
       return res.status(200).json(result);
     } else {
-      logger.error('Failed to update collection', {
-        service: 'CollectionsAPI',
+      logger.error('Failed to update subject', {
+        service: 'SubjectsAPI',
         operation: 'handlePut',
-        collectionId: id,
+        subjectId: id,
         error: result.error,
         duration: `${duration}ms`
       });
@@ -439,7 +421,7 @@ async function handlePut(req, res) {
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error('Error in PUT handler', {
-      service: 'CollectionsAPI',
+      service: 'SubjectsAPI',
       operation: 'handlePut',
       error: error.message,
       stack: error.stack,
@@ -455,41 +437,41 @@ async function handleDelete(req, res) {
   try {
     const { id } = req.query;
     
-    logger.info('DELETE collection request', {
-      service: 'CollectionsAPI',
+    logger.info('DELETE subject request', {
+      service: 'SubjectsAPI',
       operation: 'handleDelete',
-      collectionId: id
+      subjectId: id
     });
     
-    console.log(`[API Route] 🗑️ DELETE handler - Deleting collection: ${id}`);
+    console.log(`[API Route] 🗑️ DELETE handler - Deleting subject: ${id}`);
     
     if (!id) {
       const duration = Date.now() - startTime;
-      logger.warn('Missing collection ID', {
-        service: 'CollectionsAPI',
+      logger.warn('Missing subject ID', {
+        service: 'SubjectsAPI',
         operation: 'handleDelete',
         duration: `${duration}ms`
       });
-      return res.status(400).json({ success: false, error: 'Collection ID is required' });
+      return res.status(400).json({ success: false, error: 'Subject ID is required' });
     }
     
-    const result = await deleteCollection(id);
+    const result = await deleteSubject(id);
     const duration = Date.now() - startTime;
     
     if (result.success) {
-      logger.info('Collection deleted successfully', {
-        service: 'CollectionsAPI',
+      logger.info('Subject deleted successfully', {
+        service: 'SubjectsAPI',
         operation: 'handleDelete',
-        collectionId: id,
+        subjectId: id,
         duration: `${duration}ms`
       });
       console.log('[API Route] ✅ DELETE result:', result);
       return res.status(200).json(result);
     } else {
-      logger.error('Failed to delete collection', {
-        service: 'CollectionsAPI',
+      logger.error('Failed to delete subject', {
+        service: 'SubjectsAPI',
         operation: 'handleDelete',
-        collectionId: id,
+        subjectId: id,
         error: result.error,
         duration: `${duration}ms`
       });
@@ -499,7 +481,7 @@ async function handleDelete(req, res) {
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error('Error in DELETE handler', {
-      service: 'CollectionsAPI',
+      service: 'SubjectsAPI',
       operation: 'handleDelete',
       error: error.message,
       stack: error.stack,

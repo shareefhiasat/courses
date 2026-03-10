@@ -44,6 +44,38 @@ model User {
   // Relations - Keep only what we need for Categories
   instructedClasses           Class[]   @relation("ClassInstructor")
   uploadedFiles               File[]    @relation("FileUploader")
+  
+  // Phase 10 Relations
+  penalties                   Penalty[] @relation("StudentPenalties")
+  participations              Participation[] @relation("StudentParticipations")
+  behaviors                   Behavior[] @relation("StudentBehaviors")
+  instructorPenalties         Penalty[] @relation("InstructorPenalties")
+  instructorBehaviors         Behavior[] @relation("InstructorBehaviors")
+  recorderParticipations     Participation[] @relation("RecorderParticipations")
+  reporterBehaviors          Behavior[] @relation("ReporterBehaviors")
+  resolverPenalties           Penalty[] @relation("ResolverPenalties")
+  resolverBehaviors           Behavior[] @relation("ResolverBehaviors")
+  
+  // Quiz & Assessment Relations
+  quizResults                 QuizResult[] @relation("StudentQuizResults")
+  quizSubmissions             QuizSubmission[] @relation("StudentQuizSubmissions")
+  notifications               Notification[] @relation("UserNotifications")
+  gamifications               Gamification[] @relation("UserGamification")
+  bookmarks                   Bookmark[] @relation("UserBookmarks")
+  attendance                  Attendance[] @relation("UserAttendance")
+  activityLogs                ActivityLog[] @relation("UserActivityLogs")
+  dashboards                  Dashboard[] @relation("UserDashboards")
+  enrollments                 Enrollment[] @relation("UserEnrollments")
+  subjectEnrollments          SubjectEnrollment[] @relation("UserSubjectEnrollments")
+  sentMessages                Chat[] @relation("SentMessages")
+  receivedMessages            Chat[] @relation("ReceivedMessages")
+  createdQuizzes              Quiz[] @relation("InstructorQuizzes")
+  schedules                   Schedule[] @relation("InstructorSchedules")
+  createdTemplates            Template[] @relation("CreatorTemplates")
+  createdQuestionBank         QuestionBank[] @relation("CreatorQuestionBank")
+  markedAttendance            Attendance[] @relation("MarkedAttendance")
+  approvedEnrollments         Enrollment[] @relation("ApprovedEnrollments")
+  attendanceSessions          AttendanceSession[] @relation("InstructorAttendanceSessions")
 }
 
 // Class model - Keep only relations needed for Categories
@@ -71,6 +103,21 @@ model Class {
   subject     Subject @relation(fields: [subjectId], references: [id])
   instructor  User?    @relation("ClassInstructor", fields: [instructorId], references: [id])
   resources   Resource[]
+  
+  // Phase 10 Relations
+  activities  Activity[] @relation("ActivityClass")
+  penalties   Penalty[] @relation("ClassPenalties")
+  participations Participation[] @relation("ClassParticipations")
+  behaviors    Behavior[] @relation("ClassBehaviors")
+  
+  // Quiz & Assessment Relations
+  quizzes      Quiz[] @relation("ClassQuizzes")
+  quizResults  QuizResult[] @relation("ClassQuizResults")
+  schedules    Schedule[] @relation("ClassSchedules")
+  attendance   Attendance[] @relation("ClassAttendance")
+  enrollments  Enrollment[] @relation("ClassEnrollments")
+  attendanceSessions AttendanceSession[] @relation("ClassAttendanceSessions")
+  chats        Chat[] @relation("ClassChats")
 }
 
 // Program model
@@ -91,6 +138,9 @@ model Program {
   classes     Class[]
   subjects    Subject[]
   resources   Resource[]
+  
+  // Phase 10 Relations
+  activities  Activity[] @relation("ActivityProgram")
 }
 
 // Subject model
@@ -115,6 +165,11 @@ model Subject {
   program     Program @relation(fields: [programId], references: [id])
   classes     Class[]
   resources   Resource[]
+  
+  // Phase 10 Relations
+  activities  Activity[] @relation("ActivitySubject")
+  enrollments  Enrollment[] @relation("SubjectEnrollments")
+  subjectEnrollments SubjectEnrollment[] @relation("SubjectEnrollments")
 }
 
 // Category model - THE MODEL WE'RE MIGRATING
@@ -190,10 +245,435 @@ model File {
   resources   Resource[]
 }
 
+// Activity model - for classroom activities and assignments
+model Activity {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  classId     String   @db.ObjectId
+  subjectId   String   @db.ObjectId
+  type        String   // quiz, assignment, project, exam, etc.
+  dueDate     DateTime?
+  maxScore    Float?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  class       Class    @relation("ActivityClass", fields: [classId], references: [id])
+  subject     Subject  @relation("ActivitySubject", fields: [subjectId], references: [id])
+  submissions Participation[] @relation("ActivityParticipations")
+}
+
 // Config model for system configuration
 model Config {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   data        Json
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// Penalty model - for student penalties and disciplinary actions
+model Penalty {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  studentId     String   @db.ObjectId
+  classId       String?  @db.ObjectId
+  instructorId  String?  @db.ObjectId
+  type          String   // late_submission, plagiarism, misconduct, absence, etc.
+  description   String
+  severity      String   // low, medium, high, critical
+  points        Int?     // penalty points if applicable
+  status        String   @default("active") // active, resolved, appealed
+  resolvedAt    DateTime?
+  resolvedBy    String?  @db.ObjectId
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  student       User     @relation("StudentPenalties", fields: [studentId], references: [id])
+  class         Class?   @relation("ClassPenalties", fields: [classId], references: [id])
+  instructor    User?    @relation("InstructorPenalties", fields: [instructorId], references: [id])
+  resolver      User?    @relation("ResolverPenalties", fields: [resolvedBy], references: [id])
+}
+
+// Participation model - for tracking student participation in activities
+model Participation {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  studentId     String   @db.ObjectId
+  activityId    String   @db.ObjectId
+  classId       String   @db.ObjectId
+  type          String   // attendance, discussion, presentation, group_work, etc.
+  score         Float?   // participation score if applicable
+  maxScore      Float?   // maximum possible score
+  status        String   @default("present") // present, absent, late, excused
+  notes         String?  // instructor notes
+  recordedAt    DateTime @default(now())
+  recordedBy    String   @db.ObjectId
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  student       User     @relation("StudentParticipations", fields: [studentId], references: [id])
+  activity      Activity @relation("ActivityParticipations", fields: [activityId], references: [id])
+  class         Class    @relation("ClassParticipations", fields: [classId], references: [id])
+  recorder      User     @relation("RecorderParticipations", fields: [recordedBy], references: [id])
+}
+
+// Behavior model - for tracking student behavior and conduct
+model Behavior {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  studentId     String   @db.ObjectId
+  classId       String?  @db.ObjectId
+  instructorId  String?  @db.ObjectId
+  type          String   // positive_behavior, negative_behavior, incident, achievement
+  category      String   // academic, social, disciplinary, leadership
+  description   String
+  severity      String   // low, medium, high
+  impact        String?  // impact on learning environment
+  actionTaken   String?  // actions taken by instructor/admin
+  status        String   @default("active") // active, resolved, reviewed
+  reportedAt    DateTime @default(now())
+  reportedBy    String   @db.ObjectId
+  resolvedAt    DateTime?
+  resolvedBy    String?  @db.ObjectId
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  student       User     @relation("StudentBehaviors", fields: [studentId], references: [id])
+  class         Class?   @relation("ClassBehaviors", fields: [classId], references: [id])
+  instructor    User?    @relation("InstructorBehaviors", fields: [instructorId], references: [id])
+  reporter      User     @relation("ReporterBehaviors", fields: [reportedBy], references: [id])
+  resolver      User?    @relation("ResolverBehaviors", fields: [resolvedBy], references: [id])
+}
+
+// Quiz Result model - for quiz results and scoring
+model QuizResult {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  quizId        String   @db.ObjectId
+  studentId     String   @db.ObjectId
+  classId       String   @db.ObjectId
+  score         Float
+  maxScore      Float
+  percentage    Float
+  status        String   // passed, failed, pending
+  startedAt     DateTime
+  completedAt   DateTime?
+  timeSpent     Int?     // in minutes
+  attempts      Int      @default(1)
+  feedback      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  quiz          Quiz     @relation("QuizResults", fields: [quizId], references: [id])
+  student       User     @relation("StudentQuizResults", fields: [studentId], references: [id])
+  class         Class    @relation("ClassQuizResults", fields: [classId], references: [id])
+}
+
+// Quiz Submission model - for individual quiz question submissions
+model QuizSubmission {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  quizResultId  String   @db.ObjectId
+  questionId    String   @db.ObjectId
+  studentId     String   @db.ObjectId
+  answer        Json     // flexible answer structure
+  isCorrect     Boolean
+  points        Float
+  maxPoints     Float
+  timeSpent     Int?     // in seconds
+  submittedAt   DateTime @default(now())
+  
+  // Relations
+  quizResult    QuizResult @relation("QuizSubmissions", fields: [quizResultId], references: [id])
+  question      Question   @relation("QuestionSubmissions", fields: [questionId], references: [id])
+  student       User       @relation("StudentQuizSubmissions", fields: [studentId], references: [id])
+}
+
+// Quiz model - for quiz definitions
+model Quiz {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String?
+  classId       String   @db.ObjectId
+  instructorId  String   @db.ObjectId
+  type          String   // quiz, exam, test
+  duration      Int?     // in minutes
+  maxScore      Float
+  passingScore  Float
+  isPublished   Boolean  @default(false)
+  startsAt      DateTime?
+  endsAt        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  class         Class       @relation("ClassQuizzes", fields: [classId], references: [id])
+  instructor    User        @relation("InstructorQuizzes", fields: [instructorId], references: [id])
+  questions     Question[]
+  results       QuizResult[]
+}
+
+// Question model - for quiz questions
+model Question {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  quizId        String   @db.ObjectId
+  questionBankId String? @db.ObjectId
+  type          String   // multiple_choice, true_false, short_answer, essay
+  question      String
+  options       Json?    // for multiple choice questions
+  correctAnswer Json
+  explanation   String?
+  points        Float
+  order         Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  quiz          Quiz             @relation("QuizQuestions", fields: [quizId], references: [id])
+  questionBank  QuestionBank?    @relation("BankQuestions", fields: [questionBankId], references: [id])
+  submissions   QuizSubmission[]
+}
+
+// Question Bank model - for reusable questions
+model QuestionBank {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String?
+  category      String?
+  type          String   // multiple_choice, true_false, short_answer, essay
+  question      String
+  options       Json?    // for multiple choice questions
+  correctAnswer Json
+  explanation   String?
+  points        Float
+  difficulty    String   // easy, medium, hard
+  tags          Json?    // array of tags
+  createdBy     String   @db.ObjectId
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  creator       User       @relation("CreatorQuestionBank", fields: [createdBy], references: [id])
+  questions     Question[]
+}
+
+// Notification model - for system notifications
+model Notification {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  title         String
+  message       String
+  type          String   // info, warning, error, success
+  category      String   // announcement, grade, deadline, system
+  isRead        Boolean  @default(false)
+  actionUrl     String?
+  actionText    String?
+  expiresAt     DateTime?
+  createdAt     DateTime @default(now())
+  
+  // Relations
+  user          User     @relation("UserNotifications", fields: [userId], references: [id])
+}
+
+// Schedule model - for class schedules and events
+model Schedule {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String?
+  classId       String?  @db.ObjectId
+  instructorId  String   @db.ObjectId
+  type          String   // class, exam, meeting, deadline
+  startDate     DateTime
+  endDate       DateTime?
+  location      String?
+  isRecurring   Boolean  @default(false)
+  recurrence    Json?    // recurrence rules
+  status        String   @default("active") // active, cancelled, completed
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  class         Class?   @relation("ClassSchedules", fields: [classId], references: [id])
+  instructor    User     @relation("InstructorSchedules", fields: [instructorId], references: [id])
+}
+
+// Template model - for reusable templates
+model Template {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  description   String?
+  type          String   // quiz, assignment, announcement, email
+  content       Json     // template content structure
+  variables     Json?    // template variables
+  createdBy     String   @db.ObjectId
+  isActive      Boolean  @default(true)
+  usageCount    Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  creator       User     @relation("CreatorTemplates", fields: [createdBy], references: [id])
+}
+
+// Gamification model - for points and achievements
+model Gamification {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  type          String   // points, badge, achievement, level
+  name          String
+  description   String?
+  value         Int?
+  criteria      Json?    // achievement criteria
+  earnedAt      DateTime @default(now())
+  expiresAt     DateTime?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  
+  // Relations
+  user          User     @relation("UserGamification", fields: [userId], references: [id])
+}
+
+// Bookmark model - for user bookmarks
+model Bookmark {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  type          String   // resource, activity, quiz, class, etc.
+  targetId      String   @db.ObjectId
+  title         String
+  description   String?
+  tags          Json?    // array of tags
+  isPublic      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  user          User     @relation("UserBookmarks", fields: [userId], references: [id])
+}
+
+// Attendance model - for attendance tracking
+model Attendance {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  classId       String   @db.ObjectId
+  date          DateTime
+  status        String   // present, absent, late, excused
+  checkInTime   DateTime?
+  checkOutTime  DateTime?
+  notes         String?
+  markedBy      String   @db.ObjectId
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  user          User     @relation("UserAttendance", fields: [userId], references: [id])
+  class         Class    @relation("ClassAttendance", fields: [classId], references: [id])
+  marker        User     @relation("MarkedAttendance", fields: [markedBy], references: [id])
+}
+
+// Activity Log model - for system activity tracking
+model ActivityLog {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  action        String   // login, logout, view, create, update, delete
+  resource      String   // user, class, activity, etc.
+  resourceId    String   @db.ObjectId
+  details       Json?    // additional details
+  ipAddress     String?
+  userAgent     String?
+  timestamp     DateTime @default(now())
+  
+  // Relations
+  user          User     @relation("UserActivityLogs", fields: [userId], references: [id])
+}
+
+// Dashboard model - for user dashboard configurations
+model Dashboard {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  name          String
+  layout        Json     // widget layout configuration
+  widgets       Json     // widget definitions
+  isDefault     Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  user          User     @relation("UserDashboards", fields: [userId], references: [id])
+}
+
+// Enrollment model - for class enrollments
+model Enrollment {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  classId       String   @db.ObjectId
+  status        String   // pending, approved, rejected, completed
+  enrolledAt    DateTime @default(now())
+  completedAt   DateTime?
+  grade         Float?
+  notes         String?
+  approvedBy    String?  @db.ObjectId
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  user          User     @relation("UserEnrollments", fields: [userId], references: [id])
+  class         Class    @relation("ClassEnrollments", fields: [classId], references: [id])
+  approver      User?    @relation("ApprovedEnrollments", fields: [approvedBy], references: [id])
+}
+
+// Attendance Session model - for attendance sessions
+model AttendanceSession {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  classId       String   @db.ObjectId
+  instructorId  String   @db.ObjectId
+  sessionDate   DateTime
+  startTime     DateTime
+  endTime       DateTime?
+  status        String   @default("active") // active, completed, cancelled
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  class         Class    @relation("ClassAttendanceSessions", fields: [classId], references: [id])
+  instructor    User     @relation("InstructorAttendanceSessions", fields: [instructorId], references: [id])
+}
+
+// Chat model - for messaging system
+model Chat {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  senderId      String   @db.ObjectId
+  receiverId    String   @db.ObjectId
+  classId       String?  @db.ObjectId
+  message       String
+  type          String   @default("text") // text, file, image, system
+  isRead        Boolean  @default(false)
+  timestamp     DateTime @default(now())
+  
+  // Relations
+  sender        User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver      User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  class         Class?   @relation("ClassChats", fields: [classId], references: [id])
+}
+
+// Subject Enrollment model - for subject enrollments
+model SubjectEnrollment {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  subjectId     String   @db.ObjectId
+  status        String   @default("active") // active, completed, dropped, suspended
+  enrolledAt    DateTime @default(now())
+  completedAt   DateTime?
+  grade         Float?
+  credits       Float?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  user          User     @relation("UserSubjectEnrollments", fields: [userId], references: [id])
+  subject       Subject  @relation("SubjectEnrollments", fields: [subjectId], references: [id])
 }

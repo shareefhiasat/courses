@@ -1,29 +1,13 @@
 /**
- * API Service Template
- * 
- * PURPOSE:
- * Provides a reusable template for creating API route handlers
- * Can be copied and adapted for any collection/model
- * 
- * USAGE:
- * 1. Copy this file: serviceTemplate.cjs -> newCollectionApi.cjs
- * 2. Replace 'Collection' with your collection name
- * 3. Replace 'collection' with your collection name (lowercase)
- * 4. Update the import path to your database service
- * 5. Add/modify endpoints as needed
- * 6. Add Swagger documentation
- */
-
-/**
  * @swagger
- * /api/v1/collections:
+ * /api/v1/activities:
  *   get:
- *     summary: Get all collections
- *     description: Retrieve a list of all collections in the system
- *     tags: [Collections]
+ *     summary: Get all activities
+ *     description: Retrieve a list of all activities in the system
+ *     tags: [Activities]
  *     responses:
  *       200:
- *         description: List of collections retrieved successfully
+ *         description: List of activities retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -35,18 +19,18 @@
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Collection'
+ *                     $ref: '#/components/schemas/Activity'
  *       500:
  *         description: Server error
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
- *   
+ *
  *   post:
- *     summary: Create a new collection
- *     description: Create a new collection with the provided data
- *     tags: [Collections]
+ *     summary: Create a new activity
+ *     description: Create a new activity with the provided data
+ *     tags: [Activities]
  *     security:
  *       - ApiKeyAuth: []
  *     requestBody:
@@ -54,10 +38,10 @@
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CollectionInput'
+ *             $ref: '#/components/schemas/ActivityInput'
  *     responses:
  *       201:
- *         description: Collection created successfully
+ *         description: Activity created successfully
  *         content:
  *           application/json:
  *             schema:
@@ -67,7 +51,7 @@
  *                   type: boolean
  *                   example: true
  *                 data:
- *                   $ref: '#/components/schemas/Collection'
+ *                   $ref: '#/components/schemas/Activity'
  *       400:
  *         description: Bad request
  *         content:
@@ -80,22 +64,22 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
- * 
- * /api/v1/collections/{id}:
+ *
+ * /api/v1/activities/{id}:
  *   get:
- *     summary: Get collection by ID
- *     description: Retrieve a specific collection by its ID
- *     tags: [Collections]
+ *     summary: Get activity by ID
+ *     description: Retrieve a specific activity by its ID
+ *     tags: [Activities]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: Collection ID
+ *         description: Activity ID
  *     responses:
  *       200:
- *         description: Collection retrieved successfully
+ *         description: Activity retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -105,9 +89,9 @@
  *                   type: boolean
  *                   example: true
  *                 data:
- *                   $ref: '#/components/schemas/Collection'
+ *                   $ref: '#/components/schemas/Activity'
  *       404:
- *         description: Collection not found
+ *         description: Activity not found
  *         content:
  *           application/json:
  *             schema:
@@ -118,11 +102,11 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
- *   
+ *
  *   put:
- *     summary: Update a collection
- *     description: Update an existing collection with new data
- *     tags: [Collections]
+ *     summary: Update an activity
+ *     description: Update an existing activity with new data
+ *     tags: [Activities]
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
@@ -131,16 +115,16 @@
  *         required: true
  *         schema:
  *           type: string
- *         description: Collection ID
+ *         description: Activity ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CollectionInput'
+ *             $ref: '#/components/schemas/ActivityInput'
  *     responses:
  *       200:
- *         description: Collection updated successfully
+ *         description: Activity updated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -150,7 +134,7 @@
  *                   type: boolean
  *                   example: true
  *                 data:
- *                   $ref: '#/components/schemas/Collection'
+ *                   $ref: '#/components/schemas/Activity'
  *       400:
  *         description: Bad request
  *         content:
@@ -158,7 +142,7 @@
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
- *         description: Collection not found
+ *         description: Activity not found
  *         content:
  *           application/json:
  *             schema:
@@ -169,11 +153,11 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
- *   
+ *
  *   delete:
- *     summary: Delete a collection
- *     description: Delete a collection by its ID
- *     tags: [Collections]
+ *     summary: Delete an activity
+ *     description: Delete an activity by its ID
+ *     tags: [Activities]
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
@@ -182,10 +166,10 @@
  *         required: true
  *         schema:
  *           type: string
- *         description: Collection ID
+ *         description: Activity ID
  *     responses:
  *       200:
- *         description: Collection deleted successfully
+ *         description: Activity deleted successfully
  *         content:
  *           application/json:
  *             schema:
@@ -196,9 +180,9 @@
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Collection deleted successfully"
+ *                   example: "Activity deleted successfully"
  *       404:
- *         description: Collection not found
+ *         description: Activity not found
  *         content:
  *           application/json:
  *             schema:
@@ -212,41 +196,39 @@
  */
 
 /**
- * Collections API Route
- * Handles all collection operations for the frontend
+ * Activities API Route
+ * Handles all activity operations for the frontend
  * Uses MongoDB/Prisma on the server side
  * CommonJS version for Node.js compatibility
  */
 
-const { getApiUrl, API_VERSION } = require('@services/api/apiConfig.cjs');
-const { logger, logSecurityEvent } = require('@services/utils/logger');
-const collectionDbService = require('@services/db/collectionDbService.cjs');
+const { API_VERSION } = require('@services/api/apiConfig.cjs');
+const { logger } = require('@services/utils/logger');
+const activityDbService = require('@services/db/activityDbService.cjs');
 
-// Use aliases for cleaner code
 const {
-  getCollections,
-  getCollectionById,
-  create: createCollection,
-  update: updateCollection,
-  deleteCollection: deleteCollection
-} = collectionDbService;
+  getActivities,
+  getActivityById,
+  create: createActivity,
+  update: updateActivity,
+  deleteActivity
+} = activityDbService;
 
 function handler(req, res) {
   const { method } = req;
   const startTime = Date.now();
-  
-  // Log request with structured data
+
   logger.info('API request received', {
-    service: 'CollectionsAPI',
+    service: 'ActivitiesAPI',
     method,
-    url: `/api/${API_VERSION}/collections`,
+    url: `/api/${API_VERSION}/activities`,
     query: req.query,
     body: req.body,
     userAgent: req.headers['user-agent'],
     ip: req.ip || req.connection.remoteAddress
   });
-  
-  console.log(`[API Route] 📨 ${method} /api/${API_VERSION}/collections - Query:`, req.query, 'Body:', req.body);
+
+  console.log(`[API Route] 📨 ${method} /api/${API_VERSION}/activities - Query:`, req.query, 'Body:', req.body);
 
   switch (method) {
     case 'GET':
@@ -260,7 +242,7 @@ function handler(req, res) {
     default:
       const duration = Date.now() - startTime;
       logger.warn('Method not allowed', {
-        service: 'CollectionsAPI',
+        service: 'ActivitiesAPI',
         method,
         duration: `${duration}ms`
       });
@@ -274,51 +256,49 @@ async function handleGet(req, res) {
   const startTime = Date.now();
   try {
     const { id } = req.query;
-    logger.info('GET collections request', {
-      service: 'CollectionsAPI',
+    logger.info('GET activities request', {
+      service: 'ActivitiesAPI',
       operation: 'handleGet',
-      collectionId: id || 'all'
+      activityId: id || 'all'
     });
-    
+
     console.log(`[API Route] 📥 GET handler - ID: ${id || 'all'}`);
-    
+
     if (id) {
-      // Get specific collection
-      console.log(`[API Route] Fetching collection by ID: ${id}`);
-      const result = await getCollectionById(id);
+      console.log(`[API Route] Fetching activity by ID: ${id}`);
+      const result = await getActivityById(id);
       const duration = Date.now() - startTime;
-      
-      logger.info('Collection retrieved successfully', {
-        service: 'CollectionsAPI',
+
+      logger.info('Activity retrieved successfully', {
+        service: 'ActivitiesAPI',
         operation: 'handleGet',
-        collectionId: id,
+        activityId: id,
         success: result.success,
         duration: `${duration}ms`
       });
-      
-      console.log(`[API Route] ✅ GET result:`, result);
-      return res.status(200).json(result);
-    } else {
-      // Get all collections
-      console.log('[API Route] Fetching all collections');
-      const result = await getCollections();
-      const duration = Date.now() - startTime;
-      
-      logger.info('Collections retrieved successfully', {
-        service: 'CollectionsAPI',
-        operation: 'handleGet',
-        count: result.data?.length || 0,
-        success: result.success,
-        duration: `${duration}ms`
-      });
-      
-      console.log(`[API Route] ✅ GET result: ${result.data?.length || 0} collections`);
+
+      console.log('[API Route] ✅ GET result:', result);
       return res.status(200).json(result);
     }
+
+    console.log('[API Route] Fetching all activities');
+    const result = await getActivities();
+    const duration = Date.now() - startTime;
+
+    logger.info('Activities retrieved successfully', {
+      service: 'ActivitiesAPI',
+      operation: 'handleGet',
+      count: result.data?.length || 0,
+      success: result.success,
+      duration: `${duration}ms`
+    });
+
+    console.log(`[API Route] ✅ GET result: ${result.data?.length || 0} activities`);
+    return res.status(200).json(result);
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error('Error in GET handler', {
-      service: 'CollectionsAPI',
+      service: 'ActivitiesAPI',
       operation: 'handleGet',
       error: error.message,
       stack: error.stack,
@@ -332,52 +312,54 @@ async function handleGet(req, res) {
 async function handlePost(req, res) {
   const startTime = Date.now();
   try {
-    const collectionData = req.body;
-    logger.info('POST collection request', {
-      service: 'CollectionsAPI',
+    const activityData = req.body;
+    logger.info('POST activity request', {
+      service: 'ActivitiesAPI',
       operation: 'handlePost',
-      data: collectionData
+      data: activityData
     });
-    
-    console.log('[API Route] 📝 POST handler - Creating collection:', collectionData.name || 'unnamed');
-    
-    // Validate required fields
-    if (!collectionData.name) {
+
+    console.log('[API Route] 📝 POST handler - Creating activity:', activityData.title || activityData.nameEn || 'unnamed');
+
+    if (!activityData.title || !activityData.classId || !activityData.subjectId) {
       const duration = Date.now() - startTime;
-      logger.warn('Missing required field: name', {
-        service: 'CollectionsAPI',
+      logger.warn('Missing required fields', {
+        service: 'ActivitiesAPI',
         operation: 'handlePost',
         duration: `${duration}ms`
       });
-      return res.status(400).json({ success: false, error: 'Name is required' });
+      return res.status(400).json({
+        success: false,
+        error: 'Title, classId, and subjectId are required'
+      });
     }
-    
-    const result = await createCollection(collectionData);
+
+    const result = await createActivity(activityData);
     const duration = Date.now() - startTime;
-    
+
     if (result.success) {
-      logger.info('Collection created successfully', {
-        service: 'CollectionsAPI',
+      logger.info('Activity created successfully', {
+        service: 'ActivitiesAPI',
         operation: 'handlePost',
-        collectionId: result.data.id,
+        activityId: result.data.id,
         duration: `${duration}ms`
       });
       console.log('[API Route] ✅ POST result:', result);
       return res.status(201).json(result);
-    } else {
-      logger.error('Failed to create collection', {
-        service: 'CollectionsAPI',
-        operation: 'handlePost',
-        error: result.error,
-        duration: `${duration}ms`
-      });
-      console.log('[API Route] ❌ POST result:', result);
-      return res.status(400).json(result);
     }
+
+    logger.error('Failed to create activity', {
+      service: 'ActivitiesAPI',
+      operation: 'handlePost',
+      error: result.error,
+      duration: `${duration}ms`
+    });
+    console.log('[API Route] ❌ POST result:', result);
+    return res.status(400).json(result);
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error('Error in POST handler', {
-      service: 'CollectionsAPI',
+      service: 'ActivitiesAPI',
       operation: 'handlePost',
       error: error.message,
       stack: error.stack,
@@ -393,53 +375,53 @@ async function handlePut(req, res) {
   try {
     const { id } = req.query;
     const updateData = req.body;
-    
-    logger.info('PUT collection request', {
-      service: 'CollectionsAPI',
+
+    logger.info('PUT activity request', {
+      service: 'ActivitiesAPI',
       operation: 'handlePut',
-      collectionId: id,
+      activityId: id,
       data: updateData
     });
-    
-    console.log(`[API Route] 🔄 PUT handler - Updating collection: ${id}`);
-    
+
+    console.log(`[API Route] 🔄 PUT handler - Updating activity: ${id}`);
+
     if (!id) {
       const duration = Date.now() - startTime;
-      logger.warn('Missing collection ID', {
-        service: 'CollectionsAPI',
+      logger.warn('Missing activity ID', {
+        service: 'ActivitiesAPI',
         operation: 'handlePut',
         duration: `${duration}ms`
       });
-      return res.status(400).json({ success: false, error: 'Collection ID is required' });
+      return res.status(400).json({ success: false, error: 'Activity ID is required' });
     }
-    
-    const result = await updateCollection(id, updateData);
+
+    const result = await updateActivity(id, updateData);
     const duration = Date.now() - startTime;
-    
+
     if (result.success) {
-      logger.info('Collection updated successfully', {
-        service: 'CollectionsAPI',
+      logger.info('Activity updated successfully', {
+        service: 'ActivitiesAPI',
         operation: 'handlePut',
-        collectionId: id,
+        activityId: id,
         duration: `${duration}ms`
       });
       console.log('[API Route] ✅ PUT result:', result);
       return res.status(200).json(result);
-    } else {
-      logger.error('Failed to update collection', {
-        service: 'CollectionsAPI',
-        operation: 'handlePut',
-        collectionId: id,
-        error: result.error,
-        duration: `${duration}ms`
-      });
-      console.log('[API Route] ❌ PUT result:', result);
-      return res.status(400).json(result);
     }
+
+    logger.error('Failed to update activity', {
+      service: 'ActivitiesAPI',
+      operation: 'handlePut',
+      activityId: id,
+      error: result.error,
+      duration: `${duration}ms`
+    });
+    console.log('[API Route] ❌ PUT result:', result);
+    return res.status(400).json(result);
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error('Error in PUT handler', {
-      service: 'CollectionsAPI',
+      service: 'ActivitiesAPI',
       operation: 'handlePut',
       error: error.message,
       stack: error.stack,
@@ -454,52 +436,52 @@ async function handleDelete(req, res) {
   const startTime = Date.now();
   try {
     const { id } = req.query;
-    
-    logger.info('DELETE collection request', {
-      service: 'CollectionsAPI',
+
+    logger.info('DELETE activity request', {
+      service: 'ActivitiesAPI',
       operation: 'handleDelete',
-      collectionId: id
+      activityId: id
     });
-    
-    console.log(`[API Route] 🗑️ DELETE handler - Deleting collection: ${id}`);
-    
+
+    console.log(`[API Route] 🗑️ DELETE handler - Deleting activity: ${id}`);
+
     if (!id) {
       const duration = Date.now() - startTime;
-      logger.warn('Missing collection ID', {
-        service: 'CollectionsAPI',
+      logger.warn('Missing activity ID', {
+        service: 'ActivitiesAPI',
         operation: 'handleDelete',
         duration: `${duration}ms`
       });
-      return res.status(400).json({ success: false, error: 'Collection ID is required' });
+      return res.status(400).json({ success: false, error: 'Activity ID is required' });
     }
-    
-    const result = await deleteCollection(id);
+
+    const result = await deleteActivity(id);
     const duration = Date.now() - startTime;
-    
+
     if (result.success) {
-      logger.info('Collection deleted successfully', {
-        service: 'CollectionsAPI',
+      logger.info('Activity deleted successfully', {
+        service: 'ActivitiesAPI',
         operation: 'handleDelete',
-        collectionId: id,
+        activityId: id,
         duration: `${duration}ms`
       });
       console.log('[API Route] ✅ DELETE result:', result);
       return res.status(200).json(result);
-    } else {
-      logger.error('Failed to delete collection', {
-        service: 'CollectionsAPI',
-        operation: 'handleDelete',
-        collectionId: id,
-        error: result.error,
-        duration: `${duration}ms`
-      });
-      console.log('[API Route] ❌ DELETE result:', result);
-      return res.status(400).json(result);
     }
+
+    logger.error('Failed to delete activity', {
+      service: 'ActivitiesAPI',
+      operation: 'handleDelete',
+      activityId: id,
+      error: result.error,
+      duration: `${duration}ms`
+    });
+    console.log('[API Route] ❌ DELETE result:', result);
+    return res.status(400).json(result);
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error('Error in DELETE handler', {
-      service: 'CollectionsAPI',
+      service: 'ActivitiesAPI',
       operation: 'handleDelete',
       error: error.message,
       stack: error.stack,

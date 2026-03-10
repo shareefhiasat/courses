@@ -14,7 +14,7 @@
  */
 
 const { PrismaClient } = require('@prisma/client');
-const { logger, logDbOperation } = require('../utils/logger');
+const { logger, logDbOperation } = require('@services/utils/logger');
 
 console.log('[CollectionDbService] Initializing Prisma Client...');
 const prisma = new PrismaClient({

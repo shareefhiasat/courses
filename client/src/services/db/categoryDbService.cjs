@@ -12,7 +12,7 @@
  */
 
 const { PrismaClient } = require('@prisma/client');
-const logger = require('../utils/logger');
+const logger = require('@services/utils/logger');
 
 console.log('[CategoryDbService] Initializing Prisma Client...');
 const prisma = new PrismaClient({
