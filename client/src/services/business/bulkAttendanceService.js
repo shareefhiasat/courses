@@ -142,6 +142,29 @@ export const bulkValidateStudents = async ({ studentNumbers, classId, programId,
         studentCount: studentsResponse.data?.length || 0,
         data: studentsResponse.data
       });
+
+      // Fetch full user data with student numbers for regular mode (same as standup mode)
+      if (studentsResponse.success && studentsResponse.data.length > 0) {
+        const userIds = [...new Set(studentsResponse.data.map(e => e.userId))];
+        info(`${serviceName}:bulkValidateStudents - Fetching user data for userIds:`, userIds);
+        const usersResponse = await getUsersByIds(userIds);
+        info(`${serviceName}:bulkValidateStudents - getUsersByIds response:`, {
+          success: usersResponse?.success,
+          dataLength: usersResponse?.data?.length
+        });
+
+        // Merge user data with enrollments
+        if (usersResponse.success && usersResponse.data) {
+          const userMap = new Map(usersResponse.data.map(u => [u.id, u]));
+          studentsResponse.data = studentsResponse.data.map(enrollment => ({
+            ...enrollment,
+            studentNumber: userMap.get(enrollment.userId)?.studentNumber,
+            displayName: userMap.get(enrollment.userId)?.displayName || enrollment.user?.displayName || enrollment.user?.name,
+            name: userMap.get(enrollment.userId)?.name || enrollment.user?.name
+          }));
+          info(`${serviceName}:bulkValidateStudents - Merged user data with enrollments`);
+        }
+      }
     }
 
     if (!studentsResponse.success) {

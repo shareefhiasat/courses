@@ -278,10 +278,14 @@ export const BulkScanProvider = ({
 
       for (const student of selectedStudents) {
         try {
+          // Ensure date is in YYYY-MM-DD string format
+          const dateStr = selectedDate ? new Date(selectedDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+
           const attendanceData = {
             userId: student.userId || student.id,
             status: selectedStatus || 'present',
-            date: selectedDate,
+            date: dateStr,
+            notes: (selectedStatus || 'present').toUpperCase(),
             markedBy: currentMarkedBy,
             performedBy: currentPerformedBy,
             performedByName: currentPerformedByName,
@@ -511,6 +515,26 @@ export const BulkScanProvider = ({
         // Get students enrolled in this specific class for regular mode
         const { getStudentsByClass } = await import("@services/business/enrollmentService");
         studentsResponse = await getStudentsByClass(currentClassId);
+
+        // Fetch full user data with student numbers (same as standup mode)
+        if (studentsResponse.success && studentsResponse.data.length > 0) {
+          const userIds = studentsResponse.data.map(e => e.userId);
+          const uniqueUserIds = [...new Set(userIds)];
+          const { getUsersByIds } = await import("@services/business/userService");
+          const usersResponse = await getUsersByIds(uniqueUserIds);
+
+          // Merge user data with enrollments
+          if (usersResponse.success && usersResponse.data) {
+            const userMap = new Map(usersResponse.data.map(u => [u.id, u]));
+            studentsResponse.data = studentsResponse.data.map(enrollment => ({
+              ...enrollment,
+              user: {
+                ...enrollment.user,
+                studentNumber: userMap.get(enrollment.userId)?.studentNumber
+              }
+            }));
+          }
+        }
       }
 
       if (!studentsResponse.success || !studentsResponse.data) {
