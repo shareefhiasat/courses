@@ -1,0 +1,14 @@
+🔍 READ response: {
+  "data": {
+    "subject": {
+      "id": "69bfac425ae6da109bf928fc",
+      "nameEn": "Test Subject 1774169154870",
+      "nameAr": "مادة اختبار 1774169154870",
+      "code": "SUBJ-1774169154870",
+      "description": "Test subject description",
+      "credits": 3
+    }
+  }
+}
+✅ Subject retrieved: Test Subject 1774169154870
+📊 Subject details: { credits: 3 }

@@ -3,7 +3,7 @@
  * Provides consistent error categorization, formatting, and logging
  */
 
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 // Error categories for better error handling and user experience
 export const ERROR_CATEGORIES = {
@@ -161,7 +161,7 @@ export const withRetry = (fn, maxRetries = 3, baseDelay = 1000, context = {}) =>
         // Calculate delay with exponential backoff
         const delay = baseDelay * Math.pow(2, attempt - 1);
         
-        logger.info(`Retry attempt ${attempt}/${maxRetries} after ${delay}ms`, {
+        info(`Retry attempt ${attempt}/${maxRetries} after ${delay}ms`, {
           category,
           message: error.message,
           context
@@ -186,7 +186,7 @@ export const measurePerformance = (fn, operationName) => {
       const duration = endTime - startTime;
       
       if (duration > 1000) {
-        logger.warn(`Slow operation detected: ${operationName} took ${duration.toFixed(2)}ms`);
+        warn(`Slow operation detected: ${operationName} took ${duration.toFixed(2)}ms`);
       }
       
       return result;
@@ -194,7 +194,7 @@ export const measurePerformance = (fn, operationName) => {
       const endTime = performance.now();
       const duration = endTime - startTime;
       
-      logger.error(`Failed operation: ${operationName} failed after ${duration.toFixed(2)}ms`, { error: error.message });
+      error(`Failed operation: ${operationName} failed after ${duration.toFixed(2)}ms`, { error: error.message });
       
       throw error;
     }
@@ -242,7 +242,7 @@ export const batchOperation = async (items, operationFn, batchSize = 10, delayBe
         await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
       }
     } catch (error) {
-      logger.error(`Batch operation failed at batch ${Math.floor(i / batchSize) + 1}:`, { error: error.message });
+      error(`Batch operation failed at batch ${Math.floor(i / batchSize) + 1}:`, { error: error.message });
       throw error;
     }
   }

@@ -1,7 +1,8 @@
 import { useContext } from 'react';
 import { LangContext } from '../contexts/LangContext';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Hook for handling bilingual notes with automatic localization
  * Provides utilities for creating, storing, and displaying bilingual notes
  * Completely backward compatible and safe to use
@@ -31,7 +32,7 @@ export const useBilingualNotes = () => {
         
         return String(note);
       } catch (error) {
-        console.warn('Error in getNote:', error);
+        warn('Error in getNote:', error);
         return String(note || '');
       }
     };
@@ -50,7 +51,7 @@ export const useBilingualNotes = () => {
           hasArabic: !!noteAr && noteAr !== noteEn
         };
       } catch (error) {
-        console.warn('Error in createNote:', error);
+        warn('Error in createNote:', error);
         return { en: String(noteEn || ''), ar: String(noteEn || ''), hasArabic: false };
       }
     };
@@ -88,7 +89,7 @@ export const useBilingualNotes = () => {
         // Fallback to original note
         return noteKey;
       } catch (error) {
-        console.warn('Error in getTranslatedNote:', error);
+        warn('Error in getTranslatedNote:', error);
         return String(noteKey || '');
       }
     };
@@ -107,7 +108,7 @@ export const useBilingualNotes = () => {
         }
         return false;
       } catch (error) {
-        console.warn('Error in hasArabic:', error);
+        warn('Error in hasArabic:', error);
         return false;
       }
     };
@@ -132,7 +133,7 @@ export const useBilingualNotes = () => {
         }
         return { en: String(note), ar: String(note) };
       } catch (error) {
-        console.warn('Error in getBothLanguages:', error);
+        warn('Error in getBothLanguages:', error);
         return { en: String(note || ''), ar: String(note || '') };
       }
     };
@@ -152,7 +153,7 @@ export const useBilingualNotes = () => {
       isArabic: lang === 'ar'
     };
   } catch (error) {
-    console.error('Error initializing useBilingualNotes:', error);
+    error('Error initializing useBilingualNotes:', error);
     // Return safe fallback functions
     return {
       getNote: (note) => String(note || ''),

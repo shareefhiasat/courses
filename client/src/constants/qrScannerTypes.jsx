@@ -4,11 +4,13 @@ import {
   MessageSquare, Award, Zap
 } from 'lucide-react';
 import { ATTENDANCE_STATUS } from './attendanceTypes';
-import { PARTICIPATION_TYPES } from './participationTypes.jsx';
-import { PENALTY_TYPES } from './penaltyTypes.jsx';
-import { BEHAVIOR_TYPES } from './behaviorTypes.jsx';
+// OLD: import { PARTICIPATION_TYPES } from './participationTypes.jsx';
+// OLD: import { PENALTY_TYPES } from './penaltyTypes.jsx';
+// OLD: import { BEHAVIOR_TYPES } from './behaviorTypes.jsx';
+// NOTE: This function now expects data from useLookupTypes hook instead of hardcoded constants
 
-// QR Scanner Action Types
+
+import { info, error, warn, debug } from '@services/utils/logger.js';// QR Scanner Action Types
 export const QR_SCANNER_ACTIONS = {
   MARK_PRESENT: 'mark_present',
   MARK_LATE: 'mark_late',
@@ -88,37 +90,60 @@ export const getActionButtonStyles = (action, isLoading = false, theme = 'light'
 };
 
 // Activity Type Options for StudentActionStatsPanel
-export const getActivityTypeOptions = () => [
-  // Behavior options
-  ...BEHAVIOR_TYPES.map(behavior => ({
-    value: behavior.id,
-    category: 'behavior',
-    points: behavior.points,
-    icon: behavior.icon || 'AlertCircle',
-    color: behavior.color || '#f97316',
-    label: behavior.label || behavior.name
-  })),
-  
-  // Participation options
-  ...PARTICIPATION_TYPES.map(participation => ({
-    value: participation.id,
-    category: 'participation',
-    points: participation.points,
-    icon: participation.icon || 'MessageSquare',
-    color: participation.color || '#3b82f6',
-    label: participation.label || participation.name
-  })),
-  
-  // Penalty options
-  ...PENALTY_TYPES.map(penalty => ({
-    value: penalty.id,
-    category: 'penalty',
-    points: penalty.points,
-    icon: penalty.icon || 'AlertTriangle',
-    color: penalty.color || '#dc2626',
-    label: penalty.label || penalty.name
-  }))
-];
+// MIGRATED: Now accepts lookup data from useLookupTypes hook instead of hardcoded constants
+export const getActivityTypeOptions = (lookupData = {}) => {
+  const behaviorTypes = lookupData['behavior-types'] || [];
+  const participationTypes = lookupData['participation-types'] || [];
+  const penaltyTypes = lookupData['penalty-types'] || [];
+
+  return [
+    // Behavior options
+    ...behaviorTypes.map(behavior => ({
+      id: behavior.id,
+      value: behavior.id,
+      category: 'behavior',
+      points: behavior.points || 0,
+      icon: behavior.icon || 'AlertCircle',
+      color: behavior.color || '#f97316',
+      label_en: behavior.nameEn || behavior.code,
+      label_ar: behavior.nameAr || behavior.code,
+      label: behavior.nameEn || behavior.code
+    })),
+    
+    // Participation options
+    ...participationTypes.map(participation => ({
+      id: participation.id,
+      value: participation.id,
+      category: 'participation',
+      points: participation.points || 0,
+      icon: participation.icon || 'MessageSquare',
+      color: participation.color || '#3b82f6',
+      label_en: participation.nameEn || participation.code,
+      label_ar: participation.nameAr || participation.code,
+      label: participation.nameEn || participation.code
+    })),
+    
+    // Penalty options
+    ...penaltyTypes.map(penalty => ({
+      id: penalty.id,
+      value: penalty.id,
+      category: 'penalty',
+      points: penalty.points || 0,
+      icon: penalty.icon || 'AlertTriangle',
+      color: penalty.color || '#dc2626',
+      label_en: penalty.nameEn || penalty.code,
+      label_ar: penalty.nameAr || penalty.code,
+      label: penalty.nameEn || penalty.code
+    }))
+  ];
+};
+
+// Legacy function for backward compatibility (deprecated)
+// This will be removed once all components are migrated
+export const getActivityTypeOptionsLegacy = () => {
+  console.warn('getActivityTypeOptionsLegacy is deprecated. Use useLookupTypes hook instead.');
+  return getActivityTypeOptions();
+};
 
 // Camera Configuration
 export const getCameraConstraints = (isMobile = false, cameraMode = 'environment') => ({

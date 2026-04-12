@@ -6,19 +6,19 @@ import { useToast } from '@ui/Toast/Toast';
 import { CollapsibleDashboardSection, ProgramsSelect } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
-import { getResourceCount } from '@services/business/activityService';
+import { getResourceCount } from '@services/business/resourceService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { getEnrollments } from '@services/business/enrollmentService';
-import { getActivities } from '@services/business/activityService';
+import { getActivities } from '@services/business/activitiesService';
 import { getUsers } from '@services/business/userService';
 import { getAllQuizzes } from '@services/business/quizService';
-import { getAnnouncements } from '@services/business/activityService';
+import { getAnnouncements } from '@services/business/announcementService';
 import { getPenalties } from '@services/business/penaltyService';
 import { getBehaviors } from '@services/business/behaviorService';
 import { getParticipations } from '@services/business/participationService';
 import { MODE_TYPES } from '@utils/sharedTypes';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { ActivityLogger } from '@services/other/activityLogger';
 
 /**
@@ -101,7 +101,7 @@ const AnalyticsDashboardPage = memo(() => {
         if (result.status === 'fulfilled') {
           return result.value.success ? result.value.data || [] : [];
         }
-        logger.warn('⚠️ [AnalyticsDashboardPage] Collection not available or failed to load:', result.reason?.message || result.reason);
+        warn('⚠️ [AnalyticsDashboardPage] Collection not available or failed to load:', result.reason?.message || result.reason);
         return [];
       };
       
@@ -133,7 +133,7 @@ const AnalyticsDashboardPage = memo(() => {
       if (resourceResult.success) {
         setResourceCount(resourceResult.count);
       } else {
-        logger.error('❌ [AnalyticsDashboardPage] Error fetching resource count:', resourceResult.error);
+        error('❌ [AnalyticsDashboardPage] Error fetching resource count:', resourceResult.error);
         setResourceCount(0);
       }
       
@@ -146,7 +146,7 @@ const AnalyticsDashboardPage = memo(() => {
       }
       
     } catch (error) {
-      logger.error('❌ [AnalyticsDashboardPage] Error loading data:', error);
+      error('❌ [AnalyticsDashboardPage] Error loading data:', error);
       if (isRefresh) {
         toast.error('Failed to refresh dashboard', 3000);
       }
@@ -187,11 +187,11 @@ const AnalyticsDashboardPage = memo(() => {
         if (result.success) {
           setResourceCount(result.count);
         } else {
-          logger.error('❌ [AnalyticsDashboardPage] Error fetching resource count:', result.error);
+          error('❌ [AnalyticsDashboardPage] Error fetching resource count:', result.error);
           setResourceCount(0);
         }
       } catch (error) {
-        logger.error('❌ [AnalyticsDashboardPage] Exception fetching resource count:', error);
+        error('❌ [AnalyticsDashboardPage] Exception fetching resource count:', error);
         setResourceCount(0);
       }
     };

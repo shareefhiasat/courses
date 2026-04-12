@@ -1,7 +1,8 @@
 import React from 'react';
 import styles from './Grid.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Grid Component
  * 
  * A responsive grid layout.

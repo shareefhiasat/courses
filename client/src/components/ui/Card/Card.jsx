@@ -3,7 +3,8 @@ import { useTheme } from '@contexts/ThemeContext';
 import styles from './Card.module.css';
 import { getComponentStyles, generateCSSVariables } from '@constants/uiTheme';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Card Component
  * 
  * A flexible container component for grouping related content.
@@ -90,6 +91,32 @@ export const CardBody = ({ children, className = '' }) => {
     <div className={`${styles.cardBody} ${className}`}>
       {children}
     </div>
+  );
+};
+
+/**
+ * CardContent Component
+ * 
+ * Main content area of a card.
+ */
+export const CardContent = ({ children, className = '' }) => {
+  return (
+    <div className={`${styles.cardBody} ${className}`}>
+      {children}
+    </div>
+  );
+};
+
+/**
+ * CardTitle Component
+ * 
+ * Title section of a card header.
+ */
+export const CardTitle = ({ children, className = '' }) => {
+  return (
+    <h3 className={`${styles.cardTitle} ${className}`}>
+      {children}
+    </h3>
   );
 };
 

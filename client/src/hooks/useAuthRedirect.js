@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Global authentication redirect hook
  * Handles redirecting unauthenticated users to login with backUrl parameter
  * and redirecting back after successful login
@@ -53,7 +54,7 @@ export const useAuthRedirect = (options = {}) => {
           return true;
         }
       } catch (error) {
-        console.warn('Invalid backUrl:', backUrl);
+        warn('Invalid backUrl:', backUrl);
       }
     }
     

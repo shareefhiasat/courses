@@ -1,0 +1,29 @@
+🔍 LIST response: {
+  "data": {
+    "subjects": {
+      "edges": [
+        {
+          "node": {
+            "id": "69bfac105ae6da109bf928fa",
+            "nameEn": "Test Subject 1774169104290",
+            "nameAr": "مادة اختبار 1774169104290",
+            "code": "SUBJ-1774169104290",
+            "credits": 3
+          }
+        },
+        {
+          "node": {
+            "id": "69bfac425ae6da109bf928fc",
+            "nameEn": "Updated Subject 1774169154990",
+            "nameAr": "مادة اختبار 1774169154870",
+            "code": "SUBJ-1774169154870",
+            "credits": 4
+          }
+        }
+      ]
+    }
+  }
+}
+✅ Subjects list retrieved
+📊 Total subjects: 2
+🎯 Our subject found in list: Updated Subject 1774169154990

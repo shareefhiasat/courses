@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Helper function to get localized name for chart items
  * @param {Object} item - Data item
  * @param {string} lang - Current language ('en' or 'ar')
@@ -172,9 +173,9 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
   }, [onSliceClick]);
   
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   console.log('[PieChart] Data source:', chartType, 'Raw data keys:', Object.keys(rawData || {}));
-  //   console.log('[PieChart] Available slices:', data.map(d => d.label));
+  // if (import.meta.env.MODE === 'development') {
+  //   info('[PieChart] Data source:', chartType, 'Raw data keys:', Object.keys(rawData || {}));
+  //   info('[PieChart] Available slices:', data.map(d => d.label));
   // }
 
   return (

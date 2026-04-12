@@ -2,7 +2,8 @@ import React from 'react';
 import { Card, CardHeader, CardBody, CardFooter, Button } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'UI/Card',
   component: Card,
   tags: ['autodocs'],

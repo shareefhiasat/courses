@@ -1,0 +1,130 @@
+🔍 Exploring Program schema...
+🔍 Program type: {
+  "data": {
+    "__type": {
+      "name": "Program",
+      "kind": "OBJECT",
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "nameEn",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "nameAr",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "code",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "descriptionEn",
+          "type": {
+            "name": "String",
+            "kind": "SCALAR"
+          }
+        },
+        {
+          "name": "descriptionAr",
+          "type": {
+            "name": "String",
+            "kind": "SCALAR"
+          }
+        },
+        {
+          "name": "durationYears",
+          "type": {
+            "name": "Int",
+            "kind": "SCALAR"
+          }
+        },
+        {
+          "name": "minGPA",
+          "type": {
+            "name": "Float",
+            "kind": "SCALAR"
+          }
+        },
+        {
+          "name": "totalCreditHours",
+          "type": {
+            "name": "Int",
+            "kind": "SCALAR"
+          }
+        },
+        {
+          "name": "createdAt",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "createdBy",
+          "type": {
+            "name": "User",
+            "kind": "OBJECT"
+          }
+        },
+        {
+          "name": "updatedBy",
+          "type": {
+            "name": "User",
+            "kind": "OBJECT"
+          }
+        },
+        {
+          "name": "category",
+          "type": {
+            "name": "Category",
+            "kind": "OBJECT"
+          }
+        },
+        {
+          "name": "subjects",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "classes",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "resources",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        }
+      ]
+    }
+  }
+}

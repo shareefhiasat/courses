@@ -1,0 +1,5 @@
+❌ Cannot get user token for expiration test
+🔍 Using admin token instead for expiration demonstration
+✅ Admin token expiration time verified
+⏰ Admin token valid for: 60 seconds
+🕐 Admin token expires at: 3/21/2026, 6:26:54 PM

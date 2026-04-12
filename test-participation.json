@@ -1,0 +1,11 @@
+{
+  "userId": "6",
+  "classId": "58", 
+  "subjectId": "43",
+  "programId": "21",
+  "typeId": 5,
+  "descriptionEn": "Test participation with creator display",
+  "descriptionAr": "اختبار المشاركة مع عرض المنشئ",
+  "comment": "Test comment with creator info",
+  "isActive": true
+}

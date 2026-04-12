@@ -13,7 +13,8 @@ import {
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { getVoiceRecordingLimits } from '@constants';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Get chat type from selected class string
  */
 export const getChatType = (selectedClass) => {

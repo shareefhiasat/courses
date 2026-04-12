@@ -1,708 +1,298 @@
-import { notificationGateway } from "./notificationGateway";
-import { sendEmail } from '@services/business/emailService';
-import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
-import { getEnrollment } from '@services/db/enrollmentsDbService';
-import { setEnrollment } from '@services/db/enrollmentsDbService';
-import { setStudentMarks as setStudentMarksDb } from '@services/db/enrollmentsDbService';
-import { getStudentMarks as getStudentMarksDb } from '@services/db/enrollmentsDbService';
-import { getAllClassSubjectMarks as getAllClassSubjectMarksDb } from '@services/db/enrollmentsDbService';
-import { getSubjectMarksDistribution as getSubjectMarksDistributionDb } from '@services/db/enrollmentsDbService';
-import { setSubjectMarksDistribution as setSubjectMarksDistributionDb } from '@services/db/enrollmentsDbService';
-import { ROLE_STRINGS } from '@utils/userUtils';
-
 /**
- * GPA Grading Rules
- * Based on Arabic academic documents
+ * Enrollment Marks Service - Interface Layer
+ * 
+ * PURPOSE: Public API for marks-related operations
+ * ARCHITECTURE: Frontend Components → Enrollment Marks Service → Backend API
  */
 
-// Default grading scale for regular courses
-export const DEFAULT_GRADING_SCALE = [
-  {
-    grade: "A",
-    description_ar: "ممتاز",
-    description_en: "Excellent",
-    minScore: 90,
-    maxScore: 100,
-    points: 4.0,
+import { apiService } from '../api/apiService';
+import { info, error as logError } from '../utils/logger.js';
+
+const serviceName = 'enrollmentMarksService';
+
+// Base API URL
+const API_BASE = '/api/v1/marks';
+
+// Frontend grading standards utility
+export const GRADING_STANDARDS = {
+  FIRST_ATTEMPT: {
+    name: 'First Attempt',
+    nameAr: 'المحاولة الأولى',
+    grades: [
+      { min: 97, max: 100, letter: 'A+', description: 'Excellent', descriptionAr: 'ممتاز' },
+      { min: 93, max: 96.99, letter: 'A', description: 'Excellent', descriptionAr: 'ممتاز' },
+      { min: 90, max: 92.99, letter: 'A-', description: 'Excellent', descriptionAr: 'ممتاز' },
+      { min: 87, max: 89.99, letter: 'B+', description: 'Very Good', descriptionAr: 'جيد جدا مرتفع' },
+      { min: 83, max: 86.99, letter: 'B', description: 'Very Good', descriptionAr: 'جيد جدا' },
+      { min: 80, max: 82.99, letter: 'B-', description: 'Very Good', descriptionAr: 'جيد جدا' },
+      { min: 77, max: 79.99, letter: 'C+', description: 'Good', descriptionAr: 'جيد مرتفع' },
+      { min: 73, max: 76.99, letter: 'C', description: 'Good', descriptionAr: 'جيد' },
+      { min: 70, max: 72.99, letter: 'C-', description: 'Good', descriptionAr: 'جيد' },
+      { min: 67, max: 69.99, letter: 'D+', description: 'Pass', descriptionAr: 'مقبول مرتفع' },
+      { min: 63, max: 66.99, letter: 'D', description: 'Pass', descriptionAr: 'مقبول' },
+      { min: 60, max: 62.99, letter: 'D-', description: 'Pass', descriptionAr: 'مقبول' },
+      { min: 0, max: 59.99, letter: 'F', description: 'Fail', descriptionAr: 'راسب' }
+    ]
   },
-  {
-    grade: "B+",
-    description_ar: "جيد جداً مرتفع",
-    description_en: "Very Good High",
-    minScore: 85,
-    maxScore: 89,
-    points: 3.5,
-  },
-  {
-    grade: "B",
-    description_ar: "جيد جداً",
-    description_en: "Very Good",
-    minScore: 80,
-    maxScore: 84,
-    points: 3.0,
-  },
-  {
-    grade: "C+",
-    description_ar: "جيد مرتفع",
-    description_en: "Good High",
-    minScore: 75,
-    maxScore: 79,
-    points: 2.5,
-  },
-  {
-    grade: "C",
-    description_ar: "جيد",
-    description_en: "Good",
-    minScore: 70,
-    maxScore: 74,
-    points: 2.0,
-  },
-  {
-    grade: "D+",
-    description_ar: "مقبول مرتفع",
-    description_en: "Acceptable High",
-    minScore: 65,
-    maxScore: 69,
-    points: 1.5,
-  },
-  {
-    grade: "D",
-    description_ar: "مقبول",
-    description_en: "Acceptable",
-    minScore: 60,
-    maxScore: 64,
-    points: 1.0,
-  },
-  {
-    grade: "F",
-    description_ar: "راسب",
-    description_en: "Fail",
-    minScore: 0,
-    maxScore: 59,
-    points: 0.0,
-  },
-  {
-    grade: "WF",
-    description_ar: "انسحاب إجباري",
-    description_en: "Mandatory Withdrawal",
-    minScore: null,
-    maxScore: null,
-    points: null,
-  },
-  {
-    grade: "FA",
-    description_ar:
-      "رسوب بسبب تغيبه عن تقديم الاختبار النهائي وعدم تقديم عذر مقبول للغياب",
-    description_en:
-      "Failure due to absence from final exam without acceptable excuse",
-    minScore: null,
-    maxScore: null,
-    points: null,
-  },
-  {
-    grade: "FB",
-    description_ar: "رسوب بسبب تجاوز نسبة الغياب المسموح بها (20%)",
-    description_en: "Failure due to exceeding allowed absence rate (20%)",
-    minScore: null,
-    maxScore: null,
-    points: null,
-  },
+  REPEATED_ATTEMPT: {
+    name: 'Repeated Attempt',
+    nameAr: 'محاولة متكررة',
+    grades: [
+      { min: 95, max: 100, letter: 'A+', description: 'Excellent', descriptionAr: 'ممتاز' },
+      { min: 90, max: 94.99, letter: 'A', description: 'Excellent', descriptionAr: 'ممتاز' },
+      { min: 85, max: 89.99, letter: 'B+', description: 'Very Good', descriptionAr: 'جيد جدا مرتفع' },
+      { min: 80, max: 84.99, letter: 'B', description: 'Very Good', descriptionAr: 'جيد جدا' },
+      { min: 75, max: 79.99, letter: 'C+', description: 'Good', descriptionAr: 'جيد مرتفع' },
+      { min: 70, max: 74.99, letter: 'C', description: 'Good', descriptionAr: 'جيد' },
+      { min: 65, max: 69.99, letter: 'D+', description: 'Pass', descriptionAr: 'مقبول مرتفع' },
+      { min: 60, max: 64.99, letter: 'D', description: 'Pass', descriptionAr: 'مقبول' },
+      { min: 0, max: 59.99, letter: 'F', description: 'Fail', descriptionAr: 'راسب' }
+    ]
+  }
+};
+
+// Special grades that are set manually (same for both standards)
+const MANUAL_GRADES = [
+  { letter: 'FB', description: 'Fail Due to Absence', descriptionAr: 'راسب بسبب الغياب' },
+  { letter: 'FA', description: 'Fail Due to Absence', descriptionAr: 'راسب بسبب التغيب' },
+  { letter: 'WF', description: 'Withdrawal with Grade', descriptionAr: 'انسحاب مع درجة' }
 ];
 
-// Grading scale for retake courses (no A grade, B+ starts at 85)
-export const RETAKE_GRADING_SCALE = [
-  {
-    grade: "B+",
-    description_ar: "جيد جداً مرتفع",
-    description_en: "Very Good High",
-    minScore: 85,
-    maxScore: 100,
-    points: 3.5,
-  },
-  {
-    grade: "B",
-    description_ar: "جيد جداً",
-    description_en: "Very Good",
-    minScore: 80,
-    maxScore: 84,
-    points: 3.0,
-  },
-  {
-    grade: "C+",
-    description_ar: "جيد مرتفع",
-    description_en: "Good High",
-    minScore: 75,
-    maxScore: 79,
-    points: 2.5,
-  },
-  {
-    grade: "C",
-    description_ar: "جيد",
-    description_en: "Good",
-    minScore: 70,
-    maxScore: 74,
-    points: 2.0,
-  },
-  {
-    grade: "D+",
-    description_ar: "مقبول مرتفع",
-    description_en: "Acceptable High",
-    minScore: 65,
-    maxScore: 69,
-    points: 1.5,
-  },
-  {
-    grade: "D",
-    description_ar: "مقبول",
-    description_en: "Acceptable",
-    minScore: 60,
-    maxScore: 64,
-    points: 1.0,
-  },
-  {
-    grade: "F",
-    description_ar: "راسب",
-    description_en: "Fail",
-    minScore: 0,
-    maxScore: 59,
-    points: 0.0,
-  },
-  {
-    grade: "WF",
-    description_ar: "انسحاب إجباري",
-    description_en: "Mandatory Withdrawal",
-    minScore: null,
-    maxScore: null,
-    points: null,
-  },
-  {
-    grade: "FA",
-    description_ar:
-      "رسوب بسبب تغيبه عن تقديم الاختبار النهائي وعدم تقديم عذر مقبول للغياب",
-    description_en:
-      "Failure due to absence from final exam without acceptable excuse",
-    minScore: null,
-    maxScore: null,
-    points: null,
-  },
-  {
-    grade: "FB",
-    description_ar: "رسوب بسبب تجاوز نسبة الغياب المسموح بها (20%)",
-    description_en: "Failure due to exceeding allowed absence rate (20%)",
-    minScore: null,
-    maxScore: null,
-    points: null,
-  },
-];
+// Frontend letter grade calculation utility
+export const calculateLetterGrade = (totalMarks, isRepeated = false) => {
+  // Handle manual grades first - these should not be calculated
+  if (typeof totalMarks === 'string' && MANUAL_GRADES.some(g => g.letter === totalMarks)) {
+    const manualGrade = MANUAL_GRADES.find(g => g.letter === totalMarks);
+    return {
+      letter: manualGrade.letter,
+      range: manualGrade.letter,
+      description: manualGrade.description,
+      descriptionAr: manualGrade.descriptionAr,
+      isManual: true,
+      standard: isRepeated ? GRADING_STANDARDS.REPEATED_ATTEMPT.name : GRADING_STANDARDS.FIRST_ATTEMPT.name
+    };
+  }
 
-/**
- * Calculate GPA from score
- */
-export const calculateGPA = (score, isRetake = false) => {
-  if (score === null || score === undefined) return null;
+  // Convert to number if it's a string
+  const marks = parseFloat(totalMarks);
+  if (isNaN(marks)) {
+    return {
+      letter: 'F',
+      range: '0-59.99',
+      description: 'Fail',
+      descriptionAr: 'راسب',
+      isManual: false,
+      standard: isRepeated ? GRADING_STANDARDS.REPEATED_ATTEMPT.name : GRADING_STANDARDS.FIRST_ATTEMPT.name
+    };
+  }
 
-  const scale = isRetake ? RETAKE_GRADING_SCALE : DEFAULT_GRADING_SCALE;
-
-  for (const rule of scale) {
-    if (rule.minScore !== null && rule.maxScore !== null) {
-      if (score >= rule.minScore && score <= rule.maxScore) {
-        return {
-          grade: rule.grade,
-          points: rule.points,
-          description_ar: rule.description_ar,
-          description_en: rule.description_en,
-        };
-      }
+  // Select the appropriate grading standard
+  const standard = isRepeated ? GRADING_STANDARDS.REPEATED_ATTEMPT : GRADING_STANDARDS.FIRST_ATTEMPT;
+  
+  // Find the appropriate grade
+  for (const grade of standard.grades) {
+    if (marks >= grade.min && marks <= grade.max) {
+      return {
+        letter: grade.letter,
+        range: `${grade.min}-${grade.max}`,
+        description: grade.description,
+        descriptionAr: grade.descriptionAr,
+        isManual: false,
+        standard: standard.name
+      };
     }
   }
 
-  // Default to F if no match
+  // Default to F if no range matches
   return {
-    grade: "F",
-    points: 0.0,
-    description_ar: "راسب",
-    description_en: "Fail",
+    letter: 'F',
+    range: '0-59.99',
+    description: 'Fail',
+    descriptionAr: 'راسب',
+    isManual: false,
+    standard: standard.name
   };
 };
 
 /**
- * Get grade description
- */
-export const getGradeDescription = (grade, lang = "en") => {
-  const scale = [...DEFAULT_GRADING_SCALE, ...RETAKE_GRADING_SCALE];
-  const rule = scale.find((r) => r.grade === grade);
-  if (rule) {
-    return lang === "ar" ? rule.descriptionAr : rule.descriptionEn;
-  }
-  return grade;
-};
-
-/**
- * Program GPA Rules
- * Each program can have custom grading rules
- */
-export const getProgramGradingRules = async (programId) => {
-  try {
-    const docRef = doc(db, "programGradingRules", programId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
-    }
-    // Return default if not found
-    return {
-      success: true,
-      data: {
-        programId,
-        gradingScale: DEFAULT_GRADING_SCALE,
-        retakeGradingScale: RETAKE_GRADING_SCALE,
-        useDefault: true,
-      },
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const setProgramGradingRules = async (programId, rules) => {
-  try {
-    const docRef = doc(db, "programGradingRules", programId);
-    await setDoc(
-      docRef,
-      {
-        ...rules,
-        updatedAt: Timestamp.now(),
-      },
-      { merge: true }
-    );
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Get all marks for a class and subject - Business Logic Wrapper
- * @param {string} subjectId - Subject ID
- * @param {string} classId - Class ID
- * @returns {Promise<{success: boolean, data: Object, error?: string}>}
- */
-export const getAllClassSubjectMarks = async (subjectId, classId) => {
-  try {
-    const result = await getAllClassSubjectMarksDb(subjectId, classId);
-    return result;
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Subject Marks Distribution - Business Logic Wrapper
- * Define how marks are distributed across different components
+ * Get marks distribution configuration for a subject
+ * @param {number} subjectId - The subject ID
+ * @returns {Promise<Object>} Marks distribution configuration
  */
 export const getSubjectMarksDistribution = async (subjectId) => {
+  info(`${serviceName}:getSubjectMarksDistribution`, { subjectId });
+  
   try {
-    const result = await getSubjectMarksDistributionDb(subjectId);
-    if (result.success) {
-      return result;
-    }
-    // Return default distribution
+    const response = await apiService.get(`${API_BASE}/distribution/${subjectId}`);
+    return response;
+  } catch (err) {
+    logError(`${serviceName}:getSubjectMarksDistribution:error`, { error: err.message, subjectId });
     return {
-      success: true,
-      data: {
-        subjectId,
-        midTermExam: 20,
-        finalExam: 40,
-        homework: 5,
-        labsProjectResearch: 10,
-        quizzes: 5,
-        participation: 10,
-        attendance: 10,
-        total: 100,
-      },
+      success: false,
+      error: err.message || 'Failed to get marks distribution'
     };
-  } catch (error) {
-    return { success: false, error: error.message };
   }
 };
 
+/**
+ * Set marks distribution configuration for a subject
+ * @param {number} subjectId - The subject ID
+ * @param {Object} distribution - The marks distribution configuration
+ * @returns {Promise<Object>} Result object
+ */
 export const setSubjectMarksDistribution = async (subjectId, distribution) => {
+  info(`${serviceName}:setSubjectMarksDistribution`, { subjectId, distribution });
+  
   try {
-    // Validate total is 100
-    const total = Object.values(distribution).reduce((sum, val) => {
-      if (typeof val === "number") return sum + val;
-      return sum;
-    }, 0);
-
-    if (Math.abs(total - 100) > 0.01) {
-      return { success: false, error: "Marks distribution must total 100%" };
-    }
-
-    const result = await setSubjectMarksDistributionDb(subjectId, {
-      ...distribution,
-      total: 100,
-    });
-    return result;
-  } catch (error) {
-    return { success: false, error: error.message };
+    const response = await apiService.put(`${API_BASE}/distribution/${subjectId}`, distribution);
+    return response;
+  } catch (err) {
+    logError(`${serviceName}:setSubjectMarksDistribution:error`, { error: err.message, subjectId });
+    return {
+      success: false,
+      error: err.message || 'Failed to set marks distribution'
+    };
   }
 };
 
 /**
- * Student Marks
- * Store marks for each student in each subject
- * Option 2: Marks stored as subcollection of enrollments
- * Structure: enrollments/{enrollmentId}/marks/{markId}
+ * Get student marks for a subject
+ * @param {number} subjectId - The subject ID
+ * @param {number|null} classId - The class ID (optional)
+ * @returns {Promise<Object>} Student marks data
  */
-export const getStudentMarks = async (
-  studentId,
-  subjectId = null,
-  classId = null,
-  semester = null,
-  academicYear = null
-) => {
+export const getStudentMarks = async (subjectId, classId = null) => {
+  info(`${serviceName}:getStudentMarks`, { subjectId, classId });
+  
   try {
-    // If we have studentId, subjectId, and classId, get marks from marks collection
-    if (studentId && subjectId && classId) {
-      const marksResult = await getStudentMarksDb(studentId, subjectId, classId);
-      if (marksResult.success) {
-        // Transform to array format for backward compatibility
-        return { 
-          success: true, 
-          data: [{
-            docId: marksResult.data.docId,
-            studentId: studentId,
-            subjectId: subjectId,
-            semester: marksResult.data.semester || null,
-            academicYear: marksResult.data.academicYear || null,
-            marks: marksResult.data.marks || {},
-            totalScore: marksResult.data.totalScore || 0,
-            grade: marksResult.data.grade || "",
-            points: marksResult.data.points || 0,
-            isRetake: marksResult.data.isRetake || false,
-            instructorId: marksResult.data.instructorId || null,
-            createdAt: marksResult.data.createdAt || null,
-            updatedAt: marksResult.data.updatedAt || null,
-          }]
-        };
-      }
-    }
-
-    // If we have studentId and classId, get marks from enrollment document
-    if (studentId && classId) {
-      const enrollmentId = `${studentId}_${classId}`;
-      const enrollmentResult = await getEnrollment(enrollmentId);
-
-      if (!enrollmentResult.success) {
-        return { success: true, data: [] };
-      }
-
-      const enrollmentData = enrollmentResult.data;
-      const marksData = enrollmentData.marks || {};
-
-      // Transform marks object to array format for backward compatibility
-      const items = Object.entries(marksData)
-        .map(([subjId, markData]) => {
-          // Filter by subjectId if provided
-          if (subjectId && subjId !== subjectId) {
-            return null;
-          }
-          // Filter by semester if provided
-          if (semester && markData.semester !== semester) {
-            return null;
-          }
-          // Filter by academicYear if provided
-          if (academicYear && markData.academicYear !== academicYear) {
-            return null;
-          }
-
-          return {
-            docId: enrollmentId,
-            studentId: studentId,
-            subjectId: markData.subjectId || subjId,
-            semester: markData.semester || null,
-            academicYear: markData.academicYear || null,
-            marks: markData.marks || {},
-            totalScore: markData.totalScore || 0,
-            grade: markData.grade || "",
-            points: markData.points || 0,
-            isRetake: markData.isRetake || false,
-            instructorId: markData.instructorId || null,
-            createdAt: markData.createdAt || null,
-            updatedAt: markData.updatedAt || null,
-          };
-        })
-        .filter(Boolean);
-
-      // Sort by updatedAt descending
-      items.sort((a, b) => {
-        const aTime = a.updatedAt?.toMillis ? a.updatedAt.toMillis() : 0;
-        const bTime = b.updatedAt?.toMillis ? b.updatedAt.toMillis() : 0;
-        return bTime - aTime;
-      });
-
-      return { success: true, data: items };
-    }
-
-    return { success: false, error: "Insufficient parameters provided" };
-  } catch (error) {
-    return { success: false, error: error.message };
+    const params = classId ? { classId } : {};
+    const response = await apiService.get(`${API_BASE}/students/${subjectId}`, { params });
+    return response;
+  } catch (err) {
+    logError(`${serviceName}:getStudentMarks:error`, { error: err.message, subjectId });
+    return {
+      success: false,
+      error: err.message || 'Failed to get student marks'
+    };
   }
 };
 
-export const saveStudentMarks = async (marksData) => {
+/**
+ * Update student marks
+ * @param {number} userId - The user ID
+ * @param {number} subjectId - The subject ID
+ * @param {number} classId - The class ID
+ * @param {Object} marks - The marks data
+ * @returns {Promise<Object>} Result object
+ */
+export const updateStudentMarks = async (userId, subjectId, classId, marks) => {
+  info(`${serviceName}:updateStudentMarks`, { userId, subjectId, classId, marks });
+  
   try {
-    const {
-      studentId,
-      subjectId,
-      classId,
-      semester,
-      academicYear,
-      marks,
-      instructorId,
-      sendEmailNotification = false,
-      sendInAppNotification = false,
-    } = marksData;
+    const response = await apiService.put(`${API_BASE}/students/${userId}/${subjectId}/${classId}`, marks);
+    return response;
+  } catch (err) {
+    logError(`${serviceName}:updateStudentMarks:error`, { error: err.message, userId, subjectId, classId });
+    return {
+      success: false,
+      error: err.message || 'Failed to update student marks'
+    };
+  }
+};
 
-    // Validate required fields
-    if (!studentId) {
-      return { success: false, error: "studentId is required" };
-    }
+/**
+ * Save student marks (alias for updateStudentMarks)
+ * @param {number} subjectId - The subject ID
+ * @param {Object} marksData - The marks data
+ * @returns {Promise<Object>} Result object
+ */
+export const saveStudentMarks = async (subjectId, marksData) => {
+  info(`${serviceName}:saveStudentMarks`, { subjectId, marksData });
+  
+  try {
     if (!subjectId) {
-      return { success: false, error: "subjectId is required" };
-    }
-    if (!classId) {
-      return { success: false, error: "classId is required" };
-    }
-
-    // Calculate total score based on distribution
-    const distResult = await getSubjectMarksDistributionDb(subjectId);
-    if (!distResult.success) {
-      return { success: false, error: "Failed to get marks distribution" };
-    }
-
-    const distribution = distResult.data.distribution || distResult.data;
-    const dist = distribution.distribution || distribution;
-    const totalScore =
-      (marks.midTermExam || 0) *
-        ((dist.midTermExam || distribution.midTermExam || 0) / 100) +
-      (marks.finalExam || 0) *
-        ((dist.finalExam || distribution.finalExam || 0) / 100) +
-      (marks.homework || 0) *
-        ((dist.homework || distribution.homework || 0) / 100) +
-      (marks.labsProjectResearch || 0) *
-        ((dist.labsProjectResearch || distribution.labsProjectResearch || 0) /
-          100) +
-      (marks.quizzes || 0) *
-        ((dist.quizzes || distribution.quizzes || 0) / 100) +
-      (marks.participation || 0) *
-        ((dist.participation || distribution.participation || 0) / 100) +
-      (marks.attendance || 0) *
-        ((dist.attendance || distribution.attendance || 0) / 100);
-
-    // Get or create enrollment
-    const enrollmentId = `${studentId}_${classId}`;
-    const enrollmentResult = await getEnrollment(enrollmentId);
-    
-    let enrollmentData = {};
-    let isUpdate = false;
-
-    if (enrollmentResult.success) {
-      enrollmentData = enrollmentResult.data;
-      isUpdate = true;
-    } else {
-      // Create enrollment if it doesn't exist
-      enrollmentData = {
-        userId: studentId,
-        classId: classId,
-        role: ROLE_STRINGS.STUDENT,
+      return {
+        success: false,
+        error: 'Subject ID is required'
       };
-      await setEnrollment(enrollmentId, enrollmentData);
     }
 
-    // Check if enrollment is retake
-    const isRetake = enrollmentData.isRetake || false;
-
-    // Calculate GPA
-    const gpaResult = calculateGPA(totalScore, isRetake);
-
-    // Prepare marks object to store in enrollment document
-    const marksObject = {
-      [subjectId]: {
-        subjectId,
-        semester: semester || null,
-        academicYear: academicYear || null,
-        marks: {
-          midTermExam: marks.midTermExam || 0,
-          finalExam: marks.finalExam || 0,
-          homework: marks.homework || 0,
-          labsProjectResearch: marks.labsProjectResearch || 0,
-          quizzes: marks.quizzes || 0,
-          participation: marks.participation || 0,
-          attendance: marks.attendance || 0,
-        },
-        totalScore: Math.round(totalScore * 100) / 100,
-        grade: gpaResult.grade,
-        points: gpaResult.points,
-        isRetake,
-        instructorId: instructorId || null,
-        createdAt: isUpdate
-          ? enrollmentData.marks?.[subjectId]?.createdAt || null
-          : null,
-      },
+    const response = await apiService.post(`${API_BASE}/students/${subjectId}`, marksData);
+    return response;
+  } catch (err) {
+    logError(`${serviceName}:saveStudentMarks:error`, { error: err.message, subjectId });
+    return {
+      success: false,
+      error: err.message || 'Failed to save student marks'
     };
-
-    // Update enrollment document with marks
-    await setEnrollment(enrollmentId, {
-      ...enrollmentData,
-      marks: {
-        ...(enrollmentData.marks || {}),
-        ...marksObject,
-      },
-    });
-
-    // Also save marks to separate marks collection for easier lookup
-    const marksRecordData = {
-      studentId,
-      subjectId,
-      classId,
-      semester: semester || null,
-      academicYear: academicYear || null,
-      marks: marksObject[subjectId].marks,
-      totalScore: marksObject[subjectId].totalScore,
-      grade: marksObject[subjectId].grade,
-      points: marksObject[subjectId].points,
-      isRetake,
-      instructorId: instructorId || null,
-      programId: enrollmentData.programId || null,
-      role: enrollmentData.role || ROLE_STRINGS.STUDENT,
-    };
-
-    await setStudentMarksDb(studentId, subjectId, classId, marksRecordData);
-
-    // Prepare marks record for notifications
-    const marksRecord = {
-      id: enrollmentId,
-      studentId,
-      subjectId,
-      classId,
-      semester: semester || null,
-      academicYear: academicYear || null,
-      marks: marksObject[subjectId].marks,
-      totalScore: marksObject[subjectId].totalScore,
-      grade: marksObject[subjectId].grade,
-      points: marksObject[subjectId].points,
-      isRetake,
-      instructorId: instructorId || null,
-    };
-
-    // Send notifications if requested
-    if (sendInAppNotification || sendEmailNotification) {
-      await sendMarksNotifications({
-        studentId,
-        subjectId,
-        marksRecord,
-        isUpdate,
-        sendEmail: sendEmailNotification,
-        sendInApp: sendInAppNotification,
-      });
-    }
-
-    return { success: true, id: enrollmentId, isUpdate };
-  } catch (error) {
-    console.error("Error saving student marks:", error);
-    return { success: false, error: error.message };
   }
 };
 
 /**
- * Send notifications for marks entry
+ * Get all student marks report with complete information
+ * @param {Object} filters - Optional filters (programId, subjectId, classId, year, term, isRepeated)
+ * @returns {Promise<Object>} - Student marks report data
  */
-const sendMarksNotifications = async ({
-  studentId,
-  subjectId,
-  marksRecord,
-  isUpdate,
-  sendEmail,
-  sendInApp,
-}) => {
+export const getAllStudentMarksReport = async (filters = {}) => {
   try {
-    // Get student and subject data
-    const [studentDoc, subjectDoc] = await Promise.all([
-      getDoc(doc(db, "users", studentId)),
-      getDoc(doc(db, "subjects", subjectId)),
-    ]);
-
-    if (!studentDoc.exists() || !subjectDoc.exists()) {
-      console.warn("Student or subject not found for notifications");
-      return;
+    const params = new URLSearchParams();
+    
+    if (filters.programId) params.append('programId', filters.programId);
+    if (filters.subjectId) params.append('subjectId', filters.subjectId);
+    if (filters.classId) params.append('classId', filters.classId);
+    if (filters.year) params.append('year', filters.year);
+    if (filters.term) params.append('term', filters.term);
+    if (filters.isRepeated !== undefined && filters.isRepeated !== '') {
+      params.append('isRepeated', filters.isRepeated);
     }
-
-    const student = studentDoc.data();
-    const subject = subjectDoc.data();
-
-    const notificationTitle = isUpdate ? "Marks Updated" : "Marks Entered";
-    const notificationMessage = `Your marks for ${
-      subject.name_en || subject.code
-    } have been ${isUpdate ? "updated" : "entered"}. Grade: ${
-      marksRecord.grade
-    } (${marksRecord.totalScore.toFixed(2)}%)`;
-
-    // In-app notification via gateway
-    if (sendInApp) {
-      await notificationGateway.send(NOTIFICATION_TRIGGERS.ACTIVITY_GRADED, {
-        userId: studentId,
-        role: 'student',
-        title: notificationTitle,
-        message: notificationMessage,
-        variables: {
-          activityTitle: subject.name_en || subject.code,
-          grade: marksRecord.grade,
-          totalScore: marksRecord.totalScore.toFixed(2)
-        },
-        metadata: {
-          subjectId,
-          subjectCode: subject.code,
-          subjectName: subject.name_en,
-          totalScore: marksRecord.totalScore,
-          grade: marksRecord.grade,
-          points: marksRecord.points,
-          isUpdate,
-        },
-        data: { subjectId, markId: marksRecord.id },
-      });
-    }
-
-    // Email notification
-    if (sendEmail && student.email) {
-      await sendEmailFunc({
-        to: student.email,
-        template: isUpdate ? "marksUpdated" : "marksEntered",
-        type: "marks",
-        data: {
-          studentName: student.displayName || student.email,
-          subjectCode: subject.code,
-          subjectName: subject.name_en || subject.name_ar,
-          totalScore: marksRecord.totalScore.toFixed(2),
-          grade: marksRecord.grade,
-          points: marksRecord.points,
-          midTerm: marksRecord.marks.midTermExam,
-          final: marksRecord.marks.finalExam,
-          homework: marksRecord.marks.homework,
-          labs: marksRecord.marks.labsProjectResearch,
-          quizzes: marksRecord.marks.quizzes,
-          participation: marksRecord.marks.participation,
-          attendance: marksRecord.marks.attendance,
-          isRetake: marksRecord.isRetake,
-          isUpdate,
-        },
-        metadata: {
-          subjectId,
-          studentId,
-          markId: marksRecord.id,
-        },
-      });
-    }
+    
+    const response = await apiService.get(`/api/v1/marks/report?${params.toString()}`);
+    
+    return {
+      success: response.success,
+      data: response.data || [],
+      total: response.total || 0
+    };
   } catch (error) {
-    console.error("Error sending marks notifications:", error);
+    console.error('[enrollmentMarksService] Error getting student marks report:', error);
+    return {
+      success: false,
+      data: [],
+      total: 0,
+      error: error.message || 'Failed to get student marks report'
+    };
   }
+};
+
+// Get marks history for a specific student
+export const getStudentMarksHistory = async (userId, subjectId, classId) => {
+  try {
+    info(serviceName, 'getStudentMarksHistory', { userId, subjectId, classId });
+    
+    const response = await apiService.get(`${API_BASE}/history/${userId}/${subjectId}/${classId}`);
+    
+    return {
+      success: response.success,
+      data: response.data || [],
+      total: response.total || 0
+    };
+  } catch (error) {
+    console.error('[enrollmentMarksService] Error getting student marks history:', error);
+    return {
+      success: false,
+      data: [],
+      total: 0,
+      error: error.message || 'Failed to get student marks history'
+    };
+  }
+};
+
+export default {
+  getSubjectMarksDistribution,
+  setSubjectMarksDistribution,
+  getStudentMarks,
+  updateStudentMarks,
+  saveStudentMarks,
+  getAllStudentMarksReport,
+  getStudentMarksHistory
 };

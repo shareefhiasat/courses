@@ -6,7 +6,8 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { Button } from '@ui';
 import styles from './DateRangePicker.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Shadcn-style DateRangePicker Component
  * Clean, beautiful date range picker with proper calendar grid
  */

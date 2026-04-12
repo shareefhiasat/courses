@@ -52,16 +52,21 @@
 
 .distributionGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 0.125rem;
+  padding: 0;
 }
 
 .distributionGrid > div {
-  padding: 0.75rem 1rem;
+  padding: 0;
   background: var(--background);
-  border-radius: 8px;
-  font-weight: 600;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.75rem;
   color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .content {
@@ -119,6 +124,62 @@
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border-light);
+}
+
+/* Grade color styles */
+:global(.grade-excellent) {
+  background-color: #10b981;
+  color: white;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+:global(.grade-good) {
+  background-color: #3b82f6;
+  color: white;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+:global(.grade-average) {
+  background-color: #f59e0b;
+  color: white;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+:global(.grade-pass) {
+  background-color: #8b5cf6;
+  color: white;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+:global(.grade-fail) {
+  background-color: #ef4444;
+  color: white;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+:global(.grade-manual) {
+  background-color: #6b7280;
+  color: white;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+  font-style: italic;
 }
 
 @media (max-width: 768px) {

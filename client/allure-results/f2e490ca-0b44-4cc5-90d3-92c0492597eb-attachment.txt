@@ -1,0 +1,3 @@
+🔍 Deleting activity: 1774176175633
+🔍 Delete activity response status: 204
+✅ Activity deleted successfully

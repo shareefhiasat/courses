@@ -2,12 +2,15 @@ import React from 'react';
 import styles from './Button.module.css';
 import { getComponentStyles, generateCSSVariables } from '@constants/uiTheme';
 
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 /**
  * Button Component
  * 
  * A reusable button component with multiple variants, sizes, and states.
  * 
  * @param {Object} props
+ *
  * @param {React.ReactNode} props.children - Button content
  * @param {'primary'|'secondary'|'outline'|'ghost'|'danger'} props.variant - Button style variant
  * @param {'small'|'medium'|'large'} props.size - Button size

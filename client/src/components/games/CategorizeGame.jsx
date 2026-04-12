@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 
-export default function CategorizeGame({ data, settings, onComplete }) {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default function CategorizeGame({ data, settings, onComplete }) {
   const { t, lang } = useLang();
   // data structure: { categories: [{name: 'Yes', items: [...]}, {name: 'No', items: [...]}, {name: 'Maybe', items: [...]}] }
   const [items, setItems] = useState([]);

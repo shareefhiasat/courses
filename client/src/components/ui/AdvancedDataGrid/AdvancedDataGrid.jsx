@@ -9,7 +9,8 @@ import { getColoredIcon, getThemedIcon } from '@constants/iconTypes';
 import { useTheme } from '@contexts/ThemeContext';
 import { SimpleLoading } from '@ui';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * AdvancedDataGrid (MUI DataGrid wrapper)
  * - Sorting, filtering, column visibility, export, quick filter
  * - Row selection, pagination, column reorder/resize
@@ -112,7 +113,9 @@ const AdvancedDataGrid = ({
         wrapped.valueGetter = (params) => {
           // Handle case where MUI passes primitive value directly
           if (params && typeof params !== 'object') {
-            return col.valueGetter({ row: {}, value: params, field: col.field });
+            // When MUI passes a primitive value, we need to find the row that contains this value
+            const foundRow = rowsRef.current.find(r => r[col.field] === params);
+            return col.valueGetter({ row: foundRow || {}, value: params, field: col.field });
           }
           return col.valueGetter(normalizeParams(params, col.field));
         };
@@ -163,7 +166,7 @@ const AdvancedDataGrid = ({
   // English locale text for DataGrid
   const englishLocale = {
     // Empty state
-    noRowsLabel: 'No enrollments',
+    noRowsLabel: 'No Data',
     noResultsOverlayLabel: 'No results found',
     // Toolbar
     toolbarColumns: 'Columns',

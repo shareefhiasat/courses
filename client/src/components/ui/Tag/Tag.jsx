@@ -2,7 +2,8 @@ import React from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Tag.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Tag/Chip Component
  * 
  * Compact elements for labels, categories, or filters.

@@ -3,7 +3,8 @@ import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './SearchBar.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * SearchBar Component
  * 
  * A search input with clear button.

@@ -1,6 +1,7 @@
 import { getThemedIcon } from '@constants/iconTypes';
 
-// Email Type Configuration
+
+import { info, error, warn, debug } from '@services/utils/logger.js';// Email Type Configuration
 export const EMAIL_TYPES = {
   NEWSLETTER: 'newsletter',
   ANNOUNCEMENT: 'announcement',

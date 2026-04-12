@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { Select, YearSelect, FilterSelect } from '@ui';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Reusable hierarchy filters component for Program/Subject/Class/Student dropdowns
  * Used in HomePage, StudentDashboard, and ReviewResultsPage
  */

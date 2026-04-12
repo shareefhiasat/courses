@@ -5,7 +5,8 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import { 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import { 
   LOCAL_STORAGE_KEYS, 
   SIDEBAR_CONFIG,
   CHAT_TYPES

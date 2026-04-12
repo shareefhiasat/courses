@@ -7,7 +7,8 @@ import { NotificationDrawer } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 // import useNotifications from '@hooks/useNotifications';
 
-const NotificationBell = () => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const NotificationBell = () => {
   const { user } = useAuth();
   const { t } = useLang();
   const { theme } = useTheme();

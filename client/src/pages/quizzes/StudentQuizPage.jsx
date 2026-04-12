@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getQuiz, submitQuiz } from '@services/business/quizService';
-import { addActivityLog } from '@services/business/activityService';
+import { addActivityLog } from '@services/business/activitiesService';
 import { ActivityLogger } from '@services/other/activityLogger';
 import { updateProgressAfterQuiz } from '@services/business/studentProgressService';
 import { useTimeTracking } from '@hooks/useTimeTracking';
@@ -143,14 +143,14 @@ export default function StudentQuizPage() {
         localStorage.setItem(progressKey, JSON.stringify(progress));
         setLastSaved(new Date());
         setIsSaving(false);
-        logger.debug('[Auto-save] Progress saved:', { 
+        debug('[Auto-save] Progress saved:', { 
           quizId, 
           questionIndex: currentQuestionIndex, 
           answersCount: Object.keys(answers).length,
           timestamp: new Date().toISOString()
         });
       } catch (err) {
-        logger.error('[Auto-save] Failed to save progress:', err);
+        error('[Auto-save] Failed to save progress:', err);
         setIsSaving(false);
       }
     };
@@ -194,14 +194,14 @@ export default function StudentQuizPage() {
         if (!started && !showResults) {
           setShowResumeModal(true);
         }
-        logger.debug('[Auto-save] Found saved progress:', {
+        debug('[Auto-save] Found saved progress:', {
           questionIndex: progress.currentQuestionIndex,
           answersCount: Object.keys(progress.answers || {}).length,
           savedAt: progress.savedAt
         });
       }
     } catch (err) {
-      logger.error('Error checking saved progress:', err);
+      error('Error checking saved progress:', err);
     }
   };
 
@@ -220,7 +220,7 @@ export default function StudentQuizPage() {
           try {
             await ActivityLogger.quizViewed(quizId, getQuizText(result.data, 'title') || t('student_quiz_untitled_quiz'));
           } catch (e) { 
-            logger.warn('Failed to log quiz view:', e); 
+            warn('Failed to log quiz view:', e); 
           }
         }
       } else {
@@ -228,7 +228,7 @@ export default function StudentQuizPage() {
       }
     } catch (err) {
       setError('Failed to load quiz');
-      logger.error('Error loading quiz:', err);
+      error('Error loading quiz:', err);
     } finally {
       setLoading(false);
     }
@@ -239,7 +239,7 @@ export default function StudentQuizPage() {
     try {
       await ActivityLogger.quizStarted(quizId, quiz?.title || 'Untitled Quiz');
     } catch (logError) {
-      logger.warn('Failed to log quiz started activity:', logError);
+      warn('Failed to log quiz started activity:', logError);
     }
     
     setStarted(true);
@@ -366,12 +366,12 @@ export default function StudentQuizPage() {
       try {
         await ActivityLogger.quizSaved(quizId, quiz?.title || 'Untitled Quiz');
       } catch (logError) {
-        logger.warn('Failed to log quiz saved activity:', logError);
+        warn('Failed to log quiz saved activity:', logError);
       }
       
       toast?.showSuccess?.(t('student_quiz_progress_saved'));
     } catch (err) {
-      logger.error('Error saving progress:', err);
+      error('Error saving progress:', err);
       toast?.showError?.(t('student_quiz_failed_to_save_progress'));
     }
   };
@@ -477,9 +477,9 @@ export default function StudentQuizPage() {
           };
           localStorage.setItem(progressKey, JSON.stringify(progress));
           setLastSaved(new Date());
-          logger.log('[Auto-save] Saved on navigation:', { from: currentQuestionIndex, to: targetIndex });
+          info('[Auto-save] Saved on navigation:', { from: currentQuestionIndex, to: targetIndex });
         } catch (err) {
-          logger.error('[Auto-save] Failed to save on navigation:', err);
+          error('[Auto-save] Failed to save on navigation:', err);
         }
       }
     }
@@ -602,10 +602,10 @@ export default function StudentQuizPage() {
         classId: quiz.classId || null
       };
 
-      logger.log('[Submit] Submitting quiz:', { quizId, userId: user?.uid, answersCount: Object.keys(detailedAnswers).length, score });
+      info('[Submit] Submitting quiz:', { quizId, userId: user?.uid, answersCount: Object.keys(detailedAnswers).length, score });
       toast?.showInfo?.(t('student_quiz_submitting'));
       const result = await submitQuiz(submission);
-      logger.log('[Submit] Result:', result);
+      info('[Submit] Result:', result);
       
       if (result.success) {
         // Show retake feedback if applicable

@@ -11,7 +11,7 @@ import { getStudentMarks } from '../services/business/enrollmentMarksService';
 import { getActivitiesByClasses } from '../services/business/activitiesService';
 import { getSubmissionsByUser } from '../services/business/submissionsService';
 import { getQuizResultsByUser } from '../services/business/quizResultsService';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const useDashboardData = (selectedStudentId = null) => {
   const { user } = useAuth();
@@ -43,7 +43,7 @@ const useDashboardData = (selectedStudentId = null) => {
 
     setLoading(true);
     try {
-      logger.info('Loading dashboard data', { userId });
+      info('Loading dashboard data', { userId });
 
       const [
         enrollmentsRes,
@@ -82,7 +82,7 @@ const useDashboardData = (selectedStudentId = null) => {
           const activitiesRes = await getActivitiesByClasses(classIds);
           activities = activitiesRes?.data || [];
         } catch (error) {
-          logger.error('Failed to load activities', error);
+          error('Failed to load activities', error);
         }
       }
 
@@ -111,13 +111,13 @@ const useDashboardData = (selectedStudentId = null) => {
         ...timelineData
       });
 
-      logger.log('Dashboard data loaded successfully', { 
+      info('Dashboard data loaded successfully', { 
         enrollmentsCount: enrollments.length,
         semestersCount: timelineData.semesters.length 
       });
 
     } catch (error) {
-      logger.error('Failed to load dashboard data', error);
+      error('Failed to load dashboard data', error);
       toast?.showError?.(t('failed_to_load_dashboard') || 'Failed to load dashboard');
     } finally {
       setLoading(false);

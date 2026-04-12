@@ -5,7 +5,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import PortalTooltip from '@ui/PortalTooltip';
 
 export const HistoryEntry = ({ 
@@ -23,36 +23,24 @@ export const HistoryEntry = ({
 }) => {
   const isMobile = useIsMobile();
 
-  // Handle invalid times
+  // Handle invalid times - always display in Qatar timezone (UTC+3)
   const getTimeDisplay = () => {
     try {
-      if (log.time?.toDate) {
-        const date = log.time.toDate();
-        
-        if (isNaN(date.getTime())) {
-          logger.log('🔧 HistoryEntry - invalid Firestore timestamp:', { time: log.time, logId: log.id });
-          return '--:--';
-        }
-        const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-        return timeStr;
-      } else if (log.time) {
-        const date = new Date(log.time);
-        
-        if (isNaN(date.getTime())) {
-          logger.log('🔧 HistoryEntry - invalid date string:', { time: log.time, logId: log.id });
-          return '--:--';
-        }
-        const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-        return timeStr;
-      }
-      return '--:--';
-    } catch (error) {
+      const raw = log.time?.toDate ? log.time.toDate() : log.time ? new Date(log.time) : null;
+      if (!raw || isNaN(raw.getTime())) return '--:--';
+      return new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Qatar'
+      }).format(raw);
+    } catch (e) {
       return '--:--';
     }
   };
 
   const timeDisplay = getTimeDisplay();
-  const isStandupEntry = type === RECORD_TYPES.ATTENDANCE && log.status?.startsWith('standup_');
+  const isStandupEntry = type === RECORD_TYPES.ATTENDANCE && (typeof log.status === 'string' && log.status?.startsWith('standup_'));
 
     return (
     <div style={{ 

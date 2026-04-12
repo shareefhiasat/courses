@@ -5,7 +5,8 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { Input } from '@ui';
 import PortalTooltip from '@ui/PortalTooltip';
 
-const CollapsibleSideWindow = ({ 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const CollapsibleSideWindow = ({ 
   isOpen, 
   onClose, 
   title = 'Student Details',

@@ -1,16 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { createSession, listOpenSessions, listenAttendanceSession, closeAttendanceSession } from '@services/business/attendanceService';
+import {
+  getAttendanceConfigDoc,
+  saveAttendanceConfigDoc,
+  closeAttendanceSessionLocal,
+  updateAttendanceSessionLateMode,
+  listenAttendanceMarksCount,
+} from '@services/business/attendanceService';
 import QRCode from 'qrcode';
-import { db } from '@services/other/config';
-import { doc, getDoc, setDoc, collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Button, Select, YearSelect } from '@ui';
+import { Button, Select, YearSelect, ProgramsSelect, TermSelect } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
-import { getPrograms, getSubjects, getClasses } from '@services/business/programService';
+import { getPrograms, getSubjects } from '@services/business/programService';
+import { getClasses } from '@services/business/classService';
 import styles from './AttendancePage.module.css';
 import PortalTooltip from '@ui/PortalTooltip';
 
@@ -34,12 +40,12 @@ const AttendancePageEnhanced = () => {
   const [classOptions, setClassOptions] = useState([]);
   const [err, setErr] = useState('');
   const [attendanceCount, setAttendanceCount] = useState(0);
-  const [programFilter, setProgramFilter] = useState('all');
-  const [subjectFilter, setSubjectFilter] = useState('all');
-  const [classFilter, setClassFilter] = useState('all');
-  const [termFilter, setTermFilter] = useState('all');
-  const [yearFilter, setYearFilter] = useState('all');
-  const [instructorFilter, setInstructorFilter] = useState('all');
+  const [programFilter, setProgramFilter] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('');
+  const [classFilter, setClassFilter] = useState('');
+  const [termFilter, setTermFilter] = useState('');
+  const [yearFilter, setYearFilter] = useState('');
+  const [instructorFilter, setInstructorFilter] = useState('');
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [collapsedSections, setCollapsedSections] = useState(() => {
@@ -57,57 +63,200 @@ const AttendancePageEnhanced = () => {
   const years = useMemo(() => [...new Set(classOptions.map(c => c.year).filter(Boolean))], [classOptions]);
   const instructors = useMemo(() => [...new Set(classOptions.map(c => c.instructorId || c.instructor).filter(Boolean))], [classOptions]);
 
+  // DEBUG: Log data changes
+  useEffect(() => {
+    debug('[Attendance] Data state:', {
+      classOptionsCount: classOptions.length,
+      programsCount: programs.length,
+      subjectsCount: subjects.length,
+      terms: terms,
+      years: years,
+      instructorCount: instructors.length
+    });
+  }, [classOptions, programs, subjects, terms, years, instructors]);
+
+  // DEBUG: Log filter changes
+  useEffect(() => {
+    debug('[Attendance] Filter state:', {
+      programFilter,
+      subjectFilter,
+      classFilter,
+      termFilter,
+      yearFilter,
+      instructorFilter
+    });
+  }, [programFilter, subjectFilter, classFilter, termFilter, yearFilter, instructorFilter]);
+
   // Filtered classes based on program/subject/class/term/year/instructor
   const filteredClasses = useMemo(() => {
-    return classOptions.filter(c => {
-      // Filter by program
-      if (programFilter !== 'all') {
-        if (!c.subjectId) return false;
+    debug('[Attendance] Filtering classes:', { 
+      totalClasses: classOptions.length, 
+      filters: {
+        programFilter,
+        subjectFilter,
+        classFilter,
+        termFilter,
+        yearFilter,
+        instructorFilter
+      },
+      programFilterType: typeof programFilter,
+      programFilterValue: programFilter
+    });
+    
+    const filtered = classOptions.filter(c => {
+      // Log each class being evaluated
+      const classInfo = {
+        id: c.id || c.docId,
+        name: c.name || c.code,
+        subjectId: c.subjectId,
+        term: c.term,
+        year: c.year,
+        instructor: c.instructorId || c.instructor
+      };
+      
+      // Filter by program - handle both string and object formats
+      if (programFilter && programFilter !== '') {
+        // Extract value if it's an object - handle multiple possible object structures
+        let programValue;
+        if (typeof programFilter === 'object') {
+          programValue = programFilter.value || programFilter.id || programFilter.docId || programFilter.target?.value;
+        } else {
+          programValue = programFilter;
+        }
+        
+        debug('[Attendance] Program filter processing:', {
+          originalValue: programFilter,
+          extractedValue: programValue,
+          type: typeof programFilter
+        });
+        
+        if (!c.subjectId) {
+          debug('[Attendance] Class rejected: no subjectId', classInfo);
+          return false;
+        }
         const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-        if (!subject || (subject.programId || '') !== programFilter) return false;
+        if (!subject || String(subject.programId) !== String(programValue)) {
+          debug('[Attendance] Class rejected: program mismatch', { 
+            ...classInfo, 
+            programFilter: programValue, 
+            subjectProgramId: subject?.programId,
+            programFilterType: typeof programFilter
+          });
+          return false;
+        }
       }
       
       // Filter by subject
-      if (subjectFilter !== 'all' && (c.subjectId || '') !== subjectFilter) return false;
-      
-      // Filter by class
-      if (classFilter !== 'all') {
-        const classId = c.id || c.docId;
-        if (String(classId) !== String(classFilter)) return false;
+      if (subjectFilter && String(c.subjectId) !== String(subjectFilter)) {
+        debug('[Attendance] Class rejected: subject mismatch', { ...classInfo, subjectFilter });
+        return false;
       }
       
-      // Filter by term
-      if (termFilter !== 'all' && c.term !== termFilter) return false;
+      // Filter by class
+      if (classFilter) {
+        const cId = c.id || c.docId;
+        if (String(cId) !== String(classFilter)) {
+          debug('[Attendance] Class rejected: class ID mismatch', { ...classInfo, classFilter });
+          return false;
+        }
+      }
+      
+      // Filter by term - handle both full format and season name
+      if (termFilter) {
+        const classTerm = c.term || '';
+        const matchesTerm = classTerm.toLowerCase().includes(termFilter.toLowerCase()) || 
+                           termFilter.toLowerCase().includes(classTerm.toLowerCase());
+        if (!matchesTerm) {
+          debug('[Attendance] Class rejected: term mismatch', { ...classInfo, termFilter, classTerm });
+          return false;
+        }
+      }
       
       // Filter by year
-      if (yearFilter !== 'all' && c.year !== yearFilter) return false;
+      if (yearFilter && c.year !== yearFilter) {
+        debug('[Attendance] Class rejected: year mismatch', { ...classInfo, yearFilter });
+        return false;
+      }
       
-      // Filter by instructor
-      if (instructorFilter !== 'all' && (c.instructorId !== instructorFilter && c.instructor !== instructorFilter)) return false;
+      // Filter by instructor - only apply if not 'all' and not empty
+      if (instructorFilter && instructorFilter !== 'all' && instructorFilter !== '') {
+        if (c.instructorId !== instructorFilter && c.instructor !== instructorFilter) {
+          debug('[Attendance] Class rejected: instructor mismatch', { ...classInfo, instructorFilter });
+          return false;
+        }
+      }
       
+      debug('[Attendance] Class passed all filters:', classInfo);
       return true;
     });
+    
+    debug('[Attendance] Filtered result:', { 
+      inputCount: classOptions.length, 
+      outputCount: filtered.length,
+      filtered: filtered.map(c => ({
+        id: c.id || c.docId,
+        name: c.name || c.code,
+        subjectId: c.subjectId,
+        term: c.term,
+        year: c.year
+      }))
+    });
+    
+    return filtered;
   }, [classOptions, subjects, programFilter, subjectFilter, classFilter, termFilter, yearFilter, instructorFilter]);
 
   // Load classes, programs, subjects (authorized roles only)
   useEffect(() => {
     if (!user) return;
     if (!(isAdmin || isInstructor || isHR)) return;
+    debug('[Attendance] Starting data load for user:', { uid: user.uid, email: user.email, roles: { isAdmin, isInstructor, isHR } });
     (async () => {
       try {
+        debug('[Attendance] Fetching data...');
         const [classesResult, programsRes, subjectsRes] = await Promise.all([
           getClasses(),
           getPrograms(),
           getSubjects()
         ]);
+        
+        debug('[Attendance] Raw data results:', {
+          classesResult: classesResult.success ? `SUCCESS: ${classesResult.data?.length || 0} classes` : `FAILED: ${classesResult.error}`,
+          programsRes: programsRes.success ? `SUCCESS: ${programsRes.data?.length || 0} programs` : `FAILED: ${programsRes.error}`,
+          subjectsRes: subjectsRes.success ? `SUCCESS: ${subjectsRes.data?.length || 0} subjects` : `FAILED: ${subjectsRes.error}`
+        });
+        
         const opts = classesResult.success ? classesResult.data : [];
+        debug('[Attendance] Sample classes data:', opts.slice(0, 3).map(c => ({
+          id: c.id || c.docId,
+          name: c.name || c.code,
+          subjectId: c.subjectId,
+          term: c.term,
+          year: c.year,
+          instructor: c.instructorId || c.instructor
+        })));
+        
         setClassOptions(opts);
-        if (programsRes.success) setPrograms(programsRes.data || []);
-        if (subjectsRes.success) setSubjects(subjectsRes.data || []);
+        if (programsRes.success) {
+          setPrograms(programsRes.data || []);
+          debug('[Attendance] Sample programs data:', programsRes.data?.slice(0, 3).map(p => ({
+            id: p.docId || p.id,
+            name: p.nameEn || p.nameAr || p.name
+          })));
+        }
+        if (subjectsRes.success) {
+          setSubjects(subjectsRes.data || []);
+          debug('[Attendance] Sample subjects data:', subjectsRes.data?.slice(0, 3).map(s => ({
+            id: s.docId || s.id,
+            name: s.nameEn || s.nameAr || s.name,
+            programId: s.programId
+          })));
+        }
         if (!classId && opts.length === 1) setClassId(opts[0].id);
         setInitialLoading(false);
+        debug('[Attendance] Data load completed successfully');
       } catch (e) {
-        if (e?.code !== 'permission-denied') logger.error('[Attendance] load data:', e);
+        error('[Attendance] Data load failed:', e);
+        if (e?.code !== 'permission-denied') error('[Attendance] load data:', e);
       }
     })();
   }, [user, isAdmin, isInstructor, isHR, classId]);
@@ -117,9 +266,8 @@ const AttendancePageEnhanced = () => {
     if (!user || !isAdmin) return;
     (async () => {
       try {
-        const snap = await getDoc(doc(db, 'config', 'attendance'));
-        if (snap.exists()) {
-          const data = snap.data();
+        const data = await getAttendanceConfigDoc();
+        if (data) {
           setCfg({ 
             rotationSeconds: data.rotationSeconds ?? 30, 
             sessionMinutes: data.sessionMinutes ?? 15, 
@@ -128,7 +276,7 @@ const AttendancePageEnhanced = () => {
           });
         }
       } catch (e) {
-        if (e?.code !== 'permission-denied') logger.error('[Attendance] load cfg:', e);
+        if (e?.code !== 'permission-denied') error('[Attendance] load cfg:', e);
       }
     })();
   }, [user, isAdmin]);
@@ -151,9 +299,9 @@ const AttendancePageEnhanced = () => {
     setLoading(true);
     try {
       setErr('');
-      logger.debug('[Attendance] startSession clicked', { classId, uid: user?.uid });
+      debug('[Attendance] startSession clicked', { classId, uid: user?.uid });
       const { id } = await createSession({ classId, createdBy: user.uid });
-      logger.log('[Attendance] createSession returned', { id });
+      info('[Attendance] createSession returned', { id });
       if (!id) throw new Error(t('attendance_no_session_id_returned'));
       setSession({ id });
       setSessionId(id);
@@ -203,12 +351,12 @@ const AttendancePageEnhanced = () => {
       setSessionStartTime(null);
       setErr('');
     } catch (e) {
-      console.error('[Attendance] Error ending session:', e);
+      error('[Attendance] Error ending session:', e);
       // Handle CORS or other errors gracefully
       if (e?.message?.includes('CORS') || e?.code === 'internal') {
         // Try to close session locally if backend fails
         try {
-          await setDoc(doc(db, 'attendanceSessions', sessionId), { status: 'closed' }, { merge: true });
+          await closeAttendanceSessionLocal(sessionId);
           setSessionId('');
           setSession(null);
           setToken('');
@@ -263,7 +411,7 @@ const AttendancePageEnhanced = () => {
     try {
       const newLateMode = !cfg.lateMode;
       setCfg(v => ({ ...v, lateMode: newLateMode }));
-      await setDoc(doc(db, 'attendanceSessions', sessionId), { lateMode: newLateMode }, { merge: true });
+      await updateAttendanceSessionLateMode(sessionId, newLateMode);
     } catch(e) {
       setErr(e?.message || (t('failed_to_toggle_late_mode') || 'Failed to toggle late mode'));
     }
@@ -272,7 +420,7 @@ const AttendancePageEnhanced = () => {
   const saveCfg = async () => {
     setSavingCfg(true);
     try {
-      await setDoc(doc(db, 'config', 'attendance'), cfg, { merge: true });
+      await saveAttendanceConfigDoc(cfg);
     } finally { setSavingCfg(false); }
   };
 
@@ -353,7 +501,6 @@ const AttendancePageEnhanced = () => {
               }}
             >
               {getThemedIcon('ui', 'square', 16, theme)}
-              {t('end_session') || 'End Session'}
             </button>
           </div>
         </div>
@@ -373,119 +520,87 @@ const AttendancePageEnhanced = () => {
             justifyContent: 'space-between',
             cursor: 'pointer',
             fontWeight: 600,
-            fontSize: '1rem'
+            fontSize: '1rem',
+            color: '#1f2937'
           }}
         >
           <span>{t('class_selection') || 'Class Selection'}</span>
-          {collapsedSections.class ? getThemedIcon('ui', 'chevron_down', 20, theme) : getThemedIcon('ui', 'chevron_up', 20, theme)}
+          {collapsedSections.class ? getThemedIcon('ui', 'plus', 20, theme) : getThemedIcon('ui', 'minus', 20, theme)}
         </button>
         {!collapsedSections.class && (
           <div style={{ padding: '0 1rem 1rem 1rem' }}>
             {/* Filters */}
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px,1fr))', gap:8, marginBottom:12 }}>
-          <div>
-            <Select
-              searchable
-              value={programFilter}
-              onChange={(e) => setProgramFilter(e.target.value)}
-              options={[
-                { value: 'all', label: t('all_programs') || 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) },
-                ...programs.map(p => ({
-                  value: p.docId || p.id,
-                  label: p.nameEn || p.nameAr || p.code || p.docId,
-                  icon: getThemedIcon('ui', 'graduation_cap', 16, theme)
-                }))
-              ]}
-              fullWidth
-              placeholder={t('all_programs') || 'All Programs'}
-            />
-          </div>
-          <div>
-            <Select
-              searchable
-              value={subjectFilter}
-              onChange={(e) => setSubjectFilter(e.target.value)}
-              options={[
-                { value: 'all', label: t('all_subjects') || 'All Subjects', icon: getThemedIcon('ui', 'filter', 16, theme) },
-                ...subjects
-                  .filter(s => programFilter === 'all' || s.programId === programFilter)
-                  .map(s => ({
-                    value: s.docId || s.id,
-                    label: `${s.code || ''} - ${s.nameEn || s.nameAr || s.docId}`,
-                    icon: getThemedIcon('ui', 'book_open', 16, theme)
-                  }))
-              ]}
-              fullWidth
-              placeholder={t('all_subjects') || 'All Subjects'}
-            />
-          </div>
-          <div>
-            <Select
-              searchable
-              value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
-              options={[
-                { value: 'all', label: t('all_classes') || 'All Classes', icon: getThemedIcon('ui', 'filter', 16, theme) },
-                ...filteredClasses
-                  .filter(c => {
-                    if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
-                    if (programFilter !== 'all') {
-                      const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-                      if (!subject || subject.programId !== programFilter) return false;
-                    }
-                    return true;
-                  })
-                  .map(c => ({
-                    value: c.id || c.docId,
-                    label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}`,
-                    icon: getThemedIcon('ui', 'users', 16, theme)
-                  }))
-              ]}
-              fullWidth
-              placeholder={t('all_classes') || 'All Classes'}
-            />
-          </div>
-          <div>
-            <Select
-              searchable
-              value={termFilter}
-              onChange={(e)=>setTermFilter(e.target.value)}
-              options={[
-                { value: 'all', label: t('all_terms') || 'All Terms' },
-                ...terms.map(term => ({ value: term, label: term }))
-              ]}
-              fullWidth
-            />
-          </div>
-          <div>
-            <YearSelect
-              value={yearFilter === 'all' ? '' : yearFilter}
-              onChange={(e)=>setYearFilter(e.target.value || 'all')}
-              startYear={2024}
-              yearsAhead={5}
-              includeAll
-              allValue="all"
-              allLabel={t('all_years') || 'All Years'}
-              fullWidth
-              searchable
-              label=""
-            />
-          </div>
-          {(isAdmin || isHR) && instructors.length > 0 && (
-            <div>
-              <Select
-                searchable
-                value={instructorFilter}
-                onChange={(e)=>setInstructorFilter(e.target.value)}
-                options={[
-                  { value: 'all', label: t('all_instructors') || 'All Instructors', icon: getThemedIcon('ui', 'filter', 16, theme) },
-                  ...instructors.map(inst => ({ value: inst, label: inst, icon: getThemedIcon('ui', 'user', 16, theme) }))
-                ]}
-                fullWidth
-              />
+            <div style={{ marginBottom: 12 }}>
+              {/* First Row: Program, Subject, Class */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                <ProgramsSelect
+                  programs={programs}
+                  subjects={subjects}
+                  classes={classOptions}
+                  selectedProgram={programFilter}
+                  selectedSubject={subjectFilter}
+                  selectedClass={classFilter}
+                  selectedTerm={termFilter}
+                  selectedYear={yearFilter}
+                  onProgramChange={(val) => setProgramFilter(val)}
+                  onSubjectChange={(val) => setSubjectFilter(val)}
+                  onClassChange={(val) => setClassFilter(val)}
+                  onTermChange={(val) => setTermFilter(val)}
+                  onYearChange={(val) => setYearFilter(val)}
+                  showTerms={false}
+                  showYears={false}
+                  showLabels={false}
+                  style={{ flex: 1, minWidth: '270px' }}
+                />
+              </div>
+              
+              {/* Second Row: Term, Year */}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <Select
+                    value={termFilter}
+                    onChange={(e) => setTermFilter(e.target.value)}
+                    options={[
+                      { value: '', label: t('all_terms') || 'All Terms' },
+                      { value: 'spring', label: t('spring') || 'Spring' },
+                      { value: 'summer', label: t('summer') || 'Summer' },
+                      { value: 'fall', label: t('fall') || 'Fall' }
+                    ]}
+                    placeholder={t('select_term') || 'Select Term'}
+                    fullWidth
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <Select
+                    value={yearFilter}
+                    onChange={(e) => setYearFilter(e.target.value)}
+                    options={[
+                      { value: '', label: t('all_years') || 'All Years' },
+                      ...Array.from({length: 5}, (_, i) => {
+                        const year = new Date().getFullYear() - 2 + i;
+                        return { value: String(year), label: String(year) };
+                      })
+                    ]}
+                    placeholder={t('select_year') || 'Select Year'}
+                    fullWidth
+                  />
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+            {(isAdmin || isHR) && instructors.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <Select
+                  searchable
+                  value={instructorFilter}
+                  onChange={(e)=>setInstructorFilter(e.target.value)}
+                  options={[
+                    { value: '', label: t('all_instructors') || 'All Instructors' },
+                    ...instructors.map(inst => ({ value: inst, label: inst }))
+                  ]}
+                  fullWidth
+                />
+              </div>
+            )}
 
         {/* Class List */}
         <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
@@ -535,29 +650,30 @@ const AttendancePageEnhanced = () => {
               justifyContent: 'space-between',
               cursor: 'pointer',
               fontWeight: 600,
-              fontSize: '0.875rem'
+              fontSize: '0.875rem',
+              color: '#1f2937'
             }}
           >
             <span>{t('attendance_settings') || 'Attendance Settings'}</span>
-            {collapsedSections.settings ? getThemedIcon('ui', 'chevron_down', 18, theme) : getThemedIcon('ui', 'chevron_up', 18, theme)}
+            {collapsedSections.settings ? getThemedIcon('ui', 'plus', 18, theme) : getThemedIcon('ui', 'minus', 18, theme)}
           </button>
           {!collapsedSections.settings && (
             <div style={{ padding: '0 0.75rem 0.75rem 0.75rem' }}>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(120px,1fr))', gap: 8, marginBottom: 8 }}>
                 <div>
-                  <label style={{ display:'block', marginBottom: 4, fontWeight: 600, fontSize:10 }}>{t('qr_rotation_seconds') || 'QR Rotation (seconds)'}</label>
+                  <label style={{ display:'block', marginBottom: 4, fontWeight: 600, fontSize:10, color: '#1f2937' }}>{t('qr_rotation_seconds') || 'QR Rotation (seconds)'}</label>
                   <input type="number" min={10} max={120} value={cfg.rotationSeconds}
                     onChange={(e)=>setCfg(v=>({ ...v, rotationSeconds: Math.max(10, Math.min(120, parseInt(e.target.value||'30',10))) }))}
                     style={{ width:'100%', padding:'0.4rem', border:'1px solid var(--border)', borderRadius:6, background:'var(--panel)', color:'inherit', fontSize: '0.8rem' }} />
                 </div>
                 <div>
-                  <label style={{ display:'block', marginBottom: 4, fontWeight: 600, fontSize:10 }}>{t('session_duration_minutes') || 'Session Duration (minutes)'}</label>
+                  <label style={{ display:'block', marginBottom: 4, fontWeight: 600, fontSize:10, color: '#1f2937' }}>{t('session_duration_minutes') || 'Session Duration (minutes)'}</label>
                   <input type="number" min={5} max={180} value={cfg.sessionMinutes}
                     onChange={(e)=>setCfg(v=>({ ...v, sessionMinutes: Math.max(5, Math.min(180, parseInt(e.target.value||'15',10))) }))}
                     style={{ width:'100%', padding:'0.4rem', border:'1px solid var(--border)', borderRadius:6, background:'var(--panel)', color:'inherit', fontSize: '0.8rem' }} />
                 </div>
                 <div style={{ alignSelf:'end' }}>
-                  <label style={{ display:'block', marginBottom: 4, fontWeight: 600, fontSize:10 }}>{t('strict_device_binding') || 'Strict Device Binding'}</label>
+                  <label style={{ display:'block', marginBottom: 4, fontWeight: 600, fontSize:10, color: '#1f2937' }}>{t('strict_device_binding') || 'Strict Device Binding'}</label>
                   <button onClick={()=>setCfg(v=>({ ...v, strictDeviceBinding: !v.strictDeviceBinding }))} style={{ padding:'0.4rem 0.75rem', border:'1px solid var(--border)', borderRadius:6, background: cfg.strictDeviceBinding ? 'rgba(16,185,129,0.15)' : 'transparent', color:'inherit', fontWeight:600, fontSize: '0.8rem' }}>
                     {cfg.strictDeviceBinding ? (t('enabled')||'Enabled') : (t('disabled')||'Disabled')}
                   </button>
@@ -613,7 +729,7 @@ const AttendancePageEnhanced = () => {
                 onClick={() => setQrSize(Math.max(200, qrSize - 40))}
                 style={{ padding: '0.25rem 0.5rem', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--panel)', cursor: 'pointer', color: '#1f2937' }}
               >
-                {getThemedIcon('ui', 'minimize2', 16, theme)}
+                {getThemedIcon('ui', 'minus', 16, theme)}
               </button>
               </PortalTooltip>
               <PortalTooltip content={t('make_qr_bigger')} position="top">
@@ -621,7 +737,7 @@ const AttendancePageEnhanced = () => {
                 onClick={() => setQrSize(Math.min(500, qrSize + 40))}
                 style={{ padding: '0.25rem 0.5rem', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--panel)', cursor: 'pointer', color: '#1f2937' }}
               >
-                {getThemedIcon('ui', 'maximize2', 16, theme)}
+                {getThemedIcon('ui', 'plus', 16, theme)}
               </button>
               </PortalTooltip>
             </div>
@@ -653,7 +769,19 @@ const AttendancePageEnhanced = () => {
             )}
           </div>
           <div style={{ flex: 1, minWidth: '250px' }}>
-            {!sessionId && <div style={{ fontSize: 14, color:'var(--muted)' }}>{(t('no_active_session') || 'No active session. Start a session to generate QR code.').replaceAll('_',' ')}</div>}
+            {!sessionId && (
+              <div style={{ fontSize: 14, color:'var(--muted)' }}>
+                <div style={{ marginBottom: 12, fontWeight: 600, color: '#1f2937' }}>
+                  {t('how_to_start_session') || 'How to Start Attendance Session'}
+                </div>
+                <div style={{ lineHeight: 1.6 }}>
+                  <div style={{ marginBottom: 8 }}>📋 <strong>{t('step1') || 'Step 1'}:</strong> {t('select_class_instructions') || 'Select your class from the dropdown above'}</div>
+                  <div style={{ marginBottom: 8 }}>▶️ <strong>{t('step2') || 'Step 2'}:</strong> {t('click_start_session_instructions') || 'Click the "Start Session" button below'}</div>
+                  <div style={{ marginBottom: 8 }}>📱 <strong>{t('step3') || 'Step 3'}:</strong> {t('students_scan_instructions') || 'Students will scan the QR code or use manual code'}</div>
+                  <div>✅ <strong>{t('step4') || 'Step 4'}:</strong> {t('attendance_records_instructions') || 'Attendance will be recorded automatically in real-time'}</div>
+                </div>
+              </div>
+            )}
             {sessionId && (
               <>
                 <div style={{ fontSize: 12, color:'var(--muted)', marginBottom:8 }}>
@@ -672,7 +800,7 @@ const AttendancePageEnhanced = () => {
                     const origin = typeof window !== 'undefined' ? window.location.origin : '';
                     const link = `${origin}/my-attendance?sid=${sessionId}&t=${encodeURIComponent(token||'')}`;
                     navigator.clipboard && navigator.clipboard.writeText(link).catch(()=>{});
-                  }} style={{ padding:'0.5rem 1rem', border:'1px solid var(--border)', borderRadius:8, background:'#fff', fontWeight:600 }}>
+                  }} style={{ padding:'0.5rem 1rem', border:'1px solid var(--border)', borderRadius:8, background:'#fff', fontWeight:600, color: '#1f2937' }}>
                     📋 {(t('copy_student_link')||'Copy Student Link').replaceAll('_',' ')}
                   </button>
                   <Button 
@@ -745,14 +873,31 @@ const AttendancePageEnhanced = () => {
           {getThemedIcon('ui', 'info', 20, theme)}
           <span>{t('how_to_use') || 'How to Use Attendance System'}</span>
         </div>
-        <div style={{ fontSize:14, lineHeight:1.8, color:'#1e3a8a' }}>
-          <p style={{ margin:'0 0 8px 0' }}><strong>{t('step_start_session') || '1. Start Session:'}</strong> {t('start_session_desc') || 'Select a class and click "Start Session" to generate a live QR code.'}</p>
-          <p style={{ margin:'0 0 8px 0' }}><strong>{t('step_students_scan') || '2. Students Scan:'}</strong> {t('students_scan_desc') || 'Students open /my-attendance page and scan the QR code with their camera or paste the link manually.'}</p>
-          <p style={{ margin:'0 0 8px 0' }}><strong>{t('step_qr_rotation') || '3. QR Rotation:'}</strong> {t('qr_rotation_desc') || 'The QR code token rotates every'} {cfg.rotationSeconds} {t('seconds_for_security') || 'seconds for security. Students must scan during the active session.'}</p>
-          <p style={{ margin:'0 0 8px 0' }}><strong>{t('step_strict_device_binding') || '4. Strict Device Binding:'}</strong> {t('strict_device_binding_desc') || 'When enabled, each student can only scan from one device per session to prevent sharing.'}</p>
-          <p style={{ margin:'0 0 8px 0' }}><strong>{t('step_late_mode') || '5. Late Mode:'}</strong> {t('late_mode_desc') || 'After ending the session, you can enable "Late Mode" to allow late arrivals to scan with a "late" status.'}</p>
-          <p style={{ margin:'0 0 8px 0' }}><strong>{t('step_export') || '6. Export:'}</strong> {t('export_desc') || 'Click "Export CSV" to download attendance records for the session.'}</p>
-          <p style={{ margin:'0 0 8px 0' }}><strong>{t('step_cost') || '7. Cost:'}</strong> {t('cost_desc') || 'QR rotation uses Firestore writes (~1 write per rotation). With 30s rotation and 15min session, that\'s ~30 writes per session. Very minimal cost.'}</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '0.5rem', fontSize: 13, color: '#1e3a8a' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
+            <strong>1.</strong>
+            <span>{t('attendance_step1') || 'Select your class from the dropdown and click Start Session to generate QR code'}</span>
+          </div>
+          {getThemedIcon('ui', 'chevron_right', 16, theme)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
+            <strong>2.</strong>
+            <span>{t('attendance_step2') || 'Students scan QR code with their phones or use manual code if needed'}</span>
+          </div>
+          {getThemedIcon('ui', 'chevron_right', 16, theme)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
+            <strong>3.</strong>
+            <span>{t('attendance_step3') || 'QR code automatically rotates for security - attendance is recorded in real-time'}</span>
+          </div>
+          {getThemedIcon('ui', 'chevron_right', 16, theme)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
+            <strong>4.</strong>
+            <span>{t('attendance_step4') || 'Enable Late Mode to allow late arrivals after session starts'}</span>
+          </div>
+          {getThemedIcon('ui', 'chevron_right', 16, theme)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
+            <strong>5.</strong>
+            <span>{t('attendance_step5') || 'Export attendance data as CSV for records and reporting'}</span>
+          </div>
         </div>
       </div>
     </div>

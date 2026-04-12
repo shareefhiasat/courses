@@ -9,7 +9,8 @@ import { getThemedIcon } from '@constants/iconTypes';
 import MessageBubble from './MessageBubble';
 import { groupMessagesByDate, filterMessages } from '../utils/chatHelpers';
 
-const MessageList = memo(({ 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const MessageList = memo(({ 
   messages, 
   msgQuery, 
   globalChatSearch, 

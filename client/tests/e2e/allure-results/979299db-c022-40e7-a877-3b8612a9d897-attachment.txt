@@ -1,0 +1,1764 @@
+🔍 Exploring mutations...
+🔍 Available mutations: {
+  "data": {
+    "__schema": {
+      "mutationType": {
+        "fields": [
+          {
+            "name": "createUser",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateUser",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteUser",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createCategory",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateCategory",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteCategory",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createProgram",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateProgram",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteProgram",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createSubject",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateSubject",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteSubject",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createClass",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateClass",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteClass",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createActivity",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateActivity",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteActivity",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createQuiz",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateQuiz",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteQuiz",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createQuestion",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateQuestion",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteQuestion",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createQuizResult",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateQuizResult",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteQuizResult",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createEnrollment",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateEnrollment",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteEnrollment",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createChat",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateChat",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteChat",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createAttendance",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateAttendance",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteAttendance",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createBehavior",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateBehavior",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteBehavior",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createPenalty",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updatePenalty",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deletePenalty",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createActivityLog",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateActivityLog",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteActivityLog",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createDirectRoom",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateDirectRoom",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteDirectRoom",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createEmailTemplate",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateEmailTemplate",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteEmailTemplate",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createEmail",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateEmail",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteEmail",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createNotificationLog",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateNotificationLog",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteNotificationLog",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createAnnouncement",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateAnnouncement",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteAnnouncement",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createParticipation",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateParticipation",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteParticipation",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createResource",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateResource",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteResource",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createFile",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createFileWithMinIO",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateFile",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteFile",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createConfig",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateConfig",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateConfigByKey",
+            "args": [
+              {
+                "name": "key",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteConfig",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteConfigByKey",
+            "args": [
+              {
+                "name": "key",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createNotification",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "updateNotification",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "deleteNotification",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "markNotificationAsRead",
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createUserDrive",
+            "args": [
+              {
+                "name": "userId",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createFolder",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "shareItem",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "revokeSharing",
+            "args": [
+              {
+                "name": "fileId",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "ownerId",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "processFile",
+            "args": [
+              {
+                "name": "fileId",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "createFileVersion",
+            "args": [
+              {
+                "name": "parentFileId",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "getFileVersions",
+            "args": [
+              {
+                "name": "fileId",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "signDocument",
+            "args": [
+              {
+                "name": "fileId",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "signatureData",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "stampDocument",
+            "args": [
+              {
+                "name": "fileId",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "stampData",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "generateShareToken",
+            "args": [
+              {
+                "name": "fileId",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              },
+              {
+                "name": "shareOptions",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "scanDocument",
+            "args": [
+              {
+                "name": "scanData",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "enrollStudent",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "unenrollStudent",
+            "args": [
+              {
+                "name": "enrollmentId",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "assignInstructor",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "unassignInstructor",
+            "args": [
+              {
+                "name": "classId",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "submitActivity",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "gradeActivity",
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            ],
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

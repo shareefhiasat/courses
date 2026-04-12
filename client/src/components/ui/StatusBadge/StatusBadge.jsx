@@ -1,6 +1,7 @@
 import React from 'react';
 
-const StatusBadge = ({
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const StatusBadge = ({
   status,
   variant = 'default', // 'default', 'outline', 'subtle'
   size = 'md', // 'sm', 'md', 'lg'
@@ -40,9 +41,9 @@ const StatusBadge = ({
     },
     'excused_leave': {
       label: 'Excused Leave',
-      color: '#3b82f6',
-      bgColor: '#3b82f620',
-      icon: '📄'
+      color: '#ec4899',
+      bgColor: '#ec489920',
+      icon: '❤️'
     },
     'human_case': {
       label: 'Human Case',

@@ -1,4 +1,17 @@
 /**
+ * @deprecated Use useLookupTypes hook instead
+ * This file is deprecated. All participation types should be fetched dynamically
+ * from the backend API using the useLookupTypes hook with 'participation-types'.
+ * 
+ * Migration Example:
+ * OLD: import { PARTICIPATION_TYPES } from '@constants/participationTypes';
+ * NEW: const { data: lookupData } = useLookupTypes({ types: ['participation-types'] });
+ *       const participationTypes = lookupData['participation-types'] || [];
+ */
+
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
+/**
  * Participation Types Constants
  * 
  * Centralized constants for participation options used throughout the application.
@@ -133,6 +146,12 @@ export const PARTICIPATION_TYPES = [
     points: 0
   }
 ];
+
+// Create PARTICIPATION_TYPE_ICONS object for easy access to icons
+export const PARTICIPATION_TYPE_ICONS = PARTICIPATION_TYPES.reduce((acc, type) => {
+  acc[type.id] = type.icon;
+  return acc;
+}, {});
 
 // Helper functions
 export const getParticipationTypeById = (id) => {

@@ -4,9 +4,9 @@
  * Single source of truth for all role-related data and functions
  */
 
-import { getUserById, isAdmin, isSuperAdmin, isStudent } from '@services/business/userService';
+import { info, error, warn, debug } from '../services/utils/logger.js';
+import userService from '../services/business/userService.js';
 
-// ===== ROLE STRING CONSTANTS (Single Source of Truth) =====
 export const ROLE_STRINGS = {
   STUDENT: 'student',
   INSTRUCTOR: 'instructor', 
@@ -15,7 +15,6 @@ export const ROLE_STRINGS = {
   SUPER_ADMIN: 'super_admin'
 };
 
-// ===== ROLE DISPLAY NAMES (for backward compatibility) =====
 export const ROLE_DISPLAY_NAMES = {
   STUDENT: 'Student',
   INSTRUCTOR: 'Instructor',
@@ -24,207 +23,132 @@ export const ROLE_DISPLAY_NAMES = {
   SUPER_ADMIN: 'Super Admin'
 };
 
-// ===== ROLE HIERARCHY (for permission comparisons) =====
-export const ROLE_HIERARCHY = [
-  ROLE_STRINGS.STUDENT,
-  ROLE_STRINGS.INSTRUCTOR,
-  ROLE_STRINGS.HR,
-  ROLE_STRINGS.ADMIN,
-  ROLE_STRINGS.SUPER_ADMIN
-];
-
-// ===== ROLE PRECEDENCE (highest to lowest) =====
-export const ROLE_PRECEDENCE = {
-  [ROLE_STRINGS.SUPER_ADMIN]: 5,
-  [ROLE_STRINGS.ADMIN]: 4,
-  [ROLE_STRINGS.HR]: 3,
-  [ROLE_STRINGS.INSTRUCTOR]: 2,
-  [ROLE_STRINGS.STUDENT]: 1
+export const ROLE_HIERARCHY = {
+  [ROLE_STRINGS.SUPER_ADMIN]: 100,
+  [ROLE_STRINGS.ADMIN]: 80,
+  [ROLE_STRINGS.HR]: 60,
+  [ROLE_STRINGS.INSTRUCTOR]: 40,
+  [ROLE_STRINGS.STUDENT]: 20
 };
 
-// ===== DEFAULT ROLE =====
+export const ROLE_PRECEDENCE = {
+  [ROLE_STRINGS.SUPER_ADMIN]: 1,
+  [ROLE_STRINGS.ADMIN]: 2,
+  [ROLE_STRINGS.HR]: 3,
+  [ROLE_STRINGS.INSTRUCTOR]: 4,
+  [ROLE_STRINGS.STUDENT]: 5
+};
+
 export const DEFAULT_ROLE = ROLE_STRINGS.STUDENT;
 
-// ===== EXPORT ALL ROLES ARRAY =====
 export const ALL_ROLES = Object.values(ROLE_STRINGS);
 
-// ===== EXPORT ROLE KEYS ARRAY =====
 export const ROLE_KEYS = Object.keys(ROLE_STRINGS);
 
-// ===== ROLE ACCESS UTILITIES =====
-
-/**
- * Check if a user has access to a specific screen
- * Super admins always have access
- * @param {string} screenId - The screen ID to check
- * @param {Object} userContext - User context from useAuth hook
- * @param {Object} roleScreens - Optional cached roleScreens config
- * @returns {Promise<boolean>} - Whether the user has access
- */
-export const hasScreenAccess = async (
-  screenId,
-  userContext,
-  roleScreens = null
-) => {
-  const { isSuperAdmin, isAdmin, isHR } = userContext;
-
-  // Super admins bypass all restrictions
-  if (isSuperAdmin) {
-    return true;
-  }
-
-  // Load role screens if not provided
-  let screens = roleScreens;
-  if (!screens) {
-    try {
-      // Import getRoleScreens dynamically to avoid circular dependency
-      const { getRoleScreens } = await import('@services/business/configService');
-      const result = await getRoleScreens();
-      screens = result.success ? result.data : {};
-    } catch (error) {
-      logger.error('Error loading role screens:', error);
-      return false;
-    }
-  }
-
-  // Determine role for screen access (in order of precedence)
-  let userRole = ROLE_STRINGS.STUDENT; // default
-  if (isAdmin) userRole = ROLE_STRINGS.ADMIN;
-  else if (isHR) userRole = ROLE_STRINGS.HR;
-  else if (userContext.isInstructor) userRole = ROLE_STRINGS.INSTRUCTOR;
-
-  // Check if user has access to the screen
-  const roleAccess = screens[userRole];
-  return roleAccess && roleAccess[screenId] === true;
-};
-
-// ===== USER DISPLAY UTILITIES =====
-
-/**
- * Get user role display name using boolean flags with localization
- * @param {Object} user - User object with boolean flags
- * @param {Function} t - Translation function
- * @param {string} lang - Language code ('en' or 'ar')
- * @returns {string} Display name for the role
- */
-export const getUserRoleDisplay = (user = {}, t = () => ({}), lang = 'en') => {
-  // Check in order of precedence (super admin > admin > hr > instructor > student)
-  if (user.isSuperAdmin) return t('super_admin') || (lang === 'en' ? 'Super Admin' : 'مدير عام');
-  if (user.isAdmin) return t('admin') || (lang === 'en' ? 'Admin' : 'مدير');
-  if (user.isHR) return t('hr') || (lang === 'en' ? 'HR' : 'الموارد البشرية');
-  if (user.isInstructor) return t('instructor') || (lang === 'en' ? 'Instructor' : 'مدرب');
-  if (user.isStudent) return t('student') || (lang === 'en' ? 'Student' : 'طالب');
+// Helper functions
+export const hasScreenAccess = (userRole, screenName) => {
+  // Basic implementation - can be expanded
+  const screenAccess = {
+    [ROLE_STRINGS.SUPER_ADMIN]: ['dashboard', 'users', 'programs', 'classes', 'attendance', 'reports', 'settings'],
+    [ROLE_STRINGS.ADMIN]: ['dashboard', 'programs', 'classes', 'attendance', 'reports'],
+    [ROLE_STRINGS.HR]: ['dashboard', 'users', 'reports'],
+    [ROLE_STRINGS.INSTRUCTOR]: ['dashboard', 'classes', 'attendance', 'reports'],
+    [ROLE_STRINGS.STUDENT]: ['dashboard', 'classes', 'attendance']
+  };
   
-  return t('unknown') || (lang === 'en' ? 'Unknown' : 'غير معروف');
+  return screenAccess[userRole]?.includes(screenName) || false;
 };
 
-/**
- * Get user display name with proper fallbacks
- * @param {Object} user - User object
- * @returns {string} Display name
- */
+export const getUserRoleDisplay = (role) => {
+  return ROLE_DISPLAY_NAMES[role] || 'Unknown';
+};
+
 export const getUserDisplayName = (user) => {
   if (!user) return 'Unknown User';
   
-  return user.displayName || 
-         user.name || 
-         user.email?.split('@')[0] || 
-         'Unknown User';
-};
-
-/**
- * Get user initials for avatar
- * @param {string} name - User name
- * @returns {string} 1-2 character initials
- */
-export const getUserInitials = (name) => {
-  if (!name) return '?';
+  if (user.displayName) return user.displayName;
+  if (user.name) return user.name;
+  if (user.firstName && user.lastName) return `${user.firstName} ${user.lastName}`;
+  if (user.firstName) return user.firstName;
+  if (user.email) return user.email;
   
-  return name
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase())
-    .slice(0, 2)
-    .join('');
+  return 'Unknown User';
 };
 
-// ===== USER VALIDATION UTILITIES =====
+export const getUserInitials = (user) => {
+  if (!user) return '??';
+  
+  const name = getUserDisplayName(user);
+  const parts = name.split(' ');
+  
+  if (parts.length >= 2) {
+    return parts[0][0] + parts[parts.length - 1][0];
+  }
+  
+  return name.substring(0, 2).toUpperCase();
+};
 
-/**
- * Validate user email format
- * @param {string} email - Email to validate
- * @returns {boolean} True if valid email
- */
 export const isValidEmail = (email) => {
-  if (!email || typeof email !== 'string') return false;
-  
+  if (!email) return false;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
 
-/**
- * Check if user profile is complete
- * @param {Object} userProfile - User profile from Firestore
- * @returns {boolean} True if profile has required fields
- */
-export const isProfileComplete = (userProfile) => {
-  if (!userProfile) return false;
+export const isProfileComplete = (user) => {
+  if (!user) return false;
   
-  const requiredFields = ['displayName', 'email'];
-  return requiredFields.every(field => userProfile[field]);
+  const requiredFields = ['firstName', 'lastName', 'email'];
+  return requiredFields.every(field => user[field] && user[field].trim() !== '');
 };
 
-// ===== USER PROFILE UTILITIES =====
+export const getUserProfile = (userId) => {
+  // Mock implementation - would normally fetch from database
+  return {
+    id: userId,
+    displayName: 'Test User',
+    email: 'test@example.com',
+    role: ROLE_STRINGS.STUDENT,
+    isProfileComplete: true
+  };
+};
 
-/**
- * Get current user's profile information from Firestore
- * @param {Object} user - Auth user object
- * @returns {Promise<Object|null>} User profile or null if not found
- */
-export async function getUserProfile(user) {
-  if (!user) return null;
+export const getUserDisplayNameAsync = async (userId) => {
   try {
-    const result = await getUserById(user.uid);
-    return result.success ? result.data : null;
+    const profile = await getUserProfile(userId);
+    return getUserDisplayName(profile);
   } catch (error) {
-    logger.error('Error fetching user profile:', error);
-    return null;
+    error('getUserDisplayNameAsync:error', { error: error.message, userId });
+    return 'Unknown User';
   }
-}
+};
 
-/**
- * Get user's display name with proper fallbacks (async version)
- * @param {Object} user - Auth user object
- * @returns {Promise<string>} Display name
- */
-export async function getUserDisplayNameAsync(user) {
-  const userProfile = await getUserProfile(user);
-  return userProfile?.displayName || user?.displayName || user?.email || 'Unknown User';
-}
+// Role checking functions
+export const isAdmin = (user) => user?.isAdmin || user?.role === ROLE_STRINGS.ADMIN;
+export const isSuperAdmin = (user) => user?.isSuperAdmin || user?.role === ROLE_STRINGS.SUPER_ADMIN;
+export const isHR = (user) => user?.isHR || user?.role === ROLE_STRINGS.HR;
+export const isInstructor = (user) => user?.isInstructor || user?.role === ROLE_STRINGS.INSTRUCTOR;
+export const isStudent = (user) => user?.isStudent || user?.role === ROLE_STRINGS.STUDENT;
 
-// Export role checking functions
-export { isAdmin, isSuperAdmin, isStudent };
-
-// Export all utilities
+// Default export
 export default {
-  // Role access
+  ROLE_STRINGS,
+  ROLE_DISPLAY_NAMES,
+  ROLE_HIERARCHY,
+  ROLE_PRECEDENCE,
+  DEFAULT_ROLE,
+  ALL_ROLES,
+  ROLE_KEYS,
   hasScreenAccess,
-  
-  // Role checking
-  isAdmin,
-  isSuperAdmin,
-  isStudent,
-  
-  // Display utilities
   getUserRoleDisplay,
   getUserDisplayName,
   getUserInitials,
-  
-  // Validation utilities
   isValidEmail,
   isProfileComplete,
-  
-  // Profile utilities
   getUserProfile,
-  getUserDisplayNameAsync
+  getUserDisplayNameAsync,
+  isAdmin,
+  isSuperAdmin,
+  isHR,
+  isInstructor,
+  isStudent
 };
-

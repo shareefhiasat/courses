@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -9,9 +9,8 @@ import {
   Plus, Save, Eye, Trash2, GripVertical, Clock, Copy, Play,
   CheckCircle, XCircle, HelpCircle, ListChecks, Repeat, Award
 } from 'lucide-react';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@services/other/config';
 import { getQuiz, createQuiz, updateQuiz } from '@services/business/quizService';
+import { updateActivity } from '@services/business/activitiesService';
 import { notifyQuizAvailable } from '@services/business/notificationService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getUsers } from '@services/business/userService';
@@ -285,7 +284,7 @@ export default function QuizBuilderPage() {
         setActiveQuestionIndex(normalized.questions.length > 0 ? 0 : -1);
       }
     } catch (error) {
-      logger.error('Error loading quiz:', error);
+      error('Error loading quiz:', error);
     } finally {
       setLoading(false);
     }
@@ -337,7 +336,7 @@ export default function QuizBuilderPage() {
           type: 'quiz',
           level: quizData.difficulty,
           internalQuizId: targetQuizId,
-          updatedAt: serverTimestamp(),
+          updatedAt: new Date(),
           createdBy: user.uid,
           points: quizData.questions.reduce((acc, q) => acc + (q.points || 1), 0),
           allowRetake: quizData.settings.allowRetake,
@@ -346,10 +345,10 @@ export default function QuizBuilderPage() {
         };
 
         if (!quizId) {
-          activityData.createdAt = serverTimestamp();
+          activityData.createdAt = new Date();
         }
 
-        await setDoc(doc(db, RECORD_TYPES.ACTIVITY, targetQuizId), activityData, { merge: true });
+        await updateActivity(targetQuizId, activityData, user, { sendEmail: false });
 
         // Send notifications for new quizzes
         if (!quizId && targetQuizId) {
@@ -383,19 +382,19 @@ export default function QuizBuilderPage() {
                     { id: targetQuizId, title: quizData.title, description: quizData.description, settings: quizData.settings },
                     studentsToNotify
                   );
-                  logger.log(`Notified ${studentsToNotify.length} students about new quiz`);
+                  info(`Notified ${studentsToNotify.length} students about new quiz`);
                 }
               }
             }
           } catch (notifyError) {
-            logger.warn('Failed to send quiz notifications:', notifyError);
+            warn('Failed to send quiz notifications:', notifyError);
             // Don't fail the save operation if notifications fail
           }
         }
       }
 
     } catch (error) {
-      logger.error('Error saving quiz:', error);
+      error('Error saving quiz:', error);
       toast?.showError?.('Failed to save quiz: ' + error.message);
     } finally {
       setSaving(false);
@@ -459,7 +458,7 @@ export default function QuizBuilderPage() {
 
   // Also, let's add logging to the updateOption function
   const updateOption = useCallback((questionIndex, optionId, updates) => {
-    logger.debug('Updating option:', { questionIndex, optionId, updates });
+    debug('Updating option:', { questionIndex, optionId, updates });
     setQuizData(prev => {
       const updatedQuestions = [...prev.questions];
       const question = updatedQuestions[questionIndex];
@@ -474,7 +473,7 @@ export default function QuizBuilderPage() {
               ...question.options.slice(optionIndex + 1)
             ]
           };
-          logger.debug('Options after update:', updatedQuestions[questionIndex].options);
+          debug('Options after update:', updatedQuestions[questionIndex].options);
         }
       }
       return { ...prev, questions: updatedQuestions };

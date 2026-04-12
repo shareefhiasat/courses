@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button, Modal } from '@ui';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * ConfirmModal Component
  * 
  * A standardized confirmation modal built on the base Modal component.

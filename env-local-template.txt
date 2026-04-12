@@ -1,0 +1,22 @@
+# Keycloak Configuration
+VITE_KEYCLOAK_URL=http://localhost:8080
+VITE_KEYCLOAK_REALM=master
+VITE_KEYCLOAK_CLIENT_ID=military-lms-app
+
+# API Configuration  
+VITE_API_BASE_URL=http://localhost:8081
+VITE_API_VERSION=v1
+
+# Backend Nextcloud Integration
+NEXTCLOUD_BASE_URL=http://localhost:8085
+NEXTCLOUD_API_USER=admin
+NEXTCLOUD_API_APP_PASSWORD=change_me
+NEXTCLOUD_API_RETRIES=3
+NEXTCLOUD_API_RETRY_BASE_MS=300
+
+# Keycloak -> Nextcloud ACL Group Mapping
+NEXTCLOUD_GROUP_SUPER_ADMIN=nc_admins
+NEXTCLOUD_GROUP_ADMIN=nc_admins
+NEXTCLOUD_GROUP_HR=nc_hr
+NEXTCLOUD_GROUP_INSTRUCTOR=nc_instructors
+NEXTCLOUD_GROUP_STUDENT=nc_students

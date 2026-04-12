@@ -4,7 +4,8 @@ import { useLang } from '@contexts/LangContext';
 import { Tooltip, PortalTooltip, Button } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 
-/*
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/*
 Props:
 - categories: Array<{ id: string, label: string, items: Array<{ key: string, label: string, icon?: ReactNode }> }>
 - activeCategory: string

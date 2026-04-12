@@ -5,7 +5,8 @@
 
 import { ROLE_STRINGS } from '@utils/userUtils';
 
-// ===== FEATURE FLAGS CONFIGURATION =====
+
+import { info, error, warn, debug } from '@services/utils/logger.js';// ===== FEATURE FLAGS CONFIGURATION =====
 
 export const FEATURE_FLAGS = {
   // QR Scanner Features
@@ -63,7 +64,7 @@ export const isFeatureEnabledForRole = (featureId, userRole) => {
   const feature = FEATURE_FLAGS[featureId];
   
   if (!feature) {
-    console.warn(`Feature flag not found: ${featureId}`);
+    warn(`Feature flag not found: ${featureId}`);
     return false;
   }
 

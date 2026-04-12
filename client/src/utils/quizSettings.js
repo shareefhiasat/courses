@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 /**
  * Enhanced Quiz Settings (Phase 3.5)
  * Scheduling, attempts, proctoring, accessibility, gamification
@@ -209,7 +211,7 @@ export async function initializeProctoring(settings) {
     
     return { success: true, data: proctoring };
   } catch (error) {
-    console.error('Error initializing proctoring:', error);
+    error('Error initializing proctoring:', error);
     return { success: false, error: error.message };
   }
 }

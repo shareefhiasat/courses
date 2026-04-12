@@ -3,7 +3,8 @@ import { Button, Card, CardBody } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { REPORT_TYPE_IDS, RECIPIENT_ROLES } from '@constants/reportConstants';
 
-const ReportExportModal = ({
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const ReportExportModal = ({
   isOpen,
   onClose,
   reportType, // 'daily' or 'summary'
@@ -27,7 +28,10 @@ const ReportExportModal = ({
   isExporting,
   onExport,
   fetchUsersForEmail,
-  showError // Add toast support
+  showError, // Add toast support
+  attendanceMode, // Add attendance mode to distinguish between regular and standup
+  selectedProgramsForReport,
+  setSelectedProgramsForReport // For standup mode: select programs instead of subjects
 }) => {
   useEffect(() => {
     if (isOpen && availableUsers.students?.length > 20) {
@@ -44,6 +48,7 @@ const ReportExportModal = ({
 
   const isSummaryReport = reportType === REPORT_TYPE_IDS.SUMMARY;
   const isDailyReport = reportType === REPORT_TYPE_IDS.DAILY;
+  const isStandupMode = attendanceMode === 'standup';
 
   return (
     <div style={{
@@ -72,34 +77,14 @@ const ReportExportModal = ({
             <h2 style={{ 
               margin: 0, 
               fontSize: '1.5rem', 
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem'
+              fontWeight: 700
             }}>
               {isSummaryReport ? (
-                <>
-                  {getThemedIcon('chart_bar', 'white')}
-                  {t('summary_report') || 'Summary Report'}
-                </>
+                (t('summary_report') || 'Summary')
               ) : (
-                <>
-                  {getThemedIcon('calendar', 'white')}
-                  {t('daily_report') || 'Daily Report'}
-                </>
+                (t('daily_report') || 'Daily')
               )}
             </h2>
-            <p style={{ 
-              margin: '0.5rem 0 0 0', 
-              fontSize: '0.875rem', 
-              opacity: 0.9 
-            }}>
-              {isSummaryReport 
-                ? (t('summary_report_description') || 'Generate comprehensive reports across multiple subjects and time periods')
-                : (t('daily_report_description') || 'Export attendance data for a specific date')
-              }
-            </p>
           </div>
 
           <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem', fontWeight: 600 }}>
@@ -114,34 +99,24 @@ const ReportExportModal = ({
               selectedProgramId={selectedProgramId}
               programs={programs}
               t={t}
+              attendanceMode={attendanceMode}
+              selectedProgramsForReport={selectedProgramsForReport}
+              setSelectedProgramsForReport={setSelectedProgramsForReport}
             />
           )}
-
-          <EmailOption
-            exportFormat={exportFormat}
-            setExportFormat={setExportFormat}
-            emailRecipients={emailRecipients}
-            setEmailRecipients={setEmailRecipients}
-            usersLoading={usersLoading}
-            availableUsers={availableUsers}
-            toggleUserSelection={toggleUserSelection}
-            toggleRoleSelection={toggleRoleSelection}
-            user={user}
-            theme={theme}
-            t={t}
-            fetchUsersForEmail={fetchUsersForEmail}
-          />
 
           <ActionButtons
             onClose={onClose}
             onExport={onExport}
             isExporting={isExporting}
-            exportFormat={exportFormat}
+            exportFormat="csv"
             selectedSubjectsForReport={selectedSubjectsForReport}
-            emailRecipients={emailRecipients}
+            emailRecipients={[]}
             reportType={reportType}
             theme={theme}
             t={t}
+            attendanceMode={attendanceMode}
+            selectedProgramsForReport={selectedProgramsForReport}
           />
         </CardBody>
       </Card>
@@ -156,12 +131,20 @@ const ReportExportModal = ({
   subjects,
   selectedProgramId,
   programs,
-  t
+  t,
+  attendanceMode,
+  selectedProgramsForReport,
+  setSelectedProgramsForReport
 }) => {
+  const isStandupMode = attendanceMode === 'standup';
+  
   return (
     <div style={{ marginBottom: '1rem' }}>
       <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-        {t('select_subjects') || 'Select Subjects for Report'}
+        {isStandupMode 
+          ? (t('select_programs') || 'Select Programs for Report')
+          : (t('select_subjects') || 'Select Subjects for Report')
+        }
       </label>
       
       <div style={{
@@ -172,11 +155,11 @@ const ReportExportModal = ({
         maxHeight: '200px',
         overflowY: 'auto'
       }}>
-        {subjects
-          .filter(s => (s.programId === selectedProgramId) || (s.programId === programs.find(p => (p.id === selectedProgramId) || (p.docId === selectedProgramId))?.docId))
-          .map(subject => (
+        {isStandupMode ? (
+          // Show programs for standup mode
+          programs.map(program => (
             <label
-              key={subject.docId || subject.id}
+              key={program.id}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -191,29 +174,70 @@ const ReportExportModal = ({
             >
               <input
                 type="checkbox"
-                checked={selectedSubjectsForReport.includes(subject.docId || subject.id)}
+                checked={selectedProgramsForReport?.includes(program.id)}
                 onChange={(e) => {
-                  const subjectId = subject.docId || subject.id;
+                  const programId = program.id;
                   if (e.target.checked) {
-                    setSelectedSubjectsForReport([...selectedSubjectsForReport, subjectId]);
+                    setSelectedProgramsForReport([...(selectedProgramsForReport || []), programId]);
                   } else {
-                    setSelectedSubjectsForReport(selectedSubjectsForReport.filter(id => id !== subjectId));
+                    setSelectedProgramsForReport((selectedProgramsForReport || []).filter(id => id !== programId));
                   }
                 }}
                 style={{ width: '16px', height: '16px' }}
               />
               <span style={{ fontSize: '0.875rem' }}>
-                {subject.nameEn || subject.name || 'Unknown Subject'}
+                {program.nameEn || program.name || 'Unknown Program'}
               </span>
             </label>
           ))
-        }
+        ) : (
+          // Show subjects for regular mode
+          subjects
+            .filter(s => (s.programId === selectedProgramId) || (s.programId === programs.find(p => p.id == selectedProgramId)?.id))
+            .map(subject => (
+              <label
+                key={subject.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem',
+                  cursor: 'pointer',
+                  borderRadius: '0.25rem',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedSubjectsForReport.includes(subject.id)}
+                  onChange={(e) => {
+                    const subjectId = subject.id;
+                    if (e.target.checked) {
+                      setSelectedSubjectsForReport([...selectedSubjectsForReport, subjectId]);
+                    } else {
+                      setSelectedSubjectsForReport(selectedSubjectsForReport.filter(id => id !== subjectId));
+                    }
+                  }}
+                  style={{ width: '16px', height: '16px' }}
+                />
+                <span style={{ fontSize: '0.875rem' }}>
+                  {subject.nameEn || subject.name || 'Unknown Subject'}
+                </span>
+              </label>
+            ))
+        )}
       </div>
       
       <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem' }}>
-        {selectedSubjectsForReport.length === 0 
-          ? (t('select_at_least_one_subject') || 'Please select at least one subject')
-          : (t('subjects_selected') || 'Subjects selected') + ': ' + selectedSubjectsForReport.length
+        {isStandupMode 
+          ? ((selectedProgramsForReport?.length || 0) === 0 
+              ? (t('select_at_least_one_program') || 'Please select at least one program')
+              : (t('programs_selected') || 'Programs selected') + ': ' + selectedProgramsForReport.length)
+          : (selectedSubjectsForReport.length === 0 
+              ? (t('select_at_least_one_subject') || 'Please select at least one subject')
+              : (t('subjects_selected') || 'Subjects selected') + ': ' + selectedSubjectsForReport.length)
         }
       </div>
     </div>
@@ -632,38 +656,56 @@ const ActionButtons = ({
   emailRecipients,
   reportType,
   theme,
-  t
+  t,
+  attendanceMode,
+  selectedProgramsForReport
 }) => {
   const isSummaryReport = reportType === REPORT_TYPE_IDS.SUMMARY;
   const isDailyReport = reportType === REPORT_TYPE_IDS.DAILY;
+  const isStandupMode = attendanceMode === 'standup';
 
   return (
     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-      <Button 
-        variant="outline" 
+      <Button
+        variant="outline"
         onClick={onClose}
         disabled={isExporting}
       >
         {t('cancel')}
       </Button>
-      <Button 
-        variant="primary" 
+      <Button
+        variant="primary"
         onClick={() => {
           console.log('🔍 Modal validation debug:', {
             reportType,
             isSummaryReport,
             isDailyReport,
+            isStandupMode,
             selectedSubjectsForReport,
-            selectedSubjectsLength: selectedSubjectsForReport?.length
+            selectedSubjectsLength: selectedSubjectsForReport?.length,
+            selectedProgramsForReport,
+            selectedProgramsLength: selectedProgramsForReport?.length
           });
-          
+
           if (isSummaryReport) {
-            if (!selectedSubjectsForReport || selectedSubjectsForReport.length === 0) {
-              console.error('❌ No subjects selected for report');
-              if (showError) {
-                showError(t('select_at_least_one_subject') || 'Please select at least one subject for the report');
+            if (isStandupMode) {
+              // Standup mode: validate program selection
+              if (!selectedProgramsForReport || selectedProgramsForReport.length === 0) {
+                error('❌ No programs selected for report');
+                if (showError) {
+                  showError(t('select_at_least_one_program') || 'Please select at least one program for the report');
+                }
+                return;
               }
-              return;
+            } else {
+              // Regular mode: validate subject selection
+              if (!selectedSubjectsForReport || selectedSubjectsForReport.length === 0) {
+                error('❌ No subjects selected for report');
+                if (showError) {
+                  showError(t('select_at_least_one_subject') || 'Please select at least one subject for the report');
+                }
+                return;
+              }
             }
           }
           
@@ -682,7 +724,7 @@ const ActionButtons = ({
         }}
         loading={isExporting}
         style={{ 
-          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%);',
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem'

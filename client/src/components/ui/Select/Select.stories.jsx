@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import Select from './Select';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'UI/Select',
   component: Select,
   tags: ['autodocs'],

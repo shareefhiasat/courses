@@ -2,7 +2,8 @@ import React from 'react';
 import { formatLocalizedDate } from '@utils/date';
 import { useIsMobile } from '@hooks/useIsMobile';
 
-export const HistoryDayHeader = ({ 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export const HistoryDayHeader = ({ 
   dateStr, 
   filteredCounts, 
   isDayExpanded, 

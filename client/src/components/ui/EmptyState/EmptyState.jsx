@@ -2,7 +2,8 @@ import React from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './EmptyState.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * EmptyState Component
  * 
  * Display when no data is available.

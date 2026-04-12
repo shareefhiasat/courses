@@ -1,155 +1,255 @@
-import logger from '@utils/logger';
-import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
-import { getClasses as getClassesFromDb, create as createClassToDb, update as updateClassInDb, deleteClass as deleteClassFromDb, getClass as getClassByIdFromDb } from '../db/classDbService';
+import { info, error, warn, debug } from '../utils/logger.js';
 
-/**
- * Class Service
- * Handles class/course management
- */
+const serviceName = 'classService';
 
-// Get all classes - with performance monitoring and memoization
-export const getClasses = async () => {
+// Import business service (named imports from CommonJS)
+import { 
+  getAllClasses as getAllClassesBusiness,
+  getClassById as getClassByIdBusiness,
+  createClass as createClassBusiness,
+  updateClass as updateClassBusiness,
+  deleteClass as deleteClassBusiness
+} from './classBusinessService.js';
+
+// Core class operations
+export const getAllClasses = async (params = {}) => {
   try {
-    return await getClassesFromDb();
-  } catch (error) {
-    logger.error('CLASS: Failed to fetch classes', { error: error.message });
-    return { success: false, error: error.message };
+    info(`${serviceName}:getAllClasses`, { params });
+    
+    // Use business service layer
+    const result = await getAllClassesBusiness(params);
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:getAllClasses:error`, { error: err.message, params });
+    return {
+      success: false,
+      error: err.message || 'Failed to load classes',
+      data: []
+    };
   }
 };
 
-// Add new class
-export const addClass = async (data, user) => {
+export const getClassById = async (id, params = {}) => {
   try {
-    logger.info('CLASS: Creating new class', { className: data.name, classCode: data.code });
+    info(`${serviceName}:getClassById`, { id });
     
-    const result = await createClassToDb(data, user);
-    
-    // Log activity
-    try {
-      await logActivity(ACTIVITY_LOG_TYPES.CLASS_CREATED, {
-        classId: result.id,
-        className: data.name,
-        classCode: data.code,
-        userId: user?.uid || user?.id || 'unknown'
-      });
-    } catch (logError) {
-      logger.warn('CLASS: Failed to log class creation:', logError);
+    if (!id) {
+      return {
+        success: false,
+        error: 'Class ID is required',
+        data: null
+      };
     }
     
-    logger.info('CLASS: Successfully created class', { classId: result.id, className: data.name });
+    const result = await getClassByIdBusiness(id, params);
     return result;
-  } catch (error) {
-    logger.error('CLASS: Failed to create class', { error: error.message, classData: { name: data.name, code: data.code } });
-    return { success: false, error: error.message };
+  } catch (err) {
+    console.error(`${serviceName}:getClassById:error`, { error: err.message, id });
+    return {
+      success: false,
+      error: err.message || 'Failed to load class',
+      data: null
+    };
   }
 };
 
-// Update class
-export const updateClass = async (id, data, user) => {
+export const createClass = async (classData, user = null) => {
   try {
-    console.log('🔧 [ClassService] updateClass called:', {
-      id,
-      dataKeys: Object.keys(data),
-      dataSample: data,
-      user: user?.email || 'unknown'
-    });
+    info(`${serviceName}:createClass`, { data: classData });
     
-    logger.info('CLASS: Updating class', { classId: id, updateFields: Object.keys(data) });
+    const result = await createClassBusiness(classData, user);
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:createClass:error`, { error: err.message, data: classData });
+    return {
+      success: false,
+      error: err.message || 'Failed to create class',
+      data: null
+    };
+  }
+};
+
+export const updateClass = async (id, updateData, user = null) => {
+  try {
+    info(`${serviceName}:updateClass`, { id, data: updateData });
     
-    const result = await updateClassInDb(id, data, user);
-    
-    console.log('📋 [ClassService] updateClass DB result:', result);
-    
-    // Log activity
-    try {
-      await logActivity(ACTIVITY_LOG_TYPES.CLASS_UPDATED, {
-        classId: id,
-        updateFields: Object.keys(data),
-        userId: user?.uid || user?.id || 'unknown'
-      });
-    } catch (logError) {
-      logger.warn('CLASS: Failed to log class update:', logError);
+    if (!id) {
+      return {
+        success: false,
+        error: 'Class ID is required',
+        data: null
+      };
     }
     
-    logger.info('CLASS: Successfully updated class', { classId: id });
+    const result = await updateClassBusiness(id, updateData, user);
     return result;
-  } catch (error) {
-    console.error('❌ [ClassService] updateClass error:', error);
-    logger.error('CLASS: Failed to update class', { error: error.message, classId: id });
-    return { success: false, error: error.message };
+  } catch (err) {
+    console.error(`${serviceName}:updateClass:error`, { error: err.message, id, data: updateData });
+    return {
+      success: false,
+      error: err.message || 'Failed to update class',
+      data: null
+    };
   }
 };
 
-// Delete class with cascade
-export const deleteClass = async (id) => {
+// Aliases for commonly expected function names
+export const getClass = getClassById;
+export const fetchClass = getClassById;
+export const addClass = createClass;
+
+export const deleteClass = async (id, user = null) => {
   try {
-    logger.info('CLASS: Deleting class', { classId: id });
+    info(`${serviceName}:deleteClass`, { id });
     
-    // Use database service for cascade delete
-    const { deleteClass: deleteClassFromDb } = await import('../db/classDbService');
-    const result = await deleteClassFromDb(id);
+    if (!id) {
+      return {
+        success: false,
+        error: 'Class ID is required',
+        data: null
+      };
+    }
+    
+    const result = await deleteClassBusiness(id, user);
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:deleteClass:error`, { error: err.message, id });
+    return {
+      success: false,
+      error: err.message || 'Failed to delete class',
+      data: null
+    };
+  }
+};
+
+// Query functions
+export const getClassesByProgram = async (programId, params = {}) => {
+  try {
+    info(`${serviceName}:getClassesByProgram`, { programId, params });
+    
+    if (!programId) {
+      return {
+        success: false,
+        error: 'Program ID is required',
+        data: []
+      };
+    }
+    
+    // For now, use getAllClasses with filter
+    const result = await classBusinessService.getAllClasses({ ...params, programId });
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:getClassesByProgram:error`, { error: err.message, programId, params });
+    return {
+      success: false,
+      error: err.message || 'Failed to retrieve program classes',
+      data: []
+    };
+  }
+};
+
+export const getClassesByInstructor = async (instructorId, params = {}) => {
+  try {
+    info(`${serviceName}:getClassesByInstructor`, { instructorId, params });
+    
+    if (!instructorId) {
+      return {
+        success: false,
+        error: 'Instructor ID is required',
+        data: []
+      };
+    }
+    
+    // For now, use getAllClasses with filter
+    const result = await classBusinessService.getAllClasses({ ...params, instructorId });
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:getClassesByInstructor:error`, { error: err.message, instructorId, params });
+    return {
+      success: false,
+      error: err.message || 'Failed to retrieve instructor classes',
+      data: []
+    };
+  }
+};
+
+export const getActiveClasses = async (params = {}) => {
+  try {
+    info(`${serviceName}:getActiveClasses`, { params });
+    
+    // Use getAllClasses with active filter
+    const result = await classBusinessService.getAllClasses({ ...params, isActive: true });
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:getActiveClasses:error`, { error: err.message, params });
+    return {
+      success: false,
+      error: err.message || 'Failed to retrieve active classes',
+      data: []
+    };
+  }
+};
+
+// Update class schedule
+export const updateClassSchedule = async (classId, scheduleData, user = null) => {
+  try {
+    info(`${serviceName}:updateClassSchedule`, { classId, scheduleData });
+    
+    if (!classId) {
+      return {
+        success: false,
+        error: 'Class ID is required',
+        data: null
+      };
+    }
+    
+    // Update the class with schedule information
+    const result = await updateClass(classId, {
+      schedule: scheduleData,
+      updatedAt: new Date()
+    }, user);
     
     if (result.success) {
-      // Log activity
-      try {
-        await logActivity(ACTIVITY_LOG_TYPES.CLASS_DELETED, {
-          classId: id,
-          cascadeDeletedCount: result.deletedCount || 0
-        });
-      } catch (logError) {
-        logger.warn('CLASS: Failed to log class deletion:', logError);
-      }
-      
-      logger.info('CLASS: Successfully deleted class', { classId: id, cascadeDeletedCount: result.deletedCount });
+      info(`${serviceName}:updateClassSchedule:success`, { classId });
+      return {
+        success: true,
+        data: result.data,
+        message: 'Class schedule updated successfully'
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error || 'Failed to update class schedule',
+        data: null
+      };
     }
-    
-    return result;
   } catch (error) {
-    logger.error('CLASS: Failed to delete class', { error: error.message, classId: id });
-    return { success: false, error: error.message };
+    console.error(`${serviceName}:updateClassSchedule:error`, { error: error.message, classId });
+    return {
+      success: false,
+      error: error.message || 'Failed to update class schedule',
+      data: null
+    };
   }
 };
 
-// Get class by ID
-export const getClassById = async (id) => {
-  try {
-    return await getClassByIdFromDb(id);
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+// Aliases for commonly expected function names
+export const getClasses = getAllClasses;
+
+// Default export
+export default {
+  // Core functions
+  getAllClasses,
+  getClassById,
+  createClass,
+  updateClass,
+  deleteClass,
+  
+  // Query functions
+  getClassesByProgram,
+  getClassesByInstructor,
+  getActiveClasses,
+  
+  // Aliases
+  getClasses
 };
-
-/**
- * Update class schedule
- * @param {string} classId - Class ID
- * @param {Object} schedule - Schedule data
- * @returns {Promise<{success: boolean, error?: string}>}
- */
-export const updateClassSchedule = async (classId, schedule) => {
-  try {
-    // Use database service to update class
-    const result = await updateClassInDb(classId, { schedule });
-    return result;
-  } catch (error) {
-    logger.error('Error updating class schedule:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Get all classes
- * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
- */
-export const getAllClasses = async () => {
-  try {
-    // Use database service to get all classes
-    return await getClassesFromDb();
-  } catch (error) {
-    logger.error('Error fetching classes:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-// Alias for getClassById for consistency with other services
-export const fetchClass = getClassById;
-

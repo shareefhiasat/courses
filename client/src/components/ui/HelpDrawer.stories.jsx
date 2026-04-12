@@ -3,7 +3,8 @@ import HelpDrawer from './HelpDrawer';
 import { HelpProvider } from '@contexts/HelpContext';
 import { LangProvider } from '@contexts/LangContext';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'Components/HelpDrawer',
   component: HelpDrawer,
   tags: ['autodocs'],

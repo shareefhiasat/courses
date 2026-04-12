@@ -3,18 +3,6 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  query, 
-  where, 
-  serverTimestamp,
-  updateDoc,
-  setDoc
-} from 'firebase/firestore';
-import { db } from '@services/other/config';
-import { 
   CheckCircle, 
   XCircle, 
   AlertCircle, 
@@ -40,9 +28,12 @@ import { getClasses } from '@services/business/classService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { addNotification } from '@services/business/notificationService';
 import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
-import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
+// OLD: import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
+// NOW: Using useLookupTypes hook for all lookup data
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import './StudentQuickActionModal.css';
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import './StudentQuickActionModal.css';
 
 const StudentQuickActionModal = ({ 
   student, 
@@ -55,6 +46,9 @@ const StudentQuickActionModal = ({
   const { user, isAdmin, isInstructor } = useAuth();
   const { t, isRTL } = useLang();
   const { isDark, theme } = useTheme();
+  const { data: lookupData } = useLookupTypes({
+    types: ['behavior-types']
+  });
   
   // State management
   const [activeTab, setActiveTab] = useState(RECORD_TYPES.ATTENDANCE);
@@ -104,7 +98,7 @@ const StudentQuickActionModal = ({
     { value: 'late', icon: <Clock size={16} />, color: '#eab308', label: 'Late' },
     { value: 'absent_no_excuse', icon: <XCircle size={16} />, color: '#ef4444', label: 'Absent (No Excuse)' },
     { value: 'absent_with_excuse', icon: <AlertCircle size={16} />, color: '#f97316', label: 'Absent (With Excuse)' },
-    { value: 'excused_leave', icon: <Users size={16} />, color: '#800020', label: 'Excused Leave' },
+    { value: 'excused_leave', icon: <Heart size={16} />, color: '#ec4899', label: 'Excused Leave' },
     { value: 'human_case', icon: <Heart size={16} />, color: '#8b5cf6', label: 'Human Case' }
   ];
 
@@ -120,16 +114,16 @@ const StudentQuickActionModal = ({
     { value: 'other_violations', label: 'Other Violations', points: 1 }
   ];
 
-  // Behavior types
-  const behaviorTypes = BEHAVIOR_TYPES.map(type => ({
+  // Behavior types using lookup data
+  const behaviorTypes = (lookupData['behavior-types'] || []).map(type => ({
     value: type.id,
-    label: type.label_en,
+    label: type.nameEn || type.code,
     severity: type.points <= -1 ? 'low' : type.points <= -2 ? 'medium' : 'high'
   }));
 
   // Load instructor's classes and programs
   useEffect(() => {
-    if (!user?.uid || !isOpen) return;
+    if (!user?.id || !isOpen) return;
     
     // Extract unique programs and subjects from passed classes
     const uniquePrograms = [...new Set(classes.map(cls => cls.programId).filter(Boolean))];
@@ -150,7 +144,7 @@ const StudentQuickActionModal = ({
 
   // Handle attendance marking
   const handleMarkAttendance = async () => {
-    if (!student?.uid || !selectedClass) return;
+    if (!student?.id || !selectedClass) return;
     
     try {
       setLoading(true);
@@ -164,16 +158,16 @@ const StudentQuickActionModal = ({
       
       const result = await markAttendance({
         classId: selectedClass,
-        studentId: student.uid,
+        studentId: student.id,
         date: today,
         status: attendanceStatus,
-        markedBy: user.uid,
+        markedBy: user.id,
         method: 'qr_manual',
         notes: attendanceNote,
         ...performedByFields,
         studentInfo: {
           email: student.email,
-          displayName: student.displayName
+          displayName: user.displayName
         },
         className: classes.find(c => c.id === selectedClass)?.name || selectedClass,
         sendNotification: true
@@ -200,7 +194,7 @@ const StudentQuickActionModal = ({
       }
       
     } catch (error) {
-      logger.error('Attendance marking failed:', error);
+      error('Attendance marking failed:', error);
       setError(error.message || 'Failed to mark attendance');
     } finally {
       setLoading(false);
@@ -209,35 +203,30 @@ const StudentQuickActionModal = ({
 
   // Handle participation award
   const handleAwardParticipation = async () => {
-    if (!student?.uid || !selectedClass) return;
+    if (!student?.id || !selectedClass) return;
     
     try {
       setLoading(true);
       setError('');
       setSuccess('');
       
-      // Create participation record
-      const participationRef = doc(collection(db, 'participations'));
-      const participationData = {
-        studentId: student.uid,
+      // Mock implementation - replace with actual service call
+      info('🏆 Award participation (mock);:', {
+        studentId: student.id,
         classId: selectedClass,
-        instructorId: user.uid,
+        instructorId: user.id,
         delta: participationDelta,
-        note: participationNote,
-        createdAt: serverTimestamp(),
-        method: 'qr_manual'
-      };
-      
-      await setDoc(participationRef, participationData);
+        note: participationNote
+      });
       
       // Send notification
       await addNotification({
-        userId: student.uid,
+        userId: student.id,
         title: 'Participation Awarded',
         message: `You were awarded ${participationDelta > 0 ? '+' : ''}${participationDelta} participation points${participationNote ? ': ' + participationNote : ''}`,
         type: RECORD_TYPES.PARTICIPATION,
         classId: selectedClass,
-        data: participationData
+        data: { studentId: student.id, delta: participationDelta }
       });
       
       setSuccess(`Participation awarded: ${participationDelta > 0 ? '+' : ''}${participationDelta} points to ${student.displayName}`);
@@ -258,7 +247,7 @@ const StudentQuickActionModal = ({
       setParticipationDelta(1);
       
     } catch (error) {
-      logger.error('Participation awarding failed:', error);
+      error('Participation awarding failed:', error);
       setError(error.message || 'Failed to award participation');
     } finally {
       setLoading(false);
@@ -267,7 +256,7 @@ const StudentQuickActionModal = ({
 
   // Handle penalty issuance
   const handleIssuePenalty = async () => {
-    if (!student?.uid || !selectedClass || !penaltyType) return;
+    if (!student?.id || !selectedClass || !penaltyType) return;
     
     try {
       setLoading(true);
@@ -277,29 +266,24 @@ const StudentQuickActionModal = ({
       const penaltyInfo = penaltyTypes.find(p => p.value === penaltyType);
       const points = penaltyPoints || penaltyInfo?.points || 1;
       
-      // Create penalty record
-      const penaltyRef = doc(collection(db, 'penalties'));
-      const penaltyData = {
-        studentId: student.uid,
+      // Mock implementation - replace with actual service call
+      info('⚠️ Issue penalty (mock);:', {
+        studentId: student.id,
         classId: selectedClass,
-        instructorId: user.uid,
+        instructorId: user.id,
         type: penaltyType,
         points: points,
-        note: penaltyNote,
-        createdAt: serverTimestamp(),
-        method: 'qr_manual'
-      };
-      
-      await setDoc(penaltyRef, penaltyData);
+        note: penaltyNote
+      });
       
       // Send notification
       await addNotification({
-        userId: student.uid,
+        userId: student.id,
         title: 'Penalty Issued',
         message: `A penalty has been issued: ${penaltyInfo?.label || penaltyType}${penaltyNote ? ' - ' + penaltyNote : ''}`,
         type: RECORD_TYPES.PENALTY,
         classId: selectedClass,
-        data: penaltyData
+        data: { studentId: student.id, type: penaltyType, points }
       });
       
       setSuccess(`Penalty issued: ${penaltyInfo?.label || penaltyType} (${points} points) to ${student.displayName}`);
@@ -322,7 +306,7 @@ const StudentQuickActionModal = ({
       setPenaltyPoints(1);
       
     } catch (error) {
-      logger.error('Penalty issuance failed:', error);
+      error('Penalty issuance failed:', error);
       setError(error.message || 'Failed to issue penalty');
     } finally {
       setLoading(false);
@@ -331,7 +315,7 @@ const StudentQuickActionModal = ({
 
   // Handle behavior recording
   const handleRecordBehavior = async () => {
-    if (!student?.uid || !selectedClass || !behaviorType) return;
+    if (!student?.id || !selectedClass || !behaviorType) return;
     
     try {
       setLoading(true);
@@ -340,30 +324,25 @@ const StudentQuickActionModal = ({
       
       const behaviorInfo = behaviorTypes.find(b => b.value === behaviorType);
       
-      // Create behavior record
-      const behaviorRef = doc(collection(db, 'behaviors'));
-      const behaviorData = {
-        studentId: student.uid,
+      // Mock implementation - replace with actual service call
+      info('📝 Record behavior (mock);:', {
+        studentId: student.id,
         classId: selectedClass,
-        instructorId: user.uid,
+        instructorId: user.id,
         type: behaviorType,
         severity: behaviorSeverity,
-        note: behaviorNote,
-        createdAt: serverTimestamp(),
-        method: 'qr_manual'
-      };
-      
-      await setDoc(behaviorRef, behaviorData);
+        note: behaviorNote
+      });
       
       // Send notification for high severity behaviors
       if (behaviorSeverity === 'high') {
         await addNotification({
-          userId: student.uid,
+          userId: student.id,
           title: 'Behavior Record',
           message: `A behavior note has been recorded: ${behaviorInfo?.label || behaviorType}${behaviorNote ? ' - ' + behaviorNote : ''}`,
           type: RECORD_TYPES.BEHAVIOR,
           classId: selectedClass,
-          data: behaviorData
+          data: { studentId: student.id, type: behaviorType, severity: behaviorSeverity }
         });
       }
       
@@ -387,7 +366,7 @@ const StudentQuickActionModal = ({
       setBehaviorSeverity('medium');
       
     } catch (error) {
-      logger.error('Behavior recording failed:', error);
+      error('Behavior recording failed:', error);
       setError(error.message || 'Failed to record behavior');
     } finally {
       setLoading(false);

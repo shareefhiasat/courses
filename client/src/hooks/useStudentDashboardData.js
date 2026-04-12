@@ -12,7 +12,7 @@ import { getActivitiesByClasses } from '@services/business/activitiesService';
 import { getSubmissionsByUser } from '@services/business/submissionsService';
 import { getQuizResultsByUser } from '@services/business/quizResultsService';
 import { getLocalizedActionLabel } from '@utils/sharedTypes';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * Central data hook for the Student Dashboard.
@@ -57,17 +57,17 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
     setError(null);
 
     try {
-      logger.info('[StudentDashboardData] Loading data', { effectiveUserId, classId, isClassMode });
+      info('[StudentDashboardData] Loading data', { effectiveUserId, classId, isClassMode });
 
       let enrollmentsRes, attendanceRes, penaltiesRes, participationsRes, behaviorsRes, marksRes, submissionsRes, quizResultsRes;
 
       if (isClassMode) {
         // Fetch data for ALL students in the class
-        logger.info('[StudentDashboardData] Fetching data for ALL students in class', { classId });
+        info('[StudentDashboardData] Fetching data for ALL students in class', { classId });
         
         // Get all students in the class first
         const classStudents = await getStudentsByClass(classId);
-        logger.log('🔧 [StudentDashboardData] getStudentsByClass result:', {
+        info('🔧 [StudentDashboardData] getStudentsByClass result:', {
           classId,
           classStudents,
           type: typeof classStudents,
@@ -84,13 +84,13 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
         } else if (classStudents && typeof classStudents === 'object') {
           students = Object.values(classStudents).filter(s => s && (s.id || s.docId));
         } else {
-          logger.warn('[StudentDashboardData] Unexpected format from getStudentsByClass:', classStudents);
+          warn('[StudentDashboardData] Unexpected format from getStudentsByClass:', classStudents);
           students = [];
         }
         
         const studentIds = students.map(s => s.id || s.docId).filter(Boolean);
         
-        logger.log('🔧 [StudentDashboardData] Processed students:', {
+        info('🔧 [StudentDashboardData] Processed students:', {
           classId,
           studentCount: studentIds.length,
           studentIds,
@@ -217,7 +217,7 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
           const activitiesRes = await getActivitiesByClasses(classIds);
           activities = activitiesRes?.data || [];
         } catch (err) {
-          logger.error('[StudentDashboardData] Failed to load activities', err);
+          error('[StudentDashboardData] Failed to load activities', err);
         }
       }
 
@@ -225,7 +225,7 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
       
       // Comprehensive data verification logging
       const dataScope = isClassMode ? `ALL_STUDENTS_IN_CLASS (${classId})` : `SINGLE_STUDENT (${effectiveUserId})`;
-      logger.log('🔧 [StudentDashboardData] DATA LOADED - SCOPE VERIFICATION:', {
+      info('🔧 [StudentDashboardData] DATA LOADED - SCOPE VERIFICATION:', {
         effectiveUserId,
         classId,
         isClassMode,
@@ -299,7 +299,7 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
         }
       });
     } catch (err) {
-      logger.error('[StudentDashboardData] Failed to load dashboard data', err);
+      error('[StudentDashboardData] Failed to load dashboard data', err);
       setError(err);
       toast?.showError?.(t('failed_to_load_dashboard') || 'Failed to load dashboard');
     } finally {
@@ -417,7 +417,7 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
   // Log stats data for debugging
   useMemo(() => {
     if (rawData.enrollments.length > 0 || rawData.attendance.length > 0) {
-      logger.log('[StudentDashboardData] Stats calculated:', {
+      info('[StudentDashboardData] Stats calculated:', {
         gpa: statsData.gpa,
         attendanceRate: statsData.attendanceRate,
         participations: statsData.participations,

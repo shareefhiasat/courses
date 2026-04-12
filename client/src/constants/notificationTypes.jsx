@@ -1,287 +1,190 @@
-import {
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  Megaphone,
-  Mail,
-  BarChart3,
-  FileText,
-  MessageCircle,
-  UserCheck,
-  Info
-} from 'lucide-react';
+/**
+ * Notification Types Constants - ES6 Version
+ * Centralized notification types and triggers used throughout the application
+ */
+
+import { info, error, warn, debug } from '../services/utils/logger.js';
 
 // Notification Types
 export const NOTIFICATION_TYPES = {
-  SUCCESS: 'success',
-  WARNING: 'warning',
-  ERROR: 'error',
-  ANNOUNCEMENT: 'announcement',
-  NEWSLETTER: 'newsletter',
-  GRADE: 'grade',
-  ACTIVITY: 'activity',
-  MESSAGE: 'message',
-  CHAT: 'chat',
+  // System Notifications
+  SYSTEM: 'system',
+  USER: 'user',
+  ACADEMIC: 'academic',
   ATTENDANCE: 'attendance',
-  PENALTY: 'penalty',
-  ABSENCE: 'absence'
+  ASSESSMENT: 'assessment',
+  COMMUNICATION: 'communication',
+  ANNOUNCEMENT: 'announcement'
 };
 
-// Notification Status
-export const NOTIFICATION_STATUS = {
-  UNREAD: 'unread',
-  READ: 'read',
-  ARCHIVED: 'archived'
-};
-
-// Notification Type Labels
-export const NOTIFICATION_TYPE_LABELS = {
-  [NOTIFICATION_TYPES.SUCCESS]: {
-    en: 'Success',
-    ar: 'نجاح'
-  },
-  [NOTIFICATION_TYPES.WARNING]: {
-    en: 'Warning',
-    ar: 'تحذير'
-  },
-  [NOTIFICATION_TYPES.ERROR]: {
-    en: 'Error',
-    ar: 'خطأ'
-  },
-  [NOTIFICATION_TYPES.ANNOUNCEMENT]: {
-    en: 'Announcement',
-    ar: 'إعلان'
-  },
-  [NOTIFICATION_TYPES.NEWSLETTER]: {
-    en: 'Newsletter',
-    ar: 'نشرة بريدية'
-  },
-  [NOTIFICATION_TYPES.GRADE]: {
-    en: 'Grades',
-    ar: 'الدرجات'
-  },
-  [NOTIFICATION_TYPES.ACTIVITY]: {
-    en: 'Activities',
-    ar: 'الأنشطة'
-  },
-  [NOTIFICATION_TYPES.MESSAGE]: {
-    en: 'Messages',
-    ar: 'الرسائل'
-  },
-  [NOTIFICATION_TYPES.CHAT]: {
-    en: 'Chats',
-    ar: 'الدردشات'
-  },
-  [NOTIFICATION_TYPES.ATTENDANCE]: {
-    en: 'Attendance',
-    ar: 'الحضور'
-  },
-  [NOTIFICATION_TYPES.PENALTY]: {
-    en: 'Penalties',
-    ar: 'المخالفات'
-  },
-  [NOTIFICATION_TYPES.ABSENCE]: {
-    en: 'Absences',
-    ar: 'الغياب'
-  }
-};
-
-// Notification Channels
-export const NOTIFICATION_CHANNELS = {
-  WEB: 'web',
-  EMAIL: 'email',
-  SMS: 'sms',
-  WHATSAPP: 'whatsapp'
-};
-
-// Notification Action Triggers
 export const NOTIFICATION_TRIGGERS = {
-  // Academic / Course
-  ACTIVITY_NEW: 'activity_new',
-  ACTIVITY_UPDATED: 'activity_updated',
-  ACTIVITY_COMPLETE: 'activity_complete',
-  ACTIVITY_GRADED: 'activity_graded',
-  RESOURCE_NEW: 'resource_new',
-  RESOURCE_UPDATED: 'resource_updated',
-  ANNOUNCEMENT_NEW: 'announcement_new',
-  ANNOUNCEMENT_UPDATED: 'announcement_updated',
+  // User Notifications
+  USER_WELCOME: 'user_welcome',
+  USER_LOGIN: 'user_login',
+  USER_LOGOUT: 'user_logout',
+  USER_PROFILE_UPDATE: 'user_profile_update',
+  USER_PASSWORD_CHANGE: 'user_password_change',
+  USER_ROLE_CHANGE: 'user_role_change',
   
-  // Attendance & Behavior
-  ATTENDANCE_RECORDED: 'attendance_recorded',
-  ATTENDANCE_ABSENT: 'attendance_absent',
-  BEHAVIOR_RECORDED: 'behavior_recorded',
-  BEHAVIOR_UPDATED: 'behavior_updated',
-  BEHAVIOR_DELETED: 'behavior_deleted',
-  PENALTY_ISSUED: 'penalty_issued',
-  PENALTY_UPDATED: 'penalty_updated',
-  PENALTY_DELETED: 'penalty_deleted',
-  PARTICIPATION_RECORDED: 'participation_recorded',
-  PARTICIPATION_UPDATED: 'participation_updated',
-  PARTICIPATION_DELETED: 'participation_deleted',
-  
-  // Quiz
-  QUIZ_AVAILABLE: 'quiz_available',
-  QUIZ_DEADLINE_REMINDER: 'quiz_deadline_reminder',
-  QUIZ_RESULTS_RELEASED: 'quiz_results_released',
-  
-  // System / Account
+  // Academic Notifications
   ENROLLMENT_CONFIRMED: 'enrollment_confirmed',
   ENROLLMENT_CANCELLED: 'enrollment_cancelled',
-  WELCOME_SIGNUP: 'welcome_signup',
-  PASSWORD_RESET: 'password_reset',
-  QR_CODE_SENT: 'qr_code_sent',
-  SUMMARY_REPORT: 'summary_report',
+  CLASS_ENROLLED: 'class_enrolled',
+  CLASS_UNENROLLED: 'class_unenrolled',
+  ASSIGNMENT_DUE: 'assignment_due',
+  ASSIGNMENT_SUBMITTED: 'assignment_submitted',
+  GRADE_POSTED: 'grade_posted',
   
-  // Communication
+  // Attendance Notifications
+  ATTENDANCE_MARKED: 'attendance_marked',
+  ATTENDANCE_ABSENT: 'attendance_absent',
+  ATTENDANCE_LATE: 'attendance_late',
+  ATTENDANCE_THRESHOLD_WARNING: 'attendance_threshold_warning',
+  
+  // Assessment Notifications
+  QUIZ_AVAILABLE: 'quiz_available',
+  QUIZ_SUBMITTED: 'quiz_submitted',
+  QUIZ_GRADED: 'quiz_graded',
+  EXAM_SCHEDULED: 'exam_scheduled',
+  EXAM_RESULTS: 'exam_results',
+  
+  // Communication Notifications
+  MESSAGE_RECEIVED: 'message_received',
+  ANNOUNCEMENT_POSTED: 'announcement_posted',
   CHAT_MESSAGE: 'chat_message',
-  CHAT_DIGEST: 'chat_digest'
-};
-
-/**
- * Mapping triggers to screens/pages for RoleAccessPro integration
- */
-export const SCREEN_NOTIFICATION_MAPPING = {
-  activities: [NOTIFICATION_TRIGGERS.ACTIVITY_NEW, NOTIFICATION_TRIGGERS.ACTIVITY_COMPLETE, NOTIFICATION_TRIGGERS.ACTIVITY_GRADED],
-  resources: [NOTIFICATION_TRIGGERS.RESOURCE_NEW],
-  quizzes: [NOTIFICATION_TRIGGERS.QUIZ_AVAILABLE, NOTIFICATION_TRIGGERS.QUIZ_DEADLINE_REMINDER, NOTIFICATION_TRIGGERS.QUIZ_RESULTS_RELEASED],
-  attendance: [NOTIFICATION_TRIGGERS.ATTENDANCE_RECORDED, NOTIFICATION_TRIGGERS.ATTENDANCE_ABSENT],
-  hrPenalties: [NOTIFICATION_TRIGGERS.PENALTY_ISSUED],
-  instructorParticipation: [NOTIFICATION_TRIGGERS.PARTICIPATION_RECORDED],
-  instructorBehavior: [NOTIFICATION_TRIGGERS.BEHAVIOR_RECORDED],
-  chat: [NOTIFICATION_TRIGGERS.CHAT_MESSAGE, NOTIFICATION_TRIGGERS.CHAT_DIGEST]
-};
-
-// Notification Status Labels
-export const NOTIFICATION_STATUS_LABELS = {
-  [NOTIFICATION_STATUS.UNREAD]: {
-    en: 'Unread',
-    ar: 'غير مقروء'
-  },
-  [NOTIFICATION_STATUS.READ]: {
-    en: 'Read',
-    ar: 'مقروء'
-  },
-  [NOTIFICATION_STATUS.ARCHIVED]: {
-    en: 'Archived',
-    ar: 'مؤرشف'
-  }
-};
-
-// Get notification icon based on type
-export const getNotificationIcon = (type) => {
-  const iconProps = { size: 18 };
   
-  switch (type) {
-    case NOTIFICATION_TYPES.SUCCESS:
-      return <CheckCircle2 {...iconProps} className="text-green-600" />;
-    case NOTIFICATION_TYPES.WARNING:
-      return <AlertTriangle {...iconProps} className="text-yellow-600" />;
-    case NOTIFICATION_TYPES.ERROR:
-      return <XCircle {...iconProps} className="text-red-600" />;
-    case NOTIFICATION_TYPES.ANNOUNCEMENT:
-      return <Megaphone {...iconProps} className="text-purple-600" />;
-    case NOTIFICATION_TYPES.NEWSLETTER:
-      return <Mail {...iconProps} className="text-purple-600" />;
-    case NOTIFICATION_TYPES.GRADE:
-      return <BarChart3 {...iconProps} className="text-blue-600" />;
-    case NOTIFICATION_TYPES.ACTIVITY:
-      return <FileText {...iconProps} className="text-indigo-600" />;
-    case NOTIFICATION_TYPES.MESSAGE:
-    case NOTIFICATION_TYPES.CHAT:
-      return <MessageCircle {...iconProps} className="text-pink-600" />;
-    case NOTIFICATION_TYPES.ATTENDANCE:
-      return <UserCheck {...iconProps} className="text-blue-600" />;
-    case NOTIFICATION_TYPES.PENALTY:
-      return <AlertTriangle {...iconProps} className="text-orange-600" />;
-    case NOTIFICATION_TYPES.ABSENCE:
-      return <XCircle {...iconProps} className="text-red-600" />;
-    default:
-      return <Info {...iconProps} className="text-gray-600" />;
-  }
+  // System Notifications
+  SYSTEM_MAINTENANCE: 'system_maintenance',
+  SYSTEM_UPDATE: 'system_update',
+  SECURITY_ALERT: 'security_alert'
 };
 
-// Get notification type label
-export const getNotificationTypeLabel = (type, lang = 'en') => {
-  const label = NOTIFICATION_TYPE_LABELS[type];
-  return label ? (lang === 'ar' ? label.ar : label.en) : type;
+export const NOTIFICATION_CHANNELS = {
+  IN_APP: 'in_app',
+  EMAIL: 'email',
+  SMS: 'sms',
+  PUSH: 'push'
 };
 
-// Get notification status label
-export const getNotificationStatusLabel = (status, lang = 'en') => {
-  const label = NOTIFICATION_STATUS_LABELS[status];
-  return label ? (lang === 'ar' ? label.ar : label.en) : status;
+export const NOTIFICATION_PRIORITIES = {
+  LOW: 'low',
+  NORMAL: 'normal',
+  HIGH: 'high',
+  URGENT: 'urgent'
 };
 
-// Get notification trigger options for dropdowns
-export const getNotificationTriggerOptions = (t, theme, getColoredIcon) => {
-  const options = [
-    { value: '', label: t('all_triggers') || 'All Triggers', icon: getColoredIcon('filter', theme) }
-  ];
-
-  // Add trigger options
-  Object.entries(NOTIFICATION_TRIGGERS).forEach(([key, value]) => {
-    const labelKey = `notification_trigger_${key}`;
-    const label = t(labelKey) || value;
-    options.push({
-      value,
-      label,
-      icon: getColoredIcon('bell', theme)
-    });
-  });
-
-  return options;
+export const NOTIFICATION_STATUSES = {
+  PENDING: 'pending',
+  SENT: 'sent',
+  DELIVERED: 'delivered',
+  READ: 'read',
+  FAILED: 'failed'
 };
 
-// Get notification channel options for dropdowns
-export const getNotificationChannelOptions = (t, theme, getColoredIcon) => {
-  const options = [
-    { value: '', label: t('all_channels') || 'All Channels', icon: getColoredIcon('filter', theme) }
-  ];
+export const NOTIFICATION_STATUS = NOTIFICATION_STATUSES; // Alias
 
-  // Add channel options (email, push, in-app, etc.)
-  const channels = [
-    { key: 'email', label: t('email') || 'Email' },
-    { key: 'push', label: t('push_notification') || 'Push Notification' },
-    { key: 'in_app', label: t('in_app') || 'In-App' },
-    { key: 'sms', label: t('sms') || 'SMS' }
-  ];
-
-  channels.forEach(channel => {
-    options.push({
-      value: channel.key,
-      label: channel.label,
-      icon: getColoredIcon('mail', theme)
-    });
-  });
-
-  return options;
+// Helper functions
+export const getNotificationIcon = (type) => {
+  const iconMap = {
+    [NOTIFICATION_TYPES.SYSTEM]: 'Settings',
+    [NOTIFICATION_TYPES.USER]: 'User',
+    [NOTIFICATION_TYPES.ACADEMIC]: 'BookOpen',
+    [NOTIFICATION_TYPES.ATTENDANCE]: 'Calendar',
+    [NOTIFICATION_TYPES.ASSESSMENT]: 'Clipboard',
+    [NOTIFICATION_TYPES.COMMUNICATION]: 'MessageSquare',
+    [NOTIFICATION_TYPES.ANNOUNCEMENT]: 'Megaphone'
+  };
+  
+  return iconMap[type] || 'Bell';
 };
 
-// Get notification type options for dropdowns
-export const getNotificationTypeOptions = (t, lang = 'en') => {
-  return [
-    { value: 'all', label: t('all_types') || 'All Types' },
-    { value: NOTIFICATION_TYPES.ACTIVITY, label: getNotificationTypeLabel(NOTIFICATION_TYPES.ACTIVITY, lang) },
-    { value: NOTIFICATION_TYPES.MESSAGE, label: getNotificationTypeLabel(NOTIFICATION_TYPES.MESSAGE, lang) },
-    { value: NOTIFICATION_TYPES.CHAT, label: getNotificationTypeLabel(NOTIFICATION_TYPES.CHAT, lang) },
-    { value: NOTIFICATION_TYPES.ANNOUNCEMENT, label: getNotificationTypeLabel(NOTIFICATION_TYPES.ANNOUNCEMENT, lang) },
-    { value: NOTIFICATION_TYPES.NEWSLETTER, label: getNotificationTypeLabel(NOTIFICATION_TYPES.NEWSLETTER, lang) },
-    { value: NOTIFICATION_TYPES.GRADE, label: getNotificationTypeLabel(NOTIFICATION_TYPES.GRADE, lang) },
-    { value: NOTIFICATION_TYPES.ATTENDANCE, label: getNotificationTypeLabel(NOTIFICATION_TYPES.ATTENDANCE, lang) },
-    { value: NOTIFICATION_TYPES.ABSENCE, label: getNotificationTypeLabel(NOTIFICATION_TYPES.ABSENCE, lang) },
-    { value: NOTIFICATION_TYPES.PENALTY, label: getNotificationTypeLabel(NOTIFICATION_TYPES.PENALTY, lang) },
-    { value: NOTIFICATION_TYPES.SUCCESS, label: getNotificationTypeLabel(NOTIFICATION_TYPES.SUCCESS, lang) },
-    { value: NOTIFICATION_TYPES.WARNING, label: getNotificationTypeLabel(NOTIFICATION_TYPES.WARNING, lang) },
-    { value: NOTIFICATION_TYPES.ERROR, label: getNotificationTypeLabel(NOTIFICATION_TYPES.ERROR, lang) }
-  ];
+export const getNotificationStatusOptions = () => {
+  return Object.entries(NOTIFICATION_STATUSES).map(([key, value]) => ({
+    value: value,
+    label: key.charAt(0) + key.slice(1).toLowerCase().replace(/_/g, ' ')
+  }));
 };
 
-// Get notification status options for dropdowns
-export const getNotificationStatusOptions = (t, lang = 'en') => {
-  return [
-    { value: 'all', label: t('all') || 'All' },
-    { value: NOTIFICATION_STATUS.UNREAD, label: getNotificationStatusLabel(NOTIFICATION_STATUS.UNREAD, lang) },
-    { value: NOTIFICATION_STATUS.READ, label: getNotificationStatusLabel(NOTIFICATION_STATUS.READ, lang) },
-    { value: NOTIFICATION_STATUS.ARCHIVED, label: getNotificationStatusLabel(NOTIFICATION_STATUS.ARCHIVED, lang) }
-  ];
+export const getNotificationPriorityOptions = () => {
+  return Object.entries(NOTIFICATION_PRIORITIES).map(([key, value]) => ({
+    value: value,
+    label: key.charAt(0) + key.slice(1).toLowerCase()
+  }));
+};
+
+export const getNotificationChannelOptions = () => {
+  return Object.entries(NOTIFICATION_CHANNELS).map(([key, value]) => ({
+    value: value,
+    label: key.charAt(0) + key.slice(1).toLowerCase()
+  }));
+};
+
+export const getNotificationTriggerOptions = () => {
+  return Object.entries(NOTIFICATION_TRIGGERS).map(([key, value]) => ({
+    value: value,
+    label: key.charAt(0) + key.slice(1).toLowerCase().replace(/_/g, ' ')
+  }));
+};
+
+export const getNotificationTypeOptions = () => {
+  return Object.entries(NOTIFICATION_TYPES).map(([key, value]) => ({
+    value: value,
+    label: key.charAt(0) + key.slice(1).toLowerCase()
+  }));
+};
+
+export const getNotificationLabel = (type) => {
+  const labels = {
+    [NOTIFICATION_TYPES.SYSTEM]: 'System',
+    [NOTIFICATION_TYPES.USER]: 'User',
+    [NOTIFICATION_TYPES.ACADEMIC]: 'Academic',
+    [NOTIFICATION_TYPES.ATTENDANCE]: 'Attendance',
+    [NOTIFICATION_TYPES.ASSESSMENT]: 'Assessment',
+    [NOTIFICATION_TYPES.COMMUNICATION]: 'Communication',
+    [NOTIFICATION_TYPES.ANNOUNCEMENT]: 'Announcement'
+  };
+  
+  return labels[type] || type;
+};
+
+export const getNotificationPriorityLabel = (priority) => {
+  const labels = {
+    [NOTIFICATION_PRIORITIES.LOW]: 'Low',
+    [NOTIFICATION_PRIORITIES.NORMAL]: 'Normal',
+    [NOTIFICATION_PRIORITIES.HIGH]: 'High',
+    [NOTIFICATION_PRIORITIES.URGENT]: 'Urgent'
+  };
+  
+  return labels[priority] || priority;
+};
+
+export const getNotificationStatusLabel = (status) => {
+  const labels = {
+    [NOTIFICATION_STATUSES.PENDING]: 'Pending',
+    [NOTIFICATION_STATUSES.SENT]: 'Sent',
+    [NOTIFICATION_STATUSES.DELIVERED]: 'Delivered',
+    [NOTIFICATION_STATUSES.READ]: 'Read',
+    [NOTIFICATION_STATUSES.FAILED]: 'Failed'
+  };
+  
+  return labels[status] || status;
+};
+
+// Default export
+export default {
+  NOTIFICATION_TYPES,
+  NOTIFICATION_TRIGGERS,
+  NOTIFICATION_CHANNELS,
+  NOTIFICATION_PRIORITIES,
+  NOTIFICATION_STATUSES,
+  NOTIFICATION_STATUS,
+  getNotificationIcon,
+  getNotificationStatusOptions,
+  getNotificationPriorityOptions,
+  getNotificationChannelOptions,
+  getNotificationTriggerOptions,
+  getNotificationTypeOptions,
+  getNotificationLabel,
+  getNotificationPriorityLabel,
+  getNotificationStatusLabel
 };

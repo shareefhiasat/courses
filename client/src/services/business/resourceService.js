@@ -1,326 +1,130 @@
-import { getUserById } from './userService';
-import { notificationGateway } from './notificationGateway';
-import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
-import { RECORD_TYPES } from '@utils/sharedTypes';
-import { ROLE_STRINGS } from '@utils/userUtils';
-import logger from '@utils/logger';
-import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
-import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
-import { handleServiceError, withRetry } from '@utils/errorHandling';
-import { validateEntity, validateBilingualField } from '@utils/validationHelpers';
-import { convertDatesToTimestamps, COMMON_DATE_FIELDS } from '@utils/date.js';
-import {
-  getResources as getResourcesFromDb,
-  getResource as getResourceFromDb,
-  createResource as createResourceToDb,
-  updateResource as updateResourceInDb,
-  deleteResource as deleteResourceFromDb,
-  getResourcesByClass as getResourcesByClassFromDb,
-  getResourcesBySubject as getResourcesBySubjectFromDb,
-  getResourcesByType as getResourcesByTypeFromDb,
-  searchResources as searchResourcesFromDb,
-  getResourceCount as getResourceCountFromDb
-} from '../db/resourceDbService';
+/**
+ * Resource Service - Interface Layer
+ * 
+ * PURPOSE: Public API for resource operations
+ * ARCHITECTURE: Frontend Components → Resource Service → Resource Business Service → Database Service
+ */
 
-const RESOURCE_VALIDATION_RULES = [
-  { field: 'type', required: true, type: 'string', label: 'Resource type' },
-  { field: 'url', type: 'string', label: 'Resource URL' },
-  { field: 'description_en', type: 'string', label: 'Resource description' }
-];
-const validateResourceData = (data) => [
-  ...validateBilingualField(data, 'title', 'Resource title'),
-  ...validateEntity(data, RESOURCE_VALIDATION_RULES)
-];
+import { info, error, warn, debug } from '../utils/logger.js';
 
-// Get all resources - with performance monitoring and memoization
-export const getResources = async () => {
+// Import business service functions
+import { 
+  getAllResources as getAllResourcesBusiness,
+  getResourceById as getResourceByIdBusiness,
+  createResource as createResourceBusiness,
+  updateResource as updateResourceBusiness,
+  deleteResource as deleteResourceBusiness
+} from './resourceBusinessService.js';
+
+const serviceName = 'resourceService';
+
+/**
+ * Get all resources - public interface
+ */
+export const getResources = async (params = {}) => {
   try {
-    const result = await getResourcesFromDb();
+    info(`${serviceName}:getResources`, { params });
     
-    if (result.success) {
-      // Resources fetched successfully
-    } else {
-      logger.warn('RESOURCE: Failed to fetch resources', { error: result.error });
-    }
-    
+    // Use business service layer
+    const result = await getAllResourcesBusiness(params);
     return result;
-  } catch (error) {
-    logger.error('RESOURCE: Failed to fetch resources', { error: error.message });
-    return handleServiceError(error, { operation: 'getResources' });
-  }
-};
-
-// Get resources by class ID
-export const getResourcesByClass = async (classId) => {
-  try {
-    if (!classId) {
-      return { success: false, error: 'Class ID is required' };
-    }
-    
-    logger.info('RESOURCE: Fetching resources by class', { classId });
-    
-    const result = await getResourcesByClassFromDb(classId);
-    
-    if (result.success) {
-      logger.info('RESOURCE: Successfully fetched resources by class', { classId, count: result.data.length });
-    }
-    
-    return result;
-  } catch (error) {
-    logger.error('RESOURCE: Failed to fetch resources by class', { error: error.message, classId });
-    return { success: false, error: error.message };
-  }
-};
-
-// Add a new resource
-export const addResource = async (resourceData, user) => {
-  try {
-    logger.info('RESOURCE: Creating new resource', {
-      title: resourceData.title_en || resourceData.title,
-      url: resourceData.url,
-      type: resourceData.type,
-      hasClassId: !!resourceData.classId,
-      hasProgramId: !!resourceData.programId,
-      hasSubjectId: !!resourceData.subjectId
-    });
-    
-    // Validate input data
-    const validationErrors = validateResourceData(resourceData);
-    if (validationErrors.length > 0) {
-      logger.warn('RESOURCE: Validation failed', { errors: validationErrors });
-      return { success: false, error: validationErrors.join(', ') };
-    }
-    
-    const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], new Date());
-    const auditData = getCreateAuditData(user);
-    const resourceWithTimestamps = {
-      ...convertedData,
-      ...auditData
+  } catch (err) {
+    error(`${serviceName}:getResources:error`, { error: err.message, params });
+    return {
+      success: false,
+      error: err.message || 'Failed to load resources',
+      data: []
     };
-
-    const result = await createResourceToDb(resourceWithTimestamps);
-    
-    if (result.success) {
-      // Log activity
-      try {
-        await logActivity(ACTIVITY_LOG_TYPES.RESOURCE_CREATED, {
-          resourceId: result.id,
-          title: resourceData.titleEn || resourceData.title,
-          type: resourceData.type
-        });
-      } catch (logError) {
-        logger.warn('RESOURCE: Failed to log resource creation:', logError);
-      }
-      
-      // Send notifications for new resource
-      if (resourceData.classId) {
-        try {
-          // TODO: Implement notification logic
-          logger.info('RESOURCE: Notifications would be sent for class', { classId: resourceData.classId });
-        } catch (notifyError) {
-          logger.warn('RESOURCE: Failed to send resource notifications:', notifyError);
-        }
-      }
-      
-      logger.info('RESOURCE: Successfully created resource', { resourceId: result.id });
-    }
-    
-    return result;
-  } catch (error) {
-    logger.error('RESOURCE: Failed to create resource', { error: error.message });
-    return { success: false, error: error.message };
   }
 };
 
-// Update a resource
-export const updateResource = async (id, resourceData, user, emailOptions = { sendEmail: true }) => {
-  try {
-    if (!id) {
-      return { success: false, error: 'Resource ID is required for update' };
-    }
-    
-    logger.info('RESOURCE: Updating resource', { resourceId: id });
-    
-    // Validate input data
-    const validationErrors = validateResourceData(resourceData);
-    if (validationErrors.length > 0) {
-      logger.warn('RESOURCE: Validation failed', { errors: validationErrors });
-      return { success: false, error: validationErrors.join(', ') };
-    }
-    
-    const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], new Date());
-    const auditData = getUpdateAuditData(user);
-    const resourceWithTimestamps = {
-      ...convertedData,
-      ...auditData
-    };
-
-    const result = await updateResourceInDb(id, resourceWithTimestamps);
-    
-    if (result.success) {
-      // Log activity
-      try {
-        await logActivity(ACTIVITY_LOG_TYPES.RESOURCE_UPDATED, {
-          resourceId: id,
-          title: resourceData.titleEn || resourceData.title
-        });
-      } catch (logError) {
-        logger.warn('RESOURCE: Failed to log resource update:', logError);
-      }
-      
-      // TODO: Implement notification logic if needed
-      if (resourceData.classId && emailOptions.sendEmail) {
-        logger.info('RESOURCE: Update notifications would be sent for class', { classId: resourceData.classId });
-      }
-      
-      logger.info('RESOURCE: Successfully updated resource', { resourceId: id });
-    }
-    
-    return result;
-  } catch (error) {
-    logger.error('RESOURCE: Failed to update resource', { error: error.message, resourceId: id });
-    return { success: false, error: error.message };
-  }
-};
-
-// Delete a resource
-export const deleteResource = async (id) => {
-  try {
-    if (!id) {
-      return { success: false, error: 'Resource ID is required' };
-    }
-    
-    logger.info('RESOURCE: Deleting resource', { resourceId: id });
-    
-    // Get resource details for logging
-    const resourceResult = await getResourceFromDb(id);
-    
-    const result = await deleteResourceFromDb(id);
-    
-    if (result.success) {
-      // Log activity
-      try {
-        await logActivity(ACTIVITY_LOG_TYPES.RESOURCE_DELETED, {
-          resourceId: id,
-          title: resourceResult.success ? resourceResult.data.title : 'Unknown'
-        });
-      } catch (logError) {
-        logger.warn('RESOURCE: Failed to log resource deletion:', logError);
-      }
-      
-      logger.info('RESOURCE: Successfully deleted resource', { resourceId: id });
-    }
-    
-    return result;
-  } catch (error) {
-    logger.error('RESOURCE: Failed to delete resource', { error: error.message, resourceId: id });
-    return { success: false, error: error.message };
-  }
-};
-
-// Get resource by ID
+/**
+ * Get resource by ID - public interface
+ */
 export const getResourceById = async (id) => {
   try {
-    if (!id) {
-      return { success: false, error: 'Resource ID is required' };
-    }
+    info(`${serviceName}:getResourceById`, { id });
     
-    logger.info('RESOURCE: Fetching resource by ID', { resourceId: id });
-    
-    const result = await getResourceFromDb(id);
-    
-    if (result.success) {
-      logger.info('RESOURCE: Successfully fetched resource', { resourceId: id });
-    } else {
-      logger.warn('RESOURCE: Resource not found', { resourceId: id });
-    }
-    
+    // Use business service layer
+    const result = await getResourceByIdBusiness(id);
     return result;
-  } catch (error) {
-    logger.error('RESOURCE: Failed to fetch resource', { error: error.message, resourceId: id });
-    return { success: false, error: error.message };
+  } catch (err) {
+    error(`${serviceName}:getResourceById:error`, { error: err.message, id });
+    return {
+      success: false,
+      error: err.message || 'Failed to load resource',
+      data: null
+    };
   }
 };
 
-// Get resources by subject ID
-export const getResourcesBySubject = async (subjectId) => {
+/**
+ * Create resource - public interface
+ */
+export const createResource = async (resourceData, user = null) => {
   try {
-    if (!subjectId) {
-      return { success: false, error: 'Subject ID is required' };
-    }
+    info(`${serviceName}:createResource`, { data: resourceData });
     
-    logger.info('RESOURCE: Fetching resources by subject', { subjectId });
-    
-    const result = await getResourcesBySubjectFromDb(subjectId);
-    
-    if (result.success) {
-      logger.info('RESOURCE: Successfully fetched resources by subject', { subjectId, count: result.data.length });
-    }
-    
+    // Use business service layer
+    const result = await createResourceBusiness(resourceData, user);
     return result;
-  } catch (error) {
-    logger.error('RESOURCE: Failed to fetch resources by subject', { error: error.message, subjectId });
-    return { success: false, error: error.message };
+  } catch (err) {
+    error(`${serviceName}:createResource:error`, { error: err.message, data: resourceData });
+    return {
+      success: false,
+      error: err.message || 'Failed to create resource',
+      data: null
+    };
   }
 };
 
-// Get resources by type
-export const getResourcesByType = async (resourceType) => {
+export const addResource = createResource;
+
+/**
+ * Update resource - public interface
+ */
+export const updateResource = async (id, updateData, user = null) => {
   try {
-    if (!resourceType) {
-      return { success: false, error: 'Resource type is required' };
-    }
+    info(`${serviceName}:updateResource`, { id, data: updateData });
     
-    logger.info('RESOURCE: Fetching resources by type', { resourceType });
-    
-    const result = await getResourcesByTypeFromDb(resourceType);
-    
-    if (result.success) {
-      logger.info('RESOURCE: Successfully fetched resources by type', { resourceType, count: result.data.length });
-    }
-    
+    // Use business service layer
+    const result = await updateResourceBusiness(id, updateData, user);
     return result;
-  } catch (error) {
-    logger.error('RESOURCE: Failed to fetch resources by type', { error: error.message, resourceType });
-    return { success: false, error: error.message };
+  } catch (err) {
+    error(`${serviceName}:updateResource:error`, { error: err.message, id, data: updateData });
+    return {
+      success: false,
+      error: err.message || 'Failed to update resource',
+      data: null
+    };
   }
 };
 
-// Search resources - with debouncing optimization
-export const searchResources = async (searchTerm) => {
-  if (!searchTerm || searchTerm.trim().length === 0) {
-    return handleServiceError(
-      new Error('Search term is required'),
-      { operation: 'searchResources', searchTerm }
-    );
-  }
-  
-  logger.info('RESOURCE: Searching resources', { searchTerm });
-  
-  const result = await searchResourcesFromDb(searchTerm.trim());
-  
-  if (result.success) {
-    logger.info('RESOURCE: Successfully searched resources', { searchTerm, count: result.data.length });
-  }
-  
-  return result;
-};
-
-// Get resource count
-export const getResourceCount = async (filters = {}) => {
+/**
+ * Delete resource - public interface
+ */
+export const deleteResource = async (id, user = null) => {
   try {
-    logger.info('RESOURCE: Getting resource count', { filters });
+    info(`${serviceName}:deleteResource`, { id });
     
-    const result = await getResourceCountFromDb(filters);
-    
-    if (result.success) {
-      logger.info('RESOURCE: Successfully got resource count', { count: result.count });
-    }
-    
+    // Use business service layer
+    const result = await deleteResourceBusiness(id, user);
     return result;
-  } catch (error) {
-    logger.error('RESOURCE: Failed to get resource count', { error: error.message });
-    return { success: false, error: error.message, count: 0 };
+  } catch (err) {
+    error(`${serviceName}:deleteResource:error`, { error: err.message, id });
+    return {
+      success: false,
+      error: err.message || 'Failed to delete resource',
+      data: null
+    };
   }
 };
 
+export default {
+  getResources,
+  getResourceById,
+  createResource,
+  addResource,
+  updateResource,
+  deleteResource
+};

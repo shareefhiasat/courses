@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useLayoutEffect, useRef } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -12,7 +12,7 @@ import { getEnrollments } from '@services/business/enrollmentService';
 import { getPenalties } from '@services/business/penaltyService';
 import { getBehaviors } from '@services/business/behaviorService';
 import { getAllQuizzes } from '@services/business/quizService';
-import { getActivities } from '@services/business/activityService';
+import { getActivities } from '@services/business/activitiesService';
 import { getAnnouncements } from '@services/business/announcementService';
 import { getResources } from '@services/business/resourceService';
 import { FilterSelect, useToast, SimpleLoading, Button, Select } from '@ui';
@@ -37,6 +37,20 @@ const ClassSchedulePage = () => {
       return cls.nameAr;
     }
     return cls.name || cls.code || t('unnamed_class') || 'Unnamed Class';
+  };
+
+  // Helper function to get localized subject name
+  const getLocalizedSubjectName = (cls) => {
+    if (!cls.subjectId) return '';
+    
+    // Find the subject from subjects array
+    const subject = subjects.find(sub => sub.id === cls.subjectId);
+    if (!subject) return '';
+    
+    // Return localized name
+    return lang === 'ar' && subject.nameAr 
+      ? subject.nameAr 
+      : subject.name || subject.nameEn || '';
   };
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
@@ -126,7 +140,18 @@ const ClassSchedulePage = () => {
   }, [classes, lang, t]);
 
   const filteredClasses = useMemo(() => {
+    console.log('🔍 [DEBUG] filteredClasses called:', {
+      totalClasses: classes.length,
+      programFilter,
+      subjectFilter,
+      classFilter,
+      yearFilter,
+      termFilter,
+      quickSearch
+    });
+
     let result = [...classes];
+    console.log('🔍 [DEBUG] Initial result:', result.length);
 
     // Quick search filter for class name or instructor
     if (quickSearch.trim()) {
@@ -138,10 +163,94 @@ const ClassSchedulePage = () => {
           : '';
         return className.includes(searchLower) || instructorName.includes(searchLower);
       });
+      console.log('🔍 [DEBUG] After quick search:', result.length);
     }
 
-    // Note: Program, subject, and class filtering is now handled by ProgramsSelect
-    // We only need to filter by year and term here
+    // Filter by program
+    if (programFilter !== 'all' && programFilter !== '' && programFilter !== null) {
+      // Handle React event objects from ProgramsSelect clear action
+      const filterValue = typeof programFilter === 'object' && programFilter.target 
+        ? programFilter.target.value || 'all'
+        : typeof programFilter === 'object' 
+          ? programFilter.value || programFilter.id 
+          : programFilter;
+      
+      // If it's an event object with empty value, treat as 'all'
+      if (filterValue === '' || filterValue === undefined) {
+        console.log('🔍 [DEBUG] Program filter cleared, skipping filter');
+      } else {
+        result = result.filter(cls => {
+          const clsProgramId = cls.programId || cls.program?.id;
+          const matches = clsProgramId === parseInt(filterValue) || clsProgramId === filterValue;
+          console.log('🔍 [DEBUG] Program filter check:', {
+            clsId: cls.id,
+            clsProgramId,
+            filterValue,
+            programFilter,
+            matches
+          });
+          return matches;
+        });
+        console.log('🔍 [DEBUG] After program filter:', result.length);
+      }
+    }
+
+    // Filter by subject
+    if (subjectFilter !== 'all' && subjectFilter !== '' && subjectFilter !== null) {
+      // Handle React event objects from ProgramsSelect clear action
+      const filterValue = typeof subjectFilter === 'object' && subjectFilter.target 
+        ? subjectFilter.target.value || 'all'
+        : typeof subjectFilter === 'object' 
+          ? subjectFilter.value || subjectFilter.id 
+          : subjectFilter;
+      
+      // If it's an event object with empty value, treat as 'all'
+      if (filterValue === '' || filterValue === undefined) {
+        console.log('🔍 [DEBUG] Subject filter cleared, skipping filter');
+      } else {
+        result = result.filter(cls => {
+          const clsSubjectId = cls.subjectId || cls.subject?.id;
+          const matches = clsSubjectId === parseInt(filterValue) || clsSubjectId === filterValue;
+          console.log('🔍 [DEBUG] Subject filter check:', {
+            clsId: cls.id,
+            clsSubjectId,
+            filterValue,
+            subjectFilter,
+            matches
+          });
+          return matches;
+        });
+        console.log('🔍 [DEBUG] After subject filter:', result.length);
+      }
+    }
+
+    // Filter by specific class
+    if (classFilter !== 'all' && classFilter !== '' && classFilter !== null) {
+      // Handle React event objects from ProgramsSelect clear action
+      const filterValue = typeof classFilter === 'object' && classFilter.target 
+        ? classFilter.target.value || 'all'
+        : typeof classFilter === 'object' 
+          ? classFilter.value || classFilter.id 
+          : classFilter;
+      
+      // If it's an event object with empty value, treat as 'all'
+      if (filterValue === '' || filterValue === undefined) {
+        console.log('🔍 [DEBUG] Class filter cleared, skipping filter');
+      } else {
+        result = result.filter(cls => {
+          const clsId = cls.docId || cls.id;
+          const matches = clsId === parseInt(filterValue) || clsId === filterValue;
+          console.log('🔍 [DEBUG] Class filter check:', {
+            clsId,
+            filterValue,
+            classFilter,
+            matches
+          });
+          return matches;
+        });
+        console.log('🔍 [DEBUG] After class filter:', result.length);
+      }
+    }
 
     // Filter by year
     if (yearFilter !== 'all') {
@@ -224,8 +333,17 @@ const ClassSchedulePage = () => {
       return aInstructor.localeCompare(bInstructor);
     });
     
+    console.log('🔍 [DEBUG] Final filtered result:', result.length);
+    console.log('🔍 [DEBUG] Final classes:', result.map(cls => ({
+      id: cls.id,
+      name: cls.name,
+      code: cls.code,
+      programId: cls.programId,
+      subjectId: cls.subjectId
+    })));
+    
     return result;
-  }, [classes, yearFilter, termFilter, instructors, quickSearch]);
+  }, [classes, programFilter, subjectFilter, classFilter, yearFilter, termFilter, instructors, quickSearch]);
 
   // Group classes by semester for semester view
   const classesBySemester = useMemo(() => {
@@ -256,12 +374,12 @@ const ClassSchedulePage = () => {
     const classIds = classList.map(cls => cls.docId || cls.id).filter(Boolean);
     
     if (classIds.length === 0) {
-      console.warn('📊 [ClassSchedule] No valid class IDs found');
+      warn('📊 [ClassSchedule] No valid class IDs found');
       return;
     }
     
     try {
-      // Fetch data for statistics (needed for ClassCard display)
+      // Fetch data for statistics (needed for ClassCard display);
       const [
         enrollmentsRes,
         penaltiesRes,
@@ -303,7 +421,7 @@ const ClassSchedulePage = () => {
       
       setClassStats(stats);
     } catch (error) {
-      console.error('❌ [ClassSchedule] Failed to fetch stats:', error);
+      error('❌ [ClassSchedule] Failed to fetch stats:', error);
       // Set empty stats on error
       const emptyStats = {};
       classIds.forEach(classId => {
@@ -353,7 +471,7 @@ const ClassSchedulePage = () => {
             const instructorData = userRes.success ? userRes.data : null;
             return { email, data: instructorData };
           } catch (error) {
-            console.warn(`Failed to fetch instructor for email: ${email}`, error);
+            warn(`Failed to fetch instructor for email: ${email}`, error);
             return { email, data: null };
           }
         });
@@ -388,7 +506,7 @@ const ClassSchedulePage = () => {
     } catch (e) {
       // permission-denied should not spam console
       if (e?.code === 'permission-denied') return;
-      logger.error('[Schedule] Error loading classes:', e);
+      error('[Schedule] Error loading classes:', e);
     } finally {
       if (!isInitial) setLoading(false);
     }
@@ -489,7 +607,7 @@ const ClassSchedulePage = () => {
         throw new Error(result.error);
       }
     } catch (e) {
-      logger.error('[Schedule] Error saving:', e);
+      error('[Schedule] Error saving:', e);
       toast?.error?.((t('schedule_save_failed') || 'Failed to save schedule: ') + (e?.message || 'unknown error'));
     } finally {
       setSaving(false);
@@ -679,7 +797,8 @@ const ClassSchedulePage = () => {
                   realName: instructors[cls.ownerEmail].realName,
                   email: instructors[cls.ownerEmail].email,
                   messageColor: instructors[cls.ownerEmail].messageColor
-                } : null
+                } : null,
+                subjectName: getLocalizedSubjectName(cls)
               };
               
               return (
@@ -701,6 +820,15 @@ const ClassSchedulePage = () => {
                   <div style={{ fontWeight: 600, fontSize: 14 }}>
                     {getLocalizedClassName(cls)}
                   </div>
+                  
+                  {/* Subject Name */}
+                  {clsWithInstructor.subjectName && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 3 }}>
+                      {getThemedIcon('ui', 'book', 10, theme)}
+                      {clsWithInstructor.subjectName}
+                    </div>
+                  )}
+                  
                   <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                     {(cls.term || cls.year) && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -1080,7 +1208,8 @@ const ClassSchedulePage = () => {
                         realName: instructors[cls.ownerEmail].realName,
                         email: instructors[cls.ownerEmail].email,
                         messageColor: instructors[cls.ownerEmail].messageColor
-                      } : null
+                      } : null,
+                      subjectName: getLocalizedSubjectName(cls)
                     };
                     
                     return (

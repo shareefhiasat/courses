@@ -5,17 +5,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { signOutUser } from '@services/business/authService';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@services/other/config';
 import { normalizeHexColor, DEFAULT_ACCENT, hexToRgbString } from '@utils/color';
 import { getThemedIcon } from '@constants/iconTypes';
 import { TimerStopwatch } from '@ui';
 import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const SideDrawer = ({ isOpen, onClose }) => {
-  const { user, isAdmin, isSuperAdmin, isHR, isInstructor, role, impersonating, stopImpersonation } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isHR, isInstructor, role, impersonating, stopImpersonation, logout } = useAuth();
   const { t, lang, toggleLang } = useLang();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
@@ -49,17 +46,15 @@ const SideDrawer = ({ isOpen, onClose }) => {
   
   // Load user's accent color
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.id) return;
     const loadAccentColor = async () => {
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          const color = normalizeHexColor(data.messageColor, DEFAULT_ACCENT);
-          setUserAccentColor(color);
-        }
+        // Mock implementation - replace with GraphQL query
+        info('🎨 Load accent color (mock) for user:', user.id);
+        const color = DEFAULT_ACCENT; // Use default for now
+        setUserAccentColor(color);
       } catch (e) {
-        console.warn('[SideDrawer] Error loading accent color:', e);
+        warn('[SideDrawer] Error loading accent color:', e);
       }
     };
     loadAccentColor();
@@ -125,17 +120,11 @@ const SideDrawer = ({ isOpen, onClose }) => {
 
   const handleLogout = async () => {
     try {
-      const result = await signOutUser(user);
-      if (result.success) {
-        navigate('/login');
-      } else {
-        // Even if signOutUser fails, try to navigate to login
-        logger.warn('[SideDrawer] Logout failed but navigating to login anyway');
-        navigate('/login');
-      }
+      await logout();
+      navigate('/login');
     } catch (error) {
-      logger.error('[SideDrawer] Error during logout:', error);
-      // Force navigation even on error
+      error('[SideDrawer] Logout failed:', error);
+      // Even if logout fails, try to navigate to login
       navigate('/login');
     }
   };

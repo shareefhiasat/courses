@@ -2,9 +2,11 @@ import React, { useCallback, useMemo } from 'react';
 import { useIsMobile } from '@hooks/useIsMobile';
 import { HistoryEntry } from './HistoryEntry';
 import { getAttendanceIcon, getAttendanceColor, ATTENDANCE_STATUS } from '@constants/attendanceTypes';
-import { getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
-import { getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
-import { getPenaltyIcon, getPenaltyColor } from '@constants/penaltyTypes';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
+// OLD: import { getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
+// OLD: import { getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
+// OLD: import { getPenaltyIcon, getPenaltyColor } from '@constants/penaltyTypes';
+// NOW: Using useLookupTypes hook for all lookup data
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import {
   CheckSmallIcon,
@@ -30,11 +32,14 @@ export const HistorySection = ({
   borderColor = '#f1f5f9'
 }) => {
   const isMobile = useIsMobile();
+  const { data: lookupData } = useLookupTypes({
+    types: ['behavior-types', 'participation-types', 'penalty-types']
+  });
   // Handle the mismatch between type ('penalty') and filter key ('penalties')
   const filterKey = type === RECORD_TYPES.PENALTY ? 'penalties' : type;
   const isActive = activeFilters[filterKey];
   
-  logger.log('🔧 HistorySection:', {
+  info('🔧 HistorySection:', {
     title,
     type,
     filterKey,
@@ -52,7 +57,7 @@ export const HistorySection = ({
     });
   }, [logs]);
   
-  logger.log('🔍 HistorySection sorting:', { 
+  info('🔍 HistorySection sorting:', { 
     title, 
     type,
     originalLogsCount: logs.length,
@@ -66,8 +71,10 @@ export const HistorySection = ({
       // Attendance status is now flattened to top level (no more data nesting)
       const status = log.status;
       
-      const iconName = getAttendanceIcon(status);
-      const statusColor = getAttendanceColor(status);
+      const statusValue = status?.code || status;
+      const iconName = getAttendanceIcon(statusValue);
+      const statusColor = getAttendanceColor(statusValue);
+      console.log('🔍 HistorySection - Icon Mapping:', { status, statusValue, iconName, statusColor, colorSource: statusValue === status ? 'direct' : 'code' });
       
       const iconMap = {
         CheckCircle: <CheckSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
@@ -78,31 +85,39 @@ export const HistorySection = ({
         HelpCircle: <HelpCircleIcon style={{ width: '12px', height: '12px', color: statusColor }} />
       };
       
-      return iconMap[iconName] || iconMap.HelpCircle;
+      const selectedIcon = iconMap[iconName] || iconMap.HelpCircle;
+      console.log('🔍 HistorySection - Selected Icon:', { iconName, hasIcon: !!iconMap[iconName], fallback: !iconMap[iconName] });
+      return selectedIcon;
     }
     
     if (type === RECORD_TYPES.BEHAVIOR) {
-      logger.log('🔍 HistorySection returning behavior icon');
-      return <ZapIcon style={{ width: '14px', height: '14px', color: getBehaviorColor(log.type) }} />;
+      info('🔍 HistorySection returning behavior icon');
+      const behaviorType = (lookupData['behavior-types'] || []).find(bt => bt.id === log.type);
+      const color = behaviorType?.color || '#f59e0b';
+      return <ZapIcon style={{ width: '14px', height: '14px', color }} />;
     }
     
     if (type === RECORD_TYPES.PARTICIPATION) {
-      logger.log('🔍 HistorySection returning participation icon');
-      return <ParticipationIcon style={{ width: '14px', height: '14px', color: getParticipationColor(log.type) }} />;
+      info('🔍 HistorySection returning participation icon');
+      const participationType = (lookupData['participation-types'] || []).find(pt => pt.id === log.type);
+      const color = participationType?.color || '#10b981';
+      return <ParticipationIcon style={{ width: '14px', height: '14px', color }} />;
     }
     
     if (type === RECORD_TYPES.PENALTY) {
-      logger.log('🔍 HistorySection returning penalty icon');
-      return <PenaltyIcon style={{ width: '14px', height: '14px', color: getPenaltyColor(log.type) }} />;
+      info('🔍 HistorySection returning penalty icon');
+      const penaltyType = (lookupData['penalty-types'] || []).find(pt => pt.id === log.type);
+      const color = penaltyType?.color || '#ef4444';
+      return <PenaltyIcon style={{ width: '14px', height: '14px', color }} />;
     }
     
-    logger.log('🔍 HistorySection returning fallback icon');
+    info('🔍 HistorySection returning fallback icon');
     return icon;
-  }, [type, icon]);
+  }, [type, icon, lookupData]);
 
   if (!isActive || logs.length === 0) return null;
 
-  logger.log('🔧 HistorySection - rendering section:', title);
+  info('🔧 HistorySection - rendering section:', title);
 
   return (
     <div style={{ marginBottom: isMobile ? '0.25rem' : '0.5rem' }}>

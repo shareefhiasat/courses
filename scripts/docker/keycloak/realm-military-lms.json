@@ -1,0 +1,154 @@
+{
+  "id": "military-lms",
+  "realm": "military-lms",
+  "displayName": "Military LMS",
+  "displayNameHtml": "<div class=\"kc-logo-text\"><span>Military LMS</span></div>",
+  "enabled": true,
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": false,
+  "editUsernameAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "verifyEmail": false,
+  "loginTheme": "keycloak",
+  "accountTheme": "keycloak",
+  "adminTheme": "keycloak",
+  "emailTheme": "keycloak",
+  "sslRequired": "none",
+  "browserSecurityHeaders": {
+    "contentSecurityPolicy": "frame-src 'self' http://localhost:5174 https://localhost:5174; frame-ancestors 'self' http://localhost:5174 https://localhost:5174; default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' http://localhost:5174 https://localhost:5174;",
+    "xFrameOptions": "ALLOW",
+    "xContentTypeOptions": "nosniff",
+    "xRobotsTag": "none",
+    "xXSSProtection": "1; mode=block",
+    "strictTransportSecurity": "max-age=31536000; includeSubDomains"
+  },
+  "clients": [
+    {
+      "clientId": "military-lms-app",
+      "name": "Military LMS Application",
+      "description": "Military LMS Frontend Application",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "military-lms-secret",
+      "redirectUris": [
+        "https://localhost:5174/*",
+        "https://localhost:5174/login*",
+        "https://localhost:5174/silent-check-sso.html",
+        "http://localhost:5174/*",
+        "http://localhost:5174/login*",
+        "http://localhost:5174/silent-check-sso.html"
+      ],
+      "webOrigins": [
+        "https://localhost:5174",
+        "http://localhost:5174"
+      ],
+      "adminUrl": "https://localhost:5174",
+      "rootUrl": "https://localhost:5174",
+      "baseUrl": "https://localhost:5174",
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "saml.assertion.signature": "RSA_SHA256",
+        "saml.multivalued.attributes": "false",
+        "saml.force.post.binding": "false",
+        "saml.server.signature": "false",
+        "saml.server.signature.keyinfo.ext": "false",
+        "exclude.session.state.from.login.response": "false",
+        "saml_force_name_id_format": "false",
+        "saml.client.signature": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "saml.authnstatement": "false",
+        "display.on.consent.screen": "false",
+        "saml.onetimeuse.condition": "false"
+      },
+      "fullScopeAllowed": true,
+      "nodeReTimeout": 0,
+      "defaultClientScopes": [
+        "web-origins",
+        "role_list",
+        "profile",
+        "email",
+        "roles",
+        "acr"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "id": "super_admin",
+        "name": "super_admin",
+        "description": "Super Administrator role with full system access",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "military-lms"
+      },
+      {
+        "id": "admin",
+        "name": "admin",
+        "description": "Administrator role",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "military-lms"
+      },
+      {
+        "id": "instructor",
+        "name": "instructor",
+        "description": "Instructor role",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "military-lms"
+      },
+      {
+        "id": "student",
+        "name": "student",
+        "description": "Student role",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "military-lms"
+      }
+    ],
+    "client": {},
+    "application": {}
+  },
+  "users": [
+    {
+      "id": "admin-user",
+      "createdTimestamp": 1672531200000,
+      "username": "admin",
+      "enabled": true,
+      "totp": false,
+      "emailVerified": false,
+      "firstName": "Admin",
+      "lastName": "User",
+      "email": "admin@lms.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin"
+      ],
+      "clientRoles": {},
+      "applicationRoles": {}
+    }
+  ]
+}

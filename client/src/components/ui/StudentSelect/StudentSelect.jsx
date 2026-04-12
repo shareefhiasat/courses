@@ -4,7 +4,8 @@ import Select from '../Select';
 import StudentSelectOption from '../StudentSelectOption/StudentSelectOption';
 import { getUserStatus, getUserStatusSummary } from '../../../utils/userStatus';
 
-const StudentSelect = ({
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const StudentSelect = ({
   value,
   onChange,
   students = [],

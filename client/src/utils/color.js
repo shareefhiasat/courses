@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 const DEFAULT_ACCENT = '#810c29'; // Use primary color as default to avoid flash
 
 const sanitizeHex = (value) => {

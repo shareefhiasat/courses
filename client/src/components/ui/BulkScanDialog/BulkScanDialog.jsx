@@ -1,12 +1,16 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
-import { X, Upload, Trash2, Calendar, RefreshCw, Download, RotateCcw, Users, CheckCircle, AlertCircle, Info } from 'lucide-react';
-import { ATTENDANCE_TYPES, STANDUP_ATTENDANCE_TYPES, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
+import { X, Upload, Trash2, Calendar, RefreshCw, Download, RotateCcw, Users, CheckCircle, AlertCircle, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ATTENDANCE_TYPES, STANDUP_ATTENDANCE_TYPES, ATTENDANCE_TYPE_CATEGORY, getAttendanceColor, ATTENDANCE_DISPLAY_NAMES } from '@constants/attendanceTypes';
 import { getThemedIcon } from '@constants/iconTypes';
-import useManualBulkScan from '@hooks/useManualBulkScan';
+import { useBulkScan } from '@/contexts/BulkScanContext';
 import { useTheme } from '@contexts/ThemeContext';
 import Tabs from '@components/ui/Tabs/Tabs';
+import StatusCard from './StatusCard';
+import StudentChip from './StudentChip';
 import styles from './BulkScanDialog.module.css';
 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';
 const BulkScanDialog = ({
   isOpen,
   onClose,
@@ -25,15 +29,6 @@ const BulkScanDialog = ({
   showSuccess,
   showError
 }) => {
-  // DEBUG: Log dialog props
-  console.log('🔍 [DEBUG] BulkScanDialog props:', {
-    isOpen,
-    attendanceMode,
-    hasOnModeChange: !!onModeChange,
-    classId,
-    programId
-  });
-
   const { theme } = useTheme();
   const textareaRef = useRef(null);
   const isRTL = lang === 'ar';
@@ -46,27 +41,20 @@ const BulkScanDialog = ({
     // Clear stale data when switching between different operation types
     if (activeTab !== tab) {
       // Clear parsed results and validation when switching tabs
-      // But preserve input text for "Add All Except" if coming from manual
-      const currentInput = inputText;
-      if (tab === 'addAllExcept' && activeTab === 'manual') {
-        // Preserve input text when going from manual to addAllExcept
-        clearState();
-        setInputText(currentInput);
-      } else {
-        // Clear everything for other tab switches
-        clearState();
-      }
+      clearState();
     }
     setActiveTab(tab);
+
+    // Auto-fetch all students when clicking Add All tab
+    // (addAllStudents already handles parsing and validation internally)
+    if (tab === 'addAll') {
+      addAllStudents({ programId, classId, attendanceMode });
+    }
   };
 
   // Execute bulk operations
   const executeBulkOperation = () => {
-    if (activeTab === 'addAll') {
-      addAllStudents();
-    } else if (activeTab === 'addAllExcept') {
-      addAllExcept();
-    }
+    // Add All tab doesn't need a separate execute operation - it auto-fetches on tab click
   };
 
   // Remove individual student number
@@ -86,6 +74,62 @@ const BulkScanDialog = ({
     }
   };
 
+  const {
+    inputText,
+    setInputText,
+    parsedNumbers,
+    invalidRows,
+    duplicates,
+    validatedStudents,
+    selectedStudents,
+    excludedStudents,
+    selectedStatus,
+    setSelectedStatus,
+    selectedDate,
+    setSelectedDate,
+    loading,
+    validating,
+    addingAll,
+    error,
+    progress,
+    result,
+    clearState,
+    clearAll,
+    addAllStudents,
+    addAllExcept,
+    removeChip,
+    parseInput,
+    validateStudents,
+    submit,
+    canSubmit,
+    stats,
+    updateConfig,
+    moveToExcluded,
+    moveToSelected,
+    moveAllToExcluded,
+    moveAllToSelected,
+  } = useBulkScan();
+
+  useEffect(() => {
+    if (isOpen && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [isOpen]);
+
+  // Reset all state when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setActiveTab(null);
+      clearAll();
+    }
+  }, [isOpen, clearAll]);
+
+  useEffect(() => {
+    if (parsedNumbers.length > 0 && validatedStudents.found.length === 0 && !validating) {
+      validateStudents();
+    }
+  }, [parsedNumbers, validatedStudents.found.length, validating, validateStudents]);
+
   // Define tabs for the Tabs component
   const bulkTabs = [
     {
@@ -97,71 +141,8 @@ const BulkScanDialog = ({
       value: 'addAll',
       label: t('add_all') || 'Add All',
       icon: <Users size={16} />
-    },
-    {
-      value: 'addAllExcept',
-      label: t('add_all_except') || 'Add All Except',
-      icon: <Users size={16} />
     }
   ];
-
-  const {
-    inputText,
-    setInputText,
-    parsedNumbers,
-    invalidRows,
-    duplicates,
-    validatedStudents,
-    selectedStatus,
-    setSelectedStatus,
-    selectedDate,
-    setSelectedDate,
-    dateKey,
-    loading,
-    validating,
-    addingAll,
-    error,
-    progress,
-    result,
-    parseInput,
-    validateStudents,
-    removeChip,
-    clearAll,
-    clearState,
-    addAllStudents,
-    addAllExcept,
-    submit,
-    canSubmit,
-    stats
-  } = useManualBulkScan({
-    programId,
-    subjectId,
-    classId,
-    markedBy,
-    performedBy,
-    performedByName,
-    performedByEmail,
-    attendanceMode,
-    onSuccess: (result) => {
-      if (onSuccess) onSuccess(result);
-      // Don't auto-close, let user see results
-    },
-    t,
-    showSuccess,
-    showError
-  });
-
-  useEffect(() => {
-    if (isOpen && textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (parsedNumbers.length > 0 && validatedStudents.found.length === 0 && !validating) {
-      validateStudents();
-    }
-  }, [parsedNumbers, validatedStudents.found.length, validating, validateStudents]);
 
   // Export functionality
   const exportResults = useCallback(() => {
@@ -266,22 +247,27 @@ const BulkScanDialog = ({
   if (!isOpen) return null;
 
   const handlePaste = (e) => {
+    console.log('[BulkScanDialog] handlePaste triggered');
     setTimeout(() => {
+      console.log('[BulkScanDialog] Calling parseInput after paste');
       parseInput();
     }, 50);
   };
 
-  const handleParseClick = () => {
-    parseInput();
+  const handleParseClick = async () => {
+    console.log('[BulkScanDialog] handleParseClick triggered');
+    await parseInput();
   };
 
   const handleSubmit = async () => {
-    await submit();
+    const submissionResult = await submit();
+    // Dialog closure is handled by the onSuccess callback in the parent component
   };
 
   const formatDate = (date) => {
     if (!date) return '';
     const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
     return d.toISOString().split('T')[0];
   };
 
@@ -311,7 +297,7 @@ const BulkScanDialog = ({
       >
         <div className={styles.header}>
           <h2 id="bulk-scan-title" className={styles.title}>
-            {t('bulk_scan_title') || 'Bulk Student Scan'}
+            {t('bulk_scan_title') || 'Bulk Scan'}
           </h2>
           <button
             onClick={handleClose}
@@ -349,8 +335,8 @@ const BulkScanDialog = ({
 
         <div className={styles.content}>
           {/* Beautiful Tab Navigation - Moved to Top */}
-          <div style={{ marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div className={styles.tabNavigationContainer}>
+            <div className={styles.tabNavigationHeader}>
               <Tabs
                 tabs={bulkTabs}
                 activeTab={activeTab}
@@ -359,169 +345,189 @@ const BulkScanDialog = ({
                 size="md"
                 style={{ flex: 1 }}
               />
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                {activeTab === 'manual' && (
-                  <button
-                    onClick={handleParseClick}
-                    className={styles.parseButton}
-                    disabled={!inputText.trim() || loading}
-                  >
-                    <Upload size={16} />
-                    {t('parse_input') || 'Parse Input'}
-                  </button>
-                )}
-                {(activeTab === 'addAll' || activeTab === 'addAllExcept') && (
-                  <button
-                    onClick={executeBulkOperation}
-                    className={activeTab === 'addAll' ? styles.addAllButton : styles.addAllExceptButton}
-                    disabled={loading || validating || addingAll || (activeTab === 'addAllExcept' && inputText.trim() === '') || result !== null}
-                  >
-                    {addingAll ? (
-                      <>
-                        <span className={styles.spinner} />
-                        {t('adding_all') || 'Adding All...'}
-                      </>
-                    ) : (
-                      <>
-                        <Users size={16} />
-                        {activeTab === 'addAll' ? (t('add_all') || 'Add All') : (t('add_all_except') || 'Add All Except')}
-                      </>
-                    )}
-                  </button>
-                )}
-                <button
-                  onClick={clearState}
-                  className={styles.clearButton}
-                  disabled={loading || addingAll}
-                  title={t('clear_and_new') || 'Clear All and Start New Operation'}
-                  style={{ marginLeft: '0.5rem' }}
-                >
-                  <RotateCcw size={16} />
-                  {t('clear_new') || 'Clear/New'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.inputSection}>
-            <label htmlFor="bulk-input" className={styles.label}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {t('paste_student_numbers') || 'Paste Student Numbers'}
-                <div className={styles.infoIcon} title={t('bulk_input_help') || 'Maximum 500 student numbers per operation'}>
-                  <Info size={14} />
-                </div>
-              </span>
-              <span className={styles.hint}>
-                {t('one_per_line') || '(One per line, numeric only)'}
-              </span>
-            </label>
-            <textarea
-              id="bulk-input"
-              ref={textareaRef}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onPaste={handlePaste}
-              placeholder={t('bulk_paste_placeholder') || 'Paste student numbers here...\n12345\n67890\n...'}
-              className={styles.textarea}
-              rows={4}
-              disabled={loading}
-            />
-          </div>
-
-          {(invalidRows.length > 0 || duplicates.length > 0) && (
-            <div className={styles.validationSection}>
-              {invalidRows.length > 0 && (
-                <div className={styles.errorBox}>
-                  <div className={styles.errorHeader}>
-                    <AlertCircle size={16} />
-                    <span>{t('invalid_entries') || 'Invalid Entries'} ({invalidRows.length})</span>
-                  </div>
-                  <div className={styles.errorList}>
-                    {invalidRows.slice(0, 10).map((item, idx) => (
-                      <div key={idx} className={styles.errorItem}>
-                        <span className={styles.errorLine}>Line {item.line}:</span>
-                        <span className={styles.errorValue}>"{item.value}"</span>
-                        <span className={styles.errorReason}>- {item.reason}</span>
-                      </div>
-                    ))}
-                    {invalidRows.length > 10 && (
-                      <div className={styles.errorMore}>
-                        ...and {invalidRows.length - 10} more
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {duplicates.length > 0 && (
-                <div className={styles.warningBox}>
-                  <div className={styles.warningHeader}>
-                    <AlertCircle size={16} />
-                    <span>{t('duplicates_removed') || 'Duplicates Removed'} ({duplicates.length})</span>
-                  </div>
-                  <div className={styles.warningList}>
-                    {duplicates.slice(0, 5).map((item, idx) => (
-                      <div key={idx} className={styles.warningItem}>
-                        Line {item.line}: "{item.value}"
-                      </div>
-                    ))}
-                    {duplicates.length > 5 && (
-                      <div className={styles.warningMore}>
-                        ...and {duplicates.length - 5} more
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {parsedNumbers.length > 0 && (
-            <div className={styles.chipsSection}>
-              <div className={styles.chipsHeader}>
-                <span className={styles.chipsTitle}>
-                  {t('student_numbers') || 'Student Numbers'} ({parsedNumbers.length})
-                </span>
-                {validating && (
-                  <span className={styles.validatingBadge}>
-                    {t('validating') || 'Validating...'}
-                  </span>
-                )}
-              </div>
-              <div className={styles.chipsContainer} role="list">
-                {parsedNumbers.map((number) => {
-                  const studentInfo = validatedStudents.found.find(s => s.studentNumber === number);
-                  const isNotFound = validatedStudents.notFound.includes(number);
-                  
-                  return (
-                    <div
-                      key={number}
-                      className={`${styles.chip} ${isNotFound ? styles.chipNotFound : ''} ${studentInfo ? styles.chipFound : ''}`}
-                      role="listitem"
+              {activeTab && (
+                <div className={styles.tabActions}>
+                  {activeTab === 'manual' && (
+                    <button
+                      onClick={handleParseClick}
+                      className={styles.parseButton}
+                      disabled={!inputText.trim() || loading}
                     >
-                      <span className={styles.chipText}>
-                        {number}
-                        {studentInfo && (
-                          <span className={styles.chipName}> - {studentInfo.displayName}</span>
-                        )}
-                        {isNotFound && (
-                          <span className={styles.chipNotFoundText}> - {t('not_found') || 'Not Found'}</span>
-                        )}
-                      </span>
-                      <button
-                        onClick={() => removeStudentNumber(number)}
-                        className={styles.chipRemove}
-                        aria-label={`Remove student ${number}`}
-                        title={`Remove student ${number}`}
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+                      <Upload size={16} />
+                      {t('parse_input') || 'Parse Input'}
+                    </button>
+                  )}
+                  {activeTab === 'addAllExcept' && (
+                    <button
+                      onClick={executeBulkOperation}
+                      className={styles.addAllExceptButton}
+                      disabled={loading || validating || addingAll || inputText.trim() === '' || result !== null}
+                    >
+                      {addingAll ? (
+                        <>
+                          <span className={styles.spinner} />
+                          {t('adding_all') || 'Adding All...'}
+                        </>
+                      ) : (
+                        <>
+                          <Users size={16} />
+                          {t('add_all_except') || 'Add All Except'}
+                        </>
+                      )}
+                    </button>
+                  )}
+                  <button
+                    onClick={clearState}
+                    className={`${styles.clearButton} ${styles.tabActionButtons}`}
+                    disabled={loading || addingAll}
+                    title={t('clear_and_new') || 'Clear All and Start New Operation'}
+                  >
+                    <RotateCcw size={16} />
+                    {t('clear_new') || 'Clear/New'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Show instructional message when no tab is selected */}
+          {!activeTab && (
+            <div className={`${styles.instructionalMessage} ${styles[theme]}`}>
+              <Users size={48} className={styles.instructionalIcon} />
+              <p className={styles.instructionalTitle}>
+                {t('select_input_method') || 'Select an Input Method'}
+              </p>
+              <p className={styles.instructionalDescription}>
+                {t('select_input_method_desc') || 'Choose Manual Input to paste student numbers, or Add All to load all students from the program'}
+              </p>
             </div>
           )}
+
+          {/* Dual-list layout and controls - only show when a tab is selected */}
+          {activeTab && (
+            <>
+            {/* Dual-list layout for modern mode */}
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+              {/* Left column: Text area for manual input or excluded students */}
+              <div style={{ flex: 0.5, display: 'flex', flexDirection: 'column' }}>
+                <label htmlFor="bulk-input" className={styles.label}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {activeTab === 'manual'
+                      ? (t('paste_student_numbers') || 'Paste Student Numbers')
+                      : (t('excluded_students') || 'Excluded Students')}
+                  </span>
+                </label>
+                {activeTab === 'manual' ? (
+                  <textarea
+                    id="bulk-input"
+                    ref={textareaRef}
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onPaste={handlePaste}
+                    placeholder={t('bulk_paste_placeholder') || 'Paste student numbers here...\n12345\n67890\n...'}
+                    className={styles.textarea}
+                    rows={10}
+                    disabled={loading}
+                    style={{ width: '100%', minHeight: '300px' }}
+                  />
+                ) : (
+                  <div className={styles.chipsContainer} role="list" style={{ minHeight: '300px', maxHeight: '400px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.5rem' }}>
+                    {excludedStudents.length === 0 ? (
+                      <div style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>
+                        {t('no_excluded_students') || 'No excluded students'}
+                      </div>
+                    ) : (
+                      excludedStudents.map((student) => (
+                        <StudentChip
+                          key={student.userId || student.id}
+                          student={student}
+                          direction="toSelected"
+                          onMove={moveToSelected}
+                          disabled={loading}
+                        />
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Move buttons column */}
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                {(activeTab === 'addAll' || activeTab === 'manual') && (
+                  <>
+                    <button
+                      onClick={moveAllToExcluded}
+                      className={styles.clearButton}
+                      disabled={selectedStudents.length === 0 || loading}
+                      title={t('move_all_left') || 'Move all to excluded'}
+                      style={{ padding: '0.5rem' }}
+                    >
+                      <ChevronLeft size={16} />
+                      <ChevronLeft size={16} />
+                    </button>
+                    <button
+                      onClick={moveAllToSelected}
+                      className={styles.clearButton}
+                      disabled={excludedStudents.length === 0 || loading}
+                      title={t('move_all_right') || 'Move all to selected'}
+                      style={{ padding: '0.5rem' }}
+                    >
+                      <ChevronRight size={16} />
+                      <ChevronRight size={16} />
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Right column: Selected students */}
+              <div style={{ flex: 0.5, display: 'flex', flexDirection: 'column' }}>
+                <label className={styles.label}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {t('selected_students') || 'Selected Students'} ({selectedStudents.length})
+                  </span>
+                </label>
+                <div className={styles.chipsContainer} role="list" style={{ minHeight: '300px', maxHeight: '400px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.5rem' }}>
+                  {selectedStudents.length === 0 ? (
+                    <div style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>
+                      {activeTab === 'manual'
+                        ? (t('no_students_selected') || 'No students selected yet')
+                        : (t('click_add_all') || 'Click Add All to load students')
+                      }
+                    </div>
+                  ) : (
+                    selectedStudents.map((student) => (
+                      (activeTab === 'addAll' || activeTab === 'manual') ? (
+                        <StudentChip
+                          key={student.userId || student.id}
+                          student={student}
+                          direction="toExcluded"
+                          onMove={moveToExcluded}
+                          disabled={loading}
+                        />
+                      ) : (
+                        <div
+                          key={student.userId || student.id}
+                          className={`${styles.chip} ${styles.chipFound}`}
+                          style={{ marginBottom: '0.25rem', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                          role="listitem"
+                        >
+                          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                            <span className={styles.chipText} style={{ fontWeight: '600' }}>
+                              {student.studentNumber}
+                            </span>
+                            {student.displayName && (
+                              <span className={styles.chipName} style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                                {student.displayName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
 
           {validatedStudents.notFound.length > 0 && (
             <div className={styles.notFoundSection}>
@@ -541,48 +547,29 @@ const BulkScanDialog = ({
               {/* Attendance Mode Toggle */}
                             <div className={styles.controlGroup}>
                 <div className={styles.statusCardsGrid}>
-                  {(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? STANDUP_ATTENDANCE_TYPES : ATTENDANCE_TYPES).map((type) => (
-                    <button
-                      key={type.id}
-                      onClick={() => setSelectedStatus(type.id)}
-                      disabled={loading}
-                      className={`${styles.statusCard} ${styles[type.id]} ${selectedStatus === type.id ? styles.selected : ''} ${styles[theme]}`}
-                      style={{
-                        padding: '0.5rem',
-                        borderRadius: '0.375rem',
-                        border: `2px solid ${type.color || '#6b7280'}`,
-                        background: selectedStatus === type.id ? (type.color || '#6b7280') : (theme === 'dark' ? '#1f2937' : 'white'),
-                        color: selectedStatus === type.id ? 'white' : (type.color || '#6b7280'),
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        opacity: loading ? 0.5 : 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        fontSize: '0.75rem',
-                        fontWeight: 500,
-                        transition: 'all 0.2s',
-                        minWidth: '4rem'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        {type.id === 'present' && getThemedIcon('ui', 'check_circle', 14, selectedStatus === type.id ? 'white' : '#22c55e')}
-                        {type.id === 'late' && getThemedIcon('ui', 'clock', 14, selectedStatus === type.id ? 'white' : '#eab308')}
-                        {type.id === 'absent_no_excuse' && getThemedIcon('ui', 'x_circle', 14, selectedStatus === type.id ? 'white' : '#ef4444')}
-                        {type.id === 'absent_with_excuse' && getThemedIcon('ui', 'x_circle', 14, selectedStatus === type.id ? 'white' : '#ef4444')}
-                        {type.id === 'excused_leave' && getThemedIcon('ui', 'x_circle', 14, selectedStatus === type.id ? 'white' : '#ef4444')}
-                        {type.id === 'human_case' && getThemedIcon('ui', 'heart', 14, selectedStatus === type.id ? 'white' : '#8b5cf6')}
-                        {/* Standup attendance icons */}
-                        {type.id === 'standup_present' && getThemedIcon('ui', 'star', 14, selectedStatus === type.id ? 'white' : '#10b981')}
-                        {type.id === 'standup_absent' && getThemedIcon('ui', 'x', 14, selectedStatus === type.id ? 'white' : '#dc2626')}
-                        {type.id === 'standup_clinic' && getThemedIcon('ui', 'heart', 14, selectedStatus === type.id ? 'white' : '#0891b2')}
-                        {type.id === 'standup_late' && getThemedIcon('ui', 'clock', 14, selectedStatus === type.id ? 'white' : '#f59e0b')}
-                      </div>
-                      <span style={{ fontSize: '0.7rem', textAlign: 'center' }}>
-                        {lang === 'ar' ? type.label_ar : type.label_en}
-                      </span>
-                    </button>
-                  ))}
+                  {Object.entries(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? STANDUP_ATTENDANCE_TYPES : ATTENDANCE_TYPES).map(([key, value]) => {
+                    const type = {
+                      id: value,
+                      color: getAttendanceColor?.(value) || '#6b7280',
+                      labelEn: ATTENDANCE_DISPLAY_NAMES[value] || value,
+                      labelAr: ATTENDANCE_DISPLAY_NAMES[value] || value
+                    };
+
+                    return (
+                      <StatusCard
+                        key={type.id}
+                        id={type.id}
+                        color={type.color}
+                        labelEn={type.labelEn}
+                        labelAr={type.labelAr}
+                        selected={selectedStatus === type.id}
+                        onClick={setSelectedStatus}
+                        disabled={loading}
+                        theme={theme}
+                        lang={lang}
+                      />
+                    );
+                  })}
                 </div>
               </div>
 
@@ -599,101 +586,13 @@ const BulkScanDialog = ({
             </div>
           )}
 
-          {stats.found > 0 && (
-            <div className={styles.summarySection}>
-              <div className={styles.summaryGrid}>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>{t('total_input') || 'Total Input'}</span>
-                  <span className={styles.summaryValue}>{stats.totalInput}</span>
-                </div>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>{t('processed') || 'Processed'}</span>
-                  <span className={styles.summaryValue}>{stats.validParsed}</span>
-                </div>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>{t('issues_found') || 'Issues Found'}</span>
-                  <span className={styles.summaryValue}>{stats.invalid}</span>
-                </div>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>{t('repeated_entries') || 'Repeated Entries'}</span>
-                  <span className={styles.summaryValue}>{stats.duplicates}</span>
-                </div>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>{t('found') || 'Found'}</span>
-                  <span className={styles.summaryValue}>{stats.found}</span>
-                </div>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>{t('not_found') || 'Not Found'}</span>
-                  <span className={styles.summaryValue}>{stats.notFound}</span>
-                </div>
-              </div>
-            </div>
-          )}
 
           {error && (
-            <div className={styles.errorMessage} role="alert">
-              <AlertCircle size={16} />
-              <span>{error}</span>
+            <div className={styles.errorMessage}>
+              {error}
             </div>
           )}
-
-          {result && result.success && (
-            <div className={`${styles.successSummaryCards} ${styles[theme]}`} role="status">
-              <div className={styles.successSummaryHeader}>
-                <CheckCircle size={20} className={styles.successIcon} />
-                <span className={styles.successText}>
-                  {t('bulk_operation_success') || 'Bulk Operation Successful!'}
-                </span>
-              </div>
-              
-              <div className={styles.statsCards}>
-                <div className={styles.statCard}>
-                  <div className={styles.statValue}>{result.summary.total}</div>
-                  <div className={styles.statLabel}>{t('students') || 'Students'}</div>
-                </div>
-                <div className={styles.statCard}>
-                  <div className={styles.statValue}>{result.summary.succeeded}</div>
-                  <div className={styles.statLabel}>{t('succeeded') || 'Succeeded'}</div>
-                </div>
-                <div className={styles.statCard}>
-                  <div className={styles.statValue}>{result.summary.created}</div>
-                  <div className={styles.statLabel}>{t('created') || 'Created'}</div>
-                </div>
-                {result.summary.updated > 0 && (
-                  <div className={styles.statCard}>
-                    <div className={styles.statValue}>{result.summary.updated}</div>
-                    <div className={styles.statLabel}>{t('updated') || 'Updated'}</div>
-                  </div>
-                )}
-                {(result.summary.skipped > 0 || result.summary.failed > 0) && (
-                  <div className={styles.statCard}>
-                    <div className={styles.statValue}>{result.summary.skipped + result.summary.failed}</div>
-                    <div className={styles.statLabel}>{t('issues') || 'Issues'}</div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Show bulk students in summary */}
-              {result.results?.detailed?.length > 0 && (
-                <div className={styles.bulkStudentsSection}>
-                  <span className={styles.bulkStudentsLabel}>
-                    {t('marked_students') || 'Marked Students'}
-                  </span>
-                  <div className={styles.bulkStudentsList}>
-                    {result.results.detailed.slice(0, 8).map((student, index) => (
-                      <span key={student.studentId} className={styles.bulkStudentChip}>
-                        {student.studentNumber}: {student.studentName}
-                      </span>
-                    ))}
-                    {result.results.detailed.length > 8 && (
-                      <span className={styles.bulkStudentsMore}>
-                        +{result.results.detailed.length - 8} {t('more') || 'more'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+          </>
           )}
         </div>
           
@@ -717,7 +616,7 @@ const BulkScanDialog = ({
             ) : (
               <>
                 <CheckCircle size={16} />
-                {t('apply_to_n_students', { n: stats.found }) || `Apply to ${stats.found} students`}
+                {t('apply_to_n_students', { n: selectedStudents.length }) || `Apply to ${selectedStudents.length} students`}
               </>
             )}
           </button>
@@ -728,4 +627,19 @@ const BulkScanDialog = ({
   );
 };
 
-export default BulkScanDialog;
+// Custom comparison function to prevent remounting when only callback props change
+const arePropsEqual = (prevProps, nextProps) => {
+  return (
+    prevProps.isOpen === nextProps.isOpen &&
+    prevProps.programId === nextProps.programId &&
+    prevProps.subjectId === nextProps.subjectId &&
+    prevProps.classId === nextProps.classId &&
+    prevProps.attendanceMode === nextProps.attendanceMode &&
+    prevProps.markedBy === nextProps.markedBy &&
+    prevProps.performedBy === nextProps.performedBy &&
+    prevProps.performedByName === nextProps.performedByName &&
+    prevProps.performedByEmail === nextProps.performedByEmail
+  );
+};
+
+export default React.memo(BulkScanDialog, arePropsEqual);

@@ -1,0 +1,3 @@
+🔍 Creating new activity...
+🔍 Create activity response status: 201
+✅ Activity created successfully: cmn1mq1td00012ifcnlim2lhf

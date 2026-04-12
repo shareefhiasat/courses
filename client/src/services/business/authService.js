@@ -1,172 +1,465 @@
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  updateProfile,
-  signOut, 
-  sendPasswordResetEmail,
-  onAuthStateChanged 
-} from 'firebase/auth';
-import { ActivityLogger } from '../other/activityLogger';
-import { auth } from '../other/config';
-import logger from '@utils/logger';
-import { validateEmail as validateEmailFormat } from '@utils/validationHelpers';
-import AuthErrorHandler from '@utils/authErrorHandler';
+import { info, error, warn, debug } from '../utils/logger.js';
+import { getUserByEmail } from './userService.js';
 
-export const signIn = async (email, password) => {
-  try {
-    if (!email || !password) return { success: false, error: 'Email and password are required' };
-    const emailCheck = validateEmailFormat(email);
-    if (!emailCheck.isValid) return { success: false, error: emailCheck.errors[0] };
-    if (password.length < 6) return { success: false, error: 'Password must be at least 6 characters' };
-    
-    logger.info('AUTH: User sign in attempt', { email: email.substring(0, 3) + '***' });
-    
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    
-    // Log successful login
-    try {
-      await ActivityLogger.login();
-    } catch (logError) {
-      logger.warn('Failed to log login activity:', logError);
-    }
-    
-    logger.info('AUTH: User signed in successfully', { userId: result.user.uid });
-    return { success: true, user: result.user };
-  } catch (error) {
-    logger.error('AUTH: Sign in failed', { 
-      error: error.message, 
-      email: email.substring(0, 3) + '***' 
-    });
-    return { success: false, error: error.message };
-  }
-};
+const serviceName = 'authService';
 
-export const signUp = async (email, password, displayName) => {
+/**
+ * Get database user ID from Keycloak user object
+ * Maps Keycloak email to database user ID for audit fields
+ * @param {Object} user - Keycloak user object from AuthContext
+ * @returns {Promise<number|null>} - Database user ID or null if not found
+ */
+export const getDatabaseUserId = async (user) => {
+  if (!user?.email) return null;
+  
   try {
-    if (!email || !password) return { success: false, error: 'Email and password are required' };
-    const emailCheck = validateEmailFormat(email);
-    if (!emailCheck.isValid) return { success: false, error: emailCheck.errors[0] };
-    if (password.length < 6) return { success: false, error: 'Password must be at least 6 characters' };
-    if (displayName && (typeof displayName !== 'string' || displayName.trim().length === 0)) {
-      return { success: false, error: 'Display name must be a non-empty string' };
-    }
+    info(`${serviceName}:getDatabaseUserId`, { email: user.email });
     
-    logger.info('AUTH: User sign up attempt', { email: email.substring(0, 3) + '***' });
-    
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    
-    // If a displayName is provided, update the profile
-    if (displayName && displayName.trim()) {
-      try {
-        await updateProfile(result.user, { displayName: displayName.trim() });
-        logger.info('AUTH: Display name updated successfully');
-      } catch (e) {
-        // Non-fatal: continue even if profile update fails
-        logger.warn('AUTH: Failed to set displayName on signup:', e);
-      }
-    }
-    
-    logger.info('AUTH: User signed up successfully', { userId: result.user.uid });
-    return { success: true, user: result.user };
-  } catch (error) {
-    logger.error('AUTH: Sign up failed', { 
-      error: error.message, 
-      email: email.substring(0, 3) + '***' 
-    });
-    return { success: false, error: error.message };
-  }
-};
-
-export const signOutUser = async (user = null) => {
-  try {
-    const logoutReason = sessionStorage.getItem('logoutReason');
-    const logoutTimestamp = sessionStorage.getItem('logoutTimestamp');
-    const sessionTimeoutUser = sessionStorage.getItem('sessionTimeoutUser');
-    
-    logger.log(`[Auth] signOutUser called - Reason: ${logoutReason}, Timestamp: ${logoutTimestamp}`);
-    logger.log(`[Auth] User provided: ${user ? user.email : 'null'}, Session user: ${sessionTimeoutUser}`);
-    
-    // Reset session flag immediately when logout is initiated
-    sessionStorage.removeItem('hasLoggedInThisSession');
-    sessionStorage.removeItem('sessionStart');
-    
-    // Store logout reason if not already set (manual logout)
-    if (!sessionStorage.getItem('logoutReason')) {
-      sessionStorage.setItem('logoutReason', 'manual_logout');
-      sessionStorage.setItem('logoutTimestamp', Date.now().toString());
-      logger.log('[Auth] Manual logout detected');
-    }
-    
-    // Log logout activity before signing out
-    if (user) {
-      try {
-        logger.log(`[Auth] Attempting to log logout activity for user: ${user.email}`);
-        await ActivityLogger.logout();
-        logger.log('[Auth] Logout activity logged successfully');
-      } catch (error) {
-        logger.warn('Failed to log logout activity:', error);
-      }
+    const result = await getUserByEmail(user.email);
+    if (result.success && result.data) {
+      info(`${serviceName}:getDatabaseUserId - success`, { 
+        email: user.email, 
+        userId: result.data.id 
+      });
+      return result.data.id;
     } else {
-      logger.warn('[Auth] No user provided to signOutUser, trying session timeout user');
-      // Try to use session timeout user if available
-      if (sessionTimeoutUser) {
-        try {
-          const timeoutUser = JSON.parse(sessionTimeoutUser);
-          logger.log(`[Auth] Using session timeout user for logout: ${timeoutUser.email}`);
-          await ActivityLogger.logout();
-        } catch (error) {
-          logger.warn('Failed to log logout with session timeout user:', error);
-        }
-      }
+      warn(`${serviceName}:getDatabaseUserId - user not found`, { email: user.email });
+      return null;
     }
-    
-    logger.log('[Auth] Calling Firebase signOut...');
-    await signOut(auth);
-    logger.log('[Auth] Firebase signOut completed successfully');
-    return { success: true };
   } catch (error) {
-    logger.error('[Auth] Error in signOutUser:', error);
-    return { success: false, error: error.message };
+    error(`${serviceName}:getDatabaseUserId - error`, { 
+      email: user.email, 
+      error: error.message 
+    });
+    return null;
   }
 };
 
-export const resetPassword = async (email) => {
+/**
+ * Get user display information with proper fallbacks
+ * @param {Object|String|null} user - User data (GraphQL User object, string ID, or null)
+ * @param {Array} usersArray - Optional array of user objects for fallback lookup
+ * @returns {Object} - { displayName: string, tooltip: string, fallback: string }
+ */
+export const getUserDisplayInfo = (user, usersArray = []) => {
+  // Handle null/undefined
+  if (!user) {
+    return {
+      displayName: '—',
+      tooltip: 'No user information',
+      fallback: '—'
+    };
+  }
+
+  // Handle GraphQL User object (preferred format)
+  if (typeof user === 'object' && user.displayName) {
+    const displayName = user.displayName || user.email || user.id || 'Unknown User';
+    const tooltip = user.email || user.displayName || user.id || 'No user details';
+    return {
+      displayName,
+      tooltip,
+      fallback: displayName
+    };
+  }
+
+  // Handle string ID (legacy format) - try to find in users array
+  if (typeof user === 'string') {
+    const foundUser = usersArray?.find(u => (u.uid || u.id) === user);
+    
+    if (foundUser) {
+      const displayName = foundUser.displayName || foundUser.name || foundUser.email || user;
+      const tooltip = foundUser.email || foundUser.displayName || foundUser.name || user;
+      return {
+        displayName,
+        tooltip,
+        fallback: displayName
+      };
+    }
+
+    // Fallback for string ID without user object
+    if (user.length > 20) {
+      const truncated = `${user.substring(0, 8)}...${user.substring(user.length - 4)}`;
+      return {
+        displayName: truncated,
+        tooltip: user,
+        fallback: user
+      };
+    }
+
+    return {
+      displayName: user,
+      tooltip: user,
+      fallback: user
+    };
+  }
+
+  // Handle other object formats (legacy user objects)
+  if (typeof user === 'object') {
+    const displayName = user.displayName || user.name || user.email || user.id || 'Unknown User';
+    const tooltip = user.email || user.displayName || user.name || user.id || 'No user details';
+    return {
+      displayName,
+      tooltip,
+      fallback: displayName
+    };
+  }
+
+  // Ultimate fallback
+  return {
+    displayName: 'Unknown',
+    tooltip: 'Unknown user',
+    fallback: 'Unknown'
+  };
+};
+
+/**
+ * Get user display props for rendering
+ * @param {Object|String|null} user - User data
+ * @param {Array} usersArray - Optional array of user objects for fallback lookup
+ * @param {Object} options - Additional options
+ * @returns {Object} - Props object for span element
+ */
+export const getUserDisplayProps = (user, usersArray = [], options = {}) => {
+  const { displayName, tooltip } = getUserDisplayInfo(user, usersArray);
+  
+  const defaultStyle = {
+    fontFamily: 'monospace',
+    fontSize: '12px',
+    ...options.style
+  };
+
+  return {
+    children: displayName,
+    title: tooltip,
+    style: defaultStyle,
+    className: options.className
+  };
+};
+
+/**
+ * Get user display name only (for non-React contexts)
+ * @param {Object|String|null} user - User data
+ * @param {Array} usersArray - Optional array of user objects for fallback lookup
+ * @returns {string} - Display name
+ */
+export const getUserDisplayName = (user, usersArray = []) => {
+  const { displayName } = getUserDisplayInfo(user, usersArray);
+  return displayName;
+};
+
+/**
+ * Get user tooltip only
+ * @param {Object|String|null} user - User data
+ * @param {Array} usersArray - Optional array of user objects for fallback lookup
+ * @returns {string} - Tooltip text
+ */
+export const getUserTooltip = (user, usersArray = []) => {
+  const { tooltip } = getUserDisplayInfo(user, usersArray);
+  return tooltip;
+};
+
+// Core authentication functions
+export const login = async (credentials) => {
   try {
-    await sendPasswordResetEmail(auth, email);
+    info(`${serviceName}:login`, { email: credentials?.email });
     
-    // Log password reset activity
-    try {
-      await ActivityLogger.passwordChange();
-    } catch (error) {
-      logger.warn('Failed to log password change activity:', error);
+    if (!credentials || !credentials.email || !credentials.password) {
+      return {
+        success: false,
+        error: 'Email and password are required',
+        data: null
+      };
     }
     
-    return { success: true };
+    // Mock implementation - replace with actual authentication logic
+    return {
+      success: true,
+      data: {
+        user: {
+          id: 1,
+          email: credentials.email,
+          name: 'Test User',
+          role: 'student'
+        },
+        token: 'mock-jwt-token',
+        refreshToken: 'mock-refresh-token'
+      },
+      message: 'Login successful'
+    };
   } catch (error) {
-    return { success: false, error: error.message };
+    error(`${serviceName}:login:error`, { error: error.message, email: credentials?.email });
+    return {
+      success: false,
+      error: error.message || 'Login failed',
+      data: null
+    };
   }
 };
 
-export const onAuthChange = (callback) => {
-  return onAuthStateChanged(auth, async (user) => {
-    try {
-      await callback(user);
-    } catch (error) {
-      // Handle permission errors gracefully during logout
-      if (error?.code === 'permission-denied' || error?.message?.includes('permission-denied') || error?.message?.includes('Missing or insufficient permissions')) {
-        logger.warn('[Auth] Permission error in auth state change, continuing without retry:', error.message);
-        // For permission errors, continue with null user to allow logout to complete
-        if (user === null) {
-          await callback(null);
-        } else {
-          // If user exists but permission error occurs, try with null to force logout
-          await callback(null);
-        }
-      } else {
-        // For other errors, let them propagate
-        throw error;
-      }
-    }
-  });
+export const logout = async (token) => {
+  try {
+    info(`${serviceName}:logout`, { token: token ? 'provided' : 'missing' });
+    
+    // Mock implementation - replace with actual logout logic
+    return {
+      success: true,
+      message: 'Logout successful'
+    };
+  } catch (error) {
+    error(`${serviceName}:logout:error`, { error: error.message });
+    return {
+      success: false,
+      error: error.message || 'Logout failed'
+    };
+  }
 };
 
+export const getCurrentUser = async (token) => {
+  try {
+    info(`${serviceName}:getCurrentUser`, { token: token ? 'provided' : 'missing' });
+    
+    if (!token) {
+      return {
+        success: false,
+        error: 'Token is required',
+        data: null
+      };
+    }
+    
+    // Mock implementation - replace with actual token validation
+    return {
+      success: true,
+      data: {
+        id: 1,
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'student'
+      },
+      message: 'User retrieved successfully'
+    };
+  } catch (error) {
+    error(`${serviceName}:getCurrentUser:error`, { error: error.message });
+    return {
+      success: false,
+      error: error.message || 'Failed to get current user',
+      data: null
+    };
+  }
+};
+
+// Token management functions
+export const refreshToken = async (refreshToken) => {
+  try {
+    info(`${serviceName}:refreshToken`, { refreshToken: refreshToken ? 'provided' : 'missing' });
+    
+    if (!refreshToken) {
+      return {
+        success: false,
+        error: 'Refresh token is required',
+        data: null
+      };
+    }
+    
+    // Mock implementation - replace with actual token refresh logic
+    return {
+      success: true,
+      data: {
+        token: 'new-mock-jwt-token',
+        refreshToken: 'new-mock-refresh-token'
+      },
+      message: 'Token refreshed successfully'
+    };
+  } catch (error) {
+    error(`${serviceName}:refreshToken:error`, { error: error.message });
+    return {
+      success: false,
+      error: error.message || 'Token refresh failed',
+      data: null
+    };
+  }
+};
+
+export const validateToken = async (token) => {
+  try {
+    info(`${serviceName}:validateToken`, { token: token ? 'provided' : 'missing' });
+    
+    if (!token) {
+      return {
+        success: false,
+        error: 'Token is required',
+        data: null
+      };
+    }
+    
+    // Mock implementation - replace with actual token validation
+    return {
+      success: true,
+      data: {
+        valid: true,
+        expiresAt: new Date(Date.now() + 3600000) // 1 hour from now
+      },
+      message: 'Token is valid'
+    };
+  } catch (error) {
+    error(`${serviceName}:validateToken:error`, { error: error.message });
+    return {
+      success: false,
+      error: error.message || 'Token validation failed',
+      data: null
+    };
+  }
+};
+
+// Password management functions
+export const changePassword = async (userId, currentPassword, newPassword, user = null) => {
+  try {
+    info(`${serviceName}:changePassword`, { userId });
+    
+    if (!userId || !currentPassword || !newPassword) {
+      return {
+        success: false,
+        error: 'User ID, current password, and new password are required',
+        data: null
+      };
+    }
+    
+    // Mock implementation - replace with actual password change logic
+    return {
+      success: true,
+      message: 'Password changed successfully'
+    };
+  } catch (error) {
+    error(`${serviceName}:changePassword:error`, { error: error.message, userId });
+    return {
+      success: false,
+      error: error.message || 'Password change failed',
+      data: null
+    };
+  }
+};
+
+// REMOVED: resetPassword and confirmResetPassword
+// Email-based password reset is no longer used
+// Super admins set passwords directly via userService.setUserPassword()
+
+// Session management functions
+export const getActiveSessions = async (userId) => {
+  try {
+    info(`${serviceName}:getActiveSessions`, { userId });
+    
+    if (!userId) {
+      return {
+        success: false,
+        error: 'User ID is required',
+        data: []
+      };
+    }
+    
+    // Mock implementation - replace with actual session retrieval
+    return {
+      success: true,
+      data: [],
+      total: 0,
+      message: 'Active sessions retrieved successfully'
+    };
+  } catch (error) {
+    error(`${serviceName}:getActiveSessions:error`, { error: error.message, userId });
+    return {
+      success: false,
+      error: error.message || 'Failed to retrieve active sessions',
+      data: []
+    };
+  }
+};
+
+export const revokeSession = async (sessionId, user = null) => {
+  try {
+    info(`${serviceName}:revokeSession`, { sessionId });
+    
+    if (!sessionId) {
+      return {
+        success: false,
+        error: 'Session ID is required',
+        data: null
+      };
+    }
+    
+    // Mock implementation - replace with actual session revocation
+    return {
+      success: true,
+      message: 'Session revoked successfully'
+    };
+  } catch (error) {
+    error(`${serviceName}:revokeSession:error`, { error: error.message, sessionId });
+    return {
+      success: false,
+      error: error.message || 'Failed to revoke session',
+      data: null
+    };
+  }
+};
+
+export const revokeAllSessions = async (userId, user = null) => {
+  try {
+    info(`${serviceName}:revokeAllSessions`, { userId });
+    
+    if (!userId) {
+      return {
+        success: false,
+        error: 'User ID is required',
+        data: null
+      };
+    }
+    
+    // Mock implementation - replace with actual session revocation
+    return {
+      success: true,
+      message: 'All sessions revoked successfully'
+    };
+  } catch (error) {
+    error(`${serviceName}:revokeAllSessions:error`, { error: error.message, userId });
+    return {
+      success: false,
+      error: error.message || 'Failed to revoke all sessions',
+      data: null
+    };
+  }
+};
+
+// Aliases for commonly expected function names
+export const signIn = login;
+export const signOut = logout;
+export const getUser = getCurrentUser;
+
+// Default export
+export default {
+  // Core authentication
+  login,
+  logout,
+  getCurrentUser,
+  
+  // User mapping and display
+  getDatabaseUserId,
+  getUserDisplayInfo,
+  getUserDisplayProps,
+  getUserDisplayName,
+  getUserTooltip,
+  
+  // Token management
+  refreshToken,
+  validateToken,
+  
+  // Password management
+  changePassword,
+  // resetPassword and confirmResetPassword removed - use userService.setUserPassword()
+  
+  // Session management
+  getActiveSessions,
+  revokeSession,
+  revokeAllSessions,
+  
+  // Aliases
+  signIn,
+  signOut,
+  getUser
+};

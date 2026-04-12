@@ -4,7 +4,8 @@ import QRCode from 'qrcode';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 
-const QRCodeDisplayPage = () => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const QRCodeDisplayPage = () => {
   const { studentId } = useParams();
   const { theme } = useTheme();
   const { t } = useLang();
@@ -26,7 +27,7 @@ const QRCodeDisplayPage = () => {
   useEffect(() => {
     const generateAndDisplayQR = async () => {
       if (!studentNumber) {
-        document.body.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">${t('qr_display_no_student_number_provided')}</div>`;
+        document.body.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">No student number provided</div>`;
         return;
       }
 
@@ -68,7 +69,7 @@ const QRCodeDisplayPage = () => {
         document.body.innerHTML = `
           <html>
             <head>
-              <title>${t('qr_display_qr_code_student')}</title>
+              <title>Student QR Code</title>
               <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 body { 
@@ -157,17 +158,17 @@ const QRCodeDisplayPage = () => {
             </head>
             <body>
               <div class="card">
-                <img src="${qrDataUrl}" alt="${t('qr_display_qr_code_alt')}" />
-                <h1>${t('qr_display_student')}</h1>
-                <p>${t('qr_display_student_number')}</p>
+                <img src="${qrDataUrl}" alt="Student QR Code" />
+                <h1>Student</h1>
+                <p>Student Number</p>
                 <div class="ref">${studentNumber}</div>
               </div>
             </body>
           </html>
         `;
       } catch (error) {
-        logger.error(t('qr_display_error_generating_qr_code'), error);
-        document.body.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; color: red;">${t('qr_display_failed_to_generate_qr_code')}</div>`;
+        console.error('Error generating QR code:', error);
+        document.body.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; color: red;">Failed to generate QR code</div>`;
       }
     };
 

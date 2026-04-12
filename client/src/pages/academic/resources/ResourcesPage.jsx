@@ -13,12 +13,18 @@ import { getEnrollments } from '@services/business/enrollmentService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger.jsx';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { getUserById } from '@services/business/userService';
+import { formatDateTime } from '@utils/dateUtils.js';
 import { Button, Input, Textarea, Select, ToggleSwitch, DatePicker, RichTextEditor } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
-import { getResourceTypeConfig, getResourceTypeOptions, RESOURCE_TYPES } from '@constants/dashboardTypes.jsx';
+import { getResourceTypeConfig, getResourceTypeOptions } from '@constants/dashboardTypes.jsx';
+// OLD: import { RESOURCE_TYPES } from '@constants/dashboardTypes.jsx';
+// NOW: Using database-driven resource types via getResourceTypes service
 import { getCategories } from '@services/business/categoryService';
+import { getResourceTypes } from '@services/business/resourceTypeService';
+import { getAllPriorityTypes } from '@services/business/priorityTypesService.js';
 import { ProgramsSelect } from '@ui';
-import logger from '@utils/logger';
+import { getLocalizedName, createDropdownOptions } from '@utils/languageHelpers';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 // Import all services at top level to prevent duplicate calls
 import { getPrograms } from '@services/business/programService';
@@ -47,6 +53,8 @@ const ResourcesPage = () => {
   const [courses, setCourses] = useState([]);
   const [users, setUsers] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [resourceTypes, setResourceTypes] = useState([]);
+  const [priorityTypes, setPriorityTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   
   const { startLoading } = useGlobalLoading();
@@ -70,7 +78,7 @@ const ResourcesPage = () => {
     descriptionEn: '',
     descriptionAr: '',
     url: '', 
-    type: 'link', 
+    typeId: null, 
     dueDate: '', 
     optional: false, 
     featured: false, 
@@ -97,40 +105,61 @@ const ResourcesPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingResource]);
 
+  // Function to load classes filtered by subject
+  const loadClassesBySubject = useCallback(async (subjectId) => {
+    try {
+      const params = subjectId && subjectId !== 'all' ? { subjectId } : {};
+      const result = await getClasses(params);
+      if (result.success) {
+        setClasses(result.data || []);
+      } else {
+        error('Failed to load classes:', result.error);
+        setClasses([]);
+      }
+    } catch (error) {
+      error('Error loading classes:', error);
+      setClasses([]);
+    }
+  }, []);
+
   const loadData = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoading(true);
     try {
       const [
         programsResult,
         subjectsResult,
-        classesResult,
         coursesResult,
         usersResult,
         resourcesResult,
-        categoriesResult
+        categoriesResult,
+        resourceTypesResult
       ] = await Promise.all([
         getPrograms(),
         getSubjects(),
-        getClasses(),
         getCourses(),
         getUsers(),
         getResources(),
-        getCategories()
+        getCategories(),
+        getResourceTypes(),
       ]);
+      
+      // Load classes based on current subject filter
+      await loadClassesBySubject(resourceSubjectFilter);
       
       if (programsResult.success) setPrograms(programsResult.data || []);
       if (subjectsResult.success) setSubjects(subjectsResult.data || []);
-      if (classesResult.success) setClasses(classesResult.data || []);
       if (coursesResult.success) setCourses(coursesResult.data || []);
       if (usersResult.success) setUsers(usersResult.data || []);
       if (resourcesResult.success) {
         setResources(resourcesResult.data || []);
       } else {
-        logger.error('Failed to load resources:', resourcesResult.error);
+        error('Failed to load resources:', resourcesResult.error);
       }
       if (categoriesResult.success) setCategories(categoriesResult.data || []);
+      if (resourceTypesResult.success) setResourceTypes(resourceTypesResult.data || []);
+      else console.error('[ResourcesPage] Failed to load resource types:', resourceTypesResult.error);
     } catch (error) {
-      logger.error('Error loading data:', error);
+      error('Error loading data:', error);
       toast?.showError(t('error_loading_data') || 'Error loading data');
     } finally {
       if (!isInitial) setLoading(false);
@@ -156,6 +185,11 @@ const ResourcesPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Reload classes when subject filter changes
+  useEffect(() => {
+    loadClassesBySubject(resourceSubjectFilter);
+  }, [resourceSubjectFilter, loadClassesBySubject]);
+
   const [resourceToDelete, setResourceToDelete] = useState(null);
 
   // Custom delete confirmation handler
@@ -165,7 +199,7 @@ const ResourcesPage = () => {
     
     // Safety check to ensure resource exists
     if (!resource || !(resource.docId || resource.id)) {
-      logger.error('Invalid resource provided to handleDeleteConfirm:', resource);
+      error('Invalid resource provided to handleDeleteConfirm:', resource);
       toast?.showError(t('resources_error_deleting', { error: 'Invalid resource' }));
       hideDeleteModal();
       setResourceToDelete(null);
@@ -184,9 +218,9 @@ const ResourcesPage = () => {
           await logActivity(ACTIVITY_LOG_TYPES.RESOURCE_DELETED, {
             resourceId,
             resourceTitle: resource.title,
-            resourceType: resource.type
+            resourceType: resource.resourceType?.nameEn || resource.typeId
           });
-        } catch (e) { logger.warn('Failed to log activity:', e); }
+        } catch (e) { warn('Failed to log activity:', e); }
         toast?.showSuccess(t('resources_deleted_successfully'));
         await loadData();
       } else {
@@ -197,7 +231,7 @@ const ResourcesPage = () => {
     } catch (error) {
       // Rollback on error
       setResources(prev => [...prev, resource]);
-      logger.error('Error deleting resource:', error);
+      error('Error deleting resource:', error);
       toast?.showError(t('resources_error_deleting', { error: error.message }));
     } finally {
       // Clean up
@@ -261,7 +295,7 @@ const ResourcesPage = () => {
         descriptionEn: textValues.descriptionEn?.trim() || '',
         descriptionAr: textValues.descriptionAr?.trim() || '',
         url: textValues.url.trim(),
-        type: resourceForm.type || 'link',
+        typeId: resourceForm.typeId,
         programId: resourceForm.programId || null,
         subjectId: resourceForm.subjectId || null,
         classId: resourceForm.classId || null,
@@ -271,19 +305,19 @@ const ResourcesPage = () => {
         featured: resourceForm.featured || false
       };
       
-      const result = editingResource && editingResource.docId ?
-        await updateResource(editingResource.docId, resourceData, user, resourceEmailOptions) :
+      const result = editingResource && (editingResource.docId || editingResource.id) ?
+        await updateResource(editingResource.docId || editingResource.id, resourceData, user, resourceEmailOptions) :
         await addResource(resourceData, user);
 
       if (result.success) {
-        const resourceId = editingResource?.docId || result?.id;
+        const resourceId = editingResource?.docId || editingResource?.id || result?.id;
         
         // Log activity
         try {
           await logActivity(editingResource ? ACTIVITY_LOG_TYPES.RESOURCE_UPDATED : ACTIVITY_LOG_TYPES.RESOURCE_CREATED, {
             resourceId,
             resourceTitle: resourceForm.title,
-            resourceType: resourceForm.type
+            resourceType: resourceTypes.find(rt => rt.id === resourceForm.typeId)?.nameEn || resourceForm.typeId
           });
         } catch (e) { }
 
@@ -305,7 +339,7 @@ const ResourcesPage = () => {
                   variables: {
                     studentName: student.displayName || student.name || t('resources_student_name'),
                     resourceTitle: resourceForm.title,
-                    resourceType: resourceForm.type || t('resources_default_type'),
+                    resourceType: resourceTypes.find(rt => rt.id === resourceForm.typeId)?.nameEn || t('resources_default_type'),
                     resourceUrl: resourceForm.url
                   }
                 });
@@ -317,7 +351,7 @@ const ResourcesPage = () => {
         }
 
         await loadData();
-        setResourceForm({ title: '', titleEn: '', titleAr: '', description: '', descriptionEn: '', descriptionAr: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', categoryId: '' });
+        setResourceForm({ title: '', titleEn: '', titleAr: '', description: '', descriptionEn: '', descriptionAr: '', url: '', typeId: null, dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', categoryId: '' });
         if (titleEnRef.current) titleEnRef.current.value = '';
         if (titleArRef.current) titleArRef.current.value = '';
         setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
@@ -327,7 +361,7 @@ const ResourcesPage = () => {
         toast?.showError(t('resources_error_updating_creating', { action: editingResource ? 'updating' : 'creating', error: result.error }));
       }
     } catch (error) {
-      logger.error('Error saving resource:', error);
+      error('Error saving resource:', error);
       toast?.showError(t('resources_error_updating_creating', { action: editingResource ? 'updating' : 'creating', error: error.message }));
     } finally {
       setLoading(false);
@@ -345,9 +379,9 @@ const ResourcesPage = () => {
       descriptionEn: params.row.descriptionEn || params.row.description || '',
       descriptionAr: params.row.descriptionAr || '',
       url: params.row.url || '',
-      type: params.row.type || 'link',
+      typeId: params.row.typeId,
       dueDate: params.row.dueDate ? formatQatarForInput(params.row.dueDate) : '',
-      optional: params.row.optional || false,
+      optional: !params.row.isRequired || false, // Invert isRequired to optional
       featured: params.row.featured || false,
       programId: params.row.programId || '',
       subjectId: params.row.subjectId || '',
@@ -358,7 +392,7 @@ const ResourcesPage = () => {
 
   const handleCancelEdit = useCallback(() => {
     setEditingResource(null);
-    setResourceForm({ title: '', titleEn: '', titleAr: '', description: '', descriptionEn: '', descriptionAr: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', categoryId: '' });
+    setResourceForm({ title: '', titleEn: '', titleAr: '', description: '', descriptionEn: '', descriptionAr: '', url: '', typeId: null, dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', categoryId: '' });
     if (titleEnRef.current) titleEnRef.current.value = '';
     if (titleArRef.current) titleArRef.current.value = '';
     setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
@@ -417,12 +451,30 @@ const ResourcesPage = () => {
       }
     },
     {
-      field: 'type', headerName: t('type_col'), width: 140,
+      field: 'resourceType', headerName: t('type_col'), width: 140,
       renderCell: (params) => {
-        const config = getResourceTypeConfig(params.value, theme);
+        // Access the row data directly instead of relying on valueGetter
+        const resourceType = params.row?.resourceType;
+        
+        if (!resourceType) {
+          // No resource type assigned - show placeholder
+          return (
+            <span style={{ 
+              color: 'var(--text-muted, #6b7280)',
+              fontStyle: 'italic'
+            }}>
+              —
+            </span>
+          );
+        }
+        
+        // Use the FK relationship data
+        const name = lang === 'ar' ? resourceType.nameAr : resourceType.nameEn;
+        const icon = getThemedIcon('ui', resourceType.icon || resourceType.code?.toLowerCase() || 'file', 16, theme);
+        
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {config.icon} {config.label}
+            {icon} {name}
           </span>
         );
       }
@@ -473,13 +525,17 @@ const ResourcesPage = () => {
       },
       renderCell: (params) => {
         const programId = params.value || params.row?.programId;
-        if (!programId) return (
+        // Convert to string for comparison to prevent NaN
+        const normalizedProgramId = programId ? String(programId) : null;
+        
+        if (!normalizedProgramId) return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-success, #16a34a)' }}>
             {/*{getThemedIcon('ui', 'globe', 16, theme)} */}
             Public
           </span>
         );
-        const program = programs.find(p => (p.docId || p.id) === programId);
+        
+        const program = programs.find(p => String(p.docId || p.id) === normalizedProgramId);
         if (!program) return '—';
         const programName = lang === 'ar' ? (program.nameAr || program.nameEn) : (program.nameEn || program.nameAr);
         return (
@@ -582,27 +638,17 @@ const ResourcesPage = () => {
         </span>
       )
     },
-    {
-      field: 'sendEmail', headerName: 'Email Sent', width: 120,
+        {
+      field: 'createdAt', headerName: t('created_at') || 'Created At', width: 180,
+      valueGetter: (params) => {
+        const createdAt = params.value || params.row?.createdAt;
+        if (!createdAt) return '—';
+        return formatDateTime(createdAt, lang);
+      },
       renderCell: (params) => {
-        // Check if email was sent (this might be stored differently, but for now we'll use the form state)
-        const sendEmail = params?.row?.sendEmail || false;
-        return (
-          <span style={{ 
-            color: sendEmail ? 'var(--color-info, #17a2b8)' : 'var(--text-muted, #6b7280)',
-            fontWeight: sendEmail ? '600' : '400'
-          }}>
-            {sendEmail ? '📧' : '—'}
-          </span>
-        );
-      }
-    },
-    {
-      field: 'createdAt', headerName: 'Created', width: 180,
-      valueGetter: (params) => params.value,
-      renderCell: (params) => {
-        if (!params.value) return 'Unknown';
-        return formatQatarStandard(params.value);
+        const createdAt = params.value || params.row?.createdAt;
+        if (!createdAt) return '—';
+        return formatDateTime(createdAt, lang);
       }
     },
     {
@@ -618,6 +664,21 @@ const ResourcesPage = () => {
         }
         
         return createdBy;
+      }
+    },
+    {
+      field: 'updatedBy', headerName: t('updated_by') || 'Updated By', width: 150,
+      renderCell: (params) => {
+        const updatedBy = params.value || params.row?.updater?.id || params.row?.updatedBy;
+        if (!updatedBy) return '—';
+        
+        // Try to find user display name from users array
+        const user = users.find(u => (u.uid || u.id) === updatedBy);
+        if (user) {
+          return user.displayName || user.name || user.email || '—';
+        }
+        
+        return updatedBy;
       }
     },
     {
@@ -650,7 +711,7 @@ const ResourcesPage = () => {
 
   const filteredResources = resources.filter(r => {
     // Apply type filter first (before public resources check)
-    if (resourceTypeFilter && r.type !== resourceTypeFilter) {
+    if (resourceTypeFilter && r.typeId !== parseInt(resourceTypeFilter)) {
       return false;
     }
     
@@ -721,23 +782,30 @@ const ResourcesPage = () => {
           <Select
             searchable
             placeholder={t('category_optional') || 'Category (Optional)'}
-            value={resourceForm.categoryId || ''}
-            onChange={(e) => setResourceForm({ ...resourceForm, categoryId: e.target.value })}
+            value={resourceForm.categoryId ? String(resourceForm.categoryId) : ''}
+            onChange={(e) => setResourceForm({ ...resourceForm, categoryId: e.target.value ? parseInt(e.target.value) : null })}
             options={[
               { value: '', label: t('no_category') || 'No Category', icon: getThemedIcon('ui', 'folder', 16, theme) },
               ...categories.map(category => ({
-                value: category.docId,
-                label: lang === 'ar' ? (category.nameAr || category.nameEn || category.name) : (category.nameEn || category.nameAr || category.name) || 'Unnamed Category',
+                value: String(category.id),
+                label: getLocalizedName(category, lang),
                 icon: getThemedIcon('ui', category.icon || 'folder', 16, theme)
-              })).sort((a, b) => a.label.localeCompare(b.label))
+              }))
             ]}
           />
           <Select
             searchable
-            placeholder={t('resource_type') || 'Resource Type'}
-            value={resourceForm.type}
-            onChange={(e) => setResourceForm({ ...resourceForm, type: e.target.value })}
-            options={getResourceTypeOptions(theme)}
+            placeholder={t('resource_type_optional') || 'Resource Type (Optional)'}
+            value={resourceForm.typeId ? String(resourceForm.typeId) : ''}
+            onChange={(e) => setResourceForm({ ...resourceForm, typeId: e.target.value ? parseInt(e.target.value) : null })}
+            options={resourceTypes.length > 0 
+              ? resourceTypes.map(resourceType => ({
+                  value: String(resourceType.id),
+                  label: getLocalizedName(resourceType, lang),
+                  icon: getThemedIcon('ui', resourceType.icon || 'file', 16, theme)
+                }))
+              : getResourceTypeOptions(theme)
+            }
           />
         </div>
 
@@ -811,11 +879,12 @@ const ResourcesPage = () => {
             checked={resourceForm.featured}
             onChange={(checked) => setResourceForm({ ...resourceForm, featured: checked })}
           />
-          <ToggleSwitch
+          {/* Email notification option hidden */}
+          {/* <ToggleSwitch
             label={t('send_email_notification') || 'Send email notification'}
             checked={resourceEmailOptions.sendEmail}
             onChange={(checked) => setResourceEmailOptions({ ...resourceEmailOptions, sendEmail: checked })}
-          />
+          /> */}
         </div>
 
         {/* Form Actions */}
@@ -849,9 +918,18 @@ const ResourcesPage = () => {
           selectedProgram={resourceProgramFilter}
           selectedSubject={resourceSubjectFilter}
           selectedClass={resourceClassFilter}
-          onProgramChange={(programId) => setResourceProgramFilter(programId)}
-          onSubjectChange={(subjectId) => setResourceSubjectFilter(subjectId)}
-          onClassChange={(classId) => setResourceClassFilter(classId)}
+          onProgramChange={(value) => {
+            console.log('🔍 Resources filter program change:', { value });
+            setResourceProgramFilter(value);
+          }}
+          onSubjectChange={(value) => {
+            console.log('🔍 Resources filter subject change:', { value });
+            setResourceSubjectFilter(value);
+          }}
+          onClassChange={(value) => {
+            console.log('🔍 Resources filter class change:', { value });
+            setResourceClassFilter(value);
+          }}
           showClass={true}
           showLabels={false}
           style={{ width: '100%' }}
@@ -862,7 +940,14 @@ const ResourcesPage = () => {
           <Select
             value={resourceTypeFilter || ''}
             onChange={(e) => setResourceTypeFilter(e.target.value)}
-            options={getResourceTypeOptions(theme)}
+            options={resourceTypes.length > 0 
+              ? [{ value: '', label: t('all_types') || 'All Types', icon: getThemedIcon('ui', 'filter', 16, theme) }, 
+                ...createDropdownOptions(resourceTypes, lang, item => item.id, (item, currentLang) => getLocalizedName(item, currentLang)).map(option => ({
+                  ...option,
+                  icon: getThemedIcon('ui', option.icon || 'file', 16, theme)
+                }))]
+              : getResourceTypeOptions(theme)
+            }
             placeholder={t('all_types') || 'All Types'}
             style={{ minWidth: '300px', width: '300px' }}
           />
@@ -870,15 +955,16 @@ const ResourcesPage = () => {
           <Select
             value={resourceCategoryFilter || ''}
             onChange={(e) => setResourceCategoryFilter(e.target.value)}
-            options={[
-              { value: '', label: lang === 'ar' ? 'جميع الفئات' : 'All Categories', icon: getThemedIcon('ui', 'folder', 16, theme) },
-              ...categories.map(category => ({
-                value: category.docId,
-                label: lang === 'ar' ? (category.nameAr || category.nameEn || category.name) : (category.nameEn || category.nameAr || category.name) || 'Unnamed Category',
-                icon: getThemedIcon('ui', category.icon || 'folder', 16, theme)
-              }))
-            ]}
-            placeholder={lang === 'ar' ? 'جميع الفئات' : 'All Categories'}
+            options={categories.length > 0 
+              ? [{ value: '', label: t('all_categories') || 'All Categories', icon: getThemedIcon('ui', 'folder', 16, theme) },
+                ...categories.map(category => ({
+                  value: String(category.id),
+                  label: getLocalizedName(category, lang),
+                  icon: getThemedIcon('ui', category.icon || 'folder', 16, theme)
+                }))]
+              : [{ value: '', label: lang === 'ar' ? 'جميع الفئات' : 'All Categories', icon: getThemedIcon('ui', 'folder', 16, theme) }]
+            }
+            placeholder={t('all_categories') || 'All Categories'}
             style={{ minWidth: '200px' }}
           />
         </div>
@@ -956,66 +1042,35 @@ const ResourcesPage = () => {
           {resources.length} {lang === 'ar' ? 'إجمالي' : 'Total'}
         </div>
         
-        {/* Resource Type Chips - Only show if count > 0 */}
-        {resources.filter(r => r.type === RESOURCE_TYPES.DOCUMENT).length > 0 && (
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '0.5rem', 
-            padding: '0.5rem 0.75rem', 
-            background: isDark ? '#78350f' : '#fef3c7', 
-            border: isDark ? '1px solid #92400e' : '1px solid #fde68a', 
-            borderRadius: '9999px',
-            fontSize: '0.875rem',
-            fontWeight: '500',
-            color: isDark ? '#fef3c7' : '#92400e'
-          }}>
-            {getThemedIcon('ui', 'file_text', 16, theme)}
-            {resources.filter(r => r.type === RESOURCE_TYPES.DOCUMENT).length} {lang === 'ar' ? 'مستندات' : 'Documents'}
-          </div>
-        )}
-        
-        {resources.filter(r => r.type === RESOURCE_TYPES.LINK).length > 0 && (
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '0.5rem', 
-            padding: '0.5rem 0.75rem', 
-            background: isDark ? '#831843' : '#fce7f3', 
-            border: isDark ? '1px solid #be185d' : '1px solid #fbcfe8', 
-            borderRadius: '9999px',
-            fontSize: '0.875rem',
-            fontWeight: '500',
-            color: isDark ? '#fce7f3' : '#831843'
-          }}>
-            {getThemedIcon('ui', 'link', 16, theme)}
-            {resources.filter(r => r.type === RESOURCE_TYPES.LINK).length} {lang === 'ar' ? 'روابط' : 'Links'}
-          </div>
-        )}
-        
-        {resources.filter(r => r.type === RESOURCE_TYPES.VIDEO).length > 0 && (
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '0.5rem', 
-            padding: '0.5rem 0.75rem', 
-            background: isDark ? '#14532d' : '#f0fdf4', 
-            border: isDark ? '1px solid #16a34a' : '1px solid #bbf7d0', 
-            borderRadius: '9999px',
-            fontSize: '0.875rem',
-            fontWeight: '500',
-            color: isDark ? '#dcfce7' : '#166534'
-          }}>
-            {getThemedIcon('ui', 'video', 16, theme)}
-            {resources.filter(r => r.type === RESOURCE_TYPES.VIDEO).length} {lang === 'ar' ? 'فيديوهات' : 'Videos'}
-          </div>
-        )}
+        {/* Resource Type Chips - Dynamic based on database data */}
+        {resourceTypes.map(resourceType => {
+          const count = resources.filter(r => r.typeId === resourceType.id).length;
+          if (count === 0) return null;
+          
+          return (
+            <div key={resourceType.id} style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              padding: '0.5rem 0.75rem', 
+              background: isDark ? '#374151' : '#f3f4f6', 
+              border: isDark ? '1px solid #4b5563' : '1px solid #d1d5db', 
+              borderRadius: '9999px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: isDark ? '#f3f4f6' : '#374151'
+            }}>
+              {getThemedIcon('ui', resourceType.code?.toLowerCase() || 'file', 16, theme)}
+              {count} {lang === 'ar' ? resourceType.nameAr : resourceType.nameEn}
+            </div>
+          );
+        })}
       </div>
 
       <div style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
           rows={filteredResources}
-          getRowId={(row) => row.docId || row.id || Math.random().toString(36).substr(2, 9)}
+          getRowId={(row) => row.id?.toString() || row.docId?.toString()}
           columns={gridColumns}
           pageSize={10}
           pageSizeOptions={[5, 10, 20, 50]}

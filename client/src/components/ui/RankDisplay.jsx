@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { getStudentRank, getRankConfig } from '@constants/sharedConfig';
 import { useLang } from '@contexts/LangContext';
 
-const RankDisplay = ({ totalPoints = 0, studentName = '', showProgress = true, compact = false }) => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const RankDisplay = ({ totalPoints = 0, studentName = '', showProgress = true, compact = false }) => {
   const { lang, t } = useLang();
   const [rankData, setRankData] = useState(null);
 

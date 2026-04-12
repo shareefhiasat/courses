@@ -2,13 +2,15 @@ import React, { useEffect, useState, useMemo, useRef, memo, useCallback, useLayo
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import JoyrideTour from '@ui/JoyrideTour';
 import iconTypes from '@constants/iconTypes';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getAcademicTermOptions, getAcademicTermLabel } from '@constants/academicTerms';
 const { getThemedIcon, getIconWithColor } = iconTypes;
 import { useTheme } from '@contexts/ThemeContext';
 import { GlobalLoadingFallback, useGlobalLoading } from '@contexts/GlobalLoadingContext';
 import { Tabs } from '@ui';
-import { getActivities, getAnnouncements, getResources } from '@services/business/activityService';
+import { getActivities } from '@services/business/activitiesService';
+import { getAnnouncements } from '@services/business/announcementService';
+import { getResources } from '@services/business/resourceService';
 import { getCourses } from '@services/business/courseService';
 import { getAllQuizzes } from '@services/business/quizService';
 import { getUserSubmissions } from '@services/business/submissionService';
@@ -118,7 +120,7 @@ const HomePage = memo(() => {
     try {
       localStorage.setItem('navbarCollapsed', newCollapsed.toString());
     } catch (error) {
-      logger.warn('Failed to save navbar state to localStorage:', error);
+      warn('Failed to save navbar state to localStorage:', error);
     }
     // Dispatch event to notify other components
     window.dispatchEvent(new CustomEvent('navbar:toggle', { 
@@ -217,7 +219,7 @@ const HomePage = memo(() => {
   // Listen for help button click from navbar
   useEffect(() => {
     const startTour = () => {
-      logger.debug('[HomePage] Launching Joyride tour via app event');
+      debug('[HomePage] Launching Joyride tour via app event');
       setRunTour(true);
     };
     // Listen for both legacy help event and the joyride event from Navbar
@@ -245,7 +247,7 @@ const HomePage = memo(() => {
   // Load data function (defined before useEffect that uses it)
   const loadData = useCallback(async (stopGlobalLoading) => {
     try {
-      logger.debug('[HomePage] Starting loadData - calling all services...');
+      debug('[HomePage] Starting loadData - calling all services...');
       
       const [activitiesResult, resourcesResult, quizzesResult, announcementsResult, coursesResult, categoriesResult] = await Promise.all([
         getActivities().catch(err => {
@@ -267,8 +269,8 @@ const HomePage = memo(() => {
         setActivities(activitiesResult.data || []);
         // Debug: Log all activity types to see what we have
         const activityTypes = [...new Set(activitiesResult.data.map(a => a.type))];
-        logger.debug('[HomePage] Available activity types:', activityTypes);
-        logger.debug('[HomePage] All activities data:', activitiesResult.data.map(a => ({
+        debug('[HomePage] Available activity types:', activityTypes);
+        debug('[HomePage] All activities data:', activitiesResult.data.map(a => ({
           id: a.docId,
           type: a.type,
           title: a.titleEn || a.title,
@@ -282,7 +284,7 @@ const HomePage = memo(() => {
         })));
         
         // Debug: Check what activity types we're looking for vs what we have
-        logger.debug('[HomePage] Looking for activity types:', {
+        debug('[HomePage] Looking for activity types:', {
           QUIZ: ACTIVITY_TYPES.QUIZ,
           HOMEWORK: ACTIVITY_TYPES.HOMEWORK, 
           TRAINING: ACTIVITY_TYPES.TRAINING,
@@ -290,14 +292,14 @@ const HomePage = memo(() => {
         });
       }
       if (resourcesResult.success) {
-        logger.debug('[HomePage] Resources loaded from service:', {
+        debug('[HomePage] Resources loaded from service:', {
           success: resourcesResult.success,
           dataLength: resourcesResult.data?.length || 0,
           data: resourcesResult.data
         });
         setResources(resourcesResult.data || []);
       } else {
-        logger.warn('[HomePage] Resources service failed:', resourcesResult.error);
+        warn('[HomePage] Resources service failed:', resourcesResult.error);
         setResources([]);
       }
       if (quizzesResult.success) setQuizzes(quizzesResult.data || []);
@@ -307,7 +309,7 @@ const HomePage = memo(() => {
       if (coursesResult.success) setCourses(coursesResult.data || []);
       if (categoriesResult.success) setCategories(categoriesResult.data || []);
     } catch (error) {
-      logger.error('Error loading data:', error);
+      error('Error loading data:', error);
     } finally {
       if (stopGlobalLoading) {
         stopGlobalLoading();
@@ -391,7 +393,7 @@ const HomePage = memo(() => {
 
       setReviewSubmissions(enriched);
     } catch (error) {
-      logger.error('[HomePage] loadReviewData error:', error);
+      error('[HomePage] loadReviewData error:', error);
     } finally {
       setReviewLoading(false);
     }
@@ -406,11 +408,11 @@ const HomePage = memo(() => {
 
   // Load user data with global loading to prevent flicker
   useLayoutEffect(() => {
-    logger.debug('[HomePage] useLayoutEffect running:', { authLoading, user: !!user });
+    debug('[HomePage] useLayoutEffect running:', { authLoading, user: !!user });
     
     if (authLoading) return;
     if (!user) {
-      logger.debug('[HomePage] No user, clearing all data');
+      debug('[HomePage] No user, clearing all data');
       setActivities([]);
       setResources([]);
       setQuizzes([]);
@@ -419,7 +421,7 @@ const HomePage = memo(() => {
       return;
     }
 
-    logger.debug('[HomePage] User exists, calling loadData');
+    debug('[HomePage] User exists, calling loadData');
     let stopped = false;
     const stopGlobalLoading = startLoading();
     const safeStop = () => {
@@ -456,9 +458,9 @@ const HomePage = memo(() => {
         }
       } catch (e) {
         if (e?.code === 'permission-denied') {
-          logger.warn('[Home] permission-denied reading users/', user.uid);
+          warn('[Home] permission-denied reading users/', user.uid);
         } else {
-          logger.error('[Home] enrollments error:', e);
+          error('[Home] enrollments error:', e);
         }
       }
     };
@@ -754,7 +756,7 @@ const HomePage = memo(() => {
       return (bDate || 0) - (aDate || 0);
     });
 
-    logger.debug('[HomePage] Final filteredItems result:', {
+    debug('[HomePage] Final filteredItems result:', {
       finalLength: filtered.length,
       finalItemsSample: filtered.slice(0, 3).map(item => ({
         id: item.docId || item.id,
@@ -826,7 +828,7 @@ const HomePage = memo(() => {
       
       // Debug: Log what we're counting for each activity type
       if (activityType === ACTIVITY_TYPES.TRAINING || activityType === ACTIVITY_TYPES.LAB_AND_PROJECT) {
-        logger.debug(`[HomePage] ${activityType} items to count:`, {
+        debug(`[HomePage] ${activityType} items to count:`, {
           activityType,
           totalItems: itemsToCount.length,
           items: itemsToCount.map(item => ({
@@ -850,7 +852,7 @@ const HomePage = memo(() => {
     counts.bookmark = calculateFilterBookmarkCount(itemsToCount, mode, activityType);
     
     // Debug logging
-    logger.debug('[HomePage] Calculating filter counts:', {
+    debug('[HomePage] Calculating filter counts:', {
       mode,
       activityType,
       itemsToCount: itemsToCount.length,
@@ -881,7 +883,7 @@ const HomePage = memo(() => {
     });
     
     // Debug final counts
-    logger.debug('[HomePage] Final filter counts:', counts);
+    debug('[HomePage] Final filter counts:', counts);
     
     return counts;
   };
@@ -926,7 +928,7 @@ const HomePage = memo(() => {
     const announcementsCount = announcements.filter(canUserAccessItem).length;
     
     // Debug logging for resources
-    logger.debug('[HomePage] Mode counts debug:', {
+    debug('[HomePage] Mode counts debug:', {
       isAdmin,
       enrolledClasses,
       totalResources: resources.length,
@@ -1014,7 +1016,7 @@ const HomePage = memo(() => {
   }, [hookFilterCounts, getCurrentItems]);
 
   // Debug logging to see what the hook returns
-  logger.debug('[HomePage] Hook filter counts:', {
+  debug('[HomePage] Hook filter counts:', {
     hookFilterCounts,
     bookmarkCount: hookFilterCounts.bookmark,
     mode,
@@ -1207,9 +1209,9 @@ const HomePage = memo(() => {
     });
     
     if (!result.success) {
-      logger.error('[HomePage] Failed to toggle bookmark:', result.error);
+      error('[HomePage] Failed to toggle bookmark:', result.error);
     } else {
-      logger.debug('[HomePage] Bookmark toggled successfully:', {
+      debug('[HomePage] Bookmark toggled successfully:', {
         itemId,
         itemMode,
         isBookmarked: result.isBookmarked
@@ -1231,7 +1233,7 @@ const HomePage = memo(() => {
     
     const result = await updateUserProgress(user.uid, newProgress);
     if (!result.success) {
-      logger.error('Error updating progress:', result.error);
+      error('Error updating progress:', result.error);
       setUserProgress(userProgress); // Revert on error
     }
   }, [user, userProgress]);
@@ -1250,10 +1252,10 @@ const HomePage = memo(() => {
     
     const result = await updateUserProgress(user.uid, newProgress);
     if (!result.success) {
-      logger.error('Error updating activity progress:', result.error);
+      error('Error updating activity progress:', result.error);
       setUserProgress(userProgress); // Revert on error
     } else {
-      logger.info('[HomePage] Activity completion updated:', { activityId, completed: !isCompleted });
+      info('[HomePage] Activity completion updated:', { activityId, completed: !isCompleted });
     }
   }, [user, userProgress]);
 
@@ -1330,25 +1332,25 @@ const HomePage = memo(() => {
                 {
                   value: ACTIVITY_TYPES.QUIZ,
                   label: t('quiz') || 'Quiz',
-                  icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, primaryColor),
+                  icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ).icon, 16, primaryColor),
                   badge: activityTypeCounts.quiz
                 },
                 {
                   value: ACTIVITY_TYPES.HOMEWORK,
                   label: t('homework') || 'Homework',
-                  icon: activityType === ACTIVITY_TYPES.HOMEWORK ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, primaryColor),
+                  icon: activityType === ACTIVITY_TYPES.HOMEWORK ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK).icon, 16, primaryColor),
                   badge: activityTypeCounts.homework
                 },
                 {
                   value: ACTIVITY_TYPES.TRAINING,
                   label: t('training') || 'Training',
-                  icon: activityType === ACTIVITY_TYPES.TRAINING ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, primaryColor),
+                  icon: activityType === ACTIVITY_TYPES.TRAINING ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING).icon, 16, primaryColor),
                   badge: activityTypeCounts.training
                 },
                 {
                   value: ACTIVITY_TYPES.LAB_AND_PROJECT,
                   label: (t('lab_and_project') || 'Lab & Project').replace(/\b\w/g, l => l.toUpperCase()),
-                  icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, primaryColor),
+                  icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT).icon, 16, primaryColor),
                   badge: activityTypeCounts.labandproject
                 }
               ]}
@@ -1428,10 +1430,10 @@ const HomePage = memo(() => {
                 <Tabs
                   tabs={[
                     { value: 'all', label: lang === 'en' ? 'All' : 'الكل', icon: activityType === 'all' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor) },
-                    { value: ACTIVITY_TYPES.QUIZ, label: t('quiz') || 'Quiz', icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ, theme, lang).icon, 16, primaryColor) },
-                    { value: ACTIVITY_TYPES.HOMEWORK, label: t('homework') || 'Homework', icon: activityType === ACTIVITY_TYPES.HOMEWORK ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK, theme, lang).icon, 16, primaryColor) },
-                    { value: ACTIVITY_TYPES.TRAINING, label: t('training') || 'Training', icon: activityType === ACTIVITY_TYPES.TRAINING ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING, theme, lang).icon, 16, primaryColor) },
-                    { value: ACTIVITY_TYPES.LAB_AND_PROJECT, label: (t('lab_and_project') || 'Lab & Project').replace(/\b\w/g, l => l.toUpperCase()), icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT, theme, lang).icon, 16, primaryColor) }
+                    { value: ACTIVITY_TYPES.QUIZ, label: t('quiz') || 'Quiz', icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ).icon, 16, primaryColor) },
+                    { value: ACTIVITY_TYPES.HOMEWORK, label: t('homework') || 'Homework', icon: activityType === ACTIVITY_TYPES.HOMEWORK ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK).icon, 16, primaryColor) },
+                    { value: ACTIVITY_TYPES.TRAINING, label: t('training') || 'Training', icon: activityType === ACTIVITY_TYPES.TRAINING ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING).icon, 16, primaryColor) },
+                    { value: ACTIVITY_TYPES.LAB_AND_PROJECT, label: (t('lab_and_project') || 'Lab & Project').replace(/\b\w/g, l => l.toUpperCase()), icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT).icon, 16, primaryColor) }
                   ]}
                   activeTab={activityType}
                   onTabChange={setActivityType}
@@ -1692,7 +1694,7 @@ const HomePage = memo(() => {
 
         {/* Items Grid */}
         <div data-tour="cards-grid" style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
-            {filteredItems.length === 0 ? (
+            {(!Array.isArray(filteredItems) || filteredItems.length === 0) ? (
               <div style={{
                 gridColumn: '1 / -1',
                 textAlign: 'center',
@@ -1705,6 +1707,13 @@ const HomePage = memo(() => {
             ) : (
               filteredItems.map(item => {
                 const itemId = item.docId || item.id;
+                
+                // Safety check: ensure itemId is defined
+                if (!itemId) {
+                  console.warn('[HomePage] Item missing both docId and id:', item);
+                  return null; // Skip this item
+                }
+                
                 let isCompleted = false;
                 let completedAt = null;
                 let isBookmarked = false;
@@ -1713,12 +1722,12 @@ const HomePage = memo(() => {
                 if (mode === MODE_TYPES.RESOURCES) {
                   isCompleted = userProgress[itemId]?.completed || false;
                   completedAt = userProgress[itemId]?.completedAt;
-                  isBookmarked = !!bookmarks.resources[itemId];
+                  isBookmarked = !!(bookmarks?.resources?.[itemId]);
                   dueDate = item.dueDate;
                 } else if (mode === MODE_TYPES.ACTIVITIES) {
                   if (activityType === ACTIVITY_TYPES.QUIZ) {
                     // Quiz activities use activities bookmark logic (not separate quizzes)
-                    isBookmarked = !!bookmarks.activities[itemId];
+                    isBookmarked = !!(bookmarks?.activities?.[itemId]);
                     // Quiz completion logic - check submissions for quiz completion
                     const submission = submissions[itemId];
                     isCompleted = submission?.status === SUBMISSION_STATUS.GRADED;
@@ -1726,7 +1735,7 @@ const HomePage = memo(() => {
                     dueDate = item.dueDate; // Add due date for quizzes
                     
                     // Debug logs for quiz card data
-                    logger.debug('[HomePage] Quiz card data:', {
+                    debug('[HomePage] Quiz card data:', {
                       itemId,
                       itemTitle: item.titleEn || item.title,
                       featured: item.featured,
@@ -1747,14 +1756,15 @@ const HomePage = memo(() => {
                     // For non-quiz activities, check userProgress for completion status
                     isCompleted = userProgress[itemId]?.completed || false;
                     completedAt = userProgress[itemId]?.completedAt;
-                    isBookmarked = !!bookmarks.activities[itemId];
+                    isBookmarked = !!(bookmarks?.activities?.[itemId]);
                     dueDate = item.dueDate;
                   }
                 } else if (mode === MODE_TYPES.ANNOUNCEMENTS) {
-                  isBookmarked = !!bookmarks.announcements[itemId];
-                                  }
+                  isBookmarked = !!(bookmarks?.announcements?.[itemId]);
+                  dueDate = item.dueDate;
+                }
 
-                    return (
+                return (
                       <UnifiedCard
                         key={itemId}
                         flavor={mode === MODE_TYPES.ACTIVITIES ? RECORD_TYPES.ACTIVITY : (mode === MODE_TYPES.RESOURCES ? RECORD_TYPES.RESOURCE : (mode === MODE_TYPES.ANNOUNCEMENTS ? RECORD_TYPES.ANNOUNCEMENT : mode))}
@@ -1775,7 +1785,7 @@ const HomePage = memo(() => {
                         onStart={async () => {
                           // Debug log when starting a quiz
                           if (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) {
-                            logger.debug('[HomePage] Starting quiz:', {
+                            debug('[HomePage] Starting quiz:', {
                               itemId,
                               itemTitle: item.titleEn || item.title,
                               featured: item.featured,
@@ -1792,7 +1802,7 @@ const HomePage = memo(() => {
                               try {
                                 await ActivityLogger.resourceViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Resource');
                               } catch (logError) {
-                                logger.warn('Failed to log resource viewed activity:', logError);
+                                warn('Failed to log resource viewed activity:', logError);
                               }
                               
                               window.open(item.url, '_blank');
@@ -1801,19 +1811,19 @@ const HomePage = memo(() => {
                               try {
                                 await ActivityLogger.resourceViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Video');
                               } catch (logError) {
-                                logger.warn('Failed to log resource viewed activity:', logError);
+                                warn('Failed to log resource viewed activity:', logError);
                               }
                               
                               window.open(item.url, '_blank');
                             } else {
                               // Handle other resource types
-                              logger.info('[HomePage] Resource click:', { itemId, type: item.type });
+                              info('[HomePage] Resource click:', { itemId, type: item.type });
                               
                               // Log resource viewed activity for other types
                               try {
                                 await ActivityLogger.resourceViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Resource');
                               } catch (logError) {
-                                logger.warn('Failed to log resource viewed activity:', logError);
+                                warn('Failed to log resource viewed activity:', logError);
                               }
                             }
                           } else if (mode === MODE_TYPES.ANNOUNCEMENTS) {
@@ -1830,7 +1840,7 @@ const HomePage = memo(() => {
                                 classId: item.classId
                               });
                             } catch (logError) {
-                              logger.warn('Failed to log announcement read activity:', logError);
+                              warn('Failed to log announcement read activity:', logError);
                             }
                             
                             setSelectedAnnouncement(item);
@@ -1841,7 +1851,7 @@ const HomePage = memo(() => {
                             try {
                               await ActivityLogger.activityViewed(item.id || item.docId, item.titleEn || item.title || 'Untitled Activity');
                             } catch (logError) {
-                              logger.warn('Failed to log activity viewed activity:', logError);
+                              warn('Failed to log activity viewed activity:', logError);
                             }
                             
                             navigate(`/activity/${itemId}`);
@@ -1861,7 +1871,7 @@ const HomePage = memo(() => {
                         onBookmark={() => handleBookmark(itemId, mode)}
                       />
                     );
-              })
+              }).filter(Boolean)
             )}
           </div>
           </div>
@@ -1875,7 +1885,7 @@ const HomePage = memo(() => {
         activityType={activityType}
         tourSeenKey={tourSeenKey}
         onTourFinish={() => {
-          logger.log('[HomePage] Tour finished/skipped, setting runTour to false');
+          info('[HomePage] Tour finished/skipped, setting runTour to false');
           setRunTour(false);
         }}
       />
@@ -1883,7 +1893,7 @@ const HomePage = memo(() => {
       {/* Announcement Modal */}
       {selectedAnnouncement && (() => {
         // Debug: Log all available content fields
-        logger.debug('[HomePage] Announcement modal data:', {
+        debug('[HomePage] Announcement modal data:', {
           id: selectedAnnouncement.id,
           title: selectedAnnouncement.title,
           titleEn: selectedAnnouncement.titleEn,
@@ -1915,7 +1925,7 @@ const HomePage = memo(() => {
         
         const isFullPage = !!announcementFullPage;
         
-        logger.debug('[HomePage] Modal content detection:', {
+        debug('[HomePage] Modal content detection:', {
           annContent: annContent ? annContent.substring(0, 100) + '...' : 'EMPTY',
           isHtml,
           lang

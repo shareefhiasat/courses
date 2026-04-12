@@ -5,7 +5,8 @@ import {
 } from 'recharts';
 import styles from './Chart.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Chart Component
  * 
  * Wrapper around Recharts for consistent styling.

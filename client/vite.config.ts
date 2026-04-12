@@ -28,6 +28,8 @@ export default defineConfig({
       '@constants': path.resolve(__dirname, './src/constants'),
       '@types': path.resolve(__dirname, './src/types'),
       '@components': path.resolve(__dirname, './src/components'),
+      '@api': path.resolve(__dirname, './src/services/api/index.js'),
+      '@logger': path.resolve(__dirname, './src/services/utils/logger.js'),
     },
   },
   build: {
@@ -62,7 +64,7 @@ export default defineConfig({
           // Date libs
           if (id.includes('node_modules/date-fns') || id.includes('node_modules/moment')) return 'vendor-date';
           // Analytics / monitoring (defer-able, never on critical path)
-          if (id.includes('node_modules/posthog-js') || id.includes('node_modules/@sentry')) return 'vendor-monitoring';
+          if (id.includes('node_modules/@sentry')) return 'vendor-monitoring';
           // Calendar / grid layout
           if (id.includes('node_modules/react-big-calendar') || id.includes('node_modules/react-grid-layout')) return 'vendor-layout';
           // Lucide icons
@@ -85,11 +87,18 @@ export default defineConfig({
     port: 5174, // pick a fixed port
     strictPort: false, // fall back only if taken
     https: {
-      key: './localhost+2-key.pem',
-      cert: './localhost+2.pem'
+      key: './localhost-key.pem',
+      cert: './localhost-cert.pem'
     },
     allowedHosts: ["novel-terrier-firmly.ngrok-free.app", "localhost", "127.0.0.1", "192.168.1.7"],
     // Optional: if HMR has issues over LAN, set your LAN IP below:
-    // hmr: { host: '192.168.1.7', protocol: 'ws', port: 5174 }
+    // hmr: { host: '192.168.1.7', protocol: 'ws', port: 5174 },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        secure: false
+      }
+    }
   },
 });

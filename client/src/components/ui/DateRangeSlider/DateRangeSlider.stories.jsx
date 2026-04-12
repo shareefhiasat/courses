@@ -1,7 +1,8 @@
 ﻿import React, { useState } from 'react';
 import DateRangeSlider from './DateRangeSlider';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'Form/DateRangeSlider',
   component: DateRangeSlider,
   parameters: {
@@ -41,7 +42,7 @@ const Template = (args) => {
         toDate={dates.toDate}
         onChange={(newDates) => {
           setDates(newDates);
-          logger.log('Date range changed:', newDates);
+          info('Date range changed:', newDates);
         }}
       />
       <div style={{ marginTop: '1rem', padding: '1rem', background: '#f5f5f5a3', borderRadius: '8px', fontSize: '0.875rem' }}>

@@ -8,7 +8,8 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { EMOJI_LIST, MESSAGE_TYPES } from '../constants/chatConstants';
 import { formatTime, getMaxVoiceTimeDisplay } from '../utils/chatHelpers';
 
-const ChatInput = memo(({ 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const ChatInput = memo(({ 
   state,
   actions,
   user,

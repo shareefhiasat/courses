@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Textarea from './Textarea';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 export default {
   title: 'Form/Textarea',
@@ -56,7 +56,7 @@ const Template = (args) => {
         value={value}
         onChange={(e) => {
           setValue(e.target.value);
-          logger.log('Textarea value:', e.target.value);
+          info('Textarea value:', e.target.value);
         }}
       />
       <div style={{ marginTop: '1rem', padding: '0.5rem', background: '#f0f0f0', borderRadius: 4, fontSize: '0.875rem' }}>
@@ -162,6 +162,6 @@ CodeEditor.args = {
   label: 'Code Snippet',
   placeholder: 'Enter your code here...',
   rows: 10,
-  value: 'function hello() {\n  logger.log("Hello World!");\n}',
+  value: 'function hello() {\n  info("Hello World!");\n}',
   helperText: 'Use monospace font for code',
 };

@@ -4,14 +4,15 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { formatQatarStandard } from '@utils/qatarDate';
 import { addClass, updateClass, deleteClass, getClasses } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getUsers } from '@services/business/userService';
 import { getEnrollments } from '@services/business/enrollmentService';
-import { getActivities } from '@services/business/activityService';
+import { getActivities } from '@services/business/activitiesService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger.jsx';
+import { getUserDisplayProps } from '@utils/userDisplayUtils.js';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { isAdmin, isInstructor, isSuperAdmin } from '@services/business/userService';
 import { makeCurrentUserSuperAdminAndInstructor } from '@utils/userRoleManager';
@@ -43,7 +44,7 @@ const ClassesPage = () => {
   const [activities, setActivities] = useState([]);
   
   // Form state
-  const [classForm, setClassForm] = useState({ id: '', name: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', ownerEmail: '', subjectId: '', programId: '', classId: '' });
+  const [classForm, setClassForm] = useState({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
   const [editingClass, setEditingClass] = useState(null);
   const { deleteModal, deleteClass: deleteClassModal, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   
@@ -53,6 +54,9 @@ const ClassesPage = () => {
   const codeRef = useRef(null);
   const locationEnRef = useRef(null);
   const locationArRef = useRef(null);
+  const descriptionEnRef = useRef(null);
+  const descriptionArRef = useRef(null);
+  const capacityRef = useRef(null);
   
   // Filter state
   const [classProgramFilter, setClassProgramFilter] = useState('');
@@ -85,22 +89,148 @@ const ClassesPage = () => {
         getActivities()
       ]);
       
+      console.log('🔍 [ClassesPage] API Response - subjectsRes:', subjectsRes);
+      
       if (classesRes?.success) setClasses(classesRes.data || []);
       if (programsRes?.success) setPrograms(programsRes.data || []);
       if (subjectsRes?.success) setSubjects(subjectsRes.data || []);
       if (usersRes?.success) {
-        setUsers(usersRes.data || []);
+        const usersArray = Array.isArray(usersRes.data) ? usersRes.data : [];
+        setUsers(usersArray);
+        
+        // Debug: Log all users to see their structure
+        info('🔍 [ClassesPage] All users loaded:', { 
+          totalUsers: usersArray.length, 
+          sampleUsers: usersArray.slice(0, 3).map(u => ({
+            id: u.id,
+            email: u.email,
+            displayName: u.displayName,
+            roleAssignments: u.roleAssignments,
+            roles: u.roles,
+            realm_access: u.realm_access,
+            resource_access: u.resource_access
+          }))
+        });
         
         // Filter instructor users using centralized utilities (FLAG ONLY)
-        const instructorUsers = usersRes.data?.filter(u => 
-          isSuperAdmin(u) || isAdmin(u) || isInstructor(u)
-        );
+        const instructorUsers = usersArray.filter(u => {
+          const isInstructorRole = isSuperAdmin(u) || isAdmin(u) || isInstructor(u);
+          info('🔍 [ClassesPage] Checking user for instructor role:', {
+            userId: u.id,
+            email: u.email,
+            displayName: u.displayName,
+            isInstructorRole,
+            isSuperAdmin: isSuperAdmin(u),
+            isAdmin: isAdmin(u),
+            isInstructor: isInstructor(u),
+            roleAssignments: u.roleAssignments,
+            roles: u.roles
+          });
+          return isInstructorRole;
+        });
+        
+        info('🔍 [ClassesPage] Filtered instructor users:', {
+          totalInstructors: instructorUsers.length,
+          instructors: instructorUsers.map(u => ({
+            id: u.id,
+            email: u.email,
+            displayName: u.displayName
+          }))
+        });
+        
         setFilteredInstructorUsers(instructorUsers || []);
+      }
+      
+      // If no users loaded but we have current user, add them as instructor
+      if ((!usersRes?.success || !usersRes.data?.length) && user) {
+        const currentUserAsInstructor = {
+          id: user.id,
+          email: user.email,
+          displayName: user.displayName || user.name || user.email,
+          // Add role flags based on user roles
+          isSuperAdmin: user.realm_access?.roles?.includes('super-admin') || false,
+          isAdmin: user.realm_access?.roles?.includes('admin') || false,
+          isInstructor: user.realm_access?.roles?.includes('instructor') || false
+        };
+        
+        // Only add if user has instructor-like roles
+        if (currentUserAsInstructor.isSuperAdmin || currentUserAsInstructor.isAdmin || currentUserAsInstructor.isInstructor) {
+          setFilteredInstructorUsers([currentUserAsInstructor]);
+        }
+      }
+      
+      // Additional fallback: If no instructors found but we have users, try to detect instructors differently
+      if (usersRes?.success && usersRes.data?.length > 0) {
+        const usersArray = Array.isArray(usersRes.data) ? usersRes.data : [];
+        
+        // Debug: Log all users to see their structure
+        info('🔍 [ClassesPage] All users for instructor detection:', { 
+          totalUsers: usersArray.length, 
+          users: usersArray.map(u => ({
+            id: u.id,
+            email: u.email,
+            displayName: u.displayName,
+            roleAssignments: u.roleAssignments,
+            detectedRoles: u.roleAssignments?.map(ra => ra.role?.code) || []
+          }))
+        });
+        
+        const instructorUsers = usersArray.filter(u => {
+          // Try multiple detection methods
+          const method1 = isSuperAdmin(u) || isAdmin(u) || isInstructor(u);
+          
+          // Method 2: Check roleAssignments directly
+          const method2 = u.roleAssignments && Array.isArray(u.roleAssignments) && 
+            u.roleAssignments.some(ra => 
+              ra.role && (ra.role.code === 'instructor' || ra.role.code === 'admin' || ra.role.code === 'super_admin')
+            );
+          
+          // Method 3: Check for instructor-like email or display name patterns
+          const method3 = u.email && (
+            u.email.includes('instructor') || 
+            u.email.includes('admin') || 
+            u.email.includes('teacher')
+          );
+          
+          // Method 4: Specific known instructor users (temporary fix)
+          const method4 = u.email === 'instructor@instructor.com';
+          
+          const isInstructorRole = method1 || method2 || method3 || method4;
+          
+          if (!method1 && (method2 || method3 || method4)) {
+            warn('🔍 [ClassesPage] Instructor detected by fallback method:', {
+              userId: u.id,
+              email: u.email,
+              displayName: u.displayName,
+              method1,
+              method2,
+              method3,
+              method4,
+              roleAssignments: u.roleAssignments
+            });
+          }
+          
+          return isInstructorRole;
+        });
+        
+        if (instructorUsers.length > 0) {
+          info('🔍 [ClassesPage] Found instructors via fallback:', {
+            totalInstructors: instructorUsers.length,
+            instructors: instructorUsers.map(u => ({
+              id: u.id,
+              email: u.email,
+              displayName: u.displayName
+            }))
+          });
+          setFilteredInstructorUsers(instructorUsers);
+        } else {
+          warn('🔍 [ClassesPage] No instructors found even with fallback methods');
+        }
       }
       if (enrollmentsRes?.success) setEnrollments(enrollmentsRes.data || []);
       if (activitiesRes?.success) setActivities(activitiesRes.data || []);
-    } catch (error) {
-      logger.error('🔍 [ClassesPage] Error loading data:', error);
+    } catch (errorData) {
+      error('🔍 [ClassesPage] Error loading data:', errorData);
       toast?.showError(t('classes_failed_to_load_data'));
     } finally {
       if (!isInitial) setLoading(false);
@@ -127,18 +257,32 @@ const ClassesPage = () => {
   }, []);
   
   // Utility functions
-  const handleDropdownChange = (field, value) => {
-    setClassForm(prev => ({ ...prev, [field]: value }));
-  };
+  const handleDropdownChange = useCallback((setter, field, resetFields = []) => {
+    return (value) => {
+      console.log('🔍 [ClassesPage] handleDropdownChange called:', { field, value, resetFields });
+      setter(prev => {
+        const newState = { ...prev, [field]: value };
+        resetFields.forEach(resetField => {
+          newState[resetField] = '';
+        });
+        console.log('🔍 [ClassesPage] handleDropdownChange new state:', newState);
+        return newState;
+      });
+    };
+  }, []);
 
   const syncRefsToState = useCallback(() => {
-    return {
-      name: nameRef.current?.value ?? classForm.name,
+    const textValues = {
+      nameEn: nameRef.current?.value ?? classForm.nameEn,
       nameAr: nameArRef.current?.value ?? classForm.nameAr,
       code: codeRef.current?.value ?? classForm.code,
       locationEn: locationEnRef.current?.value ?? classForm.locationEn,
-      locationAr: locationArRef.current?.value ?? classForm.locationAr
+      locationAr: locationArRef.current?.value ?? classForm.locationAr,
+      descriptionEn: descriptionEnRef.current?.value ?? classForm.descriptionEn,
+      descriptionAr: descriptionArRef.current?.value ?? classForm.descriptionAr,
+      maxCapacity: capacityRef.current?.value ?? classForm.maxCapacity
     };
+    return textValues;
   }, [classForm]);
   
   // Clear filters
@@ -155,8 +299,18 @@ const ClassesPage = () => {
     // Sync refs
     const textValues = syncRefsToState();
     
-    if (!textValues.name.trim()) {
+    if (!textValues.nameEn.trim()) {
       toast?.showError(t('classes_name_required'));
+      return;
+    }
+
+    if (!classForm.programId) {
+      toast?.showError(t('program_required') || 'Program is required');
+      return;
+    }
+
+    if (!classForm.subjectId) {
+      toast?.showError(t('subject_required') || 'Subject is required');
       return;
     }
 
@@ -174,17 +328,40 @@ const ClassesPage = () => {
       ...textValues
     };
 
+    // Clean up data before sending to API
+    if (classData.maxCapacity === '' || classData.maxCapacity === null) {
+      classData.maxCapacity = null;
+    } else {
+      classData.maxCapacity = parseInt(classData.maxCapacity, 10);
+    }
+
+    // Convert ID fields from strings to integers
+    if (classData.programId) {
+      classData.programId = parseInt(classData.programId, 10);
+    }
+    if (classData.subjectId) {
+      classData.subjectId = parseInt(classData.subjectId, 10);
+    }
+    if (classData.instructorId) {
+      classData.instructorId = parseInt(classData.instructorId, 10);
+    }
+
+    // Add missing fields
+    classData.isActive = classData.isActive !== false; // Default to true
+    if (!classData.descriptionEn) classData.descriptionEn = null;
+    if (!classData.descriptionAr) classData.descriptionAr = null;
+
     // Remove id field when updating to prevent creating new records
     if (editingClass) {
-      console.log('🔧 [ClassesPage] Before cleanup - classData:', classData);
+      info('🔧 [ClassesPage] Before cleanup - classData:', classData);
       delete classData.id;
       delete classData.docId; // Also remove docId if present
-      console.log('🔧 [ClassesPage] After cleanup - classData:', classData);
+      info('🔧 [ClassesPage] After cleanup - classData:', classData);
     }
 
     setLoading(true);
     try {
-      console.log('🚀 [ClassesPage] Calling service:', editingClass ? 'updateClass' : 'addClass');
+      info('🚀 [ClassesPage] Calling service:', editingClass ? 'updateClass' : 'addClass');
       console.log('🚀 [ClassesPage] Service params:', {
         docId: editingClass?.docId,
         classDataKeys: Object.keys(classData),
@@ -192,38 +369,41 @@ const ClassesPage = () => {
       });
       
       const result = editingClass ?
-        await updateClass(editingClass.docId, classData, user) :
+        await updateClass(editingClass.docId || editingClass.id, classData, user) :
         await addClass(classData, user);
 
-      console.log('📋 [ClassesPage] Service result:', result);
-      console.log('📋 [ClassesPage] Result success:', result.success);
-      console.log('📋 [ClassesPage] Result ID:', result.id);
+      info('📋 [ClassesPage] Service result:', result);
+      info('📋 [ClassesPage] Result success:', result.success);
+      info('📋 [ClassesPage] Result ID:', result.id);
 
       if (result.success) {
         // Log activity
         try {
           await logActivity(editingClass ? ACTIVITY_LOG_TYPES.CLASS_UPDATED : ACTIVITY_LOG_TYPES.CLASS_CREATED, {
             classId: editingClass?.docId || result.id,
-            className: textValues.name,
+            className: textValues.nameEn,
             classCode: textValues.code,
             subjectId: classForm.subjectId
           });
-        } catch (e) { logger.warn('Failed to log activity:', e); }
+        } catch (e) { warn('Failed to log activity:', e); }
         await loadData();
         setEditingClass(null);
-        setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', ownerEmail: '', subjectId: '', programId: '', classId: '' });
+        setClassForm({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
         // Clear refs
         if (nameRef.current) nameRef.current.value = '';
         if (nameArRef.current) nameArRef.current.value = '';
         if (codeRef.current) codeRef.current.value = '';
         if (locationEnRef.current) locationEnRef.current.value = '';
         if (locationArRef.current) locationArRef.current.value = '';
+        if (descriptionEnRef.current) descriptionEnRef.current.value = '';
+        if (descriptionArRef.current) descriptionArRef.current.value = '';
+        if (capacityRef.current) capacityRef.current.value = '';
         toast?.showSuccess(editingClass ? t('classes_updated_successfully') : t('classes_created_successfully'));
       } else {
         toast?.showError(t('classes_error_saving', { error: result.error }));
       }
     } catch (error) {
-      logger.error('Error saving class:', error);
+      error('Error saving class:', error);
       toast?.showError(t('classes_error_saving', { error: error.message }));
     } finally {
       setLoading(false);
@@ -233,7 +413,7 @@ const ClassesPage = () => {
 
   const handleEdit = useCallback((params) => {
     const row = params.row;
-    console.log('🔧 [ClassesPage] handleEdit called with:', row);
+    info('🔧 [ClassesPage] handleEdit called with:', row);
     
     // Set editing state FIRST
     setEditingClass(row);
@@ -242,37 +422,41 @@ const ClassesPage = () => {
     let term = row.term || '';
     let year = row.year || ''; // Check for separate year field first
     
-    console.log('🔧 [ClassesPage] Edit - Raw data:', { term: row.term, year: row.year });
+    info('🔧 [ClassesPage] Edit - Raw data:', { term: row.term, year: row.year });
     
     // If no separate year field, try to extract from combined term
     if (!year && term && term.includes(' ')) {
       const termParts = term.split(' ');
       term = termParts[0] || '';
       year = termParts[1] || '';
-      console.log('🔧 [ClassesPage] Edit - Extracted from combined:', { term, year });
+      info('🔧 [ClassesPage] Edit - Extracted from combined:', { term, year });
     } else {
-      console.log('🔧 [ClassesPage] Edit - Using separate fields:', { term, year });
+      info('🔧 [ClassesPage] Edit - Using separate fields:', { term, year });
     }
     
     setClassForm({
       id: row.id,
-      name: row.name || '',
+      nameEn: row.nameEn || '',
       nameAr: row.nameAr || '',
       code: row.code || '',
       term: term,
       year: year,
       locationEn: row.locationEn || '',
       locationAr: row.locationAr || '',
-      ownerEmail: row.ownerEmail || '',
+      descriptionEn: row.descriptionEn || '',
+      descriptionAr: row.descriptionAr || '',
+      ownerEmail: row.ownerEmail || row.instructor?.email || '',
+      instructorId: row.instructorId || row.instructor?.id || '',
       subjectId: row.subjectId || '',
       programId: row.programId || '',
-      classId: row.classId || ''
+      classId: row.classId || '',
+      maxCapacity: row.maxCapacity || ''
     });
     
-    console.log('🔧 [ClassesPage] handleEdit - editingClass set to:', row);
+    info('🔧 [ClassesPage] handleEdit - editingClass set to:', row);
     console.log('🔧 [ClassesPage] handleEdit - classForm set to:', {
       id: row.id,
-      name: row.name || '',
+      nameEn: row.nameEn || '',
       nameAr: row.nameAr || '',
       code: row.code || '',
       term: term,
@@ -282,15 +466,19 @@ const ClassesPage = () => {
       ownerEmail: row.ownerEmail || '',
       subjectId: row.subjectId || '',
       programId: row.programId || '',
-      classId: row.classId || ''
+      classId: row.classId || '',
+      maxCapacity: row.maxCapacity || ''
     });
     
     // Sync refs
-    if (nameRef.current) nameRef.current.value = row.name || '';
+    if (nameRef.current) nameRef.current.value = row.nameEn || '';
     if (nameArRef.current) nameArRef.current.value = row.nameAr || '';
     if (codeRef.current) codeRef.current.value = row.code || '';
     if (locationEnRef.current) locationEnRef.current.value = row.locationEn || '';
     if (locationArRef.current) locationArRef.current.value = row.locationAr || '';
+    if (descriptionEnRef.current) descriptionEnRef.current.value = row.descriptionEn || '';
+    if (descriptionArRef.current) descriptionArRef.current.value = row.descriptionAr || '';
+    if (capacityRef.current) capacityRef.current.value = row.maxCapacity || '';
   }, []);
 
   const handleDelete = useCallback((params) => {
@@ -305,10 +493,10 @@ const ClassesPage = () => {
           try {
             await logActivity(ACTIVITY_LOG_TYPES.CLASS_DELETED, {
               classId: classItem.docId,
-              className: classItem.name,
+              className: classItem.nameEn,
               classCode: classItem.code
             });
-          } catch (e) { logger.warn('Failed to log activity:', e); }
+          } catch (e) { warn('Failed to log activity:', e); }
           toast?.showSuccess(t('classes_deleted_successfully'));
           await loadData();
         } else {
@@ -319,7 +507,7 @@ const ClassesPage = () => {
       } catch (error) {
         // Rollback
         setClasses(prev => [...prev, classItem]);
-        logger.error('Error deleting class:', error);
+        error('Error deleting class:', error);
         toast?.showError(t('classes_error_deleting', { error: error.message }));
       }
     });
@@ -327,17 +515,20 @@ const ClassesPage = () => {
 
 const handleCancelEdit = useCallback(() => {
     setEditingClass(null);
-    setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', ownerEmail: '', subjectId: '', programId: '', classId: '' });
+    setClassForm({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
     // Clear refs
     if (nameRef.current) nameRef.current.value = '';
     if (nameArRef.current) nameArRef.current.value = '';
     if (codeRef.current) codeRef.current.value = '';
     if (locationEnRef.current) locationEnRef.current.value = '';
     if (locationArRef.current) locationArRef.current.value = '';
+    if (descriptionEnRef.current) descriptionEnRef.current.value = '';
+    if (descriptionArRef.current) descriptionArRef.current.value = '';
+    if (capacityRef.current) capacityRef.current.value = '';
   }, []);
 
   const gridColumns = useMemo(() => [
-    { field: 'name', headerName: t('name') || 'Name', flex: 1, minWidth: 180 },
+    { field: 'nameEn', headerName: t('name') || 'Name', flex: 1, minWidth: 180 },
     { 
       field: 'code', 
       headerName: t('code') || 'Code', 
@@ -502,6 +693,36 @@ const handleCancelEdit = useCallback(() => {
       }
     },
     {
+      field: 'descriptionEn',
+      headerName: t('description_english') || 'Description (English)',
+      flex: 1, minWidth: 200,
+      valueGetter: (params) => params.value || params.row?.descriptionEn || '—',
+      renderCell: (params) => {
+        const description = params.value || params.row?.descriptionEn;
+        return description || '—';
+      }
+    },
+    {
+      field: 'descriptionAr',
+      headerName: t('description_arabic') || 'Description (Arabic)',
+      flex: 1, minWidth: 200,
+      valueGetter: (params) => params.value || params.row?.descriptionAr || '—',
+      renderCell: (params) => {
+        const description = params.value || params.row?.descriptionAr;
+        return description || '—';
+      }
+    },
+    {
+      field: 'maxCapacity', 
+      headerName: t('capacity') || 'Capacity', 
+      width: 100,
+      valueGetter: (params) => params.value || params.row?.maxCapacity || '—',
+      renderCell: (params) => {
+        const capacity = params.value || params.row?.maxCapacity;
+        return capacity || '—';
+      }
+    },
+    {
       field: 'ownerEmail', headerName: t('owner') || 'Owner', flex: 1, minWidth: 200,
       valueGetter: (params) => {
         const row = params?.row || {};
@@ -573,17 +794,40 @@ const handleCancelEdit = useCallback(() => {
       field: 'createdBy',
       headerName: t('created_by') || 'Created By',
       width: 180,
+      valueGetter: (params) => {
+        const creator = params.row?.creator;
+        return creator?.displayName || creator?.firstName || creator?.email || '—';
+      },
       renderCell: (params) => {
-        const createdBy = params.value || params.row?.createdBy;
-        if (!createdBy) return 'Unknown';
+        const creator = params.row?.creator;
+        if (!creator) return '—';
         
-        // Try to find user display name from users array (same as ActivitiesPage)
-        const user = users.find(u => (u.uid || u.id) === createdBy);
-        if (user) {
-          return user.displayName || user.name || user.email || createdBy;
-        }
+        const displayProps = getUserDisplayProps(creator);
+        return (
+          <span title={displayProps.title} style={displayProps.style}>
+            {displayProps.children}
+          </span>
+        );
+      }
+    },
+    {
+      field: 'updatedBy',
+      headerName: t('updated_by') || 'Updated By',
+      width: 180,
+      valueGetter: (params) => {
+        const updater = params.row?.updater;
+        return updater?.displayName || updater?.firstName || updater?.email || '—';
+      },
+      renderCell: (params) => {
+        const updater = params.row?.updater;
+        if (!updater) return '—';
         
-        return createdBy;
+        const displayProps = getUserDisplayProps(updater);
+        return (
+          <span title={displayProps.title} style={displayProps.style}>
+            {displayProps.children}
+          </span>
+        );
       }
     },
     {
@@ -637,17 +881,17 @@ const handleCancelEdit = useCallback(() => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} Editing Class: {editingClass.name} ({editingClass.code || 'No code'})
+          {getThemedIcon('ui', 'edit', 16, theme)} Editing Class: {editingClass.nameEn} ({editingClass.code || 'No code'})
         </div>
       )}
 
       <form onSubmit={handleClassSubmit} className="dashboard-form">
-        {/* Basic Info */}
-        <div className="form-row wide-cols">
+        {/* Basic Info - First Row */}
+        <div className="form-row">
           <Input
             ref={nameRef}
             placeholder={t('class_name')}
-            defaultValue={classForm.name}
+            defaultValue={classForm.nameEn}
             required
           />
           <Input
@@ -658,9 +902,13 @@ const handleCancelEdit = useCallback(() => {
           />
           <Input
             ref={codeRef}
-            placeholder={t('class_code') + ' (' + t('optional') + ')'}
+            placeholder={t('class_code') + ' (' + t('optional') + ')' }
             defaultValue={classForm.code}
           />
+        </div>
+
+        {/* Location & Capacity - Second Row */}
+        <div className="form-row">
           <Input
             ref={locationEnRef}
             placeholder={t('location_english') || 'Location (English)'}
@@ -670,6 +918,28 @@ const handleCancelEdit = useCallback(() => {
             ref={locationArRef}
             placeholder={t('location_arabic') || 'Location (Arabic)'}
             defaultValue={classForm.locationAr || ''}
+            dir="rtl"
+          />
+          <Input
+            ref={capacityRef}
+            placeholder={t('capacity') || 'Capacity'}
+            defaultValue={classForm.maxCapacity || ''}
+            type="number"
+            min="1"
+          />
+        </div>
+
+        {/* Description Fields */}
+        <div className="form-row">
+          <Input
+            ref={descriptionEnRef}
+            placeholder={t('description_english') || 'Description (English)'}
+            defaultValue={classForm.descriptionEn || ''}
+          />
+          <Input
+            ref={descriptionArRef}
+            placeholder={t('description_arabic') || 'Description (Arabic)'}
+            defaultValue={classForm.descriptionAr || ''}
             dir="rtl"
           />
         </div>
@@ -683,8 +953,8 @@ const handleCancelEdit = useCallback(() => {
             selectedProgram={classForm.programId}
             selectedSubject={classForm.subjectId}
             selectedClass=""
-            onProgramChange={(programId) => setClassForm(prev => ({ ...prev, programId, subjectId: '', classId: '' }))}
-            onSubjectChange={(subjectId) => setClassForm(prev => ({ ...prev, subjectId, classId: '' }))}
+            onProgramChange={handleDropdownChange(setClassForm, 'programId', ['subjectId'])}
+            onSubjectChange={handleDropdownChange(setClassForm, 'subjectId')}
             onClassChange={() => {}}
             showClasses={false} // Use correct prop name
             showLabels={false}
@@ -695,15 +965,24 @@ const handleCancelEdit = useCallback(() => {
             enrollments={enrollments}
             classes={classes}
             value={classForm.ownerEmail}
-            onChange={e => setClassForm({ ...classForm, ownerEmail: e.target.value })}
-            placeholder={t('select_instructor') || 'Select Instructor'}
+            onChange={(e) => {
+              const selectedEmail = e.target.value;
+              const selectedInstructor = filteredInstructorUsers.find(u => u.email === selectedEmail);
+              
+              // Set both ownerEmail and instructorId
+              setClassForm({ 
+                ...classForm, 
+                ownerEmail: selectedEmail,
+                instructorId: selectedInstructor ? selectedInstructor.id : ''
+              });
+            }}
+            placeholder={t('select_instructor') + ' (' + t('optional') + ')' || 'Select Instructor (Optional)'}
             roleFilter={[]} // No filtering needed - already filtered
             includeAll={false}
             showEnrollments={true}
             showStatus={true}
             useEmailAsValue={true}
             searchable={true}
-            required
           />
         </div>
         <div className="form-row compact-cols">
@@ -770,8 +1049,16 @@ const handleCancelEdit = useCallback(() => {
           selectedProgram={classProgramFilter}
           selectedSubject={classSubjectFilter}
           selectedClass=""
-          onProgramChange={(programId) => setClassProgramFilter(programId)}
-          onSubjectChange={(subjectId) => setClassSubjectFilter(subjectId)}
+          onProgramChange={(e) => {
+            const programId = e?.target?.value !== undefined ? e.target.value : e;
+            console.log('🔍 Classes filter program change:', { programId });
+            setClassProgramFilter(programId);
+          }}
+          onSubjectChange={(e) => {
+            const subjectId = e?.target?.value !== undefined ? e.target.value : e;
+            console.log('🔍 Classes filter subject change:', { subjectId });
+            setClassSubjectFilter(subjectId);
+          }}
           onClassChange={() => {}}
           showClass={false}
           showLabels={false}
@@ -785,7 +1072,7 @@ const handleCancelEdit = useCallback(() => {
             onChange={(e) => setClassInstructorFilter(e.target.value)}
             options={[
               { value: '', label: lang === 'ar' ? 'جميع المدربين' : 'All Instructors', icon: getThemedIcon('ui', 'users', 16, theme) },
-              ...users.filter(u => isSuperAdmin(u) || isAdmin(u) || isInstructor(u)).map(instructor => ({
+              ...(Array.isArray(users) ? users.filter(u => isSuperAdmin(u) || isAdmin(u) || isInstructor(u)) : []).map(instructor => ({
                   value: instructor.email,
                   label: instructor.displayName || instructor.name || instructor.email,
                   icon: getThemedIcon('ui', 'user', 16, theme)

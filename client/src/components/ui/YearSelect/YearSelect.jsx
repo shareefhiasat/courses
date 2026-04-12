@@ -1,7 +1,8 @@
 import React from 'react';
 import Select from '../Select/Select';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * YearSelect - standardized year dropdown
  * - default range: 2024 .. 2029 (5 years ahead)
  * - props: value, onChange, startYear=2024, yearsAhead=5, label='Year', placeholder='Year', fullWidth, searchable

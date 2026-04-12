@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 ﻿// Simple event bus for real-time updates
 class EventBus {
   constructor() {

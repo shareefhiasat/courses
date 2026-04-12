@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { logLearningTime } from '@services/business/studentProgressService';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Hook to track time spent on a page and log to student progress
  * @param {string} pageName - Name of the page/activity being tracked
  * @param {boolean} enabled - Whether tracking is enabled (default: true)
@@ -48,7 +49,7 @@ export function useTimeTracking(pageName, enabled = true) {
       if (totalTime > 10000 && user?.uid) {
         const hours = totalTime / (1000 * 60 * 60); // Convert to hours
         logLearningTime(user.uid, hours).catch(err => {
-          logger.warn('Failed to log learning time:', err);
+          warn('Failed to log learning time:', err);
         });
       }
 

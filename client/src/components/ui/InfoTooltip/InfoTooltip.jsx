@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
-import './InfoTooltip.css';
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import './InfoTooltip.css';
 
 // Helper function to check if an element is a button or has an onClick handler
 const isClickableElement = (element) => {

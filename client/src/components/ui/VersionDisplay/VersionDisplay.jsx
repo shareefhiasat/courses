@@ -2,7 +2,8 @@ import React from 'react';
 import { formatVersionInfo } from '../../../config/version';
 import { useTheme } from '@contexts/ThemeContext';
 
-const VersionDisplay = ({ className = '', style = {} }) => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const VersionDisplay = ({ className = '', style = {} }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   

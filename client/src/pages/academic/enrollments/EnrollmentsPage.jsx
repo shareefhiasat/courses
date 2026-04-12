@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
-import { getEnrolledStudents, toggleStudentAccess as toggleStudentAccessService } from '@services/business/enrollmentService';
+import { getStudentsByClass, toggleStudentAccess as toggleStudentAccessService } from '@services/business/enrollmentService';
 import { Container, Card, CardBody, Button, Input, Badge, EmptyState, useToast, Select, YearSelect } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getAcademicTermOptions, getAcademicTermLabel } from '@constants/academicTerms';
@@ -151,11 +151,11 @@ const EnrollmentsPage = () => {
       if (classesSnap.success) {
         setClasses(classesSnap.data);
       } else {
-        logger.error('[EnrollmentsPage] Classes service error:', classesSnap.error);
+        error('[EnrollmentsPage] Classes service error:', classesSnap.error);
         toast.error(classesSnap.error || t('failed_to_load_classes') || 'Failed to load classes');
       }
     } catch (e) {
-      logger.error('[EnrollmentsPage] Error loading data:', e);
+      error('[EnrollmentsPage] Error loading data:', e);
     } finally {
       setInitialLoading(false);
       stopLoading();
@@ -170,14 +170,14 @@ const EnrollmentsPage = () => {
   const loadStudents = async (classId) => {
     setLoading(true);
     try {
-      const result = await getEnrolledStudents(classId);
+      const result = await getStudentsByClass(classId);
       if (!result.success) {
         throw new Error(result.error || t('enrollments_failed_to_load_students'));
       }
 
       setStudents(result.data || []);
     } catch (e) {
-      logger.error('[EnrollmentsPage] Error loading students:', e);
+      error('[EnrollmentsPage] Error loading students:', e);
       toast.error(
         t('failed_to_load_students', { error: e?.message || 'unknown error' }) ||
         'Failed to load students: ' + (e?.message || 'unknown error')
@@ -222,7 +222,7 @@ const EnrollmentsPage = () => {
         throw new Error(result.error);
       }
     } catch (error) {
-      logger.error('Failed to toggle student access:', error);
+      error('Failed to toggle student access:', error);
       toast?.showError(t('failed_to_update_student_access') || 'Failed to update student access');
     } finally {
       // Clear button loading state

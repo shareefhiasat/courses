@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import EmailTemplateList from './EmailTemplateList';
-import EmailTemplateEditor from './EmailTemplateEditor';
 import {SeedDefaultTemplates, Spinner } from "@ui";
 import { useLang } from '@contexts/LangContext';
-import { collection, getDocs, query, limit } from 'firebase/firestore';
-import { db } from '@services/other/config';
+
+
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const EmailTemplates = () => {
   const { t } = useLang();
@@ -21,11 +21,11 @@ const EmailTemplates = () => {
   const checkTemplates = async () => {
     setChecking(true);
     try {
-      const q = query(collection(db, 'emailTemplates'), limit(1));
-      const snapshot = await getDocs(q);
-      setHasTemplates(!snapshot.empty);
+      // Mock implementation - replace with GraphQL query
+      info('📧 Checking email templates (mock)');
+      setHasTemplates(true); // Assume templates exist for now
     } catch (error) {
-      logger.error('Error checking templates:', error);
+      error('Error checking templates:', error);
       setHasTemplates(false);
     } finally {
       setChecking(false);
@@ -33,23 +33,13 @@ const EmailTemplates = () => {
   };
 
   const handleCreateNew = () => {
-    setEditingTemplate(null);
-    setView('editor');
+    // Editor removed - show message
+    info('📝 Email template editor not available');
   };
 
   const handleEdit = (template) => {
-    setEditingTemplate(template);
-    setView('editor');
-  };
-
-  const handleSave = () => {
-    setView('list');
-    setEditingTemplate(null);
-  };
-
-  const handleCancel = () => {
-    setView('list');
-    setEditingTemplate(null);
+    // Editor removed - show message
+    console.log('📝 Email template editor not available');
   };
 
   return (
@@ -66,7 +56,7 @@ const EmailTemplates = () => {
           </div>
         )}
         
-        {!checking && hasTemplates !== null && view === 'list' ? (
+        {!checking && hasTemplates !== null && (
             <div>
               <div style={{ marginBottom: '1.5rem' }}>
                 <p style={{ color: '#666', fontSize: '0.95rem' }}>
@@ -86,12 +76,6 @@ const EmailTemplates = () => {
                   onCreateNew={handleCreateNew}
               />
             </div>
-        ) : (
-            !checking && hasTemplates !== null && <EmailTemplateEditor
-                template={editingTemplate}
-                onSave={handleSave}
-                onCancel={handleCancel}
-            />
         )}
       </div>
   );

@@ -1,0 +1,6 @@
+❌ Cannot get user token for JWT decode test
+🔍 Using admin token instead for JWT format demonstration
+🔑 Admin Access Token (first 50 chars): eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6IC...
+🌐 To decode: Go to https://jwt.io and paste the full token
+📋 You should see: sub, iss, aud, etc. (admin token structure)
+✅ Admin token is valid JWT format (header.payload.signature)

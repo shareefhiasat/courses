@@ -2,7 +2,8 @@ import React from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Badge } from '@ui';
 
-export default function LanguageToggle({ value = 'en', onChange, style, className }) {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default function LanguageToggle({ value = 'en', onChange, style, className }) {
   const current = value === 'ar' ? 'ar' : 'en';
 
   return (

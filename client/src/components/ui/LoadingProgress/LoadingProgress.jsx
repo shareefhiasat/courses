@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './LoadingProgress.module.css';
 
-const LoadingProgress = () => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const LoadingProgress = () => {
   const [visible, setVisible] = useState(false);
   const [progress, setProgress] = useState(0);
   const isLoadingRef = useRef(false);

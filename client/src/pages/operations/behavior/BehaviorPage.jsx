@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import { debug } from "@services/utils/logger";
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -14,7 +14,9 @@ import { getEnrollments, getStudentsByClass } from '@services/business/enrollmen
 import { createBehavior, updateBehavior, deleteBehavior, loadBehaviors } from '@services/business/behaviorService';
 import { getAllUsers, getUserById, getUsersByIds } from '@services/business/userService';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
-import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorTypeById } from '@constants/behaviorTypes.jsx';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
+// OLD: import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorTypeById } from '@constants/behaviorTypes.jsx';
+// NOW: Using useLookupTypes hook for all lookup data
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import { 
   PAGE_STATES, 
@@ -27,6 +29,17 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
+  const { data: lookupData } = useLookupTypes({
+    types: ['behavior-types']
+  });
+
+  // Helper function to get behavior label from lookup data
+  const getBehaviorLabel = useCallback((behaviorId, lang) => {
+    const behaviorTypes = lookupData['behavior-types'] || [];
+    const behavior = behaviorTypes.find(bt => bt.id === behaviorId);
+    if (!behavior) return behaviorId;
+    return lang === 'ar' ? behavior.nameAr : behavior.nameEn || behavior.name;
+  }, [lookupData, lang]);
   const [pageState, setPageState] = useState(PAGE_STATES.LOADING);
   const [formState, setFormState] = useState(FORM_STATES.IDLE);
   const [behaviorsRaw, setBehaviorsRaw] = useState([]);
@@ -44,7 +57,6 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     classId: '',
     subjectId: '',
     type: '',
-    description: '',
     points: -1,
     comment: ''
   });
@@ -64,25 +76,22 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   }, []);
 
   // Refs for text inputs to prevent re-renders
-  const descriptionRef = useRef(null);
   const commentRef = useRef(null);
   const pointsRef = useRef(null);
 
   // Sync refs when editing
   useEffect(() => {
-    if (descriptionRef.current) descriptionRef.current.value = formData.description || '';
     if (commentRef.current) commentRef.current.value = formData.comment || '';
     if (pointsRef.current) pointsRef.current.value = formData.points || -1;
-  }, [editingBehavior, formData.description, formData.comment, formData.points]);
+  }, [editingBehavior, formData.comment, formData.points]);
 
   // Read text values from refs into form state before submit
   const syncRefsToState = useCallback(() => {
     return {
-      description: descriptionRef.current?.value ?? formData.description,
       comment: commentRef.current?.value ?? formData.comment,
       points: parseInt(pointsRef.current?.value) || formData.points || -1
     };
-  }, [formData.description, formData.comment, formData.points]);
+  }, [formData.comment, formData.points]);
 
   // Filter enrollments based on user role for student dropdown
   const filteredEnrollmentsForSelect = useMemo(() => {
@@ -122,7 +131,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
       setSelectStudents([]);
     };
     loadSelectStudents();
-  }, [enrollments, isSuperAdmin, isAdmin, isHR, isInstructor]);
+  }, [enrollments, isSuperAdmin, isAdmin, isHR, isInstructor, getAllUsers]);
 
   const { startLoading } = useGlobalLoading();
 
@@ -161,15 +170,25 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         setSubjects(subjectsData);
         setEnrollments(enrollmentsData);
 
-        // 2. Load Behaviors using the fetched data
+        // 2. Load users for display resolution
+        let usersData = [];
+        if (isSuperAdmin || isAdmin || isHR) {
+          const allUsersResult = await getAllUsers();
+          usersData = allUsersResult.success ? allUsersResult.data : [];
+        }
+        setStudents(usersData);
+
+        // 3. Load Behaviors using the fetched data
         await loadBehaviors({
           setBehaviors: setBehaviorsRaw,
           setPageState: () => {}, // We handle page state via global loading mostly
           toast,
           t,
+          lang,
           classes: classesData,
           programs: programsData,
           subjects: subjectsData,
+          students: usersData,
           filters: {},
           getUserById,
           fetchClass,
@@ -179,7 +198,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         
         setPageState(PAGE_STATES.SUCCESS);
       } catch (error) {
-        logger.error(t('behavior_failed_to_load_data'), error);
+        debug(t('behavior_failed_to_load_data'), error);
         toast.error(t('error_loading_data'));
         setPageState(PAGE_STATES.ERROR);
       } finally {
@@ -192,7 +211,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     return () => {
       if (stopLoading) stopLoading();
     };
-  }, [isInstructor, isAdmin, isSuperAdmin, isHR, startLoading, t, toast]);
+  }, [isInstructor, isAdmin, isSuperAdmin, isHR]);
 
   // Load students when class changes
   useEffect(() => {
@@ -204,17 +223,26 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
       try {
         const result = await getStudentsByClass(formData.classId);
         if (result.success) {
-          setStudents(result.data);
+          // Transform enrollment data to student structure
+          const students = result.data.map(enrollment => ({
+            id: enrollment.userId,
+            docId: enrollment.userId,
+            displayName: enrollment.user?.displayName || enrollment.user?.realName || enrollment.user?.email,
+            email: enrollment.user?.email,
+            realName: enrollment.user?.realName,
+            isDisabled: enrollment.isDisabled
+          }));
+          setStudents(students);
         } else {
-          logger.error(t('behavior_failed_to_load_students'), result.error);
+          debug(t('behavior_failed_to_load_students'), result.error);
           setStudents([]);
         }
       } catch (error) {
-        logger.error(t('behavior_failed_to_load_students'), error);
+        debug(t('behavior_failed_to_load_students'), error);
         setStudents([]);
       }
     })();
-  }, [formData.classId]);
+  }, [formData.classId, t]);
 
   // Load students when editing behavior changes (for edit mode)
   useEffect(() => {
@@ -223,18 +251,27 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         try {
           const result = await getStudentsByClass(editingBehavior.classId);
           if (result.success) {
-            setStudents(result.data);
+            // Transform enrollment data to student structure
+            const students = result.data.map(enrollment => ({
+              id: enrollment.userId,
+              docId: enrollment.userId,
+              displayName: enrollment.user?.displayName || enrollment.user?.realName || enrollment.user?.email,
+              email: enrollment.user?.email,
+              realName: enrollment.user?.realName,
+              isDisabled: enrollment.isDisabled
+            }));
+            setStudents(students);
           } else {
-            logger.error(t('behavior_failed_to_load_students_for_edit'), result.error);
+            debug(t('behavior_failed_to_load_students_for_edit'), result.error);
             setStudents([]);
           }
         } catch (error) {
-          logger.error(t('behavior_failed_to_load_students_for_edit'), error);
+          debug(t('behavior_failed_to_load_students_for_edit'), error);
           setStudents([]);
         }
       })();
     }
-  }, [editingBehavior]);
+  }, [editingBehavior, t]);
 
   const loadData = async () => {
     try {
@@ -249,7 +286,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
       if (enrollmentsRes.success) setEnrollments(enrollmentsRes.data || []);
     } catch (error) {
-      logger.error(t('behavior_failed_to_load_data'), error);
+      debug(t('behavior_failed_to_load_data'), error);
     }
   };
 
@@ -259,16 +296,18 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
       setPageState,
       toast,
       t,
+      lang,
       classes,
       programs,
       subjects,
+      students,
       filters: {},
       getUserById,
       fetchClass,
       fetchSubject,
       fetchProgram
     });
-  }, [toast, t, classes, programs, subjects]);
+  }, [toast, t, lang]);
 
   const filteredBehaviors = useMemo(() => {
     let filtered = [...behaviorsRaw];
@@ -301,38 +340,45 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
       filtered = filtered.filter(b => b.studentId === studentFilter);
     }
     return filtered;
-  }, [behaviorsRaw, programFilter, subjectFilter, classFilter, typeFilter, studentFilter, classes, subjects]);
+  }, [behaviorsRaw, programFilter, subjectFilter, classFilter, typeFilter, studentFilter]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling
+    
+    // Early validation - check if form is properly filled
+    if (!formData.studentId || !formData.type) {
+      setTimeout(() => {
+        toast.error('Please select a student and behavior type');
+      }, 0);
+      return false;
+    }
     
     // Read text fields from refs (uncontrolled inputs)
     const textValues = syncRefsToState();
-    
-    // Validation - description is required for behaviors
-    if (!formData.studentId || !formData.classId || !formData.type || !textValues.description.trim()) {
-      toast.error(t('behavior_fill_required_fields_behavior'));
-      return;
-    }
 
     setSaving(true);
     try {
-      const classData = await fetchClass(formData.classId);
-      const subjectId = formData.subjectId || classData?.subjectId;
+      // Only fetch class data if classId is provided
+      let classData = null;
+      let subjectId = formData.subjectId;
+      
+      if (formData.classId) {
+        classData = await fetchClass(formData.classId);
+        subjectId = formData.subjectId || classData?.subjectId;
+      }
       
       const behaviorData = {
-        studentId: formData.studentId,
-        classId: formData.classId,
-        subjectId: subjectId,
-        programId: formData.programId,
-        type: formData.type,
-        description: textValues.description.trim(),
+        userId: parseInt(formData.studentId), // Convert to integer
+        classId: formData.classId ? parseInt(formData.classId) : null, // Optional
+        subjectId: subjectId ? parseInt(subjectId) : null, // Optional
+        programId: formData.programId ? parseInt(formData.programId) : null, // Optional
+        typeId: parseInt(formData.type), // Convert to integer
+        descriptionEn: 'Behavior record', // Required field
+        descriptionAr: 'سجل السلوك', // Required field
         points: textValues.points || 0,
-        comment: textValues.comment.trim(),
-        createdBy: user.uid,
-        performedBy: user.uid,
-        performedByName: user.displayName || user.email,
-        performedByEmail: user.email
+        comment: textValues.comment?.trim() || '', // Optional comment
+        isActive: true
       };
 
       if (editingBehavior) {
@@ -345,7 +391,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           throw new Error(result.error);
         }
         
-                toast.success(t('behavior_updated'));
+        toast.success(t('behavior_updated'));
       } else {
         const studentData = await getUserById(formData.studentId);
         const result = await createBehavior({
@@ -362,19 +408,19 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           throw new Error(result.error);
         }
         
-                toast.success(t('behavior_recorded'));
+        toast.success(t('behavior_recorded'));
       }
 
       setEditingBehavior(null);
       resetForm();
       loadBehaviorsData();
     } catch (error) {
-      logger.error(t('behavior_failed_to_save_behavior'), error);
+      debug(t('behavior_failed_to_save_behavior'), error);
       toast.error(t('behavior_failed_to_save_behavior') + ': ' + error.message);
     } finally {
       setSaving(false);
     }
-  }, [formData, editingBehavior, t, toast, loadBehaviorsData, syncRefsToState, user]);
+  }, [formData, editingBehavior, loadBehaviorsData, syncRefsToState, user]);
 
   const handleEdit = useCallback((behavior) => {
     setEditingBehavior(behavior);
@@ -383,8 +429,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
       studentId: behavior.studentId || '',
       classId: behavior.classId || '',
       subjectId: behavior.subjectId || '',
-      type: behavior.type || '',
-      description: behavior.description || '',
+      type: behavior.typeId || behavior.type || '',
       points: behavior.points || -1,
       comment: behavior.comment || ''
     });
@@ -404,7 +449,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         await loadBehaviorsData();
       } catch (error) {
         setBehaviors(prev => [...prev, behavior]);
-        logger.error(t('behavior_delete_failed'), error);
+        debug(t('behavior_delete_failed'), error);
         toast?.showError(error.message);
       }
     });
@@ -417,12 +462,10 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
       classId: '',
       subjectId: '',
       type: '',
-      description: '',
       points: -1,
       comment: ''
     });
     // Clear refs
-    if (descriptionRef.current) descriptionRef.current.value = '';
     if (commentRef.current) commentRef.current.value = '';
     if (pointsRef.current) pointsRef.current.value = '-1';
     setEditingBehavior(null);
@@ -564,31 +607,32 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
       }
     },
     {
-      field: 'type',
+      field: 'typeId',
       headerName: t('behavior_type'),
       width: 180,
       renderCell: (params) => {
-        const behaviorType = getBehaviorTypeById(params.value);
-        return behaviorType ? (lang === 'ar' ? behaviorType.label_ar : behaviorType.label_en) : params.value;
-      }
-    },
-    {
-      field: 'description',
-      headerName: t('behavior_description'),
-      flex: 1.5,
-      minWidth: 200,
-      renderCell: (params) => {
-        const value = params?.value || '';
-        return (
-          <div style={{ 
-            maxWidth: '300px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }} title={value}>
-            {value || '—'}
-          </div>
-        );
+        // Try to get the behaviorType object from the row data first
+        const row = params.row;
+        let typeName = params.value; // Default to the numeric value
+        
+        if (row.behaviorType) {
+          // Use the behaviorType object from the enriched data
+          typeName = lang === 'ar' ? row.behaviorType.nameAr : row.behaviorType.nameEn;
+        } else if (row.type) {
+          // Fallback: try to find by frontend type ID
+          const behaviorType = (lookupData['behavior-types'] || []).find(bt => bt.id === row.type);
+          typeName = behaviorType ? (lang === 'ar' ? (behaviorType.nameAr || behaviorType.nameEn) : behaviorType.nameEn) : row.type;
+        } else {
+          // Final fallback: try to match numeric typeId with frontend types (index-based)
+          const typeIndex = parseInt(params.value) - 1; // Assuming IDs start from 1
+          const behaviorTypesArray = lookupData['behavior-types'] || [];
+          if (typeIndex >= 0 && typeIndex < behaviorTypesArray.length) {
+            const behaviorType = behaviorTypesArray[typeIndex];
+            typeName = lang === 'ar' ? (behaviorType.nameAr || behaviorType.nameEn) : behaviorType.nameEn;
+          }
+        }
+        
+        return typeName || params.value || '—';
       }
     },
     {
@@ -627,7 +671,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'createdAt',
-      headerName: t('behavior_date'),
+      headerName: t('created_at') || 'Created At',
       width: 150,
       valueGetter: (params) => {
         // Debug logging for date investigation
@@ -678,6 +722,24 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         ('Behavior Date Debug - Formatted date (fallback):', formattedDate);
         ('=== BEHAVIOR DATE DEBUG END ===');
         return formattedDate;
+      }
+    },
+    {
+      field: 'createdByDisplay',
+      headerName: t('created_by') || 'Created By',
+      width: 150,
+      renderCell: (params) => {
+        const value = params.value;
+        return value || '—';
+      }
+    },
+    {
+      field: 'updatedByDisplay', 
+      headerName: t('updated_by') || 'Updated By',
+      width: 150,
+      renderCell: (params) => {
+        const value = params.value;
+        return value || '—';
       }
     },
     ...(hideActions ? [] : [{
@@ -768,7 +830,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           />
         </div>
 
-        {/* Second Row: Student, Type, and other fields */}
+        {/* Second Row: Student */}
         <div className="form-row">
           <Select
             searchable
@@ -776,7 +838,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
             onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
             options={[
               { value: '', label: t('behavior_select_student') },
-              ...students
+              ...selectStudents
                 .map(u => {
                   // Get user enrollments count
                   const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
@@ -833,13 +895,18 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
             placeholder={t('select_student')}
             required
             disabled={!formData.classId}
+            className="flex-1"
           />
+        </div>
+
+        {/* Third Row: Type */}
+        <div className="form-row">
           <Select
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
             options={[
               { value: '', label: t('behavior_select_type') },
-              ...BEHAVIOR_TYPES.map(bt => {
+              ...(lookupData['behavior-types'] || []).map(bt => {
                 let icon;
                 switch (bt.icon) {
                   case 'MessageSquare':
@@ -874,18 +941,11 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
             ]}
             placeholder={t('select_behavior_type')}
             required
+            className="flex-1"
           />
         </div>
-        {/* First Row: Programs, Subjects, Classes */}
+        {/* Comment and Points Row */}
         <div className="form-row">
-          <textarea
-            ref={descriptionRef}
-            defaultValue={formData.description}
-            placeholder={t('description_required_behavior')}
-            className="dashboard-textarea"
-            rows={3}
-            required
-          />
           <textarea
             ref={commentRef}
             defaultValue={formData.comment}
@@ -893,9 +953,6 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
             className="dashboard-textarea"
             rows={3}
           />
-        </div>
-        {/* First Row: Programs, Subjects, Classes */}
-        <div className="form-row">
           <input
             ref={pointsRef}
             type="number"
@@ -930,7 +987,8 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
 
       {/* Filters */}
       <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 16, alignItems: 'end' }}>
+        {/* First Row: Program, Subject, Class */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16, alignItems: 'end', marginBottom: 16 }}>
           <ProgramsSelect
             programs={programs}
             subjects={subjects}
@@ -944,6 +1002,10 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
             showLabels={false}
             className="flex-1"
           />
+        </div>
+        
+        {/* Second Row: Student and Type */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'end' }}>
           <div style={{ minWidth: '200px' }}>
             <Select
               searchable
@@ -1006,7 +1068,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
               onChange={(e) => setTypeFilter(e.target.value)}
               options={[
                 { value: 'all', label: t('behavior_all_types') },
-                ...BEHAVIOR_TYPES.map(bt => {
+                ...(lookupData['behavior-types'] || []).map(bt => {
                   let icon;
                   switch (bt.icon) {
                     case 'MessageSquare':

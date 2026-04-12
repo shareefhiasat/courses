@@ -1,5 +1,5 @@
 import { ROLE_STRINGS } from '@utils/userUtils';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * Default widget configurations for each role and dashboard
@@ -542,7 +542,7 @@ class WidgetConfigurationService {
     const widgets = DEFAULT_WIDGET_CONFIGURATIONS[key];
     
     if (!widgets) {
-      logger.warn(`[WidgetConfigurationService] No default widgets found for role: ${role}, dashboard: ${dashboard}`);
+      warn(`[WidgetConfigurationService] No default widgets found for role: ${role}, dashboard: ${dashboard}`);
       return [];
     }
     

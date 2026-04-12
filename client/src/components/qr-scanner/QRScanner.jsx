@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { formatQatarDateOnly, getQatarNow } from '@utils/qatarDate';
 import { Button } from '@ui';
 import { CollapsibleSection, PerformedBy } from '@ui';
+import DeleteModal from '@ui/history/DeleteModal';
 import { Upload } from 'lucide-react';
 import jsQR from 'jsqr';
-import { getAttendanceByClass, deleteAttendance, rosterQuickAction, markAttendance } from '@services/business/attendanceService';
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
+import { getAttendanceByClass, deleteAttendance, rosterQuickAction, markAttendance } from '@services/business/attendanceServiceUnified.js';
+import { deleteStandupAttendance, getStandupAttendanceByUserAndDate, getStandupAttendanceByProgramAndDate } from '@services/business/standupAttendanceService.js';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
+import { QUICK_NOTE_TYPES, MANUAL_NOTE_TYPES, QR_NOTE_TYPES, STANDUP_NOTE_TYPES, getNoteTypeFromStatus, getLocalizedNoteText } from '@constants/noteTypes';
 import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import { isAdmin, isSuperAdmin, isStudent } from '@utils/userUtils';
 import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@services/business/penaltyService';
@@ -20,17 +23,22 @@ import eventBus, { EVENTS } from '@utils/eventBus';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
 import { useToast } from '@ui';
 import PortalTooltip from '@ui/PortalTooltip';
 import { GENERAL_STATUS } from '@utils/sharedTypes';
 import StudentActionStatsPanel from './StudentActionStatsPanel';
 import StudentActionZapPanel from './StudentActionZapPanel';
 import BulkScanDialog from '@ui/BulkScanDialog';
+import BulkSuccessModal from '@ui/BulkScanDialog/BulkSuccessModal';
+import { BulkScanProvider } from '@/contexts/BulkScanContext';
+import AttendanceResultModal from '@ui/attendance/AttendanceResultModal';
 import { generateReferenceId } from '@utils/qrCode';
 import { getTypeColor } from '@utils/sharedTypes';
-import { PARTICIPATION_TYPES, getParticipationColor } from '@constants/participationTypes.jsx';
-import { PENALTY_TYPES, getPenaltyColor } from '@constants/penaltyTypes.jsx';
-import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes.jsx';
+// OLD: import { PARTICIPATION_TYPES, getParticipationColor } from '@constants/participationTypes.jsx';
+// OLD: import { PENALTY_TYPES, getPenaltyColor } from '@constants/penaltyTypes.jsx';
+// OLD: import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes.jsx';
+// NOW: Using useLookupTypes hook for all lookup data
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import {
   getActionConfig,
@@ -69,6 +77,13 @@ import {
   AlertCircleIcon,
   HelpCircleIcon
 } from '@utils/icons.jsx';
+import CameraView from './CameraView.jsx';
+import QuickActionButtons from './QuickActionButtons.jsx';
+import AttendanceActionButtons from './AttendanceActionButtons.jsx';
+import ActivityList from './ActivityList.jsx';
+import StudentScanDialog from './StudentScanDialog.jsx';
+import ManualInputForm from './ManualInputForm.jsx';
+import DebugPanel from './DebugPanel.jsx';
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/attendanceMethods';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useBilingualNotes } from '@hooks/useBilingualNotes.js';
@@ -76,23 +91,29 @@ import { FeatureFlagWrapper } from '@ui/FeatureFlagWrapper';
 import { useFeatureFlags } from '@hooks/useFeatureFlags';
 import { ROLE_STRINGS } from '@utils/userUtils';
 
-export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, loading = false, students = [], onMinimizeChange }) {
+export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, loading = false, students = [], onMinimizeChange, forceMinimized = false, attendanceMode: propAttendanceMode }) {
   const auth = useAuth();
   const { user, role, isSuperAdmin } = auth;
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const { showSuccess, showError } = useToast();
   const { isEnabled, loading: featureLoading } = useFeatureFlags();
+  const { activityTypeOptions, loading: lookupLoading } = useLookupTypes();
 
-  
+  // Refs must be defined before early return (React Hooks rule)
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+  const scanIntervalRef = useRef(null);
+
   // Handle auth loading state to prevent white screen
   if (auth.loading || (!user && auth.hasProfile)) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
         minHeight: '400px',
         padding: '2rem',
         background: 'white',
@@ -119,8 +140,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   let bilingualNotes = null;
   try {
     bilingualNotes = useBilingualNotes();
-  } catch (error) {
-    console.warn('Bilingual notes hook not available, using fallback:', error);
+  } catch (err) {
+    console.warn('Bilingual notes hook not available, using fallback:', err);
     bilingualNotes = {
       getNote: (note) => String(note || ''),
       createNote: (noteEn, noteAr = null) => ({ 
@@ -135,12 +156,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const { getNote, createNote, getTranslatedNote } = bilingualNotes || {};
   const [isScanning, setIsScanning] = useState(false);
   const [recentScans, setRecentScans] = useState(0);
-  const [error, setError] = useState('');
+  const [scanError, setScanError] = useState('');
   const [cameraMode, setCameraMode] = useState('environment'); // 'environment' for back camera, 'user' for front
   const [devices, setDevices] = useState([]);
   const [isMobile, setIsMobile] = useState(false);
   const [recentActivity, setRecentActivity] = useState([]);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [activityDateFilter, setActivityDateFilter] = useState('today'); // 'today' or 'all'
   const [expandedActivities, setExpandedActivities] = useState(new Set());
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
@@ -160,22 +182,22 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentForAction, setStudentForAction] = useState(null);
   const [todayAttendanceStatus, setTodayAttendanceStatus] = useState(null);
+  const [attendanceMode, setAttendanceMode] = useState(propAttendanceMode || ATTENDANCE_TYPE_CATEGORY.REGULAR); // 'regular' or 'standup'
   const [actionLoading, setActionLoading] = useState(false);
   const [currentAction, setCurrentAction] = useState(null);
   const [showManualInput, setShowManualInput] = useState(false); // Start with false
   const [manualStudentId, setManualStudentId] = useState('');
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
+  const [clearScope, setClearScope] = useState('today'); // 'today' or 'all'
+  const [clearStandupModal, setClearStandupModal] = useState({ isOpen: false, loading: false });
+  const [clearRegularModal, setClearRegularModal] = useState({ isOpen: false, loading: false, recordCount: 0 });
   const [showBulkScanDialog, setShowBulkScanDialog] = useState(false);
+  const [bulkSuccessResult, setBulkSuccessResult] = useState(null);
   const [performedByFields, setPerformedByFields] = useState({
     performedBy: user?.uid || 'unknown',
     performedByName: 'Unknown User',
     performedByEmail: user?.email || 'unknown@example.com'
   });
-
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const streamRef = useRef(null);
-  const scanIntervalRef = useRef(null);
 
   // Detect mobile device
   useEffect(() => {
@@ -184,16 +206,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   // Fetch performed by fields when user is available
   useEffect(() => {
-    console.log('🔍 QRScanner - useEffect for performedByFields running, user:', !!user);
     const fetchPerformedByFields = async () => {
       if (user) {
-        console.log('🔍 QRScanner - Calling getPerformedByFields...');
         try {
           const fields = await getPerformedByFields(user);
-          console.log('🔍 QRScanner - Fetched performedByFields:', fields);
           setPerformedByFields(fields);
-        } catch (error) {
-          console.error('🔍 QRScanner - Error fetching performedByFields:', error);
+        } catch (err) {
+          console.error('🔍 QRScanner - Error fetching performedByFields:', err);
         }
       }
     };
@@ -208,7 +227,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         const videoDevices = deviceList.filter(device => device.kind === 'videoinput');
         setDevices(videoDevices);
       } catch (err) {
-        logger.error('Error getting devices:', err);
+        error('Error getting devices:', err);
       }
     };
     getDevices();
@@ -224,7 +243,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       id: Date.now() + Math.random()
     };
     setDebugLogs(prev => [logEntry, ...prev].slice(0, 50)); // Keep last 50 logs
-    logger.log(`[${timestamp}] ${message}`);
+    info(`[${timestamp}] ${message}`);
   }, []);
 
   // Show result modal function - Enhanced for attendance types
@@ -294,8 +313,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       } else {
         studentInfo = data;
       }
-    } catch (error) {
-      addDebugLog(`❌ Error parsing QR data: ${error.message}`, 'error');
+    } catch (err) {
+      addDebugLog(`❌ Error parsing QR data: ${err.message}`, 'error');
       playFeedbackSound('error'); // Add vibration for parsing error
       showError(t('invalid_qr_code_format'));
       setIsScanningLocked(false);
@@ -317,11 +336,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         const result = await getUserByStudentNumber(studentInfo.studentNumber);
         if (result.success && result.data && !isAdmin(result.data) && !isSuperAdmin(result.data)) {
           foundStudent = {
-            id: result.data.docId || result.data.id,
-            docId: result.data.docId,
-            referenceId: result.data.referenceId,
-            studentId: result.data.studentNumber || result.data.docId || result.data.id,
-            studentNumber: result.data.studentNumber || result.data.docId || result.data.id,
+            id: result.data.id,
+                        referenceId: result.data.referenceId,
+            studentId: result.data.id || result.data.studentNumber,
+            studentNumber: result.data.studentNumber || result.data.id,
             name: result.data.displayName || result.data.realName || result.data.name || 'Unknown',
             displayName: result.data.displayName,
             realName: result.data.realName,
@@ -336,15 +354,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               late: 0,
               absent_no_excuse: 0,
               absent_with_excuse: 0,
-              excused_leave: 0,
-              humanitarian_case: 0
+              excused_leave: 0
             },
             isPinned: result.data.isPinned || false
           };
           addDebugLog(`✅ Found student via direct lookup: ${foundStudent.name}`, 'success');
         }
-      } catch (error) {
-        addDebugLog(`❌ Direct lookup failed: ${error.message}`, 'error');
+      } catch (err) {
+        addDebugLog(`❌ Direct lookup failed: ${err.message}`, 'error');
       }
 
       // Method 2: Try to find by studentNumber field (query all users)
@@ -358,7 +375,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
             // Show first few users for debugging
             allUsers.slice(0, 3).forEach((u, idx) => {
-              addDebugLog(`User ${idx}: docId=${u.docId}, id=${u.id}, studentNumber=${u.studentNumber}, referenceId=${u.referenceId}, name=${u.displayName || u.name}`, 'info');
+              addDebugLog(`User ${idx}: id=${u.id}, studentNumber=${u.studentNumber}, referenceId=${u.referenceId}, name=${u.displayName || u.name}`, 'info');
             });
 
             const student = allUsers.find(u => {
@@ -366,12 +383,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 u.studentNumber === studentInfo.studentNumber,
                 u.referenceId === studentInfo.studentNumber,
                 `STU-${u.studentNumber}` === studentInfo.studentNumber,
-                // Only check generateReferenceId if docId exists
-                u.docId && generateReferenceId(u.docId) === studentInfo.studentNumber
+                u.id && String(u.id) === studentInfo.studentNumber
               ];
 
               if (matches.some(Boolean)) {
-                addDebugLog(`🎯 Found potential match: ${u.displayName || u.name || 'Unknown'}, studentNumber=${u.studentNumber}, referenceId=${u.referenceId}, docId=${u.docId}`, 'info');
+                addDebugLog(`🎯 Found potential match: ${u.displayName || u.name || 'Unknown'}, studentNumber=${u.studentNumber}, id=${u.id}`, 'info');
               }
 
               return matches.some(Boolean);
@@ -379,11 +395,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
             if (student && !isAdmin(student) && !isSuperAdmin(student)) {
               foundStudent = {
-                id: student.docId || student.id, // Use docId as primary, fallback to id
-                docId: student.docId,
-                referenceId: student.referenceId, // Include referenceId
-                studentId: student.studentNumber || student.docId || student.id,
-                studentNumber: student.studentNumber || student.docId || student.id,
+                id: student.id,
+                                referenceId: student.referenceId, // Include referenceId
+                studentId: student.id || student.studentNumber,
+                studentNumber: student.studentNumber || student.id,
                 name: student.displayName || student.realName || student.name || 'Unknown',
                 displayName: student.displayName,
                 realName: student.realName,
@@ -398,16 +413,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   late: 0,
                   absent_no_excuse: 0,
                   absent_with_excuse: 0,
-                  excused_leave: 0,
-                  humanitarian_case: 0
+                  excused_leave: 0
                 },
                 isPinned: student.isPinned || false
               };
               addDebugLog(`✅ Found student via user search: ${foundStudent.name}`, 'success');
             }
           }
-        } catch (error) {
-          addDebugLog(`❌ User search failed: ${error.message}`, 'error');
+        } catch (err) {
+          addDebugLog(`❌ User search failed: ${err.message}`, 'error');
         }
       }
 
@@ -439,8 +453,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         studentNumber === studentInfo.studentNumber,
         referenceId === studentInfo.studentNumber,
         `STU-${studentNumber}` === studentInfo.studentNumber,
-        // Only check generateReferenceId if docId exists
-        s.docId && generateReferenceId(s.docId) === studentInfo.studentNumber
+        String(s.id) === studentInfo.studentNumber // Database ID matching
       ].some(Boolean);
     });
 
@@ -548,8 +561,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       //   : (t('qr_scan_error') || 'QR Code scan failed. Please try again.');
       //
       // addToast(message, type);
-    } catch (error) {
-      logger.warn('Could not play feedback sound:', error);
+    } catch (err) {
+      warn('Could not play feedback sound:', err);
     }
   }, [soundEnabled, vibrationEnabled]);
 
@@ -562,7 +575,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
 
     try {
-      setError('');
+      setScanError('');
       setIsScanning(true);
 
       // Stop any existing stream
@@ -600,8 +613,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       // Start scanning for QR codes
       scanIntervalRef.current = setInterval(scanQRCode, 100);
     } catch (err) {
-      logger.error('Error accessing camera:', err);
-      setError(err.message || t('attendance.unable_to_access_camera'));
+      error('Error accessing camera:', err);
+      setScanError(err.message || t('attendance.unable_to_access_camera'));
       setIsScanning(false);
       // Play error feedback for camera errors
       playFeedbackSound('error');
@@ -633,32 +646,49 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     if (isScanning) {
       stopCamera();
     } else {
-      // Validate that program, subject, and class are selected
-      if (!selectedProgramId || selectedProgramId === 'all' ||
-          !selectedSubjectId || selectedSubjectId === 'all' ||
-          !selectedClassId || selectedClassId === 'all') {
-        showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
-        return;
+      // In standup mode, only require Program selection
+      // In regular mode, require Program, Subject, and Class
+      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        if (!selectedProgramId || selectedProgramId === 'all') {
+          showResult('error', t('please_select_program') || 'Please select Program before scanning');
+          return;
+        }
+      } else {
+        if (!selectedProgramId || selectedProgramId === 'all' ||
+            !selectedSubjectId || selectedSubjectId === 'all' ||
+            !selectedClassId || selectedClassId === 'all') {
+          showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+          return;
+        }
       }
 
       startCamera();
     }
-  }, [selectedProgramId, selectedSubjectId, selectedClassId, t, isScanning, showResult, startCamera, stopCamera]);
+  }, [selectedProgramId, selectedSubjectId, selectedClassId, t, isScanning, showResult, startCamera, stopCamera, attendanceMode]);
 
   const handleManualSubmit = useCallback(() => {
     if (!manualStudentId.trim()) return;
 
-    // Check if all required fields are selected
-    if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
-      showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
-      addDebugLog('❌ Cannot scan manually: Missing required selections', 'error');
-      return;
+    // In standup mode, only require Program selection
+    // In regular mode, require Program, Subject, and Class
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      if (!selectedProgramId || selectedProgramId === 'all') {
+        showResult('error', t('please_select_program') || 'Please select Program before scanning');
+        addDebugLog('❌ Cannot scan manually: Missing program selection', 'error');
+        return;
+      }
+    } else {
+      if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
+        showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+        addDebugLog('❌ Cannot scan manually: Missing required selections', 'error');
+        return;
+      }
     }
 
     const studentInfo = { studentNumber: manualStudentId.trim() };
 
     // Try to find the full student object using the student number
-    logger.debug('Manual student input lookup:', {
+    debug('Manual student input lookup:', {
       studentNumber: manualStudentId.trim(),
       totalStudents: students.length,
       studentsSample: students.slice(0, 3).map(s => ({
@@ -677,11 +707,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         s.referenceId === manualStudentId.trim(),
         s.studentId === manualStudentId.trim(),
         `STU-${s.studentNumber}` === manualStudentId.trim(), // Backward compatibility
-        generateReferenceId(s.id) === manualStudentId.trim() // Backward compatibility
+        String(s.id) === manualStudentId.trim() // Database ID matching
       ];
 
       if (matches.some(Boolean)) {
-        logger.debug('Manual student match found:', {
+        debug('Manual student match found:', {
           searchingFor: manualStudentId.trim(),
           found: {
             id: s.id,
@@ -697,7 +727,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     });
 
     if (fullStudent) {
-      logger.debug('Found full student object for manual input:', {
+      debug('Manual student match found:', {
         studentNumber: manualStudentId.trim(),
         fullStudent: {
           id: fullStudent.id,
@@ -725,7 +755,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       addDebugLog(`❌ Student not found: ${manualStudentId.trim()}`, 'error');
       playFeedbackSound(GENERAL_STATUS.ERROR);
     }
-  }, [manualStudentId, selectedProgramId, selectedSubjectId, selectedClassId, t, addDebugLog, playFeedbackSound, students, showResult]);
+  }, [manualStudentId, selectedProgramId, selectedSubjectId, selectedClassId, t, addDebugLog, playFeedbackSound, students, showResult, attendanceMode]);
 
   const findStudentData = useCallback(async (referenceId) => {
     try {
@@ -736,8 +766,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           isStudent(s) // Only match students exactly
       );
       return student;
-    } catch (error) {
-      addDebugLog(`❌ Error finding student data: ${error.message}`, 'error');
+    } catch (err) {
+      addDebugLog(`❌ Error finding student data: ${err.message}`, 'error');
       return null;
     }
   }, [addDebugLog]);
@@ -751,8 +781,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         return data.status; // 'present', 'late', or null
       }
       return null;
-    } catch (error) {
-      addDebugLog(`❌ Error checking attendance status: ${error.message}`, 'error');
+    } catch (err) {
+      addDebugLog(`❌ Error checking attendance status: ${err.message}`, 'error');
       return null;
     }
   }, [classId, addDebugLog]);
@@ -764,13 +794,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       // Check attendance status using the student's actual ID
       let attendanceStatus = null;
       if (studentData) {
-        attendanceStatus = await checkTodayAttendanceStatus(studentData.docId || studentData.id);
+        attendanceStatus = await checkTodayAttendanceStatus(studentData.id);
         // Update studentData with actual attendance status
         if (attendanceStatus) {
           studentData.attendance = attendanceStatus;
         }
 
-        const sid = studentData.docId || studentData.id;
+        const sid = studentData.id;
 
         const [penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
           getPenalties(sid),
@@ -795,8 +825,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       setTodayAttendanceStatus(attendanceStatus);
       return studentData;
-    } catch (error) {
-      addDebugLog(`❌ Error processing student data: ${error.message}`, 'error');
+    } catch (err) {
+      addDebugLog(`❌ Error processing student data: ${err.message}`, 'error');
       setTodayAttendanceStatus(null);
       return null;
     }
@@ -804,7 +834,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   // Handle behavior/participation submission
   const handleBehaviorSubmit = useCallback(async (studentId, actions, note) => {
-    logger.log('🔧 handleBehaviorSubmit called with:', { studentId, actions, note });
+    info('🔧 handleBehaviorSubmit called with:', { studentId, actions, note });
 
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -825,7 +855,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         if (action.category === RECORD_TYPES.BEHAVIOR) {
           const behaviorTypeId = action.id || action.type;
           if (!behaviorTypeId || behaviorTypeId === RECORD_TYPES.BEHAVIOR) {
-            logger.error('🔧 Invalid behavior type detected:', { action });
+            error('🔧 Invalid behavior type detected:', { action });
             throw new Error('Invalid behavior type: must be a specific behavior type');
           }
 
@@ -847,7 +877,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         } else if (action.category === RECORD_TYPES.PARTICIPATION) {
           const participationTypeId = action.id || action.type;
           if (!participationTypeId || participationTypeId === RECORD_TYPES.PARTICIPATION) {
-            logger.error('🔧 Invalid participation type detected:', { action });
+            error('🔧 Invalid participation type detected:', { action });
             throw new Error('Invalid participation type: must be a specific participation type');
           }
 
@@ -891,15 +921,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       });
 
       // Success message is handled by StudentActionZapPanel
-    } catch (error) {
-      logger.error('Error submitting behavior/participation:', error);
+    } catch (err) {
+      error('Error submitting behavior/participation:', err);
       showError('Failed to record actions');
     }
   }, [selectedClassId, selectedSubjectId, selectedClassName, user, findStudentData, showError]);
 
   // Handle penalty submission
   const handlePenaltySubmit = useCallback(async (studentId, penalties, note) => {
-    logger.log('🔧 handlePenaltySubmit called with:', { studentId, penalties, note });
+    info('🔧 handlePenaltySubmit called with:', { studentId, penalties, note });
 
     try {
       // Get performedBy fields using shared service
@@ -907,23 +937,23 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       
       // Process each penalty
       for (const penalty of penalties) {
-        logger.log('🔧 Processing penalty:', penalty);
-        logger.log('🔧 penalty.id:', penalty.id);
-        logger.log('🔧 penalty.type:', penalty.type);
+        info('🔧 Processing penalty:', penalty);
+        info('🔧 penalty.id:', penalty.id);
+        info('🔧 penalty.type:', penalty.type);
 
         const today = new Date().toISOString().split('T')[0];
 
         // Ensure we always use the correct penalty type ID
         const penaltyTypeId = penalty.id || penalty.type;
-        logger.log('🔧 penaltyTypeId extracted:', penaltyTypeId);
-        logger.log('🔧 penalty object:', JSON.stringify(penalty, null, 2));
+        info('🔧 penaltyTypeId extracted:', penaltyTypeId);
+        info('🔧 penalty object:', JSON.stringify(penalty, null, 2));
 
         if (!penaltyTypeId || penaltyTypeId === RECORD_TYPES.PENALTY) {
-          logger.error('🔧 Invalid penalty type detected:', { penalty, penaltyTypeId });
+          error('🔧 Invalid penalty type detected:', { penalty, penaltyTypeId });
           throw new Error('Invalid penalty type: must be a specific penalty type like "cheating", not "penalty"');
         }
 
-        logger.log('🔧 About to create penalty with type:', penaltyTypeId);
+        info('🔧 About to create penalty with type:', penaltyTypeId);
 
         await createPenalty({
           classId: selectedClassId,
@@ -947,7 +977,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           className: selectedClassName || ''
         });
 
-        logger.log('🔧 Penalty saved successfully');
+        info('🔧 Penalty saved successfully');
       }
 
       // Emit events for real-time updates
@@ -962,8 +992,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       });
 
       // Success message is handled by StudentActionZapPanel
-    } catch (error) {
-      logger.error('Error submitting penalty:', error);
+    } catch (err) {
+      error('Error submitting penalty:', err);
       showError('Failed to record penalty');
     }
   }, [selectedClassId, selectedSubjectId, user, findStudentData, selectedClassName, showError]);
@@ -994,7 +1024,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   // Memoized fetchRecentActivity for performance
   const fetchRecentActivity = useCallback(async () => {
-    if (!classId) return;
+    // In standup mode, require programId; in regular mode, require classId
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      if (!selectedProgramId || selectedProgramId === 'all') return;
+    } else {
+      if (!classId) return;
+    }
 
     // Get the latest students state at the time of execution
     const currentStudents = students;
@@ -1015,65 +1050,75 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-      // Get today's attendance records for this class
-      const attendanceResponse = await getAttendanceByClass(classId, todayStr);
-      const attendanceRecords = attendanceResponse.success ? attendanceResponse.data.filter(r => r.status) : [];
+      // Get attendance records based on date filter and mode
+      let attendanceRecords = [];
+      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        // In standup mode, fetch from standup attendance table for the program using single efficient API call
+        if (selectedProgramId && selectedProgramId !== 'all') {
+          const attendanceResponse = await getStandupAttendanceByProgramAndDate(selectedProgramId, todayStr);
+          if (attendanceResponse.success && attendanceResponse.data) {
+            attendanceRecords = attendanceResponse.data.map(r => ({ ...r, category: RECORD_TYPES.ATTENDANCE }));
+          }
+        }
+      } else {
+        // In regular mode, fetch from regular attendance table for the class
+        if (activityDateFilter === 'today') {
+          const attendanceResponse = await getAttendanceByClass(classId, { date: todayStr });
+          attendanceRecords = attendanceResponse.success ? attendanceResponse.data.filter(r => r.status).map(r => ({ ...r, category: RECORD_TYPES.ATTENDANCE })) : [];
+        } else {
+          // Get all attendance records for this class
+          const attendanceResponse = await getAttendanceByClass(classId);
+          attendanceRecords = attendanceResponse.success ? attendanceResponse.data.filter(r => r.status).map(r => ({ ...r, category: RECORD_TYPES.ATTENDANCE })) : [];
+        }
+      }
 
-      // Get today's penalties for this class
-      const penaltiesResponse = await getPenaltiesByClassAndDate(classId, todayStr);
-      const penaltyRecords = penaltiesResponse.success && penaltiesResponse.data ? penaltiesResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PENALTY })) : [];
-      
-      // CRITICAL: Log penalty records with full details to identify duplication
-      logger.info('[QR Scanner] ===== PENALTY RECORDS FETCHED FROM DATABASE =====');
-      logger.info('[QR Scanner] Total penalty records:', penaltyRecords.length);
-      penaltyRecords.forEach((p, index) => {
-        logger.info(`[QR Scanner] Penalty ${index + 1}:`, {
-          databaseId: p.id,
-          studentId: p.studentId,
-          type: p.type,
-          date: p.date,
-          classId: p.classId,
-          createdAt: p.createdAt,
-          category: p.category
-        });
-      });
-      logger.info('[QR Scanner] ===== END PENALTY RECORDS =====');
+      // Get penalties based on date filter
+      let penaltyRecords = [];
+      if (activityDateFilter === 'today') {
+        const penaltiesResponse = await getPenaltiesByClassAndDate(classId, todayStr);
+        penaltyRecords = penaltiesResponse.success && penaltiesResponse.data ? penaltiesResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PENALTY })) : [];
+      } else {
+        // Get all penalties for this class
+        const penaltiesResponse = await getPenalties();
+        const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
+        penaltyRecords = allPenalties.filter(p => p.classId === classId).map(p => ({ ...p, category: RECORD_TYPES.PENALTY }));
+      }
 
-      // Get today's participations for this class
-      const participationsResponse = await getParticipationsByClassAndDate(classId, todayStr);
-      const participationRecords = participationsResponse.success && participationsResponse.data ? participationsResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PARTICIPATION })) : [];
+      // Get participations based on date filter
+      let participationRecords = [];
+      if (activityDateFilter === 'today') {
+        const participationsResponse = await getParticipationsByClassAndDate(classId, todayStr);
+        participationRecords = participationsResponse.success && participationsResponse.data ? participationsResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PARTICIPATION })) : [];
+      } else {
+        // Get all participations for this class
+        const participationsResponse = await getParticipations();
+        const allParticipations = participationsResponse.success ? participationsResponse.data : [];
+        participationRecords = allParticipations.filter(p => p.classId === classId).map(p => ({ ...p, category: RECORD_TYPES.PARTICIPATION }));
+      }
 
-      // Get today's behaviors for this class
-      const behaviorsResponse = await getBehaviorsByClassAndDate(classId, todayStr);
-      const behaviorRecords = behaviorsResponse.success && behaviorsResponse.data ? behaviorsResponse.data.map(b => ({ ...b, category: RECORD_TYPES.BEHAVIOR })) : [];
+      // Get behaviors based on date filter
+      let behaviorRecords = [];
+      if (activityDateFilter === 'today') {
+        const behaviorsResponse = await getBehaviorsByClassAndDate(classId, todayStr);
+        behaviorRecords = behaviorsResponse.success && behaviorsResponse.data ? behaviorsResponse.data.map(b => ({ ...b, category: RECORD_TYPES.BEHAVIOR })) : [];
+      } else {
+        // Get all behaviors for this class
+        const behaviorsResponse = await getBehaviors();
+        const allBehaviors = behaviorsResponse.success ? behaviorsResponse.data : [];
+        behaviorRecords = allBehaviors.filter(b => b.classId === classId).map(b => ({ ...b, category: RECORD_TYPES.BEHAVIOR }));
+      }
 
-      logger.debug('[QR Scanner] Attendance records fetched:', {
-        success: attendanceResponse.success,
-        count: attendanceRecords.length,
-        records: attendanceRecords.map(r => ({
-          id: r.id,
-          studentId: r.studentId,
-          status: r.status,
-          date: r.date,
-          timestamp: r.timestamp,
-          category: r.category,
-          delta: r.delta
-        }))
-      });
-
-      // Combine attendance, penalty, participation, and behavior records
+      debug('[QR Scanner] Attendance records fetched:', attendanceRecords.length);
       const allRecords = [...attendanceRecords, ...penaltyRecords, ...participationRecords, ...behaviorRecords];
+      debug('[QR Scanner] Activity refresh found:', allRecords.length, 'total records');
 
-      logger.debug('[QR Scanner] Activity refresh found:', allRecords.length, 'total records');
-
-      // Create a map of studentId to student name from captured students
+      // Create student map for efficient lookup
       const studentMap = {};
-      logger.log('🔧 Creating student map from', currentStudents.length, 'students');
+      info('Creating student map from', currentStudents.length, 'students');
 
       // Only create student map if we have students
       if (currentStudents.length === 0) {
-        logger.log('🔧 No students available for mapping - returning empty activity');
-        // Return early with empty activity
+        info('No students available for mapping - returning empty activity');
         setRecentActivity([]);
         setActivityLoading(false);
         return;
@@ -1082,185 +1127,58 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       // Add a small delay to ensure students are fully loaded
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      logger.debug('[QR Scanner] Creating student map from', currentStudents.length, 'students');
-      currentStudents.forEach(student => {
-        const studentId = student.id || student.docId; // Firebase user ID
+      currentStudents.forEach((student, index) => {
+        const studentId = student.id;
         const name = student.displayName || student.realName || student.name || (student.email ? student.email.split('@')[0] : 'Unknown');
-
-        // Only map the Firebase user ID to the name (not reference ID)
-        // This prevents duplicate mappings that cause cheating record duplication
         studentMap[studentId] = name;
-        // Note: We don't map reference ID anymore to avoid duplicates
-        // Penalty/behavior records use Firebase ID directly, so reference ID mapping is unnecessary
-
-        logger.info('[QR Scanner] STUDENT MAP ENTRY:', {
-          firebaseId: studentId,
-          studentNumber: student.studentNumber,
-          name: name,
-          totalMappings: Object.keys(studentMap).length,
-          currentMap: Object.entries(studentMap),
-          allStudentsWithSameName: currentStudents.filter(s => (s.displayName || s.name) === name).map(s => ({
-            id: s.id,
-            studentNumber: s.studentNumber,
-            name: s.displayName || s.name
-          }))
-        });
-        
-        // CRITICAL: Check for duplicate names during mapping (for debugging)
-        const existingMappings = Object.entries(studentMap).filter(([key, value]) => value === name);
-        if (existingMappings.length > 1) {
-          logger.error('[QR Scanner] DUPLICATE NAME CREATED:', {
-            name,
-            mappings: existingMappings,
-            newFirebaseId: studentId,
-            newStudentNumber: student.studentNumber,
-            warning: 'This will cause cheating record duplication!',
-            explanation: 'Multiple Firebase IDs are being mapped to the same student name. Cheating records will appear for all students with this name.'
-          });
-        }
       });
 
-      // Debug: Log complete student map to identify potential duplicates
-      logger.debug('[QR Scanner] Complete student map created:', {
-        totalMappings: Object.keys(studentMap).length,
-        mappings: Object.entries(studentMap).map(([key, value]) => ({ key, value })),
-        duplicateNames: Object.entries(studentMap).reduce((acc, [key, value]) => {
-          acc[value] = (acc[value] || 0) + 1;
-          return acc;
-        }, {})
-      });
+      info('QRScanner student map created:', currentStudents.length, 'students');
 
-      logger.log('🔧 QRScanner student map created:', {
-        totalStudents: currentStudents.length,
-        studentMapEntries: Object.entries(studentMap).map(([key, value]) => ({ key, value })),
-        availableStudentIds: currentStudents.map(s => s.id)
-      }); // Debug
-
-      // Fallback: Get all users if no students provided or to find missing students
-      if (students.length === 0) {
-        logger.debug('[QR Scanner] No students provided, fetching all users as fallback');
-        const usersResponse = await getUsers();
-        const allUsers = usersResponse.success ? usersResponse.data : [];
-        allUsers.forEach(u => {
-          const userId = u.id || u.docId;
-          const referenceId = u.studentNumber ? `STU-${u.studentNumber}` : (u.referenceId || generateReferenceId(userId));
-          const name = u.displayName || u.realName || u.name || (u.email ? u.email.split('@')[0] : 'Unknown');
-          if (!studentMap[referenceId]) {
-            studentMap[referenceId] = name;
-            logger.debug('[QR Scanner] Fallback student map entry:', referenceId, '->', name, '(from userId:', userId, ')');
-          }
-        });
-      }
-
-      // Combine and format activity logs (penalties are now included from separate collection)
-      logger.debug('[QR Scanner] Processing', allRecords.length, 'total records');
-      logger.debug('[QR Scanner] First record details:', allRecords.length > 0 ? {
-        fullRecord: allRecords[0],
-        id: allRecords[0]?.id,
-        studentId: allRecords[0]?.studentId,
-        status: allRecords[0]?.status,
-        category: allRecords[0]?.category,
-        delta: allRecords[0]?.delta,
-        date: allRecords[0]?.date,
-        timestamp: allRecords[0]?.timestamp,
-        method: allRecords[0]?.method,
-        notes: allRecords[0]?.notes,
-        reason: allRecords[0]?.reason
-      } : 'No attendance records');
+      // Combine and format activity logs
+      debug('[QR Scanner] Processing', allRecords.length, 'total records');
 
       const activityLogs = allRecords.map((record, index) => {
-        const studentId = record.studentId;
+        const studentId = record.userId || record.studentId;
         let studentName;
         
-        // For penalty/behavior records, always use Firebase ID as primary key (no name-based mapping)
+        // For penalty/behavior/participation records, always use database ID matching (no name-based mapping)
         // Note: 'cheating' is a penalty type, not a record type. Record types are: attendance, penalty, participation, behavior, etc.
-        if (record.type === RECORD_TYPES.PENALTY || record.category === RECORD_TYPES.PENALTY || record.category === RECORD_TYPES.BEHAVIOR) {
-          // Find student by Firebase ID directly
+        if (record.type === RECORD_TYPES.PENALTY || record.category === RECORD_TYPES.PENALTY || record.category === RECORD_TYPES.BEHAVIOR || record.category === RECORD_TYPES.PARTICIPATION) {
+          // Find student by database ID directly - studentId is the userId field from activity records
           const foundStudent = students.find(s => s.id === studentId);
           if (foundStudent) {
             studentName = foundStudent.displayName || foundStudent.name || foundStudent.email?.split('@')[0] || 'Unknown Student';
           } else {
-            // Fallback: try reference ID
-            const foundStudentByRef = students.find(s => {
-              const generatedRefId = generateReferenceId(s.id);
-              return generatedRefId === studentId;
-            });
-            if (foundStudentByRef) {
-              studentName = foundStudentByRef.displayName || foundStudentByRef.name || foundStudentByRef.email?.split('@')[0] || 'Unknown Student';
+            // Fallback: try studentNumber matching
+            const foundStudentByNumber = students.find(s => 
+              s.studentNumber && record.studentNumber && s.studentNumber === record.studentNumber
+            );
+            if (foundStudentByNumber) {
+              studentName = foundStudentByNumber.displayName || foundStudentByNumber.name || foundStudentByNumber.email?.split('@')[0] || 'Unknown Student';
             } else {
               studentName = 'Unknown Student';
             }
           }
           
-          logger.debug('[QR Scanner] Processing penalty/behavior record with Firebase ID mapping:', {
-            recordIndex: index,
-            originalStudentId: studentId,
-            mappedStudentName: studentName,
-            recordDetails: {
-              id: record.id,
-              studentId: record.studentId,
-              type: record.type,
-              category: record.category,
-              date: record.date,
-              classId: record.classId
-            },
-            foundByFirebaseId: !!students.find(s => s.id === studentId),
-            foundByReferenceId: !!students.find(s => generateReferenceId(s.id) === studentId)
-          });
+          // Found student by database ID
+          debug('[QR Scanner] Processing penalty/behavior record with database ID mapping:', studentId, '->', studentName);
         } else {
           // For other records (attendance, etc.), use the original name-based mapping
           studentName = studentMap[studentId];
         }
 
-        // If not found in map, try to find the student by generating reference ID from user IDs
+        // If not found in map, try to find the student by database ID directly
         if (!studentName && students.length > 0) {
-          const foundStudent = students.find(s => {
-            const generatedRefId = generateReferenceId(s.id);
-            return generatedRefId === studentId || s.id === studentId;
-          });
+          const foundStudent = students.find(s => s.id === studentId);
           if (foundStudent) {
             studentName = foundStudent.displayName || foundStudent.name || foundStudent.email?.split('@')[0] || 'Unknown Student';
-            logger.log('🔧 Found student by reference/Firebase ID:', studentId, '->', studentName);
-          } else {
-            logger.log('🔧 Student not found for ID:', studentId, 'Available students:', students.map(s => ({ id: s.id, refId: generateReferenceId(s.id), name: s.displayName })));
           }
         }
 
-        // CRITICAL: Log if multiple students map to the same name (for cheating/penalty records)
+        // Log cheating record processing for debugging
         if (record.type === RECORD_TYPES.PENALTY || record.category === RECORD_TYPES.PENALTY || record.category === RECORD_TYPES.BEHAVIOR) {
-          const sameNameMappings = Object.entries(studentMap).filter(([key, value]) => value === studentName);
-          
-          // ALWAYS log cheating record processing details
-          logger.info('[QR Scanner] CHEATING RECORD PROCESSING:', {
-            recordId: record.id,
-            recordStudentId: studentId,
-            mappedStudentName: studentName,
-            recordType: record.type,
-            recordCategory: record.category,
-            penaltyType: record.penaltyType || record.type,
-            date: record.date,
-            classId: record.classId,
-            allStudentsWithSameName: students.filter(s => (s.displayName || s.name) === studentName).map(s => ({
-              id: s.id,
-              name: s.displayName || s.name,
-              studentNumber: s.studentNumber
-            })),
-            studentMapEntries: Object.entries(studentMap).filter(([key, value]) => value === studentName),
-            foundByFirebaseId: !!students.find(s => s.id === studentId),
-            isDuplicateName: sameNameMappings.length > 1
-          });
-          
-          if (sameNameMappings.length > 1) {
-            logger.error('[QR Scanner] DUPLICATE NAME DETECTED:', {
-              studentName,
-              mappings: sameNameMappings,
-              recordStudentId: studentId,
-              recordType: record.type,
-              recordCategory: record.category,
-              warning: 'This cheating record will appear for multiple students!',
-              explanation: 'Multiple Firebase IDs map to the same name. The record will be displayed for all students with this name.'
-            });
-          }
+          debug('[QR Scanner] Processing cheating record:', record.id, 'for student:', studentName);
         }
 
         // Final fallback
@@ -1275,24 +1193,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 ? -Math.abs(Number(recordPointsRaw) || 0)
                 : Number(recordPointsRaw) || 0;
 
-        logger.debug('[QR Scanner] Processing attendance record #' + index + ':', {
-          studentId,
-          studentName,
-          status: record.status,
-          category: record.category,
-          delta: recordPoints,
-          date: record.date,
-          timestamp: record.timestamp,
-          method: record.method,
-          notes: record.notes,
-          reason: record.reason,
-          description: record.description,
-          note: record.note,
-          type: record.type,
-          availableInMap: !!studentMap[studentId],
-          totalStudentsInMap: Object.keys(studentMap).length,
-          computedType: record.category || (recordPoints ? (recordPoints > 0 ? RECORD_TYPES.PARTICIPATION : RECORD_TYPES.BEHAVIOR) : RECORD_TYPES.ATTENDANCE)
-        });
+        debug('[QR Scanner] Processing record:', index, 'student:', studentName, 'type:', record.category, 'points:', recordPoints);
 
         const activityLabel = getNote 
       ? getNote(record.notes || record.note || record.reason || record.description) || record.type || ''
@@ -1303,21 +1204,21 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
         if (record.category === RECORD_TYPES.PENALTY) {
           const penaltyId = record.type;
-          const penaltyDef = PENALTY_TYPES.find(pt => pt.id === penaltyId);
+          const penaltyDef = (activityTypeOptions['penalty-types'] || []).find(pt => pt.id === penaltyId);
           finalLabel = penaltyDef
-              ? (lang === 'ar' ? penaltyDef.label_ar : penaltyDef.label_en)
+              ? (lang === 'ar' ? (penaltyDef.nameAr || penaltyDef.nameEn) : penaltyDef.nameEn)
               : penaltyId
               || activityLabel
               || 'Penalty';
         } else if (record.category === RECORD_TYPES.PARTICIPATION) {
-          const participationDef = PARTICIPATION_TYPES.find(pt => pt.id === record.type);
-          finalLabel = (participationDef ? (lang === 'ar' ? participationDef.label_ar : participationDef.label_en) : null)
+          const participationDef = (activityTypeOptions['participation-types'] || []).find(pt => pt.id === record.type);
+          finalLabel = (participationDef ? (lang === 'ar' ? (participationDef.nameAr || participationDef.nameEn) : participationDef.nameEn) : null)
               || record.type
               || activityLabel
               || 'Participation';
         } else if (record.category === RECORD_TYPES.BEHAVIOR) {
-          const behaviorDef = BEHAVIOR_TYPES.find(bt => bt.id === record.type);
-          finalLabel = (behaviorDef ? (lang === 'ar' ? behaviorDef.label_ar : behaviorDef.label_en) : null)
+          const behaviorDef = (activityTypeOptions['behavior-types'] || []).find(bt => bt.id === record.type);
+          finalLabel = (behaviorDef ? (lang === 'ar' ? (behaviorDef.nameAr || behaviorDef.nameEn) : behaviorDef.nameEn) : null)
               || record.type
               || activityLabel
               || 'Behavior';
@@ -1348,7 +1249,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           type: computedType,
           studentId,
           studentName,
-          status: record.status || 'present',
+          status: record.status || null,
           delta: recordPoints,
           points: recordPoints,
           label: finalLabel,
@@ -1360,9 +1261,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           subject: selectedSubjectName,
           program: selectedProgramName,
           class: selectedClassName,
-          comment: getNote 
-          ? getNote(record.notes || record.note || record.reason || record.description) || ''
-          : (record.notes || record.note || record.reason || record.description || ''),
+          comment: (() => {
+            const noteContent = record.notes || record.note || record.reason || record.description || '';
+            // Check if it's a note constant (uppercase with underscores)
+            if (/^[A-Z_]+$/.test(noteContent)) {
+              return getLocalizedNoteText(noteContent, t) || noteContent;
+            }
+            // Otherwise use bilingual notes hook if available
+            return getNote ? getNote(noteContent) || noteContent : noteContent;
+          })(),
           // Preserve original types for color determination
           originalType: record.type,
           penaltyType: record.penaltyType || record.type,
@@ -1377,35 +1284,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         return timeB - timeA; // Descending order (newest first)
       }).slice(0, 15);
 
-      // CRITICAL: Log all activity logs with full recordId details
-      logger.info('[QR Scanner] ===== ALL ACTIVITY LOGS BEFORE DEDUPLICATION =====');
-      logger.info('[QR Scanner] Total activity logs:', activityLogs.length);
-      activityLogs.forEach((log, index) => {
-        logger.info(`[QR Scanner] Activity Log ${index + 1}:`, {
-          recordId: log.recordId,
-          id: log.id,
-          studentId: log.studentId,
-          studentName: log.studentName,
-          type: log.type,
-          category: log.category,
-          label: log.label,
-          hasRecordId: !!log.recordId,
-          recordIdValue: log.recordId || 'UNDEFINED'
-        });
-      });
-      logger.info('[QR Scanner] ===== END ACTIVITY LOGS =====');
-
-      // Remove duplicate attendance records for same student
+      // Remove duplicate records
       const uniqueLogs = [];
       const seen = new Set();
-      const recordIdsSeen = new Set(); // Track record IDs to catch true duplicates
-
-      logger.info('[QR Scanner] ===== STARTING DEDUPLICATION PROCESS =====');
+      const recordIdsSeen = new Set();
       
       activityLogs.forEach((log, index) => {
-        // Create a unique key based on record ID (most reliable)
-        // For records with recordId, use it to prevent true duplicates
-        // For attendance without recordId, use studentId-type combination
         let uniqueKey;
         if (log.recordId) {
           uniqueKey = `record-${log.recordId}`;
@@ -1415,58 +1299,22 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           uniqueKey = `${log.studentId}-${log.type}-${log.time}`;
         }
         
-        logger.info(`[QR Scanner] Processing log ${index + 1}:`, {
-          recordId: log.recordId,
-          uniqueKey: uniqueKey,
-          studentName: log.studentName,
-          type: log.type,
-          label: log.label,
-          alreadySeenRecordId: log.recordId ? recordIdsSeen.has(log.recordId) : false,
-          alreadySeenUniqueKey: seen.has(uniqueKey)
-        });
-        
-        // CRITICAL: Check for duplicate record IDs (same database record appearing multiple times)
+        // Check for duplicate record IDs
         if (log.recordId && recordIdsSeen.has(log.recordId)) {
-          logger.error('[QR Scanner] ❌ DUPLICATE RECORD ID DETECTED - SKIPPING:', {
-            recordId: log.recordId,
-            studentId: log.studentId,
-            studentName: log.studentName,
-            type: log.type,
-            category: log.category,
-            uniqueKey: uniqueKey,
-            warning: 'Same database record is being processed multiple times!'
-          });
-          // Skip this duplicate record
+          debug('[QR Scanner] Skipping duplicate record:', log.recordId);
           return;
         } else if (log.recordId) {
           recordIdsSeen.add(log.recordId);
-          logger.info(`[QR Scanner] ✅ Added recordId to seen set:`, log.recordId);
         }
         
         // Add to unique logs if not seen before
         if (!seen.has(uniqueKey)) {
           seen.add(uniqueKey);
           uniqueLogs.push(log);
-          logger.info(`[QR Scanner] ✅ Added to uniqueLogs (total: ${uniqueLogs.length}):`, {
-            recordId: log.recordId,
-            studentName: log.studentName,
-            type: log.type,
-            label: log.label
-          });
-        } else {
-          logger.warn('[QR Scanner] ⚠️ Skipping duplicate by uniqueKey:', {
-            uniqueKey: uniqueKey,
-            recordId: log.recordId,
-            studentName: log.studentName,
-            type: log.type
-          });
         }
       });
       
-      logger.info('[QR Scanner] ===== DEDUPLICATION COMPLETE =====');
-      logger.info('[QR Scanner] Final unique logs count:', uniqueLogs.length);
-      logger.info('[QR Scanner] Original logs count:', activityLogs.length);
-      logger.info('[QR Scanner] Duplicates removed:', activityLogs.length - uniqueLogs.length);
+      debug('[QR Scanner] Deduplication complete:', uniqueLogs.length, 'unique logs from', activityLogs.length, 'original');
 
       // Sort by time (newest first)
       uniqueLogs.sort((a, b) => {
@@ -1475,17 +1323,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         return timeB - timeA; // Descending order (newest first)
       });
 
-      logger.debug('[QR Scanner] Final activity logs (deduped):', uniqueLogs.length);
-      logger.debug('[QR Scanner] First activity log details:', uniqueLogs.length > 0 ? {
-        studentId: uniqueLogs[0]?.studentId,
-        studentName: uniqueLogs[0]?.studentName,
-        status: uniqueLogs[0]?.status,
-        type: uniqueLogs[0]?.type,
-        delta: uniqueLogs[0]?.delta,
-        label: uniqueLogs[0]?.label,
-        method: uniqueLogs[0]?.method,
-        time: uniqueLogs[0]?.time
-      } : t('no_activity_logs') || 'No activity logs');
+      debug('[QR Scanner] Final unique logs:', uniqueLogs.length);
 
       // Format time for display
       const formattedLogs = uniqueLogs.map(log => ({
@@ -1502,13 +1340,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       }));
 
       setRecentActivity(formattedLogs);
-    } catch (error) {
-      logger.error('Error fetching recent activity:', error);
+    } catch (err) {
+      error('Error fetching recent activity:', err);
       setRecentActivity([]);
     } finally {
       setActivityLoading(false);
     }
-  }, [classId, students, user, selectedProgramName, selectedSubjectName, selectedClassName, lang, t]);
+  }, [classId, students, user, selectedProgramName, selectedSubjectName, selectedClassName, lang, t, activityDateFilter, attendanceMode, selectedProgramId]);
 
   // Memoized helper functions for activity display - defined outside map for performance
   const getScanMethodDisplay = useCallback((scanMethod) => {
@@ -1549,11 +1387,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const getStatusColor = useCallback((status, type, delta, penaltyType, behaviorType) => {
     // Use specific color functions for penalties and behaviors
     if (type === RECORD_TYPES.PENALTY && penaltyType) {
-      return getPenaltyColor(penaltyType);
+      return getTypeColor('penalty', penaltyType);
     }
     
     if (type === RECORD_TYPES.BEHAVIOR && behaviorType) {
-      return getBehaviorColor(behaviorType);
+      return getTypeColor('behavior', behaviorType);
     }
     
     if (type === RECORD_TYPES.PARTICIPATION) {
@@ -1581,31 +1419,37 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, []);
 
   const getStatusIcon = useCallback((status, type, delta) => {
+    // Use white icons for participation, behavior, and penalty
     if (type === RECORD_TYPES.PARTICIPATION || delta > 0) {
-      return <ParticipationIcon style={{ width: '12px', height: '12px' }} />;
+      return <ParticipationIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />;
     }
     if (type === RECORD_TYPES.PENALTY) {
-      return <PenaltyIcon style={{ width: '12px', height: '12px' }} />;
+      return <PenaltyIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />;
     }
     if (type === RECORD_TYPES.BEHAVIOR || delta < 0) {
-      return <ZapIcon style={{ width: '12px', height: '12px' }} />;
+      return <ZapIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />;
     }
 
     // Use unified attendance icons for attendance types
     if (type === RECORD_TYPES.ATTENDANCE || status) {
-      const iconName = getAttendanceIcon(status);
+      const statusValue = status?.code || status;
+      const iconName = getAttendanceIcon(statusValue);
+      const statusColor = getAttendanceColor(statusValue);
+      console.log('🔍 QRScanner - Icon Mapping:', { type, status, statusValue, statusType: typeof status, iconName, statusColor, statusKeys: Object.keys(status || {}) });
       
       const iconMap = {
-        CheckCircle: <CheckSmallIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />,
-        Clock: <ClockSmallIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />,
-        AlertCircle: <AlertCircleIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />,
-        XCircle: <XSmallIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />,
-        Heart: <HeartIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />,
-        Star: getThemedIcon('ui', 'star', 16, '#ffffff'),
-        HelpCircle: <HelpCircleIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />
+        CheckCircle: <div style={{ backgroundColor: statusColor, borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CheckSmallIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} /></div>,
+        Clock: <div style={{ backgroundColor: statusColor, borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ClockSmallIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} /></div>,
+        AlertCircle: <div style={{ backgroundColor: statusColor, borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><AlertCircleIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} /></div>,
+        XCircle: <div style={{ backgroundColor: statusColor, borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><XSmallIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} /></div>,
+        Heart: <div style={{ backgroundColor: statusColor, borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HeartIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} /></div>,
+        Star: <div style={{ backgroundColor: statusColor, borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{getThemedIcon('ui', 'star', 16, '#ffffff')}</div>,
+        HelpCircle: <div style={{ backgroundColor: statusColor, borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HelpCircleIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} /></div>
       };
       
-      return iconMap[iconName] || iconMap.HelpCircle;
+      const selectedIcon = iconMap[iconName] || iconMap.HelpCircle;
+      console.log('🔍 QRScanner - Selected Icon:', { iconName, hasIcon: !!iconMap[iconName], fallback: !iconMap[iconName] });
+      return selectedIcon;
     }
 
     // Fallback for unknown types
@@ -1658,23 +1502,27 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, [onActivityUpdate, fetchRecentActivity]);
 
   // Handle attendance marking
-  const handleMarkAttendance = useCallback(async (studentIdOrStatus, statusOrNotes, notes) => {
-    // Check if this is called from scan dialog (status, notes) or from elsewhere (studentId, status)
-    const isFromScanDialog = typeof studentIdOrStatus === 'string' && 
+  const handleMarkAttendance = useCallback(async (studentIdOrStatus, statusOrNotes, notes, programId, subjectId) => {
+    // Check if this is called from scan dialog (status, notes) or from elsewhere (studentId, status, programId, subjectId)
+    const isFromScanDialog = typeof studentIdOrStatus === 'string' &&
                              [
                                ATTENDANCE_STATUS.PRESENT,
                                ATTENDANCE_STATUS.LATE,
                                ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
                                ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE,
                                ATTENDANCE_STATUS.EXCUSED_LEAVE,
-                               ATTENDANCE_STATUS.HUMAN_CASE
+                               ATTENDANCE_STATUS.HUMAN_CASE,
+                               ATTENDANCE_STATUS.STANDUP_PRESENT,
+                               ATTENDANCE_STATUS.STANDUP_LATE,
+                               ATTENDANCE_STATUS.STANDUP_ABSENT,
+                               ATTENDANCE_STATUS.STANDUP_CLINIC
                              ].includes(studentIdOrStatus);
-    
+
     if (isFromScanDialog) {
       // Called from scan dialog: handleMarkAttendance(status, notes)
       const status = studentIdOrStatus;
       const scanNotes = statusOrNotes;
-      
+
       setActionLoading(true);
       setCurrentAction(status);
 
@@ -1685,19 +1533,18 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         // Get the correct student ID - try multiple possible fields
         let studentId = lastScannedStudent?.id ||
             lastScannedStudent?.userId ||
-            lastScannedStudent?.studentId ||
-            lastScannedStudent?.docId;
+            lastScannedStudent?.studentId;
 
         // If still no student ID, try to find it in the students array
         if (!studentId) {
           const searchField = lastScannedStudent?.studentNumber || lastScannedStudent?.referenceId;
           if (searchField) {
-            const foundStudent = students.find(s => 
-              s.studentNumber === searchField || 
+            const foundStudent = students.find(s =>
+              s.studentNumber === searchField ||
               s.referenceId === searchField ||
               s.studentId === searchField ||
               `STU-${s.studentNumber}` === searchField ||
-              generateReferenceId(s.id) === searchField
+              String(s.id) === searchField
             );
             studentId = foundStudent?.id;
           }
@@ -1707,7 +1554,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           throw new Error(`Student ID not found. Student data: ${JSON.stringify(lastScannedStudent)}`);
         }
 
-        logger.debug('Using studentId:', studentId);
+        debug('Using studentId:', studentId);
 
         // Check if already marked with any attendance status today
         const studentIdentifier = lastScannedStudent?.studentNumber || lastScannedStudent?.referenceId;
@@ -1721,19 +1568,19 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         // Get performedBy fields using shared service
         const performedByFields = await getPerformedByFields(user);
 
-        // Mark attendance
-        const result = await markAttendance({
-          classId,
-          studentId: studentId,
-          programId: selectedProgramId,
-          subjectId: selectedSubjectId,
+        // Use unified attendance service for both regular and standup attendance
+        let result = await markAttendance({
+          userId: studentId,
+          classId: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? classId : undefined,
           date: todayISO, // Use ISO format for database
-          status,
-          markedBy: user.uid,
-          method: ATTENDANCE_METHODS.MANUAL_INSTRUCTOR,
-          notes: scanNotes,
-          ...performedByFields
-        });
+          status: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? status.toUpperCase() : status,
+          notes: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
+            ? getNoteTypeFromStatus(status, 'standup')
+            : getNoteTypeFromStatus(status, 'qr'),
+          user: user,
+          programId: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? selectedProgramId : (attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? selectedProgramId : undefined),
+          subjectId: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? selectedSubjectId : undefined
+        }, user, attendanceMode);
 
         if (result.success) {
           setShowScanDialog(false);
@@ -1754,41 +1601,67 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           // Trigger activity update
           if (onActivityUpdate) {
             onActivityUpdate(() => {
-              logger.debug(`[QR Scanner] Triggering activity refresh after marking ${status}`);
+              debug(`[QR Scanner] Triggering activity refresh after marking ${status}`);
               fetchRecentActivity();
             });
           }
         } else {
           showResult('error', result.error || 'Failed to mark attendance');
         }
-      } catch (error) {
-        addDebugLog(`❌ Error marking attendance (${status}): ${error.message}`, 'error');
-        showResult('error', `Failed to mark attendance: ${error.message}`);
+      } catch (err) {
+        addDebugLog(`❌ Error marking attendance (${status}): ${err.message}`, 'error');
+        showResult('error', `Failed to mark attendance: ${err.message}`);
       } finally {
         setActionLoading(false);
         setCurrentAction(null);
       }
     } else {
-      // Original functionality: handleMarkAttendance(studentId, status)
+      // Called from activity list or other places: handleMarkAttendance(studentId, status, programId, subjectId)
       const studentId = studentIdOrStatus;
       const status = statusOrNotes;
-      
+
+      console.log('🔍 [QR Scanner handleMarkAttendance] Activity list path:', {
+        studentId,
+        status,
+        programId,
+        subjectId,
+        selectedProgramId,
+        selectedSubjectId,
+        selectedClassId,
+        classId,
+        attendanceMode
+      });
+
       try {
         const today = formatQatarDateOnly(getQatarNow());
         const todayISO = getQatarNow().toISOString().split('T')[0]; // Use ISO format for database
-        
+
         // Get performedBy fields using shared service
         const performedByFields = await getPerformedByFields(user);
 
-        await markAttendance({
-          classId: selectedClassId,
-          studentId,
-          date: todayISO, // Use ISO format for database
-          status,
-          markedBy: user.uid,
-          method: 'manual',
-          ...performedByFields
+        // Use passed programId/subjectId directly, or fallback to selected values
+        const finalProgramId = programId || selectedProgramId;
+        const finalSubjectId = subjectId || selectedSubjectId;
+
+        console.log('🔍 [QR Scanner handleMarkAttendance] Final values:', {
+          finalProgramId,
+          finalSubjectId,
+          passedProgramId: programId,
+          passedSubjectId: subjectId,
+          selectedProgramId,
+          selectedSubjectId
         });
+
+        await markAttendance({
+          userId: studentId,
+          classId: selectedClassId,
+          date: todayISO, // Use ISO format for database
+          status: status,
+          notes: getNoteTypeFromStatus(status, 'quick'),
+          user: user,
+          programId: finalProgramId,
+          subjectId: finalSubjectId
+        }, user, attendanceMode);
 
         // Emit event for real-time updates
         eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
@@ -1800,39 +1673,50 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         });
 
         showSuccess('Attendance marked successfully');
-      } catch (error) {
-        logger.error('Error marking attendance:', error);
+      } catch (err) {
+        error('Error marking attendance:', err);
         showError('Failed to mark attendance');
       }
     }
-  }, [selectedClassId, user, lastScannedStudent, students, classId, lang, t, onActivityUpdate, fetchRecentActivity, showResult, addDebugLog, showSuccess, showError]);
+  }, [selectedClassId, selectedSubjectId, user, lastScannedStudent, students, classId, lang, t, onActivityUpdate, fetchRecentActivity, showResult, addDebugLog, showSuccess, showError, attendanceMode, selectedProgramId]);
 
   // Senior-Level Quick Attendance Handler
-  const handleQuickAttendance = useCallback(async (student, status) => {
+  const handleQuickAttendance = useCallback(async (student, status, mode, programIdParam) => {
     if (!student || !status) return;
-    
-    // Show immediate visual feedback
+
     const statusLabel = getLocalizedAttendanceLabel(status, t, lang);
     addDebugLog(`⚡ ${t('quick') || 'Quick'} marking ${student.displayName || student.name} as ${statusLabel}`, 'info');
-    
+
     try {
-      // Use the dedicated roster quick action method
-      const result = await rosterQuickAction(
-        student.id,
-        selectedClassId,
+      const todayISO = getQatarNow().toISOString().split('T')[0];
+      const performedByFields = await getPerformedByFields(user);
+      let result;
+
+      console.log('🔍 [QR Scanner handleQuickAttendance] Calling with:', {
+        studentId: student.id,
         status,
-        user,
-        `${t('quick') || 'Quick'} ${statusLabel}`,
+        mode,
+        programIdParam,
         selectedProgramId,
         selectedSubjectId,
-        getQatarNow().toISOString().split('T')[0] // Current date in ISO format
-      );
+        attendanceMode
+      });
+
+      // Use unified attendance service for both regular and standup attendance
+      result = await markAttendance({
+        userId: student.id,
+        classId: (mode || attendanceMode) === ATTENDANCE_TYPE_CATEGORY.REGULAR ? selectedClassId : undefined,
+        date: todayISO,
+        status: status, // Keep original status format for proper icon/color mapping
+        notes: getNoteTypeFromStatus(status, 'quick'),
+        user: user,
+        programId: programIdParam || selectedProgramId,
+        subjectId: selectedSubjectId
+      }, user, mode || attendanceMode);
 
       if (result.success) {
-        // Show success feedback
         showResult('success', `${student.displayName || student.name} marked as ${statusLabel}!`, status);
-        
-        // Emit real-time event
+
         eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
           studentId: student.id,
           studentNumber: student.studentNumber,
@@ -1841,41 +1725,188 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           status,
           performedBy: user,
           timestamp: new Date(),
-          quickAction: true
+          quickAction: true,
+          source: 'roster'
         });
 
-        // Refresh activity to show the change
         if (onActivityUpdate) {
           onActivityUpdate(() => {
             fetchRecentActivity();
           });
         }
 
-        // Add haptic feedback if available
         if (navigator.vibrate) {
-          navigator.vibrate(50); // Short vibration for success
+          navigator.vibrate(50);
         }
 
       } else {
         showResult('error', result.error || `Failed to mark ${statusLabel}`);
       }
-    } catch (error) {
-      addDebugLog(`❌ Quick attendance error: ${error.message}`, 'error');
-      showResult('error', `Failed to mark ${statusLabel}: ${error.message}`);
+    } catch (err) {
+      addDebugLog(`❌ Quick attendance error: ${err.message}`, 'error');
+      showResult('error', `Failed to mark ${statusLabel}: ${err.message}`);
     }
-  }, [selectedClassId, user, lang, t, onActivityUpdate, fetchRecentActivity, showResult, addDebugLog]);
+  }, [selectedClassId, user, lang, t, onActivityUpdate, fetchRecentActivity, showResult, addDebugLog, attendanceMode]);
+
+  // Clear all standup attendance for current date/program
+  const handleClearStandup = useCallback(async () => {
+    if (!selectedProgramId || selectedProgramId === 'all') {
+      showResult('error', t('please_select_program') || 'Please select Program');
+      return;
+    }
+
+    // Count how many standup attendance records exist for today before showing modal
+    try {
+      const qatarNow = getQatarNow();
+      const dateStr = qatarNow.toISOString().split('T')[0];
+      let recordCount = 0;
+
+      for (const student of students) {
+        const result = await getStandupAttendanceByUserAndDate(student.id, dateStr);
+        if (result.success && result.data) {
+          const recordProgramId = result.data.programId;
+          if (recordProgramId === parseInt(selectedProgramId) || recordProgramId === selectedProgramId) {
+            recordCount++;
+          }
+        }
+      }
+
+      setClearStandupModal({ isOpen: true, loading: false, recordCount });
+    } catch (err) {
+      showResult('error', `Failed to count attendance records: ${err.message}`);
+    }
+  }, [selectedProgramId, showResult, t, students]);
+
+  // Actual clear standup logic (called when modal is confirmed)
+  const confirmClearStandup = useCallback(async () => {
+    setClearStandupModal(prev => ({ ...prev, loading: true }));
+    try {
+      addDebugLog('🗑️ Clearing standup attendance...', 'info');
+      addDebugLog(`🔍 Clearing for program: ${selectedProgramId}, date: ${getQatarNow().toISOString().split('T')[0]}`, 'info');
+      setActivityLoading(true);
+
+      const qatarNow = getQatarNow();
+      const dateStr = qatarNow.toISOString().split('T')[0];
+      let deletedCount = 0;
+
+      // Delete standup attendance for all students in the current program for today
+      for (const student of students) {
+        try {
+          const result = await getStandupAttendanceByUserAndDate(student.id, dateStr);
+          if (result.success && result.data) {
+            // Check if the record has a valid ID and belongs to the current program
+            const recordId = result.data.id;
+            const recordProgramId = result.data.programId;
+
+            if (recordId && (recordProgramId === parseInt(selectedProgramId) || recordProgramId === selectedProgramId)) {
+              await deleteStandupAttendance(recordId);
+              deletedCount++;
+              addDebugLog(`✅ Deleted standup attendance for student ${student.id}`, 'info');
+            } else if (!recordId) {
+              addDebugLog(`⚠️ No ID found for student ${student.id} attendance record`, 'warning');
+            } else {
+              addDebugLog(`⚠️ Skipping student ${student.id} - record belongs to different program: ${recordProgramId}`, 'warning');
+            }
+          }
+        } catch (err) {
+          addDebugLog(`❌ Error deleting attendance for student ${student.id}: ${err.message}`, 'error');
+        }
+      }
+
+      addDebugLog(`✅ Cleared ${deletedCount} standup attendance records for program ${selectedProgramId}`, 'success');
+      showResult('success', `Cleared ${deletedCount} standup attendance records`);
+
+      // Refresh activity
+      if (fetchRecentActivity) {
+        fetchRecentActivity();
+      }
+
+      // Emit event to update student roster
+      eventBus.emit(EVENTS.ATTENDANCE_MARKED, { forceRefresh: true });
+    } catch (err) {
+      addDebugLog(`❌ Error clearing standup: ${err.message}`, 'error');
+      showResult('error', `Failed to clear standup: ${err.message}`);
+    } finally {
+      setActivityLoading(false);
+      setClearStandupModal({ isOpen: false, loading: false });
+    }
+  }, [students, selectedProgramId, t, showResult, addDebugLog, fetchRecentActivity]);
+
+  // Clear all attendance for today in regular mode
+  const handleClearRegular = useCallback(async () => {
+    if (!selectedClassId || selectedClassId === 'all') {
+      showResult('error', t('please_select_class') || 'Please select Class');
+      return;
+    }
+
+    // Count how many attendance records exist for today before showing modal
+    try {
+      const qatarNow = getQatarNow();
+      const dateStr = qatarNow.toISOString().split('T')[0];
+      
+      const attendanceResponse = await getAttendanceByClass(selectedClassId, dateStr);
+      const recordCount = attendanceResponse.success ? attendanceResponse.data.length : 0;
+
+      setClearRegularModal({ isOpen: true, loading: false, recordCount });
+    } catch (err) {
+      showResult('error', `Failed to count attendance records: ${err.message}`);
+    }
+  }, [selectedClassId, showResult, t]);
+
+  // Actual clear regular logic (called when modal is confirmed)
+  const confirmClearRegular = useCallback(async () => {
+    setClearRegularModal(prev => ({ ...prev, loading: true }));
+    try {
+      addDebugLog('🗑️ Clearing today\'s attendance...', 'info');
+      addDebugLog(`🔍 Clearing for class: ${selectedClassId}, date: ${getQatarNow().toISOString().split('T')[0]}`, 'info');
+      setActivityLoading(true);
+
+      const qatarNow = getQatarNow();
+      const dateStr = qatarNow.toISOString().split('T')[0];
+      let deletedCount = 0;
+
+      // Delete attendance records for today
+      const attendanceResponse = await getAttendanceByClass(selectedClassId, dateStr);
+      for (const record of attendanceResponse.success ? attendanceResponse.data : []) {
+        try {
+          await deleteAttendance(record.id);
+          debug('Deleted attendance record:', record.id);
+          deletedCount++;
+        } catch (err) {
+          error('Failed to delete attendance record:', record.id, err);
+        }
+      }
+
+      addDebugLog(`✅ Cleared ${deletedCount} attendance records for class ${selectedClassId}`, 'success');
+      showResult('success', `Cleared ${deletedCount} attendance records for today`);
+
+      // Refresh activity
+      if (fetchRecentActivity) {
+        fetchRecentActivity();
+      }
+
+      // Emit event to update student roster
+      eventBus.emit(EVENTS.ATTENDANCE_MARKED, { forceRefresh: true });
+    } catch (err) {
+      addDebugLog(`❌ Error clearing regular attendance: ${err.message}`, 'error');
+      showResult('error', `Failed to clear attendance: ${err.message}`);
+    } finally {
+      setActivityLoading(false);
+      setClearRegularModal({ isOpen: false, loading: false, recordCount: 0 });
+    }
+  }, [selectedClassId, t, showResult, addDebugLog, fetchRecentActivity]);
 
   // Fetch activity when classId and students change
   useEffect(() => {
     // Only fetch if we have a valid classId (not 'all') AND students
     if (classId && classId !== 'all' && students && students.length > 0) {
-      logger.log('🔧 Fetching activity - classId:', classId, 'students:', students.length);
+      info('🔧 Fetching activity - classId:', classId, 'students:', students.length);
       // Use a timeout to ensure the latest students state is captured
       setTimeout(() => {
         fetchRecentActivity();
       }, 50);
     } else {
-      logger.log('🔧 Skipping activity fetch - classId:', classId, 'students:', students?.length || 0);
+      info('🔧 Skipping activity fetch - classId:', classId, 'students:', students?.length || 0);
       // Clear activity when conditions aren't met
       setRecentActivity([]);
       setActivityLoading(false);
@@ -1889,9 +1920,16 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
   }, [isMinimized, onMinimizeChange]);
 
+  // Handle forceMinimized prop
+  useEffect(() => {
+    if (forceMinimized !== isMinimized) {
+      setIsMinimized(forceMinimized);
+    }
+  }, [forceMinimized]);
+
   // Add debug logging for props
   useEffect(() => {
-    logger.log('🔧 QRScanner props updated:', {
+    info('🔧 QRScanner props updated:', {
       studentsLength: students?.length || 0,
       selectedProgramId,
       selectedSubjectId,
@@ -1914,27 +1952,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, [showStudentActionZapPanel, studentForAction, addDebugLog]);
 
   return (
-    <FeatureFlagWrapper 
-      featureId="QR_SCANNER_ACCESS"
-      fallback={
-        <div dir={isRTL ? 'rtl' : 'ltr'} style={{
-          padding: '2rem',
-          textAlign: 'center',
-          color: 'var(--text-secondary, #6b7280)',
-          background: 'var(--panel, white)',
-          borderRadius: '0.75rem',
-          border: '1px solid var(--border, #e5e7eb)'
-        }}>
-          <p style={{ margin: 0, fontSize: '0.875rem' }}>
-            {t('qr_scanner_not_available') || 'QR Scanner is not available for your role.'}
-          </p>
-                  </div>
-      }
-    >
       <CollapsibleSection
           ref={scannerRef}
           sectionId="qr-scanner"
-          title={t('qr_scanner') || 'QR Scanner'}
+           title={'Activity list'}
           titleStyle={{ fontSize: '0.75rem' }}
           icon={<QrCodeIcon />}
           color="#8b5cf6"
@@ -1966,11 +1987,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       >
         <div dir={isRTL ? 'rtl' : 'ltr'} style={{
           background: 'var(--panel, white)',
-          borderRadius: '0.75rem',
-          border: '1px solid var(--border, #e5e7eb)',
-          padding: '1.5rem'
+          // borderRadius: '0.75rem',
+          // border: '1px solid var(--border, #e5e7eb)',
+          // padding: '1.5rem'
         }}>
-          <div style={{
+          {/* <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -1984,166 +2005,25 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             </div>
             <span style={{
               fontSize: '0.75rem',
-              padding: '0.25rem 0.5rem',
-              background: isScanning ? '#dcfce7' : '#dbeafe',
               color: isScanning ? '#166534' : '#1e40af',
-              borderRadius: '0.375rem',
               fontWeight: 500
             }}>
           {isScanning ? t('scanning') || 'SCANNING' : t('idle') || 'IDLE'}
         </span>
-          </div>
+          </div> */}
 
-          <div style={{
-            background: '#0f172a',
-            borderRadius: '0.5rem',
-            aspectRatio: isMobile ? '1/1' : '4/3',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '1rem',
-            position: 'relative',
-            overflow: 'hidden',
-            width: '100%',
-            maxWidth: isMobile ? '100%' : '550px',
-            margin: isMobile ? '0 auto 1rem auto' : '0 auto 1rem auto'
-          }}>
-            {loading ? (
-                <div style={{ textAlign: 'center', zIndex: 10, position: 'relative', background: 'white', padding: '2rem' }}>
-                  <div style={{
-                    width: '3rem',
-                    height: '3rem',
-                    border: '3px solid #1e293b',
-                    borderTop: '3px solid #8b5cf6',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                    margin: '0 auto 0.75rem'
-                  }}></div>
-                  <p style={{ color: '#94a3b8', fontSize: '0.875rem', margin: 0 }}>
-                    {t('loading') || 'Loading...'}
-                  </p>
-                </div>
-            ) : !isScanning ? (
-                <div style={{
-                  textAlign: 'center',
-                  zIndex: 1,
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  width: '100%'
-                }}>
-                  <p style={{ color: '#ffffff', fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
-                    {t('tap_to_activate')}
-                  </p>
-                  {error && (
-                      <p style={{ color: 'var(--color-danger, #ef4444)', fontSize: '0.75rem', marginTop: '0.5rem' }}>
-                        {error}
-                      </p>
-                  )}
-                </div>
-            ) : (
-                <>
-                  <video
-                      ref={videoRef}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover'
-                      }}
-                      playsInline
-                      muted
-                  />
-                  <canvas
-                      ref={canvasRef}
-                      style={{ display: 'none' }}
-                  />
-                  <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    pointerEvents: 'none'
-                  }}>
-                    <div style={{
-                      width: '60%',
-                      height: '60%',
-                      border: '2px solid #8b5cf6',
-                      borderRadius: '0.5rem',
-                      position: 'relative'
-                    }}>
-                      <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '1rem',
-                        height: '1rem',
-                        borderTop: '3px solid #8b5cf6',
-                        borderLeft: '3px solid #8b5cf6'
-                      }} />
-                      <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        right: 0,
-                        width: '1rem',
-                        height: '1rem',
-                        borderTop: '3px solid #8b5cf6',
-                        borderRight: '3px solid #8b5cf6'
-                      }} />
-                      <div style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        width: '1rem',
-                        height: '1rem',
-                        borderBottom: '3px solid #8b5cf6',
-                        borderLeft: '3px solid #8b5cf6'
-                      }} />
-                      <div style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        right: 0,
-                        width: '1rem',
-                        height: '1rem',
-                        borderBottom: '3px solid #8b5cf6',
-                        borderRight: '3px solid #8b5cf6'
-                      }} />
-                      <div style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: 0,
-                        right: 0,
-                        height: '2px',
-                        background: '#8b5cf6',
-                        animation: 'qr-scan-line 2s linear infinite'
-                      }} />
-                    </div>
-                  </div>
-                </>
-            )}
-
-            <Button
-                onClick={toggleCamera}
-                variant="ghost"
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  width: '100%',
-                  height: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  zIndex: isScanning ? 0 : 2
-                }}
-            >
-              <span className="qr-sr-only">{isScanning ? t('stop_camera') : t('activate_camera')}</span>
-            </Button>
-          </div>
+          {isMobile && (
+            <CameraView
+              videoRef={videoRef}
+              canvasRef={canvasRef}
+              isScanning={isScanning}
+              loading={loading}
+              error={error}
+              isMobile={isMobile}
+              onToggleCamera={toggleCamera}
+              t={t}
+            />
+          )}
 
           <div>
             <div style={{
@@ -2164,49 +2044,53 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 justifyContent: 'center',
                 flexWrap: 'nowrap'
               }}>
-                <PortalTooltip content={vibrationEnabled ? (t('disable_vibration') || 'Disable vibration') : (t('enable_vibration') || 'Enable vibration')} position="top">
-                <button
-                    onClick={() => setVibrationEnabled(!vibrationEnabled)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      padding: '0.375rem 0.5rem',
-                      borderRadius: '0.375rem',
-                      border: '1px solid var(--border, #e5e7eb)',
-                      background: vibrationEnabled ? 'var(--color-primary, #8b5cf6)' : 'white',
-                      color: vibrationEnabled ? 'white' : 'var(--text, #111827)',
-                      fontSize: '0.7rem',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <VibrationIcon style={{ width: '14px', height: '14px' }} />
-                  </button>
-                </PortalTooltip>
+                {isMobile && (
+                  <>
+                    <PortalTooltip content={vibrationEnabled ? (t('disable_vibration') || 'Disable vibration') : (t('enable_vibration') || 'Enable vibration')} position="top">
+                    <button
+                        onClick={() => setVibrationEnabled(!vibrationEnabled)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          padding: '0.375rem 0.5rem',
+                          borderRadius: '0.375rem',
+                          border: '1px solid var(--border, #e5e7eb)',
+                          background: vibrationEnabled ? 'var(--color-primary, #8b5cf6)' : 'white',
+                          color: vibrationEnabled ? 'white' : 'var(--text, #111827)',
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <VibrationIcon style={{ width: '14px', height: '14px' }} />
+                      </button>
+                    </PortalTooltip>
 
-                <PortalTooltip content={soundEnabled ? (t('disable_sound') || 'Disable sound') : (t('enable_sound') || 'Enable sound')} position="top">
-                <button
-                    onClick={() => setSoundEnabled(!soundEnabled)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      padding: '0.375rem 0.5rem',
-                      borderRadius: '0.375rem',
-                      border: '1px solid var(--border, #e5e7eb)',
-                      background: soundEnabled ? 'var(--color-primary, #8b5cf6)' : 'white',
-                      color: soundEnabled ? 'white' : 'var(--text, #111827)',
-                      fontSize: '0.75rem',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <SoundIcon style={{ width: '14px', height: '14px' }} />
-                  </button>
-                </PortalTooltip>
+                    <PortalTooltip content={soundEnabled ? (t('disable_sound') || 'Disable sound') : (t('enable_sound') || 'Enable sound')} position="top">
+                    <button
+                        onClick={() => setSoundEnabled(!soundEnabled)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          padding: '0.375rem 0.5rem',
+                          borderRadius: '0.375rem',
+                          border: '1px solid var(--border, #e5e7eb)',
+                          background: soundEnabled ? 'var(--color-primary, #8b5cf6)' : 'white',
+                          color: soundEnabled ? 'white' : 'var(--text, #111827)',
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <SoundIcon style={{ width: '14px', height: '14px' }} />
+                      </button>
+                    </PortalTooltip>
+                  </>
+                )}
 
                 {/*<button*/}
                 {/*    onClick={() => setShowDebugBox(!showDebugBox)}*/}
@@ -2229,17 +2113,31 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 {/*  <DebugIcon style={{ width: '14px', height: '14px' }} />*/}
                 {/*</button>*/}
 
-                <PortalTooltip content={(!selectedProgramId || !selectedSubjectId || !selectedClassId) ? t('please_select_program_subject_class') : t('manual_student_id_input')} position="top">
+                <PortalTooltip content={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
+                  ? (t('manual_input_not_available_in_standup_mode') || 'Manual input not available in standup mode')
+                  : ((!selectedProgramId || !selectedSubjectId || !selectedClassId)
+                    ? (t('please_select_program_subject_class') || 'Please select Program, Subject, and Class')
+                    : t('manual_student_id_input')
+                  )
+                } position="top">
                 <button
+                    disabled={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP}
                     onClick={() => {
                       // Check if all required fields are selected before allowing manual input
-                      if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
-                        showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
-                        return;
+                      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+                        if (!selectedProgramId || selectedProgramId === 'all') {
+                          showResult('error', t('please_select_program') || 'Please select Program before scanning');
+                          return;
+                        }
+                      } else {
+                        if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
+                          showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+                          return;
+                        }
                       }
                       setShowManualInput(!showManualInput);
                     }}
-                    disabled={!selectedProgramId || !selectedSubjectId || !selectedClassId}
+                    disabled={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -2247,29 +2145,36 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       padding: '0.375rem 0.5rem',
                       borderRadius: '0.375rem',
                       border: '1px solid var(--border, #e5e7eb)',
-                      background: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? '#f3f4f6' : (showManualInput ? '#3b82f6' : 'white'),
-                      color: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? '#9ca3af' : (showManualInput ? 'white' : 'var(--text, #111827)'),
+                      background: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#f3f4f6' : (showManualInput ? '#3b82f6' : 'white'),
+                      color: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#9ca3af' : (showManualInput ? 'white' : 'var(--text, #111827)'),
                       fontSize: '0.75rem',
                       fontWeight: 500,
-                      cursor: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? 'not-allowed' : 'pointer',
+                      cursor: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 'not-allowed' : 'pointer',
                       transition: 'all 0.2s',
-                      opacity: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? 0.6 : 1
+                      opacity: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 0.6 : 1
                     }}
                   >
                     <UserInputIcon style={{ width: '14px', height: '14px' }} />
                   </button>
                 </PortalTooltip>
 
-                <PortalTooltip content={(!selectedProgramId || !selectedSubjectId || !selectedClassId) ? t('please_select_program_subject_class') : (t('bulk_scan') || 'Bulk Scan')} position="top">
+                <PortalTooltip content={(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? t(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'please_select_program' : 'please_select_program_subject_class') : (t('bulk_scan') || 'Bulk Scan')} position="top">
                 <button
                     onClick={() => {
-                      if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
-                        showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
-                        return;
+                      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+                        if (!selectedProgramId || selectedProgramId === 'all') {
+                          showResult('error', t('please_select_program') || 'Please select Program before scanning');
+                          return;
+                        }
+                      } else {
+                        if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
+                          showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+                          return;
+                        }
                       }
                       setShowBulkScanDialog(true);
                     }}
-                    disabled={!selectedProgramId || !selectedSubjectId || !selectedClassId}
+                    disabled={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -2277,16 +2182,42 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       padding: '0.375rem 0.5rem',
                       borderRadius: '0.375rem',
                       border: '1px solid var(--border, #e5e7eb)',
-                      background: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? '#f3f4f6' : '#8b5cf6',
-                      color: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? '#9ca3af' : 'white',
+                      background: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#f3f4f6' : '#8b5cf6',
+                      color: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#9ca3af' : 'white',
                       fontSize: '0.75rem',
                       fontWeight: 500,
-                      cursor: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? 'not-allowed' : 'pointer',
+                      cursor: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 'not-allowed' : 'pointer',
                       transition: 'all 0.2s',
-                      opacity: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? 0.6 : 1
+                      opacity: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 0.6 : 1
                     }}
                   >
                     <Upload style={{ width: '14px', height: '14px' }} />
+                  </button>
+                </PortalTooltip>
+
+                <PortalTooltip content={activityDateFilter === 'today' ? (t('show_all') || 'Show all') : (t('show_today') || 'Show today')} position="top">
+                <button
+                    onClick={() => {
+                      const newFilter = activityDateFilter === 'today' ? 'all' : 'today';
+                      setActivityDateFilter(newFilter);
+                      fetchRecentActivity();
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      padding: '0.375rem 0.5rem',
+                      borderRadius: '0.375rem',
+                      border: '1px solid var(--border, #e5e7eb)',
+                      background: activityDateFilter === 'today' ? '#10b981' : 'white',
+                      color: activityDateFilter === 'today' ? 'white' : 'var(--text, #111827)',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {activityDateFilter === 'today' ? (t('today') || 'Today') : (t('all') || 'All')}
                   </button>
                 </PortalTooltip>
 
@@ -2300,7 +2231,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         showResult('error', t('attendance.no_students_available_to_refresh'));
                       }
                     }}
-                    disabled={!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0 || activityLoading}
+                    disabled={(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) || students.length === 0 || activityLoading}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -2308,13 +2239,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       padding: '0.375rem 0.5rem',
                       borderRadius: '0.375rem',
                       border: '1px solid var(--border, #e5e7eb)',
-                      background: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0 || activityLoading) ? '#f3f4f6' : '#10b981',
-                      color: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0 || activityLoading) ? '#9ca3af' : 'white',
+                      background: ((attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) || students.length === 0 || activityLoading) ? '#f3f4f6' : '#10b981',
+                      color: ((attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) || students.length === 0 || activityLoading) ? '#9ca3af' : 'white',
                       fontSize: '0.75rem',
                       fontWeight: 500,
-                      cursor: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0 || activityLoading) ? 'not-allowed' : 'pointer',
+                      cursor: ((attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) || students.length === 0 || activityLoading) ? 'not-allowed' : 'pointer',
                       transition: 'all 0.2s',
-                      opacity: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0 || activityLoading) ? 0.6 : 1
+                      opacity: ((attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) || students.length === 0 || activityLoading) ? 0.6 : 1
                     }}
                   >
                     <RefreshIcon 
@@ -2327,6 +2258,33 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     {/*{t('refresh_today') || 'Refresh Today'}*/}
                   </button>
                 </PortalTooltip>
+
+                {/* Recycle Button - Clear attendance for today (shown in both regular and standup mode when filter is 'today') */}
+                {activityDateFilter === 'today' && (
+                  <PortalTooltip content={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (t('clear_standup_for_today') || 'Clear Standup For Today') : (t('clear_attendance_for_today') || 'Clear Attendance For Today')} position="top">
+                    <button
+                      onClick={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? handleClearStandup : handleClearRegular}
+                      disabled={activityLoading || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all'))}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        padding: '0.375rem 0.5rem',
+                        borderRadius: '0.375rem',
+                        border: '1px solid #ef4444',
+                        background: activityLoading || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all')) ? '#f3f4f6' : '#ef4444',
+                        color: activityLoading || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all')) ? '#9ca3af' : 'white',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        cursor: activityLoading || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all')) ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s',
+                        opacity: activityLoading || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all')) ? 0.6 : 1
+                      }}
+                    >
+                      <TrashIcon style={{ width: '14px', height: '14px' }} />
+                    </button>
+                  </PortalTooltip>
+                )}
 
                 {/* Stop Scanner Button - Only show when scanning */}
                 {isScanning && (
@@ -2407,330 +2365,25 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               {/*  </span>*/}
               {/*</div>*/}
 
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem',
-                [isRTL ? 'paddingRight' : 'paddingLeft']: '0.5rem',
-                [isRTL ? 'borderRight' : 'borderLeft']: '3px solid #8b5cf6',
-                maxHeight: '400px', // Limit height
-                overflowY: 'auto', // Add vertical scrollbar
-                overflowX: 'hidden' // Prevent horizontal scroll
-              }}>
-                {/* Real activity logs from Firebase */}
-                {activityLoading ? (
-                    <div style={{
-                      padding: '1rem',
-                      color: '#9ca3af',
-                      fontSize: '0.875rem',
-                      textAlign: 'center'
-                    }}>
-                      {t('loading')}...
-                    </div>
-                ) : recentActivity.length === 0 ? (
-                    <div style={{
-                      padding: '1rem',
-                      color: '#9ca3af',
-                      fontSize: '0.875rem'
-                    }}>
-                      {t('no_todays_transactions') || 'No transactions Today'}
-                    </div>
-                ) : (
-                    recentActivity.map((activity) => {
-                      // Removed debug logging for cleaner console
-
-                      return (
-                          <div key={activity.id} style={{
-                            borderBottom: '1px solid #e5e7eb',
-                            paddingBottom: expandedActivities.has(activity.id) ? '0.5rem' : '0.125rem'
-                          }}>
-                            <div
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.5rem',
-                                  padding: '0.25rem 0',
-                                  cursor: 'pointer'
-                                }}
-                                onClick={() => toggleActivityExpansion(activity.id)}
-                            >
-                              <div style={{
-                                padding: '0.125rem 0.375rem',
-                                borderRadius: '0.25rem',
-                                fontSize: '0.75rem',
-                                fontWeight: 600,
-                                background: getStatusColor(activity.status, activity.type, activity.delta, activity.penaltyType, activity.behaviorType),
-                                color: '#ffffff',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.125rem'
-                              }}>
-                                {(() => {
-                                  // Removed debug logging for cleaner console
-                                  return getStatusIcon(activity.status, activity.type, activity.delta);
-                                })()} {getStatusLabel(activity.status, activity.type, activity.delta)}
-                                {(activity.type === RECORD_TYPES.PENALTY || activity.type === RECORD_TYPES.PARTICIPATION || activity.type === RECORD_TYPES.BEHAVIOR) && activity.points && (
-                                  <span style={{ marginLeft: '0.25rem' }}>({activity.points})</span>
-                                )}
-                              </div>
-                              <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary, #374151)', flex: 1 }}>
-                      {activity.studentName}
-                    </span>
-                    
-                    {/* Senior-Level Quick Actions - Only for Attendance Records */}
-                    {activity.studentId && activity.type === RECORD_TYPES.ATTENDANCE && (
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '0.25rem',
-                        marginRight: '0.5rem'
-                      }}>
-                        {/* Quick Present Button */}
-                        <PortalTooltip content={(() => {
-                            const student = students.find(s => s.id === activity.studentId);
-                            return student?.attendance === 'present' ? t('already_marked_present') : t('mark_present');
-                          })()} position="top">
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            const student = students.find(s => s.id === activity.studentId);
-                            if (student) {
-                              await handleQuickAttendance(student, 'present');
-                            }
-                          }}
-                          onDoubleClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          disabled={activity.studentId && (() => {
-                            const student = students.find(s => s.id === activity.studentId);
-                            return student?.attendance === 'present';
-                          })()}
-                          style={{
-                            background: (() => {
-                              const student = students.find(s => s.id === activity.studentId);
-                              return student?.attendance === 'present' ? '#9ca3af' : getAttendanceColor('present');
-                            })(),
-                            border: 'none',
-                            color: 'white',
-                            cursor: (() => {
-                              const student = students.find(s => s.id === activity.studentId);
-                              return student?.attendance === 'present' ? 'not-allowed' : 'pointer';
-                            })(),
-                            padding: '0.25rem 0.5rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderRadius: '0.375rem',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            transition: 'all 0.2s ease',
-                            boxShadow: (() => {
-                              const student = students.find(s => s.id === activity.studentId);
-                              return student?.attendance === 'present' ? 'none' : `0 2px 4px ${getAttendanceColor('present')}30`;
-                            })(),
-                            opacity: (() => {
-                              const student = students.find(s => s.id === activity.studentId);
-                              return student?.attendance === 'present' ? 0.6 : 1;
-                            })(),
-                            minWidth: '24px',
-                            height: '24px'
-                          }}
-                          onMouseEnter={(e) => {
-                            const student = students.find(s => s.id === activity.studentId);
-                            if (student?.attendance !== 'present') {
-                              e.target.style.transform = 'translateY(-1px)';
-                              e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('present')}40`;
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            const student = students.find(s => s.id === activity.studentId);
-                            if (student?.attendance !== 'present') {
-                              e.target.style.transform = 'translateY(0)';
-                              e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('present')}30`;
-                            }
-                          }}
-                        >
-                          <CheckSmallIcon style={{ width: '12px', height: '12px' }} />
-                        </button>
-                        </PortalTooltip>
-
-                        {/* Quick Late Button */}
-                        <PortalTooltip content={(() => {
-                            const student = students.find(s => s.id === activity.studentId);
-                            return student?.attendance === 'late' ? t('already_marked_late') : t('mark_late');
-                          })()} position="top">
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            const student = students.find(s => s.id === activity.studentId);
-                            if (student) {
-                              await handleQuickAttendance(student, 'late');
-                            }
-                          }}
-                          onDoubleClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          disabled={activity.studentId && (() => {
-                            const student = students.find(s => s.id === activity.studentId);
-                            return student?.attendance === 'late';
-                          })()}
-                          style={{
-                            background: (() => {
-                              const student = students.find(s => s.id === activity.studentId);
-                              return student?.attendance === 'late' ? '#9ca3af' : getAttendanceColor('late');
-                            })(),
-                            border: 'none',
-                            color: 'white',
-                            cursor: (() => {
-                              const student = students.find(s => s.id === activity.studentId);
-                              return student?.attendance === 'late' ? 'not-allowed' : 'pointer';
-                            })(),
-                            padding: '0.25rem 0.5rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderRadius: '0.375rem',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            transition: 'all 0.2s ease',
-                            boxShadow: (() => {
-                              const student = students.find(s => s.id === activity.studentId);
-                              return student?.attendance === 'late' ? 'none' : `0 2px 4px ${getAttendanceColor('late')}30`;
-                            })(),
-                            opacity: (() => {
-                              const student = students.find(s => s.id === activity.studentId);
-                              return student?.attendance === 'late' ? 0.6 : 1;
-                            })(),
-                            minWidth: '24px',
-                            height: '24px'
-                          }}
-                          onMouseEnter={(e) => {
-                            const student = students.find(s => s.id === activity.studentId);
-                            if (student?.attendance !== 'late') {
-                              e.target.style.transform = 'translateY(-1px)';
-                              e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('late')}40`;
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            const student = students.find(s => s.id === activity.studentId);
-                            if (student?.attendance !== 'late') {
-                              e.target.style.transform = 'translateY(0)';
-                              e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('late')}30`;
-                            }
-                          }}
-                        >
-                          <ClockSmallIcon style={{ width: '12px', height: '12px' }} />
-                        </button>
-                        </PortalTooltip>
-                      </div>
-                    )}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                {onDeleteActivity && (
-                                    <PortalTooltip content={t('delete_activity')} position="top">
-                                    <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          onDeleteActivity(activity);
-                                        }}
-                                        style={{
-                                          background: 'none',
-                                          border: 'none',
-                                          color: 'var(--color-danger, #ef4444)',
-                                          cursor: 'pointer',
-                                          padding: '0.25rem',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          borderRadius: '0.25rem'
-                                        }}
-                                      >
-                                        <DeleteIcon style={{ width: '14px', height: '14px' }} />
-                                      </button>
-                                    </PortalTooltip>
-                                )}
-                                <ChevronDownIcon
-                                    style={{
-                                      width: '16px',
-                                      height: '16px',
-                                      transform: expandedActivities.has(activity.id) ? (isRTL ? 'rotate(180deg)' : 'rotate(180deg)') : (isRTL ? 'rotate(90deg)' : 'rotate(0deg)'),
-                                      transition: 'transform 0.2s',
-                                      color: '#6b7280'
-                                    }}
-                                />
-                              </div>
-                            </div>
-
-                            {expandedActivities.has(activity.id) && (
-                                <div style={{
-                                  paddingLeft: isMobile ? '0.25rem' : '0.5rem',
-                                  paddingTop: '0.5rem',
-                                  fontSize: '0.75rem',
-                                  color: '#6b7280',
-                                  display: isMobile ? 'flex' : 'block',
-                                  flexDirection: isMobile ? 'column' : 'none',
-                                  gap: isMobile ? '0.15rem' : '0',
-                                  maxWidth: '100%',
-                                  overflow: 'hidden',
-                                  wordWrap: 'break-word'
-                                }}>
-                                  <div style={{ marginBottom: '0.15rem' }}>
-                                    {/*<strong>{t('date') || 'Date'}:</strong> */}
-                                    {new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')} {activity.time?.toDate ? activity.time.toDate().toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : (activity.time instanceof Date ? activity.time.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : activity.time || '')}
-                                  </div>
-                                  {activity.subject && (
-                                      <div style={{ marginBottom: '0.25rem' }}>
-                                        {/*<strong>{t('subject') || 'Subject'}:</strong> */}
-                                        {activity.subject}
-                                      </div>
-                                  )}
-                                  {activity.program && (
-                                      <div style={{ marginBottom: '0.25rem' }}>
-                                        {/*<strong>{t('program') || 'Program'}:</strong>*/}
-                                        {activity.program}
-                                      </div>
-                                  )}
-                                  {activity.class && (
-                                      <div style={{ marginBottom: '0.25rem' }}>
-                                        {/*<strong>{t('class') || 'Class'}:</strong> */}
-                                        {activity.class}
-                                      </div>
-                                  )}
-                                  <PerformedBy 
-                                    performedByName={activity.performedByName}
-                                    performedBy={activity.performedBy}
-                                  />
-                                  {activity.comment && (
-                                      <div style={{ marginBottom: '0.25rem' }}>
-                                        {activity.comment}
-                                      </div>
-                                  )}
-                                  {activity.label && activity.type === RECORD_TYPES.PENALTY && (
-                                      <div style={{ marginBottom: '0.25rem' }}>
-                                        {activity.label || t('penalty_type') || 'Penalty Type'}
-                                      </div>
-                                  )}
-                                  {activity.type === RECORD_TYPES.PARTICIPATION && (
-                                      <div style={{ marginBottom: '0.25rem' }}>
-                                        {activity.label || t('participation') || 'Participation'}
-                                      </div>
-                                  )}
-                                  {activity.type === RECORD_TYPES.BEHAVIOR && (
-                                      <div style={{ marginBottom: '0.25rem' }}>
-                                        {/*<strong>{t('behavior_type') || 'Behavior Type'}</strong> */}
-                                        {activity.label || t('behavior') || 'Behavior'}
-                                      </div>
-                                  )}
-                                </div>
-                            )}
-                          </div>
-                      );
-                    })
-                )}
-              </div>
+              <ActivityList
+                recentActivity={recentActivity}
+                activityLoading={activityLoading}
+                expandedActivities={expandedActivities}
+                students={students}
+                onToggleActivityExpansion={toggleActivityExpansion}
+                onDeleteActivity={onDeleteActivity}
+                onQuickAttendance={handleQuickAttendance}
+                programId={selectedProgramId}
+                attendanceMode={attendanceMode}
+                getStatusColor={getStatusColor}
+                getStatusIcon={getStatusIcon}
+                getStatusLabel={getStatusLabel}
+                getScanMethodDisplay={getScanMethodDisplay}
+                t={t}
+                lang={lang}
+                isRTL={isRTL}
+                isMobile={isMobile}
+              />
 
 
             {devices.length > 1 && isScanning && (
@@ -2752,1352 +2405,264 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             )}
           </div>
 
-          {/* Scan Action Dialog */}
-          {showScanDialog && lastScannedStudent && selectedProgramId && selectedSubjectId && selectedClassId && (
-              <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(0, 0, 0, 0.5)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 1000,
-                overflow: 'hidden' // Prevent scrolling
-              }}>
-                <div style={{
-                  background: 'white',
-                  borderRadius: isMobile ? '0' : '0.5rem',
-                  padding: isMobile ? '0.75rem' : '1rem',
-                  width: isMobile ? '95vw' : '350px',
-                  maxWidth: isMobile ? '95vw' : '350px',
-                  minWidth: isMobile ? 'auto' : '300px',
-                  height: isMobile ? '100vh' : 'auto',
-                  maxHeight: isMobile ? '100vh' : '80vh',
-                  overflow: 'auto',
-                  position: isMobile ? 'fixed' : 'relative',
-                  top: isMobile ? '0' : 'auto',
-                  left: isMobile ? '0' : 'auto'
-                }}>
-                  <h3 style={{
-                    fontSize: '1.125rem',
-                    fontWeight: 600,
-                    color: '#111827',
-                    margin: '0 0 1rem 0'
-                  }}>
-                    {t('choose_action') || 'Choose Action'}
-                  </h3>
+          <StudentScanDialog
+            showScanDialog={showScanDialog}
+            lastScannedStudent={lastScannedStudent}
+            selectedProgramId={selectedProgramId}
+            selectedSubjectId={selectedSubjectId}
+            selectedClassId={selectedClassId}
+            isMobile={isMobile}
+            actionLoading={actionLoading}
+            currentAction={currentAction}
+            t={t}
+            onClose={() => setShowScanDialog(false)}
+            onMarkAttendance={handleMarkAttendance}
+            attendanceMode={attendanceMode}
+            onOpenPenalty={async () => {
+              info('⚡ Add penalty');
+              addDebugLog('⚡ Opening penalty actions', 'info');
+              setActionLoading(true);
+              setCurrentAction('penalty');
+              try {
+                let studentData;
+                if (lastScannedStudent?.referenceId) {
+                  studentData = await processStudentData(lastScannedStudent.referenceId);
+                } else if (lastScannedStudent?.id) {
+                  studentData = {
+                    id: lastScannedStudent.id,
+                    studentId: lastScannedStudent.studentNumber || lastScannedStudent.id,
+                    studentNumber: lastScannedStudent.studentNumber,
+                    name: lastScannedStudent.name || lastScannedStudent.displayName,
+                    displayName: lastScannedStudent.displayName,
+                    email: lastScannedStudent.email,
+                    classId: selectedClassId,
+                    programId: selectedProgramId,
+                    subjectId: selectedSubjectId,
+                    referenceId: lastScannedStudent.referenceId || lastScannedStudent.studentNumber || String(lastScannedStudent.id)
+                  };
+                }
+                if (studentData) {
+                  setInitialTab('participation');
+                  setStudentForAction(studentData);
+                  setShowStudentActionZapPanel(true);
+                  setShowScanDialog(false);
+                  addDebugLog(`✅ Found student for penalty: ${studentData.name || studentData.email}`, 'success');
+                } else {
+                  showResult('error', 'Student not found with this reference ID');
+                }
+              } catch (err) {
+                addDebugLog(`❌ Error opening penalty actions: ${err.message}`, 'error');
+                showResult('error', `Failed to open penalty actions: ${err.message}`);
+              } finally {
+                setActionLoading(false);
+                setCurrentAction(null);
+              }
+            }}
+            onOpenParticipation={async () => {
+              info('👥 Open participation actions');
+              addDebugLog('👥 Opening participation actions', 'info');
+              setActionLoading(true);
+              setCurrentAction('participation');
+              try {
+                let studentData;
+                if (lastScannedStudent?.referenceId) {
+                  studentData = await processStudentData(lastScannedStudent.referenceId);
+                } else if (lastScannedStudent?.id) {
+                  studentData = {
+                    id: lastScannedStudent.id,
+                    studentId: lastScannedStudent.studentNumber || lastScannedStudent.id,
+                    studentNumber: lastScannedStudent.studentNumber,
+                    name: lastScannedStudent.name || lastScannedStudent.displayName,
+                    displayName: lastScannedStudent.displayName,
+                    email: lastScannedStudent.email,
+                    classId: selectedClassId,
+                    programId: selectedProgramId,
+                    subjectId: selectedSubjectId,
+                    referenceId: lastScannedStudent.referenceId || lastScannedStudent.studentNumber || String(lastScannedStudent.id)
+                  };
+                }
+                if (studentData) {
+                  setInitialTab('participation');
+                  setStudentForAction(studentData);
+                  setShowStudentActionZapPanel(true);
+                  setShowScanDialog(false);
+                  addDebugLog(`✅ Found student for participation: ${studentData.name || studentData.email}`, 'success');
+                } else {
+                  showResult('error', 'Student not found with this reference ID');
+                }
+              } catch (err) {
+                addDebugLog(`❌ Error opening participation actions: ${err.message}`, 'error');
+                showResult('error', `Failed to open participation actions: ${err.message}`);
+              } finally {
+                setActionLoading(false);
+                setCurrentAction(null);
+              }
+            }}
+            onOpenBehavior={async () => {
+              info('⚡ Add behavior');
+              addDebugLog('⚡ Opening behavior actions', 'info');
+              setActionLoading(true);
+              setCurrentAction('behavior');
+              try {
+                let studentData;
+                if (lastScannedStudent?.referenceId) {
+                  studentData = await processStudentData(lastScannedStudent.referenceId);
+                } else if (lastScannedStudent?.id) {
+                  studentData = {
+                    id: lastScannedStudent.id,
+                    studentId: lastScannedStudent.studentNumber || lastScannedStudent.id,
+                    studentNumber: lastScannedStudent.studentNumber,
+                    name: lastScannedStudent.name || lastScannedStudent.displayName,
+                    displayName: lastScannedStudent.displayName,
+                    email: lastScannedStudent.email,
+                    classId: selectedClassId,
+                    programId: selectedProgramId,
+                    subjectId: selectedSubjectId,
+                    referenceId: lastScannedStudent.referenceId || lastScannedStudent.studentNumber || String(lastScannedStudent.id)
+                  };
+                }
+                if (studentData) {
+                  setInitialTab('behavior');
+                  setStudentForAction(studentData);
+                  setShowStudentActionZapPanel(true);
+                  setShowScanDialog(false);
+                  addDebugLog(`✅ Found student for behavior: ${studentData.name || studentData.email}`, 'success');
+                } else {
+                  showResult('error', 'Student not found with this reference ID');
+                }
+              } catch (err) {
+                addDebugLog(`❌ Error opening behavior actions: ${err.message}`, 'error');
+                showResult('error', `Failed to open behavior actions: ${err.message}`);
+              } finally {
+                setActionLoading(false);
+                setCurrentAction(null);
+              }
+            }}
+            onOpenDetails={async () => {
+              info('📋 Open student details');
+              addDebugLog('📋 Opening student details', 'info');
+              setActionLoading(true);
+              setCurrentAction('details');
+              try {
+                let studentReferenceId = null;
+                if (lastScannedStudent?.referenceId) {
+                  studentReferenceId = lastScannedStudent.referenceId;
+                } else if (lastScannedStudent?.studentId) {
+                  studentReferenceId = lastScannedStudent.studentId;
+                } else if (activity?.studentName && students?.length > 0) {
+                  const foundStudent = students.find(s => 
+                    s.name === activity.studentName || 
+                    s.displayName === activity.studentName ||
+                    s.email === activity.studentName
+                  );
+                  if (foundStudent?.studentId) {
+                    studentReferenceId = foundStudent.studentId;
+                  }
+                }
+                if (studentReferenceId) {
+                  const studentData = await processStudentData(studentReferenceId);
+                  if (studentData) {
+                    setStudentForAction(studentData);
+                    setShowStudentActionStatsPanel(true);
+                    setShowScanDialog(false);
+                    addDebugLog(`✅ Opening details for: ${studentData.name || studentData.email || 'Unknown'} (${studentReferenceId})`, 'success');
+                  } else {
+                    showResult('error', 'Student data not found');
+                  }
+                } else {
+                  showResult('error', 'No student reference ID available');
+                  addDebugLog('❌ Could not find student reference ID', 'error');
+                }
+              } catch (err) {
+                addDebugLog(`❌ Error opening student details: ${err.message}`, 'error');
+                showResult('error', `Failed to open student details: ${err.message}`);
+              } finally {
+                setActionLoading(false);
+                setCurrentAction(null);
+              }
+            }}
+            onOpenActions={async () => {
+              info('🎯 Open student actions');
+              addDebugLog('🎯 Opening student actions', 'info');
+              setActionLoading(true);
+              setCurrentAction('actions');
+              try {
+                let studentData;
+                if (lastScannedStudent?.referenceId) {
+                  studentData = await processStudentData(lastScannedStudent.referenceId);
+                } else if (lastScannedStudent?.id) {
+                  studentData = {
+                    id: lastScannedStudent.id,
+                    studentId: lastScannedStudent.studentNumber || lastScannedStudent.id,
+                    studentNumber: lastScannedStudent.studentNumber,
+                    name: lastScannedStudent.name || lastScannedStudent.displayName,
+                    displayName: lastScannedStudent.displayName,
+                    email: lastScannedStudent.email,
+                    classId: selectedClassId,
+                    programId: selectedProgramId,
+                    subjectId: selectedSubjectId,
+                    referenceId: lastScannedStudent.referenceId || lastScannedStudent.studentNumber || String(lastScannedStudent.id)
+                  };
+                }
+                if (studentData) {
+                  setStudentForAction(studentData);
+                  setShowStudentActionZapPanel(true);
+                  setShowScanDialog(false);
+                  addDebugLog(`✅ Opening actions for: ${studentData.name || studentData.email || 'Unknown'}`, 'success');
+                } else {
+                  showResult('error', 'Student not found with this reference ID');
+                }
+              } catch (err) {
+                addDebugLog(`❌ Error opening student actions: ${err.message}`, 'error');
+                showResult('error', `Failed to open student actions: ${err.message}`);
+              } finally {
+                setActionLoading(false);
+                setCurrentAction(null);
+              }
+            }}
+            students={students}
+            processStudentData={processStudentData}
+            setStudentForAction={setStudentForAction}
+            setShowStudentActionStatsPanel={setShowStudentActionStatsPanel}
+            setShowStudentActionZapPanel={setShowStudentActionZapPanel}
+            setShowScanDialog={setShowScanDialog}
+            addDebugLog={addDebugLog}
+            showResult={showResult}
+          />
 
-                  <div style={{
-                    marginBottom: '1rem',
-                    padding: '0.75rem',
-                    background: '#f9fafb',
-                    borderRadius: '0.375rem',
-                    fontSize: '0.875rem',
-                    color: '#6b7280'
-                  }}>
-                    <strong>{t('scanned_student') || 'Scanned Student'}:</strong>
-                    <div style={{ marginTop: '0.5rem' }}>
-                      {lastScannedStudent.name || lastScannedStudent.displayName || lastScannedStudent.email ? (
-                          <div style={{ fontWeight: 500, color: '#111827' }}>
-                            {lastScannedStudent.name || lastScannedStudent.displayName || lastScannedStudent.email}
-                          </div>
-                      ) : (
-                          <div style={{ fontStyle: 'italic' }}>
-                            {t('no_name_available') || 'Not available'}
-                          </div>
-                      )}
+          <DebugPanel
+            showDebugBox={showDebugBox}
+            debugLogs={debugLogs}
+            onClear={() => setDebugLogs([])}
+            isMobile={isMobile}
+          />
 
-                      {lastScannedStudent.email && lastScannedStudent.name && (
-                          <div style={{ color: '#4b5563', marginTop: '0.25rem' }}>
-                            {lastScannedStudent.email}
-                          </div>
-                      )}
-
-                      {lastScannedStudent.studentNumber && (
-                          <div style={{ color: '#6b7280', marginTop: '0.25rem', fontSize: '0.8rem' }}>
-                            {t('student_number') || 'Student Number'}: {lastScannedStudent.studentNumber}
-                          </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                    gap: '0.75rem'
-                  }}>
-                    {/* First Row: Primary Actions */}
-                    <button
-                        onClick={async () => {
-                          await handleMarkAttendance('present', 'Manual');
-                        }}
-                        disabled={actionLoading}
-                        style={{
-                          padding: '0.875rem',
-                          border: 'none',
-                          background: actionLoading && currentAction === 'present' ? '#94a3b8' : '#10b981',
-                          color: 'white',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: actionLoading ? 'not-allowed' : 'pointer',
-                          textAlign: 'left',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.625rem',
-                          opacity: actionLoading ? 0.7 : 1,
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = '#059669';
-                            e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.3)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = '#10b981';
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.2)';
-                          }
-                        }}
-                    >
-                      {actionLoading && currentAction === 'present' ? (
-                          <>
-                            <div style={{
-                              width: '16px',
-                              height: '16px',
-                              border: '2px solid white',
-                              borderTop: '2px solid transparent',
-                              borderRadius: '50%',
-                              animation: 'spin 1s linear infinite'
-                            }} />
-                            {t('processing') || 'Processing...'}
-                          </>
-                      ) : (
-                          <>
-                            <CheckSmallIcon style={{ width: '18px', height: '18px' }} />
-                            {t('present') || 'Present'}
-                          </>
-                      )}
-                    </button>
-
-                    <button
-                        onClick={async () => {
-                          await handleMarkAttendance('late', 'Marked late manually');
-                        }}
-                        disabled={actionLoading}
-                        style={{
-                          padding: '0.875rem',
-                          border: 'none',
-                          background: actionLoading && currentAction === 'late' ? '#94a3b8' : '#f59e0b',
-                          color: 'white',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: actionLoading ? 'not-allowed' : 'pointer',
-                          textAlign: 'left',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.625rem',
-                          opacity: actionLoading ? 0.7 : 1,
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 2px 4px rgba(245, 158, 11, 0.2)'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = '#d97706';
-                            e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = '0 4px 8px rgba(245, 158, 11, 0.3)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = '#f59e0b';
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 2px 4px rgba(245, 158, 11, 0.2)';
-                          }
-                        }}
-                    >
-                      {actionLoading && currentAction === 'late' ? (
-                          <>
-                            <div style={{
-                              width: '16px',
-                              height: '16px',
-                              border: '2px solid white',
-                              borderTop: '2px solid transparent',
-                              borderRadius: '50%',
-                              animation: 'spin 1s linear infinite'
-                            }} />
-                            {t('processing') || 'Processing...'}
-                          </>
-                      ) : (
-                          <>
-                            <ClockSmallIcon style={{ width: '18px', height: '18px' }} />
-                            {t('late') || 'Late'}
-                          </>
-                      )}
-                    </button>
-
-                    {/* Additional Attendance Status Buttons */}
-                    <button
-                        onClick={async () => {
-                          await handleMarkAttendance(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, 'Marked absent (no excuse) manually');
-                        }}
-                        disabled={actionLoading}
-                        style={getActionButtonStyles(QR_SCANNER_ACTIONS.MARK_ABSENT_NO_EXCUSE, actionLoading)}
-                    >
-                      {actionLoading && currentAction === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE ? (
-                          <>
-                            <div style={{
-                              width: '16px',
-                              height: '16px',
-                              border: '2px solid white',
-                              borderTop: '2px solid transparent',
-                              borderRadius: '50%',
-                              animation: 'spin 1s linear infinite'
-                            }} />
-                            {t('processing') || 'Processing...'}
-                          </>
-                      ) : (
-                          <>
-                            <XSmallIcon style={{ width: '18px', height: '18px' }} />
-                            {t('absent_no_excuse') || 'Absent (No Excuse)'}
-                          </>
-                      )}
-                    </button>
-
-                    <button
-                        onClick={async () => {
-                          await handleMarkAttendance('absent_with_excuse', 'Marked absent (with excuse) manually');
-                        }}
-                        disabled={actionLoading}
-                        style={{
-                          padding: '0.875rem',
-                          border: 'none',
-                          background: actionLoading && currentAction === 'absent_with_excuse' ? '#94a3b8' : getAttendanceColor('absent_with_excuse'),
-                          color: 'white',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: actionLoading ? 'not-allowed' : 'pointer',
-                          textAlign: 'left',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.625rem',
-                          opacity: actionLoading ? 0.7 : 1,
-                          transition: 'all 0.2s ease',
-                          boxShadow: `0 2px 4px ${getAttendanceColor('absent_with_excuse')}20`
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!actionLoading) {
-                            const color = getAttendanceColor('absent_with_excuse');
-                            e.target.style.background = color + 'dd';
-                            e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('absent_with_excuse')}40`;
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = getAttendanceColor('absent_with_excuse');
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('absent_with_excuse')}20`;
-                          }
-                        }}
-                    >
-                      {actionLoading && currentAction === 'absent_with_excuse' ? (
-                          <>
-                            <div style={{
-                              width: '16px',
-                              height: '16px',
-                              border: '2px solid white',
-                              borderTop: '2px solid transparent',
-                              borderRadius: '50%',
-                              animation: 'spin 1s linear infinite'
-                            }} />
-                            {t('processing') || 'Processing...'}
-                          </>
-                      ) : (
-                          <>
-                            <XSmallIcon style={{ width: '18px', height: '18px' }} />
-                            {t('absent_with_excuse') || 'Absent (With Excuse)'}
-                          </>
-                      )}
-                    </button>
-
-                    <button
-                        onClick={async () => {
-                          await handleMarkAttendance('excused_leave', 'Marked excused leave manually');
-                        }}
-                        disabled={actionLoading}
-                        style={{
-                          padding: '0.875rem',
-                          border: 'none',
-                          background: actionLoading && currentAction === 'excused_leave' ? '#94a3b8' : getAttendanceColor('excused_leave'),
-                          color: 'white',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: actionLoading ? 'not-allowed' : 'pointer',
-                          textAlign: 'left',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.625rem',
-                          opacity: actionLoading ? 0.7 : 1,
-                          transition: 'all 0.2s ease',
-                          boxShadow: `0 2px 4px ${getAttendanceColor('excused_leave')}20`
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!actionLoading) {
-                            const color = getAttendanceColor('excused_leave');
-                            e.target.style.background = color + 'dd';
-                            e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('excused_leave')}40`;
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = getAttendanceColor('excused_leave');
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('excused_leave')}20`;
-                          }
-                        }}
-                    >
-                      {actionLoading && currentAction === 'excused_leave' ? (
-                          <>
-                            <div style={{
-                              width: '16px',
-                              height: '16px',
-                              border: '2px solid white',
-                              borderTop: '2px solid transparent',
-                              borderRadius: '50%',
-                              animation: 'spin 1s linear infinite'
-                            }} />
-                            {t('processing') || 'Processing...'}
-                          </>
-                      ) : (
-                          <>
-                            <XSmallIcon style={{ width: '18px', height: '18px' }} />
-                            {t('excused_leave') || 'Excused Leave'}
-                          </>
-                      )}
-                    </button>
-
-                    <button
-                        onClick={async () => {
-                          await handleMarkAttendance('human_case', 'Marked human case manually');
-                        }}
-                        disabled={actionLoading}
-                        style={{
-                          padding: '0.875rem',
-                          border: 'none',
-                          background: actionLoading && currentAction === 'human_case' ? '#94a3b8' : getAttendanceColor('human_case'),
-                          color: 'white',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: actionLoading ? 'not-allowed' : 'pointer',
-                          textAlign: 'left',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.625rem',
-                          opacity: actionLoading ? 0.7 : 1,
-                          transition: 'all 0.2s ease',
-                          boxShadow: `0 2px 4px ${getAttendanceColor('human_case')}20`
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!actionLoading) {
-                            const color = getAttendanceColor('human_case');
-                            e.target.style.background = color + 'dd';
-                            e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('human_case')}40`;
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = getAttendanceColor('human_case');
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('human_case')}20`;
-                          }
-                        }}
-                    >
-                      {actionLoading && currentAction === 'human_case' ? (
-                          <>
-                            <div style={{
-                              width: '16px',
-                              height: '16px',
-                              border: '2px solid white',
-                              borderTop: '2px solid transparent',
-                              borderRadius: '50%',
-                              animation: 'spin 1s linear infinite'
-                            }} />
-                            {t('processing') || 'Processing...'}
-                          </>
-                      ) : (
-                          <>
-                            <HeartIcon style={{ width: '18px', height: '18px' }} />
-                            {t('human_case') || 'Human Case'}
-                          </>
-                      )}
-                    </button>
-
-                    {/* Second Row: Secondary Actions */}
-                    <button
-                        onClick={async () => {
-                          logger.log('⚡ Add penalty');
-                          addDebugLog('⚡ Adding penalty', 'info');
-
-                          setActionLoading(true);
-                          setCurrentAction('penalty');
-
-                          try {
-                            // For manual scan, use the student data we already have
-                            // For QR scan, use processStudentData to get complete student data
-                            let studentData;
-                            if (lastScannedStudent?.referenceId) {
-                              studentData = await processStudentData(lastScannedStudent.referenceId);
-                            } else if (lastScannedStudent?.id) {
-                              // Use the student data we already have from manual scan
-                              studentData = {
-                                id: lastScannedStudent.id,
-                                docId: lastScannedStudent.id,
-                                studentId: lastScannedStudent.studentNumber || lastScannedStudent.id,
-                                studentNumber: lastScannedStudent.studentNumber,
-                                name: lastScannedStudent.name || lastScannedStudent.displayName,
-                                displayName: lastScannedStudent.displayName,
-                                email: lastScannedStudent.email,
-                                referenceId: lastScannedStudent.referenceId || generateReferenceId(lastScannedStudent.id)
-                              };
-                            }
-
-                            if (studentData) {
-                              setInitialTab('penalty');
-                              setStudentForAction(studentData);
-                              setShowStudentActionZapPanel(true);
-                              setShowScanDialog(false);
-                              addDebugLog(`✅ Found student for penalty: ${studentData.name || studentData.email}`, 'success');
-                            } else {
-                              showResult('error', 'Student not found with this reference ID');
-                            }
-                          } catch (error) {
-                            addDebugLog(`❌ Error adding penalty: ${error.message}`, 'error');
-                            showResult('error', `Failed to add penalty: ${error.message}`);
-                          } finally {
-                            setActionLoading(false);
-                            setCurrentAction(null);
-                          }
-                        }}
-                        disabled={actionLoading}
-                        style={{
-                          padding: '0.875rem',
-                          border: 'none',
-                          background: actionLoading && currentAction === RECORD_TYPES.PENALTY ? '#94a3b8' : '#ef4444',
-                          color: 'white',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: actionLoading ? 'not-allowed' : 'pointer',
-                          textAlign: 'left',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.625rem',
-                          opacity: actionLoading ? 0.7 : 1,
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 2px 4px rgba(239, 68, 68, 0.2)'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = '#dc2626';
-                            e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = '0 4px 8px rgba(239, 68, 68, 0.3)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = '#ef4444';
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 2px 4px rgba(239, 68, 68, 0.2)';
-                          }
-                        }}
-                    >
-                      {actionLoading && currentAction === RECORD_TYPES.PENALTY ? (
-                          <>
-                            <div style={{
-                              width: '16px',
-                              height: '16px',
-                              border: '2px solid white',
-                              borderTop: '2px solid transparent',
-                              borderRadius: '50%',
-                              animation: 'spin 1s linear infinite'
-                            }} />
-                            {t('processing') || 'Processing...'}
-                          </>
-                      ) : (
-                          <>
-                            <PenaltyIcon style={{ width: '18px', height: '18px' }} />
-                            {t('penalty') || 'Penalty'}
-                          </>
-                      )}
-                    </button>
-
-                    <button
-                        onClick={async () => {
-                          logger.log('👥 Open participation actions');
-                          addDebugLog('👥 Opening participation actions', 'info');
-
-                          setActionLoading(true);
-                          setCurrentAction('participation');
-
-                          try {
-                            // For manual scan, use the student data we already have
-                            // For QR scan, use processStudentData to get complete student data
-                            let studentData;
-                            if (lastScannedStudent?.referenceId) {
-                              studentData = await processStudentData(lastScannedStudent.referenceId);
-                            } else if (lastScannedStudent?.id) {
-                              // Use the student data we already have from manual scan
-                              studentData = {
-                                id: lastScannedStudent.id,
-                                docId: lastScannedStudent.id,
-                                studentId: lastScannedStudent.studentNumber || lastScannedStudent.id,
-                                studentNumber: lastScannedStudent.studentNumber,
-                                name: lastScannedStudent.name || lastScannedStudent.displayName,
-                                displayName: lastScannedStudent.displayName,
-                                email: lastScannedStudent.email,
-                                referenceId: lastScannedStudent.referenceId || generateReferenceId(lastScannedStudent.id)
-                              };
-                            }
-
-                            if (studentData) {
-                              setInitialTab('participation');
-                              setStudentForAction(studentData);
-                              setShowStudentActionZapPanel(true);
-                              setShowScanDialog(false);
-                              addDebugLog(`✅ Found student for participation: ${studentData.name || studentData.email}`, 'success');
-                              addDebugLog(`🔍 Setting studentForAction and showing new panel`, 'info');
-                              
-                              // 🔍 DEBUG: Log manual scan student data structure
-                              console.log('🔍 MANUAL SCAN Student Data Structure:', {
-                                source: 'manual_scan_participation',
-                                studentData: studentData,
-                                originalLastScannedStudent: lastScannedStudent,
-                                keys: Object.keys(studentData),
-                                hasAttendance: !!studentData.attendance,
-                                hasParticipation: !!studentData.participation,
-                                hasBehavior: !!studentData.behavior,
-                                hasPenalty: !!studentData.penalty,
-                                attendanceValue: studentData.attendance,
-                                participationValue: studentData.participation,
-                                behaviorValue: studentData.behavior,
-                                penaltyValue: studentData.penalty
-                              });
-                            } else {
-                              showResult('error', 'Student not found with this reference ID');
-                            }
-                          } catch (error) {
-                            addDebugLog(`❌ Error opening participation actions: ${error.message}`, 'error');
-                            showResult('error', `Failed to open participation actions: ${error.message}`);
-                          } finally {
-                            setActionLoading(false);
-                            setCurrentAction(null);
-                          }
-                        }}
-                        disabled={actionLoading}
-                        style={{
-                          padding: '0.875rem',
-                          border: 'none',
-                          background: actionLoading && currentAction === RECORD_TYPES.PARTICIPATION ? '#94a3b8' : '#3b82f6',
-                          color: 'white',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: actionLoading ? 'not-allowed' : 'pointer',
-                          textAlign: 'left',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.625rem',
-                          opacity: actionLoading ? 0.7 : 1,
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = '#2563eb';
-                            e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.3)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = '#3b82f6';
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.2)';
-                          }
-                        }}
-                    >
-                      {actionLoading && currentAction === RECORD_TYPES.PARTICIPATION ? (
-                          <>
-                            <div style={{
-                              width: '16px',
-                              height: '16px',
-                              border: '2px solid white',
-                              borderTop: '2px solid transparent',
-                              borderRadius: '50%',
-                              animation: 'spin 1s linear infinite'
-                            }} />
-                            {t('processing') || 'Processing...'}
-                          </>
-                      ) : (
-                          <>
-                            <ParticipationIcon style={{ width: '18px', height: '18px' }} />
-                            {t('participation') || 'Participation'}
-                          </>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Third Row: Actions and Details */}
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: isMobile ? 'column' : 'row',
-                    gap: '0.75rem',
-                    marginTop: '0.5rem'
-                  }}>
-                    {/* Details Button - Opens StudentActionStatsPanel */}
-                    <button
-                        onClick={async () => {
-                          logger.log('📋 Open student details');
-                          addDebugLog('📋 Opening student details', 'info');
-
-                          setActionLoading(true);
-                          setCurrentAction('details');
-
-                          try {
-                            // Debug logging to understand the data structure
-                            logger.log('🔍 Debug - lastScannedStudent:', lastScannedStudent);
-                            logger.log('🔍 Debug - students array length:', students?.length);
-                            
-                            // Try to get student reference from multiple sources
-                            let studentReferenceId = null;
-                            
-                            // First try from lastScannedStudent
-                            if (lastScannedStudent?.referenceId) {
-                              studentReferenceId = lastScannedStudent.referenceId;
-                              logger.log('🔍 Found referenceId from lastScannedStudent:', studentReferenceId);
-                            }
-                            // Try from lastScannedStudent.studentId
-                            else if (lastScannedStudent?.studentId) {
-                              studentReferenceId = lastScannedStudent.studentId;
-                              logger.log('🔍 Found studentId from lastScannedStudent:', studentReferenceId);
-                            }
-                            // Try to find student by name from the activity
-                            else if (activity?.studentName && students?.length > 0) {
-                              logger.log('🔍 Searching for student by name:', activity.studentName);
-                              const foundStudent = students.find(s => 
-                                s.name === activity.studentName || 
-                                s.displayName === activity.studentName ||
-                                s.email === activity.studentName
-                              );
-                              logger.log('🔍 Found student by name:', foundStudent);
-                              if (foundStudent?.studentId) {
-                                studentReferenceId = foundStudent.studentId;
-                                logger.log('🔍 Found studentId from name lookup:', studentReferenceId);
-                              }
-                            }
-                            
-                            logger.log('🔍 Final studentReferenceId:', studentReferenceId);
-                            
-                            if (studentReferenceId) {
-                              const studentData = await processStudentData(studentReferenceId);
-                              if (studentData) {
-                                // 🔍 DEBUG: Log QR scan student data structure
-                                console.log('🔍 QR SCAN Student Data Structure:', {
-                                  source: 'qr_scan_details',
-                                  studentData: studentData,
-                                  keys: Object.keys(studentData),
-                                  hasAttendance: !!studentData.attendance,
-                                  hasParticipation: !!studentData.participation,
-                                  hasBehavior: !!studentData.behavior,
-                                  hasPenalty: !!studentData.penalty,
-                                  attendanceValue: studentData.attendance,
-                                  participationValue: studentData.participation,
-                                  behaviorValue: studentData.behavior,
-                                  penaltyValue: studentData.penalty,
-                                  hasBehaviorHistory: !!studentData.behaviorHistory,
-                                  hasParticipationHistory: !!studentData.participationHistory,
-                                  hasPenaltyHistory: !!studentData.penaltyHistory,
-                                  behaviorHistoryLength: studentData.behaviorHistory?.length || 0,
-                                  participationHistoryLength: studentData.participationHistory?.length || 0,
-                                  penaltyHistoryLength: studentData.penaltyHistory?.length || 0
-                                });
-                                
-                                setStudentForAction(studentData);
-                                setShowStudentActionStatsPanel(true); // Use the Stats panel for details
-                                setShowScanDialog(false);
-                                addDebugLog(`✅ Opening details for: ${studentData.name || studentData.email || 'Unknown'} (${studentReferenceId})`, 'success');
-                              } else {
-                                showResult('error', 'Student data not found');
-                              }
-                            } else {
-                              showResult('error', 'No student reference ID available');
-                              addDebugLog('❌ Could not find student reference ID', 'error');
-                            }
-                          } catch (error) {
-                            addDebugLog(`❌ Error opening student details: ${error.message}`, 'error');
-                            showResult('error', `Failed to open student details: ${error.message}`);
-                          } finally {
-                            setActionLoading(false);
-                            setCurrentAction(null);
-                          }
-                        }}
-                        disabled={actionLoading}
-                        style={{
-                          display: 'none', // Hidden as requested
-                          flex: isMobile ? 1 : 2,
-                          padding: '0.875rem',
-                          border: 'none',
-                          background: actionLoading && currentAction === 'details' ? '#94a3b8' : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                          color: 'white',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: actionLoading ? 'not-allowed' : 'pointer',
-                          textAlign: 'center',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.625rem',
-                          opacity: actionLoading ? 0.7 : 1,
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 4px 6px rgba(139, 92, 246, 0.3)',
-                          order: isMobile ? -1 : 1
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
-                            e.target.style.transform = 'translateY(-2px)';
-                            e.target.style.boxShadow = '0 6px 12px rgba(139, 92, 246, 0.4)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)';
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 4px 6px rgba(139, 92, 246, 0.3)';
-                          }
-                        }}
-                    >
-                      {actionLoading && currentAction === 'details' ? (
-                          <>
-                            <div style={{
-                              width: '16px',
-                              height: '16px',
-                              border: '2px solid white',
-                              borderTop: '2px solid transparent',
-                              borderRadius: '50%',
-                              animation: 'spin 1s linear infinite'
-                            }} />
-                            {t('processing') || 'Processing...'}
-                          </>
-                      ) : (
-                          <>
-                            <DetailsIcon style={{ width: '18px', height: '18px' }} />
-                            {t('details') || 'Details'}
-                          </>
-                      )}
-                    </button>
-
-                    {/* Actions Button - Opens StudentActionZapPanel */}
-                    <button
-                        onClick={async () => {
-                          logger.log('🎯 Open student actions');
-                          addDebugLog('🎯 Opening student actions', 'info');
-
-                          setActionLoading(true);
-                          setCurrentAction('actions');
-
-                          try {
-                            // For manual scan, use the student data we already have
-                            // For QR scan, use processStudentData to get complete student data
-                            let studentData;
-                            if (lastScannedStudent?.referenceId) {
-                              studentData = await processStudentData(lastScannedStudent.referenceId);
-                            } else if (lastScannedStudent?.id) {
-                              // Use the student data we already have from manual scan
-                              studentData = {
-                                id: lastScannedStudent.id,
-                                docId: lastScannedStudent.id,
-                                studentId: lastScannedStudent.studentNumber || lastScannedStudent.id,
-                                studentNumber: lastScannedStudent.studentNumber,
-                                name: lastScannedStudent.name || lastScannedStudent.displayName,
-                                displayName: lastScannedStudent.displayName,
-                                email: lastScannedStudent.email,
-                                referenceId: lastScannedStudent.referenceId || generateReferenceId(lastScannedStudent.id)
-                              };
-                            }
-
-                            if (studentData) {
-                              setStudentForAction(studentData);
-                              setShowStudentActionZapPanel(true); // Use the Zap panel for actions
-                              setShowScanDialog(false);
-                              addDebugLog(`✅ Opening actions for: ${studentData.name || studentData.email || 'Unknown'}`, 'success');
-                            } else {
-                              showResult('error', 'Student data not found');
-                            }
-                          } catch (error) {
-                            addDebugLog(`❌ Error opening student actions: ${error.message}`, 'error');
-                            showResult('error', `Failed to open student actions: ${error.message}`);
-                          } finally {
-                            setActionLoading(false);
-                            setCurrentAction(null);
-                          }
-                        }}
-                        disabled={actionLoading}
-                        style={{
-                          flex: isMobile ? 1 : 1,
-                          padding: '0.875rem',
-                          border: 'none',
-                          background: actionLoading && currentAction === 'actions' ? '#94a3b8' : 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-                          color: 'white',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: actionLoading ? 'not-allowed' : 'pointer',
-                          textAlign: 'center',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.625rem',
-                          opacity: actionLoading ? 0.7 : 1,
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 4px 6px rgba(251, 191, 36, 0.3)'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
-                            e.target.style.transform = 'translateY(-2px)';
-                            e.target.style.boxShadow = '0 6px 12px rgba(251, 191, 36, 0.4)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 4px 6px rgba(251, 191, 36, 0.3)';
-                          }
-                        }}
-                        onMouseDown={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = '#d97706';
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 2px 4px rgba(251, 191, 36, 0.2)';
-                          }
-                        }}
-                    >
-                      {actionLoading && currentAction === 'actions' ? (
-                          <>
-                            <div style={{
-                              width: '16px',
-                              height: '16px',
-                              border: '2px solid white',
-                              borderTop: '2px solid transparent',
-                              borderRadius: '50%',
-                              animation: 'spin 1s linear infinite'
-                            }} />
-                            {t('processing') || 'Processing...'}
-                          </>
-                      ) : (
-                          <>
-                            <ZapIcon style={{ width: '18px', height: '18px', color: '#ffffff' }} />
-                            {t('actions') || 'Actions'}
-                          </>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Clear Today's Scans and Cancel Buttons Side by Side */}
-                  <div style={{
-                    display: 'flex',
-                    gap: '0.5rem',
-                    marginTop: '0.5rem'
-                  }}>
-                    {/* Clear Today's Scans Button - 1/3 width */}
-                    <button
-                        onClick={() => {
-                          logger.log('🗑️ Clear today\'s scans');
-                          addDebugLog('🗑️ Clearing all scans for today', 'warning');
-                          setShowClearConfirmModal(true);
-                        }}
-                        disabled={actionLoading}
-                        style={{
-                          flex: 1, // 1/3 of the space
-                          padding: '0.875rem',
-                          border: '2px solid #dc2626',
-                          background: actionLoading ? '#fca5a5' : '#ef4444',
-                          color: 'white',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: actionLoading ? 'not-allowed' : 'pointer',
-                          textAlign: 'center',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.625rem',
-                          opacity: actionLoading ? 0.7 : 1,
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 4px 6px rgba(239, 68, 68, 0.3)'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = '#dc2626';
-                            e.target.style.transform = 'translateY(-2px)';
-                            e.target.style.boxShadow = '0 6px 12px rgba(239, 68, 68, 0.4)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = '#ef4444';
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 4px 6px rgba(239, 68, 68, 0.3)';
-                          }
-                        }}
-                        onMouseDown={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = '#b91c1c';
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 2px 4px rgba(239, 68, 68, 0.2)';
-                          }
-                        }}
-                    >
-                      <TrashIcon style={{ width: '18px', height: '18px' }} />
-                      {t('clear_today') || 'Clear Today'}
-                    </button>
-
-                    {/* Cancel Button - 2/3 width */}
-                    <button
-                        onClick={async () => {
-                          logger.log('❌ Cancel scan action');
-                          setShowScanDialog(false);
-                        }}
-                        style={{
-                          flex: 2, // 2/3 of the space
-                          padding: '0.875rem',
-                          border: '2px solid #e5e7eb',
-                          background: 'white',
-                          color: '#6b7280',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          textAlign: 'center',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.625rem',
-                          transition: 'all 0.2s ease',
-                          marginTop: '0'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.background = '#f9fafb';
-                          e.target.style.borderColor = '#d1d5db';
-                          e.target.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.background = 'white';
-                          e.target.style.borderColor = '#e5e7eb';
-                          e.target.style.transform = 'translateY(0)';
-                        }}
-                    >
-                      <XSmallIcon style={{ width: '18px', height: '18px' }} />
-                      {t('cancel') || 'Cancel'}
-                    </button>
-                  </div>
-
-                </div>
-              </div>
-          )}
-
-          {/* Debug Log Box */}
-          {showDebugBox && (
-              <div style={{
-                position: 'fixed',
-                bottom: '1rem',
-                right: '1rem',
-                width: isMobile ? '90vw' : '400px',
-                height: '300px',
-                background: '#1a1a1a',
-                border: '1px solid #333',
-                borderRadius: '0.5rem',
-                zIndex: 999, // Lower than modals
-                display: 'flex',
-                flexDirection: 'column',
-                fontFamily: 'monospace',
-                fontSize: '0.75rem',
-                maxWidth: '90vw',
-                overflow: 'hidden' // Prevent scrolling issues
-              }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '0.5rem',
-                  background: '#333',
-                  borderBottom: '1px solid #444',
-                  color: 'white'
-                }}>
-                  <span>🐛 Debug Console</span>
-                  <button
-                      onClick={() => setDebugLogs([])}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#999',
-                        cursor: 'pointer',
-                        fontSize: '0.75rem'
-                      }}
-                  >
-                    Clear
-                  </button>
-                </div>
-                <div style={{
-                  flex: 1,
-                  overflow: 'auto',
-                  padding: '0.5rem'
-                }}>
-                  {debugLogs.length === 0 ? (
-                      <div style={{ color: '#666', textAlign: 'center', marginTop: '1rem' }}>
-                        No logs yet...
-                      </div>
-                  ) : (
-                      debugLogs.map(log => (
-                          <div
-                              key={log.id}
-                              style={{
-                                marginBottom: '0.25rem',
-                                color: log.type === 'error' ? '#ef4444' :
-                                    log.type === 'warning' ? '#f59e0b' :
-                                        log.type === 'success' ? '#10b981' : '#d1d5db',
-                                fontSize: '0.7rem',
-                                lineHeight: '1.3'
-                              }}
-                          >
-                            <span style={{ color: '#666' }}>[{log.timestamp}]</span> {log.message}
-                          </div>
-                      ))
-                  )}
-                </div>
-              </div>
-          )}
-
-          {/* Manual Input Dialog */}
-          {showManualInput && (
-              <div style={{
-                position: 'fixed',
-                top: isMobile ? '0' : '50%',
-                left: isMobile ? '0' : '50%',
-                transform: isMobile ? 'none' : 'translate(-50%, -50%)',
-                background: 'white',
-                borderRadius: isMobile ? '0' : '0.5rem',
-                padding: isMobile ? '1rem' : '1.5rem',
-                boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
-                zIndex: 1003,
-                width: isMobile ? '100vw' : '400px',
-                maxWidth: isMobile ? '100vw' : '400px',
-                minWidth: isMobile ? '100vw' : '350px',
-                height: isMobile ? '100vh' : 'auto',
-                maxHeight: isMobile ? '100vh' : '80vh',
-                overflow: 'auto'
-              }}>
-                <h3 style={{
-                  margin: '0 0 1rem 0',
-                  fontSize: '1.125rem',
-                  fontWeight: 600,
-                  color: '#111827'
-                }}>
-                  {t('manual_student_id') || 'Manual Student ID'}
-                </h3>
-
-                <input
-                    type="text"
-                    value={manualStudentId}
-                    onChange={(e) => setManualStudentId(e.target.value)}
-                    placeholder={t('enter_reference_id') || 'Enter reference ID (STU-XXXXXX)'}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.375rem',
-                      fontSize: '0.875rem',
-                      marginBottom: '1rem',
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        handleManualSubmit();
-                      }
-                    }}
-                />
-
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.75rem',
-                  marginTop: '1rem'
-                }}>
-                  <button
-                      onClick={handleManualSubmit}
-                      disabled={!manualStudentId.trim()}
-                      style={{
-                        padding: '0.75rem 1rem',
-                        border: 'none',
-                        background: manualStudentId.trim() ? '#3b82f6' : '#9ca3af',
-                        color: 'white',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.875rem',
-                        cursor: manualStudentId.trim() ? 'pointer' : 'not-allowed',
-                        width: '100%',
-                        fontWeight: 500,
-                        transition: 'all 0.2s ease'
-                      }}
-                  >
-                    {t('simulate_scan') || 'Simulate Scan'}
-                  </button>
-
-                  <button
-                      onClick={() => {
-                        setShowManualInput(false);
-                        setManualStudentId('');
-                      }}
-                      style={{
-                        padding: '0.75rem 1rem',
-                        border: '1px solid #d1d5db',
-                        background: 'white',
-                        color: '#6b7280',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.875rem',
-                        cursor: 'pointer',
-                        width: '100%',
-                        fontWeight: 500,
-                        transition: 'all 0.2s ease'
-                      }}
-                  >
-                    {t('cancel') || 'Cancel'}
-                  </button>
-                </div>
-              </div>
-          )}
+          <ManualInputForm
+            showManualInput={showManualInput}
+            manualStudentId={manualStudentId}
+            setManualStudentId={setManualStudentId}
+            onSubmit={handleManualSubmit}
+            onClose={() => {
+              setShowManualInput(false);
+              setManualStudentId('');
+            }}
+            isMobile={isMobile}
+            t={t}
+          />
 
           {/* Result Modal */}
-          {showResultModal && (
-              <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(0, 0, 0, 0.5)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 1005
-              }}>
-                <div style={{
-                  background: 'white',
-                  borderRadius: isMobile ? '0' : '0.5rem',
-                  padding: isMobile ? '1rem' : '2rem',
-                  width: isMobile ? '100vw' : '400px',
-                  maxWidth: isMobile ? '100vw' : '400px',
-                  minWidth: isMobile ? '100vw' : '350px',
-                  height: isMobile ? '100vh' : 'auto',
-                  maxHeight: isMobile ? '100vh' : '80vh',
-                  overflow: 'auto',
-                  position: isMobile ? 'fixed' : 'relative',
-                  top: isMobile ? '0' : 'auto',
-                  left: isMobile ? '0' : 'auto',
-                  textAlign: 'center'
-                }}>
-                  <div style={{
-                    width: '60px',
-                    height: '60px',
-                    borderRadius: '50%',
-                    background: (() => {
-                      // Handle attendance statuses
-                      if (resultModalData.attendanceStatus) {
-                        const color = getAttendanceColor(resultModalData.attendanceStatus);
-                        return color;
-                      }
-                      
-                      // Handle penalty types
-                      if (resultModalData.type === RECORD_TYPES.PENALTY && resultModalData.penaltyType) {
-                        const color = getPenaltyColor(resultModalData.penaltyType);
-                        return color;
-                      }
-                      
-                      // Handle behavior types
-                      if (resultModalData.type === RECORD_TYPES.BEHAVIOR && resultModalData.behaviorType) {
-                        const color = getBehaviorColor(resultModalData.behaviorType);
-                        return color;
-                      }
-                      
-                      // Handle participation types (use success color)
-                      if (resultModalData.type === RECORD_TYPES.PARTICIPATION) {
-                        const color = '#16a34a'; // Green for participation
-                        return color;
-                      }
-                      
-                      // Fallback colors for generic types
-                      let fallbackColor;
-                      if (resultModalData.type === 'success') {
-                        fallbackColor = '#16a34a';
-                      } else if (resultModalData.type === 'error') {
-                        fallbackColor = '#dc2626';
-                      } else if (resultModalData.type === 'late') {
-                        fallbackColor = '#eab308';
-                      } else {
-                        fallbackColor = '#3b82f6';
-                      }
-                      
-                      console.log('🎨 [QRScanner] Fallback Color:', {
-                        type: resultModalData.type,
-                        color: fallbackColor
-                      });
-                      
-                      return fallbackColor;
-                    })(),
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto 1rem auto'
-                  }}>
-                    {resultModalData.attendanceStatus ? (
-                      // Use attendance icon
-                      (() => {
-                        const iconName = getAttendanceIcon(resultModalData.attendanceStatus);
-                        switch (iconName) {
-                          case 'CheckCircle':
-                            return <CheckSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
-                          case 'Clock':
-                            return <ClockSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
-                          case 'XCircle':
-                            return <XSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
-                          case 'Heart':
-                            return <HeartIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
-                          default:
-                            return <CircleIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
-                        }
-                      })()
-                    ) : resultModalData.type === 'success' ? (
-                      <CheckSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />
-                    ) : resultModalData.type === 'error' ? (
-                      <XSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />
-                    ) : resultModalData.type === 'late' ? (
-                      <ClockSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />
-                    ) : (
-                      <CircleIcon style={{ width: '30px', height: '30px', color: 'white' }} />
-                    )}
-                  </div>
-
-                  <h3 style={{
-                    fontSize: '1.25rem',
-                    fontWeight: 600,
-                    color: '#111827',
-                    margin: '0 0 0.5rem 0'
-                  }}>
-                    {resultModalData.attendanceStatus ? 
-                      getAttendanceLabel(resultModalData.attendanceStatus, lang) :
-                      (resultModalData.type === 'success' ? 'Success!' :
-                        resultModalData.type === 'error' ? 'Error!' : 'Information')}
-                  </h3>
-
-                  <p style={{
-                    fontSize: '1rem',
-                    color: '#6b7280',
-                    margin: '0 0 1.5rem 0',
-                    lineHeight: '1.5'
-                  }}>
-                    {resultModalData.isSummary ? (
-                        <div style={{ textAlign: 'left' }}>
-                          <h4 style={{ margin: '0 0 0.5rem 0', color: '#059669' }}>
-                            {t('clear_success') || 'Successfully Cleared Today\'s Records'}
-                          </h4>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.5rem' }}>
-                            <tbody>
-                            <tr>
-                              <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', fontWeight: '600' }}>
-                                {t('attendance') || 'Attendance'}:
-                              </td>
-                              <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', textAlign: 'right' }}>
-                                {resultModalData.message.attendance}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', fontWeight: '600' }}>
-                                {t('behavior') || 'Behavior'}:
-                              </td>
-                              <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', textAlign: 'right' }}>
-                                {resultModalData.message.behavior}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', fontWeight: '600' }}>
-                                {t('participation') || 'Participation'}:
-                              </td>
-                              <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', textAlign: 'right' }}>
-                                {resultModalData.message.participation}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', fontWeight: '600' }}>
-                                {t('penalties') || 'Penalties'}:
-                              </td>
-                              <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', textAlign: 'right' }}>
-                                {resultModalData.message.penalties}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td style={{ padding: '0.25rem', fontWeight: '600', color: '#059669' }}>
-                                {t('total') || 'Total'}:
-                              </td>
-                              <td style={{ padding: '0.25rem', textAlign: 'right', fontWeight: '600', color: '#059669' }}>
-                                {resultModalData.message.total}
-                              </td>
-                            </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                    ) : (
-                        resultModalData.message
-                    )}
-                  </p>
-
-                  <button
-                      onClick={() => setShowResultModal(false)}
-                      style={{
-                        padding: '0.75rem 1.5rem',
-                        background: resultModalData.attendanceStatus ? 
-                          getAttendanceColor(resultModalData.attendanceStatus) :
-                          (resultModalData.type === 'success' ? '#16a34a' :
-                            resultModalData.type === 'error' ? '#dc2626' :
-                              resultModalData.type === 'late' ? '#eab308' : '#3b82f6'),
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '0.375rem',
-                        fontSize: '1rem',
-                        fontWeight: 500,
-                        cursor: 'pointer'
-                      }}
-                  >
-                    OK
-                  </button>
-                </div>
-              </div>
-          )}
+          <AttendanceResultModal
+            isOpen={showResultModal}
+            onClose={() => setShowResultModal(false)}
+            type={resultModalData.type}
+            message={resultModalData.isSummary ? 
+              (typeof resultModalData.message === 'object' ? 
+                JSON.stringify(resultModalData.message) : resultModalData.message) : 
+              resultModalData.message
+            }
+            isSummary={resultModalData.isSummary}
+            attendanceStatus={resultModalData.attendanceStatus}
+          />
 
           {showStudentActionStatsPanel && studentForAction && (
               <StudentActionStatsPanel
@@ -4109,10 +2674,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   onBehaviorSubmit={handleBehaviorSubmit}
                   onMarkAttendance={handleMarkAttendance}
                   attendanceMode={attendanceMode}
+                  programId={selectedProgramId}
+                  subjectId={selectedSubjectId}
                   onUpdate={() => {
                     if (onActivityUpdate) {
                       onActivityUpdate(() => {
-                        logger.debug('[QR Scanner] Triggering activity refresh from StudentActionStatsPanel');
+                        debug('[QR Scanner] Triggering activity refresh from StudentActionStatsPanel');
                         fetchRecentActivity();
                       });
                     }
@@ -4124,6 +2691,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               <StudentActionZapPanel
                   student={studentForAction}
                   initialTab={initialTab}
+                  attendanceMode={attendanceMode}
+                  classId={selectedClassId}
+                  programId={selectedProgramId}
+                  subjectId={selectedSubjectId}
                   onClose={() => {
                     addDebugLog('🔚 Closing StudentActionZapPanel', 'info');
                     setShowStudentActionZapPanel(false);
@@ -4136,22 +2707,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   onUpdate={() => {
                     if (onActivityUpdate) {
                       onActivityUpdate(() => {
-                        logger.debug('[QR Scanner] Triggering activity refresh from StudentActionZapPanel');
+                        debug('[QR Scanner] Triggering activity refresh from StudentActionZapPanel');
                         fetchRecentActivity();
                       });
                     }
                   }}
-                  options={() => {
-                    const opts = getActivityTypeOptions();
-                    logger.info('[QR Scanner] StudentActionZapPanel options:', {
-                      totalOptions: opts.length,
-                      behaviorOptions: opts.filter(o => o.category === 'behavior').length,
-                      participationOptions: opts.filter(o => o.category === 'participation').length,
-                      penaltyOptions: opts.filter(o => o.category === 'penalty').length,
-                      options: opts
-                    });
-                    return opts;
-                  }}
+                  options={activityTypeOptions}
               />
           )}
 
@@ -4178,28 +2739,75 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
                 }}>
                   <h3 style={{
-                    margin: '0 0 1rem 0',
                     fontSize: '1.125rem',
                     fontWeight: 600,
-                    color: '#111827'
+                    color: '#111827',
+                    marginBottom: '0.75rem'
                   }}>
-                    {t('confirm_clear_today') || 'Clear Today\'s Scans'}
+                    {t('confirm_clear') || 'Confirm Clear'}
                   </h3>
                   <p style={{
-                    margin: '0 0 1.5rem 0',
                     fontSize: '0.875rem',
                     color: '#6b7280',
-                    lineHeight: '1.5'
+                    marginBottom: '1rem'
                   }}>
-                    {t('confirm_clear_message') || 'Are you sure you want to clear all records for today? This will permanently delete all attendance, penalties, participation, and behavior records for today\'s date.'}
+                    {t('confirm_clear_message') || 'Select the scope for clearing records:'}
                   </p>
+                  
+                  <div style={{
+                    marginBottom: '1.5rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem'
+                  }}>
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      fontSize: '0.875rem',
+                      color: '#374151',
+                      cursor: 'pointer'
+                    }}>
+                      <input
+                        type="radio"
+                        name="clearScope"
+                        value="today"
+                        checked={clearScope === 'today'}
+                        onChange={() => setClearScope('today')}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <span>{t('clear_today') || 'Clear Today Only'}</span>
+                    </label>
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      fontSize: '0.875rem',
+                      color: '#374151',
+                      cursor: 'pointer'
+                    }}>
+                      <input
+                        type="radio"
+                        name="clearScope"
+                        value="all"
+                        checked={clearScope === 'all'}
+                        onChange={() => setClearScope('all')}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <span>{t('clear_all_days') || 'Clear All Days'}</span>
+                    </label>
+                  </div>
+
                   <div style={{
                     display: 'flex',
                     gap: '0.75rem',
                     justifyContent: 'flex-end'
                   }}>
                     <button
-                        onClick={() => setShowClearConfirmModal(false)}
+                        onClick={() => {
+                          setShowClearConfirmModal(false);
+                          setClearScope('today');
+                        }}
                         style={{
                           padding: '0.5rem 1rem',
                           border: '1px solid #d1d5db',
@@ -4220,22 +2828,34 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
                           try {
                             const today = new Date().toISOString().split('T')[0];
-                            logger.debug('Clearing all records for date:', today);
+                            debug('Clearing records for scope:', clearScope);
 
-                            // Get all attendance records for today
-                            const attendanceResponse = await getAttendanceByClass(classId, today);
-                            const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
+                            // Get attendance records based on scope
+                            let attendanceRecords = [];
+                            if (clearScope === 'today') {
+                              const attendanceResponse = await getAttendanceByClass(classId, today);
+                              attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
+                            } else {
+                              const attendanceResponse = await getAttendanceByClass(classId);
+                              attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
+                            }
 
-                            // Get all penalties for today
-                            const penaltiesResponse = await getPenalties();
-                            const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
-                            const todayPenalties = allPenalties.filter(p => {
-                              const timestamp = p.createdAt || p.timestamp;
-                              if (!timestamp) return false;
-                              const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-                              const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                              return dateStr === today;
-                            });
+                            // Get penalties based on scope
+                            let penaltiesToClear = [];
+                            if (clearScope === 'today') {
+                              const penaltiesResponse = await getPenalties();
+                              const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
+                              penaltiesToClear = allPenalties.filter(p => {
+                                const timestamp = p.createdAt || p.timestamp;
+                                if (!timestamp) return false;
+                                const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+                                const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                                return dateStr === today;
+                              });
+                            } else {
+                              const penaltiesResponse = await getPenalties();
+                              penaltiesToClear = penaltiesResponse.success ? penaltiesResponse.data.filter(p => p.classId === classId) : [];
+                            }
 
                             // Count different record types from attendance
                             const behaviorRecords = attendanceRecords.filter(r => r.category === RECORD_TYPES.BEHAVIOR);
@@ -4243,7 +2863,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                             const attendanceOnlyRecords = attendanceRecords.filter(r => r.category === RECORD_TYPES.ATTENDANCE || r.category === ATTENDANCE_STATUS.LATE || r.category === ATTENDANCE_STATUS.PRESENT);
                             const lateRecords = attendanceRecords.filter(r => r.category === ATTENDANCE_STATUS.LATE);
 
-                            logger.debug('Records to delete:', {
+                            debug('Records to delete:', {
                               totalAttendanceRecords: attendanceRecords.length,
                               attendanceOnlyRecords: attendanceOnlyRecords.length,
                               lateRecords: lateRecords.length,
@@ -4258,10 +2878,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                             for (const record of attendanceRecords) {
                               try {
                                 await deleteAttendance(record.id);
-                                logger.debug('Deleted attendance record:', record.id, 'Category:', record.category);
+                                debug('Deleted attendance record:', record.id, 'Category:', record.category);
                                 deletedAttendanceCount++;
-                              } catch (error) {
-                                logger.error('Failed to delete attendance record:', record.id, error);
+                              } catch (err) {
+                                error('Failed to delete attendance record:', record.id, err);
                               }
                             }
 
@@ -4269,55 +2889,67 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                             let deletedPenaltyCount = 0;
                             for (const penalty of todayPenalties) {
                               try {
-                                await deletePenalty(penalty.id || penalty.docId);
-                                logger.debug('Deleted penalty record:', penalty.id || penalty.docId);
+                                await deletePenalty(penalty.id);
+                                debug('Deleted penalty record:', penalty.id);
                                 deletedPenaltyCount++;
-                              } catch (error) {
-                                logger.error('Failed to delete penalty record:', penalty.id || penalty.docId, error);
+                              } catch (err) {
+                                error('Failed to delete penalty record:', penalty.id, err);
                               }
                             }
 
-                            // Delete all participation records for today
-                            const participationResponse = await getParticipations();
-                            const allParticipations = participationResponse.success ? participationResponse.data : [];
-                            const todayParticipations = allParticipations.filter(p => {
-                              const timestamp = p.createdAt || p.timestamp;
-                              if (!timestamp) return false;
-                              const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-                              const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                              return dateStr === today;
-                            });
+                            // Delete participation records based on scope
+                            let participationsToClear = [];
+                            if (clearScope === 'today') {
+                              const participationResponse = await getParticipations();
+                              const allParticipations = participationResponse.success ? participationResponse.data : [];
+                              participationsToClear = allParticipations.filter(p => {
+                                const timestamp = p.createdAt || p.timestamp;
+                                if (!timestamp) return false;
+                                const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+                                const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                                return dateStr === today;
+                              });
+                            } else {
+                              const participationResponse = await getParticipations();
+                              participationsToClear = participationResponse.success ? participationResponse.data.filter(p => p.classId === classId) : [];
+                            }
 
                             let deletedParticipationCount = 0;
-                            for (const participation of todayParticipations) {
+                            for (const participation of participationsToClear) {
                               try {
-                                await deleteParticipation(participation.id || participation.docId);
-                                logger.debug('Deleted participation record:', participation.id || participation.docId);
+                                await deleteParticipation(participation.id);
+                                debug('Deleted participation record:', participation.id);
                                 deletedParticipationCount++;
-                              } catch (error) {
-                                logger.error('Failed to delete participation record:', participation.id || participation.docId, error);
+                              } catch (err) {
+                                error('Failed to delete participation record:', participation.id, err);
                               }
                             }
 
-                            // Delete all behavior records for today
-                            const behaviorResponse = await getBehaviors();
-                            const allBehaviors = behaviorResponse.success ? behaviorResponse.data : [];
-                            const todayBehaviors = allBehaviors.filter(b => {
-                              const timestamp = b.createdAt || b.timestamp;
-                              if (!timestamp) return false;
-                              const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-                              const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                              return dateStr === today;
-                            });
+                            // Delete behavior records based on scope
+                            let behaviorsToClear = [];
+                            if (clearScope === 'today') {
+                              const behaviorResponse = await getBehaviors();
+                              const allBehaviors = behaviorResponse.success ? behaviorResponse.data : [];
+                              behaviorsToClear = allBehaviors.filter(b => {
+                                const timestamp = b.createdAt || b.timestamp;
+                                if (!timestamp) return false;
+                                const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+                                const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                                return dateStr === today;
+                              });
+                            } else {
+                              const behaviorResponse = await getBehaviors();
+                              behaviorsToClear = behaviorResponse.success ? behaviorResponse.data.filter(b => b.classId === classId) : [];
+                            }
 
                             let deletedBehaviorCount = 0;
-                            for (const behavior of todayBehaviors) {
+                            for (const behavior of behaviorsToClear) {
                               try {
-                                await deleteBehavior(behavior.id || behavior.docId);
-                                logger.debug('Deleted behavior record:', behavior.id || behavior.docId);
+                                await deleteBehavior(behavior.id);
+                                debug('Deleted behavior record:', behavior.id);
                                 deletedBehaviorCount++;
-                              } catch (error) {
-                                logger.error('Failed to delete behavior record:', behavior.id || behavior.docId, error);
+                              } catch (err) {
+                                error('Failed to delete behavior record:', behavior.id, err);
                               }
                             }
 
@@ -4342,9 +2974,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                             addDebugLog(`✅ Cleared ${deletedAttendanceCount} attendance, ${deletedBehaviorCount} behavior, ${deletedParticipationCount} participation, and ${deletedPenaltyCount} penalty records for today`, 'success');
 
                             setShowScanDialog(false);
-                          } catch (error) {
-                            addDebugLog(`❌ Error clearing today's scans: ${error.message}`, 'error');
-                            showResult('error', `${t('clear_error') || 'Failed to clear today\'s scans'}: ${error.message}`);
+                          } catch (err) {
+                            addDebugLog(`❌ Error clearing today's scans: ${err.message}`, 'error');
+                            showResult('error', `${t('clear_error') || 'Failed to clear today\'s scans'}: ${err.message}`);
                           } finally {
                             setActionLoading(false);
                             setCurrentAction(null);
@@ -4368,17 +3000,42 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               </div>
           )}
 
+          {/* Clear Standup Modal */}
+          <DeleteModal
+            isOpen={clearStandupModal.isOpen}
+            onClose={() => setClearStandupModal({ isOpen: false, loading: false, recordCount: 0 })}
+            onConfirm={confirmClearStandup}
+            deleteType="standup_attendance"
+            studentName={t('today') || 'today'}
+            deleteLoading={clearStandupModal.loading}
+            customTitle={t('confirm_clear_standup') || 'Clear Standup Attendance'}
+            customMessage={
+              clearStandupModal.recordCount > 0
+                ? `${t('confirm_clear_standup_message') || 'Are you sure you want to clear all standup attendance for today?'}\n\n${t('this_will_delete') || 'This will delete'} ${clearStandupModal.recordCount} ${t('standup_attendance_records') || 'standup attendance records'} ${t('for_today') || 'for today'}.\n\n⚠️ ${t('this_action_cannot_be_undone') || 'This action cannot be undone.'}`
+                : `${t('no_standup_records_today') || 'No standup attendance records found for today.'}`
+            }
+            t={t}
+          />
+
+          {/* Clear Regular Modal */}
+          <DeleteModal
+            isOpen={clearRegularModal.isOpen}
+            onClose={() => setClearRegularModal({ isOpen: false, loading: false, recordCount: 0 })}
+            onConfirm={confirmClearRegular}
+            deleteType="attendance"
+            studentName={t('today') || 'today'}
+            deleteLoading={clearRegularModal.loading}
+            customTitle={t('confirm_clear_today') || 'Clear Today\'s Scans'}
+            customMessage={
+              clearRegularModal.recordCount > 0
+                ? `${t('confirm_clear_message') || 'Are you sure you want to clear all records for today? This will permanently delete all attendance records for today\'s date.'}\n\n${t('this_will_delete') || 'This will delete'} ${clearRegularModal.recordCount} ${t('attendance_records') || 'attendance records'} ${t('for_today') || 'for today'}.\n\n⚠️ ${t('this_action_cannot_be_undone') || 'This action cannot be undone.'}`
+                : `${t('no_attendance_records_today') || 'No attendance records found for today.'}`
+            }
+            t={t}
+          />
+
           {/* Bulk Scan Dialog */}
-          {console.log('🔍 QRScanner - User data for BulkScanDialog:', {
-            uid: user?.uid,
-            displayName: user?.displayName,
-            name: user?.name,
-            email: user?.email,
-            performedByName: user?.displayName || user?.name || 'Unknown User'
-          })}
-          <BulkScanDialog
-            isOpen={showBulkScanDialog}
-            onClose={() => setShowBulkScanDialog(false)}
+          <BulkScanProvider
             programId={selectedProgramId}
             subjectId={selectedSubjectId}
             classId={selectedClassId}
@@ -4386,31 +3043,78 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             performedBy={performedByFields.performedBy}
             performedByName={performedByFields.performedByName}
             performedByEmail={performedByFields.performedByEmail}
+            attendanceMode={attendanceMode}
             onSuccess={(result) => {
-              showSuccess(t('bulk_operation_success') || `Successfully processed ${result.summary.succeeded} students`);
-              
-              // Trigger multiple refresh mechanisms to ensure UI updates
-              fetchRecentActivity();
-              
-              // Trigger event bus events to refresh all components
-              eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
-                classId: selectedClassId,
-                timestamp: Date.now()
-              });
-              
-              eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
-              eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
-              
-              // Force a second refresh after a short delay to catch any slow updates
-              setTimeout(() => {
-                fetchRecentActivity();
-                eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
-              }, 500);
+              // Store the result for the success modal (selectedStatus is already in result)
+              setBulkSuccessResult(result);
+              // Close the bulk dialog
+              setShowBulkScanDialog(false);
+              // The success modal will show automatically when bulkSuccessResult is set
             }}
             t={t}
             lang={lang}
             showSuccess={showSuccess}
             showError={showError}
+          >
+            <BulkScanDialog
+              isOpen={showBulkScanDialog}
+              onClose={() => setShowBulkScanDialog(false)}
+              programId={selectedProgramId}
+              subjectId={selectedSubjectId}
+              classId={selectedClassId}
+              markedBy={performedByFields.performedBy}
+              performedBy={performedByFields.performedBy}
+              performedByName={performedByFields.performedByName}
+              performedByEmail={performedByFields.performedByEmail}
+              attendanceMode={attendanceMode}
+              t={t}
+              lang={lang}
+              showSuccess={showSuccess}
+              showError={showError}
+            />
+          </BulkScanProvider>
+
+          {/* Bulk Success Modal */}
+          <BulkSuccessModal
+            isOpen={!!bulkSuccessResult}
+            result={bulkSuccessResult}
+            programName={selectedProgramName || selectedProgramId}
+            statusLabel={(() => {
+              if (!bulkSuccessResult) return '';
+              const statusFromResult = bulkSuccessResult?.results?.detailed?.[0]?.status;
+              const statusFromParam = bulkSuccessResult?.selectedStatus;
+              const statusToUse = statusFromParam || statusFromResult;
+              return statusToUse ? getLocalizedAttendanceLabel(statusToUse, t, lang) : '';
+            })()}
+            statusIcon={(() => {
+              if (!bulkSuccessResult) return null;
+              const statusFromResult = bulkSuccessResult?.results?.detailed?.[0]?.status;
+              const statusFromParam = bulkSuccessResult?.selectedStatus;
+              const statusToUse = statusFromParam || statusFromResult;
+              return statusToUse ? getAttendanceIcon(statusToUse) : null;
+            })()}
+            statusColor={(() => {
+              if (!bulkSuccessResult) return null;
+              const statusFromResult = bulkSuccessResult?.results?.detailed?.[0]?.status;
+              const statusFromParam = bulkSuccessResult?.selectedStatus;
+              const statusToUse = statusFromParam || statusFromResult;
+              return statusToUse ? getAttendanceColor(statusToUse) : null;
+            })()}
+            dateLabel={new Date().toISOString().split('T')[0]}
+            onClose={() => {
+              setBulkSuccessResult(null);
+              // Refresh data when user clicks OK
+              fetchRecentActivity();
+              eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
+                classId: selectedClassId,
+                timestamp: Date.now(),
+                forceRefresh: true
+              });
+              eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
+              eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
+              eventBus.emit(EVENTS.REFRESH_STUDENT_DATA, { forceRefresh: true });
+            }}
+            t={t}
           />
 
           <style>{`
@@ -4424,6 +3128,5 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           `}</style>
         </div>
       </CollapsibleSection>
-    </FeatureFlagWrapper>
   );
 }

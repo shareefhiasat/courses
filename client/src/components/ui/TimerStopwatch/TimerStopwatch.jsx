@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 
-// Compact inline Timer & Stopwatch widget
+
+import { info, error, warn, debug } from '@services/utils/logger.js';// Compact inline Timer & Stopwatch widget
 // - Stopwatch: start/pause/reset
 // - Timer: quick presets (1, 5, 10 min), start/pause/reset with progress bar
 // - State persisted in localStorage by mode

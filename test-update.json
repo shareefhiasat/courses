@@ -1,0 +1,9 @@
+{
+  "displayName": "Test User Multi-Role",
+  "firstName": "Test", 
+  "lastName": "User",
+  "email": "testuser@example.com",
+  "roleId": 10,
+  "roles": ["student", "instructor"],
+  "isActive": true
+}

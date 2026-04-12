@@ -1,6 +1,6 @@
 import React, { cache } from 'react';
 import useAnalyticsData from '@hooks/useAnalyticsData';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * Cached data fetchers using React.cache for deduplication
@@ -9,48 +9,48 @@ import logger from '@utils/logger';
 
 // Cache individual data source fetches
 const fetchCachedEnrollments = cache(async (filters) => {
-  logger.log('[CachedDataFetchers] Fetching enrollments with filters:', filters);
+  info('[CachedDataFetchers] Fetching enrollments with filters:', filters);
   // Simulate API call - replace with actual service call
   return [];
 });
 
 const fetchCachedAttendance = cache(async (filters) => {
-  logger.log('[CachedDataFetchers] Fetching attendance with filters:', filters);
+  info('[CachedDataFetchers] Fetching attendance with filters:', filters);
   return [];
 });
 
 const fetchCachedMarks = cache(async (filters) => {
-  logger.log('[CachedDataFetchers] Fetching marks with filters:', filters);
+  info('[CachedDataFetchers] Fetching marks with filters:', filters);
   return [];
 });
 
 const fetchCachedParticipations = cache(async (filters) => {
-  logger.log('[CachedDataFetchers] Fetching participations with filters:', filters);
+  info('[CachedDataFetchers] Fetching participations with filters:', filters);
   return [];
 });
 
 const fetchCachedBehaviors = cache(async (filters) => {
-  logger.log('[CachedDataFetchers] Fetching behaviors with filters:', filters);
+  info('[CachedDataFetchers] Fetching behaviors with filters:', filters);
   return [];
 });
 
 const fetchCachedPenalties = cache(async (filters) => {
-  logger.log('[CachedDataFetchers] Fetching penalties with filters:', filters);
+  info('[CachedDataFetchers] Fetching penalties with filters:', filters);
   return [];
 });
 
 const fetchCachedClasses = cache(async (filters) => {
-  logger.log('[CachedDataFetchers] Fetching classes with filters:', filters);
+  info('[CachedDataFetchers] Fetching classes with filters:', filters);
   return [];
 });
 
 const fetchCachedUsers = cache(async (filters) => {
-  logger.log('[CachedDataFetchers] Fetching users with filters:', filters);
+  info('[CachedDataFetchers] Fetching users with filters:', filters);
   return [];
 });
 
 const fetchCachedActivityLogs = cache(async (filters) => {
-  logger.log('[CachedDataFetchers] Fetching activity logs with filters:', filters);
+  info('[CachedDataFetchers] Fetching activity logs with filters:', filters);
   return [];
 });
 
@@ -69,7 +69,7 @@ export const fetchWidgetDataParallel = cache(async (widgets, globalFilters) => {
     }
   });
   
-  logger.log('[fetchWidgetDataParallel] Fetching data for sources:', Array.from(dataSources));
+  info('[fetchWidgetDataParallel] Fetching data for sources:', Array.from(dataSources));
   
   // Create fetch promises for each data source
   const fetchPromises = [];
@@ -143,11 +143,11 @@ export const fetchWidgetDataParallel = cache(async (widgets, globalFilters) => {
     await Promise.all(fetchPromises);
     
     const endTime = performance.now();
-    logger.log(`[fetchWidgetDataParallel] Completed in ${(endTime - startTime).toFixed(2)}ms`);
+    info(`[fetchWidgetDataParallel] Completed in ${(endTime - startTime).toFixed(2)}ms`);
     
     return dataSourceMap;
   } catch (error) {
-    logger.error('[fetchWidgetDataParallel] Error fetching data:', error);
+    error('[fetchWidgetDataParallel] Error fetching data:', error);
     throw error;
   }
 });
@@ -162,9 +162,9 @@ export function useOptimizedAnalyticsData() {
   // Add performance monitoring
   React.useEffect(() => {
     if (analyticsData.loading) {
-      logger.log('[useOptimizedAnalyticsData] Loading analytics data...');
+      info('[useOptimizedAnalyticsData] Loading analytics data...');
     } else {
-      logger.log('[useOptimizedAnalyticsData] Analytics data loaded');
+      info('[useOptimizedAnalyticsData] Analytics data loaded');
     }
   }, [analyticsData.loading]);
   
@@ -253,8 +253,8 @@ export const processWidgetDataOptimized = cache((widget, rawData, globalFilters,
   
   const endTime = performance.now();
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log(`[processWidgetDataOptimized] Processed ${dataSource} in ${(endTime - startTime).toFixed(2)}ms`);
+  // if (import.meta.env.MODE === 'development') {
+  //   info(`[processWidgetDataOptimized] Processed ${dataSource} in ${(endTime - startTime).toFixed(2)}ms`);
   // }
   
   return processedData;
@@ -263,8 +263,8 @@ export const processWidgetDataOptimized = cache((widget, rawData, globalFilters,
 // Helper functions for data processing
 function processMultiSourceActivityData(widget, data, filters) {
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log('[processMultiSourceActivityData] Processing combined activity data:', {
+  // if (import.meta.env.MODE === 'development') {
+  //   info('[processMultiSourceActivityData] Processing combined activity data:', {
   //     totalRecords: data.length,
   //     filters: filters,
   //     groupBy: widget.groupBy
@@ -276,16 +276,16 @@ function processMultiSourceActivityData(widget, data, filters) {
   if (filters.classId) {
     filtered = filtered.filter(item => item.classId === filters.classId);
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log(`[processMultiSourceActivityData] Filtered by classId ${filters.classId}: ${filtered.length} records`);
+  // if (import.meta.env.MODE === 'development') {
+  //   info(`[processMultiSourceActivityData] Filtered by classId ${filters.classId}: ${filtered.length} records`);
   // }
   }
   
   if (filters.studentId) {
     filtered = filtered.filter(item => item.studentId === filters.studentId);
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log(`[processMultiSourceActivityData] Filtered by studentId ${filters.studentId}: ${filtered.length} records`);
+  // if (import.meta.env.MODE === 'development') {
+  //   info(`[processMultiSourceActivityData] Filtered by studentId ${filters.studentId}: ${filtered.length} records`);
   // }
   }
   
@@ -371,10 +371,10 @@ function processMultiSourceActivityData(widget, data, filters) {
     const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
     
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log('[processMultiSourceActivityData] Type distribution:', typeDistribution);
-  //   logger.log('[processMultiSourceActivityData] Mapped grouped data:', grouped);
-  //   logger.log('[processMultiSourceActivityData] Final result:', result);
+  // if (import.meta.env.MODE === 'development') {
+  //   info('[processMultiSourceActivityData] Type distribution:', typeDistribution);
+  //   info('[processMultiSourceActivityData] Mapped grouped data:', grouped);
+  //   info('[processMultiSourceActivityData] Final result:', result);
   // }
     
     return result;
@@ -430,18 +430,18 @@ function processMultiSourceActivityData(widget, data, filters) {
     
     const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log(`[processMultiSourceActivityData] ${widget.groupBy} distribution:`, distribution);
-  //   logger.log('[processMultiSourceActivityData] Mapped grouped data:', grouped);
-  //   logger.log('[processMultiSourceActivityData] Final result:', result);
+  // if (import.meta.env.MODE === 'development') {
+  //   info(`[processMultiSourceActivityData] ${widget.groupBy} distribution:`, distribution);
+  //   info('[processMultiSourceActivityData] Mapped grouped data:', grouped);
+  //   info('[processMultiSourceActivityData] Final result:', result);
   // }
     
     return result;
   }
   
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log('[processMultiSourceActivityData] No grouping, returning total count:', filtered.length);
+  // if (import.meta.env.MODE === 'development') {
+  //   info('[processMultiSourceActivityData] No grouping, returning total count:', filtered.length);
   // }
   return [{ label: widget.title || 'Activities', value: filtered.length }];
 }
@@ -451,8 +451,8 @@ function processEnrollmentData(widget, data, filters, rawData) {
   let filtered = data;
   
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log('[processEnrollmentData] Processing enrollment data:', {
+  // if (import.meta.env.MODE === 'development') {
+  //   info('[processEnrollmentData] Processing enrollment data:', {
   //     totalRecords: data.length,
   //     filters: filters,
   //     groupBy: widget.groupBy,
@@ -463,16 +463,16 @@ function processEnrollmentData(widget, data, filters, rawData) {
   if (filters.classId) {
     filtered = filtered.filter(item => item.classId === filters.classId);
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log(`[processEnrollmentData] Filtered by classId ${filters.classId}: ${filtered.length} records`);
+  // if (import.meta.env.MODE === 'development') {
+  //   info(`[processEnrollmentData] Filtered by classId ${filters.classId}: ${filtered.length} records`);
   // }
   }
   
   if (filters.studentId) {
     filtered = filtered.filter(item => item.studentId === filters.studentId);
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log(`[processEnrollmentData] Filtered by studentId ${filters.studentId}: ${filtered.length} records`);
+  // if (import.meta.env.MODE === 'development') {
+  //   info(`[processEnrollmentData] Filtered by studentId ${filters.studentId}: ${filtered.length} records`);
   // }
   }
   
@@ -500,18 +500,18 @@ function processEnrollmentData(widget, data, filters, rawData) {
     const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
 
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log('[processEnrollmentData] Raw distribution:', rawDistribution);
-  //   logger.log('[processEnrollmentData] Mapped grouped data:', grouped);
-  //   logger.log('[processEnrollmentData] Final result:', result);
+  // if (import.meta.env.MODE === 'development') {
+  //   info('[processEnrollmentData] Raw distribution:', rawDistribution);
+  //   info('[processEnrollmentData] Mapped grouped data:', grouped);
+  //   info('[processEnrollmentData] Final result:', result);
   // }
     
     return result;
   }
   
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log('[processEnrollmentData] No grouping, returning total count:', filtered.length);
+  // if (import.meta.env.MODE === 'development') {
+  //   info('[processEnrollmentData] No grouping, returning total count:', filtered.length);
   // }
   // Return count if no grouping
   return [{ label: widget.title || 'Enrollments', value: filtered.length }];
@@ -539,13 +539,13 @@ function processAttendanceData(widget, data, filters) {
   };
   
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log('[processAttendanceData] Processing attendance data:', debugInfo);
+  // if (import.meta.env.MODE === 'development') {
+  //   info('[processAttendanceData] Processing attendance data:', debugInfo);
   // }
   
   // Log if we found data from alternative sources
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
+  // if (import.meta.env.MODE === 'development') {
   //   if (debugInfo.dataSources.absences > 0 || debugInfo.dataSources.attendanceSessions > 0) {
   //     console.log('🎉 Found attendance data from alternative sources:', {
   //       absences: debugInfo.dataSources.absences,
@@ -557,16 +557,16 @@ function processAttendanceData(widget, data, filters) {
   if (filters.classId) {
     filtered = filtered.filter(item => item.classId === filters.classId);
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log(`[processAttendanceData] Filtered by classId ${filters.classId}: ${filtered.length} records`);
+  // if (import.meta.env.MODE === 'development') {
+  //   info(`[processAttendanceData] Filtered by classId ${filters.classId}: ${filtered.length} records`);
   // }
   }
   
   if (filters.studentId) {
     filtered = filtered.filter(item => item.studentId === filters.studentId);
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log(`[processAttendanceData] Filtered by studentId ${filters.studentId}: ${filtered.length} records`);
+  // if (import.meta.env.MODE === 'development') {
+  //   info(`[processAttendanceData] Filtered by studentId ${filters.studentId}: ${filtered.length} records`);
   // }
   }
   
@@ -620,10 +620,10 @@ function processAttendanceData(widget, data, filters) {
     const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
 
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log('[processAttendanceData] Status distribution:', statusDistribution);
-  //   logger.log('[processAttendanceData] Mapped grouped data:', grouped);
-  //   logger.log('[processAttendanceData] Final result:', result);
+  // if (import.meta.env.MODE === 'development') {
+  //   info('[processAttendanceData] Status distribution:', statusDistribution);
+  //   info('[processAttendanceData] Mapped grouped data:', grouped);
+  //   info('[processAttendanceData] Final result:', result);
   // }
     
     return result;
@@ -674,18 +674,18 @@ function processAttendanceData(widget, data, filters) {
     const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
 
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log(`[processAttendanceData] ${widget.groupBy} distribution:`, distribution);
-  //   logger.log('[processAttendanceData] Mapped grouped data:', grouped);
-  //   logger.log('[processAttendanceData] Final result:', result);
+  // if (import.meta.env.MODE === 'development') {
+  //   info(`[processAttendanceData] ${widget.groupBy} distribution:`, distribution);
+  //   info('[processAttendanceData] Mapped grouped data:', grouped);
+  //   info('[processAttendanceData] Final result:', result);
   // }
     
     return result;
   }
   
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log('[processAttendanceData] No grouping, returning total count:', filtered.length);
+  // if (import.meta.env.MODE === 'development') {
+  //   info('[processAttendanceData] No grouping, returning total count:', filtered.length);
   // }
   return [{ label: widget.title || 'Attendance', value: filtered.length }];
 }
@@ -739,7 +739,7 @@ function processParticipationData(widget, data, filters) {
 function processBehaviorData(widget, data, filters) {
   let filtered = data;
   
-  logger.log('[processBehaviorData] Processing behavior data:', {
+  info('[processBehaviorData] Processing behavior data:', {
     totalRecords: data.length,
     filters: filters,
     groupBy: widget.groupBy
@@ -747,12 +747,12 @@ function processBehaviorData(widget, data, filters) {
   
   if (filters.classId) {
     filtered = filtered.filter(item => item.classId === filters.classId);
-    logger.log(`[processBehaviorData] Filtered by classId ${filters.classId}: ${filtered.length} records`);
+    info(`[processBehaviorData] Filtered by classId ${filters.classId}: ${filtered.length} records`);
   }
   
   if (filters.studentId) {
     filtered = filtered.filter(item => item.studentId === filters.studentId);
-    logger.log(`[processBehaviorData] Filtered by studentId ${filters.studentId}: ${filtered.length} records`);
+    info(`[processBehaviorData] Filtered by studentId ${filters.studentId}: ${filtered.length} records`);
   }
   
   if (widget.groupBy === 'type') {
@@ -790,8 +790,8 @@ function processBehaviorData(widget, data, filters) {
       grouped[key] = (grouped[key] || 0) + 1;
     });
     
-    logger.log('[processBehaviorData] Type distribution:', typeDistribution);
-    logger.log('[processBehaviorData] Mapped grouped data:', grouped);
+    info('[processBehaviorData] Type distribution:', typeDistribution);
+    info('[processBehaviorData] Mapped grouped data:', grouped);
     
     const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
     filtered = filtered.filter(item => item.classId === filters.classId);
@@ -833,8 +833,8 @@ function processGenericData(widget, data, filters, rawData, dataSourceName) {
   let filtered = data;
   
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log(`[processGenericData] Processing ${dataSourceName} data:`, {
+  // if (import.meta.env.MODE === 'development') {
+  //   info(`[processGenericData] Processing ${dataSourceName} data:`, {
   //     totalRecords: data.length,
   //     filters: filters,
   //     groupBy: widget.groupBy
@@ -927,17 +927,17 @@ function processGenericData(widget, data, filters, rawData, dataSourceName) {
     const result = Object.entries(grouped).map(([label, value]) => ({ label, value }));
 
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log(`[processGenericData] ${widget.groupBy} distribution for ${dataSourceName}:`, grouped);
-  //   logger.log('[processGenericData] Final result:', result);
+  // if (import.meta.env.MODE === 'development') {
+  //   info(`[processGenericData] ${widget.groupBy} distribution for ${dataSourceName}:`, grouped);
+  //   info('[processGenericData] Final result:', result);
   // }
     
     return result;
   }
   
   // Disable all logging to prevent console spam
-  // if (process.env.NODE_ENV === 'development') {
-  //   logger.log(`[processGenericData] No grouping for ${dataSourceName}, returning total count:`, filtered.length);
+  // if (import.meta.env.MODE === 'development') {
+  //   info(`[processGenericData] No grouping for ${dataSourceName}, returning total count:`, filtered.length);
   // }
   return [{ label: widget.title || dataSourceName, value: filtered.length }];
 }

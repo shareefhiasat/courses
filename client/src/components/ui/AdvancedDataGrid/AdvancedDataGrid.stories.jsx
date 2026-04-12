@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import AdvancedDataGrid from './AdvancedDataGrid';
 import { Badge } from '../';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'Data Display/AdvancedDataGrid',
   component: AdvancedDataGrid,
   tags: ['autodocs'],

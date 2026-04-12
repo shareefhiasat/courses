@@ -2,19 +2,12 @@ import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { ROLE_STRINGS } from '@utils/userUtils';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '../utils/logger.js';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
-import {
-  createBehavior as createBehaviorInDb,
-  updateBehavior as updateBehaviorInDb,
-  deleteBehavior as deleteBehaviorInDb,
-  getBehavior as getBehaviorFromDb,
-  getBehaviors as getBehaviorsFromDb,
-  getBehaviorsByStudent as getBehaviorsByStudentFromDb,
-  getBehaviorsByClass as getBehaviorsByClassFromDb,
-  getBehaviorsByClassAndDate as getBehaviorsByClassAndDateFromDb
-} from '../db/behaviorDbService';
+import behaviorDbService from '../db/behaviorDbService-postgres.js';
+
+const serviceName = 'behaviorService';
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;
@@ -56,7 +49,7 @@ export async function createBehavior({
   sendNotification = true
 }) {
   try {
-    logger.info('BEHAVIOR: Creating behavior record', {
+    info(`${serviceName}:createBehavior`, {
       classId,
       studentId,
       subjectId,
@@ -72,11 +65,12 @@ export async function createBehavior({
     const auditData = getCreateAuditData(user);
     const payload = {
       classId,
-      studentId,
+      userId: studentId,
       ...(subjectId ? { subjectId } : {}),
       ...(programId ? { programId } : {}),
-      type,
-      points,
+      // Automatically map numeric type to typeId or fallback to 1
+      typeId: typeof type === 'number' ? type : 1,
+      points: typeof points !== 'undefined' ? Number(points) : 0,
       description,
       date: todayStr,
       performedBy,
@@ -85,7 +79,11 @@ export async function createBehavior({
       ...auditData
     };
 
-    const result = await createBehaviorInDb(payload);
+    if (typeof type === 'string') {
+      console.warn('⚠️ [DEBUG] Legacy string type code received in behaviorService:', type);
+    }
+
+    const result = await behaviorDbService.create(payload);
 
     // Check if database operation was successful
     if (!result || !result.success || !result.data || !result.data.id) {
@@ -131,7 +129,7 @@ export async function createBehavior({
         type
       });
     } catch (logError) {
-      logger.warn('Failed to log behavior creation:', logError);
+      warn(`${serviceName}:createBehavior:logError`, { error: logError });
     }
 
     return { success: true, id: result.data.id };
@@ -149,14 +147,14 @@ export async function createBehavior({
  */
 export async function updateBehavior(behaviorId, updateData, user) {
   try {
-    logger.info('BEHAVIOR: Updating behavior record', { behaviorId, userId: user?.uid, updateFields: Object.keys(updateData) });
+    info(`${serviceName}:updateBehavior`, { behaviorId, userId: user?.uid, updateFields: Object.keys(updateData) });
     
-    const existingDoc = await getBehaviorFromDb(behaviorId);
-    const existingData = existingDoc.exists ? existingDoc.data() : {};
+    const existingDoc = await behaviorDbService.getById(behaviorId);
+    const existingData = existingDoc.data || {};
     const existingHistory = existingData.history || [];
     
     const auditData = getUpdateAuditData(user);
-    const result = await updateBehaviorInDb(behaviorId, {
+    const result = await behaviorDbService.update(behaviorId, {
       ...updateData,
       ...auditData,
       // Track update history
@@ -177,7 +175,7 @@ export async function updateBehavior(behaviorId, updateData, user) {
         type: existingData.type
       });
     } catch (logError) {
-      logger.warn('Failed to log behavior update:', logError);
+      warn(`${serviceName}:updateBehavior:logError`, { error: logError });
     }
     
     // Send update notification if student exists
@@ -222,7 +220,7 @@ export async function updateBehavior(behaviorId, updateData, user) {
  */
 export async function deleteBehavior(behaviorId, behaviorData = null) {
   try {
-    logger.info('BEHAVIOR: Deleting behavior record', { behaviorId, hasBehaviorData: !!behaviorData });
+    info(`${serviceName}:deleteBehavior`, { behaviorId, hasBehaviorData: !!behaviorData });
     
     if (!behaviorId) {
       return { success: false, error: 'Behavior ID is required' };
@@ -231,14 +229,14 @@ export async function deleteBehavior(behaviorId, behaviorData = null) {
     // Get document data before deletion for logging
     let dataToDelete = behaviorData;
     if (!dataToDelete) {
-      const existingDoc = await getBehaviorFromDb(behaviorId);
-      if (existingDoc.exists) {
-        dataToDelete = existingDoc.data();
+      const existingDoc = await behaviorDbService.getById(behaviorId);
+      if (existingDoc.data) {
+        dataToDelete = existingDoc.data;
       }
     }
     
-    const result = await deleteBehaviorInDb(behaviorId);
-    logger.log('[Behavior] Deleted behavior record:', behaviorId);
+    const result = await behaviorDbService.delete(behaviorId);
+    info(`${serviceName}:deleteBehavior:success`, { behaviorId });
     
     // Log activity
     try {
@@ -250,7 +248,7 @@ export async function deleteBehavior(behaviorId, behaviorData = null) {
         type: dataToDelete?.type
       });
     } catch (logError) {
-      logger.warn('Failed to log behavior deletion:', logError);
+      warn(`${serviceName}:deleteBehavior:logError`, { error: logError });
     }
     
     // Send deletion notification if student exists
@@ -296,19 +294,73 @@ export async function deleteBehavior(behaviorId, behaviorData = null) {
  */
 export const getBehaviorsByClassAndDate = async (classId, date) => {
   try {
-    const result = await getBehaviorsByClassAndDateFromDb(classId, date);
-    return { success: true, data: result.data };
+    info(`${serviceName}:getBehaviorsByClassAndDate`, { classId, date });
+    const result = await behaviorDbService.getAll({ classId, date });
+    return {
+      success: result.success,
+      data: result.data || [],
+      message: result.success ? 'Behaviors retrieved successfully' : result.error
+    };
   } catch (error) {
-    return { success: false, error: error.message };
+    error(`${serviceName}:getBehaviorsByClassAndDate:error`, { error: error.message, classId, date });
+    return {
+      success: false,
+      error: error.message || 'Failed to retrieve behaviors',
+      data: []
+    };
   }
 };
 
-export const getBehaviors = async () => {
+export const getBehaviors = async (params = {}) => {
   try {
-    const result = await getBehaviorsFromDb();
-    return { success: true, data: result.data };
+    info(`${serviceName}:getBehaviors`, { params });
+    const result = await behaviorDbService.getAll(params);
+    return {
+      success: result.success,
+      data: result.data || [],
+      message: result.success ? 'Behaviors retrieved successfully' : result.error
+    };
   } catch (error) {
-    return { success: false, error: error.message };
+    error(`${serviceName}:getBehaviors:error`, { error: error.message });
+    return {
+      success: false,
+      error: error.message || 'Failed to retrieve behaviors',
+      data: []
+    };
+  }
+};
+
+/**
+ * Get behaviors by student ID
+ * @param {string} studentId - Student user ID
+ * @param {Object} params - Optional query parameters
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getBehaviorsByStudent = async (studentId, params = {}) => {
+  try {
+    info(`${serviceName}:getBehaviorsByStudent`, { studentId, params });
+    
+    if (!studentId) {
+      return {
+        success: false,
+        error: 'Student ID is required',
+        data: []
+      };
+    }
+    
+    const result = await behaviorDbService.getByStudent(studentId, params);
+    return {
+      success: result.success,
+      data: result.data || [],
+      message: result.success ? 'Student behaviors retrieved successfully' : result.error
+    };
+  } catch (err) {
+    error(`${serviceName}:getBehaviorsByStudent:error`, { error: err.message, studentId, params });
+    return {
+      success: false,
+      error: err.message || 'Failed to retrieve student behaviors',
+      data: []
+    };
   }
 };
 
@@ -322,6 +374,7 @@ export const getBehaviors = async () => {
  * @param {Array} params.classes - Classes array for enrichment
  * @param {Array} params.programs - Programs array for enrichment
  * @param {Array} params.subjects - Subjects array for enrichment
+ * @param {Array} params.students - Students array for enrichment
  * @param {Object} params.filters - Filters to apply
  */
 export async function loadBehaviors({
@@ -332,6 +385,7 @@ export async function loadBehaviors({
   classes = [],
   programs = [],
   subjects = [],
+  students = [],
   filters = {},
   lang = 'en'
 }) {
@@ -339,12 +393,25 @@ export async function loadBehaviors({
     setPageState('LOADING');
     
     // Use database layer instead of direct Firebase calls
-    const result = await getBehaviorsFromDb();
+    const result = await behaviorDbService.getAll();
     const behaviors = result.data || [];
     
     // Enrich behaviors with program, subject, and class names
     const enrichedBehaviors = behaviors.map(behavior => {
       const enriched = { ...behavior };
+      
+      // Map user information to student display fields
+      if (behavior.user) {
+        enriched.studentName = behavior.user.displayName || behavior.user.realName || behavior.user.firstName && behavior.user.lastName 
+          ? `${behavior.user.firstName} ${behavior.user.lastName}` 
+          : behavior.user.email || 'Unknown';
+        enriched.studentEmail = behavior.user.email;
+        enriched.studentId = behavior.userId || behavior.user.id;
+      } else {
+        enriched.studentName = behavior.studentName || 'Unknown';
+        enriched.studentEmail = behavior.studentEmail || '';
+        enriched.studentId = behavior.studentId || behavior.userId;
+      }
       
       // Get class information
       if (behavior.classId) {
@@ -376,24 +443,23 @@ export async function loadBehaviors({
                   enriched.programName_en = program.name_en || program.name_ar || program.name || program.code || 'N/A';
                   enriched.programName_ar = program.name_ar || program.name_en || program.name || program.code || 'N/A';
                   enriched.programId = program.docId || program.id; // Add program ID
-                  
                 } else {
-                  logger.warn('Behavior enrichment: program not found', { programId: subject.programId });
+                  warn(`${serviceName}:enrichment:programNotFound`, { programId: subject.programId });
                 }
               } else {
-                logger.warn('Behavior enrichment: subject missing programId', { subjectId: classItem.subjectId });
+                warn(`${serviceName}:enrichment:subjectMissingProgramId`, { subjectId: classItem.subjectId });
               }
             } else {
-              logger.warn('Behavior enrichment: class missing subjectId', { classId: behavior.classId });
+              warn(`${serviceName}:enrichment:classMissingSubjectId`, { classId: behavior.classId });
             }
           } else {
-            logger.warn('Behavior enrichment: missing classId', { classId: behavior.classId });
+            warn(`${serviceName}:enrichment:missingClassId`, { classId: behavior.classId });
           }
         } else {
-          logger.warn('Behavior enrichment: class not found', { classId: behavior.classId });
+          warn(`${serviceName}:enrichment:classNotFound`, { classId: behavior.classId });
         }
       } else {
-        logger.warn('Behavior enrichment: missing classId', { behaviorId: behavior.docId });
+        warn(`${serviceName}:enrichment:missingClassId`, { behaviorId: behavior.docId });
       }
       return enriched;
     });
@@ -429,7 +495,7 @@ export async function loadBehaviors({
     setBehaviors(filtered);
     setPageState('LOADED');
   } catch (error) {
-    logger.error('Failed to load behaviors:', error);
+    error(`${serviceName}:loadBehaviors:error`, { error });
     toast?.error(t('failed_to_load_behaviors') + ': ' + error.message);
     setPageState('ERROR');
   } finally {

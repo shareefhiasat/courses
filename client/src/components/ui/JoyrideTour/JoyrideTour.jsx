@@ -3,7 +3,7 @@ import Joyride from 'react-joyride';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { MODE_TYPES } from '@utils/sharedTypes';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const JoyrideTour = ({ 
   run, 
@@ -117,18 +117,18 @@ const JoyrideTour = ({
   };
 
   const handleCallback = (data) => {
-    console.debug('[JoyrideTour] Joyride callback:', data);
+    debug('[JoyrideTour] Joyride callback:', data);
     
     if (data.status === 'finished' || data.status === 'skipped') {
-      logger.log('[JoyrideTour] Tour finished/skipped');
+      info('[JoyrideTour] Tour finished/skipped');
       
       // Save to localStorage if key is provided
       if (tourSeenKey) {
         try {
           localStorage.setItem(tourSeenKey, 'true');
-          console.debug('[JoyrideTour] Saved tour seen key:', tourSeenKey);
+          debug('[JoyrideTour] Saved tour seen key:', tourSeenKey);
         } catch (e) {
-          logger.error('[JoyrideTour] Failed to save tour seen key:', e);
+          error('[JoyrideTour] Failed to save tour seen key:', e);
         }
       }
       

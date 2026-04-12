@@ -16,7 +16,7 @@ import { getPenalties } from '@services/business/penaltyService';
 import { getBehaviors } from '@services/business/behaviorService';
 import { getParticipations } from '@services/business/participationService';
 import { toggleStudentAccess as toggleStudentAccessService } from '@services/business/enrollmentService';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { DeleteModal, useDeleteModal } from '@ui';
 
 const EnrollmentsManagementPage = () => {
@@ -38,7 +38,7 @@ const EnrollmentsManagementPage = () => {
   const [localSubjects, setLocalSubjects] = useState([]);
   const [localClasses, setLocalClasses] = useState([]);
   const [enrollmentForm, setEnrollmentForm] = useState({ 
-    userId: '', 
+    studentId: '', 
     classId: '', 
     role: ROLE_STRINGS.STUDENT, 
     programId: '', 
@@ -49,7 +49,6 @@ const EnrollmentsManagementPage = () => {
   const [programFilter, setProgramFilter] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
   const [classFilter, setClassFilter] = useState('');
-  const [studentFilter, setStudentFilter] = useState('');
 
   const { startLoading } = useGlobalLoading();
 
@@ -60,21 +59,18 @@ const EnrollmentsManagementPage = () => {
       const [
         enrollmentsResult,
         usersResult,
-        activitiesResult,
-        submissionsResult
+        activitiesResult
       ] = await Promise.all([
         import('@services/business/enrollmentService').then(m => m.getEnrollments()),
         import('@services/business/userService').then(m => m.getUsers()),
-        import('@services/business/activityService').then(m => m.getActivities()),
-        import('@services/business/submissionService').then(m => m.getSubmissions())
+        import('@services/business/activityService').then(m => m.getActivities())
       ]);
       
       if (enrollmentsResult.success) setEnrollments(enrollmentsResult.data || []);
       if (usersResult.success) setUsers(usersResult.data || []);
       if (activitiesResult.success) setActivities(activitiesResult.data || []);
-      if (submissionsResult.success) setSubmissions(submissionsResult.data || []);
-    } catch (error) {
-      logger.error('[EnrollmentManagementPage] Error loading data:', error);
+    } catch (err) {
+      error('[EnrollmentManagementPage] Error loading data:', err);
       toast?.showError(t('failed_to_load_data') || 'Failed to load data');
     } finally {
       if (!isInitial) setDataLoading(false);
@@ -92,8 +88,8 @@ const EnrollmentsManagementPage = () => {
       if (programsRes.success) setLocalPrograms(programsRes.data || []);
       if (subjectsRes.success) setLocalSubjects(subjectsRes.data || []);
       if (classesRes.success) setLocalClasses(classesRes.data || []);
-    } catch (error) {
-      logger.error('[EnrollmentManagementPage] Error loading filters:', error);
+    } catch (err) {
+      error('[EnrollmentManagementPage] Error loading filters:', err);
       toast?.showError(t('failed_to_load_filters') || 'Failed to load filters');
     }
   }, [t, toast]);
@@ -135,48 +131,6 @@ const EnrollmentsManagementPage = () => {
     }));
   }, [setEnrollmentForm]);
 
-  const handleEnrollmentSubmit = useCallback(async (e) => {
-    if (e) e.preventDefault();
-    
-    // Check if enrollment already exists
-    const existingEnrollment = enrollments.find(enrollment =>
-      enrollment.userId === enrollmentForm.userId && enrollment.classId === enrollmentForm.classId
-    );
-    if (existingEnrollment) {
-      toast?.showError(t('user_already_enrolled') || 'This user is already enrolled in this class');
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const { addEnrollment } = await import('@services/business/enrollmentService');
-      const result = await addEnrollment(enrollmentForm, user);
-      if (result.success) {
-        // Log activity
-        try {
-          await logActivity(ACTIVITY_LOG_TYPES.ENROLLMENT_CREATED, {
-            enrollmentId: result.id,
-            userId: enrollmentForm.userId,
-            classId: enrollmentForm.classId,
-            role: enrollmentForm.role
-          });
-        } catch (error) {
-          logger.warn('[EnrollmentManagementPage] Failed to log activity:', error);
-        }
-        await loadData();
-        setEnrollmentForm({ userId: '', classId: '', role: ROLE_STRINGS.STUDENT, programId: '', subjectId: '' });
-        toast?.showSuccess(t('enrollment_added_successfully') || 'Enrollment added successfully!');
-      } else {
-        toast?.showError(t('error') + ': ' + result.error);
-      }
-    } catch (error) {
-      logger.error('[EnrollmentManagementPage] Error adding enrollment:', error);
-      toast?.showError(t('error') + ': ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [enrollments, enrollmentForm, setLoading, loadData, setEnrollmentForm, toast, t]);
-
   const enrollmentRows = useMemo(() => {
     return (enrollments || []).map((row) => {
       const classItem = localClasses.find(c => (c.docId || c.id) === row.classId);
@@ -206,47 +160,106 @@ const EnrollmentsManagementPage = () => {
     });
   }, [enrollments, localClasses, localSubjects, localPrograms]);
 
-  // Only students should appear in the user dropdown (defensive in case role is missing)
-  const studentUsers = useMemo(() => {
-    return users.filter(u => {
-      const role = (u.role || '').toLowerCase();
-      const isStudentByRole = role === (ROLE_STRINGS.STUDENT || 'student');
-      const isStudentByFlag = u.isStudent === true;
-      return isStudentByRole || isStudentByFlag;
+  // Show all users except current user (since roles aren't set up in DB yet)
+  const availableUsers = useMemo(() => {
+    console.log('🔍 [DEBUG] All users loaded:', users);
+    const filtered = users.filter(u => {
+      // Exclude current user
+      const isCurrentUser = u.email === user?.email;
+      
+      console.log('🔍 [DEBUG] User filter check:', {
+        user: u.displayName || u.email,
+        isCurrentUser
+      });
+      
+      return !isCurrentUser;
     });
-  }, [users]);
+    console.log('🔍 [DEBUG] Available users (excluding current):', filtered);
+    return filtered;
+  }, [users, user]);
 
   const filteredEnrollmentRows = useMemo(() => {
+    console.log('🔍 [DEBUG] filteredEnrollmentRows called:', {
+      totalEnrollments: enrollmentRows.length,
+      programFilter,
+      subjectFilter,
+      classFilter,
+      localClassesCount: localClasses.length,
+      localSubjectsCount: localSubjects.length
+    });
+
     let rows = enrollmentRows;
+    console.log('🔍 [DEBUG] Initial rows:', rows.length);
 
     if (programFilter) {
+      console.log('🔍 [DEBUG] Applying program filter:', programFilter);
+      const beforeCount = rows.length;
       rows = rows.filter(row => {
         const classItem = localClasses.find(c => (c.docId || c.id) === row.classId);
         const subject = classItem?.subjectId
           ? localSubjects.find(s => (s.docId || s.id) === classItem.subjectId)
           : null;
-        return subject?.programId === programFilter;
+        const matches = subject?.programId === programFilter;
+        
+        if (!matches) {
+          console.log('🔍 [DEBUG] Row filtered out by program:', {
+            rowClassId: row.classId,
+            classItem,
+            subject,
+            subjectProgramId: subject?.programId,
+            filterProgramId: programFilter
+          });
+        }
+        
+        return matches;
       });
+      console.log('🔍 [DEBUG] After program filter:', beforeCount, '->', rows.length);
     }
 
     if (subjectFilter) {
+      console.log('🔍 [DEBUG] Applying subject filter:', subjectFilter);
+      const beforeCount = rows.length;
       rows = rows.filter(row => {
         const classItem = localClasses.find(c => (c.docId || c.id) === row.classId);
-        if (classItem?.subjectId) return classItem.subjectId === subjectFilter;
-        return row.subjectId === subjectFilter;
+        const matches = classItem?.subjectId 
+          ? classItem.subjectId === subjectFilter
+          : row.subjectId === subjectFilter;
+        
+        if (!matches) {
+          console.log('🔍 [DEBUG] Row filtered out by subject:', {
+            rowClassId: row.classId,
+            classItemSubjectId: classItem?.subjectId,
+            rowSubjectId: row.subjectId,
+            filterSubjectId: subjectFilter
+          });
+        }
+        
+        return matches;
       });
+      console.log('🔍 [DEBUG] After subject filter:', beforeCount, '->', rows.length);
     }
 
     if (classFilter) {
-      rows = rows.filter(row => row.classId === classFilter);
+      console.log('🔍 [DEBUG] Applying class filter:', classFilter);
+      const beforeCount = rows.length;
+      rows = rows.filter(row => {
+        const matches = row.classId === classFilter;
+        
+        if (!matches) {
+          console.log('🔍 [DEBUG] Row filtered out by class:', {
+            rowClassId: row.classId,
+            filterClassId: classFilter
+          });
+        }
+        
+        return matches;
+      });
+      console.log('🔍 [DEBUG] After class filter:', beforeCount, '->', rows.length);
     }
 
-    if (studentFilter) {
-      rows = rows.filter(row => row.userId === studentFilter);
-    }
-
+    console.log('🔍 [DEBUG] Final filtered rows:', rows.length);
     return rows;
-  }, [enrollmentRows, localClasses, localSubjects, programFilter, subjectFilter, classFilter, studentFilter]);
+  }, [enrollmentRows, localClasses, localSubjects, programFilter, subjectFilter, classFilter]);
 
   const enrollmentSummary = useMemo(() => {
     const total = filteredEnrollmentRows.length;
@@ -272,25 +285,59 @@ const EnrollmentsManagementPage = () => {
     };
   }, [filteredEnrollmentRows, localClasses, localSubjects]);
 
+  const handleEnrollmentSubmit = useCallback(async (e) => {
+    if (e) e.preventDefault();
+    
+    // Use first available student if no student selected
+    const studentIdToUse = enrollmentForm.studentId || (availableUsers.length > 0 ? availableUsers[0].id : '');
+    
+    if (!studentIdToUse) {
+      toast?.showError(t('no_students_available') || 'No students available for enrollment');
+      return;
+    }
+    
+    // Check if enrollment already exists
+    const existingEnrollment = enrollments.find(enrollment =>
+      enrollment.userId === studentIdToUse && enrollment.classId === enrollmentForm.classId
+    );
+    if (existingEnrollment) {
+      toast?.showError(t('user_already_enrolled') || 'This user is already enrolled in this class');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const { addEnrollment } = await import('@services/business/enrollmentService');
+      const result = await addEnrollment({ ...enrollmentForm, studentId: studentIdToUse }, user);
+      if (result.success) {
+        // Log activity
+        try {
+          await logActivity(ACTIVITY_LOG_TYPES.ENROLLMENT_CREATED, {
+            enrollmentId: result.id,
+            userId: studentIdToUse,
+            classId: enrollmentForm.classId,
+            role: enrollmentForm.role
+          });
+        } catch (err) {
+          warn('[EnrollmentManagementPage] Failed to log activity:', err);
+        }
+        await loadData();
+        setEnrollmentForm({ studentId: '', classId: '', role: ROLE_STRINGS.STUDENT, programId: '', subjectId: '' });
+        toast?.showSuccess(t('enrollment_added_successfully') || 'Enrollment added successfully!');
+      } else {
+        toast?.showError(t('error') + ': ' + result.error);
+      }
+    } catch (err) {
+      error('[EnrollmentManagementPage] Error adding enrollment:', err);
+      toast?.showError(t('error') + ': ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [enrollments, enrollmentForm, availableUsers, user, setLoading, loadData, setEnrollmentForm, toast, t]);
+
   return (
-    <div className="enrollments-section" style={{ marginTop: '2rem' }}>
+    <div className="enrollments-management">
       <form onSubmit={handleEnrollmentSubmit} className="dashboard-form">
-        <div className="form-row wide-cols">
-          <UserSelect
-            ref={userSelectRef}
-            users={studentUsers}
-            enrollments={enrollments}
-            value={enrollmentForm.userId}
-            onChange={e => setEnrollmentForm({ ...enrollmentForm, userId: e.target.value })}
-            placeholder={t('select_user') || 'Select User'}
-            roleFilter={[ROLE_STRINGS.STUDENT]}
-            showEnrollments={true}
-            showStatus={true}
-            searchable={true}
-            required
-          />
-        </div>
-        
         <div className="form-row wide-cols">
           <ProgramsSelect
             programs={localPrograms}
@@ -349,23 +396,6 @@ const EnrollmentsManagementPage = () => {
             showLabels={false}
             className="flex-1"
           />
-          <div style={{ minWidth: '220px' }}>
-            <Select
-              searchable
-              value={studentFilter}
-              onChange={(e) => setStudentFilter(e.target.value)}
-              options={[
-                { value: '', label: t('all_students') || 'All Students' },
-                ...studentUsers.map(u => ({
-                  value: u.docId || u.id,
-                  label: u.displayName || u.realName || u.email || (t('unknown') || 'Unknown')
-                }))
-              ]}
-              showLabels={false}
-              placeholder={t('filter_by_student') || 'Filter by student'}
-              className="flex-1"
-            />
-          </div>
         </div>
       </div>
 
@@ -495,41 +525,35 @@ const EnrollmentsManagementPage = () => {
             )
           },
           {
-            field: 'role', 
-            headerName: t('role') || 'Role', 
+            field: 'createdBy', 
+            headerName: t('created_by') || 'CREATED BY', 
+            width: 150,
+            renderCell: (params) => {
+              const creator = users.find(u => (u.docId || u.id) === params.value);
+              if (!creator) {
+                return <span style={{ color: '#6b7280' }}>System</span>;
+              }
+              return (
+                <span style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '6px'
+                }}>
+                  {getThemedIcon('ui', 'user', 14, theme)}
+                  {creator.displayName || creator.realName || creator.email || 'Unknown'}
+                </span>
+              );
+            }
+          },
+          {
+            field: 'status', 
+            headerName: t('status') || 'STATUS', 
             width: 120,
             renderCell: (params) => {
-              const roleMap = {
-                [ROLE_STRINGS.STUDENT]: (
+              const status = params.row.status;
+              if (!status) {
+                return (
                   <span style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: '6px'
-                  }}>
-                    {getThemedIcon('ui', 'user', 14, theme)}
-                    {t('student') || 'Student'}
-                  </span>
-                ),
-                'ta': (
-                  <span style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: '6px',
-                    padding: '4px 8px',
-                    backgroundColor: theme === 'dark' ? '#7c3aed' : '#ede9fe',
-                    color: theme === 'dark' ? '#c4b5fd' : '#7c3aed',
-                    borderRadius: '12px',
-                    fontSize: '0.875rem',
-                    fontWeight: '500'
-                  }}>
-                    👨‍🏫 {t('ta') || 'TA'}
-                  </span>
-                ),
-                [ROLE_STRINGS.INSTRUCTOR]: (
-                  <span style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: '6px',
                     padding: '4px 8px',
                     backgroundColor: theme === 'dark' ? '#059669' : '#d1fae5',
                     color: theme === 'dark' ? '#6ee7b7' : '#059669',
@@ -537,19 +561,31 @@ const EnrollmentsManagementPage = () => {
                     fontSize: '0.875rem',
                     fontWeight: '500'
                   }}>
-                    👩‍🏫 {t('instructor') || 'Instructor'}
+                    ENROLLED
                   </span>
-                )
+                );
+              }
+              
+              const statusColors = {
+                'ENROLLED': { bg: theme === 'dark' ? '#059669' : '#d1fae5', color: theme === 'dark' ? '#6ee7b7' : '#059669' },
+                'SUSPENDED': { bg: theme === 'dark' ? '#dc2626' : '#fee2e2', color: theme === 'dark' ? '#f87171' : '#dc2626' },
+                'PENDING': { bg: theme === 'dark' ? '#d97706' : '#fef3c7', color: theme === 'dark' ? '#fbbf24' : '#d97706' },
+                'ACTIVE': { bg: theme === 'dark' ? '#059669' : '#d1fae5', color: theme === 'dark' ? '#6ee7b7' : '#059669' },
+                'DROPPED': { bg: theme === 'dark' ? '#6b7280' : '#f3f4f6', color: theme === 'dark' ? '#d1d5db' : '#6b7280' }
               };
-              return roleMap[params.value] || (
+              
+              const colors = statusColors[status.code] || statusColors['ENROLLED'];
+              
+              return (
                 <span style={{ 
                   padding: '4px 8px',
-                  backgroundColor: theme === 'dark' ? '#374151' : '#f3f4f6',
-                  color: theme === 'dark' ? '#d1d5db' : '#6b7280',
+                  backgroundColor: colors.bg,
+                  color: colors.color,
                   borderRadius: '12px',
-                  fontSize: '0.875rem'
+                  fontSize: '0.875rem',
+                  fontWeight: '500'
                 }}>
-                  {params.value}
+                  {status.code === 'ENROLLED' ? 'ENROLLED' : status.code}
                 </span>
               );
             }
@@ -647,7 +683,7 @@ const EnrollmentsManagementPage = () => {
                     throw new Error(result.error);
                   }
                 } catch (error) {
-                  logger.error('[EnrollmentManagementPage] Failed to toggle student access:', error);
+                  error('[EnrollmentManagementPage] Failed to toggle student access:', error);
                   toast?.showError(t('failed_to_update_student_access') || 'Failed to update student access');
                 }
               };
@@ -679,33 +715,51 @@ const EnrollmentsManagementPage = () => {
                 let participationsTotal = 0;
 
                 try {
-                  const [attendanceRes, penaltiesRes, behaviorsRes, participationsRes] = await Promise.all([
-                    getAttendanceByStudent(enrollment.userId),
-                    getPenalties(enrollment.userId),
-                    getBehaviors(),
-                    getParticipations()
+                  const [attendanceData, penaltiesData, behaviorsData, participationsData] = await Promise.allSettled([
+                    getAttendanceByStudent(enrollment.userId).catch(err => {
+                      console.warn('Attendance API not available:', err.message);
+                      return { success: false, data: [] };
+                    }),
+                    getPenalties(enrollment.userId).catch(err => {
+                      console.warn('Penalties API error:', err.message);
+                      return { success: false, data: [] };
+                    }),
+                    getBehaviors().catch(err => {
+                      console.warn('Behaviors API error:', err.message);
+                      return { success: false, data: [] };
+                    }),
+                    getParticipations().catch(err => {
+                      console.warn('Participations API error:', err.message);
+                      return { success: false, data: [] };
+                    })
                   ]);
 
-                  if (attendanceRes?.success && Array.isArray(attendanceRes.data)) {
-                    attendanceTotal = attendanceRes.data.filter(r => r.classId === enrollment.classId).length;
+                  // Extract data from settled promises
+                  const attendance = attendanceData.status === 'fulfilled' ? attendanceData.value : { success: false, data: [] };
+                  const penalties = penaltiesData.status === 'fulfilled' ? penaltiesData.value : { success: false, data: [] };
+                  const behaviors = behaviorsData.status === 'fulfilled' ? behaviorsData.value : { success: false, data: [] };
+                  const participations = participationsData.status === 'fulfilled' ? participationsData.value : { success: false, data: [] };
+
+                  if (attendance?.success && Array.isArray(attendance.data)) {
+                    attendanceTotal = attendance.data.filter(r => r.classId === enrollment.classId).length;
                   }
-                  if (penaltiesRes?.success && Array.isArray(penaltiesRes.data)) {
+                  if (penalties?.success && Array.isArray(penalties.data)) {
                     // Penalties may not always store classId, but when they do, prefer matching by class
-                    const penaltiesForClass = penaltiesRes.data.filter(p => !p.classId || p.classId === enrollment.classId);
+                    const penaltiesForClass = penalties.data.filter(p => !p.classId || p.classId === enrollment.classId);
                     penaltiesTotal = penaltiesForClass.length;
                   }
-                  if (behaviorsRes?.success && Array.isArray(behaviorsRes.data)) {
-                    behaviorsTotal = behaviorsRes.data.filter(
+                  if (behaviors?.success && Array.isArray(behaviors.data)) {
+                    behaviorsTotal = behaviors.data.filter(
                       b => b.studentId === enrollment.userId && b.classId === enrollment.classId
                     ).length;
                   }
-                  if (participationsRes?.success && Array.isArray(participationsRes.data)) {
-                    participationsTotal = participationsRes.data.filter(
+                  if (participations?.success && Array.isArray(participations.data)) {
+                    participationsTotal = participations.data.filter(
                       p => p.studentId === enrollment.userId && p.classId === enrollment.classId
                     ).length;
                   }
                 } catch (error) {
-                  logger.error('[EnrollmentManagementPage] Error loading related records for delete:', error);
+                  error('[EnrollmentManagementPage] Error loading related records for delete:', error);
                 }
 
                 deleteEntity(
@@ -714,17 +768,17 @@ const EnrollmentsManagementPage = () => {
                   async () => {
                     try {
                       const { deleteEnrollment } = await import('@services/business/enrollmentService');
-                      const result = await deleteEnrollment(enrollment.docId);
+                      const result = await deleteEnrollment(enrollment.id || enrollment.docId);
                       if (result.success) {
                         // Log activity
                         try {
                           await logActivity(ACTIVITY_LOG_TYPES.ENROLLMENT_DELETED, {
-                            enrollmentId: enrollment.docId,
+                            enrollmentId: enrollment.id || enrollment.docId,
                             userId: enrollment.userId,
                             classId: enrollment.classId
                           });
                         } catch (error) {
-                          logger.warn('[EnrollmentManagementPage] Failed to log activity:', error);
+                          warn('[EnrollmentManagementPage] Failed to log activity:', error);
                         }
                         await loadData();
                         toast?.showSuccess(t('enrollment_removed_successfully') || 'Enrollment removed successfully!');
@@ -732,7 +786,7 @@ const EnrollmentsManagementPage = () => {
                         throw new Error(result.error);
                       }
                     } catch (error) {
-                      logger.error('[EnrollmentManagementPage] Error deleting enrollment:', error);
+                      error('[EnrollmentManagementPage] Error deleting enrollment:', error);
                       throw error;
                     }
                   },

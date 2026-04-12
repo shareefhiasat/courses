@@ -1,4 +1,17 @@
 /**
+ * @deprecated Use useLookupTypes hook instead
+ * This file is deprecated. All penalty types should be fetched dynamically
+ * from the backend API using the useLookupTypes hook with 'penalty-types'.
+ * 
+ * Migration Example:
+ * OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
+ * NEW: const { data: lookupData } = useLookupTypes({ types: ['penalty-types'] });
+ *       const penaltyTypes = lookupData['penalty-types'] || [];
+ */
+
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
+/**
  * Penalty Types Constants
  * 
  * Centralized constants for penalty types used throughout the application.

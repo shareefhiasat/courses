@@ -1,9 +1,11 @@
 import React from 'react';
-import { useAuthRedirect } from '@/hooks/useAuthRedirect';
+import { useKeycloak } from '@react-keycloak/web';
+import { Navigate } from 'react-router-dom';
 import RoleGuard from './RoleGuard';
 import { GlobalLoadingFallback } from '@/contexts/GlobalLoadingContext';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * ProtectedRoute Component
  * 
  * A comprehensive wrapper component that protects routes with:
@@ -44,25 +46,31 @@ const ProtectedRoute = ({
   allowPublic = false,
   loadingComponent = null
 }) => {
-  const { isAuthenticated, authLoading } = useAuthRedirect({
-    requireAuth: !allowPublic,
-    redirectTo,
-    fallbackRedirect,
-    allowPublic
+  const { keycloak, initialized } = useKeycloak();
+
+  // Add logging for debugging
+  console.log('🛡️ ProtectedRoute - Keycloak State:', {
+    initialized,
+    authenticated: keycloak?.authenticated,
+    hasToken: !!keycloak?.token
   });
 
-  // Show loading while checking authentication
-  if (authLoading) {
-    if (loadingComponent) {
+  // Show loading while Keycloak is initializing
+  if (!initialized) {
+    info('🔄 ProtectedRoute - Keycloak initializing...');
+    if (loadingComponent); {
       return loadingComponent;
     }
     return <GlobalLoadingFallback />;
   }
 
-  // If not authenticated and auth is required, the hook will handle redirect
-  if (!isAuthenticated && !allowPublic) {
-    return <GlobalLoadingFallback />;
+  // If not authenticated and auth is required, redirect to login
+  if (!keycloak.authenticated && !allowPublic) {
+    info('🚫 ProtectedRoute - Not authenticated, redirecting to login...');
+    return <Navigate to="/login" replace />;
   }
+
+  info('✅ ProtectedRoute - User authenticated, proceeding...');
 
   // If screenId is provided, wrap with RoleGuard for authorization
   if (screenId) {

@@ -3,7 +3,8 @@ import InfoTooltip from './InfoTooltip';
 import { withKnobs, text } from '@storybook/addon-knobs';
 import { withA11y } from '@storybook/addon-a11y';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'Components/UI/InfoTooltip',
   component: InfoTooltip,
   decorators: [withKnobs, withA11y],

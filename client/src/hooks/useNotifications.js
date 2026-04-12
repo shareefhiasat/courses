@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { getNotificationSettings, saveNotificationSettings } from '@services/business/notificationService';
 import notificationManager from '../utils/notifications';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 export const useNotifications = () => {
   const { user } = useAuth();
@@ -25,7 +25,7 @@ export const useNotifications = () => {
         setSettings(prev => ({ ...prev, ...result.data }));
       }
     } catch (error) {
-      logger.error('Failed to load notification settings:', error);
+      error('Failed to load notification settings:', error);
     }
   }, [user]);
 
@@ -41,7 +41,7 @@ export const useNotifications = () => {
       }
       return false;
     } catch (error) {
-      logger.error('Failed to save notification settings:', error);
+      error('Failed to save notification settings:', error);
       return false;
     }
   }, [user]);
@@ -67,7 +67,7 @@ export const useNotifications = () => {
 
       await saveSettings(newSettings);
     } catch (error) {
-      logger.error('Failed to initialize notifications:', error);
+      error('Failed to initialize notifications:', error);
     } finally {
       setIsInitializing(false);
     }

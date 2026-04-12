@@ -5,7 +5,8 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { SimpleLoading } from '@ui';
 import styles from './DataGrid.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * DataGrid Component
  * 
  * Advanced data table with filtering, sorting, column pinning, and export.

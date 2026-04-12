@@ -3,7 +3,8 @@ import InfoTooltip from '../InfoTooltip/InfoTooltip';
 import styles from './Input.module.css';
 import { getComponentStyles, generateCSSVariables } from '@constants/uiTheme';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Input Component
  * 
  * A flexible input field with support for labels, errors, icons, and various states.

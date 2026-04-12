@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -52,7 +52,7 @@ export default function QuizPreviewPage() {
             creatorName = realName || displayName || name || emailName || (t('unknown') || 'Unknown');
           }
         } catch (err) {
-          logger.warn('Failed to load creator name:', err);
+          warn('Failed to load creator name:', err);
         }
       }
 
@@ -63,7 +63,7 @@ export default function QuizPreviewPage() {
       });
     } catch (error) {
       setError(error.message || (t('failed_to_load_quiz') || 'Failed to load quiz'));
-      logger.error('Error loading quiz:', error);
+      error('Error loading quiz:', error);
     } finally {
       setLoading(false);
     }
@@ -153,7 +153,7 @@ export default function QuizPreviewPage() {
         setLoading(true);
         await loadQuiz(); // Use existing loadQuiz function
       } catch (error) {
-        console.error('Error loading quiz data:', error);
+        error('Error loading quiz data:', error);
       } finally {
         setLoading(false);
         safeStop();

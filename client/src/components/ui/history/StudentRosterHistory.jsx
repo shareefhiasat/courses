@@ -9,7 +9,8 @@ import { RECORD_TYPES } from '@utils/sharedTypes';
 import PortalTooltip from '@ui/PortalTooltip';
 import { getThemedIcon } from '@constants/iconTypes';
 
-const StudentRosterHistory = ({ 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const StudentRosterHistory = ({ 
   student, 
   studentHistory, 
   expandedDays, 

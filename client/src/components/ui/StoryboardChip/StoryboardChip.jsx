@@ -2,7 +2,8 @@ import React from 'react';
 import PortalTooltip from '@ui/PortalTooltip';
 import styles from './StoryboardChip.module.css';
 
-// Simple hash for stable color selection
+
+import { info, error, warn, debug } from '@services/utils/logger.js';// Simple hash for stable color selection
 const hash = (str) => {
   let h = 0; for (let i = 0; i < String(str).length; i++) { h = (h<<5)-h + String(str).charCodeAt(i); h |= 0; }
   return Math.abs(h);

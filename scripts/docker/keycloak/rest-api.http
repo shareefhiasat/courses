@@ -1,0 +1,260 @@
+### 📋 GET ADMIN TOKEN
+POST http://localhost:8080/realms/master/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&username=admin&password=admin123&client_id=admin-cli
+
+> {%
+  client.global.set("admin_token", response.body.access_token);
+  client.log("Admin token: " + response.body.access_token);
+%}
+
+###
+
+### 🗑️ DELETE EXISTING REALM (if exists)
+DELETE http://localhost:8080/admin/realms/military-lms
+Authorization: Bearer {{admin_token}}
+
+###
+
+### 🏗️ CREATE MINIMAL REALM (RECOMMENDED APPROACH)
+POST http://localhost:8080/admin/realms
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "id": "military-lms",
+  "realm": "military-lms",
+  "displayName": "Military LMS",
+  "enabled": true,
+  "registrationAllowed": true,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "loginWithEmailAllowed": true,
+  "sslRequired": "none"
+}
+
+###
+
+### 📱 CREATE CLIENT
+POST http://localhost:8080/admin/realms/military-lms/clients
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "clientId": "military-lms-app",
+  "name": "Military LMS Application",
+  "description": "Military LMS Frontend Application",
+  "enabled": true,
+  "clientAuthenticatorType": "client-secret",
+  "redirectUris": [
+    "https://localhost:5174/*",
+    "https://localhost:5174/login*",
+    "https://localhost:5174/silent-check-sso.html",
+    "http://localhost:5174/*",
+    "http://localhost:5174/login*",
+    "http://localhost:5174/silent-check-sso.html"
+  ],
+  "webOrigins": [
+    "https://localhost:5174",
+    "http://localhost:5174"
+  ],
+  "adminUrl": "https://localhost:5174",
+  "rootUrl": "https://localhost:5174",
+  "baseUrl": "https://localhost:5174",
+  "publicClient": true,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": true,
+  "serviceAccountsEnabled": false,
+  "authorizationServicesEnabled": false
+}
+
+###
+
+### 👤 CREATE SUPER ADMIN USER
+POST http://localhost:8080/admin/realms/military-lms/users
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "username": "shareef.hiasat@gmail.com",
+  "enabled": true,
+  "email": "shareef.hiasat@gmail.com",
+  "firstName": "Shareef",
+  "lastName": "Hiasat",
+  "emailVerified": true,
+  "credentials": [
+    {
+      "type": "password",
+      "value": "Test123@",
+      "temporary": false
+    }
+  ]
+}
+
+###
+
+### 🎭 CREATE ROLES
+POST http://localhost:8080/admin/realms/military-lms/roles
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{"name":"super_admin","description":"Super Administrator with full system access","composite":false,"clientRole":false,"containerId":"military-lms"}
+
+###
+
+POST http://localhost:8080/admin/realms/military-lms/roles
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{"name":"admin","description":"Administrator with limited access","composite":false,"clientRole":false,"containerId":"military-lms"}
+
+###
+
+POST http://localhost:8080/admin/realms/military-lms/roles
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{"name":"hr","description":"HR Manager","composite":false,"clientRole":false,"containerId":"military-lms"}
+
+###
+
+POST http://localhost:8080/admin/realms/military-lms/roles
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{"name":"instructor","description":"Instructor/Teacher","composite":false,"clientRole":false,"containerId":"military-lms"}
+
+###
+
+POST http://localhost:8080/admin/realms/military-lms/roles
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{"name":"student","description":"Student","composite":false,"clientRole":false,"containerId":"military-lms"}
+
+###
+
+### 🔐 ASSIGN SUPER ADMIN ROLE TO USER
+# First get user ID
+GET http://localhost:8080/admin/realms/military-lms/users?username=shareef.hiasat@gmail.com
+Authorization: Bearer {{admin_token}}
+
+> {%
+  if (response.body && response.body.length > 0) {
+    client.global.set("user_id", response.body[0].id);
+    client.log("User ID: " + response.body[0].id);
+  }
+%}
+
+###
+
+# Get role ID
+GET http://localhost:8080/admin/realms/military-lms/roles/super_admin
+Authorization: Bearer {{admin_token}}
+
+> {%
+  if (response.body && response.body.id) {
+    client.global.set("super_admin_role_id", response.body.id);
+    client.log("Super Admin Role ID: " + response.body.id);
+  }
+%}
+
+###
+
+# Assign role to user
+POST http://localhost:8080/admin/realms/military-lms/users/{{user_id}}/role-mappings/realm
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+[{"id":"{{super_admin_role_id}}","name":"super_admin"}]
+
+###
+
+### 🔐 ASSIGN INSTRUCTOR ROLE TO USER
+# Get role ID
+GET http://localhost:8080/admin/realms/military-lms/roles/instructor
+Authorization: Bearer {{admin_token}}
+
+> {%
+  if (response.body && response.body.id) {
+    client.global.set("instructor_role_id", response.body.id);
+    client.log("Instructor Role ID: " + response.body.id);
+  }
+%}
+
+###
+
+# Assign instructor role to user
+POST http://localhost:8080/admin/realms/military-lms/users/{{user_id}}/role-mappings/realm
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+[{"id":"{{instructor_role_id}}","name":"instructor"}]
+
+###
+
+### ✅ VERIFY REALM EXISTS
+GET http://localhost:8080/realms/military-lms/.well-known/openid-configuration
+
+###
+
+### 🧪 TEST SUPER ADMIN LOGIN
+POST http://localhost:8080/realms/military-lms/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&username=shareef.hiasat@gmail.com&password=Test123@&client_id=military-lms-app
+
+> {%
+  client.global.set("super_admin_token", response.body.access_token);
+  client.log("Super admin token: " + response.body.access_token);
+  client.log("Login successful! Token expires in: " + response.body.expires_in + " seconds");
+%}
+
+###
+
+### 👤 GET SUPER ADMIN USER INFO
+GET http://localhost:8080/realms/military-lms/protocol/openid-connect/userinfo
+Authorization: Bearer {{super_admin_token}}
+
+###
+
+### 📋 LIST ALL REALMS
+GET http://localhost:8080/admin/realms
+Authorization: Bearer {{admin_token}}
+
+###
+
+### 👥 LIST USERS IN MILITARY LMS REALM
+GET http://localhost:8080/admin/realms/military-lms/users
+Authorization: Bearer {{admin_token}}
+
+###
+
+### 🎭 LIST ROLES IN MILITARY LMS REALM
+GET http://localhost:8080/admin/realms/military-lms/roles
+Authorization: Bearer {{admin_token}}
+
+###
+
+### 🔗 LIST CLIENTS IN MILITARY LMS REALM
+GET http://localhost:8080/admin/realms/military-lms/clients
+Authorization: Bearer {{admin_token}}
+
+###
+
+### 🚀 TEST JWT TOKEN DECODING (Copy access_token from test above and paste at jwt.io)
+# Go to: https://jwt.io
+# Paste the token from the "TEST SUPER ADMIN LOGIN" response
+# You should see: roles, email, studentNumber, department, etc.
+
+###
+
+### 📥 ALTERNATIVE: IMPORT FULL REALM (LESS RELIABLE)
+# Use this only if the step-by-step approach above doesn't work
+POST http://localhost:8080/admin/realms
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+< ./realm-military-lms.json

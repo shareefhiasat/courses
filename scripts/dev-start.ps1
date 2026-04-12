@@ -8,6 +8,8 @@ Set-Location $PSScriptRoot\..
 
 Write-Host "Starting Military LMS Development Environment..." -ForegroundColor Green
 
+$startNextcloud = $env:START_NEXTCLOUD -eq "true"
+
 # Check Docker
 try {
     docker info > $null 2>&1
@@ -24,35 +26,22 @@ docker-compose -f scripts/docker/docker-compose.dev.yml down -v 2>$null
 Write-Host "Starting infrastructure services..." -ForegroundColor Blue
 docker-compose -f scripts/docker/docker-compose.dev.yml up -d
 
-# Wait for MongoDB
-Write-Host "Waiting for MongoDB..." -ForegroundColor Yellow
-Start-Sleep -Seconds 10
-
-# Initialize MongoDB replica set
-Write-Host "Initializing MongoDB replica set..." -ForegroundColor Blue
-try {
-    $rsStatus = docker exec lms-qaf-mongodb mongosh --eval "rs.status()" 2>$null
-    if ($rsStatus -match "ok: 1") {
-        Write-Host "MongoDB replica set already initialized" -ForegroundColor Green
-    } else {
-        docker exec lms-qaf-mongodb mongosh --eval "rs.initiate()" 2>$null
-        Start-Sleep -Seconds 5
-        Write-Host "MongoDB replica set initialized" -ForegroundColor Green
-    }
-} catch {
-    Write-Host "Could not initialize replica set (MongoDB may still be starting)" -ForegroundColor Yellow
+if ($startNextcloud) {
+    Write-Host "Starting Nextcloud collaboration stack..." -ForegroundColor Blue
+    docker-compose -f scripts/docker/docker-compose.nextcloud.yml up -d
 }
+
+# Wait for Keycloak/PostgreSQL infrastructure
+Write-Host "Waiting for PostgreSQL/Keycloak..." -ForegroundColor Yellow
+Start-Sleep -Seconds 10
 
 # Wait for all services
 Write-Host "Waiting for all services to start..." -ForegroundColor Yellow
 Start-Sleep -Seconds 20
 
-# Start Frontend and API Server
+# Start Frontend
 Write-Host "Starting application services..." -ForegroundColor Blue
 Set-Location client
-
-# Start API Server in background
-Start-Process -FilePath "pnpm" -ArgumentList "run", "api" -WindowStyle Minimized
 
 # Start Frontend in background
 Start-Process -FilePath "pnpm" -ArgumentList "run", "dev" -WindowStyle Minimized
@@ -62,14 +51,14 @@ Set-Location ..
 # Check service health
 Write-Host "Checking service health..." -ForegroundColor Cyan
 
-$mongodbCheck = try { docker exec lms-qaf-mongodb mongosh --eval "db.adminCommand('ping')" 2>$null } catch { $null }
-Write-Host "   MongoDB: $(if ($LASTEXITCODE -eq 0) { 'Ready' } else { 'Not ready' })"
-
 $redisCheck = try { docker exec lms-qaf-redis redis-cli ping 2>$null } catch { $null }
 Write-Host "   Redis: $(if ($redisCheck -eq "PONG") { 'Ready' } else { 'Not ready' })"
 
 $keycloakCheck = try { Invoke-WebRequest -Uri "http://localhost:8080/realms/master" -UseBasicParsing -TimeoutSec 5 2>$null } catch { $null }
 Write-Host "   Keycloak: $(if ($keycloakCheck) { 'Ready' } else { 'Starting...' })"
+
+$postgresCheck = try { docker exec lms-qaf-app-db pg_isready -U military_lms -d military_lms 2>$null } catch { $null }
+Write-Host "   PostgreSQL: $(if ($LASTEXITCODE -eq 0) { 'Ready' } else { 'Not ready' })"
 
 $minioCheck = try { Invoke-WebRequest -Uri "http://localhost:9000/minio/health/live" -UseBasicParsing -TimeoutSec 5 2>$null } catch { $null }
 Write-Host "   MinIO: $(if ($minioCheck) { 'Ready' } else { 'Not ready' })"
@@ -86,20 +75,30 @@ Write-Host "   Grafana: $(if ($grafanaCheck) { 'Ready' } else { 'Starting...' })
 $maildevCheck = try { Invoke-WebRequest -Uri "http://localhost:1080" -UseBasicParsing -TimeoutSec 5 2>$null } catch { $null }
 Write-Host "   MailDev: $(if ($maildevCheck) { 'Ready' } else { 'Starting...' })"
 
+if ($startNextcloud) {
+    $nextcloudCheck = try { Invoke-WebRequest -Uri "http://localhost:8085/status.php" -UseBasicParsing -TimeoutSec 5 2>$null } catch { $null }
+    Write-Host "   Nextcloud: $(if ($nextcloudCheck) { 'Ready' } else { 'Starting...' })"
+
+    $collaboraCheck = try { Invoke-WebRequest -Uri "http://localhost:9980/hosting/discovery" -UseBasicParsing -TimeoutSec 5 2>$null } catch { $null }
+    Write-Host "   Collabora: $(if ($collaboraCheck) { 'Ready' } else { 'Starting...' })"
+}
+
 Write-Host ""
 Write-Host "Development Environment Ready!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Application URLs:" -ForegroundColor Cyan
 Write-Host "   Frontend:   http://localhost:5174"
-Write-Host "   API Server: https://localhost:3000"
-Write-Host "   Swagger:    https://localhost:3000/api-docs"
-Write-Host "   Prisma:    http://localhost:5555 (when running pnpm run db:studio)"
+Write-Host "   Prisma:    use pnpm run db:studio from client"
 Write-Host ""
 Write-Host "Infrastructure Services:" -ForegroundColor Cyan
-Write-Host "   MongoDB:   localhost:27017 (Replica Set: rs0)"
 Write-Host "   Redis:     localhost:6379"
 Write-Host "   MinIO:     http://localhost:9000 / http://localhost:9001"
 Write-Host "   Keycloak:  http://localhost:8080 / http://localhost:8080/admin"
+Write-Host "   PostgreSQL: localhost:5432"
+if ($startNextcloud) {
+    Write-Host "   Nextcloud: http://localhost:8085"
+    Write-Host "   Collabora: http://localhost:9980"
+}
 Write-Host ""
 Write-Host "Monitoring & Logging:" -ForegroundColor Cyan
 Write-Host "   Kibana:        http://localhost:5601 (Logs)"
@@ -109,7 +108,6 @@ Write-Host "   Elasticsearch: http://localhost:9200 (Search)"
 Write-Host "   MailDev:       http://localhost:1080 (Email)"
 Write-Host ""
 Write-Host "Default Credentials:" -ForegroundColor Yellow
-Write-Host "   MongoDB:   admin / admin123"
 Write-Host "   MinIO:     minioadmin / minioadmin"
 Write-Host "   Keycloak:  admin / admin123"
 Write-Host "   Grafana:   admin / admin123"
@@ -117,14 +115,16 @@ Write-Host "   Redis:     Password: redis123"
 Write-Host ""
 Write-Host "Useful Commands:" -ForegroundColor Cyan
 Write-Host "   Stop everything:     docker-compose -f scripts/docker/docker-compose.dev.yml down"
+if ($startNextcloud) {
+    Write-Host "   Stop Nextcloud:      docker-compose -f scripts/docker/docker-compose.nextcloud.yml down"
+}
 Write-Host "   View logs:           docker-compose -f scripts/docker/docker-compose.dev.yml logs -f [service]"
-Write-Host "   Access MongoDB:      docker exec lms-qaf-mongodb mongosh"
+Write-Host "   Access PostgreSQL:   docker exec lms-qaf-app-db psql -U military_lms -d military_lms"
 Write-Host "   Restart services:    docker-compose -f scripts/docker/docker-compose.dev.yml restart"
 Write-Host ""
 Write-Host "Development Tips:" -ForegroundColor Magenta
 Write-Host "   - Frontend hot-reload enabled"
-Write-Host "   - API server auto-restarts on changes"
-Write-Host "   - MongoDB replica set enabled for Prisma transactions"
+Write-Host "   - PostgreSQL is used for database-backed services"
 Write-Host "   - All services accessible via localhost"
 Write-Host "   - Winston logs to Kibana via Logstash"
 Write-Host "   - Email testing via MailDev"

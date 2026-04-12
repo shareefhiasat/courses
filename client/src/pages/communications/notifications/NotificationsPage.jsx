@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@services/other/config';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { 
   subscribeToNotifications,
@@ -29,7 +27,9 @@ import {
 } from '@constants/notificationTypes.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import useNotifications from '@hooks/useNotifications';
-import { PENALTY_TYPES } from '@constants/penaltyTypes';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
+// OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
+// NOW: Using useLookupTypes hook for penalty types
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getPrograms, getSubjects } from '@services/business/programService';
@@ -38,11 +38,14 @@ import { getClasses } from '@services/business/classService';
 const NotificationsPage = () => {
   const { user, loading: authLoading } = useAuth();
   const { t, lang } = useLang();
-  logger.log('Current lang:', lang);
-  logger.log('t function test:', t('all_types'));
+  info('Current lang:', lang);
+  info('t function test:', t('all_types'));
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { startLoading } = useGlobalLoading();
+  const { data: lookupData } = useLookupTypes({
+    types: ['penalty-types']
+  });
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -279,7 +282,7 @@ const NotificationsPage = () => {
       try {
         await triggerNotification('default', t('notifications_test_notification'), t('notifications_test_notification_message'));
       } catch (error) {
-        logger.error('Failed to send test notification:', error);
+        error('Failed to send test notification:', error);
       }
     }
   };
@@ -362,7 +365,7 @@ const NotificationsPage = () => {
         
         return unsubscribe;
       } catch (error) {
-        console.error('Error loading notifications:', error);
+        error('Error loading notifications:', error);
         safeStop();
       }
     };
@@ -490,7 +493,7 @@ const NotificationsPage = () => {
             }}
             options={(() => {
               const options = getNotificationTypeOptions(t, lang);
-              logger.log('Notification type options:', options);
+              info('Notification type options:', options);
               return options;
             })()}
             size="small"
@@ -502,7 +505,7 @@ const NotificationsPage = () => {
               onChange={(e) => setFilterPenaltyType(e.target.value)}
               options={[
                 { value: 'all', label: t('all_penalty_types') || 'All Penalty Types' },
-                ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: pt.label_en }))
+                ...(lookupData['penalty-types'] || []).map(pt => ({ value: pt.id, label: pt.nameEn }))
               ]}
               size="small"
               fullWidth
@@ -516,8 +519,8 @@ const NotificationsPage = () => {
                 { value: 'all', label: 'All Statuses' },
                 { value: ATTENDANCE_STATUS.PRESENT, label: 'Present' },
                 { value: ATTENDANCE_STATUS.LATE, label: 'Late' },
-                { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: 'Absent (No Excuse)' },
-                { value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: 'Absent (With Excuse)' },
+                { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: 'Absent' },
+                { value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: 'Absent Excused' },
                 { value: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: 'Excused Leave' },
                 { value: ATTENDANCE_STATUS.HUMAN_CASE, label: 'Human Case' }
               ]}

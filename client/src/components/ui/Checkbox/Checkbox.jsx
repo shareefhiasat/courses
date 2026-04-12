@@ -3,7 +3,8 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Checkbox.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Checkbox Component
  * 
  * @param {Object} props

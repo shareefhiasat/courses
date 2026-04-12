@@ -3,7 +3,8 @@ import { EmptyState } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './MarksTab.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Marks Tab – read-only view of student marks grouped by semester.
  * Staff roles get a deep-link button to the marks entry page.
  */

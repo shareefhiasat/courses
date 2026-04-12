@@ -2,7 +2,8 @@ import React from 'react';
 import styles from './Badge.module.css';
 import { getComponentStyles, generateCSSVariables } from '@constants/uiTheme';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Badge Component
  * 
  * A small label component for displaying status, counts, or categories.

@@ -21,9 +21,9 @@ import {
   // UI Icons
   Settings, Key, Eye, EyeOff, Lock, LogIn, LogOut, MoreVertical,
   // Action Icons
-  Edit, Trash, Trash2, RefreshCw, Plus, Minus, X, Copy, Wrench, Clipboard,
+  Edit, Trash, Trash2, RefreshCw, Plus, Minus, X, Copy, Wrench, Clipboard, PlusCircle, FileCheck,
   // File Icons
-  FileSignature, Archive, Globe, Tag, QrCode, KeyRound, Paperclip,
+  FileSignature, Archive, Globe, Tag, QrCode, KeyRound, Paperclip, Image, Presentation, Table,
   // Behavior/Sleep Icons
   Bed,
   // Other Icons
@@ -44,7 +44,8 @@ import {
 import { ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 import { Tooltip } from '@ui';
 
-// Centralized Icon Configuration
+
+import { info, error, warn, debug } from '@services/utils/logger.js';// Centralized Icon Configuration
 // This is the single source of truth for all icon mappings
 export const ICON_TYPES = {
   // User Status Icons
@@ -144,15 +145,33 @@ export const ICON_TYPES = {
     penalty_updated: <Edit size={16} />,
     penalty_deleted: <Trash2 size={16} />,
     activity: <Activity size={16} />,
-    // Missing activity type icons
+    // Activity type icons
     quiz: <FileText size={16} />,
     homework: <FileText size={16} />,
     training: <Award size={16} />,
-    lab: <Monitor size={16} />,
+    project: <Folder size={16} />,
     exam: <FileText size={16} />,
+    assignment: <FileText size={16} />,
+    participation: <Users size={16} />,
+    presentation: <Video size={16} />,
+    lab: <Monitor size={16} />,
+    trip: <Globe size={16} />,
+    case: <Folder size={16} />,
+    research: <Search size={16} />,
+    debate: <MessageSquare size={16} />,
+    workshop: <Settings size={16} />,
+    seminar: <Users size={16} />,
     star: <Star size={16} />,
     zap: <Zap size={16} />,
     trophy: <Trophy size={16} />
+  },
+  
+  // Difficulty Type Icons
+  difficulty: {
+    beginner: <Star size={16} />,
+    intermediate: <Star size={16} />,
+    advanced: <Star size={16} />,
+    default: <Star size={16} />
   },
   
   // Notification Type Icons
@@ -201,6 +220,8 @@ export const ICON_TYPES = {
     close: <X size={16} />,
     expand: <ChevronDown size={16} />,
     collapse: <ChevronDown size={16} />,
+    image: <Image size={16} />,
+    presentation: <Presentation size={16} />,
     link: <Link size={16} />,
     external_link: <ExternalLink size={16} />,
     maximize: <Maximize size={16} />,
@@ -241,6 +262,7 @@ export const ICON_TYPES = {
     success: <CheckCircle size={16} />,
     moon: <Moon size={16} />,
     layout_grid: <LayoutGrid size={16} />,
+    layout_dashboard: <LayoutDashboard size={16} />,
     grid: <LayoutGrid size={16} />,
     zoom_in: <ZoomIn size={16} />,
     star_off: <StarOff size={16} />,
@@ -268,12 +290,19 @@ export const ICON_TYPES = {
     zap: <Zap size={16} />,
     list: <List size={16} />,
     hash: <Hash size={16} />,
+    document: <FileText size={16} />,
     bed: <Home size={16} />,
+    hourglass: <Hourglass size={16} />,
+    repeat: <Repeat size={16} />,
+    'file-check': <FileCheck size={16} />,
+    'plus-circle': <PlusCircle size={16} />,
     // Additional UI icons needed by the application
     award: <Award size={16} />,
     trophy: <Trophy size={16} />,
     activity: <Activity size={16} />,
     file_text: <FileText size={16} />,
+    'file-text': <FileText size={16} />,
+    table: <Table size={16} />,
     calendar_check: <Calendar size={16} />,
     message_square: <MessageSquare size={16} />,
     user_check: <UserCheck size={16} />,
@@ -293,6 +322,8 @@ export const ICON_TYPES = {
     frown: <Frown size={16} />,
     thumbs_up: <ThumbsUp size={16} />,
     mic: <Mic size={16} />,
+    audio: <Mic size={16} />,
+    music: <Mic size={16} />,
     paperclip: <Paperclip size={16} />,
     attachment: <Paperclip size={16} />,
     // Missing icons from LoginActivityPage
@@ -346,14 +377,11 @@ export const ICON_TYPES = {
     user_plus: <UserPlus size={16} />,
     user_minus: <UserMinus size={16} />,
     user_x: <UserX size={16} />,
-    plus_circle: <Plus size={16} />,
-    inbox: <MessageSquare size={16} />,
-    layout_dashboard: <LayoutDashboard size={16} />,
-    clock_x: <Clock size={16} />,
+    // Aliases for hyphenated names to prevent warnings
+    'help-circle': <HelpCircle size={16} />,
+    'book-open': <BookOpen size={16} />,
     folder: <Folder size={16} />,
-    hourglass: <Hourglass size={16} />,
-    repeat: <Repeat size={16} />,
-    // Additional globe variant
+    globe: <Globe size={16} />,
     globe2: <Globe size={16} />,
     // Missing icons that were causing errors
     gamepad2: <Gamepad2 size={16} />,
@@ -381,7 +409,16 @@ export const ICON_TYPES = {
     brain: <Monitor size={16} />,
     // Missing icons causing console errors
     minus: <Minus size={16} />,
-    pin_off: <Pin size={16} />
+    pin_off: <Pin size={16} />,
+    // Aliases without underscores for compatibility
+    checkcircle: <CheckCircle size={16} />,
+    xcircle: <XCircle size={16} />,
+    alertcircle: <AlertCircle size={16} />,
+    helpcircle: <HelpCircle size={16} />,
+    clock: <Clock size={16} />,
+    calendar: <Calendar size={16} />,
+    heart: <Heart size={16} />,
+    star: <Star size={16} />
   }
 };
 
@@ -457,20 +494,81 @@ export const getThemeColor = (colorKey, theme = 'light') => {
 
 // Icon Utility Functions
 export const getIcon = (category, type, size = 16) => {
-  const iconConfig = ICON_TYPES[category]?.[type];
-  if (!iconConfig) {
-    console.warn(`Icon not found: ${category}.${type}`);
-    return <Info size={size} />;
+  // Handle undefined/null type gracefully
+  if (!type || typeof type !== 'string') {
+    // Return a default icon based on category
+    const defaultIcons = {
+      ui: 'folder',
+      activity_type: 'activity',
+      difficulty: 'star',
+      quiz: 'file',
+      homework: 'file',
+      training: 'graduation',
+      project: 'folder',
+      exam: 'file',
+      assignment: 'file',
+      participation: 'user',
+      presentation: 'file',
+      lab: 'flask',
+      trip: 'map',
+      case: 'folder',
+      research: 'search',
+      debate: 'users',
+      workshop: 'users',
+      seminar: 'users'
+    };
+    const defaultIcon = defaultIcons[category] || 'file';
+    const iconConfig = ICON_TYPES[category]?.[defaultIcon];
+    if (iconConfig) {
+      return typeof iconConfig === 'function' ? iconConfig(size) : iconConfig;
+    }
+    return <FileText size={size} />;
   }
   
-  // Clone the icon with custom size if needed
-  return React.cloneElement(iconConfig, { size });
+  const iconConfig = ICON_TYPES[category]?.[type];
+  if (!iconConfig) {
+    // Try to find a similar icon or return default
+    const defaultIcons = {
+      ui: 'folder',
+      activity_type: 'activity',
+      difficulty: 'star',
+      quiz: 'file',
+      homework: 'file',
+      training: 'graduation',
+      project: 'folder',
+      exam: 'file',
+      assignment: 'file',
+      participation: 'user',
+      presentation: 'file',
+      lab: 'flask',
+      trip: 'map',
+      case: 'folder',
+      research: 'search',
+      debate: 'users',
+      workshop: 'users',
+      seminar: 'users'
+    };
+    const defaultIcon = defaultIcons[category] || 'file';
+    const fallbackConfig = ICON_TYPES[category]?.[defaultIcon];
+    if (fallbackConfig) {
+      return typeof fallbackConfig === 'function' ? fallbackConfig(size) : fallbackConfig;
+    }
+    return <FileText size={size} />;
+  }
+  
+  return typeof iconConfig === 'function' ? iconConfig(size) : iconConfig;
 };
 
 export const getIconWithColor = (category, type, size = 16, color = 'currentColor') => {
+  // Skip warning for undefined types - we handle this gracefully
+  if (type === undefined || type === null) {
+    return <Info size={size} color={color} />;
+  }
+  
   const iconConfig = ICON_TYPES[category]?.[type];
   if (!iconConfig) {
-    console.warn(`Icon not found: ${category}.${type}`);
+    // Only warn for defined types that are missing
+    warn(`Icon not found: ${category}.${type}`);
     return <Info size={size} color={color} />;
   }
   

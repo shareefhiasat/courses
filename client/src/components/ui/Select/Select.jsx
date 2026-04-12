@@ -4,7 +4,7 @@ import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Select.module.css';
 import { getComponentStyles, generateCSSVariables } from '@constants/uiTheme';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * Select Component
@@ -175,7 +175,9 @@ const Select = forwardRef(({
     : options;
 
   // Get selected option label
-  const selectedOption = options.find(opt => opt.value === value);
+  // Use loose equality (==) to handle string/number type mismatches
+  // e.g., when value is "1" (string) and opt.value is 1 (number)
+  const selectedOption = options.find(opt => opt.value == value);
   const displayValue = selectedOption
     ? (selectedOption.displayLabel ??
         (typeof selectedOption.label === 'string'
@@ -184,37 +186,23 @@ const Select = forwardRef(({
     : localizedPlaceholder;
 
   const handleSelect = (optionValue) => {
-    logger.log('🔵 [Select] handleSelect called with:', optionValue);
-    logger.log('🔵 [Select] Current value before update:', value);
-    
     try {
       // Normalize the value to ensure it's a string
       const normalizedValue = optionValue !== null && optionValue !== undefined 
         ? String(optionValue) 
         : '';
       
-      logger.log('🔵 [Select] Normalized value:', normalizedValue);
-      
       // Create the event object
       const event = { 
-        target: { 
-          value: normalizedValue,
-          name: rest.name || ''
-        },
-        currentTarget: {
-          value: normalizedValue,
-          name: rest.name || ''
-        },
-        // Add preventDefault and stopPropagation to match DOM event interface
+        target: { value: normalizedValue },
+        currentTarget: { value: normalizedValue },
+        value: normalizedValue,
         preventDefault: () => {},
         stopPropagation: () => {}
       };
       
-      logger.log('🔵 [Select] Calling onChange with event:', event);
-      
       // Call the onChange handler if it's a function
       if (typeof onChange === 'function') {
-        logger.log('🔵 [Select] Calling onChange handler');
         // Call with the event object that has both target.value and a direct value property
         const enhancedEvent = {
           ...event,
@@ -226,22 +214,19 @@ const Select = forwardRef(({
         };
         onChange(enhancedEvent);
       } else {
-        logger.error('❌ [Select] onChange is not a function:', onChange);
+        error('❌ [Select] onChange is not a function:', onChange);
       }
       
       // Close the dropdown and clear search
       setIsOpen(false);
       setSearchTerm('');
       setIsPositioned(false);
-      
-      logger.log('✅ [Select] handleSelect completed for value:', normalizedValue);
     } catch (error) {
-      logger.error('❌ [Select] Error in handleSelect:', error);
+      error('❌ [Select] Error in handleSelect:', error);
     }
   };
 
   const handleClear = (e) => {
-    logger.log('🔄 [Select] handleClear called');
     e.stopPropagation();
     
     const event = {
@@ -255,12 +240,10 @@ const Select = forwardRef(({
       }
     };
     
-    logger.log('🔄 [Select] Calling onChange with clear event:', event);
-    
     if (typeof onChange === 'function') {
       onChange(event);
     } else {
-      logger.error('❌ [Select] onChange is not a function in handleClear:', onChange);
+      error('❌ [Select] onChange is not a function in handleClear:', onChange);
     }
   };
   const wrapperClasses = [
@@ -381,16 +364,20 @@ const Select = forwardRef(({
           >
             {searchable && (
               <div className={styles.searchContainer}>
-                {getThemedIcon('ui', 'search', 16)}
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  className={styles.searchInput}
-                  placeholder={`      ${t('search') || 'Search...'}`}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value || '')}
-                  onClick={(e) => e.stopPropagation()}
-                />
+                <div style={{ position: 'relative' }}>
+                  <span className={styles.searchIcon}>
+                    {getThemedIcon('ui', 'search', 16)}
+                  </span>
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    className={styles.searchInput}
+                    placeholder={t('search') || 'Search...'}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value || '')}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
               </div>
             )}
             
@@ -406,10 +393,6 @@ const Select = forwardRef(({
                   ].filter(Boolean).join(' ');
 
                   const handleOptionClick = (e) => {
-                    logger.log('🟢 [Select] Option clicked:', option.value);
-                    logger.log('🟢 [Select] Event:', e);
-                    logger.log('🟢 [Select] Current target:', e.currentTarget);
-                    
                     // Prevent the event from bubbling up to document
                     e.stopPropagation();
                     if (e.nativeEvent) {

@@ -3,7 +3,8 @@ import { QRCodeSVG } from 'react-qr-code';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 import PortalTooltip from '@ui/PortalTooltip';
-import './StudentQRCodeDisplay.css';
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import './StudentQRCodeDisplay.css';
 
 const StudentQRCodeDisplay = ({ 
   student, 

@@ -2,7 +2,7 @@ import { useMemo, useCallback } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import WidgetConfigurationService from '@services/widgetConfigurationService';
 import useWidgetDashboard from '@hooks/useWidgetDashboard';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * useRoleBasedWidgets
@@ -52,7 +52,7 @@ export default function useRoleBasedWidgets(dashboard, options = {}) {
     try {
       return WidgetConfigurationService.filterWidgetsByPermissions(widgets, userRole);
     } catch (error) {
-      logger.error('[useRoleBasedWidgets] Error filtering widgets:', error);
+      error('[useRoleBasedWidgets] Error filtering widgets:', error);
       return widgets;
     }
   }, [widgets, userRole, filterByPermissions]);
@@ -76,7 +76,7 @@ export default function useRoleBasedWidgets(dashboard, options = {}) {
 
   // Reset to default widgets
   const resetToDefaults = useCallback(() => {
-    logger.log(`[useRoleBasedWidgets] Resetting to default widgets for ${userRole}_${dashboard}`);
+    info(`[useRoleBasedWidgets] Resetting to default widgets for ${userRole}_${dashboard}`);
     setWidgets(defaultWidgets);
     setPinnedIds([]);
   }, [setWidgets, setPinnedIds, defaultWidgets, userRole, dashboard]);

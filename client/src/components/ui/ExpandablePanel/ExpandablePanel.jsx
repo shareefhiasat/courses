@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './ExpandablePanel.module.css';
 
-// Controlled: pass isOpen/onToggle; Uncontrolled: omit both
+
+import { info, error, warn, debug } from '@services/utils/logger.js';// Controlled: pass isOpen/onToggle; Uncontrolled: omit both
 export default function ExpandablePanel({
   title,
   icon,

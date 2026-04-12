@@ -4,7 +4,8 @@ import { useLang } from '@contexts/LangContext';
 import PortalTooltip from '@ui/PortalTooltip';
 import styles from './CollapsibleDashboardSection.module.css';
 
-// Collapse modes:
+
+import { info, error, warn, debug } from '@services/utils/logger.js';// Collapse modes:
 // - 'full': Show everything
 // - 'minimize': Send to bottom right corner (floating restore button)
 

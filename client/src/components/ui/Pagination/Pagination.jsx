@@ -2,7 +2,8 @@ import React from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Pagination.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Pagination Component
  * 
  * Navigate through pages of data.

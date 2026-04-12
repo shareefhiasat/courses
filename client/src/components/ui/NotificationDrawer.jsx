@@ -25,18 +25,24 @@ import { getClasses } from '@services/business/classService';
 import { formatDateTime } from '@utils/date';
 import { Button, Input, Select, Badge, ToggleSwitch } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import { PENALTY_TYPES } from '@constants/penaltyTypes';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
+// OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
+// NOW: Using useLookupTypes hook for all lookup data
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import PortalTooltip from '@ui/PortalTooltip';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { ActivityLogger } from '@services/other/activityLogger';
 import useNotifications from '@hooks/useNotifications';
 
-const NotificationDrawer = ({ isOpen, onClose }) => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const NotificationDrawer = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const { data: lookupData } = useLookupTypes({
+    types: ['penalty-types']
+  });
   const { 
     settings: notificationSettings, 
     updateSetting,
@@ -259,7 +265,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
       try {
         await triggerNotification('default', t('test_notification') || 'Test Notification', t('test_browser_notification_message') || 'This is a test browser notification!');
       } catch (error) {
-        logger.error('Failed to send test notification:', error);
+        error('Failed to send test notification:', error);
       }
     }
   }, [checkSupport, triggerNotification]);
@@ -271,7 +277,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     try {
       await ActivityLogger.notificationDismissed(notificationId);
     } catch (logError) {
-      console.warn('Failed to log notification dismissed activity:', logError);
+      warn('Failed to log notification dismissed activity:', logError);
     }
     
     setLoading(true);
@@ -328,7 +334,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     try {
       await ActivityLogger.notificationClicked(n.id, n.type);
     } catch (logError) {
-      console.warn('Failed to log notification clicked activity:', logError);
+      warn('Failed to log notification clicked activity:', logError);
     }
     
     if (!n.read) await handleMarkAsRead(n.id);
@@ -518,7 +524,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 onChange={(e) => setFilterPenaltyType(e.target.value)}
                 options={[
                   { value: 'all', label: t('all_penalty_types') || 'All Penalty Types' },
-                  ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: pt.label_en }))
+                  ...(lookupData['penalty-types'] || []).map(pt => ({ value: pt.id, label: pt.nameEn || pt.code }))
                 ]}
                 size="small"
                 style={{ flex: 1, minWidth: '100px' }}

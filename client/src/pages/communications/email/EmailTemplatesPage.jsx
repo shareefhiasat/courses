@@ -1,7 +1,8 @@
 import React from 'react';
 import { EmailTemplates } from '@ui';
 
-const EmailTemplatesPage = () => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const EmailTemplatesPage = () => {
   return (
     <div className="email-templates-tab">
       <EmailTemplates />

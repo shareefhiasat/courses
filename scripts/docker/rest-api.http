@@ -1,0 +1,192 @@
+### 📋 GET ADMIN TOKEN
+POST http://localhost:8080/realms/master/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&username=admin&password=admin123&client_id=admin-cli
+
+> {%
+  client.global.set("admin_token", response.body.access_token);
+  client.log("Admin token: " + response.body.access_token);
+%}
+
+###
+
+### ⚠️ CANONICAL FILE LOCATION
+# This file is kept only for backward compatibility.
+# Use this instead:
+#   scripts/docker/keycloak/rest-api.http
+
+<> 2026-03-14T162506.200.json
+<> 2026-03-14T162227.200.json
+<> 2026-03-14T162008.200.json
+<> 2026-03-14T161749.401.json
+
+###
+
+### 🗑️ DELETE EXISTING REALM (if exists)
+DELETE http://localhost:8080/admin/realms/military-lms
+Authorization: Bearer {{admin_token}}
+
+<> 2026-03-14T162508.404.json
+<> 2026-03-14T162230.404.json
+<> 2026-03-14T162112.401.json
+
+###
+
+### 📥 IMPORT NEW REALM
+POST http://localhost:8080/admin/realms
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "id": "military-lms",
+  "realm": "military-lms",
+  "displayName": "Military LMS",
+  "enabled": true,
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "verifyEmail": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 30,
+  "roles": {
+    "realm": [
+      {
+        "id": "super-admin-role",
+        "name": "super-admin",
+        "description": "Super Administrator - Full system access",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "military-lms"
+      },
+      {
+        "id": "admin-role",
+        "name": "admin",
+        "description": "Administrator - Can manage users and content",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "military-lms"
+      },
+      {
+        "id": "hr-role",
+        "name": "hr",
+        "description": "HR - Can manage users and reports",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "military-lms"
+      },
+      {
+        "id": "instructor-role",
+        "name": "instructor",
+        "description": "Instructor - Can manage classes and students",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "military-lms"
+      },
+      {
+        "id": "student-role",
+        "name": "student",
+        "description": "Student - Can view content and submit work",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "military-lms"
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "shareef.hiasat@gmail.com",
+      "email": "shareef.hiasat@gmail.com",
+      "firstName": "Shareef",
+      "lastName": "Hiasat",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Test123@",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["super-admin", "admin", "instructor"]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "military-lms-app",
+      "name": "Military LMS Application",
+      "description": "Main LMS application for military training",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "military-lms-secret-change-me",
+      "redirectUris": ["http://localhost:5174/*", "http://localhost:4001/*"],
+      "webOrigins": ["http://localhost:5174", "http://localhost:4001"],
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect",
+      "fullScopeAllowed": true
+    }
+  ]
+}
+
+<> 2026-03-14T162511.400.json
+<> 2026-03-14T162453.401.json
+
+###
+
+### ✅ VERIFY REALM EXISTS
+GET http://localhost:8080/realms/military-lms/.well-known/openid-configuration
+
+###
+
+### 🧪 TEST SUPER ADMIN LOGIN
+POST http://localhost:8080/realms/military-lms/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&username=shareef.hiasat@gmail.com&password=Test123@&client_id=military-lms-app&client_secret=military-lms-secret-change-me
+
+> {%
+  client.global.set("super_admin_token", response.body.access_token);
+  client.log("Super admin token: " + response.body.access_token);
+%}
+
+###
+
+### 👤 GET SUPER ADMIN USER INFO
+GET http://localhost:8080/realms/military-lms/protocol/openid-connect/userinfo
+Authorization: Bearer {{super_admin_token}}
+
+###
+
+### 📋 LIST ALL REALMS
+GET http://localhost:8080/admin/realms
+Authorization: Bearer {{admin_token}}
+
+###
+
+### 👥 LIST USERS IN MILITARY LMS REALM
+GET http://localhost:8080/admin/realms/military-lms/users
+Authorization: Bearer {{admin_token}}
+
+###
+
+### 🎭 LIST ROLES IN MILITARY LMS REALM
+GET http://localhost:8080/admin/realms/military-lms/roles
+Authorization: Bearer {{admin_token}}
+
+###
+
+### 🔗 LIST CLIENTS IN MILITARY LMS REALM
+GET http://localhost:8080/admin/realms/military-lms/clients
+Authorization: Bearer {{admin_token}}

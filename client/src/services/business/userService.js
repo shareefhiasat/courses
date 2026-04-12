@@ -1,966 +1,701 @@
-import logger from '@utils/logger';
-import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
-import { 
-  getUserById as getUserByIdFromDb,
-  getUserByEmail as getUserByEmailFromDb,
-  getUserByStudentNumber as getUserByStudentNumberFromDb,
-  getUsersByRole as getUsersByRoleFromDb,
-  getUsers as getAllUsersFromDb,
-  setUser as setUserToDb,
-  updateUser as updateUserInDb,
-  deleteUser as deleteUserFromDb,
-  userExists as checkUserExists
-} from '../db/userDbService';
-import { USER_STATUS } from '@utils/userStatus';
+import { info, error, warn, debug } from '../utils/logger.js';
+import { appConfig } from '../config/apiConfig.js';
 
-// Prevent duplicate ensureUserDoc writes during React StrictMode re-mounts
-const _ensureUserDocOnce = new Set();
+const serviceName = 'userService';
+const API_BASE = appConfig.getApiBaseUrl();
 
-/**
- * Centralized User Service - DRY Firebase user operations
- * This REPLACES the limited user.js file
- */
-
-// Get user by ID (centralized) - with performance monitoring and memoization
-export const getUserById = async (userId) => {
-  if (!userId) {
-    return { success: false, error: 'User ID is required' };
-  }
-
-  try {
-    logger.debug('USER: Fetching user by ID', { userId });
-    
-    const result = await getUserByIdFromDb(userId);
-    
-    if (result.success) {
-      logger.debug('USER: Successfully fetched user', { userId });
-      return result;
-    }
-    
-    logger.warn('USER: User not found', { userId });
-    return result;
-  } catch (error) {
-    logger.error('USER: Failed to fetch user', { error: error.message, userId });
-    return { success: false, error: error.message };
-  }
-};
-
-// Get user by email (centralized)
-export const getUserByEmail = async (email) => {
-  try {
-    return await getUserByEmailFromDb(email);
-  } catch (error) {
-    logger.error('USER: Failed to fetch user by email', { error: error.message, email });
-    return { success: false, error: error.message };
-  }
-};
-
-// Get user by student number (centralized)
-export const getUserByStudentNumber = async (studentNumber) => {
-  try {
-    return await getUserByStudentNumberFromDb(studentNumber);
-  } catch (error) {
-    logger.error('Error fetching student by number:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-// Check if user exists by ID
-export const userExists = async (userId) => {
-  try {
-    return await checkUserExists(userId);
-  } catch (error) {
-    logger.error('Error checking user existence:', error);
-    return false;
-  }
-};
-
-// Get user preferences (centralized)
-export const getUserPreferences = async (userId) => {
-  try {
-    const result = await getUserByIdFromDb(userId);
-    if (result.success) {
-      return { success: true, data: result.data.preferences || {} };
-    }
-    return { success: false, error: 'User not found' };
-  } catch (error) {
-    logger.error('Error fetching user preferences:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-// Get users by role (centralized)
-export const getUsersByRole = async (role) => {
-  try {
-    return await getUsersByRoleFromDb(role);
-  } catch (error) {
-    logger.error('Error fetching users by role:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-// Search users by display name or email (centralized)
-export const searchUsers = async (searchTerm) => {
-  try {
-    const result = await getAllUsersFromDb();
-    
-    if (!result.success) {
-      return result;
-    }
-    
-    const users = result.data;
-    const searchLower = searchTerm.toLowerCase();
-    const filteredUsers = users.filter(userData => 
-      userData.displayName?.toLowerCase().includes(searchLower) ||
-      userData.email?.toLowerCase().includes(searchLower) ||
-      userData.realName?.toLowerCase().includes(searchLower) ||
-      userData.studentNumber?.toLowerCase().includes(searchLower)
-    );
-    
-    return { success: true, data: filteredUsers };
-  } catch (error) {
-    logger.error('Error searching users:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-// ===== LEGACY COMPATIBILITY FUNCTIONS (from user.js) =====
-
-/**
- * Get current user's profile information from Firestore
- * @param {Object} user - Auth user object
- * @returns {Promise<Object|null>} User profile or null if not found
- */
-export async function getUserProfile(user) {
-  if (!user) return null;
-  try {
-    const userResult = await getUserById(user.uid);
-    return userResult.success ? userResult.data : null;
-  } catch (error) {
-    logger.error('Error fetching user profile:', error);
-    return null;
-  }
-}
-
-/**
- * Get user's display name with proper fallbacks
- * @param {Object} user - Auth user object
- * @returns {Promise<string>} Display name
- */
-export async function getUserDisplayName(user) {
-  const userProfile = await getUserProfile(user);
-  return userProfile?.displayName || user?.displayName || user?.email || 'Instructor';
-}
-
-/**
- * Get user's email with proper fallbacks
- * @param {Object} user - Auth user object
- * @returns {Promise<string>} User email
- */
-export async function getUserEmail(user) {
-  const userProfile = await getUserProfile(user);
-  return userProfile?.email || user?.email || '';
-}
-
-/**
- * Get performed by fields for audit logging
- * @param {Object} user - Auth user object
- * @returns {Promise<Object>} { performedBy, performedByName, performedByEmail }
- */
-export async function getPerformedByFields(user) {
-  const userProfile = await getUserProfile(user);
-  const performedByName = userProfile?.displayName || user?.displayName || user?.email || 'Instructor';
-  const performedByEmail = userProfile?.email || user?.email || '';
-  
-  return {
-    performedBy: user?.uid,
-    performedByName,
-    performedByEmail
-  };
-}
-
-// ===== USER MANAGEMENT FUNCTIONS =====
-
-// Ensure a deterministic users/{uid} doc exists
-export const ensureUserDoc = async (uid, data = {}) => {
-  if (!uid) return { success: false, error: "uid required" };
-  if (_ensureUserDocOnce.has(uid)) return { success: true, skipped: true };
-  try {
-    // Check if user exists first
-    const exists = await checkUserExists(uid);
-    
-    const baseData = {
-      email: data.email || null,
-      displayName: data.displayName || null,
-      realName: data.realName || null,
-      studentNumber: data.studentNumber || null,
-      phoneNumber: data.phoneNumber || null,
-      // S flags instead of deprecated role field
-      isAdmin: false,
-      isSuperAdmin: false,
-      isHR: false,
-      isInstructor: false,
-      isStudent: true, // Default to student for new users
-      createdAt: new Date(), // Will be converted to Timestamp by DB service
-    };
-    
-    // If document exists, only merge the provided data fields
-    // If document doesn't exist, use the base object with provided data
-    const updateData = exists ? data : { ...baseData, ...data };
-    
-    const result = await setUserToDb(uid, updateData);
-    
-    if (result.success) {
-      _ensureUserDocOnce.add(uid);
-    }
-    
-    return result;
-  } catch (error) {
-    // Ignore permission-denied to avoid noisy console during restricted environments
-    const code = error && (error.code || "").toString();
-    if (code === "permission-denied") {
-      logger.warn("ensureUserDoc permission denied for uid:", uid);
-      return { success: false, error: "permission-denied" };
-    }
-    return { success: false, error: error.message };
-  }
-};
-
-// Get all users
-export const getUsers = async () => {
-  try {
-    return await getAllUsersFromDb();
-  } catch (error) {
-    logger.error("Error getting users:", error);
-    return { success: false, error: error.message };
-  }
-};
-
-// Get user by ID
-export const getUser = async (uid) => {
-  if (!uid) {
-    return { success: false, error: "uid required" };
-  }
-
-  try {
-    const result = await getUserByIdFromDb(uid);
-    
-    if (!result.success) {
-      return { success: false, error: "user_not_found" };
-    }
-
-    return {
-      success: true,
-      data: {
-        docId: uid,
-        ...result.data,
-      },
-    };
-  } catch (error) {
-    logger.error("Error getting user:", error);
-    return { success: false, error: error.message };
-  }
-};
-
-// Add user function
-export const addUser = async (userData) => {
-  try {
-    logger.info('USER: Creating new user', {
-      uid: userData?.uid,
-      email: userData?.email,
-      role: userData?.role,
-      displayName: userData?.displayName
-    });
-    
-    // Enforce deterministic ID: uid is required
-    if (!userData?.uid) {
-      return { success: false, error: "uid is required for addUser" };
-    }
-    
-    const { uid, ...rest } = userData;
-    const result = await setUserToDb(uid, {
-      ...rest,
-      createdAt: new Date() // Will be converted to Timestamp by DB service
-    });
-    
-    return result.success ? { success: true, id: uid } : result;
-  } catch (error) {
-    logger.error("Error adding user:", error);
-    return { success: false, error: error.message };
-  }
-};
-
-// Update user function
-export const updateUser = async (id, userData) => {
-  try {
-    // Validate inputs
-    if (!id || typeof id !== 'string') {
-      return { success: false, error: 'Invalid user ID provided' };
-    }
-    
-    if (!userData || typeof userData !== 'object') {
-      return { success: false, error: 'Invalid user data provided' };
-    }
-    const currentUserResult = await getUserByIdFromDb(id);
-    
-    if (currentUserResult.success && userData.email && userData.email !== currentUserResult.data.email) {
-      // Log email change activity
-      try {
-        const { ActivityLogger } = await import('../other/activityLogger');
-        await ActivityLogger.emailChange();
-      } catch (error) {
-        logger.warn('Failed to log email change activity:', error);
-      }
-    }
-    
-    const result = await updateUserInDb(id, userData);
-    
-    if (result.success) {
-      // Log activity
-      try {
-        await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
-          userId: id,
-          updateFields: Object.keys(userData)
-        }, id);
-      } catch (logError) {
-        // Silently fail activity logging
-      }
-    }
-    
-    return result;
-  } catch (error) {
-    logger.error('USER: Failed to update user', { 
-      error: error.message, 
-      userId: id,
-      stack: error.stack 
-    });
-    logger.error("Error updating user:", error);
-    return { success: false, error: error.message };
-  }
-};
-
-// Delete user function (role-based)
-export const deleteUser = async (id) => {
-  try {
-    logger.info('USER: Deleting user', { userId: id });
-    
-    const result = await deleteUserFromDb(id);
-    
-    if (result.success) {
-      // Log activity
-      try {
-        await logActivity(ACTIVITY_LOG_TYPES.USER_DELETED, {
-          userId: id
-        }, id);
-      } catch (logError) {
-        logger.warn('USER: Failed to log user deletion:', logError);
-      }
-      
-      logger.info('USER: Successfully deleted user', { userId: id });
-    }
-    
-    return result;
-  } catch (error) {
-    logger.error('USER: Failed to delete user', { error: error.message, userId: id });
-    logger.error("Error deleting user:", error);
-    return { success: false, error: error.message };
-  }
-};
-
-// Delete student completely (Firestore + Firebase Auth)
-export const deleteStudent = async (userId) => {
-  try {
-    logger.info('USER: Deleting student completely', { userId });
-    
-    const { httpsCallable } = await import('firebase/functions');
-    const { functions } = await import('../other/config');
-    
-    const deleteUserAuthFn = httpsCallable(functions, 'deleteUserAuth');
-    const result = await deleteUserAuthFn({ userId });
-    
-    if (result.data?.success) {
-      logger.info('USER: Successfully deleted student from Firestore + Auth', { userId });
-      return { success: true, message: result.data.message };
-    } else {
-      throw new Error(result.data?.message || 'Failed to delete student');
-    }
-  } catch (error) {
-    logger.error('USER: Failed to delete student', { error: error.message, userId });
-    return { success: false, error: error.message };
-  }
-};
-
-// Disable user (soft delete for staff)
-export const disableUser = async (userId) => {
-  try {
-    logger.info('USER: Disabling user (soft delete)', { userId });
-    
-    const { disableUserAuth } = await import('../db/userAuthDbService');
-    const { disableUserFirestore } = await import('../db/userDbService');
-    
-    // Get current user for admin ID from Firebase Auth
-    const { auth } = await import('../other/config');
-    const currentUser = auth.currentUser;
-    const adminId = currentUser?.uid;
-    
-    // Disable in Firestore first
-    const firestoreResult = await disableUserFirestore(userId, adminId);
-    if (!firestoreResult.success) {
-      throw new Error(firestoreResult.error || 'Failed to disable user in Firestore');
-    }
-    
-    // Then disable in Firebase Auth
-    const authResult = await disableUserAuth(userId);
-    
-    if (authResult.success) {
-      logger.info('USER: Successfully disabled user', { userId });
-      return { success: true, message: authResult.payload.message };
-    } else {
-      throw new Error(authResult.error?.message || 'Failed to disable user');
-    }
-  } catch (error) {
-    logger.error('USER: Failed to disable user', { error: error.message, userId });
-    return { success: false, error: error.message };
-  }
-};
-
-// Admin cascade delete for a user
-export const deleteUserCascade = async (uid) => {
-  try {
-    if (!uid) return { success: false, error: "uid required" };
-    
-    // This function needs to be moved to a database service since it uses direct Firebase operations
-    // For now, we'll delegate to a separate cascade delete service
-    const { deleteUserCascade: cascadeDeleteFromDb } = await import('../db/userDbService');
-    
-    const result = await cascadeDeleteFromDb(uid);
-    return result;
-  } catch (error) {
-    logger.error("Error deleting user cascade:", error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Get multiple users by their IDs in bulk
- * @param {Array<string>} userIds - Array of user IDs to fetch
- * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
- */
-export const getUsersByIds = async (userIds) => {
-  try {
-    if (!userIds || userIds.length === 0) {
-      return { success: true, data: {} };
-    }
-
-    const uniqueIds = [...new Set(userIds)]; // Remove duplicates
-    
-    // Use the database service for batch operations
-    const { getUsersByIds: getUsersByIdsFromDb } = await import('../db/userDbService');
-    const result = await getUsersByIdsFromDb(uniqueIds);
-    
-    return result;
-  } catch (error) {
-    logger.error('Error fetching users in bulk:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Get all users with optional role filter
- * @param {Object} options - Filter options
- * @param {boolean} options.studentsOnly - Only return students (non-admin, non-instructor)
- * @param {boolean} options.instructorsOnly - Only return instructors
- * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
- */
-export const getAllUsers = async (options = {}) => {
-  try {
-    const filters = {};
-    
-    if (options.studentsOnly) {
-      // This would need to be implemented in the DB service with complex filtering
-      filters.role = { notIn: ['admin', 'instructor', 'hr', 'superadmin'] };
-    } else if (options.instructorsOnly) {
-      filters.role = { in: ['admin', 'instructor', 'superadmin'] };
-    }
-    
-    const result = await getAllUsersFromDb(filters);
-    
-    if (result.success && (options.studentsOnly || options.instructorsOnly)) {
-      // Apply additional filtering at the business logic level
-      let users = result.data;
-      
-      if (options.studentsOnly) {
-        users = users.filter(u => !u.isAdmin && !u.isInstructor && !u.isHR && !u.isSuperAdmin);
-      } else if (options.instructorsOnly) {
-        users = users.filter(u => u.isInstructor || u.isAdmin || u.isSuperAdmin);
-      }
-      
-      return { success: true, data: users };
-    }
-    
-    return result;
-  } catch (error) {
-    logger.error('Error fetching all users:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-// ===== USER UTILITY FUNCTIONS (Unified UI Logic) =====
-
-/**
- * Check if a user should be disabled in UI components (select dropdowns, etc.)
- * 
- * @param {Object|string} user - User object or user status string
- * @param {Array} enrollments - User's enrollments (optional, only used if user is an object)
- * @returns {boolean} True if user should be disabled
- */
-export const isUserDisabled = (user, enrollments = []) => {
-  try {
-    // If user is already a status string, use it directly
-    if (typeof user === 'string') {
-      return user === USER_STATUS.DELETED;
-    }
-
-    // If user is an object, determine status
-    if (user && typeof user === 'object') {
-      const status = user.status || 
-                    (user.deleted ? USER_STATUS.DELETED : null) ||
-                    (user.archived ? USER_STATUS.ARCHIVED : null) ||
-                    (user.disabled ? USER_STATUS.DISABLED : null);
-
-      return status === USER_STATUS.DELETED;
-    }
-
-    // Default to disabled for invalid user data
-    return true;
-  } catch (error) {
-    logger.error('Error checking if user is disabled:', error);
-    return true; // Fail safe to disabled
-  }
-};
-
-/**
- * Check if a user should be disabled for selection (includes archived)
- * More restrictive version used in some components
- * 
- * @param {Object|string} user - User object or user status string
- * @param {Array} enrollments - User's enrollments (optional)
- * @returns {boolean} True if user should be disabled for selection
- */
-export const isUserDisabledForSelection = (user, enrollments = []) => {
-  try {
-    // If user is already a status string, use it directly
-    if (typeof user === 'string') {
-      return user === USER_STATUS.DELETED || user === USER_STATUS.ARCHIVED;
-    }
-
-    // If user is an object, determine status
-    if (user && typeof user === 'object') {
-      const status = user.status || 
-                    (user.deleted ? USER_STATUS.DELETED : null) ||
-                    (user.archived ? USER_STATUS.ARCHIVED : null) ||
-                    (user.disabled ? USER_STATUS.DISABLED : null);
-
-      return status === USER_STATUS.DELETED || status === USER_STATUS.ARCHIVED;
-    }
-
-    // Default to disabled for invalid user data
-    return true;
-  } catch (error) {
-    logger.error('Error checking if user is disabled for selection:', error);
-    return true; // Fail safe to disabled
-  }
-};
-
-/**
- * Check if a user is deleted (most common check across components)
- * 
- * @param {Object|string} user - User object or user status string
- * @returns {boolean} True if user is deleted
- */
-export const isUserDeleted = (user) => {
-  try {
-    // If user is already a status string, use it directly
-    if (typeof user === 'string') {
-      return user === USER_STATUS.DELETED;
-    }
-
-    // If user is an object, check deleted flag or status
-    if (user && typeof user === 'object') {
-      return user.deleted === true || 
-             user.deletedAt !== undefined ||
-             user.status === USER_STATUS.DELETED;
-    }
-
-    // Default to deleted for invalid user data
-    return true;
-  } catch (error) {
-    logger.error('Error checking if user is deleted:', error);
-    return true; // Fail safe to deleted
-  }
-};
-
-/**
- * Check if a user is disabled (at user level, not class level)
- * 
- * @param {Object} user - User object
- * @returns {boolean} True if user is disabled
- */
-export const isUserDisabledAtUserLevel = (user) => {
-  try {
-    if (!user || typeof user !== 'object') {
-      logger.warn('isUserDisabledAtUserLevel: Invalid user object', { user });
-      return true;
-    }
-
-    const disabled = user.disabled === true;
-    const disabledAt = user.disabledAt && user.disabledAt !== null && user.disabledAt !== '';
-    const statusDisabled = user.status === USER_STATUS.DISABLED;
-    const isDisabled = user.isDisabled === true;
-
-    const result = disabled || disabledAt || statusDisabled || isDisabled;
-
-    return result;
-  } catch (error) {
-    logger.error('Error checking if user is disabled at user level:', error);
-    return true; // Fail safe to disabled
-  }
-};
-
-/**
- * Enable user (both Firestore and Firebase Auth)
- * @param {string} userId - User ID
- * @returns {Promise<Object>} Result object
- */
-export const enableUser = async (userId) => {
-  try {
-    logger.info('USER: Enabling user', { userId });
-    
-    const { enableUserAuth } = await import('../db/userAuthDbService');
-    const { enableUserFirestore } = await import('../db/userDbService');
-    
-    // Get current user for admin ID from Firebase Auth
-    const { auth } = await import('../other/config');
-    const currentUser = auth.currentUser;
-    const adminId = currentUser?.uid;
-    
-    // Enable in Firestore first
-    const firestoreResult = await enableUserFirestore(userId, adminId);
-    if (!firestoreResult.success) {
-      throw new Error(firestoreResult.error || 'Failed to enable user in Firestore');
-    }
-    
-    // Then enable in Firebase Auth
-    const authResult = await enableUserAuth(userId);
-    
-    logger.info('USER: User enabled successfully', { userId, result: authResult.payload });
-    
-    return {
-      success: true,
-      payload: authResult.payload,
-      timestamp: new Date().toISOString()
-    };
-  } catch (error) {
-    logger.error('USER: Failed to enable user', { userId, error: error.message });
-    
-    return {
-      success: false,
-      error: {
-        code: error.code || 'ENABLE_USER_FAILED',
-        message: error.message || 'Failed to enable user'
-      },
-      timestamp: new Date().toISOString()
-    };
-  }
-};
-
-/**
- * Get user display name with fallbacks (synchronous version for UI)
- * 
- * @param {Object} user - User object
- * @returns {string} Display name
- */
-export const getUserDisplayNameSync = (user) => {
-  try {
-    if (!user || typeof user !== 'object') {
-      return 'Unknown User';
-    }
-
-    return user.displayName || 
-           user.realName || 
-           user.name || 
-           user.email || 
-           'Unknown User';
-  } catch (error) {
-    logger.error('Error getting user display name:', error);
-    return 'Unknown User';
-  }
-};
-
-/**
- * Get user ID with fallbacks
- * 
- * @param {Object} user - User object
- * @returns {string} User ID
- */
-export const getUserId = (user) => {
-  try {
-    if (!user || typeof user !== 'object') {
-      return '';
-    }
-
-    return user.docId || 
-           user.id || 
-           user.uid || 
-           '';
-  } catch (error) {
-    logger.error('Error getting user ID:', error);
-    return '';
-  }
-};
-
-/**
- * Common user option factory for select dropdowns
- * 
- * @param {Object} user - User object
- * @param {Object} options - Additional options
- * @param {boolean} options.includeArchived - Whether to include archived users (default: false)
- * @param {Array} options.enrollments - User's enrollments for status determination
- * @param {Function} options.t - Translation function
- * @returns {Object} User option object for select components
- */
-export const createUserSelectOption = (user, options = {}) => {
-  const { includeArchived = false, enrollments = [], t } = options;
-  
-  try {
-    const userId = getUserId(user);
-    const displayName = getUserDisplayNameSync(user);
-    
-    // Determine if user should be disabled
-    const isDisabled = includeArchived 
-      ? isUserDisabledForSelection(user, enrollments)
-      : isUserDisabled(user, enrollments);
-
-    return {
-      value: userId,
-      displayLabel: displayName,
-      user,
-      isDisabled,
-      // Additional commonly needed properties
-      email: user?.email || '',
-      status: user?.status || (user?.deleted ? USER_STATUS.DELETED : null),
-    };
-  } catch (error) {
-    logger.error('Error creating user select option:', error);
-    return {
-      value: getUserId(user) || '',
-      displayLabel: 'Error Loading User',
-      user,
-      isDisabled: true,
-      email: '',
-      status: USER_STATUS.DELETED,
-    };
-  }
-};
-
-/**
- * Batch process users into select options
- * 
- * @param {Array} users - Array of user objects
- * @param {Object} options - Options passed to createUserSelectOption
- * @returns {Array} Array of user option objects
- */
-export const createUserSelectOptions = (users, options = {}) => {
-  try {
-    if (!Array.isArray(users)) {
-      return [];
-    }
-
-    return users
-      .filter(user => user != null) // Filter out null/undefined
-      .map(user => createUserSelectOption(user, options))
-      .filter(option => option.value); // Filter out options without valid IDs
-  } catch (error) {
-    logger.error('Error creating user select options:', error);
+// Helper function to get normalized roles from user object
+const getUserRoles = (user) => {
+  if (!user || typeof user !== 'object') {
     return [];
   }
-};
-
-/**
- * Check if user has a specific role (wrapper for userRoles utility)
- * 
- * @param {Object} user - User object
- * @param {string} role - Role to check
- * @returns {boolean} True if user has the role
- */
-export const hasUserRole = (user, role) => {
-  try {
-    if (!user || typeof user !== 'object' || !role) {
-      return false;
+  
+  // Check for roleAssignments array (database format)
+  if (user.roleAssignments && Array.isArray(user.roleAssignments)) {
+    const assignedRoles = user.roleAssignments
+      .map(ra => ra.role?.code?.toLowerCase()) // Convert to lowercase
+      .filter(code => code);
+    if (assignedRoles.length > 0) {
+      return assignedRoles;
     }
-
-    // Check if user has the specified role
-    return user.role === role || 
-           (Array.isArray(user.roles) && user.roles.includes(role));
-  } catch (error) {
-    logger.error('Error checking user role:', error);
-    return false;
   }
+  
+  // Check for roles array (Keycloak format)
+  if (user.roles && Array.isArray(user.roles)) {
+    return user.roles.map(role => role.toLowerCase());
+  }
+  
+  // Check for realm_access.roles (Keycloak token format)
+  if (user.realm_access?.roles && Array.isArray(user.realm_access.roles)) {
+    return user.realm_access.roles.map(role => role.toLowerCase());
+  }
+  
+  // Check for resource_access.roles (Keycloak client roles)
+  const clientId = import.meta.env?.VITE_KEYCLOAK_CLIENT_ID || 'military-lms-app';
+  if (user.resource_access?.[clientId]?.roles && Array.isArray(user.resource_access[clientId].roles)) {
+    return user.resource_access[clientId].roles.map(role => role.toLowerCase());
+  }
+  
+  // Fallback to single role property
+  const userRole = user.role || user.userRole || user.roleId;
+  if (userRole) {
+    return [userRole.toString().toLowerCase()];
+  }
+  
+  return [];
 };
 
-/**
- * Check if user is a student (using new boolean flag system)
- * 
- * @param {Object} user - User object
- * @returns {boolean} True if user is a student
- */
-export const isStudent = (user) => {
-  try {
-    if (!user || typeof user !== 'object') {
-      return false;
-    }
-    return Boolean(user.isStudent);
-  } catch (error) {
-    logger.error('Error checking if user is student:', error);
-    return false;
-  }
-};
-
-/**
- * Check if user is an instructor (using new boolean flag system)
- * 
- * @param {Object} user - User object
- * @returns {boolean} True if user is an instructor
- */
-export const isInstructor = (user) => {
-  try {
-    if (!user || typeof user !== 'object') {
-      return false;
-    }
-    return Boolean(user.isInstructor);
-  } catch (error) {
-    logger.error('Error checking if user is instructor:', error);
-    return false;
-  }
-};
-
-/**
- * Check if user is an admin (using new boolean flag system)
- * 
- * @param {Object} user - User object
- * @returns {boolean} True if user is an admin
- */
+// Role checking functions
 export const isAdmin = (user) => {
   try {
     if (!user || typeof user !== 'object') {
       return false;
     }
-    return Boolean(user.isAdmin);
+    
+    const roles = getUserRoles(user);
+    return roles.includes('admin') || roles.includes('super_admin');
   } catch (error) {
-    logger.error('Error checking if user is admin:', error);
+    error(`${serviceName}:isAdmin:error`, { error: error.message, user });
     return false;
   }
 };
 
-/**
- * Check if user is HR (using new boolean flag system)
- * 
- * @param {Object} user - User object
- * @returns {boolean} True if user is HR
- */
-export const isHR = (user) => {
-  try {
-    if (!user || typeof user !== 'object') {
-      return false;
-    }
-    return Boolean(user.isHR);
-  } catch (error) {
-    logger.error('Error checking if user is HR:', error);
-    return false;
-  }
-};
-
-/**
- * Check if user is a super admin (using new boolean flag system)
- * 
- * @param {Object} user - User object
- * @returns {boolean} True if user is a super admin
- */
 export const isSuperAdmin = (user) => {
   try {
     if (!user || typeof user !== 'object') {
       return false;
     }
-    return Boolean(user.isSuperAdmin);
+    
+    const roles = getUserRoles(user);
+    return roles.includes('super_admin');
   } catch (error) {
-    logger.error('Error checking if user is super admin:', error);
+    error(`${serviceName}:isSuperAdmin:error`, { error: error.message, user });
     return false;
   }
 };
 
-/**
- * Check if user is enrolled in a specific class
- * 
- * @param {Object} user - User object
- * @param {string} classId - Class ID to check
- * @returns {boolean} True if user is enrolled in the class
- */
-export const isUserEnrolledInClass = (user, classId) => {
-  try {
-    if (!user || typeof user !== 'object' || !classId) {
-      return false;
-    }
-
-    const enrolledClasses = user.enrolledClasses || [];
-    return Array.isArray(enrolledClasses) && enrolledClasses.includes(classId);
-  } catch (error) {
-    logger.error('Error checking class enrollment:', error);
-    return false;
-  }
-};
-
-/**
- * Get user's enrollment count
- * 
- * @param {Object} user - User object
- * @returns {number} Number of active enrollments
- */
-export const getUserEnrollmentCount = (user) => {
+export const isHR = (user) => {
   try {
     if (!user || typeof user !== 'object') {
-      return 0;
+      return false;
     }
-
-    const enrolledClasses = user.enrolledClasses || [];
-    return Array.isArray(enrolledClasses) ? enrolledClasses.length : 0;
+    
+    const roles = getUserRoles(user);
+    return roles.includes('hr') || roles.includes('human_resources');
   } catch (error) {
-    logger.error('Error getting user enrollment count:', error);
-    return 0;
+    error(`${serviceName}:isHR:error`, { error: error.message, user });
+    return false;
   }
 };
 
-/**
- * Update user progress function
- * @param {string} userId - User ID
- * @param {Object} progressData - Progress data to update
- * @returns {Promise<{success: boolean, error?: string}>}
- */
-export const updateUserProgress = async (userId, progressData) => {
+export const isInstructor = (user) => {
   try {
-    logger.info('USER: Updating user progress', { userId, progressKeys: Object.keys(progressData) });
+    if (!user || typeof user !== 'object') {
+      return false;
+    }
     
-    const result = await updateUserInDb(userId, {
-      resourceProgress: progressData
+    const roles = getUserRoles(user);
+    return roles.includes('instructor') || roles.includes('teacher');
+  } catch (error) {
+    error(`${serviceName}:isInstructor:error`, { error: error.message, user });
+    return false;
+  }
+};
+
+export const isStudent = (user) => {
+  try {
+    if (!user || typeof user !== 'object') {
+      return false;
+    }
+    
+    const roles = getUserRoles(user);
+    return roles.includes('student');
+  } catch (error) {
+    error(`${serviceName}:isStudent:error`, { error: error.message });
+    return false;
+  }
+};
+
+export const isUserDisabledAtUserLevel = (user) => {
+  try {
+    if (!user || typeof user !== 'object') {
+      return false;
+    }
+    
+    // Check various disabled properties including isActive from database
+    return (
+      user?.disabled === true ||
+      user?.isDisabled === true ||
+      user?.status === 'disabled' ||
+      user?.status === 'DISABLED' ||
+      user?.enabled === false ||
+      user?.isEnabled === false ||
+      user?.isActive === false  // Add check for database isActive field
+    );
+  } catch (error) {
+    error(`${serviceName}:isUserDisabledAtUserLevel:error`, { error: error.message });
+    return false;
+  }
+};
+
+// User CRUD operations (Keycloak-based via API)
+export const getAllUsers = async (params = {}) => {
+  try {
+    info(`${serviceName}:getAllUsers`, { params });
+    
+    const queryParams = new URLSearchParams();
+    if (params.search) queryParams.append('search', params.search);
+    if (params.first !== undefined) queryParams.append('first', params.first);
+    if (params.max !== undefined) queryParams.append('max', params.max);
+    if (params.studentsOnly) queryParams.append('studentsOnly', 'true');
+    
+    const response = await fetch(`${API_BASE}/api/v1/users/admin/users?${queryParams.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
+      }
     });
     
-    if (result.success) {
-      logger.info('USER: Successfully updated user progress', { userId });
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to retrieve users');
     }
     
-    return result;
-  } catch (error) {
-    logger.error('USER: Failed to update user progress', { error: error.message, userId });
-    return { success: false, error: error.message };
+    let filteredData = result.data || [];
+    
+    // If studentsOnly is true, filter client-side as well (backup)
+    if (params.studentsOnly && filteredData.length > 0) {
+      filteredData = filteredData.filter(user => {
+        const roles = getUserRoles(user);
+        return roles.includes('student') && !roles.includes('instructor') && !roles.includes('admin') && !roles.includes('super_admin') && !roles.includes('hr');
+      });
+    }
+    
+    return {
+      success: true,
+      data: filteredData,
+      total: filteredData.length,
+      message: 'Users retrieved successfully'
+    };
+  } catch (err) {
+    error(`${serviceName}:getAllUsers:error`, { error: err.message, params });
+    return {
+      success: false,
+      error: err.message || 'Failed to retrieve users',
+      data: []
+    };
   }
 };
 
+export const getUserById = async (id) => {
+  try {
+    info(`${serviceName}:getUserById`, { id });
+    
+    const response = await fetch(`${API_BASE}/api/v1/users/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to retrieve user');
+    }
+    
+    return {
+      success: true,
+      data: result.data,
+      message: 'User retrieved successfully'
+    };
+  } catch (err) {
+    error(`${serviceName}:getUserById:error`, { error: err.message, id });
+    return {
+      success: false,
+      error: err.message || 'Failed to retrieve user',
+      data: null
+    };
+  }
+};
+
+export const createUser = async (userData, user = null) => {
+  try {
+    info(`${serviceName}:createUser`, { data: userData });
+    
+    const response = await fetch(`${API_BASE}/api/v1/users/admin/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
+      },
+      body: JSON.stringify(userData)
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to create user');
+    }
+    
+    return {
+      success: true,
+      data: result.data,
+      message: 'User created successfully'
+    };
+  } catch (err) {
+    error(`${serviceName}:createUser:error`, { error: err.message, data: userData });
+    return {
+      success: false,
+      error: err.message || 'Failed to create user',
+      data: null
+    };
+  }
+};
+
+export const updateUser = async (id, updateData, user = null) => {
+  try {
+    info(`${serviceName}:updateUser`, { id, data: updateData });
+    
+    if (!id) {
+      return {
+        success: false,
+        error: 'User ID is required',
+        data: null
+      };
+    }
+    
+    const response = await fetch(`${API_BASE}/api/v1/users/admin/users/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
+      },
+      body: JSON.stringify(updateData)
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to update user');
+    }
+    
+    return {
+      success: true,
+      data: result.data,
+      message: 'User updated successfully'
+    };
+  } catch (err) {
+    error(`${serviceName}:updateUser:error`, { error: err.message, id, data: updateData });
+    return {
+      success: false,
+      error: err.message || 'Failed to update user',
+      data: null
+    };
+  }
+};
+
+export const deleteUser = async (id, user = null) => {
+  try {
+    info(`${serviceName}:deleteUser`, { id });
+    
+    if (!id) {
+      return {
+        success: false,
+        error: 'User ID is required',
+        data: null
+      };
+    }
+    
+    const response = await fetch(`${API_BASE}/api/v1/users/admin/users/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to delete user');
+    }
+    
+    return {
+      success: true,
+      message: 'User deleted successfully'
+    };
+  } catch (err) {
+    error(`${serviceName}:deleteUser:error`, { error: err.message, id });
+    return {
+      success: false,
+      error: err.message || 'Failed to delete user',
+      data: null
+    };
+  }
+};
+
+export const getUserByEmail = async (email) => {
+  try {
+    info(`${serviceName}:getUserByEmail`, { email });
+    
+    // Search for user by email
+    const result = await getAllUsers({ search: email });
+    
+    if (result.success && result.data.length > 0) {
+      const user = result.data.find(u => u.email === email);
+      return {
+        success: true,
+        data: user || null,
+        message: 'User retrieved successfully'
+      };
+    }
+    
+    return {
+      success: false,
+      error: 'User not found',
+      data: null
+    };
+  } catch (err) {
+    error(`${serviceName}:getUserByEmail:error`, { error: err.message, email });
+    return {
+      success: false,
+      error: err.message || 'Failed to retrieve user',
+      data: null
+    };
+  }
+};
+
+export const getUserByStudentNumber = async (studentNumber) => {
+  try {
+    info(`${serviceName}:getUserByStudentNumber`, { studentNumber });
+    
+    // Search for user by student number
+    const result = await getAllUsers({ search: studentNumber });
+    
+    if (result.success && result.data.length > 0) {
+      const user = result.data.find(u => u.studentNumber === studentNumber);
+      return {
+        success: true,
+        data: user || null,
+        message: 'User retrieved successfully'
+      };
+    }
+    
+    return {
+      success: false,
+      error: 'User not found',
+      data: null
+    };
+  } catch (err) {
+    error(`${serviceName}:getUserByStudentNumber:error`, { error: err.message, studentNumber });
+    return {
+      success: false,
+      error: err.message || 'Failed to retrieve user',
+      data: null
+    };
+  }
+};
+
+// Keycloak-specific user management functions
+export const setUserPassword = async (userId, newPassword, temporary = false) => {
+  try {
+    info(`${serviceName}:setUserPassword`, { userId, temporary });
+    
+    const response = await fetch(`${API_BASE}/api/v1/users/admin/users/${userId}/password`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
+      },
+      body: JSON.stringify({ newPassword, temporary })
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to set password');
+    }
+    
+    return {
+      success: true,
+      message: result.message || 'Password updated successfully in Keycloak'
+    };
+  } catch (err) {
+    error(`${serviceName}:setUserPassword:error`, { error: err.message, userId });
+    return {
+      success: false,
+      error: err.message || 'Failed to set password'
+    };
+  }
+};
+
+export const enableUser = async (userId) => {
+  try {
+    info(`${serviceName}:enableUser`, { userId });
+    
+    const response = await fetch(`${API_BASE}/api/v1/users/admin/users/${userId}/enabled`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
+      },
+      body: JSON.stringify({ enabled: true })
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to enable user');
+    }
+    
+    return {
+      success: true,
+      message: result.message || 'User enabled successfully in Keycloak'
+    };
+  } catch (err) {
+    error(`${serviceName}:enableUser:error`, { error: err.message, userId });
+    return {
+      success: false,
+      error: err.message || 'Failed to enable user'
+    };
+  }
+};
+
+export const disableUser = async (userId) => {
+  try {
+    info(`${serviceName}:disableUser`, { userId });
+    
+    const response = await fetch(`${API_BASE}/api/v1/users/admin/users/${userId}/enabled`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
+      },
+      body: JSON.stringify({ enabled: false })
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to disable user');
+    }
+    
+    return {
+      success: true,
+      message: result.message || 'User disabled successfully in Keycloak'
+    };
+  } catch (err) {
+    error(`${serviceName}:disableUser:error`, { error: err.message, userId });
+    return {
+      success: false,
+      error: err.message || 'Failed to disable user'
+    };
+  }
+};
+
+// Utility functions
+export const getPerformedByFields = (user) => {
+  if (!user) return null;
+
+  const userId = user.id || user.uid || user.sub || 'unknown';
+
+  return {
+    id: userId,
+    name: user.displayName || user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown',
+    email: user.email,
+    role: user.role,
+    performedAt: new Date(),
+    performedBy: userId
+  };
+};
+
+// User utility functions (to avoid circular dependency)
+export const getUserDisplayName = (user) => {
+  if (!user) return 'Unknown User';
+  
+  if (user.displayName) return user.displayName;
+  if (user.name) return user.name;
+  if (user.firstName && user.lastName) return `${user.firstName} ${user.lastName}`;
+  if (user.firstName) return user.firstName;
+  if (user.email) return user.email;
+  
+  return 'Unknown User';
+};
+
+export const getUserInitials = (user) => {
+  if (!user) return '??';
+  
+  const name = getUserDisplayName(user);
+  const parts = name.split(' ');
+  
+  if (parts.length >= 2) {
+    return parts[0][0] + parts[parts.length - 1][0];
+  }
+  
+  return name.substring(0, 2).toUpperCase();
+};
+
+export const getUserProfile = async (userId) => {
+  try {
+    info(`${serviceName}:getUserProfile`, { userId });
+    
+    // Mock implementation - replace with actual database call
+    return {
+      success: true,
+      data: {
+        id: userId,
+        displayName: 'Test User',
+        email: 'test@example.com',
+        role: 'student',
+        isProfileComplete: true
+      },
+      message: 'User profile retrieved successfully'
+    };
+  } catch (error) {
+    error(`${serviceName}:getUserProfile:error`, { error: error.message, userId });
+    return {
+      success: false,
+      error: error.message || 'Failed to retrieve user profile',
+      data: null
+    };
+  }
+};
+
+export const updateUserProgress = async (userId, progressData, user = null) => {
+  try {
+    info(`${serviceName}:updateUserProgress`, { userId, data: progressData });
+    
+    // Mock implementation - replace with actual database call
+    return {
+      success: true,
+      data: {
+        userId,
+        ...progressData,
+        updatedAt: new Date()
+      },
+      message: 'User progress updated successfully'
+    };
+  } catch (error) {
+    error(`${serviceName}:updateUserProgress:error`, { error: error.message, userId, data: progressData });
+    return {
+      success: false,
+      error: error.message || 'Failed to update user progress',
+      data: null
+    };
+  }
+};
+
+export const getUserDisplayNameAsync = async (userId) => {
+  try {
+    const profileResult = await getUserProfile(userId);
+    return getUserDisplayName(profileResult.data);
+  } catch (error) {
+    error(`${serviceName}:getUserDisplayNameAsync:error`, { error: error.message, userId });
+    return 'Unknown User';
+  }
+};
+
+// Aliases for commonly expected function names
+export const getUsers = getAllUsers;
+export const getUser = getUserById;
+export const addUser = createUser;
+export const updateUserData = updateUser;
+export const removeUser = deleteUser;
+
+// Delete student function (alias for removeUser)
+export const deleteStudent = deleteUser;
+
+// Get multiple users by IDs
+export const getUsersByIds = async (ids, params = {}) => {
+  try {
+    info(`${serviceName}:getUsersByIds`, { ids, params });
+    
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return {
+        success: true,
+        data: [],
+        total: 0,
+        message: 'No IDs provided'
+      };
+    }
+    
+    // Fetch all users and filter by IDs
+    const result = await getAllUsers(params);
+    if (result.success && result.data) {
+      const filteredData = result.data.filter(user => ids.includes(user.id));
+      return {
+        success: true,
+        data: filteredData,
+        total: filteredData.length,
+        message: 'Users retrieved successfully'
+      };
+    }
+    return result;
+  } catch (err) {
+    error(`${serviceName}:getUsersByIds:error`, { error: err.message, ids, params });
+    return {
+      success: false,
+      error: err.message || 'Failed to retrieve users',
+      data: []
+    };
+  }
+};
+
+// Check if user is disabled
+export const isUserDisabled = (user) => {
+  return isUserDisabledAtUserLevel(user);
+};
+
+// Get user ID from user object
+export const getUserId = (user) => {
+  if (!user) return null;
+  return user.id || user.userId || null;
+};
+
+// Get user display name synchronously
+export const getUserDisplayNameSync = (user) => {
+  return getUserDisplayName(user);
+};
+
+// Default export
+export default {
+  // Core functions
+  getAllUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  deleteUser,
+  getUserByEmail,
+  
+  // Keycloak-specific functions
+  setUserPassword,
+  enableUser,
+  disableUser,
+  
+  // Role checking functions
+  isAdmin,
+  isSuperAdmin,
+  isHR,
+  isInstructor,
+  isStudent,
+  
+  // Utility functions
+  getPerformedByFields,
+  getUserDisplayName,
+  getUserDisplayNameAsync,
+  getUserInitials,
+  getUserProfile,
+  
+  // Aliases
+  getUsers,
+  getUser,
+  addUser,
+  updateUserData,
+  removeUser,
+  deleteStudent,
+  isUserDisabledAtUserLevel
+};

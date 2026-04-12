@@ -1,7 +1,8 @@
 import React from 'react';
 import FilterChips from './FilterChips';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'Shared/UI/FilterChips',
   component: FilterChips,
   parameters: {

@@ -1,12 +1,12 @@
-﻿/**
+/**
  * Timezone Utilities for Qatar (UTC+3)
  * Default system timezone for all date/time operations
  */
 
 import { toZonedTime, fromZonedTime, format } from 'date-fns-tz';
-import { serverTimestamp, Timestamp } from 'firebase/firestore';
 
-// Qatar timezone constant
+
+import { info, error, warn, debug } from '@services/utils/logger.js';// Qatar timezone constant
 export const QATAR_TIMEZONE = 'Asia/Qatar'; // UTC+3
 export const QATAR_UTC_OFFSET = '+03:00';
 
@@ -26,7 +26,7 @@ export function getQatarNow() {
 export function toQatarTime(date) {
   if (!date) return null;
   
-  // Handle Firestore Timestamp
+  // Handle mock timestamp (removed Firebase)
   if (date?.toDate && typeof date.toDate === 'function') {
     return toZonedTime(date.toDate(), QATAR_TIMEZONE);
   }
@@ -119,23 +119,24 @@ export function getQatarTimeAgo(date) {
 }
 
 /**
- * Get serverTimestamp for Firestore (saves as UTC)
- * This should be used for all createdAt/updatedAt fields
- * The date will be stored as UTC in Firestore, then converted to Qatar timezone for display
+ * Get mock server timestamp
+ * Replaced Firebase serverTimestamp with current UTC timestamp
  */
-export { serverTimestamp };
+export function serverTimestamp() {
+  return new Date().toISOString();
+}
 
 /**
- * Create a Timestamp from Qatar timezone (converts to UTC for storage)
+ * Create a timestamp from Qatar timezone (converts to UTC for storage)
  * @param {Date} qatarDate - Date in Qatar timezone
- * @returns {Timestamp} Firestore Timestamp (UTC)
+ * @returns {string} ISO timestamp (UTC)
  */
 export function qatarDateToTimestamp(qatarDate) {
   if (!qatarDate) return null;
   
   // Convert Qatar time to UTC
   const utcDate = fromZonedTime(qatarDate, QATAR_TIMEZONE);
-  return Timestamp.fromDate(utcDate);
+  return utcDate.toISOString();
 }
 
 

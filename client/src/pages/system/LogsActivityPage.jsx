@@ -5,11 +5,12 @@ import { useToast } from '@ui';
 import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Input, Select, UserSelect, DateRangeSlider, AdvancedDataGrid, Modal } from '@ui';
-import { getLoginLogs, deleteAllLoginLogs, deleteLoginLogsByType } from '@services/business/activityService';
+import { getLoginLogs, deleteAllLoginLogs, deleteLoginLogsByType } from '@services/business/activitiesService';
 import { getUsers } from '@services/business/userService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
-import { 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import { 
   LogIn, 
   LogOut, 
   Clock, 
@@ -93,7 +94,7 @@ const LogsActivityPage = () => {
         setEnrollments(enrollmentsRes.data);
       }
     } catch (error) {
-      logger.error('Error loading logs data:', error);
+      error('Error loading logs data:', error);
       toast?.showError('Failed to load activity logs');
     } finally {
       if (!isInitial) setLoading(false);
@@ -586,7 +587,7 @@ const LogsActivityPage = () => {
                       toast?.showError('Failed to delete login logs: ' + result.error);
                     }
                   } catch (error) {
-                    logger.error('Error deleting login logs:', error);
+                    error('Error deleting login logs:', error);
                     toast?.showError('An error occurred while deleting login logs');
                   } finally {
                     setLoading(false);
@@ -648,7 +649,7 @@ const LogsActivityPage = () => {
               // For penalty viewing activities, use Qatar timezone and log details
               if (activityType === 'penalty_viewed') {
                 const qatarTimeAgo = getQatarTimeAgo(date);
-                logger.debug('🔍 PENALTY VIEWING DISPLAY - Rendering timestamp:', {
+                debug('🔍 PENALTY VIEWING DISPLAY - Rendering timestamp:', {
                   rawTimestamp: timestamp,
                   convertedDate: date,
                   convertedDateUTC: date.toISOString(),

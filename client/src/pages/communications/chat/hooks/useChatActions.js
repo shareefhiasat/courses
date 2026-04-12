@@ -4,21 +4,14 @@
  */
 
 import { useCallback, useRef } from 'react';
-import { serverTimestamp } from 'firebase/firestore';
-import { 
-  ref, 
-  uploadBytesResumable, 
-  getDownloadURL, 
-  deleteObject 
-} from 'firebase/storage';
-import { storage } from '@services/other/config';
 import { chatService } from '@services/business/chatService';
+import { getChatServerTimestamp, uploadChatFile, deleteChatFile } from '@services/business/chatRealtimeService';
 import { addNotification } from '@services/business/notificationService';
 import { getUsers } from '@services/business/userService';
 import { filterBadWords } from '@utils/badWordFilter';
 import { canParticipate } from '@utils/userStatus';
 import { ActivityLogger } from '@services/other/activityLogger';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 import {
   MESSAGE_TYPES,
@@ -86,7 +79,7 @@ export const useChatActions = (user, state, toast, t) => {
 
   // Load class members
   const loadClassMembers = useCallback(async (classId) => {
-    logger.info('loadClassMembers called', { 
+    info('loadClassMembers called', { 
       classId, 
       hasUser: !!user,
       userId: user?.uid,
@@ -94,33 +87,33 @@ export const useChatActions = (user, state, toast, t) => {
     });
     
     if (!user) {
-      logger.warn('loadClassMembers early return - no user');
+      warn('loadClassMembers early return - no user');
       return;
     }
     
     if (classId === 'global') {
-      logger.info('Loading global chat members');
+      info('Loading global chat members');
       if (safeAllUsers.length > 0) {
-        logger.info('Using cached allUsers for global chat', { count: safeAllUsers.length });
+        info('Using cached allUsers for global chat', { count: safeAllUsers.length });
         state.setClassMembers(safeAllUsers.filter(u => u.docId !== user.uid && u.email !== user.email));
       } else {
-        logger.info('Fetching allUsers for global chat');
+        info('Fetching allUsers for global chat');
         const usersResult = await getUsers();
         const all = usersResult.success ? (usersResult.data || []) : [];
-        logger.info('Fetched allUsers', { count: all.length, success: usersResult.success });
+        info('Fetched allUsers', { count: all.length, success: usersResult.success });
         state.setAllUsers(all);
         state.setClassMembers(all.filter(u => u.docId !== user.uid && u.email !== user.email));
       }
       return;
     }
     
-    logger.info('Loading class members', { classId });
+    info('Loading class members', { classId });
     
     let allUsersToUse;
     if (safeAllUsers.length > 0) {
       allUsersToUse = safeAllUsers;
     } else {
-      logger.info('Fetching allUsers for class members');
+      info('Fetching allUsers for class members');
       const result = await getUsers();
       allUsersToUse = result.success ? (result.data || []) : [];
     }
@@ -149,7 +142,7 @@ export const useChatActions = (user, state, toast, t) => {
       if (!members.some(m => m.docId === a.docId)) members.push(a); 
     });
     
-    logger.info('Setting class members', { 
+    info('Setting class members', { 
       classId, 
       membersCount: members.length,
       adminsCount: admins.length
@@ -158,7 +151,7 @@ export const useChatActions = (user, state, toast, t) => {
     state.setClassMembers(members);
     
     if (safeAllUsers.length === 0) {
-      logger.info('Updating allUsers cache', { count: allUsersToUse.length });
+      info('Updating allUsers cache', { count: allUsersToUse.length });
       state.setAllUsers(allUsersToUse);
     }
   }, [user, safeAllUsers, state]);
@@ -194,7 +187,7 @@ export const useChatActions = (user, state, toast, t) => {
         type: chatType,
         classId: chatType === CHAT_TYPES.CLASS ? chatId : null,
         roomId: chatType === CHAT_TYPES.DM ? chatId : null,
-        createdAt: serverTimestamp(),
+        createdAt: getChatServerTimestamp(),
         readBy: [user.uid]
       };
       
@@ -202,8 +195,6 @@ export const useChatActions = (user, state, toast, t) => {
       if (audioBlob) {
         try {
           const voicePath = `voice-messages/${Date.now()}_${user.uid}.webm`;
-          const voiceRef = ref(storage, voicePath);
-          
           const metadata = {
             contentType: audioBlob.type || 'audio/webm',
             cacheControl: 'public, max-age=31536000',
@@ -212,28 +203,15 @@ export const useChatActions = (user, state, toast, t) => {
               timestamp: Date.now().toString()
             }
           };
-          
-          const uploadTask = uploadBytesResumable(voiceRef, audioBlob, metadata);
-          
-          await new Promise((resolve, reject) => {
-            uploadTask.on('state_changed', 
-              (snapshot) => {},
-              (error) => {
-                logger.error('Voice upload failed:', error);
-                reject(error);
-              },
-              () => resolve()
-            );
-          });
-          
-          const voiceUrl = await getDownloadURL(voiceRef);
+
+          const { fileUrl: voiceUrl } = await uploadChatFile(voicePath, audioBlob, metadata);
           messageData.messageType = MESSAGE_TYPES.VOICE;
           messageData.voiceUrl = voiceUrl;
           messageData.voicePath = voicePath;
           messageData.duration = recordingTime;
           messageData.content = '[Voice Message]';
         } catch (uploadError) {
-          logger.error('Voice upload failed:', uploadError);
+          error('Voice upload failed:', uploadError);
           toast?.showError('Failed to upload voice message. Please check your internet connection and try again.');
           setIsUploading(false);
           return;
@@ -242,10 +220,7 @@ export const useChatActions = (user, state, toast, t) => {
         // File attachment
         const safeName = sanitizeFilename(attachedFile.name);
         const filePath = `chat-attachments/${Date.now()}_${user.uid}_${safeName}`;
-        const fileRef = ref(storage, filePath);
-        
-        await uploadBytesResumable(fileRef, attachedFile);
-        const fileUrl = await getDownloadURL(fileRef);
+        const { fileUrl } = await uploadChatFile(filePath, attachedFile);
         
         messageData.messageType = MESSAGE_TYPES.FILE;
         messageData.fileUrl = fileUrl;
@@ -281,7 +256,7 @@ export const useChatActions = (user, state, toast, t) => {
           hasAttachment: !!(messageData.voiceUrl || messageData.fileUrl)
         });
       } catch (logError) {
-        logger.warn('Failed to log message sent activity:', logError);
+        warn('Failed to log message sent activity:', logError);
       }
 
       // Notify for global chat
@@ -306,7 +281,7 @@ export const useChatActions = (user, state, toast, t) => {
       
       resetInputState();
     } catch (error) {
-      logger.error('Error sending message:', error);
+      error('Error sending message:', error);
       toast?.showError('Failed to send message');
     } finally {
       setIsUploading(false);
@@ -392,7 +367,7 @@ export const useChatActions = (user, state, toast, t) => {
       }, 1000);
       
     } catch (error) {
-      logger.error('Error starting recording:', error);
+      error('Error starting recording:', error);
       toast?.showError('Microphone access denied');
     }
   }, [user, toast, state]);
@@ -423,10 +398,10 @@ export const useChatActions = (user, state, toast, t) => {
     try {
       // Delete storage files if any
       if (msg.voicePath) {
-        try { await deleteObject(ref(storage, msg.voicePath)); } catch {}
+        try { await deleteChatFile(msg.voicePath); } catch {}
       }
       if (msg.filePath) {
-        try { await deleteObject(ref(storage, msg.filePath)); } catch {}
+        try { await deleteChatFile(msg.filePath); } catch {}
       }
       
       await chatService.deleteMessage(msg.id);
@@ -446,7 +421,7 @@ export const useChatActions = (user, state, toast, t) => {
       
       toast?.showSuccess('Message deleted');
     } catch (err) {
-      logger.error('Delete message failed:', err);
+      error('Delete message failed:', err);
       toast?.showError('Failed to delete message');
     }
   }, [user, toast]);
@@ -464,7 +439,7 @@ export const useChatActions = (user, state, toast, t) => {
       await chatService.editMessage(state.editingMsg.id, filteredContent);
 
       if (originalContent !== filteredContent) {
-        logger.warn('Message content filtered for inappropriate content', {
+        warn('Message content filtered for inappropriate content', {
           originalLength: originalContent.length,
           filteredLength: filteredContent.length,
           userId: user?.uid
@@ -475,7 +450,7 @@ export const useChatActions = (user, state, toast, t) => {
       setEditingMsg(null);
       toast?.showSuccess(t('chat_saved'));
     } catch (e) {
-      logger.error('Edit failed', e);
+      error('Edit failed', e);
       toast?.showError(t('chat_failed_to_save'));
     }
   }, [state.editingMsg, user, toast, t, setEditingMsg]);
@@ -485,7 +460,7 @@ export const useChatActions = (user, state, toast, t) => {
     const otherUserId = otherUser?.docId || otherUser?.id || otherUser?.uid;
     
     if (!otherUserId || otherUserId === user.uid) {
-      logger.warn('openDMWith validation failed', { 
+      warn('openDMWith validation failed', { 
         otherUserId,
         isSelf: otherUserId === user.uid,
         currentUserId: user?.uid
@@ -498,7 +473,7 @@ export const useChatActions = (user, state, toast, t) => {
       setSelectedClass(`dm:${roomId}`);
       setShowMembers(false);
     } catch (err) {
-      logger.error('Open DM failed:', err);
+      error('Open DM failed:', err);
       toast?.showError('Failed to start conversation');
     }
   }, [user, setSelectedClass, setShowMembers, toast]);
@@ -526,7 +501,7 @@ export const useChatActions = (user, state, toast, t) => {
                        (t('their_messages') || 'Their messages');
       toast?.showSuccess(`${modeLabel} ${t('cleared') || 'cleared'}`);
     } catch (err) {
-      logger.error('Clear messages failed:', err);
+      error('Clear messages failed:', err);
       toast?.showError(t('failed_to_clear_messages') || 'Failed to clear messages');
     }
   }, [user, toast, t, setDmContextMenu]);
@@ -544,7 +519,7 @@ export const useChatActions = (user, state, toast, t) => {
       setSelectedClass('global');
       toast?.showSuccess(t('conversation_deleted') || 'Conversation deleted');
     } catch (err) {
-      logger.error('Delete conversation failed:', err);
+      error('Delete conversation failed:', err);
       toast?.showError(t('failed_to_delete_conversation') || 'Failed to delete conversation');
     }
   }, [user, safeDirectRooms, selectedClass, setShowDeleteDMConfirm, setSelectedClass, toast]);
@@ -571,21 +546,21 @@ export const useChatActions = (user, state, toast, t) => {
         pollQuestion: pollQuestion.trim(),
         pollOptions: pollOptions.filter(o => o.trim()),
         pollVotes: {},
-        createdAt: serverTimestamp()
+        createdAt: getChatServerTimestamp()
       };
       
       await chatService.createPollMessage(pollData);
       resetPollState();
       toast?.showSuccess('Poll created!');
     } catch (err) {
-      logger.error('Failed to create poll:', err);
+      error('Failed to create poll:', err);
       toast?.showError('Failed to create poll');
     }
   }, [pollQuestion, pollOptions, selectedClass, user, profileName, resetPollState, toast]);
 
   // Class change
   const handleClassChange = useCallback((classId) => {
-    logger.info('handleClassChange called', { 
+    info('handleClassChange called', { 
       classId, 
       previousClassId: selectedClass,
       isDM: classId?.startsWith('dm:'),

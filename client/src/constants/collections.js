@@ -1,142 +1,221 @@
-/**
- * Database Collection Constants
- * Centralized collection names to avoid hardcoded strings throughout the application
- * Following DRY principles and maintainability best practices
- */
+import { info, error, warn, debug } from '../services/utils/logger.js';
 
-// Core Collections
-export const COLLECTIONS = {
+// Core Tables
+export const TABLES = {
   // User Management
   USERS: 'users',
-  USER_AUTH: 'userAuth',
+  USER_AUTH: 'user_auth',
+  USER_PROFILES: 'user_profiles',
   
   // Academic Structure
   PROGRAMS: 'programs',
-  COURSES: 'courses',
   SUBJECTS: 'subjects',
   CLASSES: 'classes',
   CATEGORIES: 'categories',
+  DEPARTMENTS: 'departments',
   
   // Enrollment & Progress
   ENROLLMENTS: 'enrollments',
-  SUBJECT_ENROLLMENTS: 'subjectEnrollments',
-  STUDENT_PROGRESS: 'studentProgress',
+  SUBJECT_ENROLLMENTS: 'subject_enrollments',
+  STUDENT_PROGRESS: 'student_progress',
+  GRADES: 'grades',
   
   // Quizzes & Assessments
   QUIZZES: 'quizzes',
-  QUIZ_SUBMISSIONS: 'quizSubmissions',
-  QUIZ_RESULTS: 'quizResults',
-  QUESTION_BANK: 'questionBank',
-  SUBMISSIONS: 'submissions',
+  QUIZ_SUBMISSIONS: 'quiz_submissions',
+  QUIZ_RESULTS: 'quiz_results',
+  QUIZ_QUESTIONS: 'quiz_questions',
+  QUIZ_ANSWERS: 'quiz_answers',
+  ASSESSMENTS: 'assessments',
   
-  // Attendance
+  // Attendance & Behavior
   ATTENDANCE: 'attendance',
-  ATTENDANCE_SESSIONS: 'attendanceSessions',
-  ATTENDANCE_SESSIONS_SUBCOLLECTION: 'classes/{classId}/sessions',
-  
-  // Chat & Communication
-  CHAT_ROOMS: 'chatRooms',
-  CHAT_MESSAGES: 'chatMessages',
-  DIRECT_ROOMS: 'directRooms',
-  
-  // Activities & Logging
-  ACTIVITIES: 'activities',
-  ACTIVITY_LOG: 'activityLog',
-  
-  // Notifications
-  NOTIFICATIONS: 'notifications',
-  
-  // Resources & Templates
-  RESOURCES: 'resources',
-  EMAIL_TEMPLATES: 'emailTemplates',
-  
-  // Behavior & Gamification
-  BEHAVIOR: 'behaviors',
+  ATTENDANCE_RECORDS: 'attendance_records',
+  BEHAVIOR: 'behavior',
   PENALTIES: 'penalties',
+  PARTICIPATION: 'participation',
   GAMIFICATION: 'gamification',
-  PARTICIPATION: 'participations',
   
-  // Bookmarks
-  BOOKMARKS: 'bookmarks',
-  
-  // Announcements
+  // Communication
+  CHAT_ROOMS: 'chat_rooms',
+  CHAT_MESSAGES: 'chat_messages',
+  NOTIFICATIONS: 'notifications',
+  EMAIL_TEMPLATES: 'email_templates',
   ANNOUNCEMENTS: 'announcements',
   
-  // Schedule
-  SCHEDULE: 'schedule'
+  // Resources & Activities
+  RESOURCES: 'resources',
+  ACTIVITIES: 'activities',
+  ACTIVITY_SUBMISSIONS: 'activity_submissions',
+  FILES: 'files',
+  MEDIA: 'media'
 };
 
-// Collection Groups for easier access
-export const USER_COLLECTIONS = {
-  USERS: COLLECTIONS.USERS,
-  USER_AUTH: COLLECTIONS.USER_AUTH
+// Table Categories
+export const USER_TABLES = {
+  USERS: TABLES.USERS,
+  USER_AUTH: TABLES.USER_AUTH,
+  USER_PROFILES: TABLES.USER_PROFILES
 };
 
-export const ACADEMIC_COLLECTIONS = {
-  PROGRAMS: COLLECTIONS.PROGRAMS,
-  COURSES: COLLECTIONS.COURSES,
-  SUBJECTS: COLLECTIONS.SUBJECTS,
-  CLASSES: COLLECTIONS.CLASSES,
-  CATEGORIES: COLLECTIONS.CATEGORIES
+export const ACADEMIC_TABLES = {
+  PROGRAMS: TABLES.PROGRAMS,
+  SUBJECTS: TABLES.SUBJECTS,
+  CLASSES: TABLES.CLASSES,
+  CATEGORIES: TABLES.CATEGORIES,
+  DEPARTMENTS: TABLES.DEPARTMENTS
 };
 
-export const ENROLLMENT_COLLECTIONS = {
-  ENROLLMENTS: COLLECTIONS.ENROLLMENTS,
-  SUBJECT_ENROLLMENTS: COLLECTIONS.SUBJECT_ENROLLMENTS,
-  STUDENT_PROGRESS: COLLECTIONS.STUDENT_PROGRESS
+export const ENROLLMENT_TABLES = {
+  ENROLLMENTS: TABLES.ENROLLMENTS,
+  SUBJECT_ENROLLMENTS: TABLES.SUBJECT_ENROLLMENTS,
+  STUDENT_PROGRESS: TABLES.STUDENT_PROGRESS,
+  GRADES: TABLES.GRADES
 };
 
-export const QUIZ_COLLECTIONS = {
-  QUIZZES: COLLECTIONS.QUIZZES,
-  QUIZ_SUBMISSIONS: COLLECTIONS.QUIZ_SUBMISSIONS,
-  QUIZ_RESULTS: COLLECTIONS.QUIZ_RESULTS,
-  QUESTION_BANK: COLLECTIONS.QUESTION_BANK,
-  SUBMISSIONS: COLLECTIONS.SUBMISSIONS
+export const QUIZ_TABLES = {
+  QUIZZES: TABLES.QUIZZES,
+  QUIZ_SUBMISSIONS: TABLES.QUIZ_SUBMISSIONS,
+  QUIZ_RESULTS: TABLES.QUIZ_RESULTS,
+  QUIZ_QUESTIONS: TABLES.QUIZ_QUESTIONS,
+  QUIZ_ANSWERS: TABLES.QUIZ_ANSWERS,
+  ASSESSMENTS: TABLES.ASSESSMENTS
 };
 
-export const CHAT_COLLECTIONS = {
-  CHAT_ROOMS: COLLECTIONS.CHAT_ROOMS,
-  CHAT_MESSAGES: COLLECTIONS.CHAT_MESSAGES,
-  DIRECT_ROOMS: COLLECTIONS.DIRECT_ROOMS
+export const ATTENDANCE_TABLES = {
+  ATTENDANCE: TABLES.ATTENDANCE,
+  ATTENDANCE_RECORDS: TABLES.ATTENDANCE_RECORDS,
+  BEHAVIOR: TABLES.BEHAVIOR,
+  PENALTIES: TABLES.PENALTIES,
+  PARTICIPATION: TABLES.PARTICIPATION,
+  GAMIFICATION: TABLES.GAMIFICATION
 };
 
-export const ACTIVITY_COLLECTIONS = {
-  ACTIVITIES: COLLECTIONS.ACTIVITIES,
-  ACTIVITY_LOG: COLLECTIONS.ACTIVITY_LOG
+export const COMMUNICATION_TABLES = {
+  CHAT_ROOMS: TABLES.CHAT_ROOMS,
+  CHAT_MESSAGES: TABLES.CHAT_MESSAGES,
+  NOTIFICATIONS: TABLES.NOTIFICATIONS,
+  EMAIL_TEMPLATES: TABLES.EMAIL_TEMPLATES,
+  ANNOUNCEMENTS: TABLES.ANNOUNCEMENTS
 };
 
-export const NOTIFICATION_COLLECTIONS = {
-  NOTIFICATIONS: COLLECTIONS.NOTIFICATIONS,
-  EMAIL_TEMPLATES: COLLECTIONS.EMAIL_TEMPLATES,
-  RESOURCES: COLLECTIONS.RESOURCES
+export const RESOURCE_TABLES = {
+  RESOURCES: TABLES.RESOURCES,
+  ACTIVITIES: TABLES.ACTIVITIES,
+  ACTIVITY_SUBMISSIONS: TABLES.ACTIVITY_SUBMISSIONS,
+  FILES: TABLES.FILES,
+  MEDIA: TABLES.MEDIA
 };
 
-export const BEHAVIOR_COLLECTIONS = {
-  BEHAVIOR: COLLECTIONS.BEHAVIOR,
-  PENALTIES: COLLECTIONS.PENALTIES,
-  GAMIFICATION: COLLECTIONS.GAMIFICATION,
-  PARTICIPATION: COLLECTIONS.PARTICIPATION
+// Helper function to validate table names
+export const isValidTable = (tableName) => {
+  return Object.values(TABLES).includes(tableName);
 };
 
-// Helper function to validate collection names
-export const isValidCollection = (collectionName) => {
-  return Object.values(COLLECTIONS).includes(collectionName);
-};
-
-// Helper function to get collection by category
-export const getCollectionsByCategory = (category) => {
+// Helper function to get tables by category
+export const getTablesByCategory = (category) => {
   const categories = {
-    USER: USER_COLLECTIONS,
-    ACADEMIC: ACADEMIC_COLLECTIONS,
-    ENROLLMENT: ENROLLMENT_COLLECTIONS,
-    QUIZ: QUIZ_COLLECTIONS,
-    CHAT: CHAT_COLLECTIONS,
-    ACTIVITY: ACTIVITY_COLLECTIONS,
-    NOTIFICATION: NOTIFICATION_COLLECTIONS,
-    BEHAVIOR: BEHAVIOR_COLLECTIONS
+    USER: USER_TABLES,
+    ACADEMIC: ACADEMIC_TABLES,
+    ENROLLMENT: ENROLLMENT_TABLES,
+    QUIZ: QUIZ_TABLES,
+    ATTENDANCE: ATTENDANCE_TABLES,
+    COMMUNICATION: COMMUNICATION_TABLES,
+    RESOURCE: RESOURCE_TABLES
   };
   
-  return categories[category.toUpperCase()] || {};
+  return categories[category] || {};
 };
 
-export default COLLECTIONS;
+// Helper function to get table relationships
+export const getTableRelationships = (tableName) => {
+  const relationships = {
+    [TABLES.USERS]: {
+      oneToMany: [TABLES.ENROLLMENTS, TABLES.ATTENDANCE, TABLES.GRADES],
+      manyToMany: [TABLES.CLASSES, TABLES.SUBJECTS]
+    },
+    [TABLES.PROGRAMS]: {
+      oneToMany: [TABLES.SUBJECTS, TABLES.CLASSES, TABLES.ENROLLMENTS],
+      manyToMany: [TABLES.USERS]
+    },
+    [TABLES.CLASSES]: {
+      oneToMany: [TABLES.ATTENDANCE, TABLES.ENROLLMENTS],
+      manyToMany: [TABLES.USERS, TABLES.SUBJECTS]
+    },
+    [TABLES.SUBJECTS]: {
+      oneToMany: [TABLES.QUIZZES, TABLES.ACTIVITIES],
+      manyToMany: [TABLES.USERS, TABLES.CLASSES]
+    },
+    [TABLES.QUIZZES]: {
+      oneToMany: [TABLES.QUIZ_QUESTIONS, TABLES.QUIZ_SUBMISSIONS],
+      manyToMany: [TABLES.SUBJECTS, TABLES.CLASSES]
+    }
+  };
+  
+  return relationships[tableName] || { oneToMany: [], manyToMany: [] };
+};
+
+// Helper function to get primary key for table
+export const getPrimaryKey = (tableName) => {
+  const primaryKeys = {
+    [TABLES.USERS]: 'id',
+    [TABLES.PROGRAMS]: 'id',
+    [TABLES.SUBJECTS]: 'id',
+    [TABLES.CLASSES]: 'id',
+    [TABLES.ENROLLMENTS]: 'id',
+    [TABLES.QUIZZES]: 'id',
+    [TABLES.ATTENDANCE]: 'id',
+    [TABLES.NOTIFICATIONS]: 'id',
+    [TABLES.ACTIVITIES]: 'id'
+  };
+  
+  return primaryKeys[tableName] || 'id';
+};
+
+// Helper function to get common fields for tables
+export const getCommonFields = (tableName) => {
+  const commonFields = {
+    created_at: 'timestamp',
+    updated_at: 'timestamp',
+    deleted_at: 'timestamp',
+    is_active: 'boolean',
+    created_by: 'integer',
+    updated_by: 'integer'
+  };
+  
+  // Some tables might have additional common fields
+  const tableSpecificFields = {
+    [TABLES.USERS]: {
+      ...commonFields,
+      email: 'varchar',
+      password_hash: 'varchar',
+      role: 'varchar',
+      status: 'varchar'
+    },
+    [TABLES.PROGRAMS]: {
+      ...commonFields,
+      name: 'varchar',
+      description: 'text',
+      duration: 'integer',
+      credits: 'integer'
+    }
+  };
+  
+  return tableSpecificFields[tableName] || commonFields;
+};
+
+export default {
+  TABLES,
+  USER_TABLES,
+  ACADEMIC_TABLES,
+  ENROLLMENT_TABLES,
+  QUIZ_TABLES,
+  ATTENDANCE_TABLES,
+  COMMUNICATION_TABLES,
+  RESOURCE_TABLES,
+  isValidTable,
+  getTablesByCategory,
+  getTableRelationships,
+  getPrimaryKey,
+  getCommonFields
+};

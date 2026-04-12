@@ -1,0 +1,3 @@
+🔍 Getting activities for subject: 1774176181777
+🔍 Subject activities response status: 200
+✅ Retrieved subject activities: 5

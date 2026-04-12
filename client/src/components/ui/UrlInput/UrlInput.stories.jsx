@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import UrlInput from './UrlInput';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 export default {
   title: 'Form/UrlInput',
@@ -45,22 +45,22 @@ const Template = (args) => {
         value={value}
         onChange={(e) => {
           setValue(e.target.value);
-          logger.log('URL value:', e.target.value);
+          info('URL value:', e.target.value);
         }}
         onOpen={(url) => {
           setMessage(`Opening: ${url}`);
-          logger.log('Open URL:', url);
+          info('Open URL:', url);
           setTimeout(() => setMessage(''), 2000);
         }}
         onCopy={() => {
           setMessage('✓ Copied to clipboard!');
-          logger.log('URL copied');
+          info('URL copied');
           setTimeout(() => setMessage(''), 2000);
         }}
         onClear={() => {
           setValue('');
           setMessage('URL cleared');
-          logger.log('URL cleared');
+          info('URL cleared');
           setTimeout(() => setMessage(''), 2000);
         }}
       />

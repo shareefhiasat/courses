@@ -9,7 +9,8 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { ActivityLogger } from '@services/other/activityLogger';
 import styles from './Calculator.module.css';
 
-const Calculator = ({ onClose }) => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const Calculator = ({ onClose }) => {
   const { theme } = useTheme();
   
   // Log activity when calculator opens

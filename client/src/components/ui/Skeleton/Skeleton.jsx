@@ -1,7 +1,8 @@
 import React from 'react';
 import styles from './Skeleton.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Skeleton Component
  * 
  * Loading placeholder with shimmer effect.

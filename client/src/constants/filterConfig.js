@@ -1,6 +1,7 @@
 import { getThemedIcon } from './iconTypes';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Centralized filter configuration for all pages
  * Provides consistent filter structure and localization
  */

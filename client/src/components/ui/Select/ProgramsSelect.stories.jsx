@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import ProgramsSelect from './ProgramsSelect';
 
-// Mock data for testing
+
+import { info, error, warn, debug } from '@services/utils/logger.js';// Mock data for testing
 const mockPrograms = [
   { docId: 'xMh3Tqzg4stjRohjwCGX', nameEn: 'Information Technology Diploma', nameAr: 'دبلوم تقنية المعلومات', code: 'CS' },
   { docId: 'abc123', nameEn: 'Business Administration', nameAr: 'إدارة الأعمال', code: 'BA' },

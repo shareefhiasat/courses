@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
 import { useLang } from '@contexts/LangContext';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Helper function to get localized name for chart items
  * @param {Object} item - Data item
  * @param {string} lang - Current language ('en' or 'ar')

@@ -2,7 +2,8 @@ import React, { useState, useRef } from 'react';
 import styles from './DatePicker.module.css';
 import { getThemedIcon } from '@constants/iconTypes';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * DatePicker Component
  * 
  * Date and time picker with native input fallback.

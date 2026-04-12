@@ -5,7 +5,8 @@ import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import PortalTooltip from '@ui/PortalTooltip';
 
-const EmailManager = ({
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const EmailManager = ({
   emails = [],
   onEmailsChange,
   title = "Email List",

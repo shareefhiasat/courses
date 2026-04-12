@@ -1,7 +1,8 @@
 import React, { Suspense, memo, useMemo } from 'react';
 import { SimpleLoading } from '@ui';
 
-// Lazy load chart components to reduce initial bundle size
+
+import { info, error, warn, debug } from '@services/utils/logger.js';// Lazy load chart components to reduce initial bundle size
 const BarChart = React.lazy(() => import('../charts/BarChart'));
 const LineChart = React.lazy(() => import('../charts/LineChart'));
 const PieChart = React.lazy(() => import('../charts/PieChart'));
@@ -165,8 +166,8 @@ const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData,
         );
       
       default:
-        if (process.env.NODE_ENV === 'development') {
-          console.warn(`[OptimizedChartRenderer] Unknown chart type: ${chartType}`);
+        if (import.meta.env.MODE === 'development') {
+          warn(`[OptimizedChartRenderer] Unknown chart type: ${chartType}`);
         }
         return (
           <div style={{ 

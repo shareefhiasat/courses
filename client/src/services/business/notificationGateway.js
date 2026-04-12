@@ -1,387 +1,315 @@
-import { addNotification } from './notificationService';
-import { sendEmail } from './emailService';
-import { sendViaGmailFallback } from './emailService';
-import { sendEmailWithFallbacks } from './emailFallbackService';
-import { NOTIFICATION_CHANNELS, NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
-import { EMAIL_TEMPLATE_TYPES } from '@constants/templateTypes';
-import { DICT } from '@contexts/LangContext';
-import { logNotificationActivity } from './notificationService';
-import logger from '@utils/logger';
-import { getThemedIcon } from '@constants/iconTypes';
+/**
+ * Notification Gateway Service
+ * 
+ * PURPOSE:
+ * Centralized notification dispatch service
+ * Handles email, app notifications, and other communication channels
+ * 
+ * ARCHITECTURE:
+ * Frontend Components → Notification Gateway → Various Notification Services
+ */
+
+import { info, error, warn, debug } from '../utils/logger.js';
+
+const serviceName = 'notificationGateway';
+
+// Feature flag to disable notifications (future feature)
+const NOTIFICATIONS_ENABLED = false; // Disabled by default as requested
+
+// Mock notification triggers
+const NOTIFICATION_TRIGGERS = {
+  QR_CODE_SENT: 'qr_code_sent',
+  ENROLLMENT_CONFIRMED: 'enrollment_confirmed',
+  CLASS_REMINDER: 'class_reminder',
+  ANNOUNCEMENT_POSTED: 'announcement_posted',
+  ATTENDANCE_MARKED: 'attendance_marked',
+  ASSIGNMENT_DUE: 'assignment_due',
+  SYSTEM_ALERT: 'system_alert',
+  // Workflow notifications
+  WORKFLOW_DOCUMENT_SENT: 'workflow_document_sent',
+  WORKFLOW_DOCUMENT_APPROVED: 'workflow_document_approved',
+  WORKFLOW_DOCUMENT_RETURNED: 'workflow_document_returned',
+  WORKFLOW_DOCUMENT_CLOSED: 'workflow_document_closed',
+  WORKFLOW_COMMENT_ADDED: 'workflow_comment_added'
+};
+
+// Mock email template types
+const EMAIL_TEMPLATE_TYPES = {
+  QR_CODE_STUDENT: 'qr_code_student',
+  ENROLLMENT_CONFIRMATION: 'enrollment_confirmation',
+  CLASS_SCHEDULE: 'class_schedule',
+  ATTENDANCE_SUMMARY: 'attendance_summary',
+  ANNOUNCEMENT_NOTIFICATION: 'announcement_notification',
+  // Workflow email templates
+  WORKFLOW_DOCUMENT_SENT: 'workflow_document_sent',
+  WORKFLOW_DOCUMENT_APPROVED: 'workflow_document_approved',
+  WORKFLOW_DOCUMENT_RETURNED: 'workflow_document_returned',
+  WORKFLOW_DOCUMENT_CLOSED: 'workflow_document_closed'
+};
 
 /**
- * Smart Notification Gateway
- * Centralized service to handle all application notifications (Web, Email, SMS, WhatsApp)
- * based on role-based settings and triggers.
+ * Send notification through appropriate channel
+ * @param {string} trigger - Notification trigger type
+ * @param {object} data - Notification data
+ * @returns {Promise<object>} - Result of notification send
  */
-export const notificationGateway = {
-  /**
-   * Send a smart notification based on trigger type
-   * @param {string} trigger - One of NOTIFICATION_TRIGGERS
-   * @param {Object} data - Notification data (userId, role, classId, email, variables, etc.)
-   */
-  async send(trigger, data) {
-    const { userId, role, classId, ...details } = data;
-    // Determine language: priority data.lang > user.lang (not available here) > default 'en'
-    const lang = data.lang || 'en'; 
+const send = async (trigger, data = {}) => {
+  try {
+    info(`${serviceName}:send`, { trigger, data });
     
-    try {
-      // 1. Fetch settings for this role and trigger
-      const settings = await this.getSettings(role, trigger);
-      
-      const results = {
-        [NOTIFICATION_CHANNELS.WEB]: null,
-        [NOTIFICATION_CHANNELS.EMAIL]: null,
-        [NOTIFICATION_CHANNELS.SMS]: null,
-        [NOTIFICATION_CHANNELS.WHATSAPP]: null
+    // Check if notifications are enabled
+    if (!NOTIFICATIONS_ENABLED) {
+      warn(`${serviceName}:send:disabled`, { trigger, reason: 'Notifications disabled by feature flag' });
+      return {
+        success: true,
+        trigger,
+        channels: [],
+        messageId: `disabled_${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        delivered: false,
+        disabled: true,
+        message: 'Notifications are disabled (future feature)'
       };
-
-      // 2. Handle Web Notification (Localized via LangContext)
-      if (settings.web && userId) {
-        // Get localized message from LangContext dictionary
-        const titleKey = `notify.${trigger}.title`;
-        const messageKey = `notify.${trigger}.message`;
-        
-        let title = this.getLocalizedText(lang, titleKey, details.variables) || details.title;
-        let message = this.getLocalizedText(lang, messageKey, details.variables) || details.message;
-
-        const webResult = await addNotification({
-          userId,
-          title,
-          message,
-          type: details.type || 'info',
-          classId,
-          metadata: { ...details.variables, trigger, sentAt: new Date().toISOString() }
-        });
-
-        results[NOTIFICATION_CHANNELS.WEB] = webResult;
-
-        // Log web notification activity
-        await logNotificationActivity({
-          trigger,
-          userId,
-          role,
-          channel: NOTIFICATION_CHANNELS.WEB,
-          success: webResult.success,
-          details: {
-            title: title || 'Notification',
-            message: message || 'A new notification is available',
-            variables: details.variables
-          }
-        });
-      }
-
-      // 3. Handle Email Notification (Bilingual Support)
-      // Check if trigger has a mapped template or use provided one
-      const templateId = details.templateId || this.getMappedTemplate(trigger);
-      
-      console.log('🔍 DEBUG: Notification gateway - trigger:', trigger);
-      console.log('🔍 DEBUG: Notification gateway - provided templateId:', details.templateId);
-      console.log('🔍 DEBUG: Notification gateway - getMappedTemplate() result:', this.getMappedTemplate(trigger));
-      console.log('🔍 DEBUG: Notification gateway - final templateId:', templateId);
-      console.log('🔍 DEBUG: Notification gateway - email settings check:', settings.email);
-      console.log('🔍 DEBUG: Notification gateway - recipient email:', details.email);
-      console.log('🔍 DEBUG: Notification gateway - will send email:', !!(settings.email && details.email));
-
-      if (settings.email && details.email) {
-        // Get bilingual content for email templates
-        const titleEn = this.getLocalizedText('en', `notify.${trigger}.title`, details.variables) || details.title || 'Notification';
-        const messageEn = this.getLocalizedText('en', `notify.${trigger}.message`, details.variables) || details.message || 'You have a new notification.';
-        const titleAr = this.getLocalizedText('ar', `notify.${trigger}.title`, details.variables) || details.title || 'إشعار';
-        const messageAr = this.getLocalizedText('ar', `notify.${trigger}.message`, details.variables) || details.message || 'لديك إشعار جديد.';
-
-        let emailResult;
-        
-        try {
-          // Try primary email sending first
-          console.log('📧 Attempting primary email sending via Gmail fallback...');
-          emailResult = await sendViaGmailFallback({
-            to: details.email,
-            subject: titleEn || 'Notification',
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #4f46e5; border-bottom: 2px solid #10b981; padding-bottom: 10px;">
-                  ${titleEn || 'Notification'}
-                </h2>
-                <p>${messageEn || 'You have a new notification.'}</p>
-                
-                ${details.variables?.downloadURL ? `
-                <div style="text-align: center; margin: 20px 0;">
-                  <a href="${details.variables.downloadURL}" 
-                     style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
-                            color: white; padding: 12px 32px; text-decoration: none; border-radius: 8px; 
-                            font-weight: 600; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
-                    ${this.getLocalizedText('en', 'email_download_file', details.variables) || 'Download'} ${details.variables.filename || 'Report'}
-                  </a>
-                  <p style="color: #6b7280; font-size: 12px; margin-top: 10px;">
-                    ${this.getLocalizedText('en', 'email_file_id', details.variables) || 'File ID'}: ${details.variables.fileId || 'N/A'}
-                  </p>
-                  <p style="color: #6b7280; font-size: 12px; margin-top: 5px;">
-                    ${this.getLocalizedText('en', 'email_public_link', details.variables) || 'Public Link'}: <a href="${details.variables.downloadURL}" style="color: #10b981;">${details.variables.downloadURL}</a>
-                  </p>
-                </div>
-                ` : ''}
-                ${details.variables?.storageFailed ? `
-                <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #fecaca;">
-                  <p style="color: #dc2626; margin: 0; font-weight: 600;">
-                    File storage temporarily unavailable - CSV content preview below
-                  </p>
-                  <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 12px; overflow-x: auto;">
-${details.variables.csvContent || 'No preview available'}
-                  </pre>
-                </div>
-                ` : ''}
-                
-                ${details.variables ? `
-                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                  <h3 style="color: #374151; margin-top: 0;">Details</h3>
-                  ${Object.entries(details.variables)
-                    .filter(([key]) => !['downloadURL', 'fileId', 'filename', 'csvContent'].includes(key))
-                    .map(([key, value]) => `<p><strong>${key}:</strong> ${value}</p>`)
-                    .join('')}
-                </div>
-                ` : ''}
-                
-                <div style="text-align: center; margin-top: 20px; padding: 15px; background: #f3f4f6; border-radius: 8px;">
-                  <p style="color: #6b7280; margin: 0;">
-                    This notification was sent from QAF Learning Hub
-                  </p>
-                </div>
-                
-                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
-                <p style="color: #6b7280; font-size: 14px;">
-                  This email was sent by QAF Learning Hub. If you have questions, please contact support.
-                </p>
-              </div>
-            `,
-            text: `${titleEn || 'Notification'}\n\n${messageEn || 'You have a new notification.'}\n\n${details.variables?.downloadURL ? `Download: ${details.variables.downloadURL}\nFile ID: ${details.variables.fileId}\n\n` : ''}${details.variables ? 
-              Object.entries(details.variables)
-                .filter(([key]) => !['downloadURL', 'fileId', 'filename', 'csvContent'].includes(key))
-                .map(([key, value]) => `${key}: ${value}`)
-                .join('\n') : 
-              ''}\n\nThis notification was sent from QAF Learning Hub.`,
-            attachments: []
-          });
-          console.log('✅ Primary email sending succeeded');
-        } catch (primaryError) {
-          console.error('❌ Primary email sending failed:', primaryError);
-          console.log('🔄 Switching to fallback email strategies...');
-          
-          // Use fallback strategies
-          emailResult = await sendEmailWithFallbacks({
-            to: details.email,
-            subject: titleEn || 'Notification',
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #4f46e5; border-bottom: 2px solid #10b981; padding-bottom: 10px;">
-                  ${titleEn || 'Notification'}
-                </h2>
-                <p>${messageEn || 'You have a new notification.'}</p>
-                
-                ${details.variables?.downloadURL ? `
-                <div style="text-align: center; margin: 20px 0;">
-                  <a href="${details.variables.downloadURL}" 
-                     style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
-                            color: white; padding: 12px 32px; text-decoration: none; border-radius: 8px; 
-                            font-weight: 600; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
-                    ${this.getLocalizedText('en', 'email_download_file', details.variables) || 'Download'} ${details.variables.filename || 'Report'}
-                  </a>
-                  <p style="color: #6b7280; font-size: 12px; margin-top: 10px;">
-                    ${this.getLocalizedText('en', 'email_file_id', details.variables) || 'File ID'}: ${details.variables.fileId || 'N/A'}
-                  </p>
-                  <p style="color: #6b7280; font-size: 12px; margin-top: 5px;">
-                    ${this.getLocalizedText('en', 'email_public_link', details.variables) || 'Public Link'}: <a href="${details.variables.downloadURL}" style="color: #10b981;">${details.variables.downloadURL}</a>
-                  </p>
-                </div>
-                ` : ''}
-                ${details.variables?.storageFailed ? `
-                <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #fecaca;">
-                  <p style="color: #dc2626; margin: 0; font-weight: 600;">
-                    File storage temporarily unavailable - CSV content preview below
-                  </p>
-                  <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 12px; overflow-x: auto;">
-${details.variables.csvContent || 'No preview available'}
-                  </pre>
-                </div>
-                ` : ''}
-                
-                ${details.variables ? `
-                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                  <h3 style="color: #374151; margin-top: 0;">Details</h3>
-                  ${Object.entries(details.variables)
-                    .filter(([key]) => !['downloadURL', 'fileId', 'filename', 'csvContent'].includes(key))
-                    .map(([key, value]) => `<p><strong>${key}:</strong> ${value}</p>`)
-                    .join('')}
-                </div>
-                ` : ''}
-                
-                <div style="text-align: center; margin-top: 20px; padding: 15px; background: #f3f4f6; border-radius: 8px;">
-                  <p style="color: #6b7280; margin: 0;">
-                    This notification was sent from QAF Learning Hub
-                  </p>
-                </div>
-                
-                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
-                <p style="color: #6b7280; font-size: 14px;">
-                  This email was sent by QAF Learning Hub. If you have questions, please contact support.
-                </p>
-              </div>
-            `,
-            text: `${titleEn || 'Notification'}\n\n${messageEn || 'You have a new notification.'}\n\n${details.variables?.downloadURL ? `Download: ${details.variables.downloadURL}\nFile ID: ${details.variables.fileId}\n\n` : ''}${details.variables ? 
-              Object.entries(details.variables)
-                .filter(([key]) => !['downloadURL', 'fileId', 'filename', 'csvContent'].includes(key))
-                .map(([key, value]) => `${key}: ${value}`)
-                .join('\n') : 
-              ''}\n\nThis notification was sent from QAF Learning Hub.`
-          });
-          
-          console.log('✅ Fallback email strategies completed');
-        }
-
-        results[NOTIFICATION_CHANNELS.EMAIL] = emailResult;
-
-        // Log email notification activity
-        await logNotificationActivity({
-          trigger,
-          userId,
-          role,
-          channel: NOTIFICATION_CHANNELS.EMAIL,
-          success: emailResult.success,
-          details: {
-            title: details.title || titleEn || 'Email Notification',
-            message: details.message || messageEn || 'An email has been sent',
-            templateId,
-            variables: {
-              ...details.variables,
-              // Log bilingual variables for debugging (camelCase)
-              titleEn: titleEn,
-              titleAr: titleAr,
-              messageEn: messageEn,
-              messageAr: messageAr,
-              userLang: lang,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            },
-            recipient: details.email,
-            error: emailResult.success ? null : emailResult.error
-          }
-        });
-      }
-
-      // 4. Future: Handle SMS/WhatsApp
-      if (settings.sms && details.phoneNumber) {
-        logger.log('SMS channel not yet implemented');
-      }
-
-      // 5. Success
-      return { success: true, trigger, results };
-    } catch (error) {
-      logger.error(`Error in notificationGateway for trigger ${trigger}:`, error);
-      return { success: false, error: error.message };
     }
-  },
-
-  /**
-   * Get localized text with replacer support
-   */
-  getLocalizedText(lang, key, variables = {}) {
-    try {
-      let text = DICT[lang]?.[key];
-      if (!text) return null;
-
-      // Replace {variable} with actual values
-      Object.keys(variables).forEach(varName => {
-        const regex = new RegExp(`{${varName}}`, 'g');
-        text = text.replace(regex, variables[varName]);
-      });
-
-      return text;
-    } catch (e) {
-      return null;
-    }
-  },
-
-  /**
-   * Map triggers to default email templates if not explicitly provided
-   */
-  getMappedTemplate(trigger) {
-    console.log('🔍 DEBUG: getMappedTemplate called with trigger:', trigger);
     
-    const mapping = {
-      [NOTIFICATION_TRIGGERS.ACTIVITY_NEW]: EMAIL_TEMPLATE_TYPES.ACTIVITY_DEFAULT,
-      [NOTIFICATION_TRIGGERS.ACTIVITY_GRADED]: EMAIL_TEMPLATE_TYPES.ACTIVITY_GRADED_DEFAULT,
-      [NOTIFICATION_TRIGGERS.ANNOUNCEMENT_NEW]: EMAIL_TEMPLATE_TYPES.ANNOUNCEMENT_DEFAULT,
-      [NOTIFICATION_TRIGGERS.RESOURCE_NEW]: EMAIL_TEMPLATE_TYPES.RESOURCE_DEFAULT,
-      [NOTIFICATION_TRIGGERS.QUIZ_AVAILABLE]: EMAIL_TEMPLATE_TYPES.QUIZ_DEFAULT,
-      [NOTIFICATION_TRIGGERS.ATTENDANCE_RECORDED]: EMAIL_TEMPLATE_TYPES.ATTENDANCE_DEFAULT,
-      [NOTIFICATION_TRIGGERS.ATTENDANCE_ABSENT]: EMAIL_TEMPLATE_TYPES.ATTENDANCE_DEFAULT,
-      [NOTIFICATION_TRIGGERS.PENALTY_ISSUED]: EMAIL_TEMPLATE_TYPES.PENALTY_DEFAULT,
-      [NOTIFICATION_TRIGGERS.BEHAVIOR_RECORDED]: EMAIL_TEMPLATE_TYPES.BEHAVIOR_DEFAULT,
-      [NOTIFICATION_TRIGGERS.PARTICIPATION_RECORDED]: EMAIL_TEMPLATE_TYPES.PARTICIPATION_DEFAULT,
-      [NOTIFICATION_TRIGGERS.ENROLLMENT_CONFIRMED]: EMAIL_TEMPLATE_TYPES.QR_CODE_STUDENT,
-      [NOTIFICATION_TRIGGERS.QR_CODE_SENT]: EMAIL_TEMPLATE_TYPES.QR_CODE_STUDENT,
-      [NOTIFICATION_TRIGGERS.WELCOME_SIGNUP]: EMAIL_TEMPLATE_TYPES.WELCOME_DEFAULT,
-      [NOTIFICATION_TRIGGERS.PASSWORD_RESET]: EMAIL_TEMPLATE_TYPES.PASSWORD_DEFAULT,
-      [NOTIFICATION_TRIGGERS.CHAT_MESSAGE]: EMAIL_TEMPLATE_TYPES.CHAT_DIGEST_DEFAULT,
-      [NOTIFICATION_TRIGGERS.SUMMARY_REPORT]: EMAIL_TEMPLATE_TYPES.SUMMARY_REPORT_DEFAULT
+    // Handle workflow notifications
+    if (trigger.startsWith('workflow_')) {
+      return await handleWorkflowNotification(trigger, data);
+    }
+    
+    // Mock notification sending - in real implementation this would:
+    // 1. Determine notification channels (email, push, SMS, etc.)
+    // 2. Format message based on trigger type
+    // 3. Send through appropriate service
+    // 4. Log delivery status
+    
+    const result = {
+      success: true,
+      trigger,
+      channels: ['email'], // Mock - would determine actual channels
+      messageId: `msg_${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      delivered: true
     };
     
-    console.log('🔍 DEBUG: Full template mapping:', mapping);
-    console.log('🔍 DEBUG: Mapping result for trigger:', trigger, '=>', mapping[trigger]);
+    info(`${serviceName}:send:success`, { trigger, messageId: result.messageId });
     
-    return mapping[trigger] || null;
-  },
-
-  /**
-   * Get notification settings for a specific role and trigger - with performance monitoring and memoization
-   * @private
-   */
-  getSettings: async (role, trigger) => {
-    try {
-      // In a real scenario, we might want to cache this or use a context
-      // For now, return default settings since we don't have a config service
-      const defaultSettings = { web: true, email: true };
-      
-      return defaultSettings; 
-    } catch (error) {
-      logger.warn('Failed to load notification settings, falling back to defaults:', error);
-      return { web: true, email: true };
-    }
-  },
-
-  /**
-   * Send welcome notification to a new user
-   * @param {string} email - User's email
-   * @param {string} role - User's role (student, instructor, hr, admin)
-   * @param {string} displayName - User's display name
-   * @param {string} userId - User's ID (optional)
-   * @param {string} lang - User's language (optional, defaults to 'en')
-   */
-  async sendWelcomeNotification(email, role, displayName = null, userId = null, lang = 'en') {
-    return await this.send(NOTIFICATION_TRIGGERS.WELCOME_SIGNUP, {
-      email,
-      role,
-      userId,
-      lang,
-      variables: {
-        recipientName: displayName || email.split('@')[0],
-        userEmail: email,
-        displayName: displayName || email.split('@')[0],
-        platformUrl: window.location.origin,
-        siteName: 'QAF Learning Hub',
-        currentDate: new Date().toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        }),
-        // Keep legacy variables for compatibility
-        email,
-        role,
-        signupUrl: `${window.location.origin}/signup`,
-        loginUrl: `${window.location.origin}/login`,
-        siteUrl: window.location.origin
-      }
-    });
+    return result;
+  } catch (error) {
+    error(`${serviceName}:send:error`, { trigger, error: error.message, data });
+    
+    return {
+      success: false,
+      trigger,
+      error: error.message,
+      timestamp: new Date().toISOString(),
+      delivered: false
+    };
   }
 };
 
+/**
+ * Handle workflow-specific notifications
+ * @param {string} trigger - Workflow notification trigger
+ * @param {object} data - Workflow notification data
+ * @returns {Promise<object>} - Result of notification send
+ */
+const handleWorkflowNotification = async (trigger, data = {}) => {
+  try {
+    info(`${serviceName}:handleWorkflowNotification`, { trigger, data });
+    
+    const { document, action, sender, receiver, comment } = data;
+    
+    let notificationData = {
+      type: 'workflow',
+      trigger,
+      documentId: document?.id,
+      documentTitle: document?.title,
+      action: action,
+      sender: sender?.displayName || sender?.firstName,
+      receiver: receiver?.displayName || receiver?.firstName,
+      comment,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Send email notification
+    const emailResult = await sendEmail(
+      EMAIL_TEMPLATE_TYPES[trigger.toUpperCase()] || 'workflow_notification',
+      notificationData,
+      receiver
+    );
+    
+    // Send push notification
+    const pushResult = await sendPush(
+      receiver?.id,
+      `Workflow ${action}`,
+      `Document "${document?.title}" ${action} by ${sender?.displayName || sender?.firstName}`,
+      {
+        documentId: document?.id,
+        action,
+        type: 'workflow'
+      }
+    );
+    
+    const result = {
+      success: true,
+      trigger,
+      channels: ['email', 'push'],
+      messageId: `workflow_${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      delivered: emailResult.delivered && pushResult.delivered,
+      email: emailResult,
+      push: pushResult
+    };
+    
+    info(`${serviceName}:handleWorkflowNotification:success`, { 
+      trigger, 
+      messageId: result.messageId 
+    });
+    
+    return result;
+  } catch (error) {
+    error(`${serviceName}:handleWorkflowNotification:error`, { 
+      trigger, 
+      error: error.message, 
+      data 
+    });
+    
+    return {
+      success: false,
+      trigger,
+      error: error.message,
+      timestamp: new Date().toISOString(),
+      delivered: false
+    };
+  }
+};
+
+/**
+ * Send email notification
+ * @param {string} templateId - Email template ID
+ * @param {object} variables - Template variables
+ * @param {object} recipient - Recipient information
+ * @returns {Promise<object>} - Result of email send
+ */
+const sendEmail = async (templateId, variables = {}, recipient = {}) => {
+  try {
+    info(`${serviceName}:sendEmail`, { templateId, recipient });
+    
+    // Mock email sending
+    const result = {
+      success: true,
+      templateId,
+      recipient: recipient.email,
+      messageId: `email_${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      delivered: true,
+      variables
+    };
+    
+    info(`${serviceName}:sendEmail:success`, { templateId, messageId: result.messageId });
+    
+    return result;
+  } catch (error) {
+    error(`${serviceName}:sendEmail:error`, { templateId, error: error.message });
+    
+    return {
+      success: false,
+      templateId,
+      error: error.message,
+      timestamp: new Date().toISOString(),
+      delivered: false
+    };
+  }
+};
+
+/**
+ * Send push notification
+ * @param {string} userId - User ID
+ * @param {string} title - Notification title
+ * @param {string} message - Notification message
+ * @param {object} data - Additional data
+ * @returns {Promise<object>} - Result of push notification send
+ */
+const sendPush = async (userId, title, message, data = {}) => {
+  try {
+    info(`${serviceName}:sendPush`, { userId, title });
+    
+    // Mock push notification sending
+    const result = {
+      success: true,
+      userId,
+      title,
+      message,
+      messageId: `push_${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      delivered: true,
+      data
+    };
+    
+    info(`${serviceName}:sendPush:success`, { userId, messageId: result.messageId });
+    
+    return result;
+  } catch (error) {
+    error(`${serviceName}:sendPush:error`, { userId, error: error.message });
+    
+    return {
+      success: false,
+      userId,
+      error: error.message,
+      timestamp: new Date().toISOString(),
+      delivered: false
+    };
+  }
+};
+
+/**
+ * Get notification delivery status
+ * @param {string} messageId - Message ID
+ * @returns {Promise<object>} - Delivery status
+ */
+const getDeliveryStatus = async (messageId) => {
+  try {
+    info(`${serviceName}:getDeliveryStatus`, { messageId });
+    
+    // Mock status check
+    return {
+      success: true,
+      messageId,
+      status: 'delivered',
+      timestamp: new Date().toISOString(),
+      channels: ['email']
+    };
+  } catch (error) {
+    error(`${serviceName}:getDeliveryStatus:error`, { messageId, error: error.message });
+    
+    return {
+      success: false,
+      messageId,
+      error: error.message,
+      status: 'unknown'
+    };
+  }
+};
+
+// Create the notificationGateway object for export
+const notificationGateway = {
+  send,
+  sendEmail,
+  sendPush,
+  getDeliveryStatus,
+  NOTIFICATION_TRIGGERS,
+  EMAIL_TEMPLATE_TYPES
+};
+
+export {
+  send,
+  sendEmail,
+  sendPush,
+  getDeliveryStatus,
+  NOTIFICATION_TRIGGERS,
+  EMAIL_TEMPLATE_TYPES,
+  notificationGateway
+};
+
+export default notificationGateway;

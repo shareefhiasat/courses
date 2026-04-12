@@ -1,0 +1,8 @@
+🔍 Testing pagination performance...
+📊 Pagination Performance Results:
+  📄 Page size 1: 18ms, 16 programs, has next: false
+  📄 Page size 5: 16ms, 16 programs, has next: false
+  📄 Page size 10: 16ms, 16 programs, has next: false
+  📄 Page size 20: 18ms, 16 programs, has next: false
+🧹 Cleaning up test programs...
+✅ Deleted 15 test programs

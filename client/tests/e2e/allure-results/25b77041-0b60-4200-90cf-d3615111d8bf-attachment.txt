@@ -1,0 +1,141 @@
+🔐 Attempting admin login via master realm...
+🔐 Admin login response status: 200
+🔐 Admin login response data: {
+  access_token: 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJoR3dtYVBGVmRnWkxRZzVlYy1XOTRNN3NNa3pwR20wdnA3cV9xVnc4S0RjIn0.eyJleHAiOjE3NzQxNjkwMjMsImlhdCI6MTc3NDE2ODk2MywianRpIjoiMGI2YzY1ZTYtZGM4ZC00NTIxLTlhZjctZjNiZTFmYzk3ZmVkIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9tYXN0ZXIiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJhZG1pbi1jbGkiLCJzaWQiOiI4NmRkMmRiOS03ZjBlLTRjYzEtYWFmZi0wNjg4OTNmMjhlMmEiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.oMc5VokBFNVeRsIAUPxFly2MwWZC-2U6Gl_DR3cn2AqTBnAMYgzcAO0ICCxr8J0w-jvr97o8Jpa6nTaVjydu2FvB6L9adszOEmpU5PVn3Hc1F0hDAPG-nGvoC1vTtBEDfUcpj2McQefG64z0ZgP5MTAwRoZMBFMG4MxKex8l2s2gyuiJemTgc_lJvtju87bC-uhszzaCO30fjcIDhA7J2xK_iPULWOAmOqC4_oSrTpuPafEdhy1Cp69m6GnwlTei_ZvGp9GwtUXkAdi7WsPw6BYzyHSyneZKm1sItj9BsknhAneCHE4ZI5JzEHggLB2N-kLWi2yGuu6LnOfunXCdDQ',
+  expires_in: 60,
+  refresh_expires_in: 1800,
+  refresh_token: 'eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICIwOWU5ZjI3YS0xOWIyLTQ2MzMtYTEwOS01YTZhNmE4NTEwOTUifQ.eyJleHAiOjE3NzQxNzA3NjMsImlhdCI6MTc3NDE2ODk2MywianRpIjoiOGQ3NzRhNzAtMjU5MC00MzNlLWE0NzUtNDZmMWQ3OTFhMDg3IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvcmVhbG1zL21hc3RlciIsInR5cCI6IlJlZnJlc2giLCJhenAiOiJhZG1pbi1jbGkiLCJzaWQiOiI4NmRkMmRiOS03ZjBlLTRjYzEtYWFmZi0wNjg4OTNmMjhlMmEiLCJzY29wZSI6ImVtYWlsIHdlYi1vcmlnaW5zIHByb2ZpbGUgYWNyIGJhc2ljIHJvbGVzIn0.uXt6_UY-uiUUoUW_0J_nU8VoVMNHaE5rUm2Spq0tOskFQhFJegJ198yT1tpYaYnFuSlSf9ZbPiOV0hy0A-o2-Q',
+  token_type: 'Bearer',
+  'not-before-policy': 0,
+  session_state: '86dd2db9-7f0e-4cc1-aaff-068893f28e2a',
+  scope: 'email profile'
+}
+✅ Admin authentication successful
+🔑 Token expires in: 60 seconds
+🔍 CREATE response: {
+  "errors": [
+    {
+      "message": "Cannot query field \"descriptionEn\" on type \"Subject\". Did you mean \"description\"?",
+      "locations": [
+        {
+          "line": 8,
+          "column": 15
+        }
+      ],
+      "extensions": {
+        "code": "GRAPHQL_VALIDATION_FAILED",
+        "stacktrace": [
+          "GraphQLError: Cannot query field \"descriptionEn\" on type \"Subject\". Did you mean \"description\"?",
+          "    at Object.Field (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\validation\\rules\\FieldsOnCorrectTypeRule.js:51:13)",
+          "    at Object.enter (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\language\\visitor.js:298:32)",
+          "    at Object.enter (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\utilities\\TypeInfo.js:391:27)",
+          "    at visit (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\language\\visitor.js:194:21)",
+          "    at validate (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\validation\\validate.js:102:24)",
+          "    at processGraphQLRequest (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\requestPipeline.js:108:59)",
+          "    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+          "    at async internalExecuteOperation (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\ApolloServer.js:678:16)",
+          "    at async runHttpQuery (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\runHttpQuery.js:138:29)",
+          "    at async runPotentiallyBatchedHttpQuery (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\httpBatching.js:37:16)"
+        ]
+      }
+    },
+    {
+      "message": "Cannot query field \"descriptionAr\" on type \"Subject\". Did you mean \"description\"?",
+      "locations": [
+        {
+          "line": 9,
+          "column": 15
+        }
+      ],
+      "extensions": {
+        "code": "GRAPHQL_VALIDATION_FAILED",
+        "stacktrace": [
+          "GraphQLError: Cannot query field \"descriptionAr\" on type \"Subject\". Did you mean \"description\"?",
+          "    at Object.Field (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\validation\\rules\\FieldsOnCorrectTypeRule.js:51:13)",
+          "    at Object.enter (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\language\\visitor.js:298:32)",
+          "    at Object.enter (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\utilities\\TypeInfo.js:391:27)",
+          "    at visit (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\language\\visitor.js:194:21)",
+          "    at validate (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\validation\\validate.js:102:24)",
+          "    at processGraphQLRequest (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\requestPipeline.js:108:59)",
+          "    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+          "    at async internalExecuteOperation (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\ApolloServer.js:678:16)",
+          "    at async runHttpQuery (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\runHttpQuery.js:138:29)",
+          "    at async runPotentiallyBatchedHttpQuery (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\httpBatching.js:37:16)"
+        ]
+      }
+    },
+    {
+      "message": "Cannot query field \"creditHours\" on type \"Subject\". Did you mean \"credits\"?",
+      "locations": [
+        {
+          "line": 10,
+          "column": 15
+        }
+      ],
+      "extensions": {
+        "code": "GRAPHQL_VALIDATION_FAILED",
+        "stacktrace": [
+          "GraphQLError: Cannot query field \"creditHours\" on type \"Subject\". Did you mean \"credits\"?",
+          "    at Object.Field (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\validation\\rules\\FieldsOnCorrectTypeRule.js:51:13)",
+          "    at Object.enter (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\language\\visitor.js:298:32)",
+          "    at Object.enter (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\utilities\\TypeInfo.js:391:27)",
+          "    at visit (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\language\\visitor.js:194:21)",
+          "    at validate (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\validation\\validate.js:102:24)",
+          "    at processGraphQLRequest (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\requestPipeline.js:108:59)",
+          "    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+          "    at async internalExecuteOperation (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\ApolloServer.js:678:16)",
+          "    at async runHttpQuery (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\runHttpQuery.js:138:29)",
+          "    at async runPotentiallyBatchedHttpQuery (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\httpBatching.js:37:16)"
+        ]
+      }
+    },
+    {
+      "message": "Cannot query field \"category\" on type \"Subject\".",
+      "locations": [
+        {
+          "line": 11,
+          "column": 15
+        }
+      ],
+      "extensions": {
+        "code": "GRAPHQL_VALIDATION_FAILED",
+        "stacktrace": [
+          "GraphQLError: Cannot query field \"category\" on type \"Subject\".",
+          "    at Object.Field (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\validation\\rules\\FieldsOnCorrectTypeRule.js:51:13)",
+          "    at Object.enter (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\language\\visitor.js:298:32)",
+          "    at Object.enter (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\utilities\\TypeInfo.js:391:27)",
+          "    at visit (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\language\\visitor.js:194:21)",
+          "    at validate (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\validation\\validate.js:102:24)",
+          "    at processGraphQLRequest (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\requestPipeline.js:108:59)",
+          "    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+          "    at async internalExecuteOperation (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\ApolloServer.js:678:16)",
+          "    at async runHttpQuery (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\runHttpQuery.js:138:29)",
+          "    at async runPotentiallyBatchedHttpQuery (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\httpBatching.js:37:16)"
+        ]
+      }
+    }
+  ]
+}
+❌ GraphQL errors: [
+  {
+    message: 'Cannot query field "descriptionEn" on type "Subject". Did you mean "description"?',
+    locations: [ [Object] ],
+    extensions: { code: 'GRAPHQL_VALIDATION_FAILED', stacktrace: [Array] }
+  },
+  {
+    message: 'Cannot query field "descriptionAr" on type "Subject". Did you mean "description"?',
+    locations: [ [Object] ],
+    extensions: { code: 'GRAPHQL_VALIDATION_FAILED', stacktrace: [Array] }
+  },
+  {
+    message: 'Cannot query field "creditHours" on type "Subject". Did you mean "credits"?',
+    locations: [ [Object] ],
+    extensions: { code: 'GRAPHQL_VALIDATION_FAILED', stacktrace: [Array] }
+  },
+  {
+    message: 'Cannot query field "category" on type "Subject".',
+    locations: [ [Object] ],
+    extensions: { code: 'GRAPHQL_VALIDATION_FAILED', stacktrace: [Array] }
+  }
+]
+🔄 Trying alternative mutation...

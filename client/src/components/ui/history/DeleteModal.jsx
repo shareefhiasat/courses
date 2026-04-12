@@ -3,7 +3,8 @@ import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getDeleteMessage, getDeleteTitle } from '@utils/deleteMessages';
 import { ConfirmModal } from '@ui';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Generic Delete Modal Component
  * 
  * A centralized delete confirmation modal that can handle different entity types.

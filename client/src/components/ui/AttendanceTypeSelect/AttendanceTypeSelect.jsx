@@ -5,7 +5,8 @@ import { Select } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 
-const AttendanceTypeSelect = ({ 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const AttendanceTypeSelect = ({ 
   value, 
   onChange, 
   fullWidth = false,

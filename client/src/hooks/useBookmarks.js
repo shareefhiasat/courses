@@ -8,7 +8,7 @@ import {
   calculateBookmarkCount,
   getEmptyBookmarks
 } from '@services/business/bookmarkService';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * Custom hook for bookmark management
@@ -42,13 +42,13 @@ export const useBookmarks = (options = {}) => {
         const userBookmarks = await getUserBookmarks(user.uid);
         setBookmarks(userBookmarks);
         
-        logger.debug('[useBookmarks] Bookmarks loaded:', {
+        debug('[useBookmarks] Bookmarks loaded:', {
           userId: user.uid,
           totalBookmarks: Object.values(userBookmarks).reduce((sum, items) => sum + Object.keys(items).length, 0)
         });
         
       } catch (err) {
-        logger.error('[useBookmarks] Failed to load bookmarks:', err);
+        error('[useBookmarks] Failed to load bookmarks:', err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -65,10 +65,10 @@ export const useBookmarks = (options = {}) => {
     const unsubscribe = onBookmarksChange(user.uid, (updatedBookmarks) => {
       setBookmarks(updatedBookmarks);
       setError(null); // Clear error on successful update
-      logger.debug('[useBookmarks] Real-time bookmark update received');
+      debug('[useBookmarks] Real-time bookmark update received');
     }, (error) => {
       setError(error.message);
-      logger.error('[useBookmarks] Real-time listener error:', error);
+      error('[useBookmarks] Real-time listener error:', error);
     });
 
     return unsubscribe;
@@ -77,7 +77,7 @@ export const useBookmarks = (options = {}) => {
   // Toggle bookmark function
   const handleToggleBookmark = useCallback(async (itemId, itemType, metadata = {}) => {
     if (!user?.uid) {
-      logger.warn('[useBookmarks] Cannot toggle bookmark: no user');
+      warn('[useBookmarks] Cannot toggle bookmark: no user');
       return { success: false, error: 'User not authenticated' };
     }
 
@@ -100,7 +100,7 @@ export const useBookmarks = (options = {}) => {
           return nextBookmarks;
         });
         
-        logger.debug('[useBookmarks] Bookmark toggled successfully:', {
+        debug('[useBookmarks] Bookmark toggled successfully:', {
           itemId,
           itemType,
           isBookmarked: result.isBookmarked
@@ -110,7 +110,7 @@ export const useBookmarks = (options = {}) => {
       return result;
       
     } catch (err) {
-      logger.error('[useBookmarks] Failed to toggle bookmark:', err);
+      error('[useBookmarks] Failed to toggle bookmark:', err);
       return { success: false, error: err.message };
     }
   }, [user?.uid]);
@@ -152,10 +152,10 @@ export const useBookmarks = (options = {}) => {
     
     try {
       // This would need to be implemented in the service
-      logger.warn('[useBookmarks] clearAllBookmarks not implemented yet');
+      warn('[useBookmarks] clearAllBookmarks not implemented yet');
       return { success: false, error: 'Not implemented' };
     } catch (err) {
-      logger.error('[useBookmarks] Failed to clear bookmarks:', err);
+      error('[useBookmarks] Failed to clear bookmarks:', err);
       return { success: false, error: err.message };
     }
   }, [user?.uid]);

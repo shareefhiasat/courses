@@ -3,10 +3,12 @@ import { getDocs, collection, query, orderBy } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
-import { PENALTY_TYPES } from '@constants/penaltyTypes';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
+// OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
+// OLD: import { ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS } from '@constants/activityTypes';
+// NOW: Using useLookupTypes hook for all lookup data
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
-import { ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS } from '@constants/activityTypes';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const EMPTY_RAW = {
   activities: [],
@@ -46,16 +48,42 @@ const useAnalyticsData = () => {
   const [loading, setLoading] = useState(true);
   const [rawData, setRawData] = useState(EMPTY_RAW);
   const [permErrors, setPermErrors] = useState({});
+  const { data: lookupData } = useLookupTypes({
+    types: ['penalty-types', 'activity-types']
+  });
+
+  // Create activity type constants from lookup data
+  const activityTypes = (lookupData['activity-types'] || []).reduce((acc, type) => {
+    acc[type.code] = type.code;
+    return acc;
+  }, {});
+  
+  // Default to common activity types if not found
+  const ACTIVITY_TYPES = {
+    QUIZ: activityTypes.QUIZ || 'QUIZ',
+    HOMEWORK: activityTypes.HOMEWORK || 'HOMEWORK',
+    TRAINING: activityTypes.TRAINING || 'TRAINING',
+    LAB_AND_PROJECT: activityTypes.LAB_AND_PROJECT || 'LAB_AND_PROJECT',
+    MID_EXAM: activityTypes.MID_EXAM || 'MID_EXAM',
+    FINAL_EXAM: activityTypes.FINAL_EXAM || 'FINAL_EXAM'
+  };
+
+  // Create activity type labels from lookup data
+  const ACTIVITY_TYPE_LABELS = (lookupData['activity-types'] || []).reduce((acc, type) => {
+    acc[type.code] = type.nameEn || type.code;
+    return acc;
+  }, {});
+
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadAllData = useCallback(async () => {
     // Prevent multiple simultaneous refreshes
     if (isRefreshing) {
-      console.log('[REFRESH DEBUG] ⏸️ Refresh already in progress, skipping...');
+      info('[REFRESH DEBUG] ⏸️ Refresh already in progress, skipping...');
       return;
     }
 
-    console.log('[REFRESH DEBUG] 🔄 Starting analytics data refresh...');
+    info('[REFRESH DEBUG] 🔄 Starting analytics data refresh...');
     setIsRefreshing(true);
     setLoading(true);
     const errors = {};
@@ -63,37 +91,37 @@ const useAnalyticsData = () => {
 
     const safeLoad = async (key, loader) => {
       try {
-        console.log(`[REFRESH DEBUG] 📥 Loading ${key}...`);
+        info(`[REFRESH DEBUG] 📥 Loading ${key}...`);
         const snap = await loader();
         const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         next[key] = data;
-        console.log(`[REFRESH DEBUG] ✅ Loaded ${key}:`, data.length, 'records');
+        info(`[REFRESH DEBUG] ✅ Loaded ${key}:`, data.length, 'records');
         
         // DEBUG: Show raw Firestore data structure for classes
         if (key === 'classes' && data.length > 0) {
-          console.log(`[CLASSES DEBUG] Raw Firestore docs:`, snap.docs.slice(0, 2).map(d => ({
+          info(`[CLASSES DEBUG] Raw Firestore docs:`, snap.docs.slice(0, 2).map(d => ({
             id: d.id,
             data: d.data()
           })));
-          console.log(`[CLASSES DEBUG] Mapped data:`, data.slice(0, 2));
+          info(`[CLASSES DEBUG] Mapped data:`, data.slice(0, 2));
         }
         
         // Show sample data for key collections
         if (key === 'attendance' && data.length > 0) {
-          console.log(`[REFRESH DEBUG] 📊 Attendance sample:`, data.slice(0, 2));
+          info(`[REFRESH DEBUG] 📊 Attendance sample:`, data.slice(0, 2));
           const statusCounts = {};
           data.forEach(item => {
             const status = item.status || 'unknown';
             statusCounts[status] = (statusCounts[status] || 0) + 1;
           });
-          console.log(`[REFRESH DEBUG] 📈 Attendance status distribution:`, statusCounts);
+          info(`[REFRESH DEBUG] 📈 Attendance status distribution:`, statusCounts);
         }
         
         // Show sample data for announcements and resources
         if ((key === 'announcements' || key === 'resources')) {
-          console.log(`[REFRESH DEBUG] 📋 ${key} loaded:`, data.length, 'records');
+          info(`[REFRESH DEBUG] 📋 ${key} loaded:`, data.length, 'records');
           if (data.length > 0) {
-            console.log(`[REFRESH DEBUG] 📋 ${key} sample:`, data.slice(0, 2));
+            info(`[REFRESH DEBUG] 📋 ${key} sample:`, data.slice(0, 2));
           }
         }
         
@@ -116,8 +144,8 @@ const useAnalyticsData = () => {
               } catch (e) {
         const code = (e?.code || e?.message || '').toString();
         if (code.includes('permission-denied')) errors[key] = 'permission-denied';
-        console.error(`[REFRESH DEBUG] ❌ Failed to load ${key}:`, e);
-        logger.warn(`[useAnalyticsData] failed to load ${key}:`, e);
+        error(`[REFRESH DEBUG] ❌ Failed to load ${key}:`, e);
+        warn(`[useAnalyticsData] failed to load ${key}:`, e);
       }
     };
 
@@ -178,19 +206,19 @@ const useAnalyticsData = () => {
   }, []); // Empty dependency array - only run once on mount
 
   const reloadWithDebug = () => {
-    console.log('[REFRESH DEBUG] 🔄 Reload function called!');
+    info('[REFRESH DEBUG] 🔄 Reload function called!');
     console.log('[REFRESH DEBUG] 🕐 Timestamp:', new Date().toISOString());
-    console.log('[REFRESH DEBUG] 📊 Current rawData keys:', Object.keys(rawData));
+    info('[REFRESH DEBUG] 📊 Current rawData keys:', Object.keys(rawData));
     return loadAllData();
   };
 
   const smartReload = async (widget) => {
-    console.log('[SMART REFRESH DEBUG] 🔄 Smart reload started!');
+    info('[SMART REFRESH DEBUG] 🔄 Smart reload started!');
     console.log('[SMART REFRESH DEBUG] 📊 Widget:', widget.title || 'Untitled');
-    console.log('[SMART REFRESH DEBUG] 🕐 Timestamp:', new Date().toISOString());
+    info('[SMART REFRESH DEBUG] 🕐 Timestamp:', new Date().toISOString());
     
     const collections = getWidgetCollections(widget);
-    console.log('[SMART REFRESH DEBUG] 📋 Collections to reload:', collections);
+    info('[SMART REFRESH DEBUG] 📋 Collections to reload:', collections);
     
     const freshData = {};
     const newPermErrors = {};
@@ -198,7 +226,7 @@ const useAnalyticsData = () => {
     // Local safeLoad function for smart reload - returns data instead of setting state
     const safeLoad = async (key, loadFn) => {
       try {
-        console.log(`[SMART REFRESH DEBUG] 📥 Loading ${key}...`);
+        info(`[SMART REFRESH DEBUG] 📥 Loading ${key}...`);
         const data = await loadFn();
         
         // Handle Firestore QuerySnapshot
@@ -214,14 +242,14 @@ const useAnalyticsData = () => {
           docs = [{ id: data.id || data.uid || data.docId, ...data }];
         }
         
-        console.log(`[SMART REFRESH DEBUG] ✅ Loaded ${key}: ${docs.length} records`);
+        info(`[SMART REFRESH DEBUG] ✅ Loaded ${key}: ${docs.length} records`);
         freshData[key] = docs;
         return docs;
       } catch (e) {
         const code = (e?.code || e?.message || '').toString();
         if (code.includes('permission-denied')) newPermErrors[key] = 'permission-denied';
-        console.error(`[SMART REFRESH DEBUG] ❌ Failed to load ${key}:`, e);
-        logger.warn(`[useAnalyticsData] failed to load ${key}:`, e);
+        error(`[SMART REFRESH DEBUG] ❌ Failed to load ${key}:`, e);
+        warn(`[useAnalyticsData] failed to load ${key}:`, e);
         freshData[key] = [];
         return [];
       }
@@ -229,7 +257,7 @@ const useAnalyticsData = () => {
     
     try {
       const loadPromises = collections.map(async (collectionName) => {
-        console.log(`[SMART REFRESH DEBUG] 📥 Loading ${collectionName}...`);
+        info(`[SMART REFRESH DEBUG] 📥 Loading ${collectionName}...`);
         
         let loadFn;
         switch (collectionName) {
@@ -313,7 +341,7 @@ const useAnalyticsData = () => {
             loadFn = () => getDocs(collection(db, 'attendanceSessions'));
             break;
           default:
-            console.warn(`[SMART REFRESH DEBUG] ⚠️ Unknown collection: ${collectionName}`);
+            warn(`[SMART REFRESH DEBUG] ⚠️ Unknown collection: ${collectionName}`);
             return;
         }
         
@@ -322,12 +350,12 @@ const useAnalyticsData = () => {
       
       await Promise.all(loadPromises);
       
-      console.log('[SMART REFRESH DEBUG] ✅ Smart reload completed successfully!');
+      info('[SMART REFRESH DEBUG] ✅ Smart reload completed successfully!');
       
       // Return fresh data for the widget
       return { freshData, permErrors: newPermErrors };
     } catch (error) {
-      console.error('[SMART REFRESH DEBUG] ❌ Smart reload failed:', error);
+      error('[SMART REFRESH DEBUG] ❌ Smart reload failed:', error);
       return { freshData: {}, permErrors: newPermErrors };
     }
   };
@@ -371,7 +399,7 @@ export const getWidgetCollections = (widget) => {
   // Always include users for name resolution (students collection has permission issues)
   collections.add('users');
   
-  console.log('[WIDGET DEBUG] 📋 Widget collections needed:', Array.from(collections));
+  info('[WIDGET DEBUG] 📋 Widget collections needed:', Array.from(collections));
   return Array.from(collections);
 };
 
@@ -389,12 +417,12 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
   const { dataSource, groupBy, aggregation = 'count', filters = [], dateRange, customDateFrom, customDateTo } = widget;
 
   // DEBUG: Log widget processing start with more details
-  console.log(`[WIDGET DEBUG] 🎯 Processing: ${widget.title || 'Untitled'} (${dataSource}) - groupBy: "${groupBy}" - aggregation: ${aggregation}`);
+  info(`[WIDGET DEBUG] 🎯 Processing: ${widget.title || 'Untitled'} (${dataSource}) - groupBy: "${groupBy}" - aggregation: ${aggregation}`);
   
   // Enhanced validation for groupBy - allow empty for "None" selection
-  if (!groupBy || groupBy.trim() === '' || groupBy === 'undefined' || groupBy === 'null') {
+  if (!groupBy || groupBy.trim() === '' || groupBy === 'undefined' || groupBy === 'null'); {
     // For "None" groupBy, treat as a single group with all data
-    console.log('[processWidgetData] No groupBy provided, treating as single group:', { widgetTitle: widget.title, dataSource });
+    info('[processWidgetData] No groupBy provided, treating as single group:', { widgetTitle: widget.title, dataSource });
     // Don't return empty array, continue processing with single group
   }
 
@@ -416,7 +444,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
   }
 
   // DEBUG: Log widget processing start (minimal)
-  console.log(`[WIDGET DEBUG] 🎯 Processing: ${widget.title || 'Untitled'} (${dataSource})`);
+  info(`[WIDGET DEBUG] 🎯 Processing: ${widget.title || 'Untitled'} (${dataSource})`);
   
   // DEBUG: Show absences filtering info
   if (dataSource === 'absences') {
@@ -435,7 +463,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
   // DEBUG: Show all status values for attendance (only for attendance)
   if (dataSource === 'attendance' && dataset.length > 0) {
     const allStatuses = [...new Set(dataset.map(item => item.status))].filter(Boolean);
-    console.log(`[WIDGET DEBUG] 📋 Status values:`, allStatuses);
+    info(`[WIDGET DEBUG] 📋 Status values:`, allStatuses);
   }
   
 
@@ -491,7 +519,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
 
   // DEBUG: Log after global filters (only if data was filtered out)
   if (dataset.length === 0) {
-    console.log(`[WIDGET DEBUG] ❌ No data after filters`);
+    info(`[WIDGET DEBUG] ❌ No data after filters`);
   }
 
   // --- Widget-level filters ---
@@ -511,7 +539,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
   });
 
   // --- Date range ---
-  if (dateRange && dateRange !== 'all') {
+  if (dateRange && dateRange !== 'all'); {
     let cutoff, upperBound;
     if (dateRange === 'custom' && customDateFrom && customDateTo) {
       cutoff = new Date(customDateFrom).getTime();
@@ -542,7 +570,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     
     // DEBUG: Log only if date filtering removed data
     if (beforeDateFilter > dataset.length) {
-      console.log(`[WIDGET DEBUG] 📅 Date filter: ${beforeDateFilter} → ${dataset.length}`);
+      info(`[WIDGET DEBUG] 📅 Date filter: ${beforeDateFilter} → ${dataset.length}`);
     }
   }
 
@@ -616,9 +644,9 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     }
     if (groupBy === 'penaltyType' || (dataSource === 'penalties' && groupBy === 'type')) {
       const pt = item.type || 'Unknown';
-      return PENALTY_TYPES.find(p => p.id === pt)?.label_en || pt;
+      return (lookupData['penalty-types'] || []).find(p => p.id === pt)?.nameEn || pt;
     }
-    if (groupBy === 'attendanceType' || (dataSource === 'attendance' && groupBy === 'status')) {
+    if (groupBy === 'attendanceType' || (dataSource === 'attendance' && groupBy === 'status')); {
       const status = item.status || 'Unknown';
       // Always return clean English labels for grouping keys
       const statusMap = {
@@ -901,7 +929,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
   
   // DEBUG: Log final results (only if there are issues)
   if (chartData.length === 0 && dataset.length > 0) {
-    console.log(`[WIDGET DEBUG] ⚠️ No chart data from ${dataset.length} records`);
+    info(`[WIDGET DEBUG] ⚠️ No chart data from ${dataset.length} records`);
   }
   
   return chartData;

@@ -1,0 +1,32 @@
+🔐 Attempting admin login via master realm...
+🔐 Admin login response status: 200
+🔐 Admin login response data: {
+  access_token: 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJoR3dtYVBGVmRnWkxRZzVlYy1XOTRNN3NNa3pwR20wdnA3cV9xVnc4S0RjIn0.eyJleHAiOjE3NzQxNjkxNjQsImlhdCI6MTc3NDE2OTEwNCwianRpIjoiMDc3NThiNzAtYzVjYi00MDFkLTk0MjAtNjg2NDZiNTYyYWVjIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9tYXN0ZXIiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJhZG1pbi1jbGkiLCJzaWQiOiIyMzM1NzEzNi1lMjViLTQxZmEtYjRhZS1mODA5ODBmNmNlMjciLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.eyGScBxSmAtC0gDCpMUJ3nkHMpzYB6YQUyimI7epJ5xGIl5QYXIKi6hJenS5lWL9O2-JjXaq6J0q2WSdGnFSaJIXqS7seN74zPccI78HceyABUNjuccwIsPzn4M7m6ZrUZkl1z4ClgBYkW9E3Rc4oUO_DayYX-Mf-oTjfzBwWYCj0NA1dnJamz1SkslhUHEfjkc93k7NvYcRx-2D-ynODst0TJZTTLfHkzcKTpfEUQs-bCM94Ik8JSW0bMl0h6KFpB1h677jqUC_4-jjcbDRIYkYAJc_gR2OPBCX2n40TJ_9DfBTnppNw-m51rwYEnXN8vDkku2bbhnruJ8aGP7foQ',
+  expires_in: 60,
+  refresh_expires_in: 1800,
+  refresh_token: 'eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICIwOWU5ZjI3YS0xOWIyLTQ2MzMtYTEwOS01YTZhNmE4NTEwOTUifQ.eyJleHAiOjE3NzQxNzA5MDQsImlhdCI6MTc3NDE2OTEwNCwianRpIjoiZTE3ZTk5ZDAtMDEwZC00Mjc3LWIyOGEtNWQzZDE0YWVlZTYwIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvcmVhbG1zL21hc3RlciIsInR5cCI6IlJlZnJlc2giLCJhenAiOiJhZG1pbi1jbGkiLCJzaWQiOiIyMzM1NzEzNi1lMjViLTQxZmEtYjRhZS1mODA5ODBmNmNlMjciLCJzY29wZSI6ImVtYWlsIHdlYi1vcmlnaW5zIHByb2ZpbGUgYWNyIGJhc2ljIHJvbGVzIn0.YpKZvtBw728YDtZb1ILCM6sahSKzI4MSSfCCaScESryHiDa5a3_UnkErbe99lVlabh4AOw3AzjArZiHbVYWdKA',
+  token_type: 'Bearer',
+  'not-before-policy': 0,
+  session_state: '23357136-e25b-41fa-b4ae-f80980f6ce27',
+  scope: 'email profile'
+}
+✅ Admin authentication successful
+🔑 Token expires in: 60 seconds
+🔧 Creating parent program for subjects...
+✅ Parent program created: 69bfac105ae6da109bf928f8
+🔍 CREATE response: {
+  "data": {
+    "createSubject": {
+      "id": "69bfac105ae6da109bf928fa",
+      "nameEn": "Test Subject 1774169104290",
+      "nameAr": "مادة اختبار 1774169104290",
+      "code": "SUBJ-1774169104290",
+      "description": "Test subject description",
+      "credits": 3
+    }
+  }
+}
+✅ Subject created: Test Subject 1774169104290
+📝 Subject ID: 69bfac105ae6da109bf928fa
+🧹 Cleaning up parent program...
+✅ Parent program deleted: 69bfac105ae6da109bf928f8

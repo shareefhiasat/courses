@@ -4,10 +4,12 @@ import { formatDateTime } from '@utils/date';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getWhiteIcon, getIconWithColor, getColoredIcon } from '@constants/iconTypes';
 import { DIFFICULTY_TYPES } from '@constants/difficultyTypes';
-import { ACTIVITY_TYPES } from '@constants/activityTypes';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
+// OLD: import { ACTIVITY_TYPES } from '@constants/activityTypes';
+// NOW: Using useLookupTypes hook for all lookup data
 import { getResourceTypeConfig } from '@constants/resourceTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import PortalTooltip from '@ui/PortalTooltip';
 
 /**
@@ -61,6 +63,23 @@ const UnifiedCard = memo(({
 }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { data: lookupData } = useLookupTypes({
+    types: ['activity-types']
+  });
+
+  // Create activity type constants from lookup data
+  const activityTypes = (lookupData['activity-types'] || []).reduce((acc, type) => {
+    acc[type.code] = type.code;
+    return acc;
+  }, {});
+  
+  // Default to TRAINING if not found
+  const ACTIVITY_TYPES = {
+    QUIZ: activityTypes.QUIZ || 'QUIZ',
+    HOMEWORK: activityTypes.HOMEWORK || 'HOMEWORK', 
+    TRAINING: activityTypes.TRAINING || 'TRAINING',
+    LAB_AND_PROJECT: activityTypes.LAB_AND_PROJECT || 'LAB_AND_PROJECT'
+  };
   
   // Debug logs to track props
   if (flavor === 'quiz' || flavor === RECORD_TYPES.QUIZ) {

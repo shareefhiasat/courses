@@ -1,7 +1,8 @@
 import React from 'react';
 import styles from './StoryboardTabs.module.css';
 
-// A colorful, theme-aware tab bar with stable palette assignment
+
+import { info, error, warn, debug } from '@services/utils/logger.js';// A colorful, theme-aware tab bar with stable palette assignment
 // tabs: Array<{ key: string, label: string, icon?: ReactNode, count?: number }>
 export default function StoryboardTabs({ tabs = [], activeKey, onChange, className = '' }) {
   // Pleasant palettes (work in light and dark)

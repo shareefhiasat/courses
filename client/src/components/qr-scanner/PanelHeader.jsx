@@ -1,0 +1,84 @@
+import React from 'react';
+import { CircleIcon } from "@utils/icons.jsx";
+import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
+import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_COLORS } from '@constants/attendanceTypes';
+
+export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL }) {
+  console.log('🔍 PanelHeader - Props:', {
+    student,
+    attendanceStatus,
+    lang,
+    isRTL
+  });
+
+  const avatarColor = getAvatarColor(student?.name || '');
+  const getInitials = (name) => {
+    if (!name) return '';
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
+      <div style={{
+        width: '3rem',
+        height: '3rem',
+        borderRadius: '9999px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '0.875rem',
+        fontWeight: 500,
+        background: avatarColor.bg,
+        color: avatarColor.color
+      }}>
+        {getInitials(student.displayName || student.realName || student.name || '')}
+      </div>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '0.875rem' }}>
+            {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
+          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            {attendanceStatus && attendanceStatus.en !== 'None' ? (
+              <>
+                <span style={{
+                  width: '0.375rem',
+                  height: '0.375rem',
+                  background: attendanceStatus.color,
+                  borderRadius: '9999px'
+                }} />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+                  {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
+                </span>
+              </>
+            ) : (
+              <>
+                <CircleIcon style={{ width: '14px', height: '14px', stroke: 'var(--text-muted, #9ca3af)' }} />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #9ca3af)' }}>
+                  {t('none') || 'None'}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+        <div style={{
+          fontSize: '0.625rem',
+          color: 'var(--text-muted, #6b7280)',
+          marginTop: '0.125rem',
+          fontFamily: 'monospace',
+          background: 'var(--panel-hover, #f3f4f6)',
+          padding: '0.125rem 0.375rem',
+          borderRadius: '0.25rem',
+          display: 'inline-block'
+        }}>
+          {student.studentNumber || student.id}
+        </div>
+      </div>
+    </div>
+  );
+}

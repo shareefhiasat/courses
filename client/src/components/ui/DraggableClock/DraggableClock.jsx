@@ -4,7 +4,8 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { formatLocalizedDateTime } from '@utils/date';
 import PortalTooltip from '@ui/PortalTooltip';
-import './DraggableClock.css';
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import './DraggableClock.css';
 
 const DraggableClock = ({ 
   initialPosition = { x: 100, y: 100 },

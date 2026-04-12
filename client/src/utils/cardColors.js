@@ -5,7 +5,8 @@
 
 import {getThemedIcon} from '@constants/iconTypes';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Get theme-aware color for icons
  * @param {string} baseColor - Base color from the card config
  * @param {string} theme - Current theme ('light' or 'dark')

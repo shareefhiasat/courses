@@ -1,7 +1,8 @@
 import React, { forwardRef } from 'react';
 import styles from './Textarea.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Textarea Component
  * 
  * @param {Object} props

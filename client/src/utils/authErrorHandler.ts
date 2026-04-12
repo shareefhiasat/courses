@@ -2,19 +2,20 @@
 import { signOut } from 'firebase/auth';
 import { auth } from '@services/other/config';
 
-export class AuthErrorHandler {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export class AuthErrorHandler {
   private static retryCount = 0;
   private static maxRetries = 3;
   private static retryDelay = 1000; // 1 second
 
   static async handlePermissionError(error: any, context: string = 'unknown'): Promise<boolean> {
-    console.warn(`[AuthErrorHandler] Permission error in ${context}:`, error);
+    warn(`[AuthErrorHandler] Permission error in ${context}:`, error);
     
     // Check if it's a permission-denied error
     if (error?.code === 'permission-denied' || error?.message?.includes('permission-denied')) {
       if (this.retryCount < this.maxRetries) {
         this.retryCount++;
-        console.log(`[AuthErrorHandler] Retrying auth operation (${this.retryCount}/${this.maxRetries})`);
+        info(`[AuthErrorHandler] Retrying auth operation (${this.retryCount}/${this.maxRetries})`);
         
         // Wait before retry
         await new Promise(resolve => setTimeout(resolve, this.retryDelay));
@@ -24,15 +25,15 @@ export class AuthErrorHandler {
           const currentUser = auth.currentUser;
           if (currentUser) {
             await currentUser.getIdTokenResult(true);
-            console.log('[AuthErrorHandler] Token refreshed successfully');
+            info('[AuthErrorHandler] Token refreshed successfully');
             this.retryCount = 0; // Reset on success
             return true; // Retry should succeed
           }
         } catch (refreshError) {
-          console.error('[AuthErrorHandler] Failed to refresh token:', refreshError);
+          error('[AuthErrorHandler] Failed to refresh token:', refreshError);
         }
       } else {
-        console.error('[AuthErrorHandler] Max retries reached, signing out');
+        error('[AuthErrorHandler] Max retries reached, signing out');
         this.retryCount = 0;
         
         // Only sign out if this is a critical auth failure

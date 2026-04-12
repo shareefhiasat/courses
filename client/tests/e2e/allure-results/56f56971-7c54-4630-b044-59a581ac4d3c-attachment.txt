@@ -1,0 +1,3 @@
+🔍 Testing GraphQL API connectivity...
+✅ Demo test passed - GraphQL API is accessible
+📊 Schema types available: 216

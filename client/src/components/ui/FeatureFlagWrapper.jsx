@@ -6,7 +6,8 @@
 import React from 'react';
 import { useFeatureFlags } from '@hooks/useFeatureFlags';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * FeatureFlagWrapper Component
  * 
  * Conditionally renders its children based on whether a feature is enabled for the current user
@@ -102,13 +103,12 @@ export const MultiFeatureWrapper = ({
   }
 
   if (!Array.isArray(featureIds) || featureIds.length === 0) {
-    console.warn('MultiFeatureWrapper: featureIds must be a non-empty array');
+    warn('MultiFeatureWrapper: featureIds must be a non-empty array');
     return children;
   }
 
   const featureStatuses = featureIds.map(id => ({
-    id,
-    enabled: isEnabled(id)
+    id, enabled: isEnabled(id)
   }));
 
   let shouldRender = false;

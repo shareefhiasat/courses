@@ -13,7 +13,8 @@
 
 import { getSMTPConfig as getSMTPConfigFromFirestore } from '@services/business/emailService';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Get SMTP configuration with priority order
  * @returns {Promise<Object>} SMTP configuration object
  */
@@ -57,7 +58,7 @@ export const getSMTPConfig = async () => {
       };
     }
   } catch (error) {
-    logger.warn('Failed to load SMTP config from Firestore:', error);
+    warn('Failed to load SMTP config from Firestore:', error);
   }
 
   // Priority 4: Default to Gmail super admin (last resort)
@@ -79,27 +80,27 @@ export const getSMTPConfig = async () => {
  */
 export const getSMTPConfigForFunctions = () => {
   // Priority 1: Environment variables
-  if (process.env.SMTP_HOST) {
+  if (import.meta.env.VITE_SMTP_HOST) {
     return {
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === 'true',
-      user: process.env.SMTP_USER,
-      password: process.env.SMTP_PASSWORD,
-      senderName: process.env.SMTP_SENDER_NAME || 'QAF Learning Hub',
+      host: import.meta.env.VITE_SMTP_HOST,
+      port: parseInt(import.meta.env.VITE_SMTP_PORT) || 587,
+      secure: import.meta.env.VITE_SMTP_SECURE === 'true',
+      user: import.meta.env.VITE_SMTP_USER,
+      password: import.meta.env.VITE_SMTP_PASSWORD,
+      senderName: import.meta.env.VITE_SMTP_SENDER_NAME || 'QAF Learning Hub',
       source: 'env',
-      provider: process.env.SMTP_PROVIDER || 'custom'
+      provider: import.meta.env.VITE_SMTP_PROVIDER || 'custom'
     };
   }
 
   // Priority 2: Test SMTP
-  if (process.env.USE_TEST_SMTP === 'true') {
+  if (import.meta.env.VITE_USE_TEST_SMTP === 'true') {
     return {
-      host: process.env.TEST_SMTP_HOST || 'sandbox.smtp.mailtrap.io',
-      port: parseInt(process.env.TEST_SMTP_PORT) || 587,
+      host: import.meta.env.VITE_TEST_SMTP_HOST || 'sandbox.smtp.mailtrap.io',
+      port: parseInt(import.meta.env.VITE_TEST_SMTP_PORT) || 587,
       secure: false,
-      user: process.env.TEST_SMTP_USER || '9c908a427b6636',
-      password: process.env.TEST_SMTP_PASSWORD || '7f3c74c9e2aec3',
+      user: import.meta.env.VITE_TEST_SMTP_USER || '9c908a427b6636',
+      password: import.meta.env.VITE_TEST_SMTP_PASSWORD || '7f3c74c9e2aec3',
       senderName: 'QAF Learning Hub (Test)',
       source: 'test',
       provider: 'mailtrap'
@@ -112,7 +113,7 @@ export const getSMTPConfigForFunctions = () => {
     port: 587,
     secure: false,
     user: 'shareef.hiasat@gmail.com',
-    password: process.env.GMAIL_SMTP_PASSWORD || '',
+    password: import.meta.env.VITE_GMAIL_SMTP_PASSWORD || '',
     senderName: 'QAF Learning Hub',
     source: 'default',
     provider: 'gmail'
@@ -123,7 +124,7 @@ export const getSMTPConfigForFunctions = () => {
  * Check if using test SMTP
  */
 export const isTestSMTP = () => {
-  return import.meta.env.VITE_USE_TEST_SMTP === 'true' || process.env.USE_TEST_SMTP === 'true';
+  return import.meta.env.VITE_USE_TEST_SMTP === 'true' || import.meta.env.VITE_USE_TEST_SMTP === 'true';
 };
 
 /**

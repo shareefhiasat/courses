@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 // Version and build information using environment variables
 // Falls back to defaults if env vars are not set
 export const APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0';

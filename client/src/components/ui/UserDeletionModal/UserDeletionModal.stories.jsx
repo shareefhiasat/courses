@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import UserDeletionModal from './UserDeletionModal';
 import Button from '../Button';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'UI/Modal/UserDeletionModal',
   component: UserDeletionModal,
   tags: ['autodocs'],

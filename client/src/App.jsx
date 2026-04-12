@@ -1,21 +1,20 @@
 import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { KeycloakProvider } from './providers/KeycloakProvider';
 import { AuthProvider, useAuth } from '@contexts/AuthContext';
 import { LangProvider } from '@contexts/LangContext';
 import { ThemeProvider } from '@contexts/ThemeContext';
 import { ColorThemeProvider } from '@contexts/ColorThemeContext';
 import { GlobalLoadingProvider, GlobalLoadingFallback } from '@contexts/GlobalLoadingContext';
 import { HelpProvider } from '@contexts/HelpContext';
-import logger from './utils/logger';
-import analytics from './utils/analytics.js';
+import { info, error, warn, debug } from '@logger';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 import './styles/colors.css';
 import './styles/tokens.css';
 import './styles/theme.css';
 import './utils/userRoleManager';
-import './utils/allowlistManager';
-import './utils/sessionDebug'; // Import session debug utilities
+// allowlistManager removed - now using Keycloak for user management
 
 // Direct imports — always-on shell components (not lazy, no barrel)
 import Navbar from '@ui/Navbar/Navbar';
@@ -26,6 +25,7 @@ import LoadingProgress from '@ui/LoadingProgress/LoadingProgress';
 import ToastProvider from '@ui/ToastProvider.jsx';
 import StudentQuickActionModal from '@ui/StudentQuickActionModal.jsx';
 import StudentQRCodeDisplay from '@ui/StudentQRCodeDisplay/StudentQRCodeDisplay';
+import SilentCheckSso from './components/auth/SilentCheckSso.jsx';
 
 // Lazy-loaded pages — each becomes its own JS chunk
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -47,7 +47,7 @@ const ClassSchedulePage = lazy(() => import('./pages/academic/classes/ClassSched
 const ScheduleOverviewPage = lazy(() => import('./pages/academic/schedules/ScheduleOverviewPage'));
 const EnrollmentsPage = lazy(() => import('./pages/academic/enrollments/EnrollmentsPage'));
 const AnalyticsPage = lazy(() => import('./pages/feedback/analytics/AnalyticsPage'));
-const RoleAccessPro = lazy(() => import('./pages/system/RoleAccessPro'));
+// RoleAccessPro removed - now using Keycloak roles for RBAC
 const StudentProfilePage = lazy(() => import('./pages/users/StudentProfilePage'));
 const StudentDashboardPage = lazy(() => import('./pages/dashboard/StudentDashboardPage'));
 const QuizzesPage = lazy(() => import('./pages/quizzes/QuizzesPage'));
@@ -59,8 +59,13 @@ const ProgramsManagementPage = lazy(() => import('./pages/academic/programs/Prog
 const SubjectsManagementPage = lazy(() => import('./pages/academic/subjects/SubjectsPage'));
 const ScheduledReportsPage = lazy(() => import('./pages/feedback/reports/ScheduledReportsPage'));
 const AdvancedAnalytics = lazy(() => import('./components/AdvancedAnalytics'));
-const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage.jsx'));
+const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
 const MarksPage = lazy(() => import('./pages/academic/enrollments/grading/MarksPage'));
+const WorkflowInboxPage = lazy(() => import('./pages/workflow/WorkflowInboxPage'));
+const WorkflowDetailPage = lazy(() => import('./pages/workflow/WorkflowDetailPage'));
+const WorkflowCreatePage = lazy(() => import('./pages/workflow/WorkflowCreatePage'));
+const WorkflowWorkspacePage = lazy(() => import('./pages/workflow/WorkflowWorkspacePage'));
 
 // Handle MobX State Tree errors globally
 if (typeof window !== 'undefined') {
@@ -98,23 +103,14 @@ function PageTracker() {
   const location = useLocation();
   
   useEffect(() => {
-    logger.log('🔍 PageTracker - Route changed:', {
+    info('🔍 PageTracker - Route changed:', {
       pathname: location.pathname,
       search: location.search,
       hash: location.hash,
       timestamp: new Date().toISOString()
     });
     
-    // Use PostHog directly since PostHogProvider manages the instance
-    if (window.posthog) {
-      analytics.trackPageVisit(location.pathname, {
-        search: location.search,
-        hash: location.hash,
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      // logger.log('🔍 PageTracker - PostHog not ready yet');
-    }
+    // Analytics removed - PostHog disabled
   }, [location]);
   
   return null;
@@ -170,6 +166,7 @@ const AppContent = () => {
           {/* ============================================ */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/qrcode/:studentId" element={<QRCodeDisplayPage />} />
+          <Route path="/silent-check-sso.html" element={<SilentCheckSso />} />
           
           {/* ============================================ */}
           {/* SYSTEM ROUTES */}
@@ -194,6 +191,17 @@ const AppContent = () => {
               <ProtectedRoute screenId="dashboard" screenName="Dashboard">
                 <Suspense fallback={<GlobalLoadingFallback />}>
                   <DashboardPage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/categories" 
+            element={
+              <ProtectedRoute screenId="categories" screenName="Categories">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <CategoriesPage />
                 </Suspense>
               </ProtectedRoute>
             } 
@@ -439,6 +447,64 @@ const AppContent = () => {
           />
           
           {/* ============================================ */}
+          {/* WORKFLOW ROUTES (Auth + Role Guard) */}
+          {/* ============================================ */}
+          <Route 
+            path="/workflow/inbox" 
+            element={
+              <ProtectedRoute screenId="workflow" screenName="Workflow Inbox">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <WorkflowInboxPage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/workflow/create" 
+            element={
+              <ProtectedRoute screenId="workflow" screenName="Workflow Create">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <WorkflowCreatePage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/workflow/workspace" 
+            element={
+              <ProtectedRoute screenId="workflow" screenName="Workflow Workspace">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <WorkflowWorkspacePage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/drive/personal" 
+            element={
+              <ProtectedRoute screenId="workflow" screenName="Personal Drive Workspace">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <WorkflowWorkspacePage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/workflow/:documentId" 
+            element={
+              <ProtectedRoute screenId="workflow" screenName="Workflow Detail">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <WorkflowDetailPage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* ============================================ */}
           {/* SETTINGS ROUTES (Auth + Role Guard) */}
           {/* ============================================ */}
           <Route 
@@ -450,14 +516,7 @@ const AppContent = () => {
             } 
           />
           
-          <Route 
-            path="/role-access-pro" 
-            element={
-              <ProtectedRoute screenId="roleAccess" screenName="Role Access Management">
-                <RoleAccessPro />
-              </ProtectedRoute>
-            } 
-          />
+          {/* RoleAccessPro route removed - now using Keycloak roles for RBAC */}
           
           {/* ============================================ */}
           {/* REDIRECTS */}
@@ -484,21 +543,23 @@ const AppContent = () => {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <LangProvider>
-          <AuthProvider>
-            <ColorThemeProvider>
-              <GlobalLoadingProvider>
-                <Router>
-                  <ErrorBoundary>
-                    <AppContent />
-                  </ErrorBoundary>
-                </Router>
-              </GlobalLoadingProvider>
-            </ColorThemeProvider>
-          </AuthProvider>
-        </LangProvider>
-      </ThemeProvider>
+      <KeycloakProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <LangProvider>
+              <ColorThemeProvider>
+                <GlobalLoadingProvider>
+                  <Router>
+                    <ErrorBoundary>
+                      <AppContent />
+                    </ErrorBoundary>
+                  </Router>
+                </GlobalLoadingProvider>
+              </ColorThemeProvider>
+            </LangProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </KeycloakProvider>
     </ErrorBoundary>
   );
 }

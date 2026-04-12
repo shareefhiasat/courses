@@ -4,14 +4,14 @@
  */
 
 import React, { memo, useState, useCallback, useRef, useEffect } from 'react';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '@services/other/config';
+import { updateUser } from '@services/business/userService';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatDateTime } from '@utils/date';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { SIDEBAR_CONFIG } from '../constants/chatConstants';
 
-const ChatSidebar = memo(({ 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const ChatSidebar = memo(({ 
   state,
   actions,
   user,
@@ -92,7 +92,7 @@ const ChatSidebar = memo(({
       if (next[cls.docId]) delete next[cls.docId]; 
       else next[cls.docId] = true;
       state.setArchivedClasses(next);
-      await setDoc(doc(db, 'users', user.uid), { archivedClasses: next }, { merge: true });
+      await updateUser(user.uid, { archivedClasses: next });
     } catch {}
   }, [archivedClasses, user.uid, state]);
 
@@ -103,7 +103,7 @@ const ChatSidebar = memo(({
       if (next[room.id]) delete next[room.id]; 
       else next[room.id] = true;
       state.setArchivedRooms(next);
-      await setDoc(doc(db, 'users', user.uid), { archivedRooms: next }, { merge: true });
+      await updateUser(user.uid, { archivedRooms: next });
     } catch {}
   }, [archivedRooms, user.uid, state]);
 

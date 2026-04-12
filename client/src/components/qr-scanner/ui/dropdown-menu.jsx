@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import './qr-scanner-ui.css';
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import './qr-scanner-ui.css';
 
 const DropdownMenu = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);

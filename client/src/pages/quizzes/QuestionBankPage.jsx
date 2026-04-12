@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -75,7 +75,7 @@ export default function QuestionBankPage() {
         toast.error(t('failed_to_load_questions'));
       }
     } catch (error) {
-      logger.error('Error loading questions:', error);
+      error('Error loading questions:', error);
       toast.error(t('error_loading_questions'));
     } finally {
       setLoading(false);
@@ -89,7 +89,7 @@ export default function QuestionBankPage() {
         setAllTags(result.data);
       }
     } catch (error) {
-      logger.error('Error loading tags:', error);
+      error('Error loading tags:', error);
     }
   }, []);
 
@@ -149,7 +149,7 @@ export default function QuestionBankPage() {
         toast.error('Failed to delete question');
       }
     } catch (error) {
-      logger.error('Error deleting question:', error);
+      error('Error deleting question:', error);
       toast.error('Error deleting question');
     }
   };
@@ -164,7 +164,7 @@ export default function QuestionBankPage() {
         toast.error(t('failed_to_duplicate_question'));
       }
     } catch (error) {
-      logger.error('Error duplicating question:', error);
+      error('Error duplicating question:', error);
       toast.error(t('error_duplicating_question'));
     }
   };
@@ -203,7 +203,7 @@ export default function QuestionBankPage() {
         toast.error(t('failed_to_parse_csv'));
       }
     } catch (error) {
-      logger.error('Error importing questions:', error);
+      error('Error importing questions:', error);
       toast.error(t('error_importing_questions'));
     }
   };
@@ -242,7 +242,7 @@ export default function QuestionBankPage() {
           loadClasses()
         ]);
       } catch (error) {
-        console.error('Error loading question bank data:', error);
+        error('Error loading question bank data:', error);
       } finally {
         safeStop();
       }

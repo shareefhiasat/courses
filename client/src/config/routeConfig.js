@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 /**
  * Route Configuration
  * 
@@ -245,6 +247,28 @@ export const ROUTE_CONFIG = {
       requireAuth: true,
       screenId: 'scheduledReports',
       screenName: 'Scheduled Reports'
+    }
+  },
+
+  // Workflow routes
+  WORKFLOW: {
+    workflowInbox: {
+      path: '/workflow/inbox',
+      requireAuth: true,
+      screenId: 'workflow',
+      screenName: 'Workflow Inbox'
+    },
+    workflowDetail: {
+      path: '/workflow/:documentId',
+      requireAuth: true,
+      screenId: 'workflow',
+      screenName: 'Workflow Detail'
+    },
+    privateWorkspace: {
+      path: '/workspace',
+      requireAuth: true,
+      screenId: 'workspace',
+      screenName: 'Private Workspace'
     }
   },
 

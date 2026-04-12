@@ -34,9 +34,9 @@
 }
 
 .medium {
-  padding: 0.5rem 1rem;
+  padding: 0.625rem 1.25rem;
   font-size: var(--font-size-md, 1rem);
-  min-height: 40px;
+  min-height: 42px;
 }
 
 .large {

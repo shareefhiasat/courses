@@ -1,6 +1,7 @@
 import { getQatarTimestampString } from './qatarDate';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Generates standardized audit fields for document creation.
  * Uses Qatari time strings and simple UID strings for audit trail.
  * 

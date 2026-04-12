@@ -4,7 +4,8 @@ import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import PortalTooltip from '@ui/PortalTooltip';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * WidgetWrapper
  * Universal UI shell for every analytics widget.
  *
@@ -70,7 +71,7 @@ const WidgetWrapper = ({
       {/* <ActionBtn
         title={isRefreshing ? (t('refreshing') || 'Refreshing...') : (t('refresh') || 'Refresh')}
         onClick={async () => {
-          console.log('[WIDGET WRAPPER DEBUG] 🔄 Refresh button clicked in wrapper!');
+          info('[WIDGET WRAPPER DEBUG] 🔄 Refresh button clicked in wrapper!');
           console.log('[WIDGET WRAPPER DEBUG] 📊 Widget title:', widget.title || 'Untitled');
           
           setIsRefreshing(true);

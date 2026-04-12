@@ -2,7 +2,8 @@ import React, { useState, useRef } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './FileUpload.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * FileUpload Component
  * 
  * Drag-and-drop file upload with progress.

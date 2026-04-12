@@ -2,7 +2,8 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Toast.module.css';
 
-const ToastContext = createContext();
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const ToastContext = createContext();
 
 /**
  * Toast Provider Component

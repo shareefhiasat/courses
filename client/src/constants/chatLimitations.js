@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 /**
  * Chat Limitations Configuration
  * Boolean flag-based restrictions for chat functionality

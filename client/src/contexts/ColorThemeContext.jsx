@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { adjustColor, normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
-import '../utils/themeDebug'; // Import debug utility
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const ColorThemeContext = createContext({
   primaryColor: DEFAULT_ACCENT,
@@ -31,7 +30,7 @@ export const ColorThemeProvider = ({ children }) => {
           }
         }
       }
-      // console.log('🎨 [ColorTheme] Initial state - found accent color:', foundKey, color);
+      // info('🎨 [ColorTheme] Initial state - found accent color:', foundKey, color);
       return color;
     } catch {
       return DEFAULT_ACCENT;
@@ -40,11 +39,11 @@ export const ColorThemeProvider = ({ children }) => {
 
   // Apply CSS variables for the primary color
   const applyColorVars = useCallback((color) => {
-    // console.log('🎨 [ColorTheme] Applying color vars:', { color, source: 'applyColorVars' });
+    // info('🎨 [ColorTheme] Applying color vars:', { color, source: 'applyColorVars' });
     try {
       const root = document.documentElement;
       const normalized = normalizeHexColor(color, DEFAULT_ACCENT);
-      // console.log('🎨 [ColorTheme] Normalized color:', normalized);
+      // info('🎨 [ColorTheme] Normalized color:', normalized);
       
       root.style.setProperty('--color-primary', normalized);
       root.style.setProperty('--color-primary-light', adjustColor(normalized, 15));
@@ -56,7 +55,7 @@ export const ColorThemeProvider = ({ children }) => {
       const g = parseInt(hex.substring(2,4),16);
       const b = parseInt(hex.substring(4,6),16);
       const rgbString = `${r}, ${g}, ${b}`;
-      // console.log('🎨 [ColorTheme] RGB values:', { r, g, b, rgbString });
+      // info('🎨 [ColorTheme] RGB values:', { r, g, b, rgbString });
       
       root.style.setProperty('--color-primary-rgb', rgbString);
       root.style.setProperty('--input-focus', normalized);
@@ -76,40 +75,40 @@ export const ColorThemeProvider = ({ children }) => {
       // });
       
       // Auto-debug in development
-      if (process.env.NODE_ENV === 'development' && window.debugThemeVariables) {
+      if (import.meta.env.MODE === 'development' && window.debugThemeVariables) {
         setTimeout(() => {
-          // console.log('🎨 [ColorTheme] Running automatic debug after color application...');
+          // info('🎨 [ColorTheme] Running automatic debug after color application...');
           window.debugThemeVariables();
         }, 100);
       }
     } catch (error) {
-      console.error('🎨 [ColorTheme] Failed to apply color variables:', error);
+      error('🎨 [ColorTheme] Failed to apply color variables:', error);
     }
   }, []);
 
   // Immediately apply initial color on mount to reduce flash
   useEffect(() => {
-    // console.log('🎨 [ColorTheme] Initial mount effect:', { user: user?.uid });
+    // info('🎨 [ColorTheme] Initial mount effect:', { user: user?.uid });
     if (user?.uid) {
       const cachedColor = localStorage.getItem(`accent_color_${user.uid}`);
-      // console.log('🎨 [ColorTheme] Cached color from localStorage:', cachedColor);
+      // info('🎨 [ColorTheme] Cached color from localStorage:', cachedColor);
       if (cachedColor) {
         applyColorVars(cachedColor);
       } else {
-        // console.log('🎨 [ColorTheme] No cached color found, using default');
+        // info('🎨 [ColorTheme] No cached color found, using default');
       }
     }
   }, [user?.uid, applyColorVars]);
 
   useEffect(() => {
-    // console.log('🎨 [ColorTheme] Color change effect:', { primaryColor, user: user?.uid });
+    // info('🎨 [ColorTheme] Color change effect:', { primaryColor, user: user?.uid });
     try {
       if (user?.uid) {
         localStorage.setItem(`accent_color_${user.uid}`, primaryColor);
-        // console.log('🎨 [ColorTheme] Saved to localStorage:', `accent_color_${user.uid}=${primaryColor}`);
+        // info('🎨 [ColorTheme] Saved to localStorage:', `accent_color_${user.uid}=${primaryColor}`);
       }
     } catch (e) {
-      logger.error('🎨 [ColorTheme] Failed to save primary color preference:', e);
+      error('🎨 [ColorTheme] Failed to save primary color preference:', e);
     }
 
     // Update CSS variables
@@ -120,9 +119,9 @@ export const ColorThemeProvider = ({ children }) => {
   useEffect(() => {
     const handleColorUpdate = (event) => {
       const { uid, color } = event.detail;
-      // console.log('🎨 [ColorTheme] Cross-tab color update received:', { uid, color, currentUid: user?.uid, currentColor: primaryColor });
+      // info('🎨 [ColorTheme] Cross-tab color update received:', { uid, color, currentUid: user?.uid, currentColor: primaryColor });
       if (uid === user?.uid && color !== primaryColor) {
-        // console.log('🎨 [ColorTheme] Applying cross-tab color update');
+        // info('🎨 [ColorTheme] Applying cross-tab color update');
         setPrimaryColor(color);
       } else {
         // console.log('🎨 [ColorTheme] Ignoring cross-tab update (uid mismatch or same color)');
@@ -131,7 +130,7 @@ export const ColorThemeProvider = ({ children }) => {
 
     window.addEventListener('accent-color-updated', handleColorUpdate);
     return () => {
-      // console.log('🎨 [ColorTheme] Cleaning up cross-tab listener');
+      // info('🎨 [ColorTheme] Cleaning up cross-tab listener');
       window.removeEventListener('accent-color-updated', handleColorUpdate);
     };
   }, [user?.uid, primaryColor]);
@@ -154,7 +153,7 @@ export const ColorThemeProvider = ({ children }) => {
 
   // Additional safeguard: apply initial color on mount to reduce flash before login/profile color load
   useEffect(() => {
-    // console.log('🎨 [ColorTheme] Initial safeguard effect running');
+    // info('🎨 [ColorTheme] Initial safeguard effect running');
     try {
       const root = document.documentElement;
       
@@ -169,7 +168,7 @@ export const ColorThemeProvider = ({ children }) => {
           if (storedColor) {
             color = storedColor;
             foundKey = key;
-            // console.log('🎨 [ColorTheme] Found stored accent color:', key, storedColor);
+            // info('🎨 [ColorTheme] Found stored accent color:', key, storedColor);
           }
         }
       }
@@ -179,12 +178,12 @@ export const ColorThemeProvider = ({ children }) => {
         const fallbackColor = localStorage.getItem('primaryColor');
         if (fallbackColor) {
           color = fallbackColor;
-          // console.log('🎨 [ColorTheme] Using fallback primaryColor:', fallbackColor);
+          // info('🎨 [ColorTheme] Using fallback primaryColor:', fallbackColor);
         }
       }
       
-      // console.log('🎨 [ColorTheme] Final safeguard color:', color);
-      // console.log('🎨 [ColorTheme] All localStorage keys:', Array.from({length: localStorage.length}, (_, i) => localStorage.key(i)));
+      // info('🎨 [ColorTheme] Final safeguard color:', color);
+      // info('🎨 [ColorTheme] All localStorage keys:', Array.from({length: localStorage.length}, (_, i) => localStorage.key(i)));
       
       root.style.setProperty('--color-primary', color);
       root.style.setProperty('--color-primary-light', adjustColor(color, 20));
@@ -205,7 +204,7 @@ export const ColorThemeProvider = ({ children }) => {
       //   '--brand2': root.style.getPropertyValue('--brand2')
       // });
     } catch (error) {
-      console.error('🎨 [ColorTheme] Failed to apply initial color variables:', error);
+      error('🎨 [ColorTheme] Failed to apply initial color variables:', error);
     }
   // Run once on mount
    

@@ -1,0 +1,3 @@
+🔍 Getting resources by type...
+🔍 Resources by type response status: 200
+✅ Retrieved document resources: 0

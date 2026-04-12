@@ -1,0 +1,58 @@
+🔍 Exploring Subject mutations...
+🔍 Subject mutations: [
+  {
+    "name": "createSubject",
+    "args": [
+      {
+        "name": "input",
+        "type": {
+          "name": null,
+          "kind": "NON_NULL"
+        }
+      }
+    ],
+    "type": {
+      "name": null,
+      "kind": "NON_NULL"
+    }
+  },
+  {
+    "name": "updateSubject",
+    "args": [
+      {
+        "name": "id",
+        "type": {
+          "name": null,
+          "kind": "NON_NULL"
+        }
+      },
+      {
+        "name": "input",
+        "type": {
+          "name": null,
+          "kind": "NON_NULL"
+        }
+      }
+    ],
+    "type": {
+      "name": null,
+      "kind": "NON_NULL"
+    }
+  },
+  {
+    "name": "deleteSubject",
+    "args": [
+      {
+        "name": "id",
+        "type": {
+          "name": null,
+          "kind": "NON_NULL"
+        }
+      }
+    ],
+    "type": {
+      "name": null,
+      "kind": "NON_NULL"
+    }
+  }
+]

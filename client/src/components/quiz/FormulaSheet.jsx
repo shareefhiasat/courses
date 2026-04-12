@@ -10,7 +10,8 @@ import { ActivityLogger } from '@services/other/activityLogger';
 import styles from './FormulaSheet.module.css';
 import PortalTooltip from '@ui/PortalTooltip';
 
-const FormulaSheet = ({ formulas = [], onClose }) => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const FormulaSheet = ({ formulas = [], onClose }) => {
   const { t } = useLang();
   const [expandedSections, setExpandedSections] = useState({});
 
@@ -19,7 +20,7 @@ const FormulaSheet = ({ formulas = [], onClose }) => {
     try {
       ActivityLogger.formulaSheetOpened();
     } catch (logError) {
-      console.warn('Failed to log formula sheet opened activity:', logError);
+      warn('Failed to log formula sheet opened activity:', logError);
     }
   }, []);
 

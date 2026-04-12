@@ -4,9 +4,10 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
 import { getThemedIcon } from '@constants/iconTypes';
+import MultiSelect from '@components/ui/MultiSelect';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Card, CardBody, ConfirmModal } from '@ui';
@@ -14,12 +15,11 @@ import { DeleteModal, useDeleteModal } from '@ui';
 import { QREmailModal, useQREmailModal } from '@ui';
 import { ProgramsSelect } from '@ui';
 import PortalTooltip from '@ui/PortalTooltip';
-import { getUsers, addUser, updateUser, deleteUser as deleteUserFromService, deleteStudent, disableUser, enableUser, isUserDisabledAtUserLevel, isStudent, isAdmin as isAdminUser } from '@services/business/userService';
+import { getUsers, addUser, updateUser, deleteUser as deleteUserFromService, deleteStudent, disableUser, enableUser, isUserDisabledAtUserLevel, isStudent, isAdmin as isAdminUser, setUserPassword } from '@services/business/userService';
 import { getPrograms } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { getSubjects } from '@services/business/programService';
 import { getEnrollments } from '@services/business/enrollmentService';
-import { getAllowlist } from '@services/other/config';
 import { getAttendanceByStudent } from '@services/business/attendanceService';
 import { getPenalties } from '@services/business/penaltyService';
 import { getBehaviors } from '@services/business/behaviorService';
@@ -46,12 +46,12 @@ const UsersPage = ({ isDashboardTab = false }) => {
   // Form refs for performance (uncontrolled inputs)
   const emailRef = useRef(null);
   const displayNameRef = useRef(null);
+  const realNameRef = useRef(null);
+  const studentNumberRef = useRef(null);
+  const orderRef = useRef(null);
   
-  // Allowlist state (previously was props)
-  const [autoAddToAllowlist, setAutoAddToAllowlist] = useState(true);
-  const [allowlist, setAllowlist] = useState(() => {
-    return { allowedEmails: [], adminEmails: [], allowedStudents: [], allowedInstructors: [], allowedHr: [], superAdmins: [] };
-  });
+  // Keycloak state
+  const [autoAddToKeycloak, setAutoAddToKeycloak] = useState(true);
   
   // Quick filters
   const [programFilter, setProgramFilter] = useState('');
@@ -67,9 +67,10 @@ const UsersPage = ({ isDashboardTab = false }) => {
     email: '',
     displayName: '',
     realName: '',
-    role: ROLE_STRINGS.STUDENT,
+    role: ROLE_STRINGS.STUDENT, // Primary role for backward compatibility
+    roles: [], // Multi-role array
     studentNumber: '',
-    order: ''
+    sequence: ''
   });
   const [saving, setSaving] = useState(false);
   const [gridRefreshKey, setGridRefreshKey] = useState(0);
@@ -87,6 +88,30 @@ const UsersPage = ({ isDashboardTab = false }) => {
   const { deleteModal, deleteUser, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   const { isOpen: isQREmailModalOpen, student: qrEmailStudent, showQREmailModal, hideQREmailModal } = useQREmailModal(t);
 
+  // Helper function to normalize user data from new schema to old format
+  const normalizeUserData = useCallback((user) => {
+    // Handle multiple roles from roleAssignments
+    let allRoles = [ROLE_STRINGS.STUDENT]; // Default to student
+    if (user.roleAssignments && Array.isArray(user.roleAssignments)) {
+      const assignedRoles = user.roleAssignments
+        .map(ra => ra.role?.code?.toLowerCase()) // Convert to lowercase
+        .filter(code => code);
+      if (assignedRoles.length > 0) {
+        allRoles = assignedRoles;
+      }
+    } else if (user.roles && Array.isArray(user.roles)) {
+      allRoles = user.roles;
+    } else if (typeof user.role === 'string') {
+      allRoles = [user.role.toLowerCase()];
+    }
+    
+    return {
+      ...user,
+      role: allRoles[0] || ROLE_STRINGS.STUDENT, // First role as primary for compatibility
+      roles: allRoles
+    };
+  }, []);
+
   const loadData = useCallback(async (isInitial = false) => {
     if (!isAdmin && !isSuperAdmin) {
       setPageState(PAGE_STATES.ERROR);
@@ -96,20 +121,17 @@ const UsersPage = ({ isDashboardTab = false }) => {
     if (!isInitial) setPageState(PAGE_STATES.LOADING);
     try {
       
-      const [usersResult, programsResult, classesResult, subjectsResult, enrollmentsResult, allowlistResult] = await Promise.all([
+      const [usersResult, programsResult, classesResult, subjectsResult, enrollmentsResult] = await Promise.all([
         getUsers(),
         getPrograms(),
         getClasses(),
         getSubjects(),
-        getEnrollments(),
-        getAllowlist().catch(error => {
-          logger.warn('USER_PAGE: Failed to load allowlist', { error: error.message });
-          return { success: false, data: { allowedEmails: [], adminEmails: [], allowedStudents: [], superAdmins: [] } };
-        })
+        getEnrollments()
       ]);
       
       if (usersResult.success) {
-        setUsers(usersResult.data || []);
+        const normalizedUsers = (usersResult.data || []).map(normalizeUserData);
+        setUsers(normalizedUsers);
       } else {
         toast?.showError(t('users_failed_to_load_users') + ': ' + usersResult.error);
       }
@@ -130,69 +152,13 @@ const UsersPage = ({ isDashboardTab = false }) => {
         setEnrollments(enrollmentsResult.data || []);
       }
       
-      // Load allowlist data
-      if (allowlistResult.success) {
-        setAllowlist(allowlistResult.data || { allowedEmails: [], adminEmails: [], allowedStudents: [], allowedInstructors: [], allowedHr: [], superAdmins: [] });
-
-        // Merge actual users with invited users from allowlist
-        if (usersResult.success) {
-          const actualUsers = usersResult.data || [];
-          const allowlistData = allowlistResult.data || {};
-          
-          // Get all invited emails from allowlist
-          const invitedEmails = [
-            ...(allowlistData.allowedEmails || []),
-            ...(allowlistData.adminEmails || []),
-            ...(allowlistData.allowedStudents || []),
-            ...(allowlistData.allowedInstructors || []),
-            ...(allowlistData.allowedHr || []),
-            ...(allowlistData.superAdmins || [])
-          ];
-
-          // Find invited users who haven't signed up yet
-          const invitedUsers = invitedEmails
-            .filter(email => !actualUsers.some(user => user.email === email))
-            .map(email => {
-              // Determine role from allowlist arrays
-              let role = ROLE_STRINGS.STUDENT; // default
-              if (allowlistData.allowedStudents?.includes(email)) role = ROLE_STRINGS.STUDENT;
-              else if (allowlistData.allowedInstructors?.includes(email)) role = ROLE_STRINGS.INSTRUCTOR;
-              else if (allowlistData.allowedHr?.includes(email)) role = ROLE_STRINGS.HR;
-              else if (allowlistData.adminEmails?.includes(email)) role = ROLE_STRINGS.ADMIN;
-              else if (allowlistData.superAdmins?.includes(email)) role = ROLE_STRINGS.SUPER_ADMIN;
-              else if (allowlistData.allowedEmails?.includes(email)) role = ROLE_STRINGS.STUDENT; // legacy
-
-              return {
-                email: email,
-                role: role,
-                displayName: email.split('@')[0], // Use email prefix as display name
-                realName: '',
-                studentNumber: '',
-                order: '',
-                status: 'invited', // Custom status for invited users
-                isInvited: true, // Flag to identify invited users
-                createdAt: new Date(), // Use current time as invite time
-                disabled: false,
-                id: email, // Add unique ID for DataGrid
-                docId: email // Add docId for consistency
-              };
-            });
-
-          // Combine actual users with invited users
-          const allUsers = [...actualUsers, ...invitedUsers];
-          setUsers(allUsers);
-        }
-      } else {
-        setAllowlist({ allowedEmails: [], adminEmails: [], allowedStudents: [], allowedInstructors: [], allowedHr: [], superAdmins: [] });
-      }
-      
       setPageState(PAGE_STATES.SUCCESS);
     } catch (error) {
-      logger.error('USER_PAGE: Failed to load data', { error: error.message });
+      error('USER_PAGE: Failed to load data', { error: error.message });
       toast?.showError(t('users_failed_to_load_data') + ': ' + error.message);
       setPageState(PAGE_STATES.ERROR);
     }
-  }, [isAdmin, isSuperAdmin, t, toast]);
+  }, [isAdmin, isSuperAdmin, t, toast, normalizeUserData]);
 
   // Simple initial load without global loading (dashboard tabs handle it)
   useLayoutEffect(() => {
@@ -219,7 +185,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
     const cache = new Map();
     
     return (user) => {
-      const cacheKey = `${user.id || user.docId}-${user.disabled}-${user.isDisabled}-${user.status}`;
+      const cacheKey = `${user.id || user.docId}-${user.disabled}-${user.isDisabled}-${user.status}-${user.isActive}`;
       
       if (!cache.has(cacheKey)) {
         cache.set(cacheKey, isUserDisabledAtUserLevel(user));
@@ -227,11 +193,20 @@ const UsersPage = ({ isDashboardTab = false }) => {
       
       return cache.get(cacheKey);
     };
-  }, []);
+  }, [users]); // Depend on users array to clear cache when data changes
 
   // Handler functions - must be defined before gridColumns
+  // Helper function to determine user's primary role from various sources
+  const getUserPrimaryRole = useCallback((user) => {
+    if (user.isStudent) return ROLE_STRINGS.STUDENT;
+    
+    // Use normalized data
+    const normalizedUser = normalizeUserData(user);
+    return normalizedUser.role;
+  }, [normalizeUserData]);
+
   const handleEditUser = useCallback((user) => {
-    logger.info('USER_PAGE: handleEditUser called', {
+    info('USER_PAGE: handleEditUser called', {
       timestamp: new Date().toISOString(),
       user: {
         id: user.id,
@@ -250,7 +225,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
 
     // Check if user is invited - if so, don't allow editing
     if (user.isInvited) {
-      logger.warn('USER_PAGE: Edit attempted on invited user - blocking', {
+      warn('USER_PAGE: Edit attempted on invited user - blocking', {
         email: user.email,
         reason: 'Invited users cannot be edited. Cancel invitation and re-add instead.'
       });
@@ -261,7 +236,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
     // Check if user has proper ID for editing
     const userId = user.id || user.uid || user.email;
     if (!userId) {
-      logger.error('USER_PAGE: No valid ID found for editing user', {
+      error('USER_PAGE: No valid ID found for editing user', {
         user: {
           email: user.email,
           displayName: user.displayName,
@@ -277,16 +252,19 @@ const UsersPage = ({ isDashboardTab = false }) => {
       return;
     }
 
+    const primaryRole = getUserPrimaryRole(user);
+
     setEditingUser(user);
     setFormData({
       email: user.email || '',
       displayName: user.displayName || '',
       realName: user.realName || '',
+      role: primaryRole,
+      roles: user.roles || [primaryRole], // Multi-role array
       studentNumber: user.studentNumber || '',
-      order: user.order || '',
-      role: user.role || ROLE_STRINGS.STUDENT
+      sequence: user.sequence || ''
     });
-  }, []);
+  }, [getUserPrimaryRole, toast]);
 
   const handleDeleteUser = useCallback(async (userToDelete) => {
     const userId = userToDelete.id || userToDelete.uid || userToDelete.email;
@@ -334,7 +312,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         ).size;
       }
     } catch (error) {
-      logger.error('USER_PAGE: Failed to load related records for delete:', error);
+      error('USER_PAGE: Failed to load related records for delete:', error);
     }
 
     const relatedRecords = {
@@ -360,7 +338,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
             toast?.showError(result.error || t('users_failed_to_disable_user'));
           }
         } catch (error) {
-          logger.error('USER_PAGE: Failed to soft delete user:', error);
+          error('USER_PAGE: Failed to soft delete user:', error);
           toast?.showError(t('users_error', { error: error.message }));
         }
       }, relatedRecords);
@@ -375,7 +353,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
             toast?.showError(result.error || t('users_failed_to_delete_user'));
           }
         } catch (error) {
-          logger.error('USER_PAGE: Failed to delete student:', error);
+          error('USER_PAGE: Failed to delete student:', error);
           toast?.showError(t('users_error', { error: error.message }));
         }
       }, relatedRecords);
@@ -387,7 +365,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
     const isCurrentlyDisabled = memoizedDisabledStatus(user);
     const action = isCurrentlyDisabled ? 'enable' : 'disable';
 
-    logger.info('USER_PAGE: handleToggleUserStatus called', {
+    info('USER_PAGE: handleToggleUserStatus called', {
       timestamp: new Date().toISOString(),
       user: {
         id: user.id,
@@ -414,7 +392,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
           const userId = user.docId || user.id;
           const newDisabledState = !isCurrentlyDisabled;
           
-          logger.info('USER_PAGE: Confirming user status change', {
+          info('USER_PAGE: Confirming user status change', {
             userId: userId,
             currentDisabled: isCurrentlyDisabled,
             newDisabledState: newDisabledState,
@@ -426,7 +404,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
             ? await disableUser(userId)
             : await enableUser(userId);
           
-          logger.info('USER_PAGE: Cloud function result', {
+          info('USER_PAGE: Cloud function result', {
             userId: userId,
             action: action,
             success: result.success,
@@ -437,7 +415,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
             // Close modal first
             setConfirmModal(prev => ({ ...prev, isOpen: false }));
             
-            logger.info('USER_PAGE: User status update successful', {
+            info('USER_PAGE: User status update successful', {
               userId: userId,
               action: action
             });
@@ -453,7 +431,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
             } catch (e) { }
         toast?.showSuccess(isCurrentlyDisabled ? t('users_enabled_successfully') : t('users_disabled_successfully'));
         
-        logger.info('USER_PAGE: About to reload data after status change', {
+        info('USER_PAGE: About to reload data after status change', {
           timestamp: new Date().toISOString(),
           userId: userId,
           action: action
@@ -465,7 +443,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         // Force grid re-render to update button states
         setGridRefreshKey(prev => prev + 1);
         
-        logger.info('USER_PAGE: Data reload completed after status change', {
+        info('USER_PAGE: Data reload completed after status change', {
           timestamp: new Date().toISOString(),
           userId: userId
         });
@@ -477,138 +455,84 @@ const UsersPage = ({ isDashboardTab = false }) => {
     } catch (error) {
           // Close modal on exception too
           setConfirmModal(prev => ({ ...prev, isOpen: false }));
-          logger.error('Error:', error);
+          error('Error:', error);
           toast?.showError(t('users_action_failed', { error: error.message }));
         }
       }
     });
   }, [toast, debouncedLoadData, t, memoizedDisabledStatus]);
 
-  const handleResetPassword = useCallback(async (email) => {
-    // Show confirmation modal
-    setConfirmModal({
+  // Password reset dialog state
+  const [passwordResetModal, setPasswordResetModal] = useState({
+    isOpen: false,
+    user: null,
+    newPassword: '',
+    isKeycloakUser: false,
+    loading: false
+  });
+
+  const handleResetPassword = useCallback(async (user) => {
+    // Check if user exists in Keycloak (simplified check - in production would verify with backend)
+    const isKeycloakUser = user.id || user.uid; // Users with IDs are likely in Keycloak
+    
+    setPasswordResetModal({
       isOpen: true,
-      title: t('users_reset_password'),
-      message: t('users_reset_password_confirmation', { email }),
-      confirmText: t('users_reset_password'),
-      variant: 'danger',
-      onConfirm: async () => {
-        try {
-      const { sendPasswordResetEmail } = await import('firebase/auth');
-      const { auth } = await import('@services/other/config');
-      await sendPasswordResetEmail(auth, email);
-      
-      // Close modal on success
-      setConfirmModal(prev => ({ ...prev, isOpen: false }));
-      toast?.showSuccess(t('users_password_reset_email_sent', { email }));
-    } catch (error) {
-          // Close modal on error too
-          setConfirmModal(prev => ({ ...prev, isOpen: false }));
-          logger.error('Error:', error);
-          toast?.showError(t('users_action_failed', { error: error.message }));
-        }
-      }
+      user: user,
+      newPassword: '',
+      isKeycloakUser: isKeycloakUser,
+      loading: false
     });
-  }, [toast, t]);
+  }, []);
+
+  const handlePasswordResetConfirm = useCallback(async () => {
+    const { user, newPassword, isKeycloakUser } = passwordResetModal;
+    
+    if (!newPassword || newPassword.length < 8) {
+      toast?.showError('Password must be at least 8 characters long');
+      return;
+    }
+
+    setPasswordResetModal(prev => ({ ...prev, loading: true }));
+
+    try {
+      // Call the password reset service
+      const result = await setUserPassword(user.id, newPassword, isKeycloakUser);
+      
+      if (result.success) {
+        toast?.showSuccess(
+          isKeycloakUser 
+            ? `Password reset successfully for ${user.email}. The new password has been set in Keycloak.`
+            : `Password reset successfully for ${user.email}.`
+        );
+        setPasswordResetModal({ isOpen: false, user: null, newPassword: '', isKeycloakUser: false, loading: false });
+      } else {
+        toast?.showError(result.error || 'Failed to reset password');
+        setPasswordResetModal(prev => ({ ...prev, loading: false }));
+      }
+    } catch (error) {
+      console.error('Password reset error:', error);
+      toast?.showError(`Failed to reset password: ${error.message}`);
+      setPasswordResetModal(prev => ({ ...prev, loading: false }));
+    }
+  }, [passwordResetModal, toast]);
+
+  const handleGeneratePassword = useCallback(() => {
+    const generateStrongPassword = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+      let password = '';
+      for (let i = 0; i < 12; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return password;
+    };
+    
+    const newPassword = generateStrongPassword();
+    setPasswordResetModal(prev => ({ ...prev, newPassword }));
+  }, []);
 
   const handleSendWelcomeEmail = useCallback(async (email, role, displayName) => {
-    // Show confirmation modal
-    setConfirmModal({
-      isOpen: true,
-      title: t('send_welcome_email') || 'Send Welcome Email',
-      message: t('send_welcome_email_confirmation', { email }) || `Send welcome email to ${email}?`,
-      confirmText: t('send_email') || 'Send Email',
-      variant: 'primary',
-      onConfirm: async () => {
-        try {
-          const { sendUserWelcomeEmail } = await import('@services/business/notificationService');
-          const result = await sendUserWelcomeEmail({
-            email: email,
-            role: role,
-            displayName: displayName,
-            userId: email // Use email as userId for now
-          });
-          
-          if (result.success) {
-            toast?.showSuccess(t('welcome_email_sent') || 'Welcome email sent successfully!');
-            logger.info('✅ Welcome email sent manually via consolidated service', { email, role });
-          } else {
-            toast?.showError(t('welcome_email_failed') || 'Failed to send welcome email');
-            logger.error('❌ Failed to send welcome email via consolidated service', { email, role, error: result.error });
-          }
-          setConfirmModal(prev => ({ ...prev, isOpen: false }));
-        } catch (error) {
-          setConfirmModal(prev => ({ ...prev, isOpen: false }));
-          logger.error('Error:', error);
-          toast?.showError(t('users_action_failed', { error: error.message }));
-        }
-      }
-    });
-  }, [toast, t]);
-
-  const handleRemoveFromAllowlist = useCallback(async (email, role) => {
-    // Show confirmation modal
-    setConfirmModal({
-      isOpen: true,
-      title: t('remove_invitation') || 'Remove Invitation',
-      message: t('remove_invitation_confirmation', { email }) || `Remove invitation for ${email}? They will no longer be able to sign up.`,
-      confirmText: t('remove') || 'Remove',
-      variant: 'danger',
-      onConfirm: async () => {
-        try {
-          // Import allowlist functions
-          const { getAllowlist, updateAllowlist } = await import('@services/other/config');
-          
-          // Get current allowlist
-          const allowlistResult = await getAllowlist();
-          if (!allowlistResult.success) {
-            throw new Error('Failed to load allowlist');
-          }
-          
-          const allowlistData = allowlistResult.data;
-          let newAllowlist = { ...allowlistData };
-          
-          // Remove from appropriate array based on role
-          if (role === ROLE_STRINGS.STUDENT) {
-            if (newAllowlist.allowedStudents?.includes(email)) {
-              newAllowlist.allowedStudents = newAllowlist.allowedStudents.filter(e => e !== email);
-            } else if (newAllowlist.allowedEmails?.includes(email)) {
-              newAllowlist.allowedEmails = newAllowlist.allowedEmails.filter(e => e !== email);
-            }
-          } else if (role === ROLE_STRINGS.INSTRUCTOR) {
-            newAllowlist.allowedInstructors = newAllowlist.allowedInstructors?.filter(e => e !== email) || [];
-          } else if (role === ROLE_STRINGS.HR) {
-            newAllowlist.allowedHr = newAllowlist.allowedHr?.filter(e => e !== email) || [];
-          } else if (role === ROLE_STRINGS.ADMIN) {
-            newAllowlist.adminEmails = newAllowlist.adminEmails?.filter(e => e !== email) || [];
-          } else if (role === ROLE_STRINGS.SUPER_ADMIN) {
-            // Don't allow removing SuperAdmins from allowlist
-            toast?.showError('Cannot remove SuperAdmin invitation');
-            setConfirmModal(prev => ({ ...prev, isOpen: false }));
-            return;
-          }
-          
-          // Save updated allowlist
-          const updateResult = await updateAllowlist(newAllowlist);
-          if (updateResult.success) {
-            toast?.showSuccess(t('invitation_removed') || 'Invitation removed successfully');
-            logger.info('✅ Invitation removed successfully', { email, role });
-            
-            // Reload data to update the grid
-            debouncedLoadData(true);
-          } else {
-            throw new Error(updateResult.error);
-          }
-          
-          setConfirmModal(prev => ({ ...prev, isOpen: false }));
-        } catch (error) {
-          setConfirmModal(prev => ({ ...prev, isOpen: false }));
-          logger.error('Error removing invitation:', error);
-          toast?.showError(t('failed_to_remove_invitation') || 'Failed to remove invitation');
-        }
-      }
-    });
-  }, [toast, t, debouncedLoadData]);
+    toast?.showInfo('Welcome email functionality is currently disabled');
+  }, [toast]);
 
   const openQRCodeInNewTab = useCallback((user) => {
     const qrUrl = `/qrcode/${encodeURIComponent(user.studentNumber)}`;
@@ -623,6 +547,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
   useEffect(() => {
     if (emailRef.current) emailRef.current.value = formData.email || '';
     if (displayNameRef.current) displayNameRef.current.value = formData.displayName || '';
+    if (realNameRef.current) realNameRef.current.value = formData.realName || '';
+    if (studentNumberRef.current) studentNumberRef.current.value = formData.studentNumber || '';
+    if (orderRef.current) orderRef.current.value = formData.sequence || '';
   }, [editingUser, formData]);
 
   // Read text values from refs into form state before submit
@@ -630,9 +557,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
     return {
       email: emailRef.current?.value ?? formData.email,
       displayName: displayNameRef.current?.value ?? formData.displayName,
-      realName: formData.realName,
-      studentNumber: formData.studentNumber,
-      order: formData.order,
+      realName: realNameRef.current?.value ?? formData.realName,
+      studentNumber: studentNumberRef.current?.value ?? formData.studentNumber,
+      sequence: orderRef.current?.value ?? formData.sequence,
       role: formData.role
     };
   }, [formData]);
@@ -769,17 +696,16 @@ const UsersPage = ({ isDashboardTab = false }) => {
   const gridColumns = useMemo(() => [
     { field: 'email', headerName: t('email_col'), flex: 1, minWidth: 220 },
     { field: 'displayName', headerName: t('display_name_col'), flex: 1, minWidth: 180 },
-    {
-      field: 'studentNumber', 
-      headerName: t('student_number') || 'Student Number', 
-      width: 140,
+    { 
+      field: 'realName', 
+      headerName: t('real_name') || 'Real Name', 
+      flex: 1, 
+      minWidth: 180,
       renderCell: (params) => {
         return (
           <span style={{ 
-            fontFamily: 'monospace', 
-            fontSize: '0.875rem',
-            color: '#059669',
-            fontWeight: 600
+            color: params.value ? 'inherit' : '#9ca3af',
+            fontStyle: params.value ? 'normal' : 'italic'
           }}>
             {params.value || '—'}
           </span>
@@ -787,9 +713,10 @@ const UsersPage = ({ isDashboardTab = false }) => {
       }
     },
     {
-      field: 'order', 
+      field: 'sequence', 
       headerName: t('order') || 'Order', 
       width: 120,
+      valueGetter: (params) => params.row.sequence,
       renderCell: (params) => {
         return (
           <span style={{ 
@@ -804,19 +731,71 @@ const UsersPage = ({ isDashboardTab = false }) => {
       }
     },
     {
-      field: 'role', headerName: t('role_col'), width: 180,
+      field: 'studentNumber', 
+      headerName: t('student_number') || 'Student Number', 
+      width: 150,
+      valueGetter: (params) => params.row.studentNumber,
       renderCell: (params) => {
-        // Get all roles from boolean flags
+        return (
+          <span style={{ 
+            fontFamily: 'monospace',
+            fontSize: '0.875rem',
+            color: params.value ? '#2563eb' : '#9ca3af',
+            fontWeight: 500
+          }}>
+            {params.value || '—'}
+          </span>
+        );
+      }
+    },
+    {
+      field: 'roleIcons', 
+      headerName: t('roles') || 'Roles', 
+      width: 180,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => {
+        // Get all roles from multiple sources
         const userRoles = [];
-        if (params.row.isSuperAdmin) userRoles.push(ROLE_STRINGS.SUPER_ADMIN);
-        if (params.row.isAdmin) userRoles.push(ROLE_STRINGS.ADMIN);
-        if (params.row.isInstructor) userRoles.push(ROLE_STRINGS.INSTRUCTOR);
-        if (params.row.isHR) userRoles.push(ROLE_STRINGS.HR);
-        if (params.row.isStudent) userRoles.push(ROLE_STRINGS.STUDENT);
         
-        // Fallback to role field if no boolean flags
+        // First try to get from roleAssignments (new multi-role system)
+        if (params.row.roleAssignments && Array.isArray(params.row.roleAssignments)) {
+          params.row.roleAssignments.forEach(ra => {
+            if (ra.role?.code) {
+              // Convert uppercase database codes to lowercase
+              userRoles.push(ra.role.code.toLowerCase());
+            }
+          });
+        }
+        
+        // Fallback to roles array if available
+        if (userRoles.length === 0 && params.row.roles && Array.isArray(params.row.roles)) {
+          userRoles.push(...params.row.roles);
+        }
+        
+        // Fallback to boolean flags
         if (userRoles.length === 0) {
-          const fallbackRole = params.row.role || params.value || ROLE_STRINGS.STUDENT;
+          if (params.row.isSuperAdmin) userRoles.push(ROLE_STRINGS.SUPER_ADMIN);
+          if (params.row.isAdmin) userRoles.push(ROLE_STRINGS.ADMIN);
+          if (params.row.isInstructor) userRoles.push(ROLE_STRINGS.INSTRUCTOR);
+          if (params.row.isHR) userRoles.push(ROLE_STRINGS.HR);
+          if (params.row.isStudent) userRoles.push(ROLE_STRINGS.STUDENT);
+        }
+        
+        // Final fallback to single role field
+        if (userRoles.length === 0) {
+          const roleField = params.row.role;
+          let fallbackRole = ROLE_STRINGS.STUDENT;
+          
+          if (typeof roleField === 'object' && roleField?.code) {
+            // Convert uppercase database codes to lowercase ROLE_STRINGS
+            const normalizedCode = roleField.code.toLowerCase();
+            fallbackRole = normalizedCode;
+          } else if (typeof roleField === 'string') {
+            // Convert uppercase database codes to lowercase ROLE_STRINGS
+            fallbackRole = roleField.toLowerCase();
+          }
+          
           userRoles.push(fallbackRole);
         }
         
@@ -827,28 +806,45 @@ const UsersPage = ({ isDashboardTab = false }) => {
           [ROLE_STRINGS.HR]: getThemedIcon('ui', 'users', 14, theme),
           [ROLE_STRINGS.STUDENT]: getThemedIcon('ui', 'user', 14, theme)
         };
+        
         const roleColors = {
-          [ROLE_STRINGS.SUPER_ADMIN]: '#f59e0b',
-          [ROLE_STRINGS.ADMIN]: '#4f46e5', 
-          [ROLE_STRINGS.INSTRUCTOR]: '#0ea5e9',
-          [ROLE_STRINGS.HR]: '#8b5cf6',
-          [ROLE_STRINGS.STUDENT]: '#16a34a'
+          [ROLE_STRINGS.SUPER_ADMIN]: '#dc2626', // Red for super admin
+          [ROLE_STRINGS.ADMIN]: '#2563eb',       // Blue for admin
+          [ROLE_STRINGS.INSTRUCTOR]: '#ea580c',  // Orange for instructor
+          [ROLE_STRINGS.HR]: '#7c3aed',          // Purple for HR
+          [ROLE_STRINGS.STUDENT]: '#0891b2'      // Cyan for student (instead of green)
+        };
+        
+        const roleNames = {
+          [ROLE_STRINGS.SUPER_ADMIN]: 'Super Admin',
+          [ROLE_STRINGS.ADMIN]: 'Admin',
+          [ROLE_STRINGS.INSTRUCTOR]: 'Instructor',
+          [ROLE_STRINGS.HR]: 'HR',
+          [ROLE_STRINGS.STUDENT]: 'Student'
         };
         
         return (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '2px', alignItems: 'center', padding: '2px 0' }}>
             {userRoles.map((role, idx) => {
-              const icon = roleIcons[role] || roleIcons[ROLE_STRINGS.STUDENT];
-              const color = roleColors[role] || roleColors[ROLE_STRINGS.STUDENT];
-              const displayName = role.replace(/_/g, ' ');
+              const icon = roleIcons[role];
+              const color = roleColors[role];
+              const name = roleNames[role] || role;
               
               return (
-                <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                  <span style={{ color }}>{icon}</span>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 500, textTransform: 'capitalize' }}>
-                    {displayName}
-                  </span>
-                  {idx < userRoles.length - 1 && <span style={{ color: '#9ca3af' }}>,</span>}
+                <span 
+                  key={idx} 
+                  style={{ 
+                    color, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '1px',
+                    fontSize: '0.8rem',
+                    fontWeight: '500',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {icon}
+                  {name}
                 </span>
               );
             })}
@@ -888,8 +884,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
       }
     },
     {
-      field: 'createdAt', headerName: t('joined'), width: 220,
-      valueGetter: (params) => params.value,
+      field: 'createdAt', headerName: t('created_at') || 'Created At', width: 180,
+      valueGetter: (params) => params.row.createdAt,
       renderCell: (params) => {
         if (!params.value) return (t('unknown') || 'Unknown');
         const date = params.value?.toDate ? params.value.toDate() : (params.value?.seconds ? new Date(params.value.seconds * 1000) : new Date(params.value));
@@ -907,6 +903,42 @@ const UsersPage = ({ isDashboardTab = false }) => {
         const displayHours = hours % 12 || 12;
         
         return `${month} ${day}, ${year} at ${displayHours}:${minutes}:${seconds} ${ampm}`;
+      }
+    },
+    {
+      field: 'createdBy', headerName: t('created_by') || 'Created By', width: 150,
+      valueGetter: (params) => params.row.createdBy,
+      renderCell: (params) => {
+        return getUserDisplayName(params.value);
+      }
+    },
+    {
+      field: 'updatedAt', headerName: t('updated_at') || 'Updated At', width: 180,
+      valueGetter: (params) => params.row.updatedAt,
+      renderCell: (params) => {
+        if (!params.value) return (t('never') || 'Never');
+        const date = params.value?.toDate ? params.value.toDate() : (params.value?.seconds ? new Date(params.value.seconds * 1000) : new Date(params.value));
+        if (isNaN(date.getTime())) return (t('unknown') || 'Unknown');
+        
+        // Format as: FEB 11, 2026 at 11:02:55 PM
+        const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+        const month = months[date.getMonth()];
+        const day = date.getDate();
+        const year = date.getFullYear();
+        const hours = date.getHours();
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const seconds = date.getSeconds().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        
+        return `${month} ${day}, ${year} at ${displayHours}:${minutes}:${seconds} ${ampm}`;
+      }
+    },
+    {
+      field: 'updatedBy', headerName: t('updated_by') || 'Updated By', width: 150,
+      valueGetter: (params) => params.row.updatedBy,
+      renderCell: (params) => {
+        return getUserDisplayName(params.value);
       }
     },
     {
@@ -953,7 +985,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
                     variant="ghost" 
                     icon={getThemedIcon('ui', 'edit', 16, theme)} 
                     onClick={() => {
-                      logger.info('USER_PAGE: Edit button clicked', {
+                      info('USER_PAGE: Edit button clicked', {
                         userEmail: params.row.email,
                         userId: params.row.id,
                         isInvited: params.row.isInvited,
@@ -970,32 +1002,20 @@ const UsersPage = ({ isDashboardTab = false }) => {
                 );
               })()}
               
-              {/* Reset Password button - always second */}
-              <PortalTooltip content={memoizedDisabledStatus(params.row) ? t('user_is_disabled_cannot_reset_password') : t('reset_password')} position="top">
+              {/* Reset Password button - temporarily hidden */}
+              {/* <PortalTooltip content={memoizedDisabledStatus(params.row) ? t('user_is_disabled_cannot_reset_password') : t('reset_password')} position="top">
               <Button 
                 size="sm" 
                 variant="ghost" 
-                onClick={() => handleResetPassword(params.row.email)}
+                onClick={() => handleResetPassword(params.row)}
                 style={{ border: 'none', opacity: memoizedDisabledStatus(params.row) ? 0.5 : 1 }}
                 disabled={memoizedDisabledStatus(params.row)}
               >
                 {getThemedIcon('ui', 'key_round', 16, theme)}
               </Button>
-            </PortalTooltip>
+            </PortalTooltip> */}
               
-              {/* Welcome Email button - third (beside reset password) */}
-              <PortalTooltip content={memoizedDisabledStatus(params.row) ? t('user_is_disabled_cannot_send_welcome_email') : t('send_welcome_email')} position="top">
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                onClick={() => handleSendWelcomeEmail(params.row.email, params.row.role, params.row.displayName)}
-                style={{ border: 'none', opacity: memoizedDisabledStatus(params.row) ? 0.5 : 1 }}
-                disabled={memoizedDisabledStatus(params.row)}
-              >
-                {getThemedIcon('ui', 'mail', 16, theme)}
-              </Button>
-            </PortalTooltip>
-              
+                            
               {/* Disable/Enable button - fourth */}
               <PortalTooltip content={memoizedDisabledStatus(params.row) ? t('enable') : t('disable')} position="top">
               <Button 
@@ -1010,13 +1030,16 @@ const UsersPage = ({ isDashboardTab = false }) => {
               </Button>
             </PortalTooltip>
               
-              {/* QR Code buttons - fifth and sixth */}
+              {/* QR Code buttons - fifth and sixth - HIDDEN */}
               {(() => {
                 // Check if user has student role from boolean flags
                 const hasStudentRole = isStudent(params.row);
                 const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === ROLE_STRINGS.SUPER_ADMIN;
                 const isInstructorUser = params.row.isInstructor || params.row.role === ROLE_STRINGS.INSTRUCTOR;
 
+                // QR buttons temporarily hidden
+                return null;
+                
                 // Show QR code for students (functional), super admins, and instructors (disabled)
                 if (params.row.studentNumber && (hasStudentRole || isSuperAdminUser || isInstructorUser)) {
                   const canUseQR = hasStudentRole;
@@ -1068,7 +1091,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
                 return null; // Don't show QR buttons if no student number
               })()}
               
-              {/* Delete button - always last */}
+              {/* Delete button - always last - DISABLED FOR SAFETY */}
+              {/* 
               {(() => {
                 const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === ROLE_STRINGS.SUPER_ADMIN;
                 const currentUserIsSuperAdmin = user?.isSuperAdmin || user?.role === ROLE_STRINGS.SUPER_ADMIN;
@@ -1091,12 +1115,25 @@ const UsersPage = ({ isDashboardTab = false }) => {
                   </Button>
                 );
               })()}
+              */}
             </>
           )}
         </div>
       )
     }
-  ], [t, theme, handleEditUser, openQRCodeInNewTab, handleSendQRCodeEmail, handleResetPassword, handleSendWelcomeEmail, handleRemoveFromAllowlist, handleToggleUserStatus, handleDeleteUser, user?.isSuperAdmin, user?.role]);
+  ], [t, theme, handleEditUser, openQRCodeInNewTab, handleSendQRCodeEmail, handleResetPassword, handleSendWelcomeEmail, handleToggleUserStatus, handleDeleteUser, user?.isSuperAdmin, user?.role]);
+
+  // Helper function to get user display name by ID
+  const getUserDisplayName = useCallback((userId) => {
+    if (!userId) return (t('system') || 'System');
+    
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      return user.displayName || user.email || user.realName || `User ${userId}`;
+    }
+    
+    return `User ${userId}`;
+  }, [users, t]);
 
   // Helper function to get role icon using getThemedIcon
   const getRoleIconThemed = (role) => {
@@ -1173,19 +1210,19 @@ const UsersPage = ({ isDashboardTab = false }) => {
         ...textValues
       };
       
-      logger.info('USER_PAGE: Submit data prepared', {
+      info('USER_PAGE: Submit data prepared', {
         submitData: {
           email: submitData.email,
           displayName: submitData.displayName,
           realName: submitData.realName,
           studentNumber: submitData.studentNumber,
-          order: submitData.order,
+          sequence: submitData.sequence,
           role: submitData.role
         }
       });
       
       if (editingUser) {
-        logger.info('USER_PAGE: Attempting to update user', {
+        info('USER_PAGE: Attempting to update user', {
           timestamp: new Date().toISOString(),
           editingUser: {
             id: editingUser.id,
@@ -1197,13 +1234,13 @@ const UsersPage = ({ isDashboardTab = false }) => {
         });
         
         const userId = editingUser.id || editingUser.uid || editingUser.email;
-        logger.info('USER_PAGE: User ID determined for update', {
+        info('USER_PAGE: User ID determined for update', {
           userId: userId,
           idSource: editingUser.id ? 'id' : editingUser.uid ? 'uid' : editingUser.email ? 'email' : 'unknown'
         });
         
         if (!userId) {
-          logger.error('USER_PAGE: No valid user ID found for update', { 
+          error('USER_PAGE: No valid user ID found for update', { 
             editingUser: {
               ...editingUser,
               availableIds: {
@@ -1240,137 +1277,66 @@ const UsersPage = ({ isDashboardTab = false }) => {
         }
         resetForm();
       } else {
-        // Add to allowlist if checkbox is checked
-        if (autoAddToAllowlist && submitData.email) {
-          // Validate student number is required for student invites
+        // Add user to Keycloak if checkbox is checked
+        if (autoAddToKeycloak && submitData.email) {
+          // Validate student number is required for students
           if (submitData.role === ROLE_STRINGS.STUDENT && !submitData.studentNumber?.trim()) {
-            logger.warn('❌ USER_PAGE: Student invite rejected - missing student number', {
+            warn('❌ USER_PAGE: Student creation rejected - missing student number', {
               email: submitData.email,
               role: submitData.role,
-              timestamp: new Date().toISOString()
+              reason: 'Student number is required for student accounts'
             });
-            toast?.showError('Student number is required for student invites. Please provide a student number.');
+            toast?.showError('Student number is required for student accounts');
+            setSaving(false);
             return;
           }
-
-          // Validate student number uniqueness for student invites
-          if (submitData.role === ROLE_STRINGS.STUDENT && submitData.studentNumber?.trim()) {
-            const studentNumberDuplicate = users.some(user => 
-              user.studentNumber === submitData.studentNumber.trim()
-            );
-            
-            if (studentNumberDuplicate) {
-              toast?.showError('Student number must be unique. This student number is already assigned to another user.');
-              return;
-            }
-          }
-
-          const { updateAllowlist } = await import('@services/other/config');
           
-          // Use specific arrays for each role (new structure)
-          let targetList;
-          switch (submitData.role) {
-            case ROLE_STRINGS.STUDENT:
-              targetList = 'allowedStudents';
-              break;
-            case ROLE_STRINGS.INSTRUCTOR:
-              targetList = 'allowedInstructors';
-              break;
-            case ROLE_STRINGS.HR:
-              targetList = 'allowedHr';
-              break;
-            case ROLE_STRINGS.ADMIN:
-              targetList = 'adminEmails';
-              break;
-            default:
-              targetList = 'adminEmails'; // fallback
-          }
-          const currentEmails = allowlist[targetList] || [];
-
-          if (!currentEmails.includes(submitData.email)) {
-            const updatedAllowlist = {
-              ...allowlist,
-              [targetList]: [...currentEmails, submitData.email]
-            };
-            setAllowlist(updatedAllowlist);
-
-            // Save to Firestore
-            try {
-              const result = await updateAllowlist(updatedAllowlist);
-              if (result.success) {
-
-                // Send welcome email
-                try {
-                  const { sendUserWelcomeEmail } = await import('@services/business/notificationService');
-                  const emailResult = await sendUserWelcomeEmail({
-                    email: submitData.email,
-                    role: submitData.role,
-                    displayName: submitData.displayName,
-                    userId: submitData.email // Use email as userId for now
-                  });
-                  
-                  if (emailResult.success) {
-                    logger.info('📧 USER_PAGE: Welcome email sent successfully via consolidated service', {
-                      email: submitData.email,
-                      role: submitData.role
-                    });
-                    toast?.showSuccess(t('user_added_and_email_sent') || 'User added and welcome email sent!');
-                  } else {
-                    logger.warn('⚠️ USER_PAGE: Welcome email failed, but user was added', {
-                      email: submitData.email,
-                      role: submitData.role,
-                      error: emailResult.error
-                    });
-                    toast?.showSuccess(t('user_added_email_failed') || 'User added, but email failed to send');
-                  }
-                } catch (emailError) {
-                  logger.error('❌ USER_PAGE: Exception sending welcome email', {
-                    email: submitData.email,
-                    role: submitData.role,
-                    error: emailError.message
-                  });
-                  toast?.showSuccess(t('user_added_email_failed') || 'User added, but email failed to send');
-                }
-              } else {
-                logger.error('❌ USER_PAGE: Failed to update allowlist', {
-                  error: result.error,
-                  email: submitData.email,
-                  role: submitData.role
-                });
-                toast?.showError(t('failed_to_update_allowlist') || 'Failed to update allowlist');
-              }
-            } catch (allowlistError) {
-              logger.error('❌ USER_PAGE: Exception updating allowlist', {
-                error: allowlistError.message,
-                email: submitData.email,
-                role: submitData.role,
-                stack: allowlistError.stack
-              });
-              toast?.showError(t('failed_to_update_allowlist') || 'Failed to update allowlist');
-            }
-          } else {
-            logger.info('ℹ️ USER_PAGE: Email already exists in allowlist', {
+          // Create user in Keycloak via API
+          info('✅ USER_PAGE: Creating user in Keycloak', {
+            email: submitData.email,
+            role: submitData.role,
+            studentNumber: submitData.studentNumber
+          });
+          
+          try {
+            const result = await addUser({
               email: submitData.email,
+              displayName: submitData.displayName,
+              firstName: submitData.displayName?.split(' ')[0] || submitData.displayName,
+              lastName: submitData.displayName?.split(' ').slice(1).join(' ') || '',
               role: submitData.role,
-              targetList: targetList
+              studentNumber: submitData.studentNumber,
+              sequence: submitData.sequence
             });
+            
+            if (result.success) {
+              toast?.showSuccess(t('user_created_successfully') || 'User created successfully');
+              debouncedLoadData();
+            } else {
+              throw new Error(result.error || 'Failed to create user in Keycloak');
+            }
+          } catch (keycloakError) {
+            error('❌ USER_PAGE: Failed to create user in Keycloak', {
+              error: keycloakError.message,
+              email: submitData.email,
+              role: submitData.role
+            });
+            toast?.showError(`Failed to create user in Keycloak: ${keycloakError.message}`);
           }
-          
-          toast?.showSuccess(`✅ ${submitData.role === ROLE_STRINGS.STUDENT ? 'Student' : submitData.role.toUpperCase()} invitation prepared!\n\n📧 Email: ${submitData.email}\n🎯 Role: ${submitData.role}\n📋 Next steps: Ask them to check their email and sign up to activate their account.\n\nThey will receive their role permissions automatically after signing up.`);
         } else {
-          logger.info('ℹ️ USER_PAGE: No allowlist update - checkbox disabled or no email', {
-            autoAddToAllowlist: autoAddToAllowlist,
+          info('ℹ️ USER_PAGE: No Keycloak creation - checkbox disabled or no email', {
+            autoAddToKeycloak: autoAddToKeycloak,
             email: submitData.email,
             role: submitData.role
           });
-          toast?.showInfo(t('no_changes_saved_provide_email_or_enable_allowlist') || 'No changes saved. Provide an email or enable allowlist option.');
+          toast?.showInfo('No changes saved. Provide an email or enable Keycloak creation option.');
         }
       }
 
       // Only reload if editing (not adding new user to allowlist)
       if (editingUser) {
         const userId = editingUser.id || editingUser.uid || editingUser.email;
-        logger.info('USER_PAGE: Calling loadData after user update', {
+        info('USER_PAGE: Calling loadData after user update', {
           timestamp: new Date().toISOString(),
           userId: userId
         });
@@ -1392,8 +1358,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
       displayName: '',
       realName: '',
       role: ROLE_STRINGS.STUDENT,
+      roles: [],
       studentNumber: '',
-      order: ''
+      sequence: ''
     });
     // Clear refs only when explicitly requested (not on role changes)
     if (clearRefs) {
@@ -1406,7 +1373,90 @@ const UsersPage = ({ isDashboardTab = false }) => {
 
   return (
     <div className="users-page">
-      <p style={{ color: '#555', marginBottom: '1rem' }}>{t('invite_users_blurb')}</p>
+      <p style={{ color: '#555', marginBottom: '1rem' }}>Create and manage users with seamless Keycloak integration. All users are automatically provisioned with their assigned roles and secure temporary passwords.</p>
+      
+      {/* Keycloak Instructions */}
+      <div style={{
+        background: theme === 'dark' ? '#1e3a8a' : '#f8fafc',
+        border: `1px solid ${theme === 'dark' ? '#3b82f6' : '#e2e8f0'}`,
+        borderRadius: '8px',
+        padding: '1.25rem',
+        marginBottom: '1.5rem',
+        boxShadow: theme === 'dark' ? '0 1px 3px rgba(59, 130, 246, 0.2)' : '0 1px 3px rgba(0, 0, 0, 0.1)'
+      }}>
+        <h4 style={{ 
+          margin: '0 0 0.75rem 0', 
+          color: theme === 'dark' ? '#93c5fd' : '#1e40af',
+          fontSize: '1rem',
+          fontWeight: '600',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
+        }}>
+          {getThemedIcon('ui', 'info', 18, theme)}
+          Automatic Keycloak User Management
+        </h4>
+        <div style={{ 
+          fontSize: '0.875rem', 
+          lineHeight: '1.6',
+          color: theme === 'dark' ? '#cbd5e1' : '#334155'
+        }}>
+          <div style={{ 
+            background: theme === 'dark' ? '#1e40af' : '#dbeafe',
+            border: `1px solid ${theme === 'dark' ? '#3b82f6' : '#93c5fd'}`,
+            borderRadius: '6px',
+            padding: '0.75rem',
+            marginBottom: '1rem',
+            fontSize: '0.8rem'
+          }}>
+            <strong style={{ color: theme === 'dark' ? '#bfdbfe' : '#1e40af' }}>🤖 Automatic User Creation</strong><br />
+            Users are automatically created in Keycloak with their assigned roles when you submit the form.
+          </div>
+          
+          <div style={{ display: 'grid', gap: '0.5rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+              <span style={{ color: theme === 'dark' ? '#60a5fa' : '#2563eb', fontWeight: 'bold' }}>➤</span>
+              <div>
+                <strong>Create User:</strong> Fill form + enable "Create user in Keycloak" → User automatically created with temporary password
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+              <span style={{ color: theme === 'dark' ? '#60a5fa' : '#2563eb', fontWeight: 'bold' }}>➤</span>
+              <div>
+                <strong>Reset Password:</strong> Click key icon → New temporary password generated and shown to admin
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+              <span style={{ color: theme === 'dark' ? '#60a5fa' : '#2563eb', fontWeight: 'bold' }}>➤</span>
+              <div>
+                <strong>Disable/Enable:</strong> Click toggle button → User status automatically updated in Keycloak
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+              <span style={{ color: theme === 'dark' ? '#60a5fa' : '#2563eb', fontWeight: 'bold' }}>➤</span>
+              <div>
+                <strong>Role Assignment:</strong> User's role from form is automatically assigned in Keycloak
+              </div>
+            </div>
+          </div>
+          
+          <div style={{
+            background: theme === 'dark' ? '#374151' : '#fef3c7',
+            border: `1px solid ${theme === 'dark' ? '#6b7280' : '#f59e0b'}`,
+            borderRadius: '6px',
+            padding: '0.75rem',
+            fontSize: '0.8rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.5rem'
+          }}>
+            <span style={{ color: theme === 'dark' ? '#fbbf24' : '#d97706', fontWeight: 'bold' }}>⚠️</span>
+            <div>
+              <strong style={{ color: theme === 'dark' ? '#fbbf24' : '#d97706' }}>Important:</strong> Ensure Keycloak admin credentials are configured in backend environment variables for automatic creation.
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Quick Filters */}
       <div className="filters-container" style={{ 
@@ -1418,7 +1468,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
         padding: '1rem', 
         borderRadius: 12, 
         boxShadow: theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.05)', 
-        border: theme === 'dark' ? '1px solid #374151' : 'none',
+        borderWidth: theme === 'dark' ? '1px' : '0',
+borderStyle: theme === 'dark' ? 'solid' : 'none',
+borderColor: theme === 'dark' ? '#374151' : 'transparent',
         width: '100%' 
       }}>
         {/* First line: Program, Subject, Class filters - full width */}
@@ -1598,96 +1650,76 @@ const UsersPage = ({ isDashboardTab = false }) => {
         <div className="form-row">
           <Input
             type="email"
-            value={formData.email}
-            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+            ref={emailRef}
             placeholder={t('user_email_placeholder')}
             required
+            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
           />
           <Input
             type="text"
-            value={formData.displayName}
-            onChange={(e) => setFormData(prev => ({ ...prev, displayName: e.target.value }))}
+            ref={displayNameRef}
             placeholder={t('user_display_name_placeholder')}
+            onChange={(e) => setFormData(prev => ({ ...prev, displayName: e.target.value }))}
           />
         </div>
         
         <div className="form-row">
           <Input
             type="text"
-            value={formData.realName}
-            onChange={(e) => setFormData(prev => ({ ...prev, realName: e.target.value }))}
+            ref={realNameRef}
             placeholder={t('real_name_placeholder') || 'Real Name (First Last)'}
+            onChange={(e) => setFormData(prev => ({ ...prev, realName: e.target.value }))}
           />
           <Input
             type="text"
-            value={formData.studentNumber}
-            onChange={(e) => setFormData(prev => ({ ...prev, studentNumber: e.target.value }))}
+            ref={studentNumberRef}
             placeholder={t('student_number_placeholder') || 'Student Number'}
             required={formData.role === ROLE_STRINGS.STUDENT}
+            onChange={(e) => {
+              // Update form state when student number changes
+              setFormData(prev => ({ ...prev, studentNumber: e.target.value }));
+            }}
           />
           <Input
             type="number"
-            value={formData.order}
-            onChange={(e) => setFormData(prev => ({ ...prev, order: e.target.value }))}
+            ref={orderRef}
             placeholder={t('student_order_placeholder') || 'Order/Sequence'}
             description={t('student_order_description') || 'Display order for student lists'}
+            onChange={(e) => setFormData(prev => ({ ...prev, sequence: e.target.value }))}
           />
-          <Select
-            value={formData.role}
-            searchable
-            placeholder={t('role') || 'Role'}
-            onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+          {/* Multi-Role Select */}
+          <MultiSelect
             options={[
-              { value: ROLE_STRINGS.STUDENT, label: (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: getRoleIconColor(ROLE_STRINGS.STUDENT) }}>
-                    {getRoleIconThemed(ROLE_STRINGS.STUDENT)}
-                  </span>
-                  {t('student') || 'Student'}
-                </span>
-              )},
-              { value: ROLE_STRINGS.INSTRUCTOR, label: (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: getRoleIconColor(ROLE_STRINGS.INSTRUCTOR) }}>
-                    {getRoleIconThemed(ROLE_STRINGS.INSTRUCTOR)}
-                  </span>
-                  {t('instructor') || 'Instructor'}
-                </span>
-              )},
-              { value: ROLE_STRINGS.HR, label: (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: getRoleIconColor(ROLE_STRINGS.HR) }}>
-                    {getRoleIconThemed(ROLE_STRINGS.HR)}
-                  </span>
-                  {t('hr') || 'HR'}
-                </span>
-              )},
-              { value: ROLE_STRINGS.ADMIN, label: (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: getRoleIconColor(ROLE_STRINGS.ADMIN) }}>
-                    {getRoleIconThemed(ROLE_STRINGS.ADMIN)}
-                  </span>
-                  {t('admin') || 'Admin'}
-                </span>
-              )},
-              { value: ROLE_STRINGS.SUPER_ADMIN, label: (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: getRoleIconColor(ROLE_STRINGS.SUPER_ADMIN) }}>
-                    {getRoleIconThemed(ROLE_STRINGS.SUPER_ADMIN)}
-                  </span>
-                  {t('super_admin') || 'Super Admin'}
-                </span>
-              )},
+              { value: ROLE_STRINGS.STUDENT, label: t('student') || 'Student', icon: getRoleIconThemed(ROLE_STRINGS.STUDENT), color: getRoleIconColor(ROLE_STRINGS.STUDENT) },
+              { value: ROLE_STRINGS.INSTRUCTOR, label: t('instructor') || 'Instructor', icon: getRoleIconThemed(ROLE_STRINGS.INSTRUCTOR), color: getRoleIconColor(ROLE_STRINGS.INSTRUCTOR) },
+              { value: ROLE_STRINGS.HR, label: t('hr') || 'HR', icon: getRoleIconThemed(ROLE_STRINGS.HR), color: getRoleIconColor(ROLE_STRINGS.HR) },
+              { value: ROLE_STRINGS.ADMIN, label: t('admin') || 'Admin', icon: getRoleIconThemed(ROLE_STRINGS.ADMIN), color: getRoleIconColor(ROLE_STRINGS.ADMIN) },
+              { value: ROLE_STRINGS.SUPER_ADMIN, label: t('super_admin') || 'Super Admin', icon: getRoleIconThemed(ROLE_STRINGS.SUPER_ADMIN), color: getRoleIconColor(ROLE_STRINGS.SUPER_ADMIN) }
             ]}
+            value={formData.roles}
+            onChange={(newRoles) => {
+              setFormData(prev => ({ ...prev, roles: newRoles }));
+              
+              // Update primary role to first selected role
+              if (newRoles.length > 0) {
+                setFormData(prev => ({ ...prev, role: newRoles[0] }));
+              } else {
+                setFormData(prev => ({ ...prev, role: ROLE_STRINGS.STUDENT }));
+              }
+            }}
+            placeholder={t('select_roles') || 'Select roles...'}
+            searchable={true}
+            style={{ flex: 1 }}
           />
+          {/* Primary role text removed for cleaner UI */}
         </div>
 
         {!editingUser && (
           <div className="form-row flex-row">
             <ToggleSwitch
-              label="Auto-add email to allowlist"
-              checked={autoAddToAllowlist}
-              onChange={(checked) => setAutoAddToAllowlist(checked)}
+              label="Create user in Keycloak"
+              checked={autoAddToKeycloak}
+              onChange={(checked) => setAutoAddToKeycloak(checked)}
             />
           </div>
         )}
@@ -1729,6 +1761,75 @@ const UsersPage = ({ isDashboardTab = false }) => {
               variant={confirmModal.variant}
               size="small"
             />
+
+            {/* Password Reset Modal - temporarily hidden */}
+            {/* <ConfirmModal
+              isOpen={passwordResetModal.isOpen}
+              onClose={() => setPasswordResetModal({ isOpen: false, user: null, newPassword: '', isKeycloakUser: false, loading: false })}
+              onConfirm={handlePasswordResetConfirm}
+              title="Reset Password"
+              confirmText="Reset Password"
+              variant="danger"
+              size="medium"
+              customContent={
+                passwordResetModal.isOpen && (
+                  <div style={{ padding: '1rem 0' }}>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <strong>User:</strong> {passwordResetModal.user?.email}<br />
+                      <strong>Name:</strong> {passwordResetModal.user?.displayName || 'N/A'}<br />
+                      <strong>Keycloak User:</strong> {passwordResetModal.isKeycloakUser ? 'Yes' : 'No'}
+                    </div>
+                    
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                        New Password:
+                      </label>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <Input
+                          type="text"
+                          value={passwordResetModal.newPassword}
+                          onChange={(e) => setPasswordResetModal(prev => ({ ...prev, newPassword: e.target.value }))}
+                          placeholder="Enter new password or generate one"
+                          style={{ flex: 1 }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleGeneratePassword}
+                          disabled={passwordResetModal.loading}
+                        >
+                          {getThemedIcon('ui', 'refresh', 16, theme)} Generate
+                        </Button>
+                      </div>
+                      {passwordResetModal.newPassword && (
+                        <div style={{ 
+                          marginTop: '0.5rem', 
+                          fontSize: '0.875rem',
+                          color: passwordResetModal.newPassword.length >= 8 ? '#16a34a' : '#dc2626'
+                        }}>
+                          Password strength: {passwordResetModal.newPassword.length >= 8 ? 'Good' : 'Too short (min 8 chars)'}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {passwordResetModal.isKeycloakUser && (
+                      <div style={{ 
+                        padding: '0.75rem', 
+                        backgroundColor: theme === 'dark' ? '#1e3a8a' : '#eff6ff',
+                        border: `1px solid ${theme === 'dark' ? '#3b82f6' : '#bfdbfe'}`,
+                        borderRadius: '0.5rem',
+                        fontSize: '0.875rem',
+                        color: theme === 'dark' ? '#93c5fd' : '#1e40af'
+                      }}>
+                        {getThemedIcon('ui', 'info', 14, theme)} 
+                        This will update the password in Keycloak and the user will be able to login with the new password immediately.
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+            /> */}
             
             <AdvancedDataGrid
               key={`users-grid-${gridRefreshKey}`}

@@ -3,7 +3,8 @@ import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 import styles from './RichTextEditor.module.css';
 
-const defaultToolbarOptions = [
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const defaultToolbarOptions = [
   [{ header: [1, 2, 3, false] }],
   ['bold', 'italic', 'underline', 'strike'],
   [{ color: [] }, { background: [] }],

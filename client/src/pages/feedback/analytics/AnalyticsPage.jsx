@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -169,7 +169,7 @@ export default function AnalyticsPage() {
       try {
         await loadAnalytics();
       } catch (error) {
-        console.error('Error loading analytics:', error);
+        error('Error loading analytics:', error);
       } finally {
         safeStop();
       }

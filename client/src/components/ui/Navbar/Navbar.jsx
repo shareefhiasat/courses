@@ -1,13 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
-import { signOutUser } from '@services/business/authService';
 import { NotificationBell } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { getUsers, updateUser, getUserDisplayName, getUserById } from '@services/business/userService';
-import { db } from '@services/other/config';
-import { doc, setDoc } from 'firebase/firestore';
-import { getAuth, updateProfile } from 'firebase/auth';
 import './Navbar.css';
 import { getThemedIcon, getWhiteIcon, getIconWithColor } from '@constants/iconTypes';
 import { LanguageSwitcher } from '../index';
@@ -19,11 +15,12 @@ import { Select } from '@ui';
 import DraggableClock from '../DraggableClock/DraggableClock';
 import PortalTooltip from '@ui/PortalTooltip';
 
-const ACCENT_FALLBACK = DEFAULT_ACCENT;
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const ACCENT_FALLBACK = DEFAULT_ACCENT;
 
 const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   const authContext = useAuth();
-  const { user, isAdmin, isSuperAdmin, isInstructor, isHR, impersonating, stopImpersonation } = authContext || {};
+  const { user, isAdmin, isSuperAdmin, isInstructor, isHR, logout, impersonating, stopImpersonation } = authContext || {};
   const navigate = useNavigate();
   const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -82,12 +79,12 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
 
   const handleSignOut = useCallback(async () => {
     try {
-      await signOutUser(user);
+      await logout();
       navigate('/');
     } catch (error) {
-      console.error('Error signing out:', error);
+      error('Error signing out:', error);
     }
-  }, [user, navigate]);
+  }, [logout, navigate]);
 
   const toggleNavbar = useCallback(() => {
     setIsNavbarCollapsed((prev) => {
@@ -107,7 +104,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
       if (result.success) return result.data;
       return null;
     } catch (error) {
-      console.error('Error getting user profile:', error);
+      error('Error getting user profile:', error);
       return null;
     }
   }, []);
@@ -148,7 +145,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
       setTimeFormatPreference(timeFormat);
       setShowProfile(false);
     } catch (err) {
-      console.error('Failed to save profile:', err);
+      error('Failed to save profile:', err);
       alert(t('failed_to_save_profile') || 'Failed to save profile');
     }
   }, [user, displayName, phoneNumber, primaryColor, realName, studentNumber, notifLang, timeFormat]);

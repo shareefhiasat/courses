@@ -11,7 +11,8 @@ import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
-import './Calendar.css';
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import './Calendar.css';
 
 const localizer = momentLocalizer(moment);
 

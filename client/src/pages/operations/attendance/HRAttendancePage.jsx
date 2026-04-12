@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Button, Select, DatePicker, Tooltip, AttendanceTypeSelect, Slider } from '@ui';
@@ -75,7 +75,7 @@ const HRAttendancePage = () => {
   }, []);
 
   const loadSessions = useCallback(async () => {
-    logger.log('[HRAttendance] loadSessions called with filters:', {
+    info('[HRAttendance] loadSessions called with filters:', {
       programFilter,
       subjectFilter,
       classFilter,
@@ -91,11 +91,11 @@ const HRAttendancePage = () => {
       const attendanceResult = await getAllAttendanceSessions();
       const data = attendanceResult.success ? attendanceResult.data.sessions || [] : [];
       
-      logger.log('[HRAttendance] Fetched sessions count:', data.length);
+      info('[HRAttendance] Fetched sessions count:', data.length);
       
       // Log sample session data structure for debugging
       if (data.length > 0) {
-        logger.log('[HRAttendance] Sample session data:', {
+        info('[HRAttendance] Sample session data:', {
           id: data[0].id,
           classId: data[0].classId,
           classYear: data[0].classYear,
@@ -138,7 +138,7 @@ const HRAttendancePage = () => {
                   : userData.email || session.instructorId;
             }
           } catch (err) {
-            logger.warn('Failed to get instructor name:', err);
+            warn('Failed to get instructor name:', err);
           }
         }
         
@@ -149,7 +149,7 @@ const HRAttendancePage = () => {
             scanCounts = countResult.data;
           }
         } catch (err) {
-          logger.warn('Failed to get scan counts:', err);
+          warn('Failed to get scan counts:', err);
         }
         
         return {
@@ -162,11 +162,11 @@ const HRAttendancePage = () => {
       
       // Apply filters
       let filtered = enriched;
-      logger.log('[HRAttendance] Starting with enriched sessions count:', filtered.length);
+      info('[HRAttendance] Starting with enriched sessions count:', filtered.length);
       
       // Filter by program
       if (programFilter && programFilter !== 'all') {
-        logger.log('[HRAttendance] Applying program filter:', programFilter);
+        info('[HRAttendance] Applying program filter:', programFilter);
         filtered = filtered.filter(s => {
           if (!s.classId) return false;
           const classItem = classes.find(c => (c.id || c.docId) === s.classId);
@@ -175,43 +175,43 @@ const HRAttendancePage = () => {
           if (!subject) return false;
           return (subject.programId || '') === programFilter;
         });
-        logger.log('[HRAttendance] After program filter count:', filtered.length);
+        info('[HRAttendance] After program filter count:', filtered.length);
       }
       
       // Filter by subject
       if (subjectFilter && subjectFilter !== 'all') {
-        logger.log('[HRAttendance] Applying subject filter:', subjectFilter);
+        info('[HRAttendance] Applying subject filter:', subjectFilter);
         filtered = filtered.filter(s => {
           if (!s.classId) return false;
           const classItem = classes.find(c => (c.id || c.docId) === s.classId);
           if (!classItem) return false;
           return (classItem.subjectId || '') === subjectFilter;
         });
-        logger.log('[HRAttendance] After subject filter count:', filtered.length);
+        info('[HRAttendance] After subject filter count:', filtered.length);
       }
       
       // Filter by class
       if (classFilter && classFilter !== 'all') {
-        logger.log('[HRAttendance] Applying class filter:', classFilter);
+        info('[HRAttendance] Applying class filter:', classFilter);
         filtered = filtered.filter(s => s.classId === classFilter);
-        logger.log('[HRAttendance] After class filter count:', filtered.length);
+        info('[HRAttendance] After class filter count:', filtered.length);
       }
       
       // Filter by year
       if (yearFilter && yearFilter !== 'all') {
-        logger.log('[HRAttendance] Applying year filter:', yearFilter);
+        info('[HRAttendance] Applying year filter:', yearFilter);
         
         filtered = filtered.filter(s => {
           // Check classYear field first, then fallback to classTerm field
           if (s.classYear) {
             if (String(s.classYear) === yearFilter) {
-              logger.log('[HRAttendance] Session matched by classYear:', s.id, s.classYear);
+              info('[HRAttendance] Session matched by classYear:', s.id, s.classYear);
               return true;
             }
           } else if (s.classTerm && s.classTerm.includes(' ')) {
             const parts = s.classTerm.split(' ');
             if (parts.length > 1 && parts[parts.length - 1] === yearFilter) {
-              logger.log('[HRAttendance] Session matched by classTerm:', s.id, s.classTerm);
+              info('[HRAttendance] Session matched by classTerm:', s.id, s.classTerm);
               return true;
             }
           }
@@ -221,21 +221,21 @@ const HRAttendancePage = () => {
             const createdDate = s.createdAt?.toDate ? s.createdAt.toDate() : new Date(s.createdAt || 0);
             const createdYear = String(createdDate.getFullYear());
             if (createdYear === yearFilter) {
-              logger.log('[HRAttendance] Session matched by createdAt year:', s.id, createdYear);
+              info('[HRAttendance] Session matched by createdAt year:', s.id, createdYear);
               return true;
             }
           }
           
           return false;
         });
-        logger.log('[HRAttendance] After year filter count:', filtered.length);
+        info('[HRAttendance] After year filter count:', filtered.length);
       } else {
-        logger.log('[HRAttendance] Year filter is "all", not applying year filter');
+        info('[HRAttendance] Year filter is "all", not applying year filter');
       }
       
       // Filter by term
       if (termFilter && termFilter !== 'all') {
-        logger.log('[HRAttendance] Applying term filter:', termFilter);
+        info('[HRAttendance] Applying term filter:', termFilter);
         
         filtered = filtered.filter(s => {
           if (!s.classTerm) return false;
@@ -244,41 +244,41 @@ const HRAttendancePage = () => {
           const termPart = s.classTerm.includes(' ') ? s.classTerm.split(' ')[0] : s.classTerm;
           const matches = termPart === termFilter;
           if (matches) {
-            logger.log('[HRAttendance] Session matched by term:', s.id, s.classTerm, 'termPart:', termPart);
+            info('[HRAttendance] Session matched by term:', s.id, s.classTerm, 'termPart:', termPart);
           }
           return matches;
         });
-        logger.log('[HRAttendance] After term filter count:', filtered.length);
+        info('[HRAttendance] After term filter count:', filtered.length);
       } else {
-        logger.log('[HRAttendance] Term filter is "all", not applying term filter');
+        info('[HRAttendance] Term filter is "all", not applying term filter');
       }
       if (dateFrom) {
-        logger.log('[HRAttendance] Applying dateFrom filter:', dateFrom);
+        info('[HRAttendance] Applying dateFrom filter:', dateFrom);
         const from = new Date(dateFrom);
         filtered = filtered.filter(s => {
           const createdAt = s.createdAt?.toDate ? s.createdAt.toDate() : new Date(s.createdAt || 0);
           return createdAt >= from;
         });
-        logger.log('[HRAttendance] After dateFrom filter count:', filtered.length);
+        info('[HRAttendance] After dateFrom filter count:', filtered.length);
       } else {
-        logger.log('[HRAttendance] dateFrom is empty, not applying dateFrom filter');
+        info('[HRAttendance] dateFrom is empty, not applying dateFrom filter');
       }
       if (dateTo) {
-        logger.log('[HRAttendance] Applying dateTo filter:', dateTo);
+        info('[HRAttendance] Applying dateTo filter:', dateTo);
         const to = new Date(dateTo);
         to.setHours(23, 59, 59, 999);
         filtered = filtered.filter(s => {
           const createdAt = s.createdAt?.toDate ? s.createdAt.toDate() : new Date(s.createdAt || 0);
           return createdAt <= to;
         });
-        logger.log('[HRAttendance] After dateTo filter count:', filtered.length);
+        info('[HRAttendance] After dateTo filter count:', filtered.length);
       } else {
-        logger.log('[HRAttendance] dateTo is empty, not applying dateTo filter');
+        info('[HRAttendance] dateTo is empty, not applying dateTo filter');
       }
 
       // Filter by attendance status (filter sessions that contain students with the selected attendance type)
       if (statusFilter && statusFilter !== 'all') {
-        logger.log('[HRAttendance] Applying attendance status filter:', statusFilter);
+        info('[HRAttendance] Applying attendance status filter:', statusFilter);
         
         filtered = filtered.filter(session => {
           // Get the attendance counts for this session
@@ -311,28 +311,28 @@ const HRAttendancePage = () => {
           }
           
           if (hasStatusMatch) {
-            logger.log('[HRAttendance] Session matched by attendance status:', session.id, 'statusFilter:', statusFilter);
+            info('[HRAttendance] Session matched by attendance status:', session.id, 'statusFilter:', statusFilter);
           }
           
           return hasStatusMatch;
         });
-        logger.log('[HRAttendance] After status filter count:', filtered.length);
+        info('[HRAttendance] After status filter count:', filtered.length);
       } else {
-        logger.log('[HRAttendance] Status filter is "all", not applying status filter');
+        info('[HRAttendance] Status filter is "all", not applying status filter');
       }
 
       // Filter by scan count (always range mode)
       if (scanFrom > 0 || scanTo < 50) {
-        logger.log('[HRAttendance] Applying scan range filter:', scanFrom, 'to', scanTo);
+        info('[HRAttendance] Applying scan range filter:', scanFrom, 'to', scanTo);
         
         filtered = filtered.filter(session => {
           const totalScans = session.scanCounts?.total || 0;
           return totalScans >= scanFrom && totalScans <= scanTo;
         });
         
-        logger.log('[HRAttendance] After scan range filter count:', filtered.length);
+        info('[HRAttendance] After scan range filter count:', filtered.length);
       } else {
-        logger.log('[HRAttendance] Scan filter is not active, not applying scan filter');
+        info('[HRAttendance] Scan filter is not active, not applying scan filter');
       }
 
       // Check for expired sessions and auto-close them
@@ -391,7 +391,7 @@ const HRAttendancePage = () => {
                 }
               }
             } catch (err) {
-              logger.warn('Failed to enrich session:', err);
+              warn('Failed to enrich session:', err);
             }
             return session;
           }));
@@ -493,8 +493,8 @@ const HRAttendancePage = () => {
         dateFrom,
         dateTo
       });
-      logger.log('[HRAttendance] Final sessions set:', filtered.length, 'sessions');
-      logger.log('[HRAttendance] Final filter values:', {
+      info('[HRAttendance] Final sessions set:', filtered.length, 'sessions');
+      info('[HRAttendance] Final filter values:', {
         programFilter,
         subjectFilter,
         classFilter,
@@ -504,7 +504,7 @@ const HRAttendancePage = () => {
         dateTo
       });
     } catch (e) {
-      logger.error('[HR] Error loading sessions:', e);
+      error('[HR] Error loading sessions:', e);
     } finally {
       stopLoading();
     }
@@ -517,23 +517,23 @@ const HRAttendancePage = () => {
 
   // Add logging for filter changes
   useEffect(() => {
-    logger.log('[HRAttendance] Program filter changed to:', programFilter);
+    info('[HRAttendance] Program filter changed to:', programFilter);
   }, [programFilter]);
 
   useEffect(() => {
-    logger.log('[HRAttendance] Subject filter changed to:', subjectFilter);
+    info('[HRAttendance] Subject filter changed to:', subjectFilter);
   }, [subjectFilter]);
 
   useEffect(() => {
-    logger.log('[HRAttendance] Class filter changed to:', classFilter);
+    info('[HRAttendance] Class filter changed to:', classFilter);
   }, [classFilter]);
 
   useEffect(() => {
-    logger.log('[HRAttendance] Year filter changed to:', yearFilter);
+    info('[HRAttendance] Year filter changed to:', yearFilter);
   }, [yearFilter]);
 
   useEffect(() => {
-    logger.log('[HRAttendance] Term filter changed to:', termFilter);
+    info('[HRAttendance] Term filter changed to:', termFilter);
   }, [termFilter]);
 
   const loadMarks = async (sessionId) => {
@@ -616,7 +616,7 @@ const HRAttendancePage = () => {
 
       setMarks(filtered);
     } catch (e) {
-      logger.error('[HR] Error loading marks:', e);
+      error('[HR] Error loading marks:', e);
     } finally {
       stopLoading();
     }
@@ -634,7 +634,7 @@ const HRAttendancePage = () => {
       setReason('');
       setFeedback('');
     } catch (e) {
-      logger.error('[HR] Error updating mark:', e);
+      error('[HR] Error updating mark:', e);
       alert(t('hr_attendance_failed_to_update') + ': ' + (e?.message || t('hr_attendance_unknown_error')));
     }
   };
@@ -786,7 +786,7 @@ const HRAttendancePage = () => {
               searchable
               value={programFilter}
               onChange={(e) => {
-                logger.log('[HRAttendance] Program filter changing from:', programFilter, 'to:', e.target.value);
+                info('[HRAttendance] Program filter changing from:', programFilter, 'to:', e.target.value);
                 setProgramFilter(e.target.value);
               }}
               options={[
@@ -805,7 +805,7 @@ const HRAttendancePage = () => {
               searchable
               value={subjectFilter}
               onChange={(e) => {
-                logger.log('[HRAttendance] Subject filter changing from:', subjectFilter, 'to:', e.target.value);
+                info('[HRAttendance] Subject filter changing from:', subjectFilter, 'to:', e.target.value);
                 setSubjectFilter(e.target.value);
               }}
               options={[
@@ -826,7 +826,7 @@ const HRAttendancePage = () => {
               searchable
               value={classFilter}
               onChange={(e) => {
-                logger.log('[HRAttendance] Class filter changing from:', classFilter, 'to:', e.target.value);
+                info('[HRAttendance] Class filter changing from:', classFilter, 'to:', e.target.value);
                 setClassFilter(e.target.value);
               }}
               options={[
@@ -855,7 +855,7 @@ const HRAttendancePage = () => {
               searchable
               value={yearFilter}
               onChange={(e) => {
-                logger.log('[HRAttendance] Year filter changing from:', yearFilter, 'to:', e.target.value);
+                info('[HRAttendance] Year filter changing from:', yearFilter, 'to:', e.target.value);
                 setYearFilter(e.target.value);
               }}
               options={[
@@ -878,7 +878,7 @@ const HRAttendancePage = () => {
               searchable
               value={termFilter}
               onChange={(e) => {
-                logger.log('[HRAttendance] Term filter changing from:', termFilter, 'to:', e.target.value);
+                info('[HRAttendance] Term filter changing from:', termFilter, 'to:', e.target.value);
                 setTermFilter(e.target.value);
               }}
               options={[
@@ -901,7 +901,7 @@ const HRAttendancePage = () => {
               type="date"
               value={dateFrom ? (dateFrom.includes('/') ? new Date(dateFrom.split('/').reverse().join('-')).toISOString().split('T')[0] : dateFrom) : ''}
               onChange={(iso) => {
-                logger.log('[HRAttendance] DateFrom changing from:', dateFrom, 'to:', iso ? new Date(iso).toLocaleDateString('en-CA') : '');
+                info('[HRAttendance] DateFrom changing from:', dateFrom, 'to:', iso ? new Date(iso).toLocaleDateString('en-CA') : '');
                 setDateFrom(iso ? new Date(iso).toLocaleDateString('en-CA') : '');
               }}
               placeholder={t('from_date') || 'From Date'}
@@ -913,7 +913,7 @@ const HRAttendancePage = () => {
               type="date"
               value={dateTo ? (dateTo.includes('/') ? new Date(dateTo.split('/').reverse().join('-')).toISOString().split('T')[0] : dateTo) : ''}
               onChange={(iso) => {
-                logger.log('[HRAttendance] DateTo changing from:', dateTo, 'to:', iso ? new Date(iso).toLocaleDateString('en-CA') : '');
+                info('[HRAttendance] DateTo changing from:', dateTo, 'to:', iso ? new Date(iso).toLocaleDateString('en-CA') : '');
                 setDateTo(iso ? new Date(iso).toLocaleDateString('en-CA') : '');
               }}
               placeholder={t('to_date') || 'To Date'}
@@ -924,7 +924,7 @@ const HRAttendancePage = () => {
             <AttendanceTypeSelect
               value={statusFilter}
               onChange={(e) => {
-                logger.log('[HRAttendance] Status filter changing from:', statusFilter, 'to:', e.target.value);
+                info('[HRAttendance] Status filter changing from:', statusFilter, 'to:', e.target.value);
                 setStatusFilter(e.target.value);
               }}
               fullWidth
@@ -962,7 +962,7 @@ const HRAttendancePage = () => {
               step={1}
               value={scanFrom}
               onChange={(value) => {
-                logger.log('[HRAttendance] Scan from changing to:', value);
+                info('[HRAttendance] Scan from changing to:', value);
                 setScanFrom(value);
               }}
               // label={t('scan_from') || 'From'}
@@ -975,7 +975,7 @@ const HRAttendancePage = () => {
               step={1}
               value={scanTo}
               onChange={(value) => {
-                logger.log('[HRAttendance] Scan to changing to:', value);
+                info('[HRAttendance] Scan to changing to:', value);
                 setScanTo(value);
               }}
               // label={t('scan_to') || 'To'}
@@ -1005,7 +1005,7 @@ const HRAttendancePage = () => {
             ) : (
               <div
                 onClick={() => {
-                  logger.log('[HRAttendance] Clearing scan filter');
+                  info('[HRAttendance] Clearing scan filter');
                   setScanFrom(0);
                   setScanTo(50);
                 }}
@@ -1127,19 +1127,19 @@ const HRAttendancePage = () => {
                         (session.scanCounts.ABSENT_NO_EXCUSE || 0),
                         'x_circle',
                         '#ef4444',
-                        t('absent_no_excuse') || 'Absent (No Excuse)',
+                        t('absent_no_excuse') || 'Absent',
                         theme
                       )}
                       {createAttendanceBadge(
                         session.scanCounts.absent_with_excuse || session.scanCounts.ABSENT_WITH_EXCUSE || 0,
                         'file_text',
                         '#3b82f6',
-                        t('absent_with_excuse') || 'Absent (Excused)',
+                        t('absent_with_excuse') || 'Absent Excused',
                         theme
                       )}
                       {createAttendanceBadge(
                         session.scanCounts.excused_leave || session.scanCounts.EXCUSED_LEAVE || 0,
-                        'home',
+                        'heart',
                         '#8b5cf6',
                         t('excused_leave') || 'Excused Leave',
                         theme

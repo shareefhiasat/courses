@@ -2,7 +2,8 @@ import React from 'react';
 import Spinner from './Spinner';
 import Button from '../Button';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'UI/Spinner',
   component: Spinner,
   tags: ['autodocs'],

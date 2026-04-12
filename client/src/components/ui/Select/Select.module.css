@@ -76,9 +76,9 @@
 }
 
 .medium {
-  padding: 0.5rem 2.5rem 0.5rem 1rem;
+  padding: 0.625rem 2.5rem 0.625rem 1rem;
   font-size: var(--font-size-md, 1rem);
-  min-height: 40px;
+  min-height: 42px;
 }
 
 .large {
@@ -118,6 +118,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  height: 42px;
 }
 
 .selectContent {

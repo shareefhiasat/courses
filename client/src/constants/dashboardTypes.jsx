@@ -1,7 +1,8 @@
 import React from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
-import {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import {
   FileText, Link, Video, Globe, Edit, Trash, 
   RefreshCw, UserCheck, UserX, Lock, User, UserMinus, AlertTriangle, Info, 
   LogIn, LogOut, UserPlus, Settings, Key, 

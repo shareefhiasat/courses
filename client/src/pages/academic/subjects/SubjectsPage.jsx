@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getUsers } from '@services/business/userService';
+import { getSubjectTypes } from '@services/business/subjectTypeService.js';
+import { getRequirementTypes } from '@services/business/requirementTypeService.js';
 import { getClasses } from '@services/business/classService';
 import { getPrograms } from '@services/business/programService';
 import { getSubjects, createSubject, updateSubject, deleteSubject } from '@services/business/subjectService';
@@ -12,8 +14,11 @@ import { SimpleLoading, Button, Input, Select, useToast, AdvancedDataGrid } from
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
-import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
-import { ACTIVITY_TYPES } from '@constants';
+import { getUserDisplayProps } from '@utils/userDisplayUtils.js';
+import { getLocalizedName, createDropdownOptions, createLocalizedValueGetter } from '@utils/languageHelpers';
+import { formatDateTime } from '@utils/dateUtils.js';
+// OLD: import { ACTIVITY_TYPES } from '@constants';
+// NOW: Not used in this component
 import styles from './SubjectsPage.module.css';
 
 const SubjectsPage = () => {
@@ -26,6 +31,8 @@ const SubjectsPage = () => {
   
   const [subjects, setSubjects] = useState([]);
   const [programs, setPrograms] = useState([]);
+  const [subjectTypes, setSubjectTypes] = useState([]);
+  const [requirementTypes, setRequirementTypes] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingSubject, setEditingSubject] = useState(null);
@@ -38,8 +45,8 @@ const SubjectsPage = () => {
   const descArRef = useRef(null);
   const codeRef = useRef(null);
   const creditHoursRef = useRef(null);
-  const totalHoursRef = useRef(null);
-  const hoursPerWeekRef = useRef(null);
+  const typeRef = useRef(null);
+  const requirementTypeRef = useRef(null);
   const [formData, setFormData] = useState({
     programId: '',
     code: '',
@@ -48,10 +55,8 @@ const SubjectsPage = () => {
     descriptionEn: '',
     descriptionAr: '',
     creditHours: 3,
-    totalHours: 36,
-    type: 'lecture', // 'lecture' | 'lab' | 'mix'
-    hoursPerWeek: 3,
-    requirementType: 'general_mandatory' // 'general_mandatory' | 'major_mandatory' | 'major_optional'
+    type: '', // Will be set to first subject type ID after loading
+    requirementType: '' // Will be set to first requirement type ID after loading
   });
 
   const syncRefsToState = useCallback(() => {
@@ -62,28 +67,38 @@ const SubjectsPage = () => {
       descriptionEn: descEnRef.current?.value ?? formData.descriptionEn,
       descriptionAr: descArRef.current?.value ?? formData.descriptionAr,
       creditHours: creditHoursRef.current?.value ? Number.parseInt(creditHoursRef.current.value) : formData.creditHours,
-      totalHours: totalHoursRef.current?.value ? Number.parseInt(totalHoursRef.current.value) : formData.totalHours,
-      hoursPerWeek: hoursPerWeekRef.current?.value ? Number.parseInt(hoursPerWeekRef.current.value) : formData.hoursPerWeek
+      // Note: totalHours and hoursPerWeek are not in the database schema, only credits is used
+      type: typeRef.current?.value ?? formData.type,
+      requirementType: requirementTypeRef.current?.value ?? formData.requirementType
     };
   }, [formData]);
 
   const loadData = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoading(true);
     try {
-      const [subjectsResult, programsResult, usersResult] = await Promise.all([
+      const [subjectsResult, programsResult, usersResult, subjectTypesResult, requirementTypesResult] = await Promise.allSettled([
         getSubjects(),
         getPrograms(),
-        getUsers()
+        getUsers(),
+        getSubjectTypes().catch(() => ({ success: false, data: [] })), // Graceful fallback
+        getRequirementTypes().catch(() => ({ success: false, data: [] })) // Graceful fallback
       ]);
 
-      if (subjectsResult.success) {
-        setSubjects(subjectsResult.data || []);
+      // Handle results with fallbacks
+      if (subjectsResult.status === 'fulfilled' && subjectsResult.value.success) {
+        setSubjects(subjectsResult.value.data || []);
       }
-      if (programsResult.success) {
-        setPrograms(programsResult.data || []);
+      if (programsResult.status === 'fulfilled' && programsResult.value.success) {
+        setPrograms(programsResult.value.data || []);
       }
-      if (usersResult.success) {
-        setUsers(usersResult.data || []);
+      if (usersResult.status === 'fulfilled' && usersResult.value.success) {
+        setUsers(usersResult.value.data || []);
+      }
+      if (subjectTypesResult.status === 'fulfilled' && subjectTypesResult.value.success) {
+        setSubjectTypes(subjectTypesResult.value.data || []);
+      }
+      if (requirementTypesResult.status === 'fulfilled' && requirementTypesResult.value.success) {
+        setRequirementTypes(requirementTypesResult.value.data || []);
       }
     } catch (error) {
       toast.error(error.message);
@@ -91,6 +106,24 @@ const SubjectsPage = () => {
       if (!isInitial) setLoading(false);
     }
   }, [toast]);
+
+  // Set default values when lookup data loads or provide fallbacks
+  useEffect(() => {
+    if (subjectTypes.length > 0 && !formData.type) {
+      setFormData(prev => ({ ...prev, type: subjectTypes[0].id })); // Use integer ID
+    }
+    if (requirementTypes.length > 0 && !formData.requirementType) {
+      setFormData(prev => ({ ...prev, requirementType: requirementTypes[0].id })); // Use integer ID
+    }
+    
+    // Fallback to hardcoded values if lookup data fails to load
+    if (subjectTypes.length === 0 && !formData.type) {
+      setFormData(prev => ({ ...prev, type: 1 })); // Default to CORE (id: 1)
+    }
+    if (requirementTypes.length === 0 && !formData.requirementType) {
+      setFormData(prev => ({ ...prev, requirementType: 1 })); // Default to MANDATORY (id: 1)
+    }
+  }, [subjectTypes, requirementTypes, formData.type, formData.requirementType]);
 
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {
@@ -122,8 +155,8 @@ const SubjectsPage = () => {
     if (descEnRef.current) descEnRef.current.value = formData.descriptionEn || '';
     if (descArRef.current) descArRef.current.value = formData.descriptionAr || '';
     if (creditHoursRef.current) creditHoursRef.current.value = formData.creditHours?.toString() || '3';
-    if (totalHoursRef.current) totalHoursRef.current.value = formData.totalHours?.toString() || '36';
-    if (hoursPerWeekRef.current) hoursPerWeekRef.current.value = formData.hoursPerWeek?.toString() || '3';
+    if (typeRef.current) typeRef.current.value = formData.type?.toString() || '1';
+    if (requirementTypeRef.current) requirementTypeRef.current.value = formData.requirementType?.toString() || '1';
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingSubject]); // only when we load a subject for editing
 
@@ -134,45 +167,67 @@ const SubjectsPage = () => {
     // Sync refs
     const textValues = syncRefsToState();
     
-    // Validation
-    if (!formData.programId || !textValues.code || !textValues.nameEn || !textValues.nameAr) {
-      toast.error(t('please_fill_required_fields_subject') || 'Please fill in all required fields');
+    // Validation with specific error messages
+    if (!formData.programId) {
+      toast.error(t('please_select_program') || 'Please select a program');
+      return;
+    }
+    
+    if (!textValues.code || textValues.code.trim() === '') {
+      toast.error(t('please_enter_subject_code') || 'Please enter subject code');
+      return;
+    }
+    
+    if (!textValues.nameEn || textValues.nameEn.trim() === '') {
+      toast.error(t('please_enter_subject_name_english') || 'Please enter subject name in English');
+      return;
+    }
+    
+    if (!textValues.nameAr || textValues.nameAr.trim() === '') {
+      toast.error(t('please_enter_subject_name_arabic') || 'Please enter subject name in Arabic');
       return;
     }
 
     const subjectData = {
-      ...formData,
-      ...textValues
+      programId: parseInt(formData.programId), // Convert to integer for database
+      code: textValues.code,
+      nameEn: textValues.nameEn,
+      nameAr: textValues.nameAr,
+      descriptionEn: textValues.descriptionEn,
+      descriptionAr: textValues.descriptionAr,
+      credits: textValues.creditHours, // Fixed: use creditHours from form
+      typeId: parseInt(formData.type) || 1, // Use integer ID from lookup, default to CORE (id: 1)
+      requirementTypeId: parseInt(formData.requirementType) || 1, // Use integer ID from lookup, default to MANDATORY (id: 1)
+      isActive: true // Explicitly set active status
     };
 
     setLoading(true);
     try {
       let result;
       if (editingSubject) {
-        result = await updateSubject(editingSubject.docId, subjectData, user);
+        result = await updateSubject(editingSubject.id, subjectData, user);
       } else {
         result = await createSubject(subjectData, user);
       }
-
+      
       if (result.success) {
         // Log activity
         try {
           await logActivity(editingSubject ? ACTIVITY_LOG_TYPES.SUBJECT_UPDATED : ACTIVITY_LOG_TYPES.SUBJECT_CREATED, {
-            subjectId: editingSubject?.docId || result.id,
+            subjectId: editingSubject?.id || result.id,
             subjectName: textValues.nameEn,
             subjectCode: formData.code,
             programId: formData.programId
           });
-        } catch (e) { logger.warn('Failed to log activity:', e); }
+        } catch (e) { warn('Failed to log activity:', e); }
         toast.success(editingSubject ? t('subject_updated_successfully') || 'Subject updated successfully' : t('subject_created_successfully') || 'Subject created successfully');
         setEditingSubject(null);
         resetForm();
-        loadData();
+        // Don't call loadData() here to prevent double loading
       } else {
         toast.error(result.error || t('operation_failed_subject') || 'Operation failed');
       }
     } catch (error) {
-      logger.error('Error saving subject:', error);
       toast.error(error.message || t('subjects_error_message', { error: error.message }));
     } finally {
       setLoading(false);
@@ -182,26 +237,33 @@ const SubjectsPage = () => {
 
   const handleEdit = useCallback((subject) => {
     setEditingSubject(subject);
+    
+    // Find the program that contains this subject
+    const programWithSubject = programs.find(program => 
+      program.subjects && program.subjects.some(s => s.id === subject.id)
+    );
+    
     setFormData({
-      programId: subject.programId || '',
+      programId: programWithSubject ? programWithSubject.id : subject.programId || '',
       code: subject.code || '',
       nameEn: subject.nameEn || subject.name || '',
       nameAr: subject.nameAr || subject.name || '',
-      requirementType: subject.requirementType || 'general_mandatory',
+      requirementType: subject.requirementTypeId || 1, // Use integer ID
       descriptionEn: subject.descriptionEn || subject.description || '',
       descriptionAr: subject.descriptionAr || subject.description || '',
       creditHours: subject.creditHours || 3,
-      totalHours: subject.totalHours || 36,
-      type: subject.type || 'lecture',
-      hoursPerWeek: subject.hoursPerWeek || 3,
+      type: subject.typeId || 1, // Use integer ID
       classIds: subject.classIds || []
     });
+    
     // Sync refs
     if (nameEnRef.current) nameEnRef.current.value = subject.nameEn || subject.name || '';
     if (nameArRef.current) nameArRef.current.value = subject.nameAr || subject.name || '';
     if (descEnRef.current) descEnRef.current.value = subject.descriptionEn || subject.description || '';
     if (descArRef.current) descArRef.current.value = subject.descriptionAr || subject.description || '';
-  }, []);
+    if (typeRef.current) typeRef.current.value = subject.typeId || 1; // Use integer ID
+    if (requirementTypeRef.current) requirementTypeRef.current.value = subject.requirementTypeId || 1; // Use integer ID
+  }, [programs]);
 
   const handleDelete = useCallback((subject) => {
     deleteSubjectModal(subject, async () => {
@@ -209,17 +271,17 @@ const SubjectsPage = () => {
       setSubjects(prev => prev.filter(s => (s.docId || s.id) !== (subject.docId || subject.id)));
       
       try {
-        const result = await deleteSubject(subject.docId);
+        const result = await deleteSubject(subject.id);
         if (result.success) {
           try {
             await logActivity(ACTIVITY_LOG_TYPES.SUBJECT_DELETED, {
-              subjectId: subject.docId,
+              subjectId: subject.id,
               subjectName: subject.nameEn || subject.nameAr,
               subjectCode: subject.code
             });
-          } catch (e) { logger.warn('Failed to log activity:', e); }
+          } catch (e) { /* Activity logging failed */ }
           toast.success(t('subject_deleted_successfully') || 'Subject deleted successfully');
-          await loadData();
+          // Don't call loadData() here to prevent double loading
         } else {
           // Rollback
           setSubjects(prev => [...prev, subject]);
@@ -228,7 +290,6 @@ const SubjectsPage = () => {
       } catch (error) {
         // Rollback
         setSubjects(prev => [...prev, subject]);
-        logger.error('Error deleting subject:', error);
         toast.error(error.message || t('subjects_error_message', { error: error.message }));
       }
     });
@@ -243,10 +304,8 @@ const resetForm = () => {
       descriptionEn: '',
       descriptionAr: '',
       creditHours: 3,
-      totalHours: 36,
-      type: 'lecture',
-      hoursPerWeek: 3,
-      requirementType: 'general_mandatory',
+      type: 1, // Default to CORE (id: 1)
+      requirementType: 1, // Default to MANDATORY (id: 1)
       classIds: []
     });
     // Reset refs
@@ -269,20 +328,59 @@ const gridColumns = useMemo(() => [
     },
     { field: 'nameEn', headerName: t('name_en') || 'Name (EN)', flex: 1, minWidth: 180 },
     { field: 'nameAr', headerName: t('name_ar') || 'Name (AR)', flex: 1, minWidth: 180 },
-    { field: 'creditHours', headerName: t('credits') || 'Credits', width: 100 },
-    { field: 'totalHours', headerName: t('total_hours') || 'Total Hours', width: 120 },
+    { field: 'credits', headerName: t('credits') || 'Credits', width: 100 },
     {
       field: 'type',
       headerName: t('type') || 'Type',
       width: 120,
-      valueGetter: (params) => {
+      renderCell: (params) => {
         const row = params?.row || {};
-        const type = row.type || params?.value;
-        const typeMap = { lecture: t('lecture') || 'Lecture', lab: t('lab') || 'Lab', mix: t('mix') || 'Mix' };
-        return type ? (typeMap[type] || type) : '—';
+        
+        // First try to use the nested subjectType object (from API includes)
+        if (row.subjectType && row.subjectType.nameEn) {
+          return getLocalizedName(row.subjectType, lang);
+        }
+        
+        // Fallback to typeId lookup
+        const typeId = row.typeId;
+        if (!typeId) return '—';
+        
+        // If lookup data exists, use it with language awareness
+        if (subjectTypes.length > 0) {
+          const type = subjectTypes.find(t => t.id === parseInt(typeId));
+          return type ? getLocalizedName(type, lang) : typeId;
+        }
+        
+        // Final fallback - show the raw typeId with indicator
+        return `Type ${typeId}`;
       }
     },
-    { field: 'hoursPerWeek', headerName: t('hours_per_week') || 'Hours/Week', width: 120 },
+    {
+      field: 'requirementType',
+      headerName: t('requirement_type') || 'Requirement Type',
+      width: 150,
+      renderCell: (params) => {
+        const row = params?.row || {};
+        
+        // First try to use the nested requirementType object (from API includes)
+        if (row.requirementType && row.requirementType.nameEn) {
+          return getLocalizedName(row.requirementType, lang);
+        }
+        
+        // Fallback to requirementTypeId lookup
+        const requirementTypeId = row.requirementTypeId;
+        if (!requirementTypeId) return '—';
+        
+        // If lookup data exists, use it with language awareness
+        if (requirementTypes.length > 0) {
+          const requirementType = requirementTypes.find(r => r.id === parseInt(requirementTypeId));
+          return requirementType ? getLocalizedName(requirementType, lang) : requirementTypeId;
+        }
+        
+        // Fallback to ID if lookup not loaded
+        return requirementTypeId;
+      }
+    },
     {
       field: 'createdAt',
       headerName: t('created_at') || 'Created At',
@@ -292,116 +390,51 @@ const gridColumns = useMemo(() => [
         const createdAt = row.createdAt || params?.value;
         if (!createdAt) return '—';
         
-        // If it's already a formatted Qatar string, return it as-is
-        if (typeof createdAt === 'string' && createdAt.includes('UTC+3')) {
-          return createdAt;
-        }
-        
         try {
           // Handle Firestore Timestamp
           if (typeof createdAt === 'object' && createdAt.toDate) {
-            return createdAt.toDate().toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
-            });
+            return formatDateTime(createdAt.toDate(), lang || 'en');
           }
           
           // Handle ISO string or timestamp string
-          if (typeof createdAt === 'string') {
-            const date = new Date(createdAt);
-            if (isNaN(date.getTime())) return createdAt; // Return original if can't parse
-            return date.toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
-            });
-          }
-          
-          // Handle timestamp number
-          if (typeof createdAt === 'number') {
-            const date = new Date(createdAt);
-            if (isNaN(date.getTime())) return 'Invalid Date';
-            return date.toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
-            });
+          if (typeof createdAt === 'string' || typeof createdAt === 'number') {
+            return formatDateTime(createdAt, lang || 'en');
           }
           
           return createdAt;
         } catch (error) {
-          console.warn('Date formatting error:', error, createdAt);
           return createdAt || 'Invalid Date';
         }
       }
     },
     {
-      field: 'createdBy',
+      field: 'creator',
       headerName: t('created_by') || 'Created By',
       width: 200,
       renderCell: (params) => {
-        const createdBy = params.value || params.row?.createdBy;
-        if (!createdBy) return '—';
+        const creator = params.row?.creator;
+        if (!creator) return '—';
         
-        // Try to find user display name from users array
-        const user = users.find(u => (u.uid || u.id) === createdBy);
-        if (user) {
-          const displayName = user.displayName || user.name || user.email;
-          return (
-            <span title={createdBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
-              {displayName || createdBy}
-            </span>
-          );
-        }
-        
-        // Fallback to UID with truncation if long
-        if (typeof createdBy === 'string' && createdBy.length > 20) {
-          return (
-            <span title={createdBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
-              {`${createdBy.substring(0, 8)}...${createdBy.substring(createdBy.length - 4)}`}
-            </span>
-          );
-        }
-        
+        const displayProps = getUserDisplayProps(creator, users);
         return (
-          <span title={createdBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
-            {createdBy}
+          <span title={displayProps.title} style={displayProps.style}>
+            {displayProps.children}
           </span>
         );
       }
     },
     {
-      field: 'updatedBy',
+      field: 'updater',
       headerName: t('updated_by') || 'Updated By',
       width: 200,
       renderCell: (params) => {
-        const updatedBy = params.value || params.row?.updatedBy;
-        if (!updatedBy) return '—';
+        const updater = params.row?.updater;
+        if (!updater) return '—';
         
-        // Try to find user display name from users array
-        const user = users.find(u => (u.uid || u.id) === updatedBy);
-        if (user) {
-          const displayName = user.displayName || user.name || user.email;
-          return (
-            <span title={updatedBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
-              {displayName || updatedBy}
-            </span>
-          );
-        }
-        
-        // Fallback to UID with truncation if long
-        if (typeof updatedBy === 'string' && updatedBy.length > 20) {
-          return (
-            <span title={updatedBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
-              {`${updatedBy.substring(0, 8)}...${updatedBy.substring(updatedBy.length - 4)}`}
-            </span>
-          );
-        }
-        
+        const displayProps = getUserDisplayProps(updater, users);
         return (
-          <span title={updatedBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
-            {updatedBy}
+          <span title={displayProps.title} style={displayProps.style}>
+            {displayProps.children}
           </span>
         );
       }
@@ -454,9 +487,42 @@ const gridColumns = useMemo(() => [
           
           return updatedAt;
         } catch (error) {
-          console.warn('Date formatting error:', error, updatedAt);
           return updatedAt || 'Invalid Date';
         }
+      }
+    },
+    {
+      field: 'createdBy',
+      headerName: t('created_by') || 'Created By',
+      width: 180,
+      renderCell: (params) => {
+        const creator = params.row?.creator;
+        if (!creator) return '—';
+        
+        // Try to find user display name from users array
+        const user = users.find(u => (u.uid || u.id) === creator.id || u.id === creator);
+        if (user) {
+          return user.displayName || user.name || user.email || '—';
+        }
+        
+        return creator.displayName || creator.name || '—';
+      }
+    },
+    {
+      field: 'updatedBy',
+      headerName: t('updated_by') || 'Updated By',
+      width: 180,
+      renderCell: (params) => {
+        const updater = params.row?.updater;
+        if (!updater) return '—';
+        
+        // Try to find user display name from users array
+        const user = users.find(u => (u.uid || u.id) === updater.id || u.id === updater);
+        if (user) {
+          return user.displayName || user.name || user.email || '—';
+        }
+        
+        return updater.displayName || updater.name || '—';
       }
     },
     {
@@ -487,7 +553,7 @@ const gridColumns = useMemo(() => [
         </div>
       )
     }
-  ], [t, theme, handleEdit, handleDelete, users]);
+  ], [t, theme, handleEdit, handleDelete, users, subjectTypes, requirementTypes, lang]);
 
   return (
     <div className={styles.container}>
@@ -515,10 +581,10 @@ const gridColumns = useMemo(() => [
             options={[
               { value: '', label: t('select_program') || 'Select Program', icon: getThemedIcon('ui', 'folder', 16, theme) },
               ...programs.map(program => ({
-                value: program.docId || program.id,
+                value: program.id,
                 label: lang === 'ar' 
-                  ? (program.nameAr || program.nameEn || program.name || program.docId || program.id)
-                  : (program.nameEn || program.nameAr || program.name || program.docId || program.id),
+                  ? (program.nameAr || program.nameEn || program.name || program.id)
+                  : (program.nameEn || program.nameAr || program.name || program.id),
                 icon: getThemedIcon('ui', 'folder', 16, theme)
               }))
             ]}
@@ -551,45 +617,49 @@ const gridColumns = useMemo(() => [
             min={1}
             max={6}
           />
-          <Input
-            ref={totalHoursRef}
-            type="number"
-            defaultValue={formData.totalHours}
-            placeholder={t('total_hours_subject') || 'Total Hours'}
-            min={1}
-            // helperText={t('total_hours_helper') || 'Total hours for the entire course'}
-          />
           <Select
+            ref={typeRef}
             value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+            onChange={(e) => {
+              const value = e?.target?.value !== undefined ? e.target.value : e;
+              const intValue = parseInt(value) || value;
+              setFormData({ ...formData, type: intValue });
+            }}
             placeholder={t('all_types') || 'All Types'}
-            options={[
-              { value: 'lecture', label: t('lecture') || 'Lecture', icon: getThemedIcon('ui', 'file_text', 16, theme) },
-              { value: 'lab', label: t('lab') || 'Lab', icon: getThemedIcon('ui', 'users', 16, theme) },
-              { value: 'mix', label: t('mix_lecture_lab') || 'Mix (Lecture + Lab)', icon: getThemedIcon('ui', 'file_text', 16, theme) }
-            ]}
+            options={subjectTypes.length > 0 
+              ? createDropdownOptions(subjectTypes, lang, item => item.id, (item, currentLang) => getLocalizedName(item, currentLang)).map(option => ({
+                  ...option,
+                  icon: getThemedIcon('ui', 'file_text', 16, theme)
+                }))
+              : [
+                  { value: 1, label: t('core_subject') || 'Core Subject', icon: getThemedIcon('ui', 'file_text', 16, theme) },
+                  { value: 2, label: t('elective_subject') || 'Elective Subject', icon: getThemedIcon('ui', 'users', 16, theme) },
+                  { value: 3, label: t('specialization_subject') || 'Specialization Subject', icon: getThemedIcon('ui', 'message_square', 16, theme) }
+                ]
+            }
             required
           />
           <Select
+            ref={requirementTypeRef}
             value={formData.requirementType}
-            onChange={(e) => setFormData({ ...formData, requirementType: e.target.value })}
+            onChange={(e) => {
+              const value = e?.target?.value !== undefined ? e.target.value : e;
+              const intValue = parseInt(value) || value;
+              setFormData({ ...formData, requirementType: intValue });
+            }}
             placeholder={t('all_requirements') || 'All Requirements'}
-            options={[
-              { value: 'general_mandatory', label: t('general_mandatory') || 'General Mandatory', icon: getThemedIcon('ui', 'filter', 16, theme) },
-              { value: 'major_mandatory', label: t('major_mandatory') || 'Major Mandatory', icon: getThemedIcon('ui', 'book_open', 16, theme) },
-              { value: 'major_optional', label: t('major_optional') || 'Major Optional', icon: getThemedIcon('ui', 'file_text', 16, theme) }
-            ]}
+            options={requirementTypes.length > 0
+              ? createDropdownOptions(requirementTypes, lang, item => item.id, (item, currentLang) => getLocalizedName(item, currentLang)).map(option => ({
+                  ...option,
+                  icon: getThemedIcon('ui', 'filter', 16, theme)
+                }))
+              : [
+                  { value: 1, label: t('mandatory') || 'Mandatory', icon: getThemedIcon('ui', 'filter', 16, theme) },
+                  { value: 2, label: t('optional') || 'Optional', icon: getThemedIcon('ui', 'book_open', 16, theme) },
+                  { value: 3, label: t('prerequisite') || 'Prerequisite', icon: getThemedIcon('ui', 'file_text', 16, theme) }
+                ]
+            }
             required
-          />
-          <Input
-            ref={hoursPerWeekRef}
-            type="number"
-            defaultValue={formData.hoursPerWeek}
-            placeholder={t('hours_per_week_placeholder') || 'Hours Per Week'}
-            min={1}
-            max={20}
-            step={0.5}
-            helperTextInfo={t('weekly_contact_hours') || 'Weekly contact hours'}
           />
         </div>
         <div className="form-row">
@@ -624,7 +694,7 @@ const gridColumns = useMemo(() => [
         </div>
       </form>
 
-      <div className={styles.content}>
+      <div className={styles.content}>          
         <AdvancedDataGrid
             rows={subjects}
             getRowId={(row) => row.docId || row.id}

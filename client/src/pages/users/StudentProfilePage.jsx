@@ -2,9 +2,8 @@ import React, { useEffect, useMemo, useState, useLayoutEffect, useCallback } fro
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getThemedIcon } from '@constants/iconTypes';
-import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getUserBadges, getUserStats, getBadgeDefinitions } from '@services/business/badgeService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
@@ -12,12 +11,11 @@ import { getEnrollments } from '@services/business/enrollmentService';
 import { getUsers } from '@services/business/userService';
 import { getAttendanceByStudent } from '@services/business/attendanceService';
 import { getSubmissionsByUser } from '@services/business/submissionsService';
+import { getActivityById } from '@services/business/activitiesService';
 import { useSearchParams } from 'react-router-dom';
 import { Container, Select } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { StudentQRCodeDisplay } from '@ui';
-import { getDoc, doc } from 'firebase/firestore';
-import { db } from '@services/other/config';
 import { FileText, Trophy, Flame, Clock } from 'lucide-react';
 import styles from './StudentProfilePage.module.css';
 
@@ -35,8 +33,8 @@ const StudentProfilePage = () => {
   
   // Debug studentData when it changes
   useEffect(() => {
-    logger.log('StudentProfilePage - studentData updated:', studentData);
-    logger.log('StudentProfilePage - studentData.role:', studentData?.role);
+    info('StudentProfilePage - studentData updated:', studentData);
+    info('StudentProfilePage - studentData.role:', studentData?.role);
   }, [studentData]);
   const [attendanceData, setAttendanceData] = useState([]);
   const [performanceData, setPerformanceData] = useState({
@@ -206,7 +204,7 @@ const StudentProfilePage = () => {
       // Load all enrolled students from these classes
       await loadEnrolledStudents(classesData.map(c => c.id || c.docId));
     } catch (error) {
-      console.error('Error loading classes:', error);
+      error('Error loading classes:', error);
     }
   };
 
@@ -228,7 +226,7 @@ const StudentProfilePage = () => {
       );
       setAllStudents(students);
     } catch (error) {
-      console.error('Error loading enrolled students:', error);
+      error('Error loading enrolled students:', error);
     }
   };
 
@@ -241,7 +239,7 @@ const StudentProfilePage = () => {
         if (student) {
           setStudentData(student);
         } else {
-          logger.warn(t('student_profile_student_not_found') + ':', targetUserId);
+          warn(t('student_profile_student_not_found') + ':', targetUserId);
         }
       }
 
@@ -254,7 +252,7 @@ const StudentProfilePage = () => {
       // Load badges and stats
       await loadBadgesAndStats();
     } catch (error) {
-      console.error('Error loading student profile:', error);
+      error('Error loading student profile:', error);
     } finally {
       setLoading(false);
     }
@@ -278,7 +276,7 @@ const StudentProfilePage = () => {
         setAllBadges(allBadgesResult.data);
       }
     } catch (error) {
-      console.error('Error loading badges and stats:', error);
+      error('Error loading badges and stats:', error);
     }
   };
 
@@ -313,7 +311,7 @@ const StudentProfilePage = () => {
         setSearchResults(filtered);
       }
     } catch (e) {
-      console.warn('searchUsers:', e);
+      warn('searchUsers:', e);
     } finally {
       setSearchLoading(false);
     }
@@ -332,9 +330,6 @@ const StudentProfilePage = () => {
 
         // Apply filters
         if (filters.classId && classId !== filters.classId) continue;
-
-        // Get mark for this student in this session
-        const markDoc = await getDoc(doc(db, 'attendanceSessions', sessionDoc.id, 'marks', targetUserId));
         
         if (!classAttendance[classId]) {
           classAttendance[classId] = {
@@ -351,9 +346,8 @@ const StudentProfilePage = () => {
 
         classAttendance[classId].total++;
 
-        if (markDoc.exists()) {
-          const markData = markDoc.data();
-          const status = markData.status || 'absent';
+        const status = attendance.status || attendance.attendanceStatus || 'absent';
+        if (Object.prototype.hasOwnProperty.call(classAttendance[classId], status)) {
           classAttendance[classId][status]++;
         } else {
           classAttendance[classId].absent++;
@@ -383,7 +377,7 @@ const StudentProfilePage = () => {
 
       setAttendanceData(Object.values(filteredClasses));
     } catch (error) {
-      console.error('Error loading attendance data:', error);
+      error('Error loading attendance data:', error);
     }
   };
 
@@ -404,18 +398,15 @@ const StudentProfilePage = () => {
         
         // Get activity type
         try {
-          const activityDoc = await getDoc(doc(db, RECORD_TYPES.ACTIVITY, subData.activityId));
-          if (activityDoc.exists()) {
-            const activityData = activityDoc.data();
-            const type = activityData.type || 'training';
-            
-            if (performance[type]) {
-              performance[type].total++;
-              if (subData.status === 'completed' || subData.status === 'graded') {
-                performance[type].completed++;
-                if (subData.score !== undefined && subData.score !== null) {
-                  performance[type].totalScore += subData.score;
-                }
+          const activityData = await getActivityById(subData.activityId, user?.uid);
+          const type = activityData?.type || 'training';
+
+          if (performance[type]) {
+            performance[type].total++;
+            if (subData.status === 'completed' || subData.status === 'graded') {
+              performance[type].completed++;
+              if (subData.score !== undefined && subData.score !== null) {
+                performance[type].totalScore += subData.score;
               }
             }
           }
@@ -431,7 +422,7 @@ const StudentProfilePage = () => {
 
       setPerformanceData(performance);
     } catch (error) {
-      console.error('Error loading performance data:', error);
+      error('Error loading performance data:', error);
     }
   };
 
@@ -452,7 +443,7 @@ const StudentProfilePage = () => {
       try {
         await loadStudentProfile();
       } catch (error) {
-        console.error('Error loading student data:', error);
+        error('Error loading student data:', error);
       } finally {
         safeStop();
       }
@@ -743,7 +734,7 @@ const StudentProfilePage = () => {
         </div>
 
         {/* QR Code Display - Show for student profiles */}
-        {logger.log('QR Code check - studentData:', studentData, 'role:', studentData?.role) || (
+        {info('QR Code check - studentData:', studentData, 'role:', studentData?.role) || (
           <div className="mb-6">
             <StudentQRCodeDisplay 
               studentId={targetUserId} 

@@ -1,0 +1,4 @@
+🔍 Testing GraphQL API health...
+🔍 GraphQL response status: 200
+✅ GraphQL API is accessible
+📊 Schema types available: 216

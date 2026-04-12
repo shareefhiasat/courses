@@ -3,16 +3,22 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import { formatDateTime } from '@utils/dateUtils.js';
 import { useToast } from '@ui';
 import { AdvancedDataGrid } from '@ui';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon } from '@constants';
 import { formatQatarStandard, formatQatarForInput, parseQatarFromInput, getQatarNow } from '@utils/qatarDate';
-import logger from '@utils/logger';
-import { ACTIVITY_TYPES, getActivityTypeConfig, getActivityTypeOptionsForDropdown, getThemeColor } from '@constants';
+import { info, error, warn, debug } from '@services/utils/logger.js';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
+// OLD: import { ACTIVITY_TYPES, getActivityTypeConfig, ACTIVITY_TYPE_OPTIONS, getThemeColor } from '@constants';
+// NOW: Using useLookupTypes hook for all lookup data
+import { getActivityTypeConfig, ACTIVITY_TYPE_OPTIONS, getThemeColor } from '@constants';
 import { DIFFICULTY_TYPES, getDifficultyConfig, getDifficultyOptionsForDropdown } from '@constants/difficultyTypes';
-import { getPrograms, getSubjects, getClasses } from '@services/business/programService.js';
+import { getPrograms } from '@services/business/programService.js';
+import { getSubjects } from '@services/business/subjectService.js';
+import { getClasses } from '@services/business/classService.js';
 import { getCategories } from '@services/business/categoryService';
-import { getActivities, addActivity, updateActivity, deleteActivity as deleteActivityService } from '@services/business/activityService';
+import { getActivities, addActivity, updateActivity, deleteActivity as deleteActivityService } from '@services/business/activitiesService';
 import { getAllQuizzes } from '@services/business/quizService';
 import { getUsers } from '@services/business/userService';
 import { Select, DatePicker, Button, ToggleSwitch, UrlInput, Input, RichTextEditor } from '@ui';
@@ -40,6 +46,26 @@ const ActivitiesPage = () => {
   
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
+  const { data: lookupData } = useLookupTypes({
+    types: ['activity-types']
+  });
+
+  // Create activity type constants from lookup data
+  const activityTypes = (lookupData['activity-types'] || []).reduce((acc, type) => {
+    acc[type.code] = type.code;
+    return acc;
+  }, {});
+  
+  // Default to common activity types if not found
+  const ACTIVITY_TYPES = {
+    HOMEWORK: activityTypes.HOMEWORK || 'HOMEWORK',
+    QUIZ: activityTypes.QUIZ || 'QUIZ',
+    TRAINING: activityTypes.TRAINING || 'TRAINING',
+    LAB_AND_PROJECT: activityTypes.LAB_AND_PROJECT || 'LAB_AND_PROJECT',
+    MID_EXAM: activityTypes.MID_EXAM || 'MID_EXAM',
+    FINAL_EXAM: activityTypes.FINAL_EXAM || 'FINAL_EXAM'
+  };
+
   const isDark = theme === 'dark';
   const { user } = useAuth();
   const toast = useToast();
@@ -116,7 +142,7 @@ const ActivitiesPage = () => {
       if (quizzesResult.success) setQuizzes(quizzesResult.data || []);
       if (usersResult.success) setUsers(usersResult.data || []);
     } catch (error) {
-      logger.error('Error loading data:', error);
+      console.error('Error loading data:', error);
       toast?.showError(t('activities_failed_to_load_data'));
     } finally {
       if (!isInitial) setDataLoading(false);
@@ -144,12 +170,24 @@ const ActivitiesPage = () => {
 
   // Handler functions
   const handleDropdownChange = useCallback((setter, field, resetFields = []) => {
-    return (value) => {
+    return (e) => {
+      // Handle both event objects and direct values (like SubjectsPage fix)
+      const value = e?.target?.value !== undefined ? e.target.value : e;
+      
+      console.log('🔍 Activities dropdown change:', {
+        field,
+        value,
+        valueType: typeof value,
+        before: activityForm[field],
+        after: value
+      });
+      
       setter(prev => {
         const newState = { ...prev, [field]: value };
         resetFields.forEach(resetField => {
           newState[resetField] = '';
         });
+        console.log('🔍 Activities form state updated:', newState);
         return newState;
       });
     };
@@ -171,7 +209,7 @@ const ActivitiesPage = () => {
   }, []);
 
   const handleEmailOptionChange = useCallback((field, value) => {
-    logger.log('🔔 Activity bell toggle changed:', { field, value, previous: emailOptions[field] });
+    info('🔔 Activity bell toggle changed:', { field, value, previous: emailOptions[field] });
     setEmailOptions(prev => ({ ...prev, [field]: value }));
   }, [emailOptions]);
 
@@ -247,7 +285,7 @@ const ActivitiesPage = () => {
       };
       
       // Log the complete activity data being sent
-      logger.log('[FORM] Complete activity data being sent:', JSON.stringify(activityData, null, 2));
+      info('[FORM] Complete activity data being sent:', JSON.stringify(activityData, null, 2));
       
       // Remove undefined values before saving to prevent Firebase errors
       if (activityData.dueDate === undefined) {
@@ -267,15 +305,15 @@ const ActivitiesPage = () => {
       } else {
         const result = await addActivity(activityData, user);
         
-        logger.log('[FORM] addActivity result:', JSON.stringify(result, null, 2));
+        info('[FORM] addActivity result:', JSON.stringify(result, null, 2));
         
         if (result.success) {
-          logger.log('🔍 [SAVE] Activity created successfully with ID:', result.id);
+          info('🔍 [SAVE] Activity created successfully with ID:', result.id);
           toast?.showSuccess(t('activities_created_successfully'));
           // Refresh the activities list to show the new activity
           await loadData();
         } else {
-          logger.error('🔍 [SAVE] Activity creation failed:', result.error);
+          error('🔍 [SAVE] Activity creation failed:', result.error);
           throw new Error(result.error || t('activities_failed_to_create'));
         }
       }
@@ -289,7 +327,7 @@ const ActivitiesPage = () => {
       setEditingActivity(null);
       setActiveActivityFormTab('basic');
     } catch (error) {
-      logger.error('Error saving activity:', {
+      error('Error saving activity:', {
         message: error.message,
         stack: error.stack,
         error: error
@@ -549,7 +587,7 @@ const ActivitiesPage = () => {
       renderCell: (params) => {
         const type = params.value || params.row?.type;
         if (!type) return '—';
-        const typeConfig = getActivityTypeConfig(type, theme, lang);
+        const typeConfig = getActivityTypeConfig(type);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             {getThemedIcon('activity_type', typeConfig.icon, 14, theme)}
@@ -559,7 +597,7 @@ const ActivitiesPage = () => {
       },
       valueFormatter: (params) => {
         if (!params.value) return '—';
-        const typeConfig = getActivityTypeConfig(params.value, theme, lang);
+        const typeConfig = getActivityTypeConfig(params.value);
         return typeConfig.text;
       }
     },
@@ -570,7 +608,7 @@ const ActivitiesPage = () => {
       renderCell: (params) => {
         const difficulty = params.value;
         if (!difficulty) return '—';
-        const difficultyConfig = getDifficultyConfig(difficulty, theme, lang);
+        const difficultyConfig = getDifficultyConfig(difficulty);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             {getThemedIcon('ui', difficultyConfig.icon, 14, theme)}
@@ -580,7 +618,7 @@ const ActivitiesPage = () => {
       },
       valueFormatter: (params) => {
         if (!params.value) return '—';
-        const difficultyConfig = getDifficultyConfig(params.value, theme, lang);
+        const difficultyConfig = getDifficultyConfig(params.value);
         return difficultyConfig.text;
       }
     },
@@ -625,10 +663,17 @@ const ActivitiesPage = () => {
       }
     },
     {
-      field: 'createdAt', headerName: 'Created Date', width: 180,
-      valueGetter: (params) => params.value,
-      renderCell: (params) => params.value || 'Unknown',
-      valueFormatter: (params) => params.value || 'Unknown'
+      field: 'createdAt', headerName: t('created_at') || 'Created At', width: 180,
+      valueGetter: (params) => {
+        const createdAt = params.value || params.row?.createdAt;
+        if (!createdAt) return '—';
+        return formatDateTime(createdAt, lang);
+      },
+      renderCell: (params) => {
+        const createdAt = params.value || params.row?.createdAt;
+        if (!createdAt) return '—';
+        return formatDateTime(createdAt, lang);
+      }
     },
     {
       field: 'createdBy', headerName: 'Created By', width: 150,
@@ -643,6 +688,21 @@ const ActivitiesPage = () => {
         }
         
         return createdBy;
+      }
+    },
+    {
+      field: 'updatedBy', headerName: t('updated_by') || 'Updated By', width: 150,
+      renderCell: (params) => {
+        const updatedBy = params.value || params.row?.updater?.id || params.row?.updatedBy;
+        if (!updatedBy) return '—';
+        
+        // Try to find user display name from users array
+        const user = users.find(u => (u.uid || u.id) === updatedBy);
+        if (user) {
+          return user.displayName || user.name || user.email || '—';
+        }
+        
+        return updatedBy;
       }
     },
     {
@@ -839,7 +899,7 @@ const ActivitiesPage = () => {
                 placeholder={t('type') || 'Activity Type'}
                 value={activityForm.type}
                 onChange={(e) => handleFieldChange('type', e.target.value)}
-                options={getActivityTypeOptionsForDropdown(theme, lang)}
+                options={ACTIVITY_TYPE_OPTIONS}
                 style={{ width: '100%' }}
                 icon={getThemedIcon('ui', 'layers', 16, theme)}
               />
@@ -855,7 +915,7 @@ const ActivitiesPage = () => {
                     }
                     handleFieldChange('difficulty', e.target.value);
                   }}
-                  options={getDifficultyOptionsForDropdown(theme, lang)}
+                  options={getDifficultyOptionsForDropdown()}
                   style={{ width: '100%' }}
                   icon={getThemedIcon('ui', 'target', 16, theme)}
                   disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
@@ -1198,7 +1258,7 @@ const ActivitiesPage = () => {
             onChange={(e) => setActivityTypeFilter(e.target.value)}
             options={[
               { value: '', label: t('all_types') || 'All Types', icon: getThemedIcon('ui', 'filter', 16, theme) },
-              ...getActivityTypeOptionsForDropdown(theme, lang)
+              ...ACTIVITY_TYPE_OPTIONS
             ]}
             placeholder={t('all_types') || 'All Types'}
             style={{ minWidth: '200px' }}
@@ -1208,7 +1268,7 @@ const ActivitiesPage = () => {
             onChange={(e) => setActivityDifficultyFilter(e.target.value)}
             options={[
               { value: '', label: t('all_difficulties') || 'All Difficulties', icon: getThemedIcon('ui', 'filter', 16, theme) },
-              ...getDifficultyOptionsForDropdown(theme, lang)
+              ...getDifficultyOptionsForDropdown()
             ]}
             placeholder={t('all_difficulties') || 'All Difficulties'}
             style={{ minWidth: '200px' }}
@@ -1290,7 +1350,7 @@ const ActivitiesPage = () => {
         
         {/* Activity Type Chips */}
         {Object.entries(ACTIVITY_TYPES).map(([key, type]) => {
-          const config = getActivityTypeConfig(type, theme, lang);
+          const config = getActivityTypeConfig(type);
           const count = activities.filter(a => a.type === type).length;
           if (count === 0) return null;
           return (
@@ -1314,7 +1374,7 @@ const ActivitiesPage = () => {
         
         {/* Difficulty Chips */}
         {Object.entries(DIFFICULTY_TYPES).map(([key, difficulty]) => {
-          const config = getDifficultyConfig(difficulty, theme, lang);
+          const config = getDifficultyConfig(difficulty);
           const count = activities.filter(a => a.difficulty === difficulty).length;
           if (count === 0) return null;
           return (

@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 /**
  * Screen Definitions for Localization
  * Centralized screen information with translations
@@ -287,4 +289,83 @@ export const getScreensByGroup = (group, t) => {
       name: t(screen.nameKey) || screen.nameKey,
       description: t(screen.descriptionKey) || screen.descriptionKey
     }));
+};
+
+/**
+ * Role-based access control mapping
+ * Maps screen IDs to allowed Keycloak roles
+ * NOTE: super_admin has access to ALL screens by default (bypass in RoleGuard)
+ */
+export const SCREEN_ROLE_ACCESS = {
+  // Main screens
+  home: ['super_admin', 'admin', 'hr', 'instructor', 'student'],
+  dashboard: ['super_admin', 'admin', 'hr', 'instructor'],
+  studentDashboard: ['super_admin', 'admin', 'student'],
+  studentProfile: ['super_admin', 'admin', 'hr', 'instructor'],
+  activities: ['super_admin', 'admin', 'instructor', 'student'],
+  resources: ['super_admin', 'admin', 'instructor', 'student'],
+  
+  // Quiz screens
+  quizzes: ['super_admin', 'admin', 'instructor', 'student'],
+  quizManagement: ['super_admin', 'admin', 'instructor'],
+  quizBuilder: ['super_admin', 'admin', 'instructor'],
+  quizResults: ['super_admin', 'admin', 'instructor', 'student'],
+  reviewResults: ['super_admin', 'admin'],
+  
+  // Class screens
+  classSchedules: ['super_admin', 'admin', 'instructor', 'student'],
+  manageEnrollments: ['super_admin', 'admin', 'instructor'],
+  myEnrollments: ['super_admin', 'admin', 'student'],
+  enrollments: ['super_admin', 'admin'],
+  
+  // Academic screens
+  programs: ['super_admin', 'admin'],
+  subjects: ['super_admin', 'admin'],
+  classes: ['super_admin', 'admin', 'instructor'],
+  marksEntry: ['super_admin', 'admin', 'instructor'],
+  courseProgress: ['super_admin', 'admin', 'student'],
+  courses: ['super_admin', 'admin', 'instructor', 'student'],
+  
+  // Attendance screens
+  attendance: ['super_admin', 'admin', 'instructor'],
+  hrAttendance: ['super_admin', 'hr'],
+  myAttendance: ['super_admin', 'admin', 'student'],
+  hrPenalties: ['super_admin', 'hr'],
+  instructorParticipation: ['super_admin', 'admin', 'instructor'],
+  instructorBehavior: ['super_admin', 'admin', 'instructor'],
+  
+  // Analytics screens
+  analytics: ['super_admin', 'admin', 'hr', 'instructor'],
+  advancedAnalytics: ['super_admin', 'admin'],
+  
+  // Communication screens
+  chat: ['super_admin', 'admin', 'instructor', 'student'],
+  scheduledReports: ['super_admin', 'admin'],
+  smtpConfig: ['super_admin'],
+  notifications: ['super_admin', 'admin', 'hr', 'instructor', 'student'],
+  
+  // Settings screens
+  profile: ['super_admin', 'admin', 'hr', 'instructor', 'student'],
+  roleAccess: ['super_admin'] // REMOVED from UI - kept for reference only
+};
+
+/**
+ * Check if a role has access to a screen
+ * @param {string} screenId - Screen ID
+ * @param {string|string[]} userRoles - User role(s) from Keycloak
+ * @returns {boolean} Whether the user has access
+ */
+export const hasScreenAccess = (screenId, userRoles) => {
+  // Super admin always has access
+  const roles = Array.isArray(userRoles) ? userRoles : [userRoles];
+  if (roles.includes('super_admin')) return true;
+  
+  // Home is accessible to all authenticated users
+  if (screenId === 'home') return true;
+  
+  // Check screen-specific access
+  const allowedRoles = SCREEN_ROLE_ACCESS[screenId];
+  if (!allowedRoles) return false; // Unknown screen - deny by default
+  
+  return roles.some(role => allowedRoles.includes(role));
 };

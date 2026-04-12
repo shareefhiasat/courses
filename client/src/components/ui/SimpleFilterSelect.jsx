@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * Simple FilterSelect component - Native HTML select with proper styling
@@ -21,7 +21,7 @@ const SimpleFilterSelect = ({
   const { t } = useLang();
   const { theme } = useTheme();
   
-  logger.log('🔍 [SimpleFilterSelect] Component render:', {
+  info('🔍 [SimpleFilterSelect] Component render:', {
     filterKey,
     value,
     dataLength: data?.length || 0,
@@ -44,7 +44,7 @@ const SimpleFilterSelect = ({
     })
   ];
 
-  logger.log('🔍 [SimpleFilterSelect] Generated options:', {
+  info('🔍 [SimpleFilterSelect] Generated options:', {
     optionsCount: options.length,
     placeholder,
     firstOption: options[0],
@@ -56,7 +56,7 @@ const SimpleFilterSelect = ({
       <select
         value={value}
         onChange={(e) => {
-          logger.log('🔄 [SimpleFilterSelect] onChange triggered:', {
+          info('🔄 [SimpleFilterSelect] onChange triggered:', {
             oldValue: value,
             newValue: e.target.value,
             filterKey

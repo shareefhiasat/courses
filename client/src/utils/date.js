@@ -6,7 +6,7 @@ export const getTimeFormatPreference = () => {
   }
 };
 
-import logger from './logger';
+import { info, error, warn, debug } from '../services/utils/logger.js';
 
 export const formatDate = (value) => {
   if (!value) return '';
@@ -257,7 +257,7 @@ export const convertDatesToTimestamps = (data, dateFields = ['dueDate', 'startDa
         converted[fieldName] = new TimestampConstructor(new Date(data[fieldName]));
       } catch (error) {
         // If it fails, keep the original value
-        logger.log(`Keeping original date for ${fieldName}:`, data[fieldName]);
+        info(`Keeping original date for ${fieldName}:`, data[fieldName]);
       }
     }
   });
@@ -322,7 +322,7 @@ export const convertTimestampsToISOStrings = (data, dateFields = ['dueDate', 'st
           if (!isNaN(date.getTime())) {
             converted[fieldName] = date.toISOString();
           } else {
-            console.warn(`Could not convert ${fieldName} to ISO string:`, data[fieldName]);
+            warn(`Could not convert ${fieldName} to ISO string:`, data[fieldName]);
             converted[fieldName] = undefined;
           }
         }

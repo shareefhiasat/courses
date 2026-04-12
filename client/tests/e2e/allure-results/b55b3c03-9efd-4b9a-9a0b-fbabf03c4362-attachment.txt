@@ -1,0 +1,29 @@
+🔐 Attempting admin login via master realm...
+🔐 Admin login response status: 200
+🔐 Admin login response data: {
+  access_token: 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJoR3dtYVBGVmRnWkxRZzVlYy1XOTRNN3NNa3pwR20wdnA3cV9xVnc4S0RjIn0.eyJleHAiOjE3NzQxNjgyMTEsImlhdCI6MTc3NDE2ODE1MSwianRpIjoiMDA4ZmU3YmYtYjIxNC00YzE3LWE4ZjQtODgyZjVhMmU1ZTcxIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9tYXN0ZXIiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJhZG1pbi1jbGkiLCJzaWQiOiIwMTQzMmI1Zi1iMjQ1LTQ3YzctYmRiNC1lYzVhYjM0NjY1YWUiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.AFmipRM0FUXBPz4j6zZOghmQNfTkkK_O4vMavAp6z8bnKpcxKsSsut4LPWTD0xvNcz8sdq59ptvHJZU9A6zw0fWlE64cuUeyhgyHgNOLLv_cPn4ksYh8v6-6xG9jbWcPWmlGEgp8XnrsnEIGHY9ea4gJa2o9CrDKMt3MWb3BZa8c4dh4HcyWAAbmHhQd2xeWNaShf5Ug-rVeajvoQMT_4q5Gbfd_tVPQn4a7vhvEoGb2LVj5nvpZPwDqwduHJjRUcW4NQwmpVR7nFy81jojjo36k7NgkqdHkI4o3LxRe-B5o17rGJFa-tFiWyoQCcx0eduxtqH9cAq6pEF-U9jtF0w',
+  expires_in: 60,
+  refresh_expires_in: 1800,
+  refresh_token: 'eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICIwOWU5ZjI3YS0xOWIyLTQ2MzMtYTEwOS01YTZhNmE4NTEwOTUifQ.eyJleHAiOjE3NzQxNjk5NTEsImlhdCI6MTc3NDE2ODE1MSwianRpIjoiNGFmNGNhODItYmE5NS00NWMzLTk2NzItNzU1OTJmYWJlMjJkIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvcmVhbG1zL21hc3RlciIsInR5cCI6IlJlZnJlc2giLCJhenAiOiJhZG1pbi1jbGkiLCJzaWQiOiIwMTQzMmI1Zi1iMjQ1LTQ3YzctYmRiNC1lYzVhYjM0NjY1YWUiLCJzY29wZSI6ImVtYWlsIHdlYi1vcmlnaW5zIHByb2ZpbGUgYWNyIGJhc2ljIHJvbGVzIn0.M-t4R46vgOjgWNHQpAKEBF3-TviWG7GK9eKX9XaUYBqT-5FPEEofpGRuDCWHpvRH-BEcyZ-3azjhlV8fPMhkpA',
+  token_type: 'Bearer',
+  'not-before-policy': 0,
+  session_state: '01432b5f-b245-47c7-bdb4-ec5ab34665ae',
+  scope: 'email profile'
+}
+✅ Admin authentication successful
+🔑 Token expires in: 60 seconds
+🔍 CREATE response: {
+  "data": {
+    "createProgram": {
+      "id": "69bfa8585ae6da109bf928c9",
+      "nameEn": "Test Program 1774168151576",
+      "nameAr": "برنامج اختبار 1774168151576",
+      "code": "TEST-1774168151576",
+      "durationYears": 4,
+      "minGPA": 2,
+      "totalCreditHours": 120
+    }
+  }
+}
+✅ Program created: Test Program 1774168151576
+📝 Program ID: 69bfa8585ae6da109bf928c9

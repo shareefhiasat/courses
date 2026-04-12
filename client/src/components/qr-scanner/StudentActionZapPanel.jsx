@@ -1,19 +1,26 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { Button, Input, Modal } from '@ui';
 import { useAuth } from '@contexts/AuthContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
-import { markAttendance } from '@services/business/attendanceService';
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPES, STANDUP_ATTENDANCE_TYPES, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
+import { markAttendance, deleteAttendance } from '@services/business/attendanceServiceUnified.js';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPE_CATEGORY, ATTENDANCE_TYPES, ATTENDANCE_COLORS, STANDUP_ATTENDANCE_TYPES, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
+import { MANUAL_NOTE_TYPES, getNoteTypeFromStatus } from '@constants/noteTypes';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
-import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
-import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
+// OLD: import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
+// OLD: import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
+// NOW: Using useLookupTypes hook for behavior and participation types
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getFavoriteBehaviors, addFavoriteBehavior, removeFavoriteBehavior } from '@services/business/userPreferenceService';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
 import PortalTooltip from '@ui/PortalTooltip';
+import PanelHeader from './PanelHeader';
+// Temporary import for deprecated functions until lookup system is fully migrated
+import { getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
+import { getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
 
 export default function StudentActionZapPanel({
   student,
@@ -29,12 +36,19 @@ export default function StudentActionZapPanel({
   selectedDate,
   sendNotifications = false,
   onToggleNotifications,
-  initialTab = RECORD_TYPES.ATTENDANCE
+  initialTab = RECORD_TYPES.ATTENDANCE,
+  classId,
+  programId,
+  subjectId,
+  onUpdate
 }) {
   // DEBUG: Log attendanceMode prop
-  logger.log('🔍 [DEBUG] StudentActionZapPanel received:', {
+  info('🔍 [DEBUG] StudentActionZapPanel received:', {
     attendanceMode,
     studentName: student?.name,
+    classId,
+    programId,
+    subjectId,
     constants: ATTENDANCE_TYPE_CATEGORY
   });
 
@@ -55,6 +69,9 @@ export default function StudentActionZapPanel({
 
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { data: lookupData } = useLookupTypes({
+    types: ['behavior-types', 'participation-types']
+  });
   const { t, lang, isRTL } = useLang();
   const { showSuccess, showError } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,6 +103,15 @@ export default function StudentActionZapPanel({
   });
   const [isReloading, setIsReloading] = useState(false);
 
+  // Initialize attendance status from student prop to prevent initial flash of "None"
+  const [currentAttendanceStatus, setCurrentAttendanceStatus] = useState(() => {
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      return student?.standupStatus || null;
+    } else {
+      return student?.attendance ? String(student.attendance).toUpperCase() : null;
+    }
+  });
+
   useEffect(() => {
     const loadFavoriteBehaviors = async () => {
       if (user) {
@@ -93,7 +119,7 @@ export default function StudentActionZapPanel({
           const favorites = await getFavoriteBehaviors(user.uid);
           setFavoriteBehaviors(favorites);
         } catch (error) {
-          logger.error('Error loading favorite behaviors:', error);
+          error('Error loading favorite behaviors:', error);
         }
       }
     };
@@ -101,23 +127,28 @@ export default function StudentActionZapPanel({
   }, [user]);
 
   const attendanceStatus = useMemo(() => {
-    const status = student?.attendance;
+    const status = currentAttendanceStatus;
     
-    if (status && status !== 'absent_no_excuse') {
-      const statusInfo = ATTENDANCE_STATUS_LABELS[status];
-      if (statusInfo) {
-        logger.log('🔧 Using direct attendance status:', status, statusInfo);
-        return statusInfo;
+    if (status) {
+      const statusLabel = ATTENDANCE_STATUS_LABELS[status];
+      const statusColor = ATTENDANCE_COLORS[status];
+      if (statusLabel && statusColor) {
+        info('🔧 Using current attendance status:', status, statusLabel, statusColor);
+        return {
+          en: statusLabel,
+          ar: statusLabel, // TODO: Add Arabic translations
+          color: statusColor
+        };
       }
     }
     
-    logger.log('🔧 No valid attendance found - showing None');
+    info('🔧 No valid attendance found - showing None');
     return {
       en: t('none') || 'None',
       ar: t('none') || 'لا شيء',
       color: '#9ca3af'
     };
-  }, [student?.attendance, t]);
+  }, [currentAttendanceStatus, t]);
 
   const avatarColor = useMemo(() => getAvatarColor(student?.name || ''), [student?.name]);
 
@@ -138,10 +169,10 @@ export default function StudentActionZapPanel({
     let finalIconName = iconName;
     let finalColor = style.color || '#374151';
     
-    if (BEHAVIOR_TYPES.find(bt => bt.id === iconName)) {
+    if ((lookupData['behavior-types'] || []).find(bt => bt.id === iconName)) {
       finalIconName = behaviorIcon;
       finalColor = behaviorColor;
-    } else if (PARTICIPATION_TYPES.find(pt => pt.id === iconName)) {
+    } else if ((lookupData['participation-types'] || []).find(pt => pt.id === iconName)) {
       finalIconName = participationIcon;
       finalColor = participationColor;
     }
@@ -162,21 +193,7 @@ export default function StudentActionZapPanel({
     return iconMap[finalIconName] || iconMap.AlertCircleIcon;
   };
 
-  const getAttendanceIconComponent = (status) => {
-    const iconName = getAttendanceIcon(status);
-    const iconColor = getAttendanceColor(status);
-    
-    const iconMap = {
-      CheckCircle: <CheckCircleIcon style={{ width: 16, height: 16, color: iconColor }} />,
-      Clock: <ClockIcon style={{ width: 16, height: 16, color: iconColor }} />,
-      AlertCircle: <AlertCircleIcon style={{ width: 16, height: 16, color: iconColor }} />,
-      XCircle: <XCircleIcon style={{ width: 16, height: 16, color: iconColor }} />,
-      Heart: <HeartIcon style={{ width: 16, height: 16, color: iconColor }} />,
-      HelpCircle: <HelpCircleIcon style={{ width: 16, height: 16, color: iconColor }} />
-    };
-    
-    return iconMap[iconName] || iconMap.HelpCircle;
-  };
+
 
   const filteredOptions = useMemo(() => {
     if (!Array.isArray(options)) {
@@ -226,7 +243,7 @@ export default function StudentActionZapPanel({
         setFavoriteBehaviors(prev => [...prev, optionId]);
       }
     } catch (error) {
-      logger.error('Error toggling favorite behavior:', error);
+      error('Error toggling favorite behavior:', error);
     }
   }, [user, favoriteBehaviors]);
 
@@ -249,13 +266,13 @@ export default function StudentActionZapPanel({
       const penaltyActions = actionsWithPoints.filter(action => action.category === RECORD_TYPES.PENALTY);
       
       if (behaviorActions.length > 0) {
-        await onBehaviorSubmit(student.docId || student.id, behaviorActions, internalNote, actionPoints);
+        await onBehaviorSubmit(student.id, behaviorActions, internalNote, actionPoints);
       }
       if (participationActions.length > 0) {
-        await onParticipationSubmit(student.docId || student.id, participationActions, internalNote, actionPoints);
+        await onParticipationSubmit(student.id, participationActions, internalNote, actionPoints);
       }
       if (penaltyActions.length > 0) {
-        await onPenaltySubmit(student.docId || student.id, penaltyActions, internalNote, actionPoints);
+        await onPenaltySubmit(student.id, penaltyActions, internalNote, actionPoints);
       }
       
       setSelectedActions([]);
@@ -264,12 +281,12 @@ export default function StudentActionZapPanel({
       showSuccess(t('actions_saved_successfully'));
       onClose();
     } catch (error) {
-      logger.error('Error saving actions:', error);
+      error('Error saving actions:', error);
       showError(t('failed_to_save_actions'));
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedActions, actionPoints, internalNote, student?.id, student?.docId, onBehaviorSubmit, onParticipationSubmit, onPenaltySubmit, onClose, t, showSuccess, showError]);
+  }, [selectedActions, actionPoints, internalNote, student?.id, onBehaviorSubmit, onParticipationSubmit, onPenaltySubmit, onClose, t, showSuccess, showError]);
 
   const getInitials = useCallback((name) => {
     return name
@@ -299,7 +316,7 @@ export default function StudentActionZapPanel({
         top: 0,
         [isRTL ? 'left' : 'right']: 0,
         width: isMobile ? '100%' : '100%',
-        maxWidth: isMobile ? '100%' : '28rem',
+        maxWidth: isMobile ? '100%' : '32.2rem',
         height: '100%',
         background: 'var(--panel, white)',
         boxShadow: isRTL ? '4px 0 24px rgba(0,0,0,0.1)' : '-4px 0 24px rgba(0,0,0,0.1)',
@@ -400,60 +417,15 @@ export default function StudentActionZapPanel({
           justifyContent: 'space-between',
           marginBottom: '1rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{
-              width: '2.5rem',
-              height: '2.5rem',
-              borderRadius: '9999px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.75rem',
-              fontWeight: 500,
-              background: avatarColor.bg,
-              color: avatarColor.color
-            }}>
-              {getInitials(student.displayName || student.realName || student.name || '')}
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '0.75rem' }}>
-                  {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
-                </h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  {attendanceStatus && (
-                    <>
-                      <span style={{
-                        width: '0.375rem',
-                        height: '0.375rem',
-                        background: attendanceStatus.color,
-                        borderRadius: '9999px'
-                      }} />
-                      {student?.attendance !== 'present' && attendanceStatus && (
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-                          {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-              <div style={{ 
-                fontSize: '0.875rem', 
-                color: 'var(--text-muted, #6b7280)', 
-                marginTop: '0.125rem',
-                fontFamily: 'monospace',
-                background: 'var(--panel-hover, #f3f4f6)',
-                padding: '0.25rem 0.5rem',
-                borderRadius: '0.25rem',
-                display: 'inline-block',
-                fontWeight: 600
-              }}>
-                ID: STU-{student.studentNumber || '0000'}
-              </div>
-            </div>
-          </div>
+          <PanelHeader
+            student={student}
+            attendanceStatus={attendanceStatus}
+            t={t}
+            lang={lang}
+            isRTL={isRTL}
+          />
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0 }}>
+            {/* Notifications toggle hidden
             <PortalTooltip 
             content={sendNotifications ? t('notifications_on') : t('notifications_off')}
             position="top"
@@ -501,6 +473,7 @@ export default function StudentActionZapPanel({
               </span>
             </div>
           </PortalTooltip>
+            */}
             <PortalTooltip content={t('close_panel')} position="top">
             <Button variant="ghost" size="icon" onClick={onClose}>
               {getThemedIcon('ui', 'close', 20, theme)}
@@ -531,83 +504,89 @@ export default function StudentActionZapPanel({
             {activeTab === RECORD_TYPES.ATTENDANCE ? getIconWithColor('ui', 'check_circle', 14, 'white') : getIconWithColor('ui', 'check_circle', 14, 'var(--color-success, #22c55e)')}
             {t(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'standup' : 'attendance')}
           </button>
-          <button
-            onClick={() => setActiveTab(RECORD_TYPES.PARTICIPATION)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
-              borderRadius: '0.375rem',
-              border: '1px solid var(--border, #e2e8f0)',
-              background: activeTab === RECORD_TYPES.PARTICIPATION ? 'var(--color-info, #3b82f6)' : 'var(--panel-hover, #f8fafc)',
-              color: activeTab === RECORD_TYPES.PARTICIPATION ? 'white' : 'var(--color-info, #3b82f6)',
-              cursor: 'pointer',
-              boxShadow: activeTab === RECORD_TYPES.PARTICIPATION ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            {activeTab === RECORD_TYPES.PARTICIPATION ? getIconWithColor('ui', 'users', 14, 'white') : getIconWithColor('ui', 'users', 14, 'var(--color-info, #3b82f6)')}
-            {t('participation')}
-          </button>
-          <button
-            onClick={() => setActiveTab(RECORD_TYPES.BEHAVIOR)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
-              borderRadius: '0.375rem',
-              border: '1px solid var(--border, #e2e8f0)',
-              background: activeTab === RECORD_TYPES.BEHAVIOR ? 'var(--color-warning, #f97316)' : 'var(--panel-hover, #f8fafc)',
-              color: activeTab === RECORD_TYPES.BEHAVIOR ? 'white' : 'var(--color-warning, #f97316)',
-              cursor: 'pointer',
-              boxShadow: activeTab === RECORD_TYPES.BEHAVIOR ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            {activeTab === RECORD_TYPES.BEHAVIOR ? getIconWithColor('ui', 'zap', 14, 'white') : getIconWithColor('ui', 'zap', 14, 'var(--color-warning, #f97316)')}
-            {t('behavior')}
-          </button>
-          <button
-            onClick={() => setActiveTab(RECORD_TYPES.PENALTY)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
-              borderRadius: '0.375rem',
-              border: '1px solid var(--border, #e2e8f0)',
-              background: activeTab === RECORD_TYPES.PENALTY ? 'var(--color-danger, #dc2626)' : 'var(--panel-hover, #f8fafc)',
-              color: activeTab === RECORD_TYPES.PENALTY ? 'white' : 'var(--color-danger, #dc2626)',
-              cursor: 'pointer',
-              boxShadow: activeTab === RECORD_TYPES.PENALTY ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            {activeTab === RECORD_TYPES.PENALTY ? getIconWithColor('ui', 'alert_circle', 14, 'white') : getIconWithColor('ui', 'alert_circle', 14, 'var(--color-danger, #dc2626)')}
-            {t('penalty')}
-          </button>
-          <PortalTooltip content={viewMode === 'grid' ? t('switch_to_list_view') : t('switch_to_grid_view')} position="top">
-            <button
-              onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.375rem',
-                padding: '0.5rem 0.75rem',
-                fontSize: '0.8125rem',
-                borderRadius: '0.375rem',
-                border: '1px solid var(--border, #e2e8f0)',
-                background: 'var(--panel-hover, #f8fafc)',
-                color: 'var(--text-muted, #64748b)',
-                cursor: 'pointer',
-                boxShadow: 'none'
-              }}
-            >
-              {viewMode === 'grid' ? getThemedIcon('ui', 'list', 14, theme) : getThemedIcon('ui', 'layout_grid', 14, theme)}
-            </button>
-          </PortalTooltip>
+          {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+            <>
+              <button
+                onClick={() => setActiveTab(RECORD_TYPES.PARTICIPATION)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid var(--border, #e2e8f0)',
+                  background: activeTab === RECORD_TYPES.PARTICIPATION ? 'var(--color-info, #3b82f6)' : 'var(--panel-hover, #f8fafc)',
+                  color: activeTab === RECORD_TYPES.PARTICIPATION ? 'white' : 'var(--color-info, #3b82f6)',
+                  cursor: 'pointer',
+                  boxShadow: activeTab === RECORD_TYPES.PARTICIPATION ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                }}
+              >
+                {activeTab === RECORD_TYPES.PARTICIPATION ? getIconWithColor('ui', 'users', 14, 'white') : getIconWithColor('ui', 'users', 14, 'var(--color-info, #3b82f6)')}
+                {t('participation')}
+              </button>
+              <button
+                onClick={() => setActiveTab(RECORD_TYPES.BEHAVIOR)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid var(--border, #e2e8f0)',
+                  background: activeTab === RECORD_TYPES.BEHAVIOR ? 'var(--color-warning, #f97316)' : 'var(--panel-hover, #f8fafc)',
+                  color: activeTab === RECORD_TYPES.BEHAVIOR ? 'white' : 'var(--color-warning, #f97316)',
+                  cursor: 'pointer',
+                  boxShadow: activeTab === RECORD_TYPES.BEHAVIOR ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                }}
+              >
+                {activeTab === RECORD_TYPES.BEHAVIOR ? getIconWithColor('ui', 'zap', 14, 'white') : getIconWithColor('ui', 'zap', 14, 'var(--color-warning, #f97316)')}
+                {t('behavior')}
+              </button>
+              <button
+                onClick={() => setActiveTab(RECORD_TYPES.PENALTY)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid var(--border, #e2e8f0)',
+                  background: activeTab === RECORD_TYPES.PENALTY ? 'var(--color-danger, #dc2626)' : 'var(--panel-hover, #f8fafc)',
+                  color: activeTab === RECORD_TYPES.PENALTY ? 'white' : 'var(--color-danger, #dc2626)',
+                  cursor: 'pointer',
+                  boxShadow: activeTab === RECORD_TYPES.PENALTY ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                }}
+              >
+                {activeTab === RECORD_TYPES.PENALTY ? getIconWithColor('ui', 'alert_circle', 14, 'white') : getIconWithColor('ui', 'alert_circle', 14, 'var(--color-danger, #dc2626)')}
+                {t('penalty')}
+              </button>
+            </>
+          )}
+          {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+            <PortalTooltip content={viewMode === 'grid' ? t('switch_to_list_view') : t('switch_to_grid_view')} position="top">
+              <button
+                onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid var(--border, #e2e8f0)',
+                  background: 'var(--panel-hover, #f8fafc)',
+                  color: 'var(--text-muted, #64748b)',
+                  cursor: 'pointer',
+                  boxShadow: 'none'
+                }}
+              >
+                {viewMode === 'grid' ? getThemedIcon('ui', 'list', 14, theme) : getThemedIcon('ui', 'layout_grid', 14, theme)}
+              </button>
+            </PortalTooltip>
+          )}
         </div>
 
         <div style={{ marginBottom: '0.5rem', marginTop: '1rem' }}>
@@ -622,17 +601,30 @@ export default function StudentActionZapPanel({
               // Attendance Cards - Show standup or regular based on mode
               (() => {
                 const attendanceTypes = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? STANDUP_ATTENDANCE_TYPES : ATTENDANCE_TYPES;
-                logger.log('🔍 [DEBUG] Attendance tab rendering:', {
+                const attendanceTypesArray = Object.entries(attendanceTypes).map(([key, value]) => {
+                  const status = value || key;
+                  return {
+                    id: key,
+                    label: key,
+                    status: status, // Add the actual status value
+                    icon: getAttendanceIcon(status) || 'HelpCircle',
+                    color: getAttendanceColor(status) || '#6b7280',
+                    label_en: getAttendanceLabel(status) || key,
+                    label_ar: getLocalizedAttendanceLabel(status, 'ar') || key
+                  };
+                });
+                info('🔍 [DEBUG] Attendance tab rendering:', {
                   attendanceMode,
                   isStandupMode: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP,
-                  attendanceTypes: attendanceTypes.map(t => ({ id: t.id, label: t.label_en }))
+                  attendanceTypes: attendanceTypesArray
                 });
-                return attendanceTypes;
+                return attendanceTypesArray;
               })().map((attendanceType) => (
                 <button
                   key={attendanceType.id}
                   onClick={() => {
                     if (onMarkAttendance && student && !isSubmitting) {
+                      info('🔧 [DEBUG] Opening confirmation dialog for attendance:', attendanceType.status);
                       setConfirmModal({
                         isOpen: true,
                         attendanceType: attendanceType,
@@ -693,8 +685,8 @@ export default function StudentActionZapPanel({
                 </button>
               ))
             ) : (
-              // Behavior/Participation/Penalty Cards
-              (Array.isArray(options) ? options.filter(option => {
+              // Behavior/Participation/Penalty Cards - Hidden in standup mode
+              attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (Array.isArray(options) ? options.filter(option => {
                 if (activeTab === RECORD_TYPES.BEHAVIOR) return option.category === RECORD_TYPES.BEHAVIOR;
                 if (activeTab === RECORD_TYPES.PARTICIPATION) return option.category === RECORD_TYPES.PARTICIPATION;
                 if (activeTab === RECORD_TYPES.PENALTY) return option.category === RECORD_TYPES.PENALTY;
@@ -951,31 +943,31 @@ export default function StudentActionZapPanel({
           </div>
         </div>
 
-        {activeTab !== RECORD_TYPES.ATTENDANCE && (
+        {activeTab !== RECORD_TYPES.ATTENDANCE && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
           <div style={{ marginBottom: '1rem' }}>
             <Input
               type="text"
               placeholder={t('add_details')}
             value={internalNote}
             onChange={(e) => setInternalNote(e.target.value)}
-            style={{ 
+            style={{
               fontSize: '0.875rem',
               width: '100%'
             }}
-          />
+            />
         </div>
         )}
 
       </div>
 
-      {activeTab !== RECORD_TYPES.ATTENDANCE && (
+      {activeTab !== RECORD_TYPES.ATTENDANCE && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
       <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border, #e5e7eb)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <Button
             onClick={handleSaveActions}
             disabled={selectedActions.length === 0 || isSubmitting}
             fullWidth={true}
-            style={{ 
+            style={{
               fontSize: '0.875rem',
               display: 'flex',
               alignItems: 'center',
@@ -1053,18 +1045,46 @@ export default function StudentActionZapPanel({
           </Button>
           <Button
             onClick={async () => {
-              if (confirmModal.attendanceType && onMarkAttendance && student && !isSubmitting) {
+              info('🔧 [DEBUG] Confirm button onClick handler called');
+              if (confirmModal.attendanceType && student && !isSubmitting) {
+                info('🔧 [DEBUG] Confirm button clicked, marking attendance for:', confirmModal.attendanceType.status);
                 setIsSubmitting(true);
                 setConfirmModal({ isOpen: false, attendanceType: null, studentName: '' });
                 try {
-                  await onMarkAttendance(student.id, confirmModal.attendanceType.id);
-                  // Show reload indicator before closing
-                  setIsReloading(true);
-                  setTimeout(() => {
-                    onClose();
-                  }, 800); // Brief delay to show reload state
+                  // Prepare attendance data
+                  const attendanceData = {
+                    userId: student.id,
+                    classId: classId || student.classId || selectedDate?.classId,
+                    programId: programId || student.programId,
+                    subjectId: subjectId || student.subjectId,
+                    status: confirmModal.attendanceType.status,
+                    date: selectedDate || new Date().toISOString().split('T')[0],
+                    notes: internalNote || getNoteTypeFromStatus(confirmModal.attendanceType.status, 'manual')
+                  };
+
+                  info('🔧 [DEBUG] Marking attendance with data:', attendanceData);
+
+                  // Use the dual attendance service
+                  const result = await markAttendance(attendanceData, user, attendanceMode);
+                  
+                  if (result.success) {
+                    showSuccess(t('attendance_marked_successfully'));
+                    // Call onUpdate to refresh student data
+                    if (onUpdate) {
+                      onUpdate();
+                    }
+                    // Show reload indicator before closing
+                    setIsReloading(true);
+                    setTimeout(() => {
+                      onClose();
+                    }, 800); // Brief delay to show reload state
+                  } else {
+                    showError(result.error || t('failed_to_mark_attendance'));
+                    setIsSubmitting(false);
+                  }
                 } catch (error) {
                   console.error('Error marking attendance:', error);
+                  showError(t('failed_to_mark_attendance'));
                   setIsSubmitting(false);
                 }
               }

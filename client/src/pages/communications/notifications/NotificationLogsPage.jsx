@@ -8,7 +8,8 @@ import { SimpleLoading, Modal, Select, Button, Card, CardBody, Badge, AdvancedDa
 import { getNotificationTriggerOptions, getNotificationChannelOptions, NOTIFICATION_TRIGGERS, NOTIFICATION_CHANNELS } from '@constants/notificationTypes';
 import { getThemedIcon } from '@constants/iconTypes';
 import { InfoTooltip } from '@ui';
-import './NotificationLogsPage.css';
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import './NotificationLogsPage.css';
 
 const NotificationLogsPage = () => {
   const { t, lang } = useLang();

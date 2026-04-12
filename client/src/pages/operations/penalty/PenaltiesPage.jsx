@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import { debug } from "@services/utils/logger";
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -8,11 +8,13 @@ import { Button, Select, useToast, AdvancedDataGrid, ProgramsSelect } from '@ui'
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { createPenalty, updatePenalty, deletePenalty, getPenalties } from '@services/business/penaltyService';
-import { PENALTY_TYPES, PENALTY_TYPE_ICONS } from '@constants/penaltyTypes';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
+// OLD: import { PENALTY_TYPES, PENALTY_TYPE_ICONS } from '@constants/penaltyTypes';
+// NOW: Using useLookupTypes hook for all lookup data
 import { getPrograms, getSubjects, getSubject, fetchProgram } from '@services/business/programService';
 import { getClasses, getClassById } from '@services/business/classService';
 import { getEnrollments, getStudentsByClass } from '@services/business/enrollmentService';
-import { getAllUsers, getUserById, getUsersByIds } from '@services/business/userService';
+import { getAllUsers, getUserById, getUsersByIds, getUserByEmail } from '@services/business/userService';
 import { ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import { formatQatarDate } from '@utils/timezone';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
@@ -28,6 +30,16 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
+  const { data: lookupData } = useLookupTypes({
+    types: ['penalty-types']
+  });
+
+  // Create penalty type icons from lookup data
+  const PENALTY_TYPE_ICONS = (lookupData['penalty-types'] || []).reduce((acc, type) => {
+    acc[type.id] = type.icon || 'AlertTriangle';
+    return acc;
+  }, {});
+
   const [pageState, setPageState] = useState(PAGE_STATES.LOADING);
   const [formState, setFormState] = useState(FORM_STATES.IDLE);
   const [loading, setLoading] = useState(false);
@@ -46,11 +58,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     studentId: '',
     classId: '',
     subjectId: '',
-    type: '',
-    description: '',
-    reason: '',
-    note: '',
-    feedback: '',
+    typeId: '',
     points: -1,
     comment: ''
   });
@@ -70,34 +78,46 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   }, []);
 
   // Refs for text inputs to prevent re-renders
-  const descriptionRef = useRef(null);
-  const reasonRef = useRef(null);
-  const noteRef = useRef(null);
-  const feedbackRef = useRef(null);
   const commentRef = useRef(null);
   const pointsRef = useRef(null);
 
+  // Map frontend type IDs to database codes
+  const mapTypeToDatabaseCode = useCallback((frontendType) => {
+    const typeMapping = {
+      'cheating': 'CHEATING',
+      'impersonation': 'PLAGIARISM', // Database has PLAGIARISM not IMPERSONATION
+      'exam_disruption': 'DISRUPTION', // Database has DISRUPTION not EXAM_DISRUPTION
+      'forgery': 'FORGERY', // This might need adjustment based on actual DB
+      'other': 'MISCONDUCT', // Use MISCONDUCT as the "other" option
+      'dress_code': 'DRESS_CODE' // Add missing type
+    };
+    
+    const dbCode = typeMapping[frontendType];
+    console.log('🔍 [DEBUG] Mapping type:', frontendType, '→', dbCode);
+    return dbCode || frontendType.toUpperCase();
+  }, []);
+
   // Sync refs when editing
   useEffect(() => {
-    if (descriptionRef.current) descriptionRef.current.value = formData.description || '';
-    if (reasonRef.current) reasonRef.current.value = formData.reason || '';
-    if (noteRef.current) noteRef.current.value = formData.note || '';
-    if (feedbackRef.current) feedbackRef.current.value = formData.feedback || '';
-    if (commentRef.current) commentRef.current.value = formData.comment || '';
+    console.log('🔍 [DEBUG] useEffect for syncing refs triggered');
+    console.log('🔍 [DEBUG] editingPenalty:', !!editingPenalty);
+    console.log('🔍 [DEBUG] formData.comment:', formData.comment);
+    console.log('🔍 [DEBUG] commentRef.current:', commentRef.current);
+    
+    if (commentRef.current) {
+      console.log('🔍 [DEBUG] Setting commentRef.current.value to:', formData.comment || '');
+      commentRef.current.value = formData.comment || '';
+    }
     if (pointsRef.current) pointsRef.current.value = formData.points || -1;
-  }, [editingPenalty, formData.description, formData.reason, formData.note, formData.feedback, formData.comment, formData.points]);
+  }, [editingPenalty, formData.comment, formData.points]);
 
   // Read text values from refs into form state before submit
   const syncRefsToState = useCallback(() => {
     return {
-      description: descriptionRef.current?.value ?? formData.description,
-      reason: reasonRef.current?.value ?? formData.reason,
-      note: noteRef.current?.value ?? formData.note,
-      feedback: feedbackRef.current?.value ?? formData.feedback,
       comment: commentRef.current?.value ?? formData.comment,
       points: parseInt(pointsRef.current?.value) || formData.points || -1
     };
-  }, [formData.description, formData.reason, formData.note, formData.feedback, formData.comment, formData.points]);
+  }, [formData.comment, formData.points]);
 
   // Function to fetch user data on demand and cache it
   const fetchUser = useCallback(async (userId) => {
@@ -113,7 +133,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         return userData;
       }
     } catch (err) {
-      logger.error('Failed to fetch user:', userId, err);
+      debug('Failed to fetch user:', userId, err);
     }
     return null;
   }, [userCache]);
@@ -128,7 +148,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         return result.data;
       }
     } catch (err) {
-      logger.error('Failed to fetch class:', classId, err);
+      debug('Failed to fetch class:', classId, err);
     }
     return null;
   }, []);
@@ -143,7 +163,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         return result.data;
       }
     } catch (err) {
-      logger.error('Failed to fetch subject:', subjectId, err);
+      debug('Failed to fetch subject:', subjectId, err);
     }
     return null;
   }, []);
@@ -167,25 +187,44 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     return []; // Other roles see no students
   }, [enrollments, classes, user?.uid, user?.email, isHR, isAdmin, isSuperAdmin, isInstructor]);
 
+  // Load users - merge both selectStudents and all users logic to prevent infinite loop
   useEffect(() => {
-    const loadSelectStudents = async () => {
+    const loadUsers = async () => {
       if (isSuperAdmin || isAdmin || isHR) {
-        const result = await getAllUsers({ studentsOnly: true });
-        setSelectStudents(result.success ? result.data : []);
+        // Load all users for display resolution
+        const allUsersResult = await getAllUsers(); 
+        setStudents(allUsersResult.success ? allUsersResult.data : []);
+        
+        // Load students only for dropdown
+        const studentsResult = await getAllUsers({ studentsOnly: true });
+        setSelectStudents(studentsResult.success ? studentsResult.data : []);
         return;
       }
       if (isInstructor) {
+        // For instructors, load students from their enrollments
         const enrollmentUserIds = enrollments
           .map(e => e.userId || e.userDocId)
           .filter(Boolean);
-        const result = await getUsersByIds(enrollmentUserIds);
-        const usersMap = result.success ? result.data : {};
-        setSelectStudents(Object.values(usersMap).filter(Boolean));
+        
+        if (enrollmentUserIds.length > 0) {
+          const result = await getUsersByIds(enrollmentUserIds);
+          const usersMap = result.success ? result.data : {};
+          const usersList = Object.values(usersMap).filter(Boolean);
+          
+          // Use same list for both purposes
+          setStudents(usersList);
+          setSelectStudents(usersList);
+        } else {
+          setStudents([]);
+          setSelectStudents([]);
+        }
         return;
       }
+      // Other roles get no users
+      setStudents([]);
       setSelectStudents([]);
     };
-    loadSelectStudents();
+    loadUsers();
   }, [enrollments, isSuperAdmin, isAdmin, isHR, isInstructor]);
 
   // Filters
@@ -210,7 +249,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
       if (enrollmentsRes.success) setEnrollments(enrollmentsRes.data || []);
     } catch (error) {
-      logger.error(t('penalty_failed_to_load_data'), error);
+      debug(t('penalty_failed_to_load_data'), error);
     }
   }, []);
 
@@ -218,7 +257,25 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     if (!isInitial) setLoading(true);
     try {
       const result = await getPenalties();
-      if (!result.success) {
+      
+      if (result.success) {
+        // DEBUG: Log existing penalty types and their codes
+        const existingTypes = result.data?.map(p => ({
+          id: p.typeId,
+          code: p.penaltyType?.code,
+          nameEn: p.penaltyType?.nameEn,
+          nameAr: p.penaltyType?.nameAr
+        })).filter(Boolean);
+        
+        console.log('🔍 [DEBUG] Existing penalty types in database:');
+        existingTypes.forEach(type => {
+          console.log(`  - ID: ${type.id}, Code: ${type.code}, Name: ${type.nameEn}`);
+        });
+        
+        console.log('🔍 [DEBUG] Sample penalty:', result.data?.[0]);
+        
+        setPenalties(result.data || []);
+      } else {
         toast.error(result.error || 'Failed to load penalties');
         return;
       }
@@ -239,14 +296,24 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           enrichedPenalty.className = 'N/A';
           enrichedPenalty.subjectName = 'N/A';
           
-          if (enrichedPenalty.studentId) {
+          // Fix 1: Use userId instead of studentId, and use pre-populated user object
+          if (enrichedPenalty.userId && enrichedPenalty.user) {
+            // Use the pre-populated user object from API
+            const user = enrichedPenalty.user;
+            enrichedPenalty.studentName = user.displayName || user.realName || user.email || 'N/A';
+            enrichedPenalty.studentEmail = user.email;
+            enrichedPenalty.studentId = enrichedPenalty.userId; // Set studentId for grid
+          } else if (enrichedPenalty.userId) {
+            // Fallback: fetch user data if user object is missing
             try {
-              const studentData = await fetchUser(enrichedPenalty.studentId);
+              const studentData = await fetchUser(enrichedPenalty.userId);
               if (studentData) {
                 enrichedPenalty.studentName = studentData.displayName || studentData.email || 'N/A';
                 enrichedPenalty.studentEmail = studentData.email;
+                enrichedPenalty.studentId = enrichedPenalty.userId;
               }
             } catch (err) {
+              debug('Failed to fetch student:', err);
             }
           }
           
@@ -280,21 +347,68 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                   try {
                     const programData = await fetchProgram(subjectData.programId);
                     if (programData) {
+                      // Fix 2: Handle both response formats
+                      const program = programData.data || programData;
                       enrichedPenalty.programName = lang === 'ar'
-                        ? (programData.nameAr || programData.nameEn || programData.code || 'N/A')
-                        : (programData.nameEn || programData.nameAr || programData.code || 'N/A');
+                        ? (program.nameAr || program.nameEn || program.code || 'N/A')
+                        : (program.nameEn || program.nameAr || program.code || 'N/A');
+                    } else {
+                      enrichedPenalty.programName = 'N/A';
                     }
                   } catch (err) {
                     enrichedPenalty.programName = 'N/A';
                   }
+                } else {
+                  enrichedPenalty.programName = 'N/A';
                 }
               }
             } catch (err) {
             }
           }
           
+          // Add created by and updated by display fields
+          enrichedPenalty.createdByDisplay = (() => {
+            if (enrichedPenalty.creator?.displayName) {
+              return enrichedPenalty.creator.displayName;
+            }
+            if (enrichedPenalty.createdBy) {
+              // Search in all users (students array contains all users)
+              const creatorUser = students.find(u => (u.docId || u.id) === enrichedPenalty.createdBy || (u.docId || u.id) === parseInt(enrichedPenalty.createdBy));
+              if (creatorUser) {
+                return creatorUser.displayName || creatorUser.realName || creatorUser.email;
+              }
+              // Search in userCache as fallback
+              const cachedUser = userCache[enrichedPenalty.createdBy];
+              if (cachedUser) {
+                return cachedUser.displayName || cachedUser.realName || cachedUser.email;
+              }
+              return `ID: ${enrichedPenalty.createdBy}`;
+            }
+            return '—';
+          })();
+          
+          enrichedPenalty.updatedByDisplay = (() => {
+            if (enrichedPenalty.updater?.displayName) {
+              return enrichedPenalty.updater.displayName;
+            }
+            if (enrichedPenalty.updatedBy) {
+              // Search in all users (students array contains all users)
+              const updaterUser = students.find(u => (u.docId || u.id) === enrichedPenalty.updatedBy || (u.docId || u.id) === parseInt(enrichedPenalty.updatedBy));
+              if (updaterUser) {
+                return updaterUser.displayName || updaterUser.realName || updaterUser.email;
+              }
+              // Search in userCache as fallback
+              const cachedUser = userCache[enrichedPenalty.updatedBy];
+              if (cachedUser) {
+                return cachedUser.displayName || cachedUser.realName || cachedUser.email;
+              }
+              return `ID: ${enrichedPenalty.updatedBy}`;
+            }
+            return '—';
+          })();
+          
           } catch (err) {
-          logger.error('Failed to enrich penalty:', enrichedPenalty.id || enrichedPenalty.docId, err);
+          debug('Failed to enrich penalty:', enrichedPenalty.id || enrichedPenalty.docId, err);
         }
         return enrichedPenalty;
       }));
@@ -303,7 +417,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       // Create a new array to ensure React detects the change
       setPenalties([...enriched]);
     } catch (error) {
-      logger.error(t('penalty_failed_to_load_penalties'), error);
+      debug(t('penalty_failed_to_load_penalties'), error);
       toast.error(t('failed_to_save_penalty') + ': ' + error.message);
     } finally {
       if (!isInitial) setLoading(false);
@@ -324,7 +438,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       
       // Log page view after load
       try {
-        logger.debug('🔍 PENALTY VIEWING LOG - About to log activity:', {
+        debug('🔍 PENALTY VIEWING LOG - About to log activity:', {
           timestamp: new Date(),
           timestampUTC: new Date().toISOString(),
           userTime: new Date().toLocaleString(),
@@ -333,9 +447,9 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           userEmail: user?.email,
           activityType: ACTIVITY_LOG_TYPES.PENALTY_VIEWED
         });
-        logger.debug('✅ PENALTY VIEWING LOG - Activity logged successfully');
+        debug('✅ PENALTY VIEWING LOG - Activity logged successfully');
       } catch (e) {
-        logger.error('❌ PENALTY VIEWING LOG - Error logging activity:', e);
+        debug('❌ PENALTY VIEWING LOG - Error logging activity:', e);
       }
     };
 
@@ -344,67 +458,145 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     return () => {
       if (stopLoading) stopLoading();
     };
-  }, [isHR, isAdmin, isSuperAdmin, isInstructor, startLoading, loadData, loadPenalties, t, user]);
+  }, [isHR, isAdmin, isSuperAdmin, isInstructor]); // Remove loadData and loadPenalties to prevent infinite loop
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling
+    
+    // Early validation - check if form is properly filled
+    if (!formData.studentId || !formData.type) {
+      setTimeout(() => {
+        toast.error('Please select a student and penalty type');
+      }, 0);
+      return false;
+    }
     
     // Read text fields from refs (uncontrolled inputs)
     const textValues = syncRefsToState();
-    
-    // Validation
-    if (!formData.studentId || !formData.classId || !formData.type || !textValues.description?.trim()) {
-      toast.error(t('fill_required_fields_penalty') || 'Please fill in all required fields (Student, Class, Type, Description)');
-      return;
-    }
 
     setSaving(true);
     try {
-      // Debug: Log formData to see what's being sent
-      logger.info('🔍 PENALTY SUBMISSION DEBUG - FormData:', formData);
+      // Only fetch class data if classId is provided
+      let classData = null;
+      let subjectId = formData.subjectId;
       
-      // Get class to find subjectId
-      const classData = await fetchClass(formData.classId);
-      const subjectId = formData.subjectId || classData?.subjectId;
+      if (formData.classId) {
+        classData = await fetchClass(formData.classId);
+        subjectId = formData.subjectId || classData?.subjectId;
+      }
+      
+      // Get current user's database ID (not Keycloak UUID)
+      const currentUser = await getUserByEmail(user.email);
+      const userId = currentUser?.data?.id || currentUser?.id;
+      
+      if (!userId) {
+        toast.error('Failed to get user information');
+        return;
+      }
       
       const penaltyData = {
-        studentId: formData.studentId,
+        studentId: formData.studentId, // Backend expects studentId, not userId
         classId: formData.classId,
         subjectId: subjectId,
         programId: formData.programId,
         type: formData.type,
-        description: textValues.description?.trim() || '',
-        reason: textValues.reason?.trim() || '',
-        note: textValues.note?.trim() || '',
-        feedback: textValues.feedback?.trim() || '',
+        description: '', // Will be empty since we removed the field
+        reason: '', // Will be empty since we removed the field
+        note: '', // Will be empty since we removed the field
+        feedback: '', // Will be empty since we removed the field
         points: textValues.points || 0,
         comment: textValues.comment?.trim() || '',
-        createdBy: user.uid,
-        performedBy: user.uid,
+        createdBy: userId, // Use database integer ID
+        performedBy: userId, // Use database integer ID
         performedByName: user.displayName || user.email,
         performedByEmail: user.email,
         sendInAppNotification: true,
         sendEmailNotification: false
       };
 
-      // Debug: Log penaltyData to see what's being sent to service
-      logger.info('🔍 PENALTY SUBMISSION DEBUG - PenaltyData:', penaltyData);
+      // DEBUG: Log the data being sent
+      console.log('🔍 [DEBUG] Penalty data being sent:', penaltyData);
+      console.log('🔍 [DEBUG] Available penalty types:', (lookupData['penalty-types'] || []).map(pt => pt.id));
+      console.log('🔍 [DEBUG] userId value:', userId);
+      console.log('🔍 [DEBUG] userId type:', typeof userId);
+      console.log('🔍 [DEBUG] formData.studentId:', formData.studentId);
+      console.log('🔍 [DEBUG] formData.studentId type:', typeof formData.studentId);
 
       let result;
       if (editingPenalty) {
-        result = await updatePenalty(editingPenalty.docId || editingPenalty.id, {
+        // Map frontend type to database code for update
+        const dbTypeCode = mapTypeToDatabaseCode(penaltyData.type);
+        
+        // For updates, use the original penalty type code if the type hasn't changed
+        let typeToSend = dbTypeCode;
+        
+        console.log('🔍 [DEBUG] Original penalty penaltyType:', editingPenalty.penaltyType);
+        console.log('🔍 [DEBUG] Original penalty typeId:', editingPenalty.typeId);
+        console.log('🔍 [DEBUG] Form type:', penaltyData.type);
+        console.log('🔍 [DEBUG] Mapped type code:', dbTypeCode);
+        
+        // If the form type is 'other' (meaning unknown type), preserve the original type code
+        if (penaltyData.type === 'other' && editingPenalty.penaltyType?.code) {
+          typeToSend = editingPenalty.penaltyType.code;
+          console.log('🔍 [DEBUG] Form type is "other", using original penalty type code:', typeToSend);
+        } else {
+          console.log('🔍 [DEBUG] Using mapped type code:', typeToSend);
+        }
+        
+        console.log('🔍 [DEBUG] Final type to send:', typeToSend);
+        
+        console.log('🔍 [DEBUG] Updating penalty with data:', {
           studentId: penaltyData.studentId,
           classId: penaltyData.classId,
           subjectId: penaltyData.subjectId,
-          type: penaltyData.type,
-          description: penaltyData.description,
-          feedback: penaltyData.feedback,
+          type: typeToSend, // Use determined type code
+          description: '',
+          feedback: '',
+          points: penaltyData.points,
+          comment: penaltyData.comment,
+          programId: penaltyData.programId
+        });
+        
+        console.log('🔍 [DEBUG] Actual data sent to updatePenalty:', {
+          studentId: penaltyData.studentId,
+          classId: penaltyData.classId,
+          subjectId: penaltyData.subjectId,
+          type: typeToSend,
+          description: '',
+          feedback: '',
+          points: penaltyData.points,
+          comment: penaltyData.comment,
+          programId: penaltyData.programId
+        });
+        
+        result = await updatePenalty(editingPenalty.docId || editingPenalty.id, {
+          studentId: penaltyData.studentId, // Backend expects studentId
+          classId: penaltyData.classId,
+          subjectId: penaltyData.subjectId,
+          type: typeToSend, // Use determined type code
+          description: '', // Empty since removed
+          feedback: '', // Empty since removed
           points: penaltyData.points,
           comment: penaltyData.comment,
           programId: penaltyData.programId
         });
               } else {
-        result = await createPenalty(penaltyData);
+        // For create, map frontend type to database code
+        const dbTypeCode = mapTypeToDatabaseCode(penaltyData.type);
+        
+        console.log('🔍 [DEBUG] Creating penalty with mapped type:', dbTypeCode);
+        console.log('🔍 [DEBUG] Original create data:', penaltyData);
+        
+        // Create a new object with the mapped type
+        const createData = {
+          ...penaltyData,
+          type: dbTypeCode // Use mapped database code
+        };
+        
+        console.log('🔍 [DEBUG] Final create data:', createData);
+        
+        result = await createPenalty(createData);
               }
 
       if (result.success) {
@@ -420,44 +612,58 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     } finally {
       setSaving(false);
     }
-  }, [formData, editingPenalty, t, toast, loadPenalties, setSaving, fetchClass, syncRefsToState, user]);
+  }, [formData, editingPenalty, loadPenalties, setSaving, fetchClass, syncRefsToState, user, mapTypeToDatabaseCode]);
 
   const handleEdit = useCallback((penalty) => {
+    console.log('🔍 [DEBUG] handleEdit called with penalty:', penalty);
+    console.log('🔍 [DEBUG] penalty.type:', penalty.type);
+    console.log('🔍 [DEBUG] penalty.typeId:', penalty.typeId);
+    console.log('🔍 [DEBUG] penalty.penaltyType:', penalty.penaltyType);
+    console.log('🔍 [DEBUG] Available types:', (lookupData['penalty-types'] || []).map(pt => pt.id));
+    
     setEditingPenalty(penalty);
-    setFormData({
+    
+    // Fix: Map penaltyType.code to lowercase type ID, handling unknown types
+    const penaltyTypeCode = penalty.penaltyType?.code?.toLowerCase();
+    
+    // Check if this type exists in our frontend constants
+    const frontendType = (lookupData['penalty-types'] || []).find(pt => pt.id === penaltyTypeCode);
+    const mappedType = frontendType ? penaltyTypeCode : 'other'; // Default to 'other' for unknown types
+    
+    console.log('🔍 [DEBUG] penaltyTypeCode:', penaltyTypeCode);
+    console.log('🔍 [DEBUG] frontendType found:', !!frontendType);
+    console.log('🔍 [DEBUG] Mapped penalty type:', mappedType);
+    
+    const newFormData = {
       programId: penalty.programId || '',
       studentId: penalty.studentId || '',
       classId: penalty.classId || '',
       subjectId: penalty.subjectId || '',
-      type: penalty.type || '',
-      description: penalty.description || '',
-      reason: penalty.reason || '',
-      note: penalty.note || '',
-      feedback: penalty.feedback || '',
+      type: mappedType, // Fix: Use mapped type from penaltyType.code
       points: penalty.points || -1,
       comment: penalty.comment || ''
-    });
+    };
+    
+    console.log('🔍 [DEBUG] Setting formData to:', newFormData);
+    setFormData(newFormData);
   }, []);
 
   const handleDelete = useCallback((penalty) => {
-    deleteEntity(RECORD_TYPES.PENALTY, penalty, async () => {
-      setPenalties(prev => prev.filter(p => p.docId !== penalty.docId));
+    deleteEntity('penalty', penalty, async () => {
+      setPenalties(prev => prev.filter(p => (p.docId || p.id) !== (penalty.docId || penalty.id)));
       try {
-        const result = await deletePenalty(penalty.docId || penalty.id);
-        if (result.success) {
-          toast?.showSuccess(t('penalty_deleted'));
-          await loadPenalties();
-        } else {
-          setPenalties(prev => [...prev, penalty]);
-          toast?.showError(result.error || t('failed_to_delete_penalty'));
+        const result = await deletePenalty(penalty.id || penalty.docId);
+        if (!result.success) {
+          throw new Error(result.error);
         }
+        toast.success(t('penalty_deleted') || 'Penalty deleted successfully');
+        await loadPenalties();
       } catch (error) {
         setPenalties(prev => [...prev, penalty]);
-        logger.error(t('penalty_delete_failed'), error);
-        toast?.showError(error.message);
+        toast.error(error.message);
       }
     });
-  }, [deleteEntity, toast, t, loadPenalties]);
+  }, [deleteEntity, loadPenalties]);
 
   const resetForm = () => {
     setFormData({
@@ -465,32 +671,15 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       studentId: '',
       classId: '',
       subjectId: '',
-      type: '',
-      description: '',
-      reason: '',
-      note: '',
-      feedback: '',
+      typeId: '',
       points: -1,
       comment: ''
     });
     // Clear refs
-    if (descriptionRef.current) descriptionRef.current.value = '';
-    if (reasonRef.current) reasonRef.current.value = '';
-    if (noteRef.current) noteRef.current.value = '';
-    if (feedbackRef.current) feedbackRef.current.value = '';
     if (commentRef.current) commentRef.current.value = '';
     if (pointsRef.current) pointsRef.current.value = '-1';
     setEditingPenalty(null);
   };
-
-  const filteredClasses = classes.filter(c => {
-    if (subjectFilter && c.subjectId !== subjectFilter) return false;
-    if (programFilter) {
-      const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-      if (subject?.programId !== programFilter) return false;
-    }
-    return true;
-  });
 
   // Filter penalties based on selected filters
   const filteredPenalties = penalties.filter(penalty => {
@@ -519,16 +708,25 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         // Get studentName and studentEmail from row first
         let studentName = row.studentName || params?.value;
         let studentEmail = row.studentEmail;
-        let studentId = row.studentId;
+        let studentId = row.studentId || row.userId; // Fix: Use userId as fallback
         
         // If studentName is email or missing, try to get realName from user data
         if (!studentName || studentName === 'N/A' || studentName.includes('@')) {
           // Try to find user data to get realName/displayName
-          const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
+          // Handle both string and integer IDs
+          const user = students.find(u => 
+            u.email === studentEmail || 
+            (u.docId || u.id) === studentId || 
+            (u.docId || u.id) === parseInt(studentId) ||
+            String(u.docId || u.id) === String(studentId)
+          );
+          
           if (user?.realName) {
             studentName = user.realName;
           } else if (user?.displayName) {
             studentName = user.displayName;
+          } else if (user?.email) {
+            studentName = user.email;
           } else if (studentId && userCache[studentId]) {
             // Try cached user data
             const cachedUser = userCache[studentId];
@@ -536,7 +734,24 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
               studentName = cachedUser.realName;
             } else if (cachedUser?.displayName) {
               studentName = cachedUser.displayName;
+            } else if (cachedUser?.email) {
+              studentName = cachedUser.email;
             }
+          } else if (studentId && userCache[parseInt(studentId)]) {
+            // Try cached user data with integer ID
+            const cachedUser = userCache[parseInt(studentId)];
+            if (cachedUser?.realName) {
+              studentName = cachedUser.realName;
+            } else if (cachedUser?.displayName) {
+              studentName = cachedUser.displayName;
+            } else if (cachedUser?.email) {
+              studentName = cachedUser.email;
+            }
+          }
+          
+          // Final fallback: show ID
+          if (!studentName || studentName === 'N/A') {
+            studentName = `Student ID: ${studentId}`;
           }
         }
         
@@ -549,11 +764,18 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           
           // Try to get realName from user data
           if (!studentName || studentName === 'N/A' || studentName.includes('@')) {
-            const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
+            const user = students.find(u => 
+              u.email === studentEmail || 
+              (u.docId || u.id) === studentId || 
+              (u.docId || u.id) === parseInt(studentId) ||
+              String(u.docId || u.id) === String(studentId)
+            );
             if (user?.realName) {
               studentName = user.realName;
             } else if (user?.displayName) {
               studentName = user.displayName;
+            } else if (user?.email) {
+              studentName = user.email;
             } else if (studentId && userCache[studentId]) {
               // Try cached user data
               const cachedUser = userCache[studentId];
@@ -561,7 +783,24 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                 studentName = cachedUser.realName;
               } else if (cachedUser?.displayName) {
                 studentName = cachedUser.displayName;
+              } else if (cachedUser?.email) {
+                studentName = cachedUser.email;
               }
+            } else if (studentId && userCache[parseInt(studentId)]) {
+              // Try cached user data with integer ID
+              const cachedUser = userCache[parseInt(studentId)];
+              if (cachedUser?.realName) {
+                studentName = cachedUser.realName;
+              } else if (cachedUser?.displayName) {
+                studentName = cachedUser.displayName;
+              } else if (cachedUser?.email) {
+                studentName = cachedUser.email;
+              }
+            }
+            
+            // Final fallback: show ID
+            if (!studentName || studentName === 'N/A') {
+              studentName = `Student ID: ${studentId}`;
             }
           }
         }
@@ -597,6 +836,57 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           return text;
         }
         return 'N/A';
+      }
+    },
+    {
+      field: 'typeId',
+      headerName: t('penalty_type'),
+      width: 180,
+      renderCell: (params) => {
+        // Try to get the penaltyType object from the row data first
+        const row = params.row;
+        let typeName = params.value; // Default to the numeric value
+        
+        if (row.penaltyType) {
+          // Use the penaltyType object from the enriched data
+          typeName = lang === 'ar' ? row.penaltyType.nameAr : row.penaltyType.nameEn;
+        } else if (row.type) {
+          // Fallback: try to find by frontend type ID
+          const penaltyType = (lookupData['penalty-types'] || []).find(pt => pt.id === row.type);
+          typeName = penaltyType ? (lang === 'ar' ? (penaltyType.nameAr || penaltyType.nameEn) : penaltyType.nameEn) : row.type;
+        } else {
+          // Final fallback: try to match numeric typeId with frontend types (index-based)
+          const typeIndex = parseInt(params.value) - 1; // Assuming IDs start from 1
+          const penaltyTypesArray = lookupData['penalty-types'] || [];
+          const penaltyType = penaltyTypesArray[typeIndex];
+          typeName = penaltyType ? (lang === 'ar' ? (penaltyType.nameAr || penaltyType.nameEn) : penaltyType.nameEn) : params.value;
+        }
+        
+        return typeName || params.value;
+      }
+    },
+    {
+      field: 'points',
+      headerName: t('penalty_points'),
+      width: 100,
+      valueGetter: (params) => {
+        return Number(params.value) || 0;
+      },
+      renderCell: (params) => {
+        const value = params.row.points || params.value || 0;
+        return (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '4px',
+            fontWeight: 'bold',
+            color: value > 0 ? '#22c55e' : value < 0 ? '#ef4444' : '#6b7280'
+          }}>
+            {value > 0 && '+'}{value}
+            {value > 0 && getThemedIcon('ui', 'trending_up', 14, theme)}
+            {value < 0 && getThemedIcon('ui', 'trending_down', 14, theme)}
+          </div>
+        );
       }
     },
     {
@@ -651,56 +941,11 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       }
     },
     {
-      field: 'type',
-      headerName: t('penalty_type'),
-      width: 180,
-      renderCell: (params) => {
-        const penaltyType = PENALTY_TYPES.find(pt => pt.id === params.value);
-        return penaltyType ? (lang === 'ar' ? penaltyType.label_ar : penaltyType.label_en) : params.value;
-      }
-    },
-    {
-      field: 'points',
-      headerName: t('penalty_points'),
-      width: 100,
-      valueGetter: (params) => {
-        return Number(params.value) || 0;
-      },
-      renderCell: (params) => {
-        const value = Number(params.value) || 0;
-        return (
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '4px',
-            fontWeight: 'bold',
-            color: value > 0 ? '#22c55e' : value < 0 ? '#ef4444' : '#6b7280'
-          }}>
-            {value > 0 ? `+${value}` : value}
-            {value > 0 && getThemedIcon('ui', 'trending_up', 14, theme)}
-            {value < 0 && getThemedIcon('ui', 'trending_down', 14, theme)}
-          </div>
-        );
-      }
-    },
-    {
-      field: 'description',
-      headerName: t('penalty_description'),
-      flex: 1.5,
-      minWidth: 200,
-      renderCell: (params) => {
-        const value = params?.value || '';
-        return (
-          <div style={{ 
-            maxWidth: '300px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }} title={value}>
-            {value || '—'}
-          </div>
-        );
-      }
+      field: 'comment',
+      headerName: t('comment') || 'Comment',
+      flex: 1,
+      minWidth: 150,
+      valueGetter: (params) => params.value || '—'
     },
     {
       field: 'createdAt',
@@ -738,6 +983,24 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         }
         const formattedDate = formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
         return formattedDate;
+      }
+    },
+    {
+      field: 'createdByDisplay',
+      headerName: t('created_by') || 'Created By',
+      width: 150,
+      renderCell: (params) => {
+        const value = params.value;
+        return value || '—';
+      }
+    },
+    {
+      field: 'updatedByDisplay', 
+      headerName: t('updated_by') || 'Updated By',
+      width: 150,
+      renderCell: (params) => {
+        const value = params.value;
+        return value || '—';
       }
     },
     ...(hideActions ? [] : [{
@@ -796,7 +1059,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_penalty', { penaltyType: PENALTY_TYPES.find(pt => pt.id === editingPenalty.type)?.label_en || editingPenalty.type }) || `Editing Penalty: ${PENALTY_TYPES.find(pt => pt.id === editingPenalty.type)?.label_en || editingPenalty.type}`}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_penalty', { penaltyType: (lookupData['penalty-types'] || []).find(pt => pt.id === editingPenalty.type)?.nameEn || editingPenalty.type }) || `Editing Penalty: ${(lookupData['penalty-types'] || []).find(pt => pt.id === editingPenalty.type)?.nameEn || editingPenalty.type}`}
         </div>
       )}
 
@@ -840,7 +1103,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             onChange={(e) => setFormData(prev => ({ ...prev, studentId: e.target.value }))}
             options={[
               { value: '', label: t('penalty_select_student') },
-              ...students
+              ...selectStudents
                 .map(u => {
                   // Get user enrollments count
                   const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
@@ -907,36 +1170,14 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
             options={[
               { value: '', label: t('penalty_select_type') },
-              ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: PENALTY_TYPE_ICONS[pt.id] }))
+              ...(lookupData['penalty-types'] || []).map(pt => ({ value: pt.id, label: lang === 'ar' ? (pt.nameAr || pt.nameEn) : pt.nameEn, icon: PENALTY_TYPE_ICONS[pt.id] }))
             ]}
             placeholder={t('select_penalty_type')}
             required
           />
         </div>
-        {/* First Row: Programs, Subjects, Classes */}
+        {/* Comment and Points Row */}
         <div className="form-row">
-          <textarea
-            ref={descriptionRef}
-            defaultValue={formData.description}
-            placeholder={t('description_required_penalty')}
-            className="dashboard-textarea"
-            rows={3}
-            required
-          />
-          <textarea
-            ref={reasonRef}
-            defaultValue={formData.reason}
-            placeholder={t('reason') || 'Reason'}
-            className="dashboard-textarea"
-            rows={3}
-          />
-          <textarea
-            ref={noteRef}
-            defaultValue={formData.note}
-            placeholder={t('note') || 'Note'}
-            className="dashboard-textarea"
-            rows={3}
-          />
           <textarea
             ref={commentRef}
             defaultValue={formData.comment}
@@ -944,21 +1185,11 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             className="dashboard-textarea"
             rows={3}
           />
-        </div>
-        {/* First Row: Programs, Subjects, Classes */}
-        <div className="form-row">
-          <textarea
-            ref={feedbackRef}
-            defaultValue={formData.feedback}
-            placeholder={t('hr_feedback_optional')}
-            className="dashboard-textarea"
-            rows={3}
-          />
           <input
             ref={pointsRef}
             type="number"
             defaultValue={formData.points}
-            placeholder={t('penalty_points')}
+            placeholder={t('penalty_enter_points')}
             min={-10}
             max={10}
             step={1}
@@ -988,7 +1219,8 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
       {/* Filters */}
       <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 16, alignItems: 'end' }}>
+        {/* First Row: Program, Subject, Class */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16, alignItems: 'end', marginBottom: 16 }}>
           <ProgramsSelect
             programs={programs}
             subjects={subjects}
@@ -1002,6 +1234,10 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             showLabels={false}
             className="flex-1"
           />
+        </div>
+        
+        {/* Second Row: Student and Type */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'end' }}>
           <div style={{ minWidth: '200px' }}>
             <Select
               searchable
@@ -1032,8 +1268,8 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                     const isDisabled = isUserDisabled(status);
                     
                     return {
-                      value: u.docId || u.id,
-                      displayLabel: u.displayName || u.realName || u.email || (t('unknown') || 'Unknown'),
+                      value: getUserId(u),
+                      displayLabel: getUserDisplayNameSync(u),
                       label: (
                         <div style={{ 
                           display: 'flex', 
@@ -1064,7 +1300,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
               onChange={(e) => setTypeFilter(e.target.value)}
               options={[
                 { value: 'all', label: t('penalty_all_types') },
-                ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: PENALTY_TYPE_ICONS[pt.id] }))
+                ...(lookupData['penalty-types'] || []).map(pt => ({ value: pt.id, label: lang === 'ar' ? (pt.nameAr || pt.nameEn) : pt.nameEn, icon: PENALTY_TYPE_ICONS[pt.id] }))
               ]}
               placeholder={t('type') || 'Type'}
             />
@@ -1155,7 +1391,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
         
         {/* Type-specific counter chips */}
-        {PENALTY_TYPES.map(pt => {
+        {(lookupData['penalty-types'] || []).map(pt => {
           const count = penalties.filter(p => p.type === pt.id).length;
           if (count === 0) return null;
           return (

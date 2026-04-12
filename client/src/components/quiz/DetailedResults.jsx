@@ -8,7 +8,8 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { Card, CardBody, Badge, Button, Chart } from '@ui';
 import styles from './DetailedResults.module.css';
 
-const DetailedResults = ({ 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const DetailedResults = ({ 
   quiz, 
   submission, 
   classAverage = null, 

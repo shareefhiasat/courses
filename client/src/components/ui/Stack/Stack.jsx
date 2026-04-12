@@ -1,7 +1,8 @@
 import React from 'react';
 import styles from './Stack.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Stack Component
  * 
  * A layout component for vertical or horizontal spacing.

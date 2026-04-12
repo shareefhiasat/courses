@@ -3,7 +3,8 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import PortalTooltip from '@ui/PortalTooltip';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Reusable filter chips component
  * @param {Object} props
  * @param {Array} props.filters - Array of filter configs: { id, label, icon, bg, fg, active, onClick }

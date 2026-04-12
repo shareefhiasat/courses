@@ -6,7 +6,8 @@
 import { FEATURE_FLAGS } from '@constants/featureFlags';
 import { ROLE_STRINGS } from '@utils/userUtils';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Get all feature flags organized by category
  * @returns {Object} Feature flags grouped by category
  */
@@ -119,7 +120,7 @@ export const validateFeatureFlags = () => {
  */
 export const enableFeatureForRoles = (featureId, roles) => {
   if (!FEATURE_FLAGS[featureId]) {
-    console.error(`Feature flag not found: ${featureId}`);
+    error(`Feature flag not found: ${featureId}`);
     return false;
   }
   
@@ -138,7 +139,7 @@ export const enableFeatureForRoles = (featureId, roles) => {
   // Update the feature flag (in a real app, this would persist to backend)
   FEATURE_FLAGS[featureId].enabledForRoles = validRoles;
   
-  console.log(`Feature ${featureId} enabled for roles:`, validRoles);
+  info(`Feature ${featureId} enabled for roles:`, validRoles);
   return true;
 };
 
@@ -149,12 +150,12 @@ export const enableFeatureForRoles = (featureId, roles) => {
  */
 export const disableFeatureForAllRoles = (featureId) => {
   if (!FEATURE_FLAGS[featureId]) {
-    console.error(`Feature flag not found: ${featureId}`);
+    error(`Feature flag not found: ${featureId}`);
     return false;
   }
   
   FEATURE_FLAGS[featureId].enabledForRoles = [];
-  console.log(`Feature ${featureId} disabled for all roles`);
+  info(`Feature ${featureId} disabled for all roles`);
   return true;
 };
 
@@ -169,8 +170,7 @@ export const getFeatureFlagStatistics = () => {
   const roleStats = {};
   Object.values(ROLE_STRINGS).forEach(role => {
     roleStats[role] = {
-      enabled: getEnabledFeaturesForRole(role).length,
-      disabled: getDisabledFeaturesForRole(role).length
+      enabled: getEnabledFeaturesForRole(role).length, disabled: getDisabledFeaturesForRole(role);.length
     };
   });
   
@@ -188,11 +188,11 @@ export const getFeatureFlagStatistics = () => {
 export const debugFeatureFlags = () => {
   console.group('🚩 Feature Flags Debug Information');
   
-  console.log('Total Features:', Object.keys(FEATURE_FLAGS).length);
-  console.log('Categories:', getFeatureFlagsByCategory());
-  console.log('Validation Errors:', validateFeatureFlags());
-  console.log('Statistics:', getFeatureFlagStatistics());
-  console.log('Role Report:', generateFeatureFlagReport());
+  info('Total Features:', Object.keys(FEATURE_FLAGS).length);
+  info('Categories:', getFeatureFlagsByCategory());
+  info('Validation Errors:', validateFeatureFlags());
+  info('Statistics:', getFeatureFlagStatistics());
+  info('Role Report:', generateFeatureFlagReport());
   
   console.groupEnd();
 };

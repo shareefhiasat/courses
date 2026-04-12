@@ -11,7 +11,8 @@ import { ActivityLogger } from '@services/other/activityLogger';
 import styles from './ScratchPad.module.css';
 import PortalTooltip from '@ui/PortalTooltip';
 
-const ScratchPad = ({ onClose, quizId, questionId }) => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const ScratchPad = ({ onClose, quizId, questionId }) => {
   const { theme } = useTheme();
   const { t } = useLang();
   const canvasRef = useRef(null);
@@ -26,7 +27,7 @@ const ScratchPad = ({ onClose, quizId, questionId }) => {
     try {
       ActivityLogger.scratchPadOpened();
     } catch (logError) {
-      console.warn('Failed to log scratch pad opened activity:', logError);
+      warn('Failed to log scratch pad opened activity:', logError);
     }
   }, []);
 

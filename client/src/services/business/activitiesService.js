@@ -1,223 +1,114 @@
-/**
- * Activities Business Service
- * 
- * PURPOSE:
- * Business logic layer for activity operations. This service handles
- * business rules, validation, logging, and orchestrates db operations.
- * 
- * Uses the db service layer for all database operations.
- */
+// Lazy loading of database service
+let dbService = null;
+const getDbService = async () => {
+  if (!dbService) {
+    dbService = await import('../db/activityDbService-postgres.js');
+  }
+  return dbService.default || dbService;
+};
 
-import { 
-  getActivities as getActivitiesFromDb,
-  getActivitiesByClass as getActivitiesByClassFromDb,
-  getActivitiesByClasses as getActivitiesByClassesFromDb,
-  getActivitiesByUser as getActivitiesByUserFromDb,
-  getActivity as getActivityFromDb,
-  createActivity as createActivityInDb,
-  updateActivity as updateActivityInDb,
-  deleteActivity as deleteActivityFromDb
-} from '../db/activitiesDbService';
-import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
-import { notificationGateway } from './notificationGateway';
-import logger from '@utils/logger';
-
-/**
- * Get all activities with filters - with performance monitoring and memoization
- * @param {Object} filters - Query filters
- * @returns {Promise<{success: boolean, data: Array, error?: string}>}
- */
-export const getActivities = async (filters = {}) => {
+export const getActivityById = async (id) => {
   try {
-    const result = await getActivitiesFromDb(filters);
-    if (result.success) {
-      logger.log('[ActivitiesService] Successfully fetched activities', { count: result.data.length });
-    }
-    return result;
+    const service = await getDbService();
+    return await service.getById(id);
   } catch (error) {
-    logger.error('[ActivitiesService] Error getting activities:', error);
-    return { success: false, error: error.message };
+    console.error('activitiesService:getActivityById error:', error);
+    return { success: false, error: error.message, data: null };
   }
 };
 
-/**
- * Get activities by class ID - with performance monitoring and memoization
- * @param {string} classId - Class ID
- * @param {Object} options - Query options
- * @returns {Promise<{success: boolean, data: Array, error?: string}>}
- */
-export const getActivitiesByClass = async (classId, options = {}) => {
+// CRUD operations for activities
+export const getActivities = async (params = {}) => {
   try {
-    const result = await getActivitiesByClassFromDb(classId, options);
-    if (result.success) {
-      logger.log('[ActivitiesService] Successfully fetched activities for class', { classId, count: result.data.length });
-    }
-    return result;
+    const service = await getDbService();
+    return await service.getAll(params);
   } catch (error) {
-    logger.error('[ActivitiesService] Error getting activities by class:', error);
-    return { success: false, error: error.message };
+    console.error('activitiesService:getActivities error:', error);
+    return { success: false, error: error.message, data: [] };
   }
 };
 
-/**
- * Get activities by multiple class IDs - with performance monitoring and memoization
- * @param {Array} classIds - Array of class IDs
- * @param {Object} options - Query options
- * @returns {Promise<{success: boolean, data: Array, error?: string}>}
- */
-export const getActivitiesByClasses = async (classIds, options = {}) => {
+export const addActivity = async (activityData, user = null) => {
   try {
-    const result = await getActivitiesByClassesFromDb(classIds, options);
-    if (result.success) {
-      logger.log('[ActivitiesService] Successfully fetched activities for classes', { classIds: classIds.length, count: result.data.length });
-    }
-    return result;
+    const service = await getDbService();
+    return await service.create(activityData);
   } catch (error) {
-    logger.error('[ActivitiesService] Error getting activities by classes:', error);
-    return { success: false, error: error.message };
+    console.error('activitiesService:addActivity error:', error);
+    return { success: false, error: error.message, data: null };
   }
 };
 
-/**
- * Get activities by user ID - with performance monitoring and memoization
- * @param {string} userId - User ID
- * @param {Object} options - Query options
- * @returns {Promise<{success: boolean, data: Array, error?: string}>}
- */
-export const getActivitiesByUser = async (userId, options = {}) => {
+export const updateActivity = async (id, updateData, user = null) => {
   try {
-    const result = await getActivitiesByUserFromDb(userId, options);
-    if (result.success) {
-      logger.log('[ActivitiesService] Successfully fetched activities for user', { userId, count: result.data.length });
-    }
-    return result;
+    const service = await getDbService();
+    return await service.update(id, updateData);
   } catch (error) {
-    logger.error('[ActivitiesService] Error getting activities by user:', error);
-    return { success: false, error: error.message };
+    console.error('activitiesService:updateActivity error:', error);
+    return { success: false, error: error.message, data: null };
   }
 };
 
-/**
- * Get single activity by ID - with performance monitoring and memoization
- * @param {string} activityId - Activity ID
- * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
- */
-export const getActivity = async (activityId) => {
+export const deleteActivity = async (id, user = null) => {
   try {
-    const result = await getActivityFromDb(activityId);
-    if (result.success) {
-      logger.log('[ActivitiesService] Successfully fetched activity', { activityId });
-    }
-    return result;
+    const service = await getDbService();
+    return await service.delete(id);
   } catch (error) {
-    logger.error('[ActivitiesService] Error getting activity:', error);
-    return { success: false, error: error.message };
+    console.error('activitiesService:deleteActivity error:', error);
+    return { success: false, error: error.message, data: null };
   }
 };
 
-/**
- * Create new activity
- * @param {Object} activityData - Activity data
- * @returns {Promise<{success: boolean, id?: string, error?: string}>}
- */
-export const createActivity = async (activityData) => {
+// Additional activity-related functions
+export const addActivityLog = async (logData, user = null) => {
   try {
-    const result = await createActivityInDb(activityData);
-    
-    if (result.success) {
-      // Log activity
-      try {
-        await logActivity(ACTIVITY_LOG_TYPES.ACTIVITY_CREATED, {
-          activityId: result.id,
-          activityType: activityData.type,
-          classId: activityData.classId,
-          title: activityData.title
-        });
-      } catch (logError) {
-        logger.warn('Failed to log activity creation:', logError);
-      }
-
-      // Send notifications
-      try {
-        await notificationGateway.triggerActivityCreation(activityData);
-      } catch (notificationError) {
-        logger.warn('Failed to send activity creation notifications:', notificationError);
-      }
-
-      logger.log('[ActivitiesService] Successfully created activity', { activityId: result.id });
-    }
-    
-    return result;
+    const service = await getDbService();
+    return await service.create(logData);
   } catch (error) {
-    logger.error('[ActivitiesService] Error creating activity:', error);
-    return { success: false, error: error.message };
+    console.error('activitiesService:addActivityLog error:', error);
+    return { success: false, error: error.message, data: null };
   }
 };
 
-/**
- * Update activity
- * @param {string} activityId - Activity ID
- * @param {Object} activityData - Updated activity data
- * @returns {Promise<{success: boolean, error?: string}>}
- */
-export const updateActivity = async (activityId, activityData) => {
+export const getLoginLogs = async (params = {}) => {
   try {
-    const result = await updateActivityInDb(activityId, activityData);
-    
-    if (result.success) {
-      // Log activity
-      try {
-        await logActivity(ACTIVITY_LOG_TYPES.ACTIVITY_UPDATED, {
-          activityId,
-          activityType: activityData.type,
-          classId: activityData.classId,
-          title: activityData.title
-        });
-      } catch (logError) {
-        logger.warn('Failed to log activity update:', logError);
-      }
-
-      logger.log('[ActivitiesService] Successfully updated activity', { activityId });
-    }
-    
-    return result;
+    const service = await getDbService();
+    return await service.getAll(params);
   } catch (error) {
-    logger.error('[ActivitiesService] Error updating activity:', error);
-    return { success: false, error: error.message };
+    console.error('activitiesService:getLoginLogs error:', error);
+    return { success: false, error: error.message, data: [] };
   }
 };
 
-/**
- * Delete activity
- * @param {string} activityId - Activity ID
- * @param {Object} activityData - Activity data for logging (optional)
- * @returns {Promise<{success: boolean, error?: string}>}
- */
-export const deleteActivity = async (activityId, activityData = null) => {
+export const deleteAllLoginLogs = async (user = null) => {
   try {
-    const result = await deleteActivityFromDb(activityId);
-    
-    if (result.success) {
-      // Log activity
-      if (activityData) {
-        try {
-          await logActivity(ACTIVITY_LOG_TYPES.ACTIVITY_DELETED, {
-            activityId,
-            activityType: activityData.type,
-            classId: activityData.classId,
-            title: activityData.title
-          });
-        } catch (logError) {
-          logger.warn('Failed to log activity deletion:', logError);
-        }
-      }
-
-      logger.log('[ActivitiesService] Successfully deleted activity', { activityId });
-    }
-    
-    return result;
+    // This would need to be implemented in the database service
+    console.warn('activitiesService:deleteAllLoginLogs not implemented yet');
+    return { success: false, error: 'Not implemented', data: null };
   } catch (error) {
-    logger.error('[ActivitiesService] Error deleting activity:', error);
-    return { success: false, error: error.message };
+    console.error('activitiesService:deleteAllLoginLogs error:', error);
+    return { success: false, error: error.message, data: null };
   }
+};
+
+export const deleteLoginLogsByType = async (type, user = null) => {
+  try {
+    // This would need to be implemented in the database service
+    console.warn('activitiesService:deleteLoginLogsByType not implemented yet');
+    return { success: false, error: 'Not implemented', data: null };
+  } catch (error) {
+    console.error('activitiesService:deleteLoginLogsByType error:', error);
+    return { success: false, error: error.message, data: null };
+  }
+};
+
+export default {
+  getActivityById,
+  getActivities,
+  addActivity,
+  updateActivity,
+  deleteActivity,
+  addActivityLog,
+  getLoginLogs,
+  deleteAllLoginLogs,
+  deleteLoginLogsByType,
 };

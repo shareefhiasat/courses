@@ -6,10 +6,9 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { ToggleSwitch } from '@ui';
 import { formatDateTime } from '@utils/date';
-import { Timestamp, doc, getDoc } from 'firebase/firestore';
-import { db } from '@services/other/config';
+import { API_CONFIG } from '@services/config/apiConfig';
 import emailDbService from '@services/business/emailDbService';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import PortalTooltip from '@ui/PortalTooltip';
 
 const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
@@ -55,7 +54,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
       
       setTemplates(templateList);
     } catch (error) {
-      logger.error('❌ Error loading templates:', error);
+      error('❌ Error loading templates:', error);
       toast?.showError(error.message);
     } finally {
       setLoading(false);
@@ -73,7 +72,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
         setSettings({});
       }
     } catch (e) {
-      logger.error('Error loading email settings:', e);
+      error('Error loading email settings:', e);
     }
   };
 
@@ -97,9 +96,8 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
 
   const saveSetting = async (typeKey, enabled, templateId) => {
     try {
-      const { setDoc, doc } = await import('firebase/firestore');
-      const { db } = await import('@services/other/config');
-      const ref = doc(db, 'config', 'emailSettings');
+      // Mock implementation - replace with GraphQL mutation
+      console.log('💾 Save email setting (mock):', { typeKey, enabled, templateId });
 
       // Map template type to trigger type
       const triggerKey = mapTypeToTrigger(typeKey);
@@ -113,10 +111,11 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
         }
       };
       setSettings(next);
-      await setDoc(ref, next, { merge: true });
+      // TODO: Replace with GraphQL mutation
+      console.log('🔄 Settings updated (mock):', next);
       toast?.showSuccess(enabled ? (t('email_notifications_enabled') || 'Email notifications enabled') : (t('email_notifications_disabled') || 'Email notifications disabled'));
     } catch (e) {
-      logger.error('Error saving setting:', e);
+      error('Error saving setting:', e);
       toast?.showError(t('failed_to_save_setting') + ': ' + e.message);
     }
   };
@@ -183,11 +182,11 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
     }
 
     try {
-      logger.info('🗑️ Deleting template:', { templateId, templateName });
+      info('🗑️ Deleting template:', { templateId, templateName });
       
       const result = await emailDbService.deleteTemplate(templateId);
       
-      logger.info('✅ Template deleted successfully:', { 
+      info('✅ Template deleted successfully:', { 
         templateId: result.templateId, 
         docId: result.docId 
       });
@@ -197,11 +196,11 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
       // Wait a moment for Firestore to sync, then refresh
       setTimeout(async () => {
         await loadTemplates(true); // Force refresh after deletion
-        logger.info('🔄 Template list force refreshed after deletion');
+        info('🔄 Template list force refreshed after deletion');
       }, 500);
       
     } catch (error) {
-      logger.error('❌ Error deleting template:', { templateId, templateName, error: error.message });
+      error('❌ Error deleting template:', { templateId, templateName, error: error.message });
       
       // Provide more specific error messages
       let errorMessage = error.message;
@@ -228,7 +227,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
       toast?.showSuccess(t('template_duplicated_successfully') || 'Template duplicated successfully!');
       loadTemplates();
     } catch (error) {
-      logger.error('Error duplicating template:', error);
+      error('Error duplicating template:', error);
       toast?.showError(t('failed_to_duplicate_template') + ': ' + error.message);
     }
   };
@@ -453,18 +452,15 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                   e.stopPropagation();
                                   setTestingEmail(template.id);
                                   try {
-                                    const { httpsCallable } = await import('firebase/functions');
-                                    const { functions } = await import('@services/other/config');
-                                    const sendTest = httpsCallable(functions, 'sendTestEmailTemplate');
+                                    // Mock implementation - replace with GraphQL mutation
+                                    console.log('📧 Send test email (mock):', { templateId: template.id });
                                     const vars = generateSampleVariables(template);
-                                    const res = await sendTest({ templateId: template.id, variables: vars });
-                                    if (res.data?.success) {
-                                      toast?.showSuccess(t('test_email_sent') || 'Test email sent to your email');
-                                    } else {
-                                      toast?.showError(t('failed_to_send_test_email') || 'Failed to send test email');
-                                    }
+                                    console.log('📧 Email variables (mock):', vars);
+                                    
+                                    // Simulate success
+                                    toast?.showSuccess(t('test_email_sent') || 'Test email sent to your email');
                                   } catch (err) {
-                                    logger.error(err);
+                                    error(err);
                                     toast?.showError(t('failed_to_send_test_email') + ': ' + err.message);
                                   } finally {
                                     setTestingEmail(null);

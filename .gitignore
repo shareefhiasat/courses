@@ -92,3 +92,4 @@ tests/e2e/test-results/
 .cursor/
 .kilocode/
 .windsurf/
+.cursorignore

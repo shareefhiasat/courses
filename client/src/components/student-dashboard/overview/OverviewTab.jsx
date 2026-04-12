@@ -3,7 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import AdvancedAnalyticsWithRoleSupport from '@components/AdvancedAnalyticsWithRoleSupport';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import styles from './OverviewTab.module.css';
 
 /**
@@ -48,7 +48,7 @@ const OverviewTab = memo(({
       filters.subjectId = selectedSubjectId;
     }
     
-    logger.log('[OverviewTab] Global filters applied:', filters);
+    info('[OverviewTab] Global filters applied:', filters);
     return filters;
   }, [selectedClassId, selectedStudentId, selectedProgramId, selectedSubjectId]);
 
@@ -73,9 +73,9 @@ const OverviewTab = memo(({
   const handleDataRefresh = useCallback(async (refreshFunction) => {
     try {
       await refreshFunction();
-      logger.log('[OverviewTab] Widgets refreshed successfully');
+      info('[OverviewTab] Widgets refreshed successfully');
     } catch (error) {
-      logger.error('[OverviewTab] Error refreshing widgets:', error);
+      error('[OverviewTab] Error refreshing widgets:', error);
     }
   }, []);
 

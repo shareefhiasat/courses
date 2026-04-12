@@ -1,0 +1,37 @@
+🔍 Testing subjects query with pagination...
+🔍 Subjects query response: {
+  "errors": [
+    {
+      "message": "Cannot query field \"totalCount\" on type \"SubjectConnection\".",
+      "locations": [
+        {
+          "line": 19,
+          "column": 15
+        }
+      ],
+      "extensions": {
+        "code": "GRAPHQL_VALIDATION_FAILED",
+        "stacktrace": [
+          "GraphQLError: Cannot query field \"totalCount\" on type \"SubjectConnection\".",
+          "    at Object.Field (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\validation\\rules\\FieldsOnCorrectTypeRule.js:51:13)",
+          "    at Object.enter (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\language\\visitor.js:298:32)",
+          "    at Object.enter (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\utilities\\TypeInfo.js:391:27)",
+          "    at visit (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\language\\visitor.js:194:21)",
+          "    at validate (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\validation\\validate.js:102:24)",
+          "    at processGraphQLRequest (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\requestPipeline.js:108:59)",
+          "    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+          "    at async internalExecuteOperation (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\ApolloServer.js:678:16)",
+          "    at async runHttpQuery (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\runHttpQuery.js:138:29)",
+          "    at async runPotentiallyBatchedHttpQuery (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\httpBatching.js:37:16)"
+        ]
+      }
+    }
+  ]
+}
+❌ GraphQL errors: [
+  {
+    message: 'Cannot query field "totalCount" on type "SubjectConnection".',
+    locations: [ [Object] ],
+    extensions: { code: 'GRAPHQL_VALIDATION_FAILED', stacktrace: [Array] }
+  }
+]

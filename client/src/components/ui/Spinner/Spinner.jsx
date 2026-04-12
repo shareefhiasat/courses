@@ -2,7 +2,8 @@ import React from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import styles from './Spinner.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Spinner Component
  * 
  * A loading spinner with multiple variants and sizes.

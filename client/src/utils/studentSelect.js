@@ -2,7 +2,8 @@
 import { db } from '@services/other/config';
 import { getUserStatusSummary } from './userStatus';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Load students for a specific class with status + enrollment metadata.
  * Designed for dropdown usage (HR Penalties, Participation, Behavior, etc.).
  */
@@ -51,7 +52,7 @@ export const fetchClassStudentsWithStatus = async (classId) => {
         userData: studentData
       };
     } catch (error) {
-      logger.warn('[studentSelect] Failed to load student metadata', studentId, error);
+      warn('[studentSelect] Failed to load student metadata', studentId, error);
       return null;
     }
   }));

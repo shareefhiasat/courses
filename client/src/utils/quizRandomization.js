@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 /**
  * Quiz Randomization & Adaptive Testing (Phase 3.3)
  */

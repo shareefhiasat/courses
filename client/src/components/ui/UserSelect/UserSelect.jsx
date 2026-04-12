@@ -1,12 +1,13 @@
 import React from 'react';
 import { Select } from '@ui';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, getStatusDescription, USER_STATUS, USER_STATUS_LABELS } from '@utils/userStatus';
-import { getThemedIcon } from '@constants/iconTypes';
-import { getThemeColor } from '@constants/dashboardTypes';
+import { getThemedIcon } from '@constants';
+import { getThemeColor } from '@constants';
 import { ROLE_STRINGS } from '@constants';
 import { isInstructor, isAdmin, isHR, isSuperAdmin, isStudent } from '@services/business/userService';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * UserSelect Component
  * 
  * A reusable user selection dropdown with status icons, enrollment counts,
@@ -178,6 +179,15 @@ const UserSelect = ({
         // For students: use the normal status calculation
         status = getUserStatus(u, enrollments);
         statusSummary = getUserStatusSummary(u, enrollments);
+        
+        // For students with no enrollments, show them as Active with green icon
+        if (status === USER_STATUS.NO_ENROLLMENTS) {
+          status = USER_STATUS.ACTIVE; // Change status to get green icon
+          statusSummary = {
+            ...statusSummary,
+            label: 'Active'
+          };
+        }
       }
       
       iconProps = getStatusIconProps(status);

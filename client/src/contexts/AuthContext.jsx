@@ -1,22 +1,24 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { onAuthChange, signOutUser } from '@services/business/authService';
-import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@services/other/config';
-import { getUserProfile, ROLE_STRINGS } from '@utils/userUtils';
-import { getUserStatus, getUserStatusSummary, canUserLogin, USER_STATUS } from '@utils/userStatus';
-import { getAllowlist } from '@services/business/configService';
-import { ensureUserDoc } from '@services/business/userService';
-import { addLoginLog } from '@services/business/activityService';
-import { ActivityLogger } from '@services/other/activityLogger.jsx';
-import logger from '@utils/logger';
-import { applyAccentColorGlobally } from '@utils/theme';
-import { 
-  isAdmin as isAdminCheck,
-  isSuperAdmin as isSuperAdminCheck,
-  isHR as isHRCheck,
-  isInstructor as isInstructorCheck,
-  isStudent as isStudentCheck
-} from '@services/business/userService';
+/**
+ * AuthContext - Keycloak Integration
+ * 
+ * Replaces Firebase Auth with Keycloak authentication
+ */
+
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+import { useKeycloak } from '@react-keycloak/web';
+import { info, error, warn, debug } from '@logger';
+import { ConfirmModal } from '@ui';
+
+// Session configuration from environment variables
+const SESSION_CONFIG = {
+  WARNING_TIME_MINUTES: parseInt(import.meta.env.VITE_SESSION_WARNING_MINUTES || '5'),
+  AUTO_LOGOUT_MINUTES: parseInt(import.meta.env.VITE_SESSION_AUTO_LOGOUT_MINUTES || '15'),
+  REFRESH_BUFFER_MINUTES: parseInt(import.meta.env.VITE_SESSION_REFRESH_BUFFER_MINUTES || '2'),
+  MINIMUM_BUFFER_SECONDS: parseInt(import.meta.env.VITE_SESSION_MINIMUM_BUFFER_SECONDS || '30'),
+  EXPIRY_BUFFER_SECONDS: parseInt(import.meta.env.VITE_SESSION_EXPIRY_BUFFER_SECONDS || '10')
+};
+
+info('🔧 [SESSION CONFIG] Loaded configuration:', SESSION_CONFIG);
 
 const AuthContext = createContext();
 
@@ -29,611 +31,761 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
+  const { keycloak, initialized } = useKeycloak();
   const [user, setUser] = useState(null);
-  const [userProfile, setUserProfile] = useState(null); // Full user profile from Firestore
+  const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isHR, setIsHR] = useState(false);
   const [isInstructor, setIsInstructor] = useState(false);
+  const [isStudent, setIsStudent] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [roleLoading, setRoleLoading] = useState(true); // Track when role is being resolved
-  const [role, setRole] = useState(ROLE_STRINGS.STUDENT); // 'guest' | 'student' | 'instructor' | 'hr' | 'admin'
-  const [impersonating, setImpersonating] = useState(null); // { originalUser, impersonatedUser }
-  const [realUser, setRealUser] = useState(null); // Store the real admin user
   
-  // Track if we've logged this session - use sessionStorage to persist across refreshes
-  const [hasLoggedInThisSession, setHasLoggedInThisSession] = useState(() => {
-    const sessionStart = sessionStorage.getItem('sessionStart');
-    const hasLoggedIn = sessionStorage.getItem('hasLoggedInThisSession') === 'true';
-    
-    // If session is older than 1 hour, reset it
-    if (sessionStart && hasLoggedIn) {
-      const sessionAge = Date.now() - parseInt(sessionStart);
-      if (sessionAge > 60 * 60 * 1000) { // 1 hour
-        sessionStorage.removeItem('hasLoggedInThisSession');
-        sessionStorage.removeItem('sessionStart');
-        return false;
-      }
-    }
-    
-    return hasLoggedIn;
+  // Session extension modal state
+  const [showSessionModal, setShowSessionModal] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(() => {
+    // Load from localStorage on initial render
+    const saved = localStorage.getItem('lastRefreshTime');
+    return saved ? parseInt(saved) : null;
   });
+  const [countdownTime, setCountdownTime] = useState(null);
 
-  // Session timeout detection - SET TO 30 MINUTES FOR TESTING
-  useEffect(() => {
-    if (!user) return;
-
-    const sessionTimeout = 30 * 60 * 1000; // 30 minutes (for testing)
-    let timeoutId;
-    let lastActivityTime = Date.now();
-    let debounceTimer = null;
-
-    const resetTimeout = () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      lastActivityTime = Date.now();
-      // Removed session timeout logs to reduce console noise
-      // logger.log(`[Auth] Session timeout reset - will logout at ${new Date(Date.now() + sessionTimeout).toLocaleTimeString()}`);
-      // logger.log(`[Auth] User: ${user.email}, UID: ${user.uid}, Last activity: ${new Date(lastActivityTime).toLocaleTimeString()}`);
-      timeoutId = setTimeout(async () => {
-        // logger.log('[Auth] Session timeout reached - logging out user');
-        // logger.log(`[Auth] Session details - User: ${user.email}, Last activity: ${new Date(lastActivityTime).toLocaleTimeString()}, Timeout duration: ${sessionTimeout/1000/60} minutes`);
-        
-        // Store logout reason with last activity info
-        sessionStorage.setItem('logoutReason', 'session_timeout');
-        sessionStorage.setItem('logoutTimestamp', Date.now().toString());
-        sessionStorage.setItem('lastActivityTime', lastActivityTime.toString());
-        sessionStorage.setItem('sessionTimeoutUser', JSON.stringify({ email: user.email, uid: user.uid }));
-        
-        // Log session timeout
-        try {
-          await ActivityLogger.sessionTimeout();
-        } catch (error) {
-          logger.warn('Failed to log session timeout:', error);
-        }
-        // Sign out user
-        await signOutUser(user);
-      }, sessionTimeout);
-    };
-
-    // Set initial timeout
-    resetTimeout();
-
-    // Reset timeout on user activity - WITH DEBOUNCING
-    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    const handleActivity = () => {
-      // Debounce activity events to prevent storm
-      if (debounceTimer) clearTimeout(debounceTimer);
-      
-      debounceTimer = setTimeout(() => {
-        // logger.log('[Auth] User activity detected - resetting session timeout'); // Removed to reduce console noise
-        resetTimeout();
-      }, 1000); // Only process activity once per second
-    };
-
-    activityEvents.forEach(event => {
-      window.addEventListener(event, handleActivity, { passive: true });
+  // Debug wrapper for setLastRefreshTime
+  const debugSetLastRefreshTime = useCallback((value) => {
+    info('🔧 [DIALOG DEBUG] setLastRefreshTime called:', {
+      oldValue: lastRefreshTime ? new Date(lastRefreshTime).toISOString() : null,
+      newValue: value ? new Date(value).toISOString() : null,
+      stackTrace: new Error().stack?.split('\n')[2]?.trim()
     });
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      if (debounceTimer) clearTimeout(debounceTimer);
-      activityEvents.forEach(event => {
-        window.removeEventListener(event, handleActivity);
-      });
-    };
-  }, [user]);
-  
-  // Add loading timeout to prevent infinite loading
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (loading) {
-        const hasUser = !!user;
-        const hasProfile = !!userProfile;
-        const hasSession = sessionStorage.getItem('hasLoggedInThisSession') === 'true';
-        
-        logger.error('[Auth] Loading timeout - forcing loading to false', {
-          hasUser,
-          hasProfile, 
-          hasSession,
-          userEmail: user?.email || 'none'
-        });
-        
-        // Only force loading to false if we have some session data
-        if (hasUser || hasProfile || hasSession) {
-          setLoading(false);
-        } else {
-          logger.warn('[Auth] No session data available, keeping loading state');
-        }
-      }
-    }, 15000); // 15 second timeout
-
-    return () => clearTimeout(timeout);
-  }, [loading, user, userProfile]);
-
-  // Make current user available globally for Activity Logger
-  useEffect(() => {
-    if (user) {
-      window.__AUTH_USER__ = user;
+    
+    // Save to localStorage for persistence across page refreshes
+    if (value) {
+      localStorage.setItem('lastRefreshTime', value.toString());
     } else {
-      delete window.__AUTH_USER__;
+      localStorage.removeItem('lastRefreshTime');
     }
-  }, [user]);
+    
+    setLastRefreshTime(value);
+  }, [lastRefreshTime]);
+  
+  // Refs for timers
+  const warningTimerRef = useRef(null);
+  const autoLogoutTimerRef = useRef(null);
+  const countdownTimerRef = useRef(null);
+  const lastScheduleTimeRef = useRef(0);
+  const lastActivityTimeRef = useRef(Date.now());
+  const idleWarningTimerRef = useRef(null);
+  const lastIdleDebugTimeRef = useRef(0);
+  const lastDialogDebugRef = useRef(0);
+  const lastSessionDebugRef = useRef(0);
 
-  // Load cached profile from sessionStorage on mount
-  useEffect(() => {
-    const cached = sessionStorage.getItem('userProfile');
-    if (cached) {
-      try {
-        setUserProfile(JSON.parse(cached));
-        
-        // Restore session flags if user profile exists but session flags are missing
-        const hasLoggedIn = sessionStorage.getItem('hasLoggedInThisSession');
-        const sessionStart = sessionStorage.getItem('sessionStart');
-        
-        if (!hasLoggedIn || !sessionStart) {
-          sessionStorage.setItem('hasLoggedInThisSession', 'true');
-          sessionStorage.setItem('sessionStart', Date.now().toString());
-          setHasLoggedInThisSession(true);
-        }
-      } catch (e) {
-        logger.warn('Failed to parse cached user profile');
-      }
+  // Debounced dialog debug to prevent spam
+  const debugDialog = useCallback((message, data = {}) => {
+    const now = Date.now();
+    if (now - lastDialogDebugRef.current > 1000) { // Only log once per second
+      // console.log(`⏭️ [DIALOG DEBUG] ${message}`, data);
+      lastDialogDebugRef.current = now;
     }
   }, []);
 
-  useEffect(() => {
-    let userDocUnsub = null;
-    let isSubscribed = true; // Prevent state updates if component unmounted
-    let authRetryCount = 0;
-    const maxRetries = 3;
+  // Debounced session debug to prevent spam
+  const debugSession = useCallback((message, data = {}) => {
+    const now = Date.now();
+    if (now - lastSessionDebugRef.current > 30000) { // Only log every 30 seconds
+      console.log(`🔍 [SESSION DEBUG] ${message}`, data);
+      lastSessionDebugRef.current = now;
+    }
+  }, []);
 
-    const unsubscribe = onAuthChange(async (firebaseUser) => {
-      // Prevent race conditions - if user changed during async operations, skip
-      if (!isSubscribed) return;
+  // Schedule warning 5 minutes before token expiry (with debouncing)
+  const scheduleSessionWarning = useCallback(() => {
+    // Debounce: prevent multiple calls within 500ms
+    const now = Date.now();
+    if (now - lastScheduleTimeRef.current < 500) {
+      debugDialog('Skipping - debounced');
+      return;
+    }
+    lastScheduleTimeRef.current = now;
+
+    debugSession('=== Session Warning Analysis ===');
+    debugSession('Current time:', new Date(now).toISOString());
+    debugSession('Has token:', !!keycloak.token);
+    debugSession('Has tokenParsed:', !!keycloak.tokenParsed);
+    debugSession('Token expired:', keycloak.tokenExpired);
+    debugSession('Config:', SESSION_CONFIG);
+
+    if (!keycloak.tokenParsed?.exp) {
+      debugSession('No token expiry found - cannot schedule warning');
+      warn('⚠️ [DIALOG DEBUG] No token expiry found');
+      return;
+    }
+
+    const nowSec = Math.floor(Date.now() / 1000);
+    const expiresAt = keycloak.tokenParsed.exp;
+    const timeUntilExpiry = (expiresAt - nowSec) * 1000;
+    const warningTime = SESSION_CONFIG.WARNING_TIME_MINUTES * 60 * 1000;
+    const timeUntilWarning = timeUntilExpiry - warningTime;
+
+    debugSession('Token expiry timestamp:', expiresAt);
+    debugSession('Token expiry time:', new Date(expiresAt * 1000).toISOString());
+    debugSession('Time until expiry:', Math.floor(timeUntilExpiry / 1000), 'seconds');
+    debugSession('Warning time:', Math.floor(warningTime / 1000), 'seconds');
+    debugSession('Time until warning:', Math.floor(timeUntilWarning / 1000), 'seconds');
+
+    const bufferTime = lastRefreshTime ? SESSION_CONFIG.REFRESH_BUFFER_MINUTES * 60 * 1000 : 0;
+    const adjustedTimeUntilWarning = timeUntilWarning - bufferTime;
+    const bufferExpired = lastRefreshTime ? (Date.now() - lastRefreshTime) > bufferTime : false;
+
+    debugSession('Buffer time:', Math.floor(bufferTime / 1000), 'seconds');
+    debugSession('Adjusted time until warning:', Math.floor(adjustedTimeUntilWarning / 1000), 'seconds');
+    debugSession('Buffer expired:', bufferExpired);
+    debugSession('Last refresh time:', lastRefreshTime ? new Date(lastRefreshTime).toISOString() : 'none');
+
+    // Clear existing timers
+    if (warningTimerRef.current) {
+      debugDialog('Clearing existing warning timer');
+      clearTimeout(warningTimerRef.current);
+      warningTimerRef.current = null;
+    }
+    if (autoLogoutTimerRef.current) {
+      debugDialog('Clearing existing auto-logout timer');
+      clearTimeout(autoLogoutTimerRef.current);
+      autoLogoutTimerRef.current = null;
+    }
+
+    if (adjustedTimeUntilWarning > 0) {
+      // console.log('⏰ [SESSION DEBUG] Scheduling warning for', Math.floor(adjustedTimeUntilWarning / 1000 / 60), 'minutes');
+      warningTimerRef.current = setTimeout(() => {
+        // console.log('⚠️ [SESSION DEBUG] Timer triggered - Checking if user is idle before showing warning');
+        debugDialog('Timer triggered - Checking if user is idle before showing warning');
+        
+        // Only show modal if user is idle (no activity in last 5 minutes)
+        const idleThreshold = 5 * 60 * 1000; // 5 minutes
+        const timeSinceLastActivity = Date.now() - lastActivityTimeRef.current;
+        
+        if (timeSinceLastActivity > idleThreshold) {
+          debugDialog('User is idle, showing session expiration warning');
+          setShowSessionModal(true);
+        } else {
+          debugDialog('User is active, skipping session warning (will auto-refresh if needed)');
+          // Don't show modal - auto-refresh will handle it if user is active
+        }
+      }, adjustedTimeUntilWarning);
+    } else if (timeUntilExpiry > 0 && (!lastRefreshTime || bufferExpired)) { // Removed 1-minute requirement
+      console.log('⚠️ [SESSION DEBUG] Token expiring soon, checking if user is idle');
       
-      if (!firebaseUser) {
-        // Only logout if this wasn't a temporary auth state change
-        if (authRetryCount < maxRetries) {
-          authRetryCount++;
-          const logoutReason = sessionStorage.getItem('logoutReason');
-          const logoutTimestamp = sessionStorage.getItem('logoutTimestamp');
-          const sessionTimeoutUser = sessionStorage.getItem('sessionTimeoutUser');
-          const hasLoggedInThisSession = sessionStorage.getItem('hasLoggedInThisSession') === 'true';
-          
-          // Check if this is a manual logout or session timeout - if so, don't retry
-          if (logoutReason === 'manual_logout' || logoutReason === 'session_timeout') {
-            logger.warn(`[Auth] Logout detected (${logoutReason}), completing logout without retry`);
-            authRetryCount = maxRetries; // Skip retries for manual logout
-          } else {
-            logger.warn(`[Auth] Temporary auth state change detected, retry ${authRetryCount}/${maxRetries}`);
-            
-            // Check if this is actually a network issue vs real logout
-            const sessionStart = sessionStorage.getItem('sessionStart');
-            const recentSession = sessionStart && (Date.now() - parseInt(sessionStart)) < 5 * 60 * 1000; // 5 minutes
-            const hasUserProfile = !!sessionStorage.getItem('userProfile');
-            
-            // More lenient check: if user profile exists, treat as potential temporary issue
-            if ((hasLoggedInThisSession && recentSession) || hasUserProfile) {
-              // Wait a bit and see if auth state recovers
-              await new Promise(resolve => setTimeout(resolve, 2000)); // Increased wait time
-              return;
-            } else {
-              // If no recent activity and no user profile, this might be a real logout
-            }
-          }
-        }
-
-        logger.warn('[Auth] User signed out - Firebase auth state changed to null');
-        
-        // Store logout reason if not already set (likely Firebase auth error)
-        if (!sessionStorage.getItem('logoutReason')) {
-          sessionStorage.setItem('logoutReason', 'auth_error');
-          sessionStorage.setItem('logoutTimestamp', Date.now().toString());
-        }
-        
-        // Cleanup any existing listeners
-        if (userDocUnsub) {
-          userDocUnsub();
-          userDocUnsub = null;
-        }
-        
-        setUser(null);
-        setIsAdmin(false);
-        setIsHR(false);
-        setIsInstructor(false);
-        setIsSuperAdmin(false);
-        setRole(ROLE_STRINGS.STUDENT);
-        setRoleLoading(false);
-        setLoading(false);
-        setHasLoggedInThisSession(false);
-        sessionStorage.removeItem('hasLoggedInThisSession');
-        sessionStorage.removeItem('sessionStart');
-        sessionStorage.removeItem('userProfile');
-        sessionStorage.removeItem('sessionTimeoutUser'); // Clean up session timeout user data
-        authRetryCount = 0; // Reset retry count
-        return;
+      // Only show modal if user is idle
+      const idleThreshold = 5 * 60 * 1000; // 5 minutes
+      const timeSinceLastActivity = Date.now() - lastActivityTimeRef.current;
+      
+      if (timeSinceLastActivity > idleThreshold) {
+        console.log('⚠️ [SESSION DEBUG] User is idle, showing warning immediately');
+        warn('⚠️ [DIALOG DEBUG] Token expiring soon, showing warning immediately');
+        setShowSessionModal(true);
+      } else {
+        console.log('⚠️ [SESSION DEBUG] User is active, skipping warning (will auto-refresh)');
       }
-
-      // Reset retry count on successful auth
-      authRetryCount = 0;
-
-      // Start role loading process
-      setRoleLoading(true);
-
-      // Check if this is a new login session
-      const currentHasLoggedInThisSession = sessionStorage.getItem('hasLoggedInThisSession') === 'true';
-      const sessionStart = sessionStorage.getItem('sessionStart');
-      const isNewLogin = !currentHasLoggedInThisSession;
       
-      // Only log login if we haven't logged this session yet
+      if (bufferExpired) {
+        debugSetLastRefreshTime(null);
+      }
+    } else if (lastRefreshTime && timeUntilExpiry > 0 && !bufferExpired) { // Removed 1-minute requirement
+      const minBuffer = SESSION_CONFIG.MINIMUM_BUFFER_SECONDS * 1000;
+      const delay = Math.max(minBuffer, timeUntilExpiry - SESSION_CONFIG.EXPIRY_BUFFER_SECONDS * 1000);
       
-      setUser(firebaseUser);
-
-      // Apply cached accent color immediately to prevent flash
-      try {
-        const cachedColor = localStorage.getItem(`accent_color_${firebaseUser.uid}`);
-        if (cachedColor) {
-          applyAccentColorGlobally(cachedColor);
+      // console.log('⏰ [SESSION DEBUG] Scheduling warning after buffer for', Math.floor(delay / 1000), 'seconds');
+      warningTimerRef.current = setTimeout(() => {
+        // console.log('⚠️ [SESSION DEBUG] Buffer timer triggered - Checking if user is idle');
+        debugDialog('Buffer timer triggered - Checking if user is idle');
+        
+        // Only show modal if user is idle
+        const idleThreshold = 5 * 60 * 1000; // 5 minutes
+        const timeSinceLastActivity = Date.now() - lastActivityTimeRef.current;
+        
+        if (timeSinceLastActivity > idleThreshold) {
+          debugDialog('User is idle, showing session expiration warning');
+          setShowSessionModal(true);
+        } else {
+          debugDialog('User is active, skipping session warning');
         }
-      } catch {}
+      }, delay);
+    } else {
+      debugSession('No warning scheduled - conditions not met');
+      debugSession('Time until expiry:', Math.floor(timeUntilExpiry / 1000), 'seconds');
+      debugSession('Token still valid?', timeUntilExpiry > 0);
+      debugSession('Has last refresh?', !!lastRefreshTime);
+      debugSession('Buffer expired?', bufferExpired);
+      debugDialog('No warning scheduled - conditions not met');
+    }
+  }, [keycloak, lastRefreshTime, showSessionModal, debugSetLastRefreshTime, debugDialog, debugSession]);
 
-      try {
-        // Ensure a user doc exists (only pass displayName if it exists in Firebase Auth)
-        try {
-          const userData = {};
-          userData.email = firebaseUser.email;
-          if (firebaseUser.displayName) {
-            userData.displayName = firebaseUser.displayName;
-          }
-          await ensureUserDoc(firebaseUser.uid, userData);
-          
-          // Load the user document to get the display name from Firestore
+  // Schedule idle timeout warning based on user inactivity
+  const scheduleIdleWarning = useCallback(() => {
+    const now = Date.now();
+    
+    // Debounce debug logs to prevent spam (only log every 5 seconds)
+    const shouldLogDebug = now - lastIdleDebugTimeRef.current > 5000;
+    if (shouldLogDebug) {
+      lastIdleDebugTimeRef.current = now;
+      
+      const timeSinceLastActivity = now - lastActivityTimeRef.current;
+      const idleWarningTime = (SESSION_CONFIG.WARNING_TIME_MINUTES - 1) * 60 * 1000; // Show 1 min before auto-logout
+      const timeUntilIdleWarning = idleWarningTime - timeSinceLastActivity;
+      
+      // console.log('🕰️ [IDLE DEBUG] === Idle Timeout Analysis ===');
+      // console.log('🕰️ [IDLE DEBUG] Current time:', new Date(now).toISOString());
+      // console.log('🕰️ [IDLE DEBUG] Last activity:', new Date(lastActivityTimeRef.current).toISOString());
+      // console.log('🕰️ [IDLE DEBUG] Time since last activity:', Math.floor(timeSinceLastActivity / 1000), 'seconds');
+      // console.log('🕰️ [IDLE DEBUG] Idle warning time:', Math.floor(idleWarningTime / 1000), 'seconds');
+      // console.log('🕰️ [IDLE DEBUG] Time until idle warning:', Math.floor(timeUntilIdleWarning / 1000), 'seconds');
+    }
+
+    // Clear existing idle timer
+    if (idleWarningTimerRef.current) {
+      clearTimeout(idleWarningTimerRef.current);
+      idleWarningTimerRef.current = null;
+    }
+
+    const timeSinceLastActivity = now - lastActivityTimeRef.current;
+    const idleWarningTime = (SESSION_CONFIG.WARNING_TIME_MINUTES - 1) * 60 * 1000;
+    const timeUntilIdleWarning = idleWarningTime - timeSinceLastActivity;
+
+    if (timeUntilIdleWarning > 0 && !showSessionModal) {
+      if (shouldLogDebug) {
+        console.log('⏰ [IDLE DEBUG] Scheduling idle warning for', Math.floor(timeUntilIdleWarning / 1000), 'seconds');
+      }
+      idleWarningTimerRef.current = setTimeout(() => {
+        console.log('⚠️ [IDLE DEBUG] Idle timeout reached - Showing idle warning');
+        setShowSessionModal(true);
+      }, timeUntilIdleWarning);
+    } else if (timeUntilIdleWarning <= 0 && !showSessionModal) {
+      console.log('⚠️ [IDLE DEBUG] User already idle - Showing idle warning immediately');
+      setShowSessionModal(true);
+    }
+  }, [lastActivityTimeRef, showSessionModal, SESSION_CONFIG.WARNING_TIME_MINUTES]);
+
+  // User activity detection - reset idle timer on user interaction
+  useEffect(() => {
+    const handleUserActivity = async () => {
+      const now = Date.now();
+      lastActivityTimeRef.current = now;
+      
+      // Only log activity every 10 seconds to reduce spam
+      if (now - lastIdleDebugTimeRef.current > 10000) {
+        console.log('👆 [ACTIVITY] User activity detected, rescheduling both timers');
+        lastIdleDebugTimeRef.current = now;
+      }
+      
+      // Auto-refresh token if user is active and token is about to expire (within 2 minutes)
+      const nowSec = Math.floor(Date.now() / 1000);
+      const expiresAt = keycloak.tokenParsed?.exp;
+      const timeUntilExpiry = expiresAt ? (expiresAt - nowSec) : null;
+      const refreshThreshold = 120; // 2 minutes in seconds
+      
+      if (timeUntilExpiry && timeUntilExpiry > 0 && timeUntilExpiry < refreshThreshold) {
+        // Check if we recently refreshed (within buffer time)
+        const bufferTime = SESSION_CONFIG.REFRESH_BUFFER_MINUTES * 60;
+        const recentlyRefreshed = lastRefreshTime && (now - lastRefreshTime) < bufferTime * 1000;
+        
+        if (!recentlyRefreshed) {
+          console.log('🔄 [AUTO-REFRESH] User active and token expiring soon, auto-refreshing...');
           try {
-            const userProfile = await getUserProfile(firebaseUser);
-            if (userProfile) {
-              // Check if user is disabled or deleted - logout immediately
-              if (userProfile.disabled === true || userProfile.status === 'disabled' || userProfile.deleted === true) {
-                logger.warn('[Auth] User is disabled/deleted, logging out:', { 
-                  uid: firebaseUser.uid, 
-                  email: firebaseUser.email,
-                  disabled: userProfile.disabled,
-                  status: userProfile.status,
-                  deleted: userProfile.deleted
-                });
-                await auth.signOut();
-                return;
+            const oldExpiry = keycloak.tokenParsed?.exp;
+            const refreshed = await keycloak.updateToken(60); // Refresh if valid for less than 60s
+            const newExpiry = keycloak.tokenParsed?.exp;
+            
+            if (refreshed && newExpiry > oldExpiry) {
+              console.log('✅ [AUTO-REFRESH] Token auto-refreshed successfully!');
+              console.log('✅ [AUTO-REFRESH] New expiry:', new Date(newExpiry * 1000).toISOString());
+              
+              // Update localStorage
+              if (keycloak.token) {
+                localStorage.setItem('keycloak_token', keycloak.token);
               }
               
-              // logger.log('🔧 AuthContext loaded user profile:', userProfile);
-              // logger.log('🔧 AuthContext userProfile.displayName:', userProfile.displayName);
-              // logger.log('🔧 AuthContext userProfile.realName:', userProfile.realName);
-              userData.displayName = userProfile.displayName || userProfile.realName || userData.displayName;
-              // logger.log('🔧 AuthContext final userData.displayName:', userData.displayName);
-            } else {
-              // User profile does not exist
+              // Set refresh time
+              const refreshTime = Date.now();
+              debugSetLastRefreshTime(refreshTime);
+              
+              // Reschedule warning with new token
+              scheduleSessionWarning();
             }
           } catch (error) {
-            logger.warn("Failed to load user document for display name:", error);
+            console.error('❌ [AUTO-REFRESH] Auto-refresh failed:', error);
           }
-        } catch {}
-
-        // Claims and allowlist
-        let token = null;
-        let admin = false;
-        try {
-          token = await firebaseUser.getIdTokenResult(true); // Force refresh to get latest claims
-          admin = !!token.claims.admin;
-        } catch (error) {
-          logger.warn('[Auth] Failed to get ID token result:', error);
-          // Continue with allowlist check as fallback
-        }
-        
-        // Check allowlist for admin and super admin status in one go
-        let superAdminFromAllowlist = false;
-        try {
-          const allow = await getAllowlist();
-          const email = (firebaseUser.email || '').toLowerCase();
-          if (allow.success) {
-            const admins = (allow.data.adminEmails || []).map(e => (e || '').toLowerCase());
-            const superAdmins = (allow.data.superAdmins || []).map(e => (e || '').toLowerCase());
-            admin = admin || admins.includes(email); // Use token claims OR allowlist
-            superAdminFromAllowlist = superAdmins.includes(email);
-            
-            // Set super admin status immediately to prevent race conditions
-            if (superAdminFromAllowlist && isSubscribed) {
-              setIsSuperAdmin(true);
-              setRole(ROLE_STRINGS.SUPER_ADMIN);
-            }
-            
-            // Attempt to set claim via Cloud Function (production only)
-            if (admin && !token?.claims?.admin && import.meta.env.PROD) {
-              try {
-                const { getFunctions, httpsCallable } = await import('firebase/functions');
-                const { app } = await import('@services/other/config');
-                const functions = getFunctions(app);
-                const ensureAdminClaim = httpsCallable(functions, 'ensureAdminClaim');
-                await ensureAdminClaim({ email });
-                try { await firebaseUser.getIdToken(true); } catch {}
-              } catch (e) {
-                // Silent in dev; logged only in prod
-                if (import.meta.env.PROD) logger.warn('ensureAdminClaim failed:', e?.message || e);
-              }
-            }
-          }
-        } catch (error) {
-          logger.warn('[Auth] Failed to check allowlist:', error);
-        }
-
-        // Check user doc for roles and fetch full profile
-        let userRole = ROLE_STRINGS.STUDENT;
-        let hr = false;
-        let instructor = false;
-        let adminFromDoc = false;
-        let superAdminFromDoc = false;
-        let profile = null;
-        
-        try {
-          profile = await getUserProfile(firebaseUser);
-          if (profile && isSubscribed) {
-            adminFromDoc = isAdminCheck(profile.role) || profile.isAdmin === true;
-            superAdminFromDoc = isSuperAdminCheck(profile.role) || profile.isSuperAdmin === true;
-            hr = isHRCheck(profile.role) || profile.isHR === true;
-            instructor = isInstructorCheck(profile.role) || profile.isInstructor === true;
-            
-            // Use super admin from allowlist if not set in profile
-            if (!superAdminFromDoc && superAdminFromAllowlist) {
-              superAdminFromDoc = true;
-            }
-            
-            // Cache profile in sessionStorage
-            try {
-              sessionStorage.setItem('userProfile', JSON.stringify(profile));
-            } catch (e) {
-              logger.warn('[Auth] Failed to cache user profile:', e);
-            }
-            
-            // Load user enrollments for status check
-            let enrollments = [];
-            try {
-              const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('userId', '==', firebaseUser.uid)));
-              enrollments = enrollmentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            } catch (e) {
-              logger.warn('[Auth] Failed to load enrollments for status check:', e);
-            }
-            
-            // Check user status
-            const userStatus = getUserStatus(profile, enrollments);
-            const statusSummary = getUserStatusSummary(profile, enrollments);
-            
-            // 🔒 SECURITY: Prevent disabled users from logging in
-            if (!canUserLogin(profile)) {
-              const isDisabled = userStatus === USER_STATUS.DISABLED;
-              const isDeleted = userStatus === USER_STATUS.DELETED;
-              
-              logger.warn('[Auth] Login blocked - user account disabled or deleted', { 
-                userId: firebaseUser.uid, 
-                email: firebaseUser.email,
-                status: userStatus,
-                isDisabled,
-                isDeleted
-              });
-              
-              // Sign out the user immediately
-              try {
-                await signOutUser(firebaseUser);
-              } catch (signOutError) {
-                logger.error('[Auth] Failed to sign out disabled user:', signOutError);
-              }
-              
-              // Show specific error message
-              if (typeof window !== 'undefined' && window.toast) {
-                if (isDisabled) {
-                  window.toast.showError('Your account has been disabled. Please contact support.');
-                } else if (isDeleted) {
-                  window.toast.showError('Your account has been deleted. Please contact support.');
-                } else {
-                  window.toast.showError('Access denied. Please contact support.');
-                }
-              }
-              
-              return; // Stop authentication process
-            }
-            
-            // Only update state if component is still subscribed
-            if (isSubscribed) {
-              setUserProfile(profile);
-              setIsAdmin(admin || adminFromDoc);
-              setIsHR(hr);
-              setIsInstructor(instructor);
-              
-              // Determine role with priority - super admin from allowlist should be handled
-              if (superAdminFromDoc || superAdminFromAllowlist) {
-                userRole = ROLE_STRINGS.SUPER_ADMIN;
-                // Ensure super admin state is set correctly (include allowlist)
-                setIsSuperAdmin(true);
-              } else {
-                // Only set to false if not super admin from any source
-                setIsSuperAdmin(false);
-              }
-              
-              if (superAdminFromDoc || superAdminFromAllowlist) {
-                userRole = ROLE_STRINGS.SUPER_ADMIN;
-              } else if (adminFromDoc || admin) {
-                userRole = ROLE_STRINGS.ADMIN;
-              } else if (hr) {
-                userRole = ROLE_STRINGS.HR;
-              } else if (instructor) {
-                userRole = ROLE_STRINGS.INSTRUCTOR;
-              } else {
-                userRole = ROLE_STRINGS.STUDENT;
-              }
-              
-              setRole(userRole);
-              setRealUser({ ...firebaseUser, role: userRole });
-              setRoleLoading(false); // Role resolution complete
-              
-              // Log login if new session
-              if (isNewLogin) {
-                try {
-                  await addLoginLog({
-                    userId: firebaseUser.uid,
-                    metadata: {
-                      email: firebaseUser.email,
-                      displayName: firebaseUser.displayName,
-                      status: statusSummary,
-                      timestamp: new Date().toISOString()
-                    }
-                  });
-                } catch (e) {
-                  logger.warn('[Auth] Failed to add login log:', e);
-                }
-                
-                // Mark session as logged in
-                setHasLoggedInThisSession(true);
-                sessionStorage.setItem('hasLoggedInThisSession', 'true');
-                sessionStorage.setItem('sessionStart', Date.now().toString());
-              }
-            }
-          } else if (!profile) {
-            logger.warn('[Auth] User profile not found, using defaults');
-            // Set basic admin and super admin status from allowlist if profile is missing
-            if (isSubscribed) {
-              setIsAdmin(admin);
-              setIsSuperAdmin(superAdminFromAllowlist);
-              const finalRole = superAdminFromAllowlist ? ROLE_STRINGS.SUPER_ADMIN : 
-                              (admin ? ROLE_STRINGS.ADMIN : ROLE_STRINGS.STUDENT);
-              setRole(finalRole);
-            }
-          }
-        } catch (error) {
-          logger.error('[Auth] Error loading user profile:', error);
-          // Set fallback role based on admin and super admin status from allowlist
-          if (isSubscribed) {
-            setIsAdmin(admin);
-            setIsSuperAdmin(superAdminFromAllowlist);
-            const fallbackRole = superAdminFromAllowlist ? ROLE_STRINGS.SUPER_ADMIN : 
-                              (admin ? ROLE_STRINGS.ADMIN : ROLE_STRINGS.STUDENT);
-            setRole(fallbackRole);
-            logger.warn('[Auth] Fallback role set from allowlist (error):', { 
-              email: firebaseUser.email, 
-              admin, 
-              superAdmin: superAdminFromAllowlist,
-              fallbackRole,
-              error: error.message 
-            });
-          }
-        }
-        
-        // Set loading to false only after all operations are complete
-        if (isSubscribed) {
-          setLoading(false);
-        }
-      } catch (error) {
-        logger.error('[Auth] Critical error in auth state change:', error);
-        if (isSubscribed) {
-          // Set fallback state to prevent app from breaking
-          setUser(firebaseUser);
-          setIsAdmin(false);
-          // Don't set role to 'guest' - this causes permission issues
-          // Keep the existing role or set to student as default
-          setRole(ROLE_STRINGS.STUDENT);
-          setRoleLoading(false);
-          setLoading(false);
         }
       }
+      
+      // Reschedule both token expiry and idle timeout warnings
+      scheduleSessionWarning();
+      scheduleIdleWarning();
+    };
+
+    // Listen for user activity events
+    const events = [
+      'mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 
+      'click', 'keydown', 'keyup', 'focus', 'blur'
+    ];
+    
+    events.forEach(event => {
+      document.addEventListener(event, handleUserActivity, true);
     });
 
-    // Cleanup function
     return () => {
-      isSubscribed = false;
-      if (userDocUnsub) {
-        userDocUnsub();
-      }
-      if (unsubscribe) {
-        unsubscribe();
-      }
+      events.forEach(event => {
+        document.removeEventListener(event, handleUserActivity, true);
+      });
     };
-  }, []); // Empty dependency array - run only once
+  }, [showSessionModal, scheduleSessionWarning, scheduleIdleWarning, keycloak, lastRefreshTime, debugSetLastRefreshTime]);
 
-  const impersonateUser = async (studentId) => {
-    if (!isAdmin && !isSuperAdmin) return { success: false, error: 'Only admins can impersonate' };
-    
-    try {
-      // Get student data
-      const studentDoc = await getDoc(doc(db, 'users', studentId));
-      if (!studentDoc.exists()) {
-        return { success: false, error: 'Student not found' };
-      }
-      
-      const studentData = studentDoc.data();
-      
-      // Store real admin user
-      setRealUser(user);
-      
-      // Create impersonated user object
-      const impersonatedUser = {
-        uid: studentId,
-        email: studentData.email,
-        displayName: studentData.displayName || studentData.email,
-        ...studentData
+  // Add global functions for testing session management
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      window.testSessionWarning = () => {
+        console.log('🧪 [TEST] Manually triggering session warning for testing');
+        setShowSessionModal(true);
       };
+
+      window.testTokenRefresh = async () => {
+        console.log('🧪 [TEST] Manually testing token refresh...');
+        const oldExpiry = keycloak.tokenParsed?.exp;
+        console.log('🧪 [TEST] Current token expiry:', oldExpiry ? new Date(oldExpiry * 1000).toISOString() : 'No expiry');
+        
+        try {
+          const refreshed = await keycloak.updateToken(-1);
+          const newExpiry = keycloak.tokenParsed?.exp;
+          
+          console.log('🧪 [TEST] Refresh result:', refreshed);
+          console.log('🧪 [TEST] New token expiry:', newExpiry ? new Date(newExpiry * 1000).toISOString() : 'No expiry');
+          
+          if (oldExpiry && newExpiry) {
+            const extended = newExpiry > oldExpiry;
+            console.log('🧪 [TEST] Token extended:', extended ? 'YES ✅' : 'NO ❌');
+            if (extended) {
+              const extensionMinutes = Math.floor((newExpiry - oldExpiry) / 60);
+              console.log('🧪 [TEST] Extended by:', extensionMinutes, 'minutes');
+            }
+          }
+          
+          return refreshed;
+        } catch (error) {
+          console.error('🧪 [TEST] Refresh failed:', error);
+          return false;
+        }
+      };
+
+      window.testSessionInfo = () => {
+        const nowSec = Math.floor(Date.now() / 1000);
+        const expiresAt = keycloak.tokenParsed?.exp;
+        const timeUntilExpiry = expiresAt ? (expiresAt - nowSec) : null;
+        
+        console.log('🧪 [TEST] === Session Info ===');
+        console.log('🧪 [TEST] Current time:', new Date().toISOString());
+        console.log('🧪 [TEST] Token expiry:', expiresAt ? new Date(expiresAt * 1000).toISOString() : 'No expiry');
+        console.log('🧪 [TEST] Time until expiry:', timeUntilExpiry ? `${Math.floor(timeUntilExpiry / 60)}m ${timeUntilExpiry % 60}s` : 'Unknown');
+        console.log('🧪 [TEST] Token length:', keycloak.token?.length || 'No token');
+        console.log('🧪 [TEST] Authenticated:', keycloak.authenticated);
+        console.log('🧪 [TEST] Token expired:', keycloak.tokenExpired);
+        
+        return {
+          currentTime: new Date().toISOString(),
+          tokenExpiry: expiresAt ? new Date(expiresAt * 1000).toISOString() : null,
+          timeUntilExpiry: timeUntilExpiry,
+          authenticated: keycloak.authenticated,
+          tokenExpired: keycloak.tokenExpired
+        };
+      };
+
+      console.log('🧪 [TEST] Test functions available:');
+      console.log('🧪 [TEST] - window.testSessionWarning() - Show session dialog');
+      console.log('🧪 [TEST] - window.testTokenRefresh() - Test token refresh');
+      console.log('🧪 [TEST] - window.testSessionInfo() - Show session info');
+    }
+  }, [keycloak]);
+
+  // Process Keycloak user info
+  useEffect(() => {
+    if (initialized && keycloak.authenticated && keycloak.tokenParsed) {
+      const tokenParsed = keycloak.tokenParsed;
       
-      // Set impersonation state
-      setImpersonating({
-        originalUser: user,
-        impersonatedUser: impersonatedUser
+      // Merge roles from both realm and client sources
+      const realmRoles = tokenParsed.realm_access?.roles || [];
+      const clientId = import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'military-lms-app';
+      const clientRoles = tokenParsed.resource_access?.[clientId]?.roles || [];
+      
+      // Combine and deduplicate roles
+      const allRoles = [...new Set([...realmRoles, ...clientRoles])];
+      
+      // Normalize role names (ensure underscores for consistency)
+      const normalizedRoles = allRoles.map(role => {
+        // Convert super-admin or superadmin to super_admin
+        if (role === 'super-admin' || role === 'superadmin') return 'super_admin';
+        return role.toLowerCase();
       });
       
-      // Switch to impersonated user view
-      setUser(impersonatedUser);
+      // Create user object from Keycloak token
+      const userObj = {
+        uid: tokenParsed.sub,
+        email: tokenParsed.email,
+        displayName: tokenParsed.name || tokenParsed.preferred_username,
+        firstName: tokenParsed.given_name,
+        lastName: tokenParsed.family_name,
+        roles: normalizedRoles,
+        token: keycloak.token,
+        refreshToken: keycloak.refreshToken
+      };
+
+      // Set role flags
+      setIsAdmin(normalizedRoles.includes('admin'));
+      setIsHR(normalizedRoles.includes('hr'));
+      setIsInstructor(normalizedRoles.includes('instructor'));
+      setIsStudent(normalizedRoles.includes('student'));
+      setIsSuperAdmin(normalizedRoles.includes('super_admin'));
+
+      setUser(userObj);
+      setLoading(false);
+      
+      // Save token to localStorage for API calls
+      if (keycloak.token) {
+        localStorage.setItem('keycloak_token', keycloak.token);
+        console.log('[AuthContext] ✅ Token saved to localStorage');
+      }
+      
+      info('🔐 Keycloak user authenticated:', {
+        email: userObj.email,
+        realmRoles: realmRoles,
+        clientRoles: clientRoles,
+        mergedRoles: normalizedRoles,
+        isAdmin: normalizedRoles.includes('admin'),
+        isSuperAdmin: normalizedRoles.includes('super_admin'),
+        isInstructor: normalizedRoles.includes('instructor')
+      });
+      
+      // Schedule session warning
+      scheduleSessionWarning();
+      
+      // Schedule idle timeout warning
+      scheduleIdleWarning();
+    } else if (initialized && !keycloak.authenticated) {
+      setUser(null);
       setIsAdmin(false);
       setIsHR(false);
       setIsInstructor(false);
-      setRole(studentData.role || ROLE_STRINGS.STUDENT);
-      
-      return { success: true };
-    } catch (error) {
-      logger.error('Impersonation error:', error);
-      return { success: false, error: error.message };
+      setIsStudent(false);
+      setIsSuperAdmin(false);
+      setLoading(false);
     }
+  }, [initialized, keycloak, scheduleSessionWarning, scheduleIdleWarning]);
+
+  // Update localStorage token when it changes
+  useEffect(() => {
+    if (keycloak.token) {
+      localStorage.setItem('keycloak_token', keycloak.token);
+      console.log('[AuthContext] ✅ Token updated in localStorage');
+    }
+  }, [keycloak.token]);
+
+  const logout = useCallback(async () => {
+    try {
+      console.log('[AuthContext] � Initiating logout');
+      
+      // Use Keycloak's built-in logout method
+      if (keycloak) {
+        await keycloak.logout({
+          redirectUri: window.location.origin
+        });
+        console.log('[AuthContext] ✅ Keycloak logout completed');
+      }
+      
+      // Fallback: clear storage and redirect
+      localStorage.removeItem('keycloak_token');
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      console.log('[AuthContext] 🔄 Redirecting to home page');
+      window.location.href = window.location.origin;
+    } catch (error) {
+      error('Logout error:', error);
+      // As a fallback, just clear everything and redirect
+      console.log('[AuthContext] 🔄 Fallback: clearing session and redirecting');
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = window.location.origin;
+    }
+  }, [keycloak]);
+
+  const hasRole = (role) => {
+    return user?.roles?.includes(role) || false;
   };
 
-  const stopImpersonation = () => {
-    if (!impersonating) return;
-    
-    // Restore original user
-    setUser(realUser);
-    // Restore original role
-    const wasAdmin = impersonating?.originalUser?.role === ROLE_STRINGS.ADMIN;
-    const wasHR = impersonating?.originalUser?.role === ROLE_STRINGS.HR;
-    const wasInstructor = impersonating?.originalUser?.role === ROLE_STRINGS.INSTRUCTOR;
-    setIsAdmin(wasAdmin || false);
-    setIsHR(wasHR || false);
-    setIsInstructor(wasInstructor || false);
-    setRole(impersonating?.originalUser?.role || ROLE_STRINGS.ADMIN);
-    setImpersonating(null);
-    setRealUser(null);
+  const hasAnyRole = (roles) => {
+    if (!user?.roles) return false;
+    return roles.some(role => user.roles.includes(role));
   };
+
+  const hasAllRoles = (roles) => {
+    if (!user?.roles) return false;
+    return roles.every(role => user.roles.includes(role));
+  };
+
+  // Format countdown time
+  const formatCountdown = (seconds) => {
+    if (!seconds) return '';
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Get token expiry in local time
+  const getTokenExpiryLocalTime = () => {
+    if (!keycloak.tokenParsed?.exp) return 'Unknown';
+    const expiryDate = new Date(keycloak.tokenParsed.exp * 1000);
+    return expiryDate.toLocaleTimeString();
+  };
+
+  // Generate dynamic modal message with countdown and local time
+  const getModalMessage = () => {
+    const expiryTime = getTokenExpiryLocalTime();
+    const baseMessage = `Your session will expire soon. Token expires at ${expiryTime}. Would you like to extend your session or logout?`;
+    if (countdownTime !== null) {
+      return `${baseMessage}\n\n⏰ Auto-logout in: ${formatCountdown(countdownTime)}`;
+    }
+    return baseMessage;
+  };
+
+  // Countdown timer with reduced logging
+  useEffect(() => {
+    if (showSessionModal && countdownTime !== null) {
+      // Only log when countdown starts or reaches important milestones
+      if (!countdownTimerRef.current) {
+        console.log(`🕐 [COUNTDOWN DEBUG] Starting countdown: ${countdownTime} seconds remaining`);
+      }
+      
+      countdownTimerRef.current = setInterval(() => {
+        setCountdownTime(prev => {
+          const newTime = prev - 1;
+          
+          // Only log countdown updates at important intervals
+          if (newTime <= 10) {
+            console.log(`🕐 [COUNTDOWN DEBUG] ${newTime}s remaining - Auto-logout imminent!`);
+          } else if (newTime % 60 === 0 && newTime !== prev - 1) { // Every minute, not every second
+            console.log(`🕐 [COUNTDOWN DEBUG] ${newTime}s remaining (${Math.floor(newTime / 60)} minutes)`);
+          }
+          
+          if (newTime <= 0) {
+            console.log('🕐 [COUNTDOWN DEBUG] Countdown reached zero - Triggering auto-logout');
+            clearInterval(countdownTimerRef.current);
+            countdownTimerRef.current = null;
+          }
+          
+          return newTime;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (countdownTimerRef.current) {
+        console.log('🕐 [COUNTDOWN DEBUG] Cleaning up countdown timer');
+        clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+      }
+    };
+  }, [showSessionModal, countdownTime]);
+
+  // Handle session refresh
+  const handleRefresh = useCallback(async () => {
+    console.log('🔄 [REFRESH DEBUG] Session refresh initiated by user');
+    const oldExpiry = keycloak.tokenParsed?.exp;
+    console.log('🔄 [REFRESH DEBUG] Current token expiry:', oldExpiry ? new Date(oldExpiry * 1000).toISOString() : 'No expiry info');
+    
+    setIsRefreshing(true);
+    try {
+      // Use Keycloak's built-in updateToken method
+      // This will refresh the token if it's expired or about to expire
+      console.log('🔄 [REFRESH DEBUG] Calling keycloak.updateToken(-1) to force refresh');
+      const refreshed = await keycloak.updateToken(-1); // Force refresh
+      
+      const newExpiry = keycloak.tokenParsed?.exp;
+      
+      if (refreshed) {
+        console.log('✅ [REFRESH DEBUG] Token refreshed successfully!');
+        console.log('✅ [REFRESH DEBUG] New token expiry:', newExpiry ? new Date(newExpiry * 1000).toISOString() : 'No expiry info');
+        console.log('✅ [REFRESH DEBUG] New token length:', keycloak.token?.length || 'No token');
+        
+        // Verify token was actually extended
+        if (oldExpiry && newExpiry && newExpiry <= oldExpiry) {
+          console.warn('⚠️ [REFRESH DEBUG] WARNING: Token expiry was not extended! Old:', new Date(oldExpiry * 1000).toISOString(), 'New:', new Date(newExpiry * 1000).toISOString());
+          warn('⚠️ [REFRESH DEBUG] Token refresh did not extend expiry - refresh token may be expired');
+        }
+        
+        // Update localStorage
+        if (keycloak.token) {
+          localStorage.setItem('keycloak_token', keycloak.token);
+          console.log('✅ [REFRESH DEBUG] New token saved to localStorage');
+        }
+        
+        // Set refresh time and close modal first
+        const refreshTime = Date.now();
+        debugSetLastRefreshTime(refreshTime);
+        console.log('🔒 [REFRESH DEBUG] Modal closing, refresh time set to', new Date(refreshTime).toISOString());
+        setShowSessionModal(false);
+        
+        // Reschedule warning after a short delay to ensure modal is closed
+        setTimeout(() => {
+          console.log('📅 [REFRESH DEBUG] Rescheduling both warnings after refresh');
+          scheduleSessionWarning();
+          scheduleIdleWarning();
+        }, 100);
+      } else {
+        console.log('⚠️ [REFRESH DEBUG] Token refresh returned false - token was still valid');
+        console.log('⚠️ [REFRESH DEBUG] Current token expiry remains:', keycloak.tokenParsed?.exp ? new Date(keycloak.tokenParsed.exp * 1000).toISOString() : 'No expiry info');
+        // Token is still valid, just close modal
+        setShowSessionModal(false);
+        scheduleSessionWarning();
+      }
+    } catch (err) {
+      console.error('❌ [REFRESH DEBUG] Token refresh failed:', err);
+      console.error('❌ [REFRESH DEBUG] Error details:', {
+        message: err.message,
+        stack: err.stack,
+        tokenExpired: keycloak.tokenExpired,
+        tokenParsed: keycloak.tokenParsed
+      });
+      // On refresh failure, logout
+      await logout();
+    } finally {
+      setIsRefreshing(false);
+      // Clear auto-logout timer
+      if (autoLogoutTimerRef.current) {
+        clearTimeout(autoLogoutTimerRef.current);
+        autoLogoutTimerRef.current = null;
+      }
+      console.log('🔄 [REFRESH DEBUG] Refresh process completed');
+    }
+  }, [keycloak, logout, scheduleSessionWarning, scheduleIdleWarning, debugSetLastRefreshTime]);
+
+  // Handle session modal close (logout)
+  const handleSessionModalClose = useCallback(async () => {
+    info('🚪 User chose to logout from session modal');
+    await logout();
+  }, [logout]);
+
+  // Effect to handle auto-logout when modal is shown
+  useEffect(() => {
+    if (showSessionModal) {
+      console.log(`🚨 [AUTO-LOGOUT DEBUG] Modal shown, calculating actual time until token expiry`);
+      
+      // Calculate actual time until token expiry
+      const nowSec = Math.floor(Date.now() / 1000);
+      const expiresAt = keycloak.tokenParsed?.exp;
+      let remainingSeconds;
+      
+      if (expiresAt) {
+        remainingSeconds = Math.max(0, expiresAt - nowSec);
+        console.log(`🚨 [AUTO-LOGOUT DEBUG] Token expires at ${new Date(expiresAt * 1000).toLocaleTimeString()}, ${remainingSeconds}s from now`);
+      } else {
+        // Fallback to configured minutes if no token expiry
+        const autoLogoutMinutes = SESSION_CONFIG.AUTO_LOGOUT_MINUTES;
+        remainingSeconds = autoLogoutMinutes * 60;
+        console.log(`🚨 [AUTO-LOGOUT DEBUG] No token expiry found, using ${autoLogoutMinutes}-minute fallback`);
+      }
+      
+      setCountdownTime(remainingSeconds);
+      console.log(`🚨 [AUTO-LOGOUT DEBUG] Countdown initialized: ${remainingSeconds} seconds`);
+      
+      // Start countdown timer
+      countdownTimerRef.current = setInterval(() => {
+        setCountdownTime(prev => {
+          const newTime = prev - 1;
+          
+          if (newTime <= 0) {
+            console.log('🚨 [AUTO-LOGOUT DEBUG] Countdown timer finished');
+            clearInterval(countdownTimerRef.current);
+            countdownTimerRef.current = null;
+          }
+          
+          return newTime;
+        });
+      }, 1000);
+      
+      // Start auto-logout timer based on actual token expiry
+      const autoLogoutMs = remainingSeconds * 1000;
+      console.log(`🚨 [AUTO-LOGOUT DEBUG] Setting auto-logout timeout for ${autoLogoutMs}ms (${remainingSeconds}s)`);
+      autoLogoutTimerRef.current = setTimeout(async () => {
+        console.log(`🚨 [AUTO-LOGOUT DEBUG] Auto-logout triggered after token expiry`);
+        await logout();
+      }, autoLogoutMs);
+    }
+
+    // Cleanup
+    return () => {
+      if (autoLogoutTimerRef.current) {
+        console.log('🧹 [AUTO-LOGOUT DEBUG] Cleaning up auto-logout timer');
+        clearTimeout(autoLogoutTimerRef.current);
+        autoLogoutTimerRef.current = null;
+      }
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+      }
+      if (idleWarningTimerRef.current) {
+        console.log('🧹 [AUTO-LOGOUT DEBUG] Cleaning up idle timer');
+        clearTimeout(idleWarningTimerRef.current);
+        idleWarningTimerRef.current = null;
+      }
+      setCountdownTime(null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSessionModal, logout]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (warningTimerRef.current) {
+        clearTimeout(warningTimerRef.current);
+      }
+      if (autoLogoutTimerRef.current) {
+        clearTimeout(autoLogoutTimerRef.current);
+      }
+    };
+  }, []);
 
   const value = {
     user,
-    userProfile,
+    loading,
     isAdmin,
-    isSuperAdmin,
     isHR,
     isInstructor,
-    role,
-    loading: loading || roleLoading, // Include role loading in overall loading
-    roleLoading, // Expose role loading state
-    impersonating,
-    impersonateUser,
-    stopImpersonation
+    isStudent,
+    isSuperAdmin,
+    logout,
+    hasRole,
+    hasAnyRole,
+    hasAllRoles,
+    token: keycloak.token,
+    refreshToken: keycloak.refreshToken,
+    initialized
   };
 
   return (
     <AuthContext.Provider value={value}>
       {children}
+      
+      {/* Session Extension Modal */}
+      <ConfirmModal
+        isOpen={showSessionModal}
+        onClose={handleSessionModalClose}
+        onConfirm={handleRefresh}
+        title="Session Expiring Soon"
+        message={getModalMessage()}
+        confirmText="Extend Session"
+        cancelText="Logout"
+        loading={isRefreshing}
+        variant="primary"
+        size="small"
+      />
     </AuthContext.Provider>
   );
 };
 
+export default AuthContext;

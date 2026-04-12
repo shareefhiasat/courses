@@ -2,7 +2,7 @@ import React from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getFilterConfig, generateFilterOptions, getFilterPlaceholder } from '@constants/filterConfig';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * Reusable FilterSelect component with centralized configuration
@@ -22,7 +22,7 @@ const FilterSelect = ({
   const { t } = useLang();
   const { theme } = useTheme();
   
-  logger.log('🔍 [FilterSelect] Component render:', {
+  info('🔍 [FilterSelect] Component render:', {
     filterKey,
     value,
     dataLength: data?.length || 0,
@@ -34,16 +34,16 @@ const FilterSelect = ({
   const config = getFilterConfig(filterKey);
   
   if (!config) {
-    logger.error(`❌ [FilterSelect] Filter config not found for key: ${filterKey}`);
+    error(`❌ [FilterSelect] Filter config not found for key: ${filterKey}`);
     return null;
   }
 
-  logger.log('🔍 [FilterSelect] Config found:', config);
+  info('🔍 [FilterSelect] Config found:', config);
 
   const options = generateFilterOptions(config, data, theme, t);
   const placeholder = getFilterPlaceholder(config, t, additionalPlaceholderText);
 
-  logger.log('🔍 [FilterSelect] Generated options:', {
+  info('🔍 [FilterSelect] Generated options:', {
     optionsCount: options?.length || 0,
     placeholder,
     firstOption: options?.[0],
@@ -55,7 +55,7 @@ const FilterSelect = ({
       <select
         value={value}
         onChange={(e) => {
-          logger.log('🔄 [FilterSelect] onChange triggered:', {
+          info('🔄 [FilterSelect] onChange triggered:', {
             oldValue: value,
             newValue: e.target.value,
             filterKey

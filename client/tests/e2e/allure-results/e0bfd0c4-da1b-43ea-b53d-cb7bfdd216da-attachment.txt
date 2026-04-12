@@ -1,0 +1,20 @@
+🔍 Testing programs query without authentication...
+🔍 Programs query response status: 400
+❌ Programs query failed (expected without auth)
+🔍 Error: [
+  {
+    message: 'Cannot query field "id" on type "ProgramConnection".',
+    locations: [ [Object] ],
+    extensions: { code: 'GRAPHQL_VALIDATION_FAILED', stacktrace: [Array] }
+  },
+  {
+    message: 'Cannot query field "nameEn" on type "ProgramConnection".',
+    locations: [ [Object] ],
+    extensions: { code: 'GRAPHQL_VALIDATION_FAILED', stacktrace: [Array] }
+  },
+  {
+    message: 'Cannot query field "code" on type "ProgramConnection".',
+    locations: [ [Object] ],
+    extensions: { code: 'GRAPHQL_VALIDATION_FAILED', stacktrace: [Array] }
+  }
+]

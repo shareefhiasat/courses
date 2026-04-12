@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 export { default as StudentHistory } from './StudentHistory';
 export { HistoryEntry } from './HistoryEntry';
 export { HistoryDayHeader } from './HistoryDayHeader';

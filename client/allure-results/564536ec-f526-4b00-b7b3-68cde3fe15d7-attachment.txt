@@ -1,0 +1,3 @@
+🔍 Getting activity by ID: cmn1mq1yn00032ifcc5dh7g1m
+🔍 Get activity response status: 200
+✅ Activity retrieved successfully

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 
-const Slider = ({ 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const Slider = ({ 
   value,
   onChange,
   min = 0,

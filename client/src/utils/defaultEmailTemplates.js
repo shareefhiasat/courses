@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 /**
  * Default Email Templates
  * These templates are used as fallbacks and can be uploaded to Firestore

@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 /**
  * Role Configuration Usage Examples
  * Demonstrates how to use the global role configuration system

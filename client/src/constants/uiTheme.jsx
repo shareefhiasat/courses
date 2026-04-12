@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 // Centralized UI Theme System
 // Provides consistent theming, colors, and styling utilities across all UI components
 

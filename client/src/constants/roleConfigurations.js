@@ -1,9 +1,5 @@
-/**
- * Global Role-Based Configuration System
- * Centralized limitations and permissions for all user roles
- */
-
-import { ROLE_STRINGS, ROLE_HIERARCHY } from '@utils/userUtils';
+import { ROLE_STRINGS, ROLE_HIERARCHY } from '../utils/userUtils.js';
+import { info, error, warn, debug } from '../services/utils/logger.js';
 
 // ===== GLOBAL ROLE CONFIGURATIONS =====
 
@@ -14,58 +10,38 @@ export const ROLE_CONFIGURATIONS = {
     chat: {
       maxFileSize: 5 * 1024 * 1024, // 5MB
       maxVoiceRecordingTime: 5 * 60, // 5 minutes in seconds
-      allowedFileTypes: [
-        'image/jpeg',
-        'image/png', 
-        'image/gif',
-        'application/pdf',
-        'text/plain'
-      ],
-      maxMessageLength: 1000,
-      canCreateGlobalChat: false,
-      canCreateClassChat: false,
+      maxTextMessageLength: 1000,
+      canCreateGroups: false,
       canSendFiles: true,
-      canSendVoiceMessages: true
+      canSendVoice: true,
+      canSendImages: true
     },
     
-    // Quiz limitations
-    quiz: {
-      maxAttemptsPerDay: 10,
-      canViewResults: true,
-      canRetakeQuiz: true,
-      canSeeCorrectAnswers: false,
-      timeBonusEnabled: true
+    // Attendance limitations
+    attendance: {
+      canViewOwnAttendance: true,
+      canViewClassAttendance: false,
+      canMarkAttendance: false,
+      canEditAttendance: false,
+      canBulkImport: false
     },
     
-    // Activity limitations
-    activity: {
-      maxSubmissionsPerDay: 20,
-      canSubmitLate: true,
-      canViewOtherSubmissions: false,
-      canDownloadResources: true
+    // Academic limitations
+    academic: {
+      canViewOwnGrades: true,
+      canViewClassGrades: false,
+      canSubmitAssignments: true,
+      canViewAssignments: true,
+      canCreateAssignments: false,
+      canEditAssignments: false
     },
     
-    // Dashboard limitations
-    dashboard: {
-      canViewAnalytics: false,
-      canManageUsers: false,
-      canManageClasses: false,
-      canViewReports: true,
-      canExportData: false
-    },
-    
-    // File upload limitations
-    files: {
-      maxFileSize: 5 * 1024 * 1024, // 5MB
-      allowedFileTypes: [
-        'image/jpeg',
-        'image/png', 
-        'image/gif',
-        'application/pdf',
-        'text/plain'
-      ],
-      maxFilesPerUpload: 5,
-      totalStorageLimit: 100 * 1024 * 1024 // 100MB
+    // Profile limitations
+    profile: {
+      canEditOwnProfile: true,
+      canViewOtherProfiles: false,
+      canEditOtherProfiles: false,
+      canViewSensitiveData: false
     }
   },
   
@@ -73,181 +49,40 @@ export const ROLE_CONFIGURATIONS = {
   [ROLE_STRINGS.INSTRUCTOR]: {
     // Chat limitations
     chat: {
-      maxFileSize: 25 * 1024 * 1024, // 25MB
-      maxVoiceRecordingTime: 25 * 60, // 25 minutes in seconds
-      allowedFileTypes: [
-        'image/jpeg',
-        'image/png',
-        'image/gif', 
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'text/plain',
-        'video/mp4',
-        'video/avi',
-        'video/mov',
-        'audio/mp3',
-        'audio/wav',
-        'audio/mpeg'
-      ],
-      maxMessageLength: 2000,
-      canCreateGlobalChat: false,
-      canCreateClassChat: true,
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+      maxVoiceRecordingTime: 10 * 60, // 10 minutes
+      maxTextMessageLength: 2000,
+      canCreateGroups: true,
       canSendFiles: true,
-      canSendVoiceMessages: true,
-      canModerateChat: true
+      canSendVoice: true,
+      canSendImages: true
     },
     
-    // Quiz limitations
-    quiz: {
-      maxAttemptsPerDay: 50,
-      canViewResults: true,
-      canRetakeQuiz: true,
-      canSeeCorrectAnswers: true,
-      canCreateQuiz: true,
-      canGradeQuiz: true,
-      timeBonusEnabled: true
+    // Attendance limitations
+    attendance: {
+      canViewOwnAttendance: false,
+      canViewClassAttendance: true,
+      canMarkAttendance: true,
+      canEditAttendance: true,
+      canBulkImport: true
     },
     
-    // Activity limitations
-    activity: {
-      maxSubmissionsPerDay: 100,
-      canSubmitLate: true,
-      canViewOtherSubmissions: true,
-      canDownloadResources: true,
-      canCreateActivity: true,
-      canGradeSubmissions: true
+    // Academic limitations
+    academic: {
+      canViewOwnGrades: false,
+      canViewClassGrades: true,
+      canSubmitAssignments: false,
+      canViewAssignments: true,
+      canCreateAssignments: true,
+      canEditAssignments: true
     },
     
-    // Dashboard limitations
-    dashboard: {
-      canViewAnalytics: true,
-      canManageUsers: false,
-      canManageClasses: true,
-      canViewReports: true,
-      canExportData: true,
-      canManageContent: true
-    },
-    
-    // File upload limitations
-    files: {
-      maxFileSize: 25 * 1024 * 1024, // 25MB
-      allowedFileTypes: [
-        'image/jpeg',
-        'image/png',
-        'image/gif', 
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'text/plain',
-        'video/mp4',
-        'video/avi',
-        'video/mov',
-        'audio/mp3',
-        'audio/wav',
-        'audio/mpeg'
-      ],
-      maxFilesPerUpload: 10,
-      totalStorageLimit: 1024 * 1024 * 1024 // 1GB
-    }
-  },
-  
-  // HR configuration
-  [ROLE_STRINGS.HR]: {
-    // Chat limitations
-    chat: {
-      maxFileSize: 25 * 1024 * 1024, // 25MB
-      maxVoiceRecordingTime: 25 * 60, // 25 minutes in seconds
-      allowedFileTypes: [
-        'image/jpeg',
-        'image/png',
-        'image/gif', 
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'text/plain',
-        'video/mp4',
-        'video/avi',
-        'video/mov',
-        'audio/mp3',
-        'audio/wav',
-        'audio/mpeg'
-      ],
-      maxMessageLength: 2000,
-      canCreateGlobalChat: false,
-      canCreateClassChat: false,
-      canSendFiles: true,
-      canSendVoiceMessages: true,
-      canModerateChat: false
-    },
-    
-    // Quiz limitations
-    quiz: {
-      maxAttemptsPerDay: 50,
-      canViewResults: true,
-      canRetakeQuiz: true,
-      canSeeCorrectAnswers: true,
-      canCreateQuiz: false,
-      canGradeQuiz: true,
-      timeBonusEnabled: true
-    },
-    
-    // Activity limitations
-    activity: {
-      maxSubmissionsPerDay: 100,
-      canSubmitLate: true,
-      canViewOtherSubmissions: true,
-      canDownloadResources: true,
-      canCreateActivity: false,
-      canGradeSubmissions: true
-    },
-    
-    // Dashboard limitations
-    dashboard: {
-      canViewAnalytics: true,
-      canManageUsers: true,
-      canManageClasses: false,
-      canViewReports: true,
-      canExportData: true,
-      canManageContent: false
-    },
-    
-    // File upload limitations
-    files: {
-      maxFileSize: 25 * 1024 * 1024, // 25MB
-      allowedFileTypes: [
-        'image/jpeg',
-        'image/png',
-        'image/gif', 
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'text/plain',
-        'video/mp4',
-        'video/avi',
-        'video/mov',
-        'audio/mp3',
-        'audio/wav',
-        'audio/mpeg'
-      ],
-      maxFilesPerUpload: 10,
-      totalStorageLimit: 1024 * 1024 * 1024 // 1GB
+    // Profile limitations
+    profile: {
+      canEditOwnProfile: true,
+      canViewOtherProfiles: true,
+      canEditOtherProfiles: false,
+      canViewSensitiveData: false
     }
   },
   
@@ -255,357 +90,144 @@ export const ROLE_CONFIGURATIONS = {
   [ROLE_STRINGS.ADMIN]: {
     // Chat limitations
     chat: {
-      maxFileSize: 25 * 1024 * 1024, // 25MB
-      maxVoiceRecordingTime: 25 * 60, // 25 minutes in seconds
-      allowedFileTypes: [
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'application/pdf',
-        'application/msword', 
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'text/plain',
-        'video/mp4',
-        'video/avi',
-        'video/mov',
-        'audio/mp3',
-        'audio/wav',
-        'audio/mpeg',
-        'application/zip',
-        'application/x-rar-compressed'
-      ],
-      maxMessageLength: 5000,
-      canCreateGlobalChat: true,
-      canCreateClassChat: true,
+      maxFileSize: 20 * 1024 * 1024, // 20MB
+      maxVoiceRecordingTime: 15 * 60, // 15 minutes
+      maxTextMessageLength: 5000,
+      canCreateGroups: true,
       canSendFiles: true,
-      canSendVoiceMessages: true,
-      canModerateChat: true,
-      canDeleteAnyMessage: true
+      canSendVoice: true,
+      canSendImages: true
     },
     
-    // Quiz limitations
-    quiz: {
-      maxAttemptsPerDay: 100,
-      canViewResults: true,
-      canRetakeQuiz: true,
-      canSeeCorrectAnswers: true,
-      canCreateQuiz: true,
-      canGradeQuiz: true,
-      canDeleteQuiz: true,
-      canManageAllQuizzes: true,
-      timeBonusEnabled: true
+    // Attendance limitations
+    attendance: {
+      canViewOwnAttendance: false,
+      canViewClassAttendance: true,
+      canMarkAttendance: true,
+      canEditAttendance: true,
+      canBulkImport: true
     },
     
-    // Activity limitations
-    activity: {
-      maxSubmissionsPerDay: 200,
-      canSubmitLate: true,
-      canViewOtherSubmissions: true,
-      canDownloadResources: true,
-      canCreateActivity: true,
-      canGradeSubmissions: true,
-      canDeleteActivity: true,
-      canManageAllActivities: true
+    // Academic limitations
+    academic: {
+      canViewOwnGrades: false,
+      canViewClassGrades: true,
+      canSubmitAssignments: false,
+      canViewAssignments: true,
+      canCreateAssignments: true,
+      canEditAssignments: true
     },
     
-    // Dashboard limitations
-    dashboard: {
-      canViewAnalytics: true,
-      canManageUsers: true,
-      canManageClasses: true,
-      canViewReports: true,
-      canExportData: true,
-      canManageContent: true,
-      canManageSystem: true
+    // Profile limitations
+    profile: {
+      canEditOwnProfile: true,
+      canViewOtherProfiles: true,
+      canEditOtherProfiles: true,
+      canViewSensitiveData: true
+    }
+  },
+  
+  // HR configuration
+  [ROLE_STRINGS.HR]: {
+    // Chat limitations
+    chat: {
+      maxFileSize: 15 * 1024 * 1024, // 15MB
+      maxVoiceRecordingTime: 10 * 60, // 10 minutes
+      maxTextMessageLength: 3000,
+      canCreateGroups: true,
+      canSendFiles: true,
+      canSendVoice: true,
+      canSendImages: true
     },
     
-    // File upload limitations
-    files: {
-      maxFileSize: 50 * 1024 * 1024, // 50MB
-      allowedFileTypes: [
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'image/webp',
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'text/plain',
-        'text/csv',
-        'video/mp4',
-        'video/avi',
-        'video/mov',
-        'video/wmv',
-        'video/flv',
-        'audio/mp3',
-        'audio/wav',
-        'audio/mpeg',
-        'application/zip',
-        'application/x-rar-compressed',
-        'application/x-7z-compressed'
-      ],
-      maxFilesPerUpload: 20,
-      totalStorageLimit: 5 * 1024 * 1024 * 1024 // 5GB
+    // Attendance limitations
+    attendance: {
+      canViewOwnAttendance: false,
+      canViewClassAttendance: true,
+      canMarkAttendance: false,
+      canEditAttendance: false,
+      canBulkImport: false
+    },
+    
+    // Academic limitations
+    academic: {
+      canViewOwnGrades: false,
+      canViewClassGrades: true,
+      canSubmitAssignments: false,
+      canViewAssignments: false,
+      canCreateAssignments: false,
+      canEditAssignments: false
+    },
+    
+    // Profile limitations
+    profile: {
+      canEditOwnProfile: true,
+      canViewOtherProfiles: true,
+      canEditOtherProfiles: true,
+      canViewSensitiveData: true
     }
   },
   
   // Super Admin configuration
   [ROLE_STRINGS.SUPER_ADMIN]: {
-    // Chat limitations (unlimited)
+    // Chat limitations
     chat: {
-      maxFileSize: 100 * 1024 * 1024, // 100MB
-      maxVoiceRecordingTime: 60 * 60, // 60 minutes in seconds
-      allowedFileTypes: [
-        // All common file types
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'image/webp',
-        'image/svg+xml',
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'text/plain',
-        'text/csv',
-        'text/html',
-        'text/css',
-        'text/javascript',
-        'application/json',
-        'application/xml',
-        'video/mp4',
-        'video/avi',
-        'video/mov',
-        'video/wmv',
-        'video/flv',
-        'video/webm',
-        'video/quicktime',
-        'audio/mp3',
-        'audio/wav',
-        'audio/mpeg',
-        'audio/ogg',
-        'audio/aac',
-        'application/zip',
-        'application/x-rar-compressed',
-        'application/x-7z-compressed',
-        'application/x-tar',
-        'application/gzip'
-      ],
-      maxMessageLength: 10000,
-      canCreateGlobalChat: true,
-      canCreateClassChat: true,
+      maxFileSize: 50 * 1024 * 1024, // 50MB
+      maxVoiceRecordingTime: 30 * 60, // 30 minutes
+      maxTextMessageLength: 10000,
+      canCreateGroups: true,
       canSendFiles: true,
-      canSendVoiceMessages: true,
-      canModerateChat: true,
-      canDeleteAnyMessage: true,
-      canManageSystemSettings: true
+      canSendVoice: true,
+      canSendImages: true
     },
     
-    // Quiz limitations (unlimited)
-    quiz: {
-      maxAttemptsPerDay: 1000,
-      canViewResults: true,
-      canRetakeQuiz: true,
-      canSeeCorrectAnswers: true,
-      canCreateQuiz: true,
-      canGradeQuiz: true,
-      canDeleteQuiz: true,
-      canManageAllQuizzes: true,
-      canModifySystemSettings: true,
-      timeBonusEnabled: true
+    // Attendance limitations
+    attendance: {
+      canViewOwnAttendance: false,
+      canViewClassAttendance: true,
+      canMarkAttendance: true,
+      canEditAttendance: true,
+      canBulkImport: true
     },
     
-    // Activity limitations (unlimited)
-    activity: {
-      maxSubmissionsPerDay: 1000,
-      canSubmitLate: true,
-      canViewOtherSubmissions: true,
-      canDownloadResources: true,
-      canCreateActivity: true,
-      canGradeSubmissions: true,
-      canDeleteActivity: true,
-      canManageAllActivities: true,
-      canModifySystemSettings: true
+    // Academic limitations
+    academic: {
+      canViewOwnGrades: false,
+      canViewClassGrades: true,
+      canSubmitAssignments: false,
+      canViewAssignments: true,
+      canCreateAssignments: true,
+      canEditAssignments: true
     },
     
-    // Dashboard limitations (full access)
-    dashboard: {
-      canViewAnalytics: true,
-      canManageUsers: true,
-      canManageClasses: true,
-      canViewReports: true,
-      canExportData: true,
-      canManageContent: true,
-      canManageSystem: true,
-      canModifySystemSettings: true,
-      canAccessSystemLogs: true
-    },
-    
-    // File upload limitations (high limits)
-    files: {
-      maxFileSize: 100 * 1024 * 1024, // 100MB
-      allowedFileTypes: [
-        // All supported file types
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'image/webp',
-        'image/svg+xml',
-        'image/bmp',
-        'image/tiff',
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'text/plain',
-        'text/csv',
-        'text/html',
-        'text/css',
-        'text/javascript',
-        'application/json',
-        'application/xml',
-        'video/mp4',
-        'video/avi',
-        'video/mov',
-        'video/wmv',
-        'video/flv',
-        'video/webm',
-        'video/quicktime',
-        'video/3gpp',
-        'audio/mp3',
-        'audio/wav',
-        'audio/mpeg',
-        'audio/ogg',
-        'audio/aac',
-        'audio/flac',
-        'application/zip',
-        'application/x-rar-compressed',
-        'application/x-7z-compressed',
-        'application/x-tar',
-        'application/gzip',
-        'application/x-shockwave-flash',
-        'application/x-msdownload'
-      ],
-      maxFilesPerUpload: 50,
-      totalStorageLimit: 50 * 1024 * 1024 * 1024 // 50GB
+    // Profile limitations
+    profile: {
+      canEditOwnProfile: true,
+      canViewOtherProfiles: true,
+      canEditOtherProfiles: true,
+      canViewSensitiveData: true
     }
   }
 };
 
-// ===== UTILITY FUNCTIONS =====
-
-/**
- * Get configuration for a specific role and category
- * @param {string} role - User role
- * @param {string} category - Configuration category (chat, quiz, activity, dashboard, files)
- * @returns {Object} Configuration object for the role and category
- */
-export const getRoleConfig = (role, category) => {
-  const roleConfig = ROLE_CONFIGURATIONS[role];
-  if (!roleConfig) {
-    console.warn(`No configuration found for role: ${role}`);
-    return {};
-  }
-  
-  const categoryConfig = roleConfig[category];
-  if (!categoryConfig) {
-    console.warn(`No ${category} configuration found for role: ${role}`);
-    return {};
-  }
-  
-  return categoryConfig;
+// Helper functions to get role-specific configurations
+export const getRoleConfig = (role) => {
+  return ROLE_CONFIGURATIONS[role] || ROLE_CONFIGURATIONS[ROLE_STRINGS.STUDENT];
 };
 
-/**
- * Check if a role has permission for a specific action
- * @param {string} role - User role
- * @param {string} category - Configuration category
- * @param {string} permission - Permission key
- * @returns {boolean} Whether the role has the permission
- */
 export const hasPermission = (role, category, permission) => {
-  const config = getRoleConfig(role, category);
-  return config[permission] === true;
+  const config = getRoleConfig(role);
+  return config[category]?.[permission] || false;
 };
 
-/**
- * Get the maximum allowed value for a role and category
- * @param {string} role - User role
- * @param {string} category - Configuration category
- * @param {string} limitType - Type of limit (maxFileSize, maxVoiceRecordingTime, etc.)
- * @returns {number} Maximum allowed value
- */
-export const getRoleLimit = (role, category, limitType) => {
-  const config = getRoleConfig(role, category);
-  return config[limitType] || 0;
+export const getLimit = (role, category, limit) => {
+  const config = getRoleConfig(role);
+  return config[category]?.[limit] || 0;
 };
 
-/**
- * Check if a file type is allowed for a role
- * @param {string} role - User role
- * @param {string} category - Configuration category (usually 'files' or 'chat')
- * @param {string} fileType - MIME type of the file
- * @returns {boolean} Whether the file type is allowed
- */
-export const isFileTypeAllowedForRole = (role, category, fileType) => {
-  const config = getRoleConfig(role, category);
-  const allowedTypes = config.allowedFileTypes || [];
-  return allowedTypes.includes(fileType);
+export default {
+  ROLE_CONFIGURATIONS,
+  getRoleConfig,
+  hasPermission,
+  getLimit
 };
-
-/**
- * Get all permissions for a role
- * @param {string} role - User role
- * @returns {Object} All configurations for the role
- */
-export const getAllRolePermissions = (role) => {
-  return ROLE_CONFIGURATIONS[role] || {};
-};
-
-/**
- * Compare two roles and return the higher privilege role
- * @param {string} role1 - First role
- * @param {string} role2 - Second role
- * @returns {string} The role with higher privileges
- */
-export const getHigherPrivilegeRole = (role1, role2) => {
-  const index1 = ROLE_HIERARCHY.indexOf(role1);
-  const index2 = ROLE_HIERARCHY.indexOf(role2);
-  
-  if (index1 === -1) return role2;
-  if (index2 === -1) return role1;
-  
-  return index1 > index2 ? role1 : role2;
-};
-
-/**
- * Check if a role can perform actions on another role
- * @param {string} actorRole - Role performing the action
- * @param {string} targetRole - Role being acted upon
- * @returns {boolean} Whether the actor role has higher privileges
- */
-export const canManageRole = (actorRole, targetRole) => {
-  const higherRole = getHigherPrivilegeRole(actorRole, targetRole);
-  return higherRole === actorRole && actorRole !== targetRole;
-};
-
-// Export the chat limitations for backward compatibility
-export const CHAT_LIMITATIONS = Object.fromEntries(
-  Object.entries(ROLE_CONFIGURATIONS).map(([role, config]) => [role, config.chat])
-);
-
-export const DEFAULT_CHAT_LIMITATIONS = ROLE_CONFIGURATIONS[ROLE_STRINGS.STUDENT].chat;

@@ -1,6 +1,7 @@
 ﻿import { normalizeHexColor, adjustColor, hexToRgbString, DEFAULT_ACCENT } from './color';
 
-// Apply a given color as the global brand color by updating CSS variables on :root
+
+import { info, error, warn, debug } from '@services/utils/logger.js';// Apply a given color as the global brand color by updating CSS variables on :root
 export const applyAccentColorGlobally = (color) => {
   if (typeof document === 'undefined') return;
   const accent = normalizeHexColor(color, DEFAULT_ACCENT);

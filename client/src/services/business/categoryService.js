@@ -1,188 +1,161 @@
-import logger from '@utils/logger';
-import axios from 'axios';
-import { API_BASE, getApiHeaders } from '@services/api/apiConfig';
+import { createServiceLogger } from '@logger';
+import api from '@api';
+import { getDatabaseUserId } from './authService.js';
+
+const logger = createServiceLogger('categoryService');
+
+const normalizeCategory = (item = {}) => ({
+  ...item,
+  descriptionEn: item.descriptionEn ?? item.description ?? '',
+  descriptionAr: item.descriptionAr ?? item.description ?? '',
+  sortOrder: item.sortOrder ?? item.sort ?? 0,
+  icon: item.icon ?? null,
+  color: item.color ?? null
+});
 
 /**
- * Get all categories - with performance monitoring and memoization
+ * Get all categories - using unified lookup endpoint
  */
-export const getCategories = async () => {
+export const getCategories = async (params = {}) => {
   try {
-    const response = await axios.get(API_BASE, {
-      headers: getApiHeaders()
-    });
-    return response.data;
-  } catch (error) {
-    logger.error('CATEGORY: Failed to fetch categories', { error: error.message });
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Seed default categories
- */
-export const seedDefaultCategories = async () => {
-  try {
-    logger.info('CATEGORY: Seeding default categories');
+    logger.info('getCategories', { params });
     
-    const defaultCategories = [
-      {
-        nameEn: 'Programming',
-        nameAr: 'البرمجة',
-        icon: 'code',
-        descriptionEn: 'Programming activities and resources',
-        descriptionAr: 'الأنشطة والموارد البرمجية',
-        color: '#3b82f6',
-        order: 1
-      },
-      {
-        nameEn: 'Computing',
-        nameAr: 'الحوسبة',
-        icon: 'monitor',
-        descriptionEn: 'Computing fundamentals and concepts',
-        descriptionAr: 'أساسيات ومفاهيم الحوسبة',
-        color: '#0ea5e9',
-        order: 2
-      },
-      {
-        nameEn: 'Algorithm',
-        nameAr: 'الخوارزميات',
-        icon: 'brain',
-        descriptionEn: 'Algorithm design and analysis',
-        descriptionAr: 'تصميم وتحليل الخوارزميات',
-        color: '#8b5cf6',
-        order: 3
-      },
-      {
-        nameEn: 'General',
-        nameAr: 'عام',
-        icon: 'folder',
-        descriptionEn: 'General activities and resources',
-        descriptionAr: 'الأنشطة والموارد العامة',
-        color: '#6b7280',
-        order: 4
-      }
-    ];
-
-    const results = [];
-    for (const category of defaultCategories) {
-      try {
-        const result = await addCategory(category, { uid: 'system' });
-        if (result.success) {
-          logger.info('CATEGORY: Successfully seeded category', { name: category.nameEn, docId: result.id });
-          results.push({ action: 'created', category: category.nameEn, success: true, id: result.id });
-        } else {
-          logger.warn('CATEGORY: Failed to seed category', { name: category.nameEn, error: result.error });
-          results.push({ action: 'error', category: category.nameEn, success: false, error: result.error });
-        }
-      } catch (error) {
-        logger.error('CATEGORY: Error seeding category', { name: category.nameEn, error: error.message });
-        results.push({ action: 'error', category: category.nameEn, success: false, error: error.message });
-      }
+    // Use unified lookup endpoint instead of deprecated category-types endpoint
+    const queryParams = new URLSearchParams({
+      types: 'category-types',
+      activeOnly: params.activeOnly !== false ? 'true' : 'false',
+      ...(params.orderBy && { orderBy: params.orderBy }),
+      ...(params.page && { page: params.page.toString() }),
+      ...(params.limit && { limit: params.limit.toString() })
+    });
+    
+    const result = await api.get(`/lookup?${queryParams}`);
+    
+    // Extract the category-types array from the lookup response
+    if (result.success && result.data && result.data['category-types']) {
+      return {
+        success: true,
+        data: (result.data['category-types'] || []).map(normalizeCategory),
+        error: null
+      };
     }
-
-    logger.info('CATEGORY: Seeding completed', { total: results.length, successful: results.filter(r => r.success).length });
-    return { success: true, data: results };
+    
+    return {
+      success: false,
+      error: 'Category types not found in response',
+      data: []
+    };
   } catch (error) {
-    logger.error('CATEGORY: Error seeding categories', { error: error.message });
-    return { success: false, error: error.message };
+    logger.error('getCategories', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to retrieve categories',
+      data: []
+    };
   }
 };
 
 /**
- * Add a new category
+ * Add a new category - using lookup CRUD endpoint
  */
 export const addCategory = async (categoryData, user = null) => {
   try {
-    logger.info('CATEGORY: Adding new category', { name: categoryData.nameEn });
+    logger.info('addCategory', { categoryData, user });
     
-    const response = await fetch(API_BASE, {
-      method: 'POST',
-      headers: getApiHeaders(),
-      body: JSON.stringify(categoryData),
-    });
+    // Use lookup CRUD endpoint for creating categories
+    // Get database user ID from Keycloak user
+    const userId = await getDatabaseUserId(user);
+    const requestData = {
+      ...categoryData,
+      sort: categoryData.sortOrder ?? categoryData.sort ?? 0,
+      createdBy: userId,
+      updatedBy: userId
+    };
     
-    const result = await response.json();
+    const result = await api.post('/lookup/category-types', requestData);
     
     if (result.success) {
-      logger.info('CATEGORY: Successfully added category', { name: categoryData.nameEn, docId: result.id });
-    } else {
-      logger.warn('CATEGORY: Failed to add category', { name: categoryData.nameEn, error: result.error });
+      logger.info('addCategory - Category created successfully', result.data);
     }
     
     return result;
   } catch (error) {
-    logger.error('CATEGORY: Error adding category', { error: error.message });
-    return { success: false, error: error.message };
+    logger.error('addCategory', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to create category',
+      data: null
+    };
   }
 };
 
 /**
- * Update an existing category
+ * Update an existing category - using lookup CRUD endpoint
  */
-export const updateCategory = async (docId, categoryData, user = null) => {
+export const updateCategory = async (categoryId, categoryData, user = null) => {
   try {
-    logger.info('CATEGORY: Updating category', { docId, name: categoryData.nameEn });
+    logger.info('updateCategory', { categoryId, categoryData, user });
     
-    const response = await fetch(API_BASE, {
-      method: 'PUT',
-      headers: getApiHeaders(),
-      body: JSON.stringify({ id: docId, ...categoryData }),
-    });
+    // Use lookup CRUD endpoint for updating categories
+    // Get database user ID from Keycloak user
+    const userId = await getDatabaseUserId(user);
+    const requestData = {
+      ...categoryData,
+      sort: categoryData.sortOrder ?? categoryData.sort ?? 0,
+      updatedBy: userId
+    };
     
-    const result = await response.json();
+    const result = await api.put(`/lookup/category-types/${categoryId}`, requestData);
     
     if (result.success) {
-      logger.info('CATEGORY: Successfully updated category', { docId, name: categoryData.nameEn });
-    } else {
-      logger.warn('CATEGORY: Failed to update category', { docId, name: categoryData.nameEn, error: result.error });
+      logger.info('updateCategory - Category updated successfully', result.data);
     }
     
     return result;
   } catch (error) {
-    logger.error('CATEGORY: Error updating category', { docId, error: error.message });
-    return { success: false, error: error.message };
+    logger.error('updateCategory', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to update category',
+      data: null
+    };
   }
 };
 
 /**
- * Delete a category
+ * Delete a category - using lookup CRUD endpoint
  */
-export const deleteCategory = async (docId) => {
+export const deleteCategory = async (categoryId, user = null) => {
   try {
-    logger.info('CATEGORY: Deleting category', { docId });
+    logger.info('deleteCategory', { categoryId, user });
     
-    const response = await fetch(`${API_BASE}?id=${docId}`, {
-      method: 'DELETE',
-      headers: getApiHeaders(),
-    });
+    // Use lookup CRUD endpoint for deleting categories
+    // Get database user ID from Keycloak user
+    const userId = await getDatabaseUserId(user);
+    const requestData = {
+      updatedBy: userId
+    };
     
-    const result = await response.json();
+    const result = await api.delete(`/lookup/category-types/${categoryId}`, { data: requestData });
     
     if (result.success) {
-      logger.info('CATEGORY: Successfully deleted category', { docId });
-    } else {
-      logger.warn('CATEGORY: Failed to delete category', { docId, error: result.error });
+      logger.info('deleteCategory - Category deleted successfully');
     }
     
     return result;
   } catch (error) {
-    logger.error('CATEGORY: Error deleting category', { docId, error: error.message });
-    return { success: false, error: error.message };
+    logger.error('deleteCategory', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to delete category',
+      data: null
+    };
   }
 };
 
-/**
- * Get category by ID
- */
-export const getCategoryById = async (docId) => {
-  try {
-    const response = await fetch(`${API_BASE}?id=${docId}`, {
-      headers: getApiHeaders()
-    });
-    const result = await response.json();
-    return result;
-  } catch (error) {
-    logger.error('CATEGORY: Error fetching category by ID', { docId, error: error.message });
-    return { success: false, error: error.message };
-  }
+export default {
+  getCategories,
+  addCategory,
+  updateCategory,
+  deleteCategory
 };

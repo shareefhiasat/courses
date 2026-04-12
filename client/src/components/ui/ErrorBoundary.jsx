@@ -12,7 +12,11 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    console.error('ErrorBoundary caught an error', { 
+      errorMessage: error.message, 
+      stack: error.stack, 
+      componentStack: errorInfo.componentStack 
+    });
     this.setState({
       error,
       errorInfo
@@ -40,7 +44,7 @@ const ErrorFallback = ({ error, errorInfo, resetError }) => {
   try {
     navigate = useNavigate();
   } catch (navError) {
-    console.warn('useNavigate not available in ErrorFallback:', navError);
+    console.warn('useNavigate not available in ErrorFallback', { error: navError.message });
     // Fallback: use window.location for navigation
     navigate = (path) => {
       window.location.href = path;
@@ -140,7 +144,7 @@ const ErrorFallback = ({ error, errorInfo, resetError }) => {
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word'
             }}>
-              <strong>Error:</strong> {error.toString()}
+              <strong>Error:</strong> {typeof error === 'function' ? 'Function Error' : (error?.toString?.() || String(error))}
               {errorInfo && (
                 <>
                   <br /><br />

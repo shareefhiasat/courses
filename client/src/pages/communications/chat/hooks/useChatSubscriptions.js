@@ -5,8 +5,6 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { doc } from 'firebase/firestore';
-import { db } from '@services/other/config';
 import { getClasses } from '@services/business/classService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getUsers } from '@services/business/userService';
@@ -14,7 +12,7 @@ import { getUserProfile } from '@services/business/userService';
 import { chatService } from '@services/business/chatService';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { ActivityLogger } from '@services/other/activityLogger';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 import { LOCAL_STORAGE_KEYS } from '../constants/chatConstants';
 import { getChatType, getChatId } from '../utils/chatHelpers';
@@ -120,7 +118,7 @@ export const useChatSubscriptions = (user, isAdmin, state, actions) => {
           // Auto-select first class for students if needed
           if (!userHasInteracted && (!selectedClass || selectedClass === 'global')) {
             if (all.length > 0) {
-              logger.info('Auto-selecting first class', { 
+              info('Auto-selecting first class', { 
                 reason: 'student_auto_select',
                 currentSelectedClass: selectedClass,
                 firstClassId: all[0].docId,
@@ -141,7 +139,7 @@ export const useChatSubscriptions = (user, isAdmin, state, actions) => {
         } catch {}
         setLoading(false);
       } catch (error) {
-        logger.error('Error setting up classes subscription:', error);
+        error('Error setting up classes subscription:', error);
         setLoading(false);
       }
     };
@@ -201,7 +199,7 @@ export const useChatSubscriptions = (user, isAdmin, state, actions) => {
               hasAttachment: !!(msg.voiceUrl || msg.fileUrl)
             });
           } catch (logError) {
-            logger.warn('Failed to log message received activity:', logError);
+            warn('Failed to log message received activity:', logError);
           }
         }
       });
@@ -215,7 +213,7 @@ export const useChatSubscriptions = (user, isAdmin, state, actions) => {
         newMessageIds.forEach(id => lastProcessedMessageRef.current.add(id));
       }
       
-      logger.info('Messages loaded', { 
+      info('Messages loaded', { 
         chatType, 
         chatId, 
         messageCount: msgs.length
@@ -232,7 +230,7 @@ export const useChatSubscriptions = (user, isAdmin, state, actions) => {
         } catch {}
       })();
     }, (error) => {
-      logger.error('Error loading messages:', error);
+      error('Error loading messages:', error);
     });
     
     return unsubscribe;
@@ -255,7 +253,7 @@ export const useChatSubscriptions = (user, isAdmin, state, actions) => {
       const unsub = loadMessages();
       messagesUnsubRef.current = unsub;
     } catch (e) {
-      logger.error('Failed to (re)subscribe messages:', e);
+      error('Failed to (re)subscribe messages:', e);
     }
     return () => {
       if (messagesUnsubRef.current) {

@@ -2,7 +2,8 @@ import React from 'react';
 import { getColoredIcon } from '@constants/iconTypes';
 import PortalTooltip from '@ui/PortalTooltip';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Reusable difficulty filter chips component
  * Used in HomePage, StudentDashboard, and ReviewResultsPage
  */

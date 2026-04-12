@@ -1,0 +1,8 @@
+✅ Authentication completed
+🔍 Navigating to Programs page...
+📍 Direct navigation to programs tab
+📄 Page contains program content: false
+🔍 Current URL: http://localhost:8080/realms/military-lms/protocol/openid-connect/auth?client_id=military-lms-app&redirect_uri=http%3A%2F%2Flocalhost%3A5174%2Fdashboard%3Ftab%3Dprograms&state=c6301c77-0da6-4a7d-8971-2316c97cdb47&response_mode=fragment&response_type=code&scope=openid&nonce=dddae8b9-3a34-46f1-9663-2b3176df2388&code_challenge=83YQpPOMjHgz7D8ldPj52wckRGkJrYmClY7HycbUL08&code_challenge_method=S256
+🎯 Found elements: []
+❌ No program interface elements found
+📄 Taking screenshot for debugging...

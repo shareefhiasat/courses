@@ -2,7 +2,8 @@ import React, { forwardRef, useMemo } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './UrlInput.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * UrlInput
  * - Better UX for URLs with prefix icon and quick actions (open, copy, clear)
  * - Validates URL and shows error styling

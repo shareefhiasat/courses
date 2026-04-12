@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -7,7 +7,10 @@ import { getThemedIcon, CATEGORY_ICONS } from '@constants';
 import { Button, Select, SimpleLoading, Textarea, useToast, AdvancedDataGrid, Card, CardBody, Input } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { getCategories, addCategory, updateCategory, deleteCategory } from '@services/business/categoryService';
-import { getUsers } from '@services/business/userService';
+import { getUsers, getUserDisplayName } from '@services/business/userService';
+import { getUserDisplayName as getAuthUserDisplayName } from '@services/business/authService';
+import { formatDateTime } from '@utils/dateUtils.js';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
 import { 
   PAGE_STATES, 
   FORM_STATES
@@ -18,6 +21,13 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
+  
+  // Use lookup hook for category-types (always call hook, conditionally use data)
+  const { data: lookupData, loading: lookupLoading, error: lookupError, refetch: refetchLookup } = useLookupTypes({
+    types: ['category-types'],
+    activeOnly: true // Only show active categories in the grid
+  });
+  
   const [pageState, setPageState] = useState(PAGE_STATES.LOADING);
   const [formState, setFormState] = useState(FORM_STATES.IDLE);
   const [categories, setCategories] = useState([]);
@@ -26,14 +36,32 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [formData, setFormData] = useState({
     nameEn: '',
     nameAr: '',
+    code: '',
     icon: '',
     descriptionEn: '',
     descriptionAr: '',
     color: '#3b82f6',
-    order: 1
+    sortOrder: 1
   });
   const [saving, setSaving] = useState(false);
-  const [userMap, setUserMap] = useState(new Map()); // Cache for user lookups
+  // Remove user caching since backend now includes user objects in the response
+
+  // Check if user has permission to view categories
+  const hasPermission = isInstructor || isAdmin || isSuperAdmin;
+  
+  // Don't render anything if user doesn't have permission
+  if (!hasPermission) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <div style={{ fontSize: '1.125rem', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+          {t('access_denied') || 'Access Denied'}
+        </div>
+        <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
+          {t('categories_permission_required') || 'You need instructor or admin privileges to view categories.'}
+        </div>
+      </div>
+    );
+  }
 
   // Refs for uncontrolled inputs
   const nameEnRef = useRef(null);
@@ -59,101 +87,22 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     };
   }, [formData.nameEn, formData.nameAr, formData.descriptionEn, formData.descriptionAr]);
 
-  // Get user display name with caching
-  const getUserDisplayName = useCallback(async (userId) => {
-    if (!userId) return '—';
-    if (userId === 'system') return t('system') || 'System';
-    
-    // Check cache first
-    if (userMap.has(userId)) {
-      return userMap.get(userId);
-    }
-    
-    try {
-      const result = await getUsers();
-      if (result.success && result.data) {
-        const user = result.data.find(u => u.id === userId);
-        if (user) {
-          const displayName = user.displayName || user.email || userId;
-          setUserMap(prev => new Map(prev.set(userId, displayName)));
-          return displayName;
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to fetch user details:', error);
-    }
-    
-    return userId; // Fallback to UID if lookup fails
-  }, [userMap, t]);
+  // Debug: Monitor form data changes
+  useEffect(() => {
+    info('🔍 [FORM] Form data changed:', formData);
+  }, [formData]);
 
-  // Format date like other grids (handles string dates from Activities/Resources pattern)
+  // Format date with time in Qatar timezone
   const formatDate = useCallback((dateValue) => {
-    if (!dateValue) return '—';
-    
-    try {
-      // Handle string dates (e.g., "February 28, 2026 at 3:43:36 PM UTC+3")
-      if (typeof dateValue === 'string') {
-        const date = new Date(dateValue);
-        if (isNaN(date.getTime())) {
-          // If parsing fails, return the original string
-          return dateValue;
-        }
-        
-        const now = new Date();
-        const diffMs = now - date;
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        
-        // If within last 7 days, show relative time
-        if (diffDays < 7) {
-          if (diffDays === 0) {
-            return t('today') || 'Today';
-          } else if (diffDays === 1) {
-            return t('yesterday') || 'Yesterday';
-          } else {
-            return `${diffDays} ${t('days_ago') || 'days ago'}`;
-          }
-        }
-        
-        // Otherwise show formatted date
-        return date.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        });
-      }
-      
-      // Handle Date objects (fallback for any remaining Date objects)
-      const date = new Date(dateValue);
-      const now = new Date();
-      const diffMs = now - date;
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      
-      if (diffDays < 7) {
-        if (diffDays === 0) {
-          return t('today') || 'Today';
-        } else if (diffDays === 1) {
-          return t('yesterday') || 'Yesterday';
-        } else {
-          return `${diffDays} ${t('days_ago') || 'days ago'}`;
-        }
-      }
-      
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch (error) {
-      return dateValue;
-    }
-  }, [t]);
+    return formatDateTime(dateValue, lang);
+  }, [lang]);
 
   // Dynamic form validation
   const formErrors = useMemo(() => {
     const errors = {};
     
-    if (formData.order && (isNaN(formData.order) || parseInt(formData.order) < 1)) {
-      errors.order = t('categories_order_must_be_positive');
+    if (formData.sortOrder && (isNaN(formData.sortOrder) || parseInt(formData.sortOrder) < 1)) {
+      errors.sort = t('categories_sort_must_be_positive');
     }
     
     return errors;
@@ -166,7 +115,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   // Dynamic icon options from centralized icon system
   const iconOptions = useMemo(() => {
-    return CATEGORY_ICONS.map(icon => ({
+    return Object.values(CATEGORY_ICONS).map(icon => ({
       value: icon,
       label: t(icon) || icon.charAt(0).toUpperCase() + icon.slice(1).replace('_', ' '),
       icon: icon
@@ -187,37 +136,26 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   }, [categories]);
 
   useEffect(() => {
-    if (!isInstructor && !isAdmin && !isSuperAdmin) return;
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInstructor, isAdmin, isSuperAdmin]);
-
-  const loadData = useCallback(async () => {
-    setPageState(PAGE_STATES.LOADING);
-    try {
-      const result = await getCategories();
-      if (result.success) {
-        // Sort categories by order field
-        const sortedCategories = (result.data || []).sort((a, b) => 
-          (a.order || 999) - (b.order || 999)
-        );
-        setCategories(sortedCategories);
-        
-        // Success message shown silently - no toast for data loading
-        // if (sortedCategories.length > 0) {
-        //   toast.success(t('categories_loaded_successfully') || `Loaded ${sortedCategories.length} categories`);
-        // }
-      } else {
-        toast.error(t('failed_to_load_categories') + ': ' + result.error);
-      }
-    } catch (error) {
-      logger.error('Failed to load categories:', error);
-      toast.error(t('failed_to_load_categories') + ': ' + error.message);
-      setPageState(PAGE_STATES.ERROR);
-    } finally {
+    // Update categories when lookup data changes (permission already checked above)
+    if (lookupData && lookupData['category-types']) {
+      const categoryTypes = lookupData['category-types'] || [];
+      info('🔍 [LOAD] Categories loaded from lookup:', categoryTypes);
+      // Sort categories by sort field
+      const sortedCategories = categoryTypes.sort((a, b) => 
+        (a.sortOrder ?? a.sort ?? 999) - (b.sortOrder ?? b.sort ?? 999)
+      );
+      info('🔍 [LOAD] Sorted categories:', sortedCategories);
+      setCategories(sortedCategories);
       setPageState(PAGE_STATES.READY);
+    } else if (lookupError) {
+      error('Failed to load categories:', lookupError);
+      toast.error(t('failed_to_load_categories') + ': ' + lookupError.message);
+      setPageState(PAGE_STATES.ERROR);
+    } else if (lookupLoading) {
+      setPageState(PAGE_STATES.LOADING);
     }
-  }, [t, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lookupData, lookupLoading, lookupError, t, toast]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -237,83 +175,112 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
       const categoryData = {
         nameEn: textValues.nameEn.trim(),
         nameAr: textValues.nameAr.trim(),
+        code: formData.code.trim() || textValues.nameEn.trim().toUpperCase().replace(/\s+/g, '_'),
         icon: formData.icon.trim(),
         descriptionEn: textValues.descriptionEn.trim(),
         descriptionAr: textValues.descriptionAr.trim(),
         color: formData.color,
-        order: parseInt(formData.order) || 1
+        sortOrder: parseInt(formData.sortOrder) || 1
       };
+      
+      info('🔍 [SUBMIT] Submitting category data:', categoryData);
+      info('🔍 [SUBMIT] Form state before submit:', formData);
+      info('🔍 [SUBMIT] Text values from refs:', textValues);
 
       if (editingCategory) {
-        // Update existing category
-        const result = await updateCategory(editingCategory.docId || editingCategory.id, categoryData, user);
+        // Update existing category - use categoryService
+        info('🔍 [SUBMIT] Updating category with ID:', editingCategory.id);
+        const result = await updateCategory(editingCategory.id, categoryData, user);
+        info('🔍 [SUBMIT] Update result:', result);
+        
         if (result.success) {
           toast.success(t('category_updated_successfully') || 'Category updated successfully');
+          // Refetch lookup data to refresh the grid
+          refetchLookup();
         } else {
-          toast.error(t('categories_failed_to_update_category') + result.error);
+          toast.error(t('categories_failed_to_update_category') + (result.error || result.message));
         }
       } else {
-        // Create new category
+        // Create new category - use categoryService
+        info('🔍 [SUBMIT] Creating new category');
         const result = await addCategory(categoryData, user);
+        info('🔍 [SUBMIT] Create result:', result);
+        
         if (result.success) {
           toast.success(t('category_created_successfully') || 'Category created successfully');
+          // Refetch lookup data to refresh the grid
+          refetchLookup();
         } else {
-          toast.error(t('categories_failed_to_create_category') + result.error);
+          toast.error(t('categories_failed_to_create_category') + (result.error || result.message));
         }
       }
       
       resetForm();
-      loadData();
+      // Refresh the lookup data by triggering a re-fetch
+      // The lookup hook will automatically update when the data changes
     } catch (error) {
-      logger.error('Failed to save category:', error);
+      error('Failed to save category:', error);
       toast.error(t('categories_failed_to_save_category') + error.message);
     } finally {
       setSaving(false);
     }
-  }, [formData, editingCategory, t, toast, loadData, formErrors, isFormValid, syncRefsToState]);
+  }, [formData, editingCategory, t, toast, formErrors, isFormValid, syncRefsToState, user, refetchLookup]);
 
   const handleEdit = useCallback((category) => {
+    info('🔍 [EDIT] Editing category:', category);
     setEditingCategory(category);
-    setFormData({
+    
+    const formDataToSet = {
       nameEn: category.nameEn || '',
       nameAr: category.nameAr || '',
+      code: category.code || '',
       icon: category.icon || '',
       descriptionEn: category.descriptionEn || '',
       descriptionAr: category.descriptionAr || '',
       color: category.color || '#3b82f6',
-      order: category.order || 1
-    });
+      sortOrder: category.sortOrder ?? category.sort ?? 1
+    };
+    
+    info('🔍 [EDIT] Setting form data:', formDataToSet);
+    setFormData(formDataToSet);
   }, []);
 
   const handleDelete = useCallback((category) => {
     deleteEntity('category', category, async () => {
-      setCategories(prev => prev.filter(c => c.docId !== category.docId));
+      // Optimistically remove from UI
+      setCategories(prev => prev.filter(c => c.id !== category.id));
       try {
-        const result = await deleteCategory(category.docId || category.id);
+        const result = await deleteCategory(category.id, user);
+        info('🔍 [DELETE] Delete result:', result);
+        
         if (result.success) {
-          toast?.showSuccess(t('category_deleted_successfully'));
-          await loadData();
+          toast?.success(t('category_deleted_successfully') || 'Category deleted successfully');
+          // Refetch lookup data to refresh the grid
+          refetchLookup();
         } else {
+          // Rollback on failure
           setCategories(prev => [...prev, category]);
-          toast?.showError(result.error);
+          toast?.showError(result.error || result.message);
         }
       } catch (error) {
+        // Rollback on error
         setCategories(prev => [...prev, category]);
-        logger.error('Delete failed:', error);
+        error('Delete failed:', error);
         toast?.showError(error.message);
       }
     });
-  }, [deleteEntity, toast, t, loadData]);
+  }, [deleteEntity, toast, t, user, refetchLookup]);
 
   const resetForm = () => {
     setFormData({
       nameEn: '',
       nameAr: '',
+      code: '',
       icon: '',
       descriptionEn: '',
       descriptionAr: '',
       color: '#3b82f6',
-      order: 1
+      sortOrder: 1
     });
     setEditingCategory(null);
   };
@@ -385,11 +352,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '4px',
-            padding: '4px 8px',
-            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-            borderRadius: '4px',
-            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb'
+            gap: '4px'
           }}>
             {getThemedIcon('ui', icon, 16, theme)}
             {icon}
@@ -424,10 +387,14 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
       }
     },
     {
-      field: 'order',
-      headerName: t('order') || 'Order',
+      field: 'sortOrder',
+      headerName: t('sort') || 'Sort',
       flex: 0.5,
-      minWidth: 80
+      minWidth: 80,
+      renderCell: (params) => {
+        const value = params?.value ?? params?.row?.sortOrder ?? params?.row?.sort;
+        return value || '—';
+      }
     },
     {
       field: 'createdAt',
@@ -440,24 +407,18 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
       }
     },
     {
-      field: 'createdBy',
+      field: 'creator',
       headerName: t('created_by') || 'Created By',
       flex: 1,
       minWidth: 150,
       renderCell: (params) => {
-        const value = params?.value;
-        if (!value || value === 'system') {
-          return t('system') || 'System';
+        const creator = params?.row?.creator;
+        if (!creator) {
+          return '—'; // Show dash for null/empty creator
         }
         
-        // Use async lookup in renderCell
-        const [displayName, setDisplayName] = useState(value);
-        
-        useEffect(() => {
-          getUserDisplayName(value).then(setDisplayName);
-        }, [value]);
-        
-        return displayName;
+        // Use centralized authService for consistent display
+        return getAuthUserDisplayName(creator);
       }
     },
     {
@@ -471,24 +432,18 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
       }
     },
     {
-      field: 'updatedBy',
+      field: 'updater',
       headerName: t('updated_by') || 'Updated By',
       flex: 1,
       minWidth: 150,
       renderCell: (params) => {
-        const value = params?.value;
-        if (!value || value === 'system') {
-          return t('system') || 'System';
+        const updater = params?.row?.updater;
+        if (!updater) {
+          return '—'; // Show dash for null/empty updater
         }
         
-        // Use async lookup in renderCell
-        const [displayName, setDisplayName] = useState(value);
-        
-        useEffect(() => {
-          getUserDisplayName(value).then(setDisplayName);
-        }, [value]);
-        
-        return displayName;
+        // Use centralized authService for consistent display
+        return getAuthUserDisplayName(updater);
       }
     },
     {
@@ -507,6 +462,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               onClick={() => handleEdit(row)}
               disabled={hideActions}
               icon={getThemedIcon('ui', 'edit', 16, theme)}
+              title={t('edit_category') || 'Edit Category'}
             >
               {t('edit') || 'Edit'}
             </Button>
@@ -517,6 +473,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               disabled={hideActions}
               style={{ color: '#dc2626' }}
               icon={getThemedIcon('ui', 'trash', 16, theme)}
+              title={t('delete_category') || 'Delete Category'}
             >
               {t('delete') || 'Delete'}
             </Button>
@@ -524,7 +481,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         );
       }
     }
-  ], [theme, t, handleEdit, handleDelete, hideActions]);
+  ], [theme, t, handleEdit, handleDelete, hideActions, toast]);
 
   return (
     <div>
@@ -543,6 +500,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
       )}
 
+      {/* Category Form */}
       <form onSubmit={handleSubmit} className="dashboard-form">
           <div className="form-row">
             <input
@@ -563,26 +521,37 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               required
             />
             <Input
-              value={formData.order}
-              onChange={(e) => setFormData({ ...formData, order: e.target.value })}
+              value={formData.code}
+              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+              type="text"
+              placeholder={t('enter_code') || 'Enter code (auto-generated if empty)'}
+              error={formErrors.code}
+            />
+            <Input
+              value={formData.sortOrder}
+              onChange={(e) => setFormData({ ...formData, sortOrder: e.target.value })}
               type="number"
               min="1"
-              placeholder={t('enter_order') || 'Enter order'}
-              error={formErrors.order}
+              placeholder={t('enter_sort') || 'Enter sort'}
+              error={formErrors.sort}
             />
           </div>
           <div className="form-row">
             <div style={{ flex: 1 }}>
               <Select
                 value={formData.icon}
-                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                onChange={(e) => {
+                  const newIcon = e.target.value;
+                  info('🔍 [ICON] Icon changed from', formData.icon, 'to', newIcon);
+                  setFormData({ ...formData, icon: newIcon });
+                }}
                 options={[
                   { value: '', label: t('select_icon') || 'Select Icon' },
                   ...iconOptions.map(opt => ({
                     value: opt.value,
                     label: (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {getThemedIcon('ui', opt.icon, 16, theme)}
+                        {getThemedIcon('ui', opt.value, 16, theme)}
                         <span>{opt.label}</span>
                       </div>
                     )
@@ -608,7 +577,11 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
             </div>
             <Input
               value={formData.color}
-              onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+              onChange={(e) => {
+                const newColor = e.target.value;
+                info('🔍 [COLOR] Color changed from', formData.color, 'to', newColor);
+                setFormData({ ...formData, color: newColor });
+              }}
               type="color"
               placeholder={t('select_color') || 'Select color'}
             />

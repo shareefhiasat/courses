@@ -6,7 +6,8 @@ import { useTheme } from '@contexts/ThemeContext';
 import { Button, Card, CardBody } from '@ui';
 import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 import { getUserRoleDisplay } from '@utils/userUtils';
-import './UnauthorizedPage.css';
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import './UnauthorizedPage.css';
 
 /**
  * UnauthorizedPage Component
@@ -34,7 +35,7 @@ const UnauthorizedPage = () => {
   // If user is super admin and auth is loaded, redirect to dashboard
   useEffect(() => {
     if (!loading && user && isSuperAdmin) {
-      console.log('🔍 [UnauthorizedPage] Super admin detected, redirecting to dashboard');
+      info('🔍 [UnauthorizedPage] Super admin detected, redirecting to dashboard');
       navigate('/dashboard', { replace: true });
     }
   }, [loading, user, isSuperAdmin, navigate]);

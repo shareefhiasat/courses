@@ -2,7 +2,8 @@ import { useState, useCallback } from 'react';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { createDeleteModalState, resetDeleteModalState } from '@utils/deleteMessages';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * useDeleteModal Hook
  * 
  * Provides a standardized way to handle delete modals across all screens.
@@ -40,7 +41,7 @@ export const useDeleteModal = (t = (key) => key) => {
       try {
         await deleteModal.onConfirm();
       } catch (error) {
-        logger.error('Delete operation failed:', error);
+        error('Delete operation failed:', error);
         // Don't re-throw, just log and close modal
       } finally {
         hideDeleteModal();

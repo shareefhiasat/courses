@@ -4,7 +4,8 @@ import { useLang } from '@contexts/LangContext';
 import styles from './WindowControls.module.css';
 import PortalTooltip from '@ui/PortalTooltip';
 
-const WindowControls = ({ 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const WindowControls = ({ 
   title, 
   isPinned, 
   isMinimized, 

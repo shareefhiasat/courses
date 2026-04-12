@@ -6,7 +6,7 @@ import { ROLE_STRINGS } from '@constants';
 import { Button, Select, Modal, Card } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import WidgetConfigurationService from '@services/widgetConfigurationService';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * WidgetAssignmentManager
@@ -89,13 +89,13 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
     };
     
     setAssignedWidgets(prev => [...prev, newWidget]);
-    logger.log(`[WidgetAssignmentManager] Added widget: ${template.title}`);
+    info(`[WidgetAssignmentManager] Added widget: ${template.title}`);
   }, []);
 
   // Remove a widget from the dashboard
   const handleRemoveWidget = useCallback((widgetId) => {
     setAssignedWidgets(prev => prev.filter(w => w.id !== widgetId));
-    logger.log(`[WidgetAssignmentManager] Removed widget: ${widgetId}`);
+    info(`[WidgetAssignmentManager] Removed widget: ${widgetId}`);
   }, []);
 
   // Save widget assignments
@@ -110,10 +110,10 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
         widgets: assignedWidgets
       });
       
-      logger.log(`[WidgetAssignmentManager] Saved configuration for ${selectedRole}_${selectedDashboard}`);
+      info(`[WidgetAssignmentManager] Saved configuration for ${selectedRole}_${selectedDashboard}`);
       onClose();
     } catch (error) {
-      logger.error('[WidgetAssignmentManager] Error saving configuration:', error);
+      error('[WidgetAssignmentManager] Error saving configuration:', error);
     } finally {
       setIsSaving(false);
     }

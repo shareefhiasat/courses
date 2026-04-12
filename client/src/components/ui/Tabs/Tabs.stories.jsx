@@ -2,7 +2,8 @@ import React from 'react';
 import Tabs from './Tabs';
 import { Home, User, Settings, Bell } from 'lucide-react';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'UI/Tabs',
   component: Tabs,
   tags: ['autodocs'],

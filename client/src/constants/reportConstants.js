@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 /**
  * Report Constants
  * Centralized constants for report types, storage, and file operations

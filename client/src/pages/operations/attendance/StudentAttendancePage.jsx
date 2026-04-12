@@ -1,8 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { scanAttendance, simpleDeviceHash, getAttendanceStats } from '@services/business/attendanceService';
+import { getStudentAttendanceHistory, findOpenAttendanceSessionByCode } from '@services/business/attendanceRealtimeService';
+import { getUserProfile } from '@services/business/userService';
+import { getEnrollments } from '@services/business/enrollmentService';
 import { getClasses } from '@services/business/classService';
 import { Button, Select, DatePicker, useToast } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
@@ -86,7 +89,7 @@ const StudentAttendancePage = () => {
             }
             await html5QrCodeRef.current.clear();
           } catch (e) {
-            logger.warn('[StudentAttendance] Cleanup warning:', e);
+            warn('[StudentAttendance] Cleanup warning:', e);
           }
         }
         
@@ -151,12 +154,12 @@ const StudentAttendancePage = () => {
             // Ignore scanning errors (they're frequent during scanning)
             // Only show errors if scanning is not active
             if (!scanning) {
-              logger.debug('[QR Scanner]', errorMessage);
+              debug('[QR Scanner]', errorMessage);
             }
           }
         );
       } catch (e) {
-        logger.error('[StudentAttendance] QR Scanner error:', e);
+        error('[StudentAttendance] QR Scanner error:', e);
         setMessage(e?.message || t('student_attendance_failed_to_start_camera'));
         setScanning(false);
         
@@ -232,13 +235,8 @@ const StudentAttendancePage = () => {
     const load = async () => {
       if (!user?.uid) return;
       try {
-        const { doc, getDoc, collection, getDocs, query, where } = await import('firebase/firestore');
-        const { db } = await import('@services/other/config');
-        const { getEnrollments } = await import('@services/business/enrollmentService');
-        
         // Get user data including visibility preference
-        const userSnap = await getDoc(doc(db, 'users', user.uid));
-        const userData = userSnap.exists() ? userSnap.data() : {};
+        const userData = await getUserProfile(user);
         let ids = Array.isArray(userData.enrolledClasses) ? userData.enrolledClasses : [];
         
         // Also check enrollments collection
@@ -272,7 +270,7 @@ const StudentAttendancePage = () => {
         setClassOptions(options);
         if (!classId && options.length === 1) setClassId(options[0].id);
       } catch (e) {
-        logger.error('[StudentAttendance] Error loading classes:', e);
+        error('[StudentAttendance] Error loading classes:', e);
       }
     };
     load();
@@ -284,84 +282,17 @@ const StudentAttendancePage = () => {
       if (!user?.uid) return;
       setHistLoading(true);
       try {
-        const { collection, getDocs, query, where, orderBy, doc, getDoc } = await import('firebase/firestore');
-        const { db } = await import('@services/other/config');
-        
-        // Get all attendance sessions
-        const sessionsQuery = query(collection(db, 'attendanceSessions'), orderBy('createdAt', 'desc'));
-        const sessionsSnap = await getDocs(sessionsQuery);
-        
-        const allMarks = [];
-        
-        // For each session, get the mark for this student
-        for (const sessionDoc of sessionsSnap.docs) {
-          const sessionData = sessionDoc.data();
-          const sessionId = sessionDoc.id;
+        const allMarks = await getStudentAttendanceHistory({
+          userId: user.uid,
+          classFilter: histClassFilter,
+          statusFilter,
+          fromDate,
+          toDate,
+        });
 
-          // Apply class filter early
-          if (histClassFilter !== 'all' && sessionData.classId !== histClassFilter) {
-            continue;
-          }
-
-          // Get mark for this student
-          try {
-            const markDoc = await getDoc(doc(db, 'attendanceSessions', sessionId, 'marks', user.uid));
-            if (markDoc.exists()) {
-              const markData = markDoc.data();
-              const markDate = markData.at?.toDate ? markData.at.toDate() : (markData.updatedAt?.toDate ? markData.updatedAt.toDate() : new Date(sessionData.createdAt?.toDate ? sessionData.createdAt.toDate() : sessionData.createdAt || 0));
-
-              // Apply date filters
-              if (fromDate) {
-                const from = new Date(fromDate);
-                if (markDate < from) continue;
-              }
-              if (toDate) {
-                const to = new Date(toDate);
-                to.setHours(23, 59, 59, 999);
-                if (markDate > to) continue;
-              }
-              
-              // Apply status filter
-              if (statusFilter !== 'all') {
-                const status = markData.status || 'present';
-                if (status !== statusFilter) continue;
-              }
-              
-              // Get class name
-              let className = sessionData.classId;
-              try {
-                const classDoc = await getDoc(doc(db, 'classes', sessionData.classId));
-                if (classDoc.exists()) {
-                  const classData = classDoc.data();
-                  className = classData.name || classData.code || sessionData.classId;
-                }
-              } catch {}
-
-              allMarks.push({
-                id: `${sessionId}_${user.uid}`,
-                sessionId,
-                classId: sessionData.classId,
-                className,
-                status: markData.status || 'present',
-                reason: markData.reason,
-                feedback: markData.feedback,
-                at: markDate,
-                createdAt: markDate,
-                updatedAt: markData.updatedAt?.toDate ? markData.updatedAt.toDate() : markDate
-              });
-            }
-          } catch (e) {
-            // Skip if mark doesn't exist or error
-            continue;
-          }
-        }
-        
-        // Sort by date descending
-        allMarks.sort((a, b) => (b.at || b.createdAt) - (a.at || a.createdAt));
-        
         setHistory(allMarks);
       } catch (e) {
-        logger.error('[StudentAttendance] Error loading history:', e);
+        error('[StudentAttendance] Error loading history:', e);
       } finally {
         setHistLoading(false);
       }
@@ -412,31 +343,7 @@ const StudentAttendancePage = () => {
     if (parsed.manualCode) {
       try {
         setMessage(t('looking_up_session') || 'Looking up session...');
-        const { collection, getDocs, query, where } = await import('firebase/firestore');
-        const { db } = await import('@services/other/config');
-        
-        // Find active session with matching manual code
-        // For now, we'll use a simplified approach since getAttendanceStats requires classId
-        const sessionsData = []; // Simplified - would need proper attendance service for open sessions
-        
-        let foundSession = null;
-        // Try to find session by checking if manual code matches (code is generated from token hash)
-        // Generate code from token using same algorithm as AttendancePage: hash % 1000000
-        const sessionsList = sessionsData.map(session => ({ id: session.docId || session.id, token: session.token || '', ...session }));
-        
-        // Check all active sessions - token is stored in session document
-        for (const session of sessionsList) {
-          if (session.token) {
-            // Generate code from token (same logic as AttendancePage)
-            const hash = session.token.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-            const code = String(hash % 1000000).padStart(6, '0');
-            
-            if (code === parsed.manualCode) {
-              foundSession = { id: session.id, token: session.token };
-              break;
-            }
-          }
-        }
+        const foundSession = await findOpenAttendanceSessionByCode(parsed.manualCode);
         
         if (!foundSession) {
           setMessage(t('session_not_found') || 'Session not found. Please check the code or use the full attendance link.');
@@ -450,7 +357,7 @@ const StudentAttendancePage = () => {
         parsed.sid = foundSession.id;
         parsed.token = foundSession.token;
       } catch (e) {
-        logger.error('[StudentAttendance] Error looking up manual code:', e);
+        error('[StudentAttendance] Error looking up manual code:', e);
         setMessage(t('error_looking_up') || 'Error looking up session. Please use the full attendance link.');
         setLastResult({ ok: false, error: e?.message || 'Lookup failed' });
         if (toast?.error) {

@@ -11,7 +11,8 @@ import { useColorTheme } from '@contexts/ColorThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { createAttendanceBadge, getAttendanceStatusInfo } from '@constants/iconTypes';
 
-const SessionCard = ({
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const SessionCard = ({
   session,
   isSelected,
   onClick,
@@ -93,7 +94,7 @@ const SessionCard = ({
           )}
           {createAttendanceBadge(
             session.scanCounts.excused_leave || session.scanCounts.EXCUSED_LEAVE || 0,
-            'home',
+            'heart',
             '#8b5cf6',
             'Excused Leave',
             actualTheme

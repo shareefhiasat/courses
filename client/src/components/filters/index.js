@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 // Centralized filter components for reuse across HomePage, StudentDashboard, and ReviewResultsPage
 export { default as UnifiedFilterSection } from './UnifiedFilterSection';
 export { default as StatsBar } from './StatsBar';

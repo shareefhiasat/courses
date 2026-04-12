@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { Input } from '@ui';
 import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
@@ -9,18 +9,17 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 import PortalTooltip from '@ui/PortalTooltip';
 import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
-import { getAttendanceByStudent, rosterQuickAction, deleteAttendance } from '@services/business/attendanceService';
-import { getPenalties, deletePenalty } from '@services/business/penaltyService';
-import { getParticipations, deleteParticipation } from '@services/business/participationService';
+import { getNoteTypeFromStatus } from '@constants/noteTypes';
+import { getAttendanceByStudent, rosterQuickAction, deleteAttendance, getStudentAttendanceByDate, markAttendance } from '@services/business/attendanceServiceUnified.js';
+import { getPenalties, getPenaltiesByStudent, deletePenalty } from '@services/business/penaltyService';
+import { getParticipations, getParticipationsByStudent, deleteParticipation } from '@services/business/participationService';
 import { getBehaviors, deleteBehavior } from '@services/business/behaviorService';
 import { CheckSmallIcon, ClockSmallIcon } from '@utils/icons.jsx';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { generateReferenceId, generateStudentQRCode } from '@utils/qrCode';
 import { QRCodeDisplay, useQRCodeEmail } from '@utils/qrCodeUtils';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
-import { getParticipationLabel } from '@constants/participationTypes';
-import { getBehaviorLabel } from '@constants/behaviorTypes';
-import { PENALTY_TYPES } from '@constants/penaltyTypes';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '@services/business/userPreferenceService';
 import { getUserProfile } from '@services/business/userService';
@@ -59,6 +58,9 @@ const StudentRoster = React.memo(function StudentRoster({
   const {user} = useAuth();
   const {theme} = useTheme();
   const {t, lang, isRTL} = useLang();
+  const { data: lookupData } = useLookupTypes({
+    types: ['penalty-types', 'behavior-types', 'participation-types']
+  });
   
   // DEBUG: Log attendanceMode
   console.log('🔍 StudentRoster - attendanceMode:', attendanceMode);
@@ -114,14 +116,30 @@ const StudentRoster = React.memo(function StudentRoster({
   const fetchStudentHistory = useCallback(async (studentId) => {
     console.log('🔍 StudentRoster - fetchStudentHistory called for student:', studentId);
     
+    // Guard against undefined studentId
+    if (!studentId) {
+      console.warn('⚠️ StudentRoster - fetchStudentHistory called with undefined studentId, skipping');
+      return;
+    }
+    
     // Set loading state for this student
     setHistoryLoading(prev => ({ ...prev, [studentId]: true }));
     
     try {
-      // Get all attendance records for this student
+      // Get all attendance records for this student (regular and standup)
       const attendanceResponse = await getAttendanceByStudent(studentId);
       const attendanceRecords = attendanceResponse.success
           ? attendanceResponse.data : [];
+
+      // Get standup attendance records
+      const standupAttendanceResponse = await import('@services/business/standupAttendanceService.js').then(
+        service => service.getStandupAttendanceByUser(studentId)
+      );
+      const standupAttendanceRecords = standupAttendanceResponse.success
+          ? standupAttendanceResponse.data : [];
+
+      // Merge regular and standup attendance records
+      const allAttendanceRecords = [...attendanceRecords, ...standupAttendanceRecords];
 
       const [penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
         getPenalties(studentId),
@@ -129,7 +147,7 @@ const StudentRoster = React.memo(function StudentRoster({
         getBehaviors()
       ]);
       
-      logger.log('🔧 fetchStudentHistory called getPenalties with studentId:', studentId);
+      debug('🔧 fetchStudentHistory called getPenalties with studentId:', studentId);
 
       const studentPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
       const studentParticipations = (participationsResponse.success ? participationsResponse.data : []).filter(p => p.studentId === studentId);
@@ -137,17 +155,32 @@ const StudentRoster = React.memo(function StudentRoster({
 
       // Combine and format logs
       const logs = [
-        ...attendanceRecords.filter(r => r.status).map(record => {
+        ...allAttendanceRecords.filter(r => r.status || r.statusId).map(record => {
+          // Map statusId to status string for standup attendance
+          const statusIdMap = {
+            7: 'STANDUP_PRESENT',
+            8: 'STANDUP_LATE',
+            9: 'STANDUP_ABSENT',
+            10: 'STANDUP_CLINIC'
+          };
+          
+          // Ensure status is a string for display
+          const statusStr = record.statusId 
+            ? statusIdMap[record.statusId] || 'Unknown'
+            : (typeof record.status === 'object' 
+              ? (record.status?.code || record.status?.nameEn || 'Unknown') 
+              : record.status);
+          
           const logEntry = {
             id: record.id,
             type: RECORD_TYPES.ATTENDANCE,
             date: record.date || toYmd(record.timestamp) || toYmd(record.updatedAt) || toYmd(record.createdAt),
             time: record.timestamp || record.date,
-            label: getLocalizedAttendanceLabel(record.status, t, lang) || record.status || 'Unknown',
+            label: getLocalizedAttendanceLabel(statusStr, t, lang) || statusStr || 'Unknown',
             points: 0,
             comment: record.reason || record.notes || '',
-            color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280',
-            status: record.status,  // ← Clean: only the status field
+            color: ATTENDANCE_STATUS_LABELS[statusStr]?.color || '#6b7280',
+            status: record.status,  // ← Keep original status object for other uses
             method: record.method, // ← Add method field for localization
             // Add user information - map markedBy fields to performedBy fields for consistency
             performedBy: record.markedBy,
@@ -155,7 +188,7 @@ const StudentRoster = React.memo(function StudentRoster({
             performedByEmail: record.markedByEmail || record.performedByEmail
           };
 
-          logger.debug('Processing attendance record:', {
+          debug('Processing attendance record:', {
             id: record.id,
             status: record.status,
             category: record.category,
@@ -174,7 +207,10 @@ const StudentRoster = React.memo(function StudentRoster({
         }),
         ...studentParticipations.map(p => {
           const points = Number(p.points) || 0;
-          const label = getParticipationLabel(p.type || RECORD_TYPES.PARTICIPATION, lang);
+          const pTypeDef = (lookupData['participation-types'] || []).find(pt => pt.id === p.type);
+          const label = pTypeDef 
+            ? (lang === 'ar' ? (pTypeDef.nameAr || pTypeDef.nameEn) : pTypeDef.nameEn)
+            : (p.type || RECORD_TYPES.PARTICIPATION);
           return {
             id: p.docId || p.id,
             type: RECORD_TYPES.PARTICIPATION,
@@ -195,7 +231,10 @@ const StudentRoster = React.memo(function StudentRoster({
         }),
         ...studentBehaviors.map(b => {
           const points = Number(b.points) || 0;
-          const label = getBehaviorLabel(b.type || RECORD_TYPES.BEHAVIOR, lang);
+          const bTypeDef = (lookupData['behavior-types'] || []).find(bt => bt.id === b.type);
+          const label = bTypeDef 
+            ? (lang === 'ar' ? (bTypeDef.nameAr || bTypeDef.nameEn) : bTypeDef.nameEn)
+            : (b.type || RECORD_TYPES.BEHAVIOR);
           return {
             id: b.docId || b.id,
             type: RECORD_TYPES.BEHAVIOR,
@@ -216,10 +255,9 @@ const StudentRoster = React.memo(function StudentRoster({
         }),
         ...studentPenalties.map(penalty => {
           const pType = penalty.type; // Use the 'type' field directly
-          // Get the penalty label from PENALTY_TYPES
-          const penaltyDef = PENALTY_TYPES.find(pt => pt.id === pType);
+          const penaltyDef = (lookupData['penalty-types'] || []).find(pt => pt.id === pType);
           const label = penaltyDef 
-            ? (lang === 'ar' ? penaltyDef.label_ar : penaltyDef.label_en)
+            ? (lang === 'ar' ? (penaltyDef.nameAr || penaltyDef.nameEn) : penaltyDef.nameEn)
             : pType || 'Penalty';
           
           return {
@@ -246,7 +284,7 @@ const StudentRoster = React.memo(function StudentRoster({
         const dateA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
         const dateB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
         const result = dateB - dateA;
-        logger.log('🔍 StudentRoster sort comparison:', {
+        debug('🔍 StudentRoster sort comparison:', {
           logA: { id: a.id, type: a.type, date: a.date, time: a.time, parsedDate: dateA },
           logB: { id: b.id, type: b.type, date: b.date, time: b.time, parsedDate: dateB },
           result
@@ -263,13 +301,13 @@ const StudentRoster = React.memo(function StudentRoster({
         logsCount: logs.length
       });
     } catch (error) {
-      logger.error('Error fetching student history:', error);
+      error('Error fetching student history:', error);
     } finally {
       // Clear loading state for this student
       setHistoryLoading(prev => ({ ...prev, [studentId]: false }));
       console.log('🔍 StudentRoster - historyLoading set to FALSE for student:', studentId);
     }
-  }, [lang, t, toYmd]);
+  }, [lang, t, toYmd, lookupData]);
 
   const handleDeleteAttendance = async (studentId, logId) => {
     setDeleteType(RECORD_TYPES.ATTENDANCE);
@@ -343,7 +381,7 @@ const StudentRoster = React.memo(function StudentRoster({
         }
       }
     } catch (error) {
-      logger.error(`Error deleting ${deleteType}:`, error);
+      error(`Error deleting ${deleteType}:`, error);
     } finally {
       setDeleteLoading(false);
       setDeleteModalOpen(false);
@@ -380,8 +418,8 @@ const StudentRoster = React.memo(function StudentRoster({
 
     const unsubscribeAttendance = eventBus.on(EVENTS.ATTENDANCE_MARKED,
         (data) => {
-          logger.debug('=== STUDENT ROSTER ATTENDANCE MARKED EVENT ===');
-          logger.debug('Attendance marked event received:', {
+          debug('=== STUDENT ROSTER ATTENDANCE MARKED EVENT ===');
+          debug('Attendance marked event received:', {
             studentId: data.studentId,
             referenceId: data.referenceId,
             status: data.status,
@@ -411,7 +449,7 @@ const StudentRoster = React.memo(function StudentRoster({
             studentIdToFetch = student.id; // Always use the user ID from student object
           }
 
-          logger.debug('Student lookup result:', {
+          debug('Student lookup result:', {
             found: !!student,
             originalStudentId: data.studentId,
             referenceId: data.referenceId,
@@ -428,7 +466,7 @@ const StudentRoster = React.memo(function StudentRoster({
 
           // Also refresh history if row is expanded (this handles the expanded case)
           if (expandedRows.has(studentIdToFetch)) {
-            logger.debug('Refreshing student history for expanded row:',
+            debug('Refreshing student history for expanded row:',
                 studentIdToFetch);
             fetchStudentHistory(studentIdToFetch);
           }
@@ -436,20 +474,20 @@ const StudentRoster = React.memo(function StudentRoster({
           // Update the student's attendance status in real-time
           // This ensures the main roster display reflects the new attendance
           if (data.status && onRefresh) {
-            logger.debug('Triggering onRefresh to update attendance status');
+            debug('Triggering onRefresh to update attendance status');
             // Trigger a refresh of the students data to update attendance status
             setTimeout(() => {
               onRefresh();
             }, 100); // Small delay to ensure Firebase has processed the update
           } else {
-            logger.debug(
+            debug(
                 'Not triggering onRefresh - missing status or onRefresh', {
                   hasStatus: !!data.status,
                   hasOnRefresh: !!onRefresh
                 });
           }
 
-          logger.debug('=== END STUDENT ROSTER ATTENDANCE MARKED EVENT ===');
+          debug('=== END STUDENT ROSTER ATTENDANCE MARKED EVENT ===');
         });
 
     const unsubscribeBehavior = eventBus.on(EVENTS.BEHAVIOR_LOGGED, (data) => {
@@ -604,28 +642,33 @@ const StudentRoster = React.memo(function StudentRoster({
   const { sendQRCodeEmail } = useQRCodeEmail();
 
   // Senior-Level Quick Attendance Handler for Roster
-  const handleQuickAttendance = useCallback(async (student, status) => {
-    if (!student || !status || !selectedClassId) return;
-    
-    // Prevent Present and Late marking when in stand-up mode
+  const handleQuickAttendance = useCallback(async (student, status, mode, programIdParam) => {
+    if (!student || !status) return;
+
+    // Use the passed programId or fall back to selectedProgramId
+    const programIdToUse = programIdParam || selectedProgramId;
+
+    // Prevent regular Present and Late marking when in stand-up mode
+    // But allow STANDUP_PRESENT and STANDUP_LATE
     console.log('🔍 StudentRoster handleQuickAttendance - attendanceMode:', attendanceMode);
     console.log('🔍 StudentRoster handleQuickAttendance - status:', status);
+    console.log('🔍 StudentRoster handleQuickAttendance - programId:', programIdToUse);
     console.log('🔍 StudentRoster handleQuickAttendance - isStandupMode:', attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP);
-    console.log('🔍 StudentRoster handleQuickAttendance - shouldBlock:', attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (status === ATTENDANCE_STATUS.PRESENT || status === ATTENDANCE_STATUS.LATE));
-    
-    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && 
-        (status === ATTENDANCE_STATUS.PRESENT || status === ATTENDANCE_STATUS.LATE)) {
-      logger.log('🚫 Present/Late marking blocked in stand-up mode:', { status, attendanceMode });
+    console.log('🔍 StudentRoster handleQuickAttendance - shouldBlock:', attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (status === 'PRESENT' || status === 'LATE'));
+
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP &&
+        (status === 'PRESENT' || status === 'LATE')) {
+      debug('🚫 Regular Present/Late marking blocked in stand-up mode:', { status, attendanceMode });
       return;
     }
-    
+
     try {
       // Get user profile to get proper display name
       const userProfile = await getUserProfile(user);
       const displayName = userProfile?.displayName || userProfile?.name || user?.displayName || user?.email || 'Unknown';
-      
+
       // Debug: Log user objects to see what data is available
-      logger.log('🔧 User objects:', {
+      debug('🔧 User objects:', {
         authUser: {
           uid: user?.uid,
           displayName: user?.displayName,
@@ -635,28 +678,40 @@ const StudentRoster = React.memo(function StudentRoster({
         userProfile: userProfile,
         finalDisplayName: displayName
       });
-      
+
       // Create enhanced user object with proper display name
       const enhancedUser = {
         ...user,
         displayName: displayName
       };
-      
+
+      console.log('🔍 [StudentRoster rosterQuickAction] Calling with:', {
+        studentId: student.id,
+        classId: selectedClassId,
+        status,
+        programId: programIdToUse,
+        subjectId: selectedSubjectId,
+        attendanceMode
+      });
+
       // Use the dedicated roster quick action method
       const result = await rosterQuickAction(
         student.id,
         selectedClassId,
         status,
         enhancedUser,
-        `${t('quick') || 'Quick'} ${getLocalizedAttendanceLabel(status, t, lang)}`,
-        selectedProgramId,
+        attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
+          ? getNoteTypeFromStatus(status, 'standup')
+          : getNoteTypeFromStatus(status, 'quick'),
+        programIdToUse,
         selectedSubjectId,
-        selectedDate
+        selectedDate,
+        attendanceMode
       );
 
       if (result.success) {
         // Show success feedback
-        logger.log(`✅ ${student.displayName || student.name} marked as ${getLocalizedAttendanceLabel(status, t, lang)}`);
+        debug(`✅ ${student.displayName || student.name} marked as ${getLocalizedAttendanceLabel(status, t, lang)}`);
         
         // Emit real-time event
         eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
@@ -682,10 +737,10 @@ const StudentRoster = React.memo(function StudentRoster({
         }
 
       } else {
-        logger.error('Quick attendance failed:', result.error);
+        error('Quick attendance failed:', result.error);
       }
     } catch (error) {
-      logger.error('Quick attendance error:', error);
+      error('Quick attendance error:', error);
     }
   }, [selectedClassId, user, lang, t, onRefresh]);
 
@@ -695,7 +750,7 @@ const StudentRoster = React.memo(function StudentRoster({
       [student.id]: {...prev[student.id], summary: true}
     }));
     try {
-      logger.log('Sending summary email to:', student.email);
+      debug('Sending summary email to:', student.email);
       
       // Create student summary data
       const attendanceStats = student.attendanceStats || {};
@@ -706,7 +761,7 @@ const StudentRoster = React.memo(function StudentRoster({
         participation: student.participation || 0,
         behavior: student.behavior || 0,
         penalty: student.penalty || 0,
-        attendanceStatus: student.attendance || 'absent_no_excuse',
+        attendanceStatus: student.attendance || null,
         presentCount: attendanceStats.present || 0,
         lateCount: attendanceStats.late || 0,
         absentCount: attendanceStats.absent || 0,
@@ -763,9 +818,9 @@ const StudentRoster = React.memo(function StudentRoster({
       );
       
       showSuccess(t('summary_email_sent_successfully') || 'Summary email sent successfully!');
-      logger.log('✅ Summary email sent successfully to:', student.email);
+      debug('✅ Summary email sent successfully to:', student.email);
     } catch (error) {
-      logger.error('❌ Error sending summary email:', error);
+      error('❌ Error sending summary email:', error);
       // Show user-friendly error message
       alert(t('failed_to_send_email') || 'Failed to send summary email. Please try again.');
     } finally {
@@ -869,7 +924,7 @@ const StudentRoster = React.memo(function StudentRoster({
     return Object.values(grouped).sort((a, b) => {
       // Sort days by date (newest first)
       const result = new Date(b.date) - new Date(a.date);
-      logger.log('🔍 StudentRoster day sort:', {
+      debug('🔍 StudentRoster day sort:', {
         dayA: { date: a.date, parsedDate: new Date(a.date) },
         dayB: { date: b.date, parsedDate: new Date(b.date) },
         result
@@ -981,7 +1036,7 @@ const StudentRoster = React.memo(function StudentRoster({
   // Calculate column sums for footer
   const columnSums = useMemo(() => {
     const displayStudents = students.filter(student => !showFavoritesOnly || favoriteStudents.includes(student.id));
-    
+
     const sums = {
       participation: 0,
       behavior: 0,
@@ -991,14 +1046,19 @@ const StudentRoster = React.memo(function StudentRoster({
       absent: 0,
       absentExcused: 0,
       excusedLeave: 0,
-      human: 0
+      human: 0,
+      // Standup stats
+      standupPresent: 0,
+      standupLate: 0,
+      standupAbsent: 0,
+      standupClinic: 0
     };
 
     displayStudents.forEach(student => {
       sums.participation += student.participation || 0;
       sums.behavior += student.behavior || 0;
       sums.penalty += student.penalty || 0;
-      
+
       // Attendance statistics
       const stats = student.attendanceStats || {};
       sums.present += stats.present || 0;
@@ -1007,6 +1067,13 @@ const StudentRoster = React.memo(function StudentRoster({
       sums.absentExcused += stats.absentWithExcuse || 0;
       sums.excusedLeave += stats.excusedLeave || 0;
       sums.human += stats.humanitarianCase || 0;
+
+      // Standup statistics
+      const standupStats = student.standupStats || {};
+      sums.standupPresent += standupStats.present || 0;
+      sums.standupLate += standupStats.late || 0;
+      sums.standupAbsent += standupStats.absent || 0;
+      sums.standupClinic += standupStats.clinic || 0;
     });
 
     return sums;
@@ -1192,6 +1259,21 @@ const StudentRoster = React.memo(function StudentRoster({
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border, #e5e7eb)' }}>
+                {/* Student Number/ID Column - First */}
+                <th
+                  style={{
+                    textAlign: 'center',
+                    padding: '0.5rem 0.75rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'var(--text-muted, #6b7280)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    width: '80px'
+                  }}
+                >
+                  {t('id')}
+                </th>
                 <th style={{ width: '30px', padding: '0.5rem 0.5rem' }}></th>
                 <th 
                   onClick={() => onSort('name')}
@@ -1209,189 +1291,276 @@ const StudentRoster = React.memo(function StudentRoster({
                 >
                   {t('student')} {getSortIcon('name')}
                 </th>
-                <th 
-                  onClick={() => onSort(RECORD_TYPES.ATTENDANCE)}
-                  style={{
-                    textAlign: isRTL ? 'right' : 'left',
-                    padding: '0.5rem 0.75rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    color: 'var(--text-muted, #6b7280)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }}
-                >
-                  {t('todays_attendance') || "TODAY"} {getSortIcon(RECORD_TYPES.ATTENDANCE)}
-                </th>
-                <th 
-                  onClick={() => onSort('standupStatus')}
-                  style={{
-                    textAlign: isRTL ? 'right' : 'left',
-                    padding: '0.5rem 0.75rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    color: 'var(--text-muted, #6b7280)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }}
-                >
-                  {t('standup') || "STANDUP"} {getSortIcon('standupStatus')}
-                </th>
-                <th 
-                  onClick={() => onSort('participation')}
-                  style={{
-                    textAlign: 'center',
-                    padding: '0.5rem 0.75rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    color: 'var(--text-muted, #6b7280)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }}
-                >
-                  {t('part')} {getSortIcon('participation')}
-                </th>
-                <th 
-                  onClick={() => onSort('behavior')}
-                  style={{
-                    textAlign: 'center',
-                    padding: '0.5rem 0.75rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    color: 'var(--text-muted, #6b7280)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }}
-                >
-                  {t('behavior')} {getSortIcon('behavior')}
-                </th>
-                <th 
-                  onClick={() => onSort('penalty')}
-                  style={{
-                    textAlign: 'center',
-                    padding: '0.5rem 0.75rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    color: 'var(--text-muted, #6b7280)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }}
-                >
-                  {t('penalties')} {getSortIcon('penalty')}
-                </th>
+                {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+                  <th
+                    onClick={() => onSort(RECORD_TYPES.ATTENDANCE)}
+                    style={{
+                      textAlign: isRTL ? 'right' : 'left',
+                      padding: '0.5rem 0.75rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      color: 'var(--text-muted, #6b7280)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
+                    {t('todays_attendance') || "TODAY"} {getSortIcon(RECORD_TYPES.ATTENDANCE)}
+                  </th>
+                )}
+                {attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+                  <th
+                    onClick={() => onSort('standupStatus')}
+                    style={{
+                      textAlign: isRTL ? 'right' : 'left',
+                      padding: '0.5rem 0.75rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      color: 'var(--text-muted, #6b7280)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
+                    {t('standup') || "STANDUP"} {getSortIcon('standupStatus')}
+                  </th>
+                )}
+                {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+                  <th
+                    onClick={() => onSort('participation')}
+                    style={{
+                      textAlign: 'center',
+                      padding: '0.5rem 0.75rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      color: 'var(--text-muted, #6b7280)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
+                    {t('part')} {getSortIcon('participation')}
+                  </th>
+                )}
+                {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+                  <th
+                    onClick={() => onSort('behavior')}
+                    style={{
+                      textAlign: 'center',
+                      padding: '0.5rem 0.75rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      color: 'var(--text-muted, #6b7280)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
+                    {t('behavior')} {getSortIcon('behavior')}
+                  </th>
+                )}
+                {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+                  <th
+                    onClick={() => onSort('penalty')}
+                    style={{
+                      textAlign: 'center',
+                      padding: '0.5rem 0.75rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      color: 'var(--text-muted, #6b7280)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
+                    {t('penalties')} {getSortIcon('penalty')}
+                  </th>
+                )}
                 {/* Attendance Statistics Headers */}
-                <th 
-                  onClick={() => onSort('present')}
-                  style={{
-                    textAlign: 'center',
-                    padding: '0.75rem 0.5rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    color: 'var(--text-muted, #6b7280)',
-                    textTransform: isRTL ? 'none' : 'uppercase',
-                    letterSpacing: '0.05em',
-                    width: '80px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }}
-                >
-                  {t('present')} {getSortIcon('present')}
-                </th>
-                <th 
-                  onClick={() => onSort('late')}
-                  style={{
-                    textAlign: 'center',
-                    padding: '0.75rem 0.5rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    color: 'var(--text-muted, #6b7280)',
-                    textTransform: isRTL ? 'none' : 'uppercase',
-                    letterSpacing: '0.05em',
-                    width: '80px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }}
-                >
-                  {t('late')} {getSortIcon('late')}
-                </th>
-                <th 
-                  onClick={() => onSort('absent')}
-                  style={{
-                    textAlign: 'center',
-                    padding: '0.75rem 0.5rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    color: 'var(--text-muted, #6b7280)',
-                    textTransform: isRTL ? 'none' : 'uppercase',
-                    letterSpacing: '0.05em',
-                    width: '80px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }}
-                >
-                  {t('absent')} {getSortIcon('absent')}
-                </th>
-                <th 
-                  onClick={() => onSort('absentExcused')}
-                  style={{
-                    textAlign: 'center',
-                    padding: '0.75rem 0.5rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    color: 'var(--text-muted, #6b7280)',
-                    textTransform: isRTL ? 'none' : 'uppercase',
-                    letterSpacing: '0.05em',
-                    width: '80px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }}
-                >
-                  {t('absent_excused')} {getSortIcon('absentExcused')}
-                </th>
-                <th 
-                  onClick={() => onSort('excusedLeave')}
-                  style={{
-                    textAlign: 'center',
-                    padding: '0.75rem 0.5rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    color: 'var(--text-muted, #6b7280)',
-                    textTransform: isRTL ? 'none' : 'uppercase',
-                    letterSpacing: '0.05em',
-                    width: '80px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }}
-                >
-                  {t('excused_leave')} {getSortIcon('excusedLeave')}
-                </th>
-                <th 
-                  onClick={() => onSort('human')}
-                  style={{
-                    textAlign: 'center',
-                    padding: '0.75rem 0.5rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    color: 'var(--text-muted, #6b7280)',
-                    textTransform: isRTL ? 'none' : 'uppercase',
-                    letterSpacing: '0.05em',
-                    width: '80px',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }}
-                >
-                  {t('human')} {getSortIcon('human')}
-                </th>
+                {attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (
+                  // Standup Mode: Show standup-specific headers
+                  <>
+                    <th
+                      onClick={() => onSort('standupPresent')}
+                      style={{
+                        textAlign: 'center',
+                        padding: '0.75rem 0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: 'var(--text-muted, #6b7280)',
+                        textTransform: isRTL ? 'none' : 'uppercase',
+                        letterSpacing: '0.05em',
+                        width: '80px',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}
+                    >
+                      {t('present')} {getSortIcon('standupPresent')}
+                    </th>
+                    <th
+                      onClick={() => onSort('standupLate')}
+                      style={{
+                        textAlign: 'center',
+                        padding: '0.75rem 0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: 'var(--text-muted, #6b7280)',
+                        textTransform: isRTL ? 'none' : 'uppercase',
+                        letterSpacing: '0.05em',
+                        width: '80px',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}
+                    >
+                      {t('late')} {getSortIcon('standupLate')}
+                    </th>
+                    <th
+                      onClick={() => onSort('standupAbsent')}
+                      style={{
+                        textAlign: 'center',
+                        padding: '0.75rem 0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: 'var(--text-muted, #6b7280)',
+                        textTransform: isRTL ? 'none' : 'uppercase',
+                        letterSpacing: '0.05em',
+                        width: '80px',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}
+                    >
+                      {t('absent')} {getSortIcon('standupAbsent')}
+                    </th>
+                    <th
+                      onClick={() => onSort('standupClinic')}
+                      style={{
+                        textAlign: 'center',
+                        padding: '0.75rem 0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: 'var(--text-muted, #6b7280)',
+                        textTransform: isRTL ? 'none' : 'uppercase',
+                        letterSpacing: '0.05em',
+                        width: '80px',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}
+                    >
+                      {t('clinic')} {getSortIcon('standupClinic')}
+                    </th>
+                  </>
+                ) : (
+                  // Regular Mode: Show regular attendance headers
+                  <>
+                    <th
+                      onClick={() => onSort('present')}
+                      style={{
+                        textAlign: 'center',
+                        padding: '0.75rem 0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: 'var(--text-muted, #6b7280)',
+                        textTransform: isRTL ? 'none' : 'uppercase',
+                        letterSpacing: '0.05em',
+                        width: '80px',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}
+                    >
+                      {t('present')} {getSortIcon('present')}
+                    </th>
+                    <th
+                      onClick={() => onSort('late')}
+                      style={{
+                        textAlign: 'center',
+                        padding: '0.75rem 0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: 'var(--text-muted, #6b7280)',
+                        textTransform: isRTL ? 'none' : 'uppercase',
+                        letterSpacing: '0.05em',
+                        width: '80px',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}
+                    >
+                      {t('late')} {getSortIcon('late')}
+                    </th>
+                    <th
+                      onClick={() => onSort('absent')}
+                      style={{
+                        textAlign: 'center',
+                        padding: '0.75rem 0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: 'var(--text-muted, #6b7280)',
+                        textTransform: isRTL ? 'none' : 'uppercase',
+                        letterSpacing: '0.05em',
+                        width: '80px',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}
+                    >
+                      {t('absent')} {getSortIcon('absent')}
+                    </th>
+                    <th
+                      onClick={() => onSort('absentExcused')}
+                      style={{
+                        textAlign: 'center',
+                        padding: '0.75rem 0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: 'var(--text-muted, #6b7280)',
+                        textTransform: isRTL ? 'none' : 'uppercase',
+                        letterSpacing: '0.05em',
+                        width: '80px',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}
+                    >
+                      {t('absent_excused')} {getSortIcon('absentExcused')}
+                    </th>
+                    <th
+                      onClick={() => onSort('excusedLeave')}
+                      style={{
+                        textAlign: 'center',
+                        padding: '0.75rem 0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: 'var(--text-muted, #6b7280)',
+                        textTransform: isRTL ? 'none' : 'uppercase',
+                        letterSpacing: '0.05em',
+                        width: '80px',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}
+                    >
+                      {t('excused_leave')} {getSortIcon('excusedLeave')}
+                    </th>
+                    <th
+                      onClick={() => onSort('human')}
+                      style={{
+                        textAlign: 'center',
+                        padding: '0.75rem 0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: 'var(--text-muted, #6b7280)',
+                        textTransform: isRTL ? 'none' : 'uppercase',
+                        letterSpacing: '0.05em',
+                        width: '80px',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}
+                    >
+                      {t('human')} {getSortIcon('human')}
+                    </th>
+                  </>
+                )}
                 <th style={{
                   textAlign: 'center',
                   padding: '0.5rem 0.75rem',
@@ -1419,6 +1588,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     onStudentAction={onStudentAction}
                     onStudentSelect={onStudentSelect}
                     onQuickAttendance={handleQuickAttendance}
+                    programId={selectedProgramId}
                     studentHistory={studentHistory}
                     expandedDays={expandedDays}
                     activeFilters={activeFilters}
@@ -1452,7 +1622,7 @@ const StudentRoster = React.memo(function StudentRoster({
                 background: 'var(--background-secondary, #f9fafb)',
                 fontWeight: 600
               }}>
-                <td style={{ 
+                <td colSpan="2" style={{
                   padding: '0.75rem 0.5rem',
                   textAlign: 'center',
                   fontSize: '0.875rem',
@@ -1460,7 +1630,7 @@ const StudentRoster = React.memo(function StudentRoster({
                 }}>
                   {t('total') || 'Total'}
                 </td>
-                <td style={{ 
+                <td style={{
                   padding: '0.75rem',
                   textAlign: isRTL ? 'right' : 'left',
                   fontSize: '0.875rem',
@@ -1468,130 +1638,196 @@ const StudentRoster = React.memo(function StudentRoster({
                 }}>
                   {students.filter(student => !showFavoritesOnly || favoriteStudents.includes(student.id)).length} {t('students') || 'students'}
                 </td>
-                <td style={{ 
+                {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+                  <td style={{
+                    padding: '0.75rem',
+                    textAlign: 'center',
+                    fontSize: '0.875rem',
+                    color: 'var(--text-muted, #6b7280)'
+                  }}>
+                  </td>
+                )}
+                {attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+                  <td style={{
+                    padding: '0.75rem',
+                    textAlign: 'center',
+                    fontSize: '0.875rem',
+                    color: 'var(--text-muted, #6b7280)'
+                  }}>
+                  </td>
+                )}
+                {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+                  <>
+                    <td style={{
+                      padding: '0.75rem',
+                      textAlign: 'center',
+                      fontSize: '0.875rem',
+                      color: 'var(--color-info, #3b82f6)',
+                      fontWeight: 700
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                        {getThemedIcon('ui', 'users', 16, '#3b82f6')}
+                        {columnSums.participation}
+                      </div>
+                    </td>
+                    <td style={{
+                      padding: '0.75rem',
+                      textAlign: 'center',
+                      fontSize: '0.875rem',
+                      color: 'var(--color-warning, #f59e0b)',
+                      fontWeight: 700
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                        {getThemedIcon('ui', 'zap', 16, '#f59e0b')}
+                        {columnSums.behavior}
+                      </div>
+                    </td>
+                    <td style={{
+                      padding: '0.75rem',
+                      textAlign: 'center',
+                      fontSize: '0.875rem',
+                      color: 'var(--color-danger, #ef4444)',
+                      fontWeight: 700
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                        {getThemedIcon('ui', 'alert_triangle', 16, '#ef4444')}
+                        {columnSums.penalty}
+                      </div>
+                    </td>
+                  </>
+                )}
+                {attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (
+                  <>
+                    <td style={{
+                      padding: '0.75rem',
+                      textAlign: 'center',
+                      fontSize: '0.875rem',
+                      color: 'var(--color-success, #10b981)',
+                      fontWeight: 700
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                        {getThemedIcon('ui', 'check_circle', 16, '#10b981')}
+                        {columnSums.standupPresent}
+                      </div>
+                    </td>
+                    <td style={{
+                      padding: '0.75rem',
+                      textAlign: 'center',
+                      fontSize: '0.875rem',
+                      color: 'var(--color-warning, #f59e0b)',
+                      fontWeight: 700
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                        {getThemedIcon('ui', 'clock', 16, '#f59e0b')}
+                        {columnSums.standupLate}
+                      </div>
+                    </td>
+                    <td style={{
+                      padding: '0.75rem',
+                      textAlign: 'center',
+                      fontSize: '0.875rem',
+                      color: 'var(--color-danger, #ef4444)',
+                      fontWeight: 700
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                        {getThemedIcon('ui', 'x_circle', 16, '#ef4444')}
+                        {columnSums.standupAbsent}
+                      </div>
+                    </td>
+                    <td style={{
+                      padding: '0.75rem',
+                      textAlign: 'center',
+                      fontSize: '0.875rem',
+                      color: '#ec4899',
+                      fontWeight: 700
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                        {getThemedIcon('ui', 'bed', 16, '#ec4899')}
+                        {columnSums.standupClinic}
+                      </div>
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td style={{
+                      padding: '0.75rem',
+                      textAlign: 'center',
+                      fontSize: '0.875rem',
+                      color: 'var(--color-success, #10b981)',
+                      fontWeight: 700
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                        {getThemedIcon('ui', 'check_circle', 16, '#10b981')}
+                        {columnSums.present}
+                      </div>
+                    </td>
+                    <td style={{
+                      padding: '0.75rem',
+                      textAlign: 'center',
+                      fontSize: '0.875rem',
+                      color: 'var(--color-warning, #f59e0b)',
+                      fontWeight: 700
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                        {getThemedIcon('ui', 'clock', 16, '#f59e0b')}
+                        {columnSums.late}
+                      </div>
+                    </td>
+                    <td style={{
+                      padding: '0.75rem',
+                      textAlign: 'center',
+                      fontSize: '0.875rem',
+                      color: 'var(--color-danger, #ef4444)',
+                      fontWeight: 700
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                        {getThemedIcon('ui', 'x_circle', 16, '#ef4444')}
+                        {columnSums.absent}
+                      </div>
+                    </td>
+                    <td style={{
+                      padding: '0.75rem',
+                      textAlign: 'center',
+                      fontSize: '0.875rem',
+                      color: 'var(--color-danger, #ef4444)',
+                      fontWeight: 700
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                        {getThemedIcon('ui', 'x_circle', 16, '#ef4444')}
+                        {columnSums.absentExcused}
+                      </div>
+                    </td>
+                    <td style={{
+                      padding: '0.75rem',
+                      textAlign: 'center',
+                      fontSize: '0.875rem',
+                      color: '#ec4899',
+                      fontWeight: 700
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                        {getThemedIcon('ui', 'heart', 16, '#ec4899')}
+                        {columnSums.excusedLeave}
+                      </div>
+                    </td>
+                    <td style={{
+                      padding: '0.75rem',
+                      textAlign: 'center',
+                      fontSize: '0.875rem',
+                      color: '#8b5cf6',
+                      fontWeight: 700
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                        {getThemedIcon('ui', 'heart', 16, '#8b5cf6')}
+                        {columnSums.human}
+                      </div>
+                    </td>
+                  </>
+                )}
+                <td style={{
                   padding: '0.75rem',
                   textAlign: 'center',
-                  fontSize: '0.875rem',
-                  color: 'var(--color-info, #3b82f6)',
-                  fontWeight: 700
+                  fontSize: '0.875rem'
                 }}>
-                  -
-                </td>
-                <td style={{ 
-                  padding: '0.75rem',
-                  textAlign: 'center',
-                  fontSize: '0.875rem',
-                  color: 'var(--text-muted, #6b7280)'
-                }}>
-                  -
-                </td>
-                <td style={{ 
-                  padding: '0.75rem',
-                  textAlign: 'center',
-                  fontSize: '0.875rem',
-                  color: 'var(--color-info, #3b82f6)',
-                  fontWeight: 700
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-                    {getThemedIcon('ui', 'users', 16, '#3b82f6')}
-                    {columnSums.participation}
-                  </div>
-                </td>
-                <td style={{ 
-                  padding: '0.75rem',
-                  textAlign: 'center',
-                  fontSize: '0.875rem',
-                  color: 'var(--color-warning, #f59e0b)',
-                  fontWeight: 700
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-                    {getThemedIcon('ui', 'zap', 16, '#f59e0b')}
-                    {columnSums.behavior}
-                  </div>
-                </td>
-                <td style={{ 
-                  padding: '0.75rem',
-                  textAlign: 'center',
-                  fontSize: '0.875rem',
-                  color: 'var(--color-danger, #ef4444)',
-                  fontWeight: 700
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-                    {getThemedIcon('ui', 'alert_triangle', 16, '#ef4444')}
-                    {columnSums.penalty}
-                  </div>
-                </td>
-                <td style={{ 
-                  padding: '0.75rem',
-                  textAlign: 'center',
-                  fontSize: '0.875rem',
-                  color: 'var(--color-success, #10b981)',
-                  fontWeight: 700
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-                    {getThemedIcon('ui', 'check_circle', 16, '#10b981')}
-                    {columnSums.present}
-                  </div>
-                </td>
-                <td style={{ 
-                  padding: '0.75rem',
-                  textAlign: 'center',
-                  fontSize: '0.875rem',
-                  color: 'var(--color-warning, #f59e0b)',
-                  fontWeight: 700
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-                    {getThemedIcon('ui', 'clock', 16, '#f59e0b')}
-                    {columnSums.late}
-                  </div>
-                </td>
-                <td style={{ 
-                  padding: '0.75rem',
-                  textAlign: 'center',
-                  fontSize: '0.875rem',
-                  color: 'var(--color-danger, #ef4444)',
-                  fontWeight: 700
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-                    {getThemedIcon('ui', 'x_circle', 16, '#ef4444')}
-                    {columnSums.absent}
-                  </div>
-                </td>
-                <td style={{ 
-                  padding: '0.75rem',
-                  textAlign: 'center',
-                  fontSize: '0.875rem',
-                  color: 'var(--color-danger, #ef4444)',
-                  fontWeight: 700
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-                    {getThemedIcon('ui', 'x_circle', 16, '#ef4444')}
-                    {columnSums.absentExcused}
-                  </div>
-                </td>
-                <td style={{ 
-                  padding: '0.75rem',
-                  textAlign: 'center',
-                  fontSize: '0.875rem',
-                  color: 'var(--color-danger, #ef4444)',
-                  fontWeight: 700
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-                    {getThemedIcon('ui', 'x_circle', 16, '#ef4444')}
-                    {columnSums.excusedLeave}
-                  </div>
-                </td>
-                <td style={{ 
-                  padding: '0.75rem',
-                  textAlign: 'center',
-                  fontSize: '0.875rem',
-                  color: '#8b5cf6',
-                  fontWeight: 700
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-                    {getThemedIcon('ui', 'heart', 16, '#8b5cf6')}
-                    {columnSums.human}
-                  </div>
                 </td>
               </tr>
             </tfoot>

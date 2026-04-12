@@ -2,9 +2,11 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useLocation } from 'react-router-dom';
 import { useLang } from './LangContext';
 import { ABSENCE_TYPES } from '../constants/absenceTypes';
-import { PENALTY_TYPES } from '../constants/penaltyTypes.jsx';
-import { PARTICIPATION_TYPES } from '../constants/participationTypes.jsx';
-import logger from '@utils/logger';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
+// OLD: import { PENALTY_TYPES } from '../constants/penaltyTypes.jsx';
+// OLD: import { PARTICIPATION_TYPES } from '../constants/participationTypes.jsx';
+// NOW: Using useLookupTypes hook for all lookup data
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const HelpContext = createContext();
 
@@ -15,6 +17,9 @@ export const HelpProvider = ({ children }) => {
   const [expandedSections, setExpandedSections] = useState({});
   const location = useLocation();
   const { t, lang } = useLang();
+  const { data: lookupData } = useLookupTypes({
+    types: ['penalty-types', 'participation-types']
+  });
   
   // Toggle section expansion
   const toggleSection = useCallback((sectionId) => {
@@ -67,7 +72,7 @@ export const HelpProvider = ({ children }) => {
         // Return the provided fallback if no other options
         return fallback || key;
       } catch (error) {
-        console.warn(`[HelpContext] Translation error for key '${key}':`, error);
+        warn(`[HelpContext] Translation error for key '${key}':`, error);
         return fallback || key;
       }
     };
@@ -80,8 +85,8 @@ export const HelpProvider = ({ children }) => {
       content: [
         {
           title: t('penalty_rules') || 'Penalty Rules',
-          items: (PENALTY_TYPES || []).map((penalty) => ({
-            text: penalty[`label_${lang}`] || penalty.labelEn || penalty.id,
+          items: (lookupData['penalty-types'] || []).map((penalty) => ({
+            text: penalty[`name${lang === 'ar' ? 'Ar' : 'En'}`] || penalty.nameEn || penalty.code,
             deduction: penalty?.points 
               ? `-${penalty.points} ${t('points') || 'points'}` 
               : t('no_deduction') || 'No deduction',
@@ -100,10 +105,10 @@ export const HelpProvider = ({ children }) => {
         },
         {
           title: t('participation_rules') || 'Participation Rules',
-          items: (PARTICIPATION_TYPES || []).map((participation) => ({
-            text: participation[`label_${lang}`] || participation.labelEn || participation.id,
+          items: (lookupData['participation-types'] || []).map((participation) => ({
+            text: participation[`name${lang === 'ar' ? 'Ar' : 'En'}`] || participation.nameEn || participation.code,
             points: `+${participation.points} ${t('points') || 'points'}`,
-            description: participation[`description_${lang}`] || participation.description || t('points_awarded') || 'Points awarded for active participation'
+            description: participation[`description_${lang}`] || participation.descriptionEn || participation.description || t('points_awarded') || 'Points awarded for active participation'
           }))
         },
         {
@@ -391,8 +396,8 @@ export const HelpProvider = ({ children }) => {
       content: [
         {
           title: t('penalty_rules') || 'Penalty Rules',
-          items: (PENALTY_TYPES || []).map((penalty) => ({
-            text: penalty[`label_${lang}`] || penalty.labelEn || penalty.id,
+          items: (lookupData['penalty-types'] || []).map((penalty) => ({
+            text: penalty[`name${lang === 'ar' ? 'Ar' : 'En'}`] || penalty.nameEn || penalty.code,
             deduction: penalty?.points 
               ? `-${penalty.points} ${t('points') || 'points'}` 
               : t('no_deduction') || 'No deduction',
@@ -411,10 +416,10 @@ export const HelpProvider = ({ children }) => {
         },
         {
           title: t('participation_rules') || 'Participation Rules',
-          items: (PARTICIPATION_TYPES || []).map((participation) => ({
-            text: participation[`label_${lang}`] || participation.labelEn || participation.id,
+          items: (lookupData['participation-types'] || []).map((participation) => ({
+            text: participation[`name${lang === 'ar' ? 'Ar' : 'En'}`] || participation.nameEn || participation.code,
             points: `+${participation.points} ${t('points') || 'points'}`,
-            description: participation[`description_${lang}`] || participation.description || t('points_awarded') || 'Points awarded for active participation'
+            description: participation[`description_${lang}`] || participation.descriptionEn || participation.description || t('points_awarded') || 'Points awarded for active participation'
           }))
         }
       ]
@@ -470,10 +475,10 @@ export const HelpProvider = ({ children }) => {
       content: [
         {
           title: t('participation_rules') || 'Participation Types',
-          items: (PARTICIPATION_TYPES || []).map((participation) => ({
-            text: participation[`label_${lang}`] || participation.labelEn || participation.id,
+          items: (lookupData['participation-types'] || []).map((participation) => ({
+            text: lang === 'ar' ? (participation.nameAr || participation.nameEn) : participation.nameEn,
             points: participation.points ? `+${participation.points} ${t('points') || 'points'}` : '',
-            description: participation[`description_${lang}`] || participation.description || t('points_awarded') || 'Points awarded for active participation'
+            description: participation.description || t('points_awarded') || 'Points awarded for active participation'
           }))
         }
       ]
@@ -1053,12 +1058,12 @@ export const HelpProvider = ({ children }) => {
       content: [
         {
           title: t('penalty_rules') || 'Penalty Rules',
-          items: (PENALTY_TYPES || []).map((penalty) => ({
-            text: penalty[`label_${lang}`] || penalty.labelEn || penalty.id,
+          items: (lookupData['penalty-types'] || []).map((penalty) => ({
+            text: lang === 'ar' ? (penalty.nameAr || penalty.nameEn) : penalty.nameEn,
             deduction: penalty?.points
               ? `-${penalty.points} ${t('points') || 'points'}`
               : t('no_deduction') || 'No deduction',
-            description: penalty[`description_${lang}`] || penalty.descriptionEn || penalty.description || t('no_description_available') || 'No description available'
+            description: penalty.description || t('no_description_available') || 'No description available'
           }))
         },
         {
@@ -1080,10 +1085,10 @@ export const HelpProvider = ({ children }) => {
       content: [
         {
           title: t('participation_rules') || 'Participation Types',
-          items: (PARTICIPATION_TYPES || []).map((participation) => ({
-            text: participation[`label_${lang}`] || participation.labelEn || participation.id,
+          items: (lookupData['participation-types'] || []).map((participation) => ({
+            text: participation[`name${lang === 'ar' ? 'Ar' : 'En'}`] || participation.nameEn || participation.code,
             points: `+${participation.points} ${t('points') || 'points'}`,
-            description: participation[`description_${lang}`] || participation.description || t('points_awarded') || 'Points awarded for active participation'
+            description: participation[`description_${lang}`] || participation.descriptionEn || participation.description || t('points_awarded') || 'Points awarded for active participation'
           }))
         }
       ]
@@ -1126,13 +1131,13 @@ export const HelpProvider = ({ children }) => {
   const getHelpForRoute = useCallback((pathname, search = '', hash = '') => {
     if (!pathname) return defaultHelp; // Always return default if no pathname
 
-    // console.log(`[HelpContext] Getting help content for path: ${pathname}${search}${hash}`);
+    // info(`[HelpContext] Getting help content for path: ${pathname}${search}${hash}`);
 
     let help = null;
     const searchParams = new URLSearchParams(search);
     const tabFromUrl = searchParams.get('tab');
     
-    // Also check hash for tab navigation (e.g., #programs, #subjects)
+    // Also check hash for tab navigation (e.g., #programs, #subjects);
     const hashToTabMap = {
       '#programs': 'programs',
       '#subjects': 'subjects',
@@ -1147,7 +1152,7 @@ export const HelpProvider = ({ children }) => {
       // Case 1: Specific dashboard tab help
       const tab = tabFromUrl || tabFromHash;
       const helpKey = `/dashboard?tab=${tab}`;
-      // console.log(`[HelpContext] getHelpForRoute - Case 1: helpKey = ${helpKey}`);
+      // info(`[HelpContext] getHelpForRoute - Case 1: helpKey = ${helpKey}`);
       help = helpContent[helpKey];
       // console.log(`[HelpContext] getHelpForRoute - Case 1: helpContent[helpKey] =`, help);
       if (!help) {
@@ -1163,7 +1168,7 @@ export const HelpProvider = ({ children }) => {
     } else if (pathname === '/dashboard') {
       // Case 2: General dashboard help (no specific tab)
       help = helpContent['/dashboard'];
-      // console.log(`[HelpContext] getHelpForRoute - Case 2: helpContent['/dashboard'] =`, help);
+      // info(`[HelpContext] getHelpForRoute - Case 2: helpContent['/dashboard'] =`, help);
     } else {
       // Case 3: Other specific routes
       help = helpContent[pathname];
@@ -1172,7 +1177,7 @@ export const HelpProvider = ({ children }) => {
         help = helpContent['/penalty'];
       }
     }
-    // console.log(`[HelpContext] getHelpForRoute - Before final fallback: help =`, help);
+    // info(`[HelpContext] getHelpForRoute - Before final fallback: help =`, help);
 
     // Case 4: Fallback to defaultHelp if no specific help content found
     help = help || defaultHelp; // Use defaultHelp directly if 'help' is still null/undefined
@@ -1183,7 +1188,7 @@ export const HelpProvider = ({ children }) => {
       content: Array.isArray(help?.content) ? help.content : defaultHelp.content
     };
 
-    // console.log(`[HelpContext] Returning help for path: ${pathname}${search}${hash}`, safeHelp);
+    // info(`[HelpContext] Returning help for path: ${pathname}${search}${hash}`, safeHelp);
     return safeHelp;
   }, [helpContent, defaultHelp]);
 
@@ -1199,13 +1204,13 @@ export const HelpProvider = ({ children }) => {
       // Use a small timeout to ensure the URL has been fully updated
       const timer = setTimeout(() => {
         const help = getHelpForRoute(location.pathname, location.search, location.hash);
-        // console.log('[HelpContext] Setting new help content:', help);
+        // info('[HelpContext] Setting new help content:', help);
         // Force a re-render by creating a new object reference
         setCurrentHelp(prev => {
           // Only update if the content is actually different
           const isSameContent = JSON.stringify(prev?.content) === JSON.stringify(help?.content);
           if (isSameContent) {
-            // console.log('[HelpContext] Help content is the same, skipping update');
+            // info('[HelpContext] Help content is the same, skipping update');
             return prev;
           }
           return { ...help, _timestamp: Date.now() };
@@ -1226,48 +1231,48 @@ export const HelpProvider = ({ children }) => {
 
   // Handle help button click
   const openHelp = useCallback(() => {
-    // console.log('[HelpContext] Opening help drawer');
+    // info('[HelpContext] Opening help drawer');
     setIsOpen(true);
   }, []);
 
   // Close help drawer
   const closeHelp = useCallback(() => {
-    // console.log('[HelpContext] Closing help drawer');
+    // info('[HelpContext] Closing help drawer');
     setIsOpen(false);
   }, []);
 
   // Listen for help events
   useEffect(() => {
     const handleHelpEvent = (e) => {
-      // console.log('[HelpContext] Received app:help event with detail:', e.detail);
+      // info('[HelpContext] Received app:help event with detail:', e.detail);
       const route = e.detail?.route || location.pathname;
       const search = e.detail?.search || location.search;
-      // console.log(`[HelpContext] Processing help request for route: ${route}${search}`);
+      // info(`[HelpContext] Processing help request for route: ${route}${search}`);
       
       // Force a re-render by setting a small delay
       setTimeout(() => {
         const hash = e.detail?.hash || location.hash || '';
         const help = getHelpForRoute(route, search, hash);
-        // console.log('[HelpContext] Help content from getHelpForRoute:', help);
+        // info('[HelpContext] Help content from getHelpForRoute:', help);
         
         if (help) {
-          // console.log('[HelpContext] Setting current help content:', help);
+          // info('[HelpContext] Setting current help content:', help);
           setCurrentHelp(help);
           setIsOpen(true);
-          // console.log('[HelpContext] Help drawer should now be open');
+          // info('[HelpContext] Help drawer should now be open');
         } else {
-          logger.warn('[HelpContext] No help content found, using default');
+          warn('[HelpContext] No help content found, using default');
           setCurrentHelp(defaultHelp);
           setIsOpen(true);
         }
       }, 50);
     };
 
-    // console.log('[HelpContext] Adding app:help event listener');
+    // info('[HelpContext] Adding app:help event listener');
     window.addEventListener('app:help', handleHelpEvent);
     
     return () => {
-      // console.log('[HelpContext] Cleaning up app:help event listener');
+      // info('[HelpContext] Cleaning up app:help event listener');
       window.removeEventListener('app:help', handleHelpEvent);
     };
   }, [location.pathname, location.hash, location.search, getHelpForRoute, defaultHelp]);
@@ -1275,18 +1280,18 @@ export const HelpProvider = ({ children }) => {
   // Listen for help toggle events separately to avoid dependency issues
   useEffect(() => {
     const handleHelpToggle = (e) => {
-      // console.log('[HelpContext] Received app:help:toggle event');
+      // info('[HelpContext] Received app:help:toggle event');
       setIsOpen(prev => {
         if (prev) {
           // If open, close it
-          // console.log('[HelpContext] Help drawer is open, closing it');
+          // info('[HelpContext] Help drawer is open, closing it');
           return false;
         } else {
           // If closed, open it with current route help
           const route = e.detail?.route || location.pathname;
           const search = e.detail?.search || location.search;
           const hash = e.detail?.hash || location.hash || '';
-          // console.log(`[HelpContext] Help drawer is closed, opening for route: ${route}${search}${hash}`);
+          // info(`[HelpContext] Help drawer is closed, opening for route: ${route}${search}${hash}`);
           const help = getHelpForRoute(route, search, hash);
           if (help) {
             setCurrentHelp(help);
@@ -1296,11 +1301,11 @@ export const HelpProvider = ({ children }) => {
       });
     };
 
-    // console.log('[HelpContext] Adding app:help:toggle event listener');
+    // info('[HelpContext] Adding app:help:toggle event listener');
     window.addEventListener('app:help:toggle', handleHelpToggle);
     
     return () => {
-      // console.log('[HelpContext] Cleaning up app:help:toggle event listener');
+      // info('[HelpContext] Cleaning up app:help:toggle event listener');
       window.removeEventListener('app:help:toggle', handleHelpToggle);
     };
   }, [location.pathname, location.hash, location.search, getHelpForRoute]);
@@ -1311,16 +1316,16 @@ export const HelpProvider = ({ children }) => {
       const tab = e.detail?.tab;
       if (!tab) return;
 
-      // console.log('[HelpContext] Dashboard tab changed to:', tab);
+      // info('[HelpContext] Dashboard tab changed to:', tab);
 
       // Always derive help via route helper to keep behavior consistent
       const help = getHelpForRoute('/dashboard', `?tab=${tab}`);
-      // console.log('[HelpContext] Setting help content for tab:', tab, help);
+      // info('[HelpContext] Setting help content for tab:', tab, help);
 
       setCurrentHelp(prev => {
         const isSameContent = JSON.stringify(prev?.content) === JSON.stringify(help?.content);
         if (isSameContent) {
-          // console.log('[HelpContext] Help content is the same, skipping update');
+          // info('[HelpContext] Help content is the same, skipping update');
           return prev;
         }
         return { ...help, _timestamp: Date.now() };

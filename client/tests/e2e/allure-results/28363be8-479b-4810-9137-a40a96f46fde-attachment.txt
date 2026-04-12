@@ -1,0 +1,12 @@
+🔍 UPDATE response: {
+  "data": {
+    "updateSubject": {
+      "id": "69bfac425ae6da109bf928fc",
+      "nameEn": "Updated Subject 1774169154990",
+      "description": "Updated description",
+      "credits": 4
+    }
+  }
+}
+✅ Subject updated: Updated Subject 1774169154990
+📈 New credits: 4

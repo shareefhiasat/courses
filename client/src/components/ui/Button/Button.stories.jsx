@@ -2,7 +2,8 @@ import React from 'react';
 import Button from './Button';
 import { getThemedIcon } from '@constants/iconTypes';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'UI/Button',
   component: Button,
   tags: ['autodocs'],

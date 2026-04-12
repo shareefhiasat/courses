@@ -2,7 +2,8 @@ import React from 'react';
 import { Select, DatePicker } from '@ui';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 
-const AttendanceFilters = ({
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const AttendanceFilters = ({
   programFilter,
   setProgramFilter,
   subjectFilter,

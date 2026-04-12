@@ -1,7 +1,8 @@
 ﻿import React, { useState } from 'react';
 import RichTextEditor from './RichTextEditor';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'Form/RichTextEditor',
   component: RichTextEditor,
   tags: ['autodocs'],

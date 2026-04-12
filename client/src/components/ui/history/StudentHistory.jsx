@@ -7,7 +7,7 @@ import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getAttendanceIcon, getAttendanceColor } from '@constants/attendanceTypes';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatLocalizedDate } from '@utils/date';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const StudentHistory = React.memo(({ 
   groupedLogs, 
@@ -24,12 +24,12 @@ const StudentHistory = React.memo(({
   lang = 'en',
   studentName
 }) => {
-  logger.log('🔧 StudentHistory rendering with groupedLogs:', groupedLogs);
-  logger.log('🔧 StudentHistory expandedDays:', expandedDays);
-  logger.log('🔧 StudentHistory activeFilters:', activeFilters);
+  info('🔧 StudentHistory rendering with groupedLogs:', groupedLogs);
+  info('🔧 StudentHistory expandedDays:', expandedDays);
+  info('🔧 StudentHistory activeFilters:', activeFilters);
   
   return groupedLogs.map((dayGroup, dayIndex) => {
-    logger.log('🔧 StudentHistory - processing dayGroup:', {
+    info('🔧 StudentHistory - processing dayGroup:', {
       dayIndex,
       date: dayGroup.date,
       dateType: typeof dayGroup.date,
@@ -43,12 +43,12 @@ const StudentHistory = React.memo(({
     let dateStr;
     if (dayGroup.date === 'unknown') {
       dateStr = lang === 'ar' ? 'تاريخ غير معروف' : 'Unknown Date';
-      logger.log('🔧 StudentHistory - unknown date encountered:', dayGroup.date);
-      logger.log('🔧 StudentHistory - dayGroup with unknown date:', dayGroup);
+      info('🔧 StudentHistory - unknown date encountered:', dayGroup.date);
+      info('🔧 StudentHistory - dayGroup with unknown date:', dayGroup);
     } else {
       try {
         dateStr = formatLocalizedDate(dayGroup.date, t, lang);
-        logger.log('🔧 StudentHistory - formatted date:', { 
+        info('🔧 StudentHistory - formatted date:', { 
           original: dayGroup.date, 
           formatted: dateStr,
           lang,
@@ -56,7 +56,7 @@ const StudentHistory = React.memo(({
         });
       } catch (error) {
         dateStr = lang === 'ar' ? 'تاريخ غير صالح' : 'Invalid Date';
-        logger.log('🔧 StudentHistory - date formatting error:', { 
+        info('🔧 StudentHistory - date formatting error:', { 
           date: dayGroup.date, 
           error: error.message,
           lang,
@@ -73,7 +73,7 @@ const StudentHistory = React.memo(({
     };
     const hasVisibleItems = filteredCounts.attendance + filteredCounts.participation + filteredCounts.behavior + filteredCounts.penalties > 0;
     
-    logger.log('🔧 StudentHistory dayGroup:', {
+    info('🔧 StudentHistory dayGroup:', {
       date: dayGroup.date,
       isDayExpanded,
       filteredCounts,
@@ -86,7 +86,7 @@ const StudentHistory = React.memo(({
     });
     
     if (!hasVisibleItems) {
-      logger.log('🔧 StudentHistory - skipping day due to no visible items:', dayGroup.date);
+      info('🔧 StudentHistory - skipping day due to no visible items:', dayGroup.date);
       return null;
     }
     
@@ -122,7 +122,7 @@ const StudentHistory = React.memo(({
                 return timeB - timeA; // Newest first
               });
 
-              logger.log('🔍 Combined timeline logs:', allLogs.map(log => ({
+              info('🔍 Combined timeline logs:', allLogs.map(log => ({
                 time: log.time,
                 type: log.logType,
                 label: log.label
@@ -147,8 +147,10 @@ const StudentHistory = React.memo(({
                   case RECORD_TYPES.ATTENDANCE:
                     // Use specific attendance icons based on status
                     const status = log.status;
-                    const iconName = getAttendanceIcon(status);
-                    const statusColor = getAttendanceColor(status);
+                    const statusValue = status?.code || status;
+                    const iconName = getAttendanceIcon(statusValue);
+                    const statusColor = getAttendanceColor(statusValue);
+                    console.log('🔍 StudentHistory - Icon Mapping:', { logType: log.logType, status, statusValue, iconName, statusColor });
                     
                     const attendanceIconMap = {
                       CheckCircle: <CheckSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
@@ -161,9 +163,14 @@ const StudentHistory = React.memo(({
                     };
                     
                     icon = attendanceIconMap[iconName] || attendanceIconMap.HelpCircle;
+                    console.log('🔍 StudentHistory - Selected Icon:', { iconName, hasIcon: !!attendanceIconMap[iconName], fallback: !attendanceIconMap[iconName] });
                     iconColor = statusColor;
                     borderColor = "var(--border-light, #f1f5f9)";
-                    onDelete = (logId) => handleDeleteAttendance(studentId, logId);
+                    // Detect if this is a standup attendance record
+                    const isStandupAttendance = (typeof log.status === 'string' && log.status?.startsWith('standup_')) || 
+                                                (typeof log.label === 'string' && log.label?.includes('Standup')) ||
+                                                (log.table && log.table === 'standup_attendances');
+                    onDelete = (logId) => handleDeleteAttendance(studentId, logId, isStandupAttendance);
                     break;
                   case RECORD_TYPES.PARTICIPATION:
                     icon = <ParticipationIcon />;
@@ -187,7 +194,7 @@ const StudentHistory = React.memo(({
                     return null;
                 }
 
-                logger.log('🔧 StudentHistory - rendering HistoryEntry:', {
+                info('🔧 StudentHistory - rendering HistoryEntry:', {
       logId: log.id,
       logType: log.logType,
       hasStudentName: !!studentName,

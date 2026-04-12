@@ -3,7 +3,8 @@ import { useLang } from '@contexts/LangContext';
 import styles from './LanguageSwitcher.module.css';
 import PortalTooltip from '@ui/PortalTooltip';
 
-export default function LanguageSwitcher({ compact = true }) {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default function LanguageSwitcher({ compact = true }) {
   const { lang, toggleLang, t } = useLang();
   if (compact) {
     return (

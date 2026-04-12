@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 /**
  * List Chart Resolvers
  * Centralized resolvers for mapping IDs to human-readable values
@@ -136,10 +138,10 @@ export const normalizeAttendanceStatus = (status, t) => {
   const statusMap = {
     'present': translate('present') || 'Present',
     'late': translate('late') || 'Late',
-    'absent': translate('absent_no_excuse') || 'Absent (No Excuse)',
-    'absent_with_excuse': translate('absent_excused') || 'Absent (Excused)',
-    'absent_without_excuse': translate('absent_no_excuse') || 'Absent (No Excuse)',
-    'excused': translate('absent_excused') || 'Absent (Excused)',
+    'absent': translate('absent_no_excuse') || 'Absent',
+    'absent_with_excuse': translate('absent_excused') || 'Absent Excused',
+    'absent_without_excuse': translate('absent_no_excuse') || 'Absent',
+    'excused': translate('absent_excused') || 'Absent Excused',
     'human_case': translate('human_case') || 'Human Case',
     'not_specified': translate('not_specified') || 'Not Specified'
   };

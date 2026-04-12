@@ -7,7 +7,8 @@
 import React from 'react';
 import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 
-const MessageBubbleWrapper = ({ 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const MessageBubbleWrapper = ({ 
   msg, 
   user, 
   allUsers, 

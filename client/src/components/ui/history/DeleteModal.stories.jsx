@@ -50,7 +50,7 @@ export const DeleteAttendance = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          logger.log('Attendance record deleted');
+          info('Attendance record deleted');
           setIsOpen(false);
         }}
         deleteType={RECORD_TYPES.ATTENDANCE}
@@ -75,7 +75,7 @@ export const DeleteParticipation = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          logger.log('Participation record deleted');
+          info('Participation record deleted');
           setIsOpen(false);
         }}
         deleteType={RECORD_TYPES.PARTICIPATION}
@@ -100,7 +100,7 @@ export const DeleteBehavior = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          logger.log('Behavior record deleted');
+          info('Behavior record deleted');
           setIsOpen(false);
         }}
         deleteType={RECORD_TYPES.BEHAVIOR}
@@ -125,7 +125,7 @@ export const DeletePenalty = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          logger.log('Penalty record deleted');
+          info('Penalty record deleted');
           setIsOpen(false);
         }}
         deleteType={RECORD_TYPES.PENALTY}
@@ -198,7 +198,7 @@ export const AllActivityTypes = () => {
           isOpen={!!modalType}
           onClose={() => setModalType(null)}
           onConfirm={() => {
-            logger.log(`${modalType.label} record deleted for ${modalType.student}`);
+            info(`${modalType.label} record deleted for ${modalType.student}`);
             setModalType(null);
           }}
           deleteType={modalType.type}
@@ -224,7 +224,7 @@ export const NoStudentName = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          logger.log('Record deleted without specific student');
+          info('Record deleted without specific student');
           setIsOpen(false);
         }}
         deleteType={RECORD_TYPES.ATTENDANCE}

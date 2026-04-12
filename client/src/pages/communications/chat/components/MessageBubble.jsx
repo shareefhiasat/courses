@@ -4,11 +4,10 @@
  */
 
 import React, { memo, useRef, useState, useCallback } from 'react';
-import { doc } from 'firebase/firestore';
-import { db } from '@services/other/config';
 import { chatService } from '@services/business/chatService';
 import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
-import { 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import { 
   REACTION_TYPES, 
   REACTION_COLORS, 
   MESSAGE_TYPES,
@@ -97,7 +96,6 @@ const MessageBubble = memo(({
   // Handle poll vote
   const handlePollVote = useCallback(async (optionIndex) => {
     try {
-      const msgRef = doc(db, 'messages', msg.id);
       const currentVotes = msg.pollVotes || {};
       
       // Remove user from all options first
@@ -105,15 +103,15 @@ const MessageBubble = memo(({
         Object.keys(currentVotes).map(async (i) => {
           const currentOptionVotes = currentVotes[i] || [];
           if (currentOptionVotes.includes(user.uid)) {
-            await chatService.removePollVote(msgRef.id, user.uid, parseInt(i));
+            await chatService.removePollVote(msg.id, user.uid, parseInt(i));
           }
         })
       );
       
       // Add to selected option
-      await chatService.votePoll(msgRef.id, user.uid, optionIndex);
+      await chatService.votePoll(msg.id, user.uid, optionIndex);
     } catch (err) {
-      logger.error('Poll vote error:', err);
+      error('Poll vote error:', err);
       toast?.showError('Failed to vote');
     }
   }, [msg.id, msg.pollVotes, user.uid, toast, logger]);

@@ -1,545 +1,506 @@
-import logger from '@utils/logger';
-import { formatQatarDateOnly, getQatarNow, getQatarTimestampString } from '@utils/qatarDate';
-import { getUsers } from './userService';
-import { markAttendance, getTodayAttendanceStatus } from './attendanceService';
-import { getStudentsByClass } from './enrollmentService';
-import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
+/**
+ * Bulk Attendance Service
+ *
+ * PURPOSE:
+ * Handles bulk attendance operations for scanning multiple students at once
+ * Provides utilities for parsing, validating, and bulk updating attendance records
+ *
+ * ARCHITECTURE:
+ * Frontend Components → Bulk Attendance Service → Attendance Service → Database
+ */
 
-const BULK_OPERATION_LIMIT = 500;
-const BATCH_SIZE = 50;
+import { info, error, warn, debug } from "../utils/logger.js";
+import { markAttendance } from "./attendanceServiceUnified.js";
+import { createStandupAttendance } from "./standupAttendanceService";
+import { getStudentsByClass, getEnrollmentsByProgram } from "./enrollmentService";
+import { getUsersByIds } from "./userService";
+import {
+  ATTENDANCE_STATUS,
+  ATTENDANCE_TYPE_CATEGORY,
+} from "@constants/attendanceTypes";
 
-// Convert human-readable dateKey back to ISO format for database operations
-const convertDateKeyToISO = (dateKey) => {
-  try {
-    // dateKey format: "March 2, 2026" (from bulk scan UI)
-    // DB format: "February 28, 2026 at 7:07:53 AM UTC+3"
-    logger.info('[BulkAttendanceService] Converting dateKey to ISO:', { dateKey });
-    
-    const date = new Date(dateKey);
-    if (isNaN(date.getTime())) {
-      // Fallback to today if parsing fails
-      const fallback = formatQatarDateOnly(getQatarNow());
-      logger.warn('[BulkAttendanceService] Date parsing failed, using fallback:', { dateKey, fallback });
-      return fallback;
-    }
-    
-    // Create proper ISO date string (YYYY-MM-DD format) using local date components
-    // to avoid timezone offset issues
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const isoDate = `${year}-${month}-${day}`;
-    
-    logger.info('[BulkAttendanceService] Date conversion successful:', { 
-      dateKey, 
-      isoDate,
-      originalDate: date.toISOString(),
-      formattedDate: date.toLocaleDateString(),
-      localDate: `${year}-${month}-${day}`,
-      note: 'DB stores dates like "February 28, 2026 at 7:07:53 AM UTC+3"'
-    });
-    return isoDate;
-  } catch (error) {
-    logger.error('[BulkAttendanceService] Error converting dateKey to ISO:', { dateKey, error });
-    return formatQatarDateOnly(getQatarNow());
-  }
-};
+const serviceName = "bulkAttendanceService";
 
+/**
+ * Parse bulk student numbers from input text
+ * @param {string} inputText - Raw input text containing student numbers
+ * @returns {Array} Array of parsed student numbers
+ */
 export const parseBulkStudentNumbers = (inputText) => {
-  if (!inputText || typeof inputText !== 'string') {
-    return {
-      success: false,
-      parsed: [],
-      invalid: [],
-      duplicates: [],
-      error: 'Invalid input text'
-    };
-  }
-
-  const lines = inputText
-    .split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
-
-  if (lines.length > BULK_OPERATION_LIMIT) {
-    return {
-      success: false,
-      parsed: [],
-      invalid: [],
-      duplicates: [],
-      error: `Maximum ${BULK_OPERATION_LIMIT} student numbers allowed per operation`
-    };
-  }
-
-  const parsed = [];
-  const invalid = [];
-  const seen = new Set();
-  const duplicates = [];
-
-  lines.forEach((line, index) => {
-    const trimmed = line.trim();
-    
-    if (!/^\d+$/.test(trimmed)) {
-      invalid.push({
-        line: index + 1,
-        value: trimmed,
-        reason: 'Non-numeric value'
-      });
-      return;
-    }
-
-    if (seen.has(trimmed)) {
-      duplicates.push({
-        line: index + 1,
-        value: trimmed
-      });
-      return;
-    }
-
-    seen.add(trimmed);
-    parsed.push(trimmed);
-  });
-
-  return {
-    success: true,
-    parsed,
-    invalid,
-    duplicates,
-    totalInput: lines.length,
-    validCount: parsed.length
-  };
-};
-
-export const bulkValidateStudents = async ({ programId, classId, studentNumbers }) => {
   try {
-    logger.debug('[BulkAttendanceService] Validating students:', {
-      programId,
-      classId,
-      count: studentNumbers.length
+    info(`${serviceName}:parseBulkStudentNumbers`, {
+      inputLength: inputText?.length,
+      inputText: inputText,
     });
 
-    const studentsResult = await getStudentsByClass(classId);
-    if (!studentsResult.success) {
-      return {
-        success: false,
-        error: 'Failed to fetch class students',
-        found: [],
-        notFound: studentNumbers
-      };
+    if (!inputText || typeof inputText !== "string") {
+      console.log('[parseBulkStudentNumbers] Invalid input:', inputText);
+      return [];
     }
 
-    const classStudents = studentsResult.data || [];
+    // Split by common delimiters and clean up
+    const numbers = inputText
+      .split(/[\s,\n\r\t;]+/) // Split by whitespace, comma, newline, semicolon
+      .map((num) => num.trim())
+      .filter((num) => num.length > 0) // Remove empty strings
+      .map((num) => {
+        // Remove common prefixes only when followed by digit or space, not part of student number like STU006
+        const cleaned = num.replace(/^(st|student|id|#)(?=\d|\s)/i, "").replace(/[^\w-]/g, "");
+        console.log('[parseBulkStudentNumbers] Cleaning:', num, '->', cleaned);
+        return cleaned;
+      })
+      .filter((num) => num.length > 0); // Remove empty after cleaning
+
+    console.log('[parseBulkStudentNumbers] After cleaning:', numbers);
+
+    const uniqueNumbers = [...new Set(numbers)]; // Remove duplicates
+
+    debug(`${serviceName}:parseBulkStudentNumbers:success`, {
+      originalCount: numbers.length,
+      uniqueCount: uniqueNumbers.length,
+      numbers: uniqueNumbers.slice(0, 10), // Log first 10 for debugging
+    });
+
+    console.log('[parseBulkStudentNumbers] Final result:', uniqueNumbers);
+    return uniqueNumbers;
+  } catch (err) {
+    error(`${serviceName}:parseBulkStudentNumbers:error`, {
+      error: err.message,
+    });
+    console.error('[parseBulkStudentNumbers] Error:', err);
+    return [];
+  }
+};
+
+/**
+ * Validate students against class enrollment
+ * @param {Array} studentNumbers - Array of student numbers to validate
+ * @param {string} classId - Class ID to validate against
+ * @returns {Promise<Object>} Validation result with found and notFound students
+ */
+export const bulkValidateStudents = async ({ studentNumbers, classId, programId, attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR }) => {
+  try {
+    info(`${serviceName}:bulkValidateStudents START`, {
+      studentCount: studentNumbers.length,
+      studentNumbers,
+      classId,
+      programId,
+      attendanceMode,
+    });
+
+    if (!studentNumbers || studentNumbers.length === 0) {
+      return { success: false, error: 'No student numbers provided', found: [], notFound: [] };
+    }
+
+    // In standup mode, require programId and use getEnrollmentsByProgram
+    // In regular mode, require classId and use getStudentsByClass
+    let studentsResponse;
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      info(`${serviceName}:bulkValidateStudents - STANDUP MODE - Calling getEnrollmentsByProgram with programId:`, programId);
+      if (!programId) {
+        error(`${serviceName}:bulkValidateStudents - Missing programId for standup mode`);
+        return { success: false, error: 'Program ID is required in standup mode', found: [], notFound: [] };
+      }
+      studentsResponse = await getEnrollmentsByProgram(programId);
+      info(`${serviceName}:bulkValidateStudents - getEnrollmentsByProgram returned:`, {
+        success: studentsResponse.success,
+        studentCount: studentsResponse.data?.length || 0,
+        data: studentsResponse.data
+      });
+
+      // Fetch full user data with student numbers for standup mode
+      if (studentsResponse.success && studentsResponse.data.length > 0) {
+        const userIds = [...new Set(studentsResponse.data.map(e => e.userId))];
+        info(`${serviceName}:bulkValidateStudents - Fetching user data for userIds:`, userIds);
+        const usersResponse = await getUsersByIds(userIds);
+        info(`${serviceName}:bulkValidateStudents - getUsersByIds response:`, {
+          success: usersResponse?.success,
+          dataLength: usersResponse?.data?.length
+        });
+
+        // Merge user data with enrollments
+        if (usersResponse.success && usersResponse.data) {
+          const userMap = new Map(usersResponse.data.map(u => [u.id, u]));
+          studentsResponse.data = studentsResponse.data.map(enrollment => ({
+            ...enrollment,
+            studentNumber: userMap.get(enrollment.userId)?.studentNumber,
+            displayName: userMap.get(enrollment.userId)?.displayName || enrollment.user?.displayName || enrollment.user?.name,
+            name: userMap.get(enrollment.userId)?.name || enrollment.user?.name
+          }));
+          info(`${serviceName}:bulkValidateStudents - Merged user data with enrollments`);
+        }
+      }
+    } else {
+      info(`${serviceName}:bulkValidateStudents - REGULAR MODE - Calling getStudentsByClass with classId:`, classId);
+      if (!classId) {
+        error(`${serviceName}:bulkValidateStudents - Missing classId for regular mode`);
+        return { success: false, error: 'Class ID is required in regular mode', found: [], notFound: [] };
+      }
+      studentsResponse = await getStudentsByClass(classId);
+      info(`${serviceName}:bulkValidateStudents - getStudentsByClass returned:`, {
+        success: studentsResponse.success,
+        studentCount: studentsResponse.data?.length || 0,
+        data: studentsResponse.data
+      });
+    }
+
+    if (!studentsResponse.success) {
+      throw new Error("Failed to fetch class students");
+    }
+
+    const classStudents = studentsResponse.data || [];
+
+    // Create lookup maps for performance
+    const studentMap = new Map();
+    classStudents.forEach((student) => {
+      // Handle both old student structure and new enrollment structure
+      const studentId = student.userId || student.id || student.docId;
+      const studentNumber =
+        student.user?.studentNumber || student.studentNumber || student.studentId || student.id;
+      const displayName =
+        student.user?.displayName || student.user?.realName || student.displayName || student.realName || student.name || "Unknown";
+
+      studentMap.set(studentId, {
+        studentId,
+        studentNumber,
+        displayName,
+        ...student,
+      });
+      studentMap.set(studentNumber, {
+        studentId,
+        studentNumber,
+        displayName,
+        ...student,
+      });
+      studentMap.set(String(studentId).toLowerCase(), {
+        studentId,
+        studentNumber,
+        displayName,
+        ...student,
+      });
+      studentMap.set(String(studentNumber).toLowerCase(), {
+        studentId,
+        studentNumber,
+        displayName,
+        ...student,
+      });
+    });
+
+    // Validate each student number
     const found = [];
     const notFound = [];
 
-    studentNumbers.forEach(studentNumber => {
-      const student = classStudents.find(user => {
-        const matches = [
-          user.studentNumber === studentNumber,
-          user.referenceId === studentNumber,
-          user.studentId === studentNumber,
-          user.id === studentNumber
-        ];
-        return matches.some(Boolean) && user.isStudent === true;
-      });
+    studentNumbers.forEach((number) => {
+      const searchKey = number.toLowerCase();
+      const student =
+        studentMap.get(searchKey) ||
+        studentMap.get(number) ||
+        classStudents.find(
+          (s) =>
+            s.user?.studentNumber === number ||
+            s.studentNumber === number ||
+            s.studentId === number ||
+            s.userId === number ||
+            s.id === number ||
+            s.docId === number,
+        );
 
       if (student) {
         found.push({
-          studentNumber,
-          studentId: student.id || student.docId,
-          displayName: student.displayName || student.name,
-          email: student.email,
-          studentData: student
+          studentId: student.userId || student.id || student.docId,
+          studentNumber:
+            student.user?.studentNumber || student.studentNumber || student.studentId || student.id,
+          displayName: student.user?.displayName || student.user?.realName || student.displayName || student.realName || student.name,
+          email: student.user?.email || student.email,
+          ...student,
         });
       } else {
-        notFound.push(studentNumber);
+        notFound.push(number);
       }
     });
 
-    logger.debug('[BulkAttendanceService] Validation complete:', {
-      foundCount: found.length,
-      notFoundCount: notFound.length
+    debug(`${serviceName}:bulkValidateStudents:success`, {
+      total: studentNumbers.length,
+      found: found.length,
+      notFound: notFound.length,
+      notFoundSample: notFound.slice(0, 5),
     });
 
-    return {
-      success: true,
-      found,
-      notFound,
-      totalValidated: studentNumbers.length
-    };
-  } catch (error) {
-    logger.error('[BulkAttendanceService] Validation error:', error);
-    return {
-      success: false,
-      error: error.message,
-      found: [],
-      notFound: studentNumbers
-    };
+    return { success: true, found, notFound };
+  } catch (err) {
+    error(`${serviceName}:bulkValidateStudents:error`, {
+      error: err.message,
+      studentCount: studentNumbers.length,
+      classId,
+      programId,
+      attendanceMode,
+    });
+
+    return { success: false, error: err.message, found: [], notFound: studentNumbers };
   }
 };
 
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-export const bulkUpsertAttendance = async ({
-  programId,
-  subjectId,
-  classId,
-  dateKey,
-  studentIds,
-  status,
-  markedBy,
-  performedBy,
-  performedByName,
-  performedByEmail,
-  source = 'bulk',
-  notes = '',
-  onProgress = null
-}) => {
+/**
+ * Bulk upsert attendance records
+ * @param {Array} students - Array of validated students
+ * @param {Object} params - Attendance parameters
+ * @returns {Promise<Object>} Bulk update result
+ */
+export const bulkUpsertAttendance = async (students, params = {}) => {
   try {
-    logger.info('[BulkAttendanceService] Starting bulk upsert:', {
-      programId,
-      subjectId,
+    const {
       classId,
-      dateKey,
-      studentCount: studentIds.length,
-      status,
-      source,
+      date,
+      status = ATTENDANCE_STATUS.PRESENT,
       markedBy,
       performedBy,
       performedByName,
       performedByEmail,
-      timestamp: getQatarTimestampString()
+      attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR,
+      sendNotifications = false,
+    } = params;
+
+    info(`${serviceName}:bulkUpsertAttendance`, {
+      studentCount: students.length,
+      classId,
+      status,
+      attendanceMode,
     });
 
-    const results = {
-      success: [],
-      failed: [],
-      updated: [],
-      created: [],
-      skipped: [],
-      alreadyMarked: [],
-      detailed: [] // Detailed results for each student
-    };
+    if (!students || students.length === 0) {
+      return { success: false, error: "No students to process", results: [] };
+    }
 
-    for (let i = 0; i < studentIds.length; i += BATCH_SIZE) {
-      const batch = studentIds.slice(i, i + BATCH_SIZE);
-      
-      logger.debug(`[BulkAttendanceService] Processing batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(studentIds.length/BATCH_SIZE)}:`, {
-        batchSize: batch.length,
-        batchRange: `${i}-${i + batch.length - 1}`
-      });
-      
-      const batchPromises = batch.map(async (studentInfo) => {
-        const studentId = studentInfo.studentId || studentInfo;
-        const studentNumber = studentInfo.studentNumber || studentId;
-        const studentName = studentInfo.displayName || studentInfo.name || 'Unknown';
-        
-        logger.info('[BulkAttendanceService] Processing student info:', {
-          studentNumber,
-          studentId,
-          studentName,
-          displayName: studentInfo.displayName,
-          name: studentInfo.name,
-          email: studentInfo.email,
-          studentInfoKeys: Object.keys(studentInfo),
-          batchIndex: batch.indexOf(studentInfo),
-          totalBatchSize: batch.length,
-          notes: notes
-        });
-        
-        const detailedResult = {
-          studentId,
-          studentNumber,
-          studentName,
-          status: 'pending',
-          message: '',
-          timestamp: getQatarTimestampString()
-        };
+    const results = [];
+    const errors = [];
 
+    // Process students in batches for better performance
+    const BATCH_SIZE = 10;
+
+    for (let i = 0; i < students.length; i += BATCH_SIZE) {
+      const batch = students.slice(i, i + BATCH_SIZE);
+
+      const batchPromises = batch.map(async (student) => {
         try {
-          // Convert dateKey to ISO format for database operations
-          const isoDate = convertDateKeyToISO(dateKey);
-          
-          logger.info('[BulkAttendanceService] Processing student attendance:', {
-            studentNumber,
-            studentId,
-            dateKey,
-            isoDate,
-            status
-          });
-          
-          // Check if student is already marked for this date
-          // Use studentNumber for consistent document ID lookup
-          const existingAttendance = await getTodayAttendanceStatus(classId, studentNumber);
-          
-          if (existingAttendance.success && existingAttendance.data) {
-            const existingStatus = existingAttendance.data.status;
-            
-            // If trying to mark with same status, skip
-            if (existingStatus === status) {
-              detailedResult.status = 'skipped';
-              detailedResult.message = `Already marked as ${status} for ${dateKey}`;
-              results.skipped.push(studentId);
-              results.alreadyMarked.push({
-                studentId,
-                studentNumber,
-                studentName,
-                existingStatus,
-                attemptedStatus: status
-              });
-              
-              logger.debug(`[BulkAttendanceService] Student ${studentNumber} skipped - already marked as ${status}`, {
-                studentId,
-                studentNumber,
-                existingStatus,
-                dateKey
-              });
-            } else {
-              // Update existing record to new status
-              logger.info('[BulkAttendanceService] Calling markAttendance for UPDATE:', {
-                classId,
-                studentNumber,
-                date: isoDate,
-                status,
-                method: source,
-                markedBy,
-                performedBy,
-                performedByName,
-                performedByEmail
-              });
-              
-              const updateResult = await markAttendance({
-                classId,
-                programId,
-                subjectId,
-                studentId,
-                studentNumber,
-                date: isoDate, // Use ISO format
-                status,
-                markedBy,
-                performedBy,
-                performedByName,
-                performedByEmail,
-                method: source,
-                notes: notes || `Bulk ${status} - ${source} (updated from ${existingStatus})`,
-                timestamp: getQatarTimestampString(),
-                studentInfo: studentInfo.studentData || null
-              });
-
-              if (updateResult.success) {
-                detailedResult.status = 'updated';
-                detailedResult.message = `Updated from ${existingStatus} to ${status} for ${dateKey}`;
-                results.success.push(studentId);
-                results.updated.push(studentId);
-                
-                logger.info(`[BulkAttendanceService] Student ${studentNumber} attendance updated`, {
-                  studentId,
-                  studentNumber,
-                  studentName,
-                  from: existingStatus,
-                  to: status,
-                  dateKey
-                });
-              } else {
-                detailedResult.status = 'failed';
-                detailedResult.message = updateResult.error || 'Failed to update attendance';
-                results.failed.push({
-                  studentId,
-                  studentNumber,
-                  studentName,
-                  error: updateResult.error || 'Failed to update attendance'
-                });
-                
-                logger.error(`[BulkAttendanceService] Failed to update student ${studentNumber}`, {
-                  studentId,
-                  studentNumber,
-                  error: updateResult.error
-                });
-              }
-            }
-          } else {
-            // Create new attendance record
-            const attendanceData = {
-              classId,
-              programId,
-              subjectId,
-              studentId,
-              studentNumber,
-              date: isoDate, // Use ISO format
-              status,
-              markedBy,
+          let result;
+          if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+            // Use standup attendance service
+            result = await createStandupAttendance({
+              userId: student.studentId || student.id,
+              status: status.toUpperCase(),
+              date,
+              notes: null,
               performedBy,
               performedByName,
               performedByEmail,
-              method: source,
-              notes: notes || `Bulk ${status} - ${source}`,
-              timestamp: getQatarTimestampString(),
-              studentInfo: studentInfo.studentData || null
-            };
-
-            logger.info('[BulkAttendanceService] Calling markAttendance for CREATE:', {
-              attendanceData,
-              batchIndex: batch.indexOf(studentInfo),
-              totalBatchSize: batch.length,
-              markedBy,
-              performedBy,
-              performedByName,
-              performedByEmail
             });
-            
-            const createResult = await markAttendance(attendanceData);
-
-            if (createResult.success) {
-              detailedResult.status = 'created';
-              detailedResult.message = `Marked as ${status} for ${dateKey}`;
-              results.success.push(studentId);
-              results.created.push(studentId);
-              
-              logger.info(`[BulkAttendanceService] Student ${studentNumber} attendance created`, {
-                studentId,
-                studentNumber,
-                studentName,
-                status,
-                dateKey
-              });
-            } else {
-              detailedResult.status = 'failed';
-              detailedResult.message = createResult.error || 'Failed to mark attendance';
-              results.failed.push({
-                studentId,
-                studentNumber,
-                studentName,
-                error: createResult.error || 'Failed to mark attendance'
-              });
-              
-              logger.error(`[BulkAttendanceService] Failed to mark student ${studentNumber}`, {
-                studentId,
-                studentNumber,
-                error: createResult.error
-              });
-            }
+          } else {
+            // Use dual attendance service for regular attendance
+            const attendanceParams = {
+              userId: student.studentId || student.id,
+              classId,
+              date,
+              status,
+              notes: null,
+              user: performedBy ? { id: performedBy, name: performedByName, email: performedByEmail } : null,
+            };
+            result = await markAttendance(attendanceParams, attendanceParams.user, attendanceMode);
           }
-        } catch (error) {
-          detailedResult.status = 'failed';
-          detailedResult.message = error.message || 'Unexpected error occurred';
-          results.failed.push({
-            studentId,
-            studentNumber,
-            studentName,
-            error: error.message || 'Unexpected error occurred'
-          });
-          
-          logger.error(`[BulkAttendanceService] Unexpected error for student ${studentNumber}`, {
-            studentId,
-            studentNumber,
-            error: error.message,
-            stack: error.stack
-          });
-        }
 
-        results.detailed.push(detailedResult);
-        return detailedResult;
+          if (result.success) {
+            return {
+              success: true,
+              studentId: student.studentId,
+              studentNumber: student.studentNumber,
+              displayName: student.displayName,
+              attendanceId: result.data?.id,
+              message: "Attendance marked successfully",
+            };
+          } else {
+            return {
+              success: false,
+              studentId: student.studentId,
+              studentNumber: student.studentNumber,
+              displayName: student.displayName,
+              error: result.error || "Failed to mark attendance",
+            };
+          }
+        } catch (err) {
+          return {
+            success: false,
+            studentId: student.studentId,
+            studentNumber: student.studentNumber,
+            displayName: student.displayName,
+            error: err.message || "Unexpected error",
+          };
+        }
       });
 
-      await Promise.all(batchPromises);
-      
-      // Report progress after each batch
-      if (onProgress) {
-        const processedCount = Math.min(i + BATCH_SIZE, studentIds.length);
-        const progress = Math.round((processedCount / studentIds.length) * 100);
-        onProgress({
-          processed: processedCount,
-          total: studentIds.length,
-          percentage: progress,
-          currentBatch: Math.floor(i / BATCH_SIZE) + 1,
-          totalBatches: Math.ceil(studentIds.length / BATCH_SIZE)
-        });
-      }
-      
-      if (i + BATCH_SIZE < studentIds.length) {
-        logger.debug(`[BulkAttendanceService] Delaying before next batch...`);
-        await delay(100);
-      }
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
     }
 
-    const totalProcessed = results.success.length + results.failed.length + results.skipped.length;
-    
-    logger.info('[BulkAttendanceService] Bulk upsert completed:', {
-      summary: {
-        total: studentIds.length,
-        processed: totalProcessed,
-        succeeded: results.success.length,
-        failed: results.failed.length,
-        updated: results.updated.length,
-        created: results.created.length,
-        skipped: results.skipped.length,
-        alreadyMarked: results.alreadyMarked.length
-      },
-      status,
-      dateKey,
-      classId,
-      duration: Date.now() - Date.now() // This would need proper timing
+    // Separate successful and failed results
+    const successful = results.filter((r) => r.success);
+    const failed = results.filter((r) => !r.success);
+
+    debug(`${serviceName}:bulkUpsertAttendance:success`, {
+      total: students.length,
+      successful: successful.length,
+      failed: failed.length,
+      failedSample: failed
+        .slice(0, 3)
+        .map((f) => ({ studentNumber: f.studentNumber, error: f.error })),
     });
 
     return {
-      success: true,
+      success: successful.length > 0,
       results,
       summary: {
-        total: studentIds.length,
-        processed: totalProcessed,
-        succeeded: results.success.length,
-        failed: results.failed.length,
-        updated: results.updated.length,
-        created: results.created.length,
-        skipped: results.skipped.length,
-        alreadyMarked: results.alreadyMarked.length
-      }
+        total: students.length,
+        successful: successful.length,
+        failed: failed.length,
+      },
+      error:
+        failed.length > 0
+          ? `${failed.length} students failed to process`
+          : null,
     };
-  } catch (error) {
-    logger.error('[BulkAttendanceService] Bulk upsert error:', {
-      error: error.message,
-      stack: error.stack,
-      studentCount: studentIds.length,
-      status,
-      dateKey
+  } catch (err) {
+    error(`${serviceName}:bulkUpsertAttendance:error`, {
+      error: err.message,
+      studentCount: students?.length,
     });
-    
+
     return {
       success: false,
-      error: error.message,
-      results: {
-        success: [],
-        failed: studentIds.map(s => ({
-          studentId: s.studentId || s,
-          studentNumber: s.studentNumber || s,
-          studentName: s.displayName || s.name || 'Unknown',
-          error: error.message
-        })),
-        updated: [],
-        created: [],
-        skipped: [],
-        alreadyMarked: [],
-        detailed: studentIds.map(s => ({
-          studentId: s.studentId || s,
-          studentNumber: s.studentNumber || s,
-          studentName: s.displayName || s.name || 'Unknown',
-          status: 'failed',
-          message: error.message,
-          timestamp: getQatarTimestampString()
-        }))
-      }
+      error: err.message || "Failed to process bulk attendance",
+      results: [],
     };
   }
 };
 
+/**
+ * Compute date key for attendance operations
+ * @param {string|Date} date - Date to compute key for
+ * @returns {string} Date key in YYYY-MM-DD format
+ */
 export const computeDateKey = (date) => {
-  if (!date) {
-    return formatQatarDateOnly(getQatarNow());
+  try {
+    info(`${serviceName}:computeDateKey`, { date });
+
+    if (!date) {
+      return new Date().toISOString().split("T")[0];
+    }
+
+    let dateObj;
+    if (typeof date === "string") {
+      dateObj = new Date(date);
+    } else if (date instanceof Date) {
+      dateObj = date;
+    } else {
+      throw new Error("Invalid date format");
+    }
+
+    if (isNaN(dateObj.getTime())) {
+      throw new Error("Invalid date value");
+    }
+
+    const dateKey = dateObj.toISOString().split("T")[0];
+
+    debug(`${serviceName}:computeDateKey:success`, {
+      input: date,
+      output: dateKey,
+    });
+
+    return dateKey;
+  } catch (err) {
+    error(`${serviceName}:computeDateKey:error`, {
+      error: err.message,
+      date,
+    });
+
+    // Fallback to today
+    return new Date().toISOString().split("T")[0];
   }
-  
-  if (typeof date === 'string') {
-    return date;
+};
+
+/**
+ * Bulk validate and process attendance in one operation
+ * @param {string} inputText - Raw input text
+ * @param {Object} params - Processing parameters
+ * @returns {Promise<Object>} Complete processing result
+ */
+export const bulkProcessAttendance = async (inputText, params = {}) => {
+  try {
+    info(`${serviceName}:bulkProcessAttendance`, {
+      inputLength: inputText?.length,
+      classId: params.classId,
+    });
+
+    // Step 1: Parse student numbers
+    const studentNumbers = parseBulkStudentNumbers(inputText);
+
+    if (studentNumbers.length === 0) {
+      return {
+        success: false,
+        error: "No valid student numbers found",
+        parsedNumbers: [],
+        validation: { found: [], notFound: [] },
+        results: [],
+      };
+    }
+
+    // Step 2: Validate students
+    const validation = await bulkValidateStudents(
+      studentNumbers,
+      params.classId,
+    );
+
+    if (validation.found.length === 0) {
+      return {
+        success: false,
+        error: "No valid students found in class",
+        parsedNumbers: studentNumbers,
+        validation,
+        results: [],
+      };
+    }
+
+    // Step 3: Process attendance
+    const attendanceResult = await bulkUpsertAttendance(
+      validation.found,
+      params,
+    );
+
+    return {
+      success: attendanceResult.success,
+      parsedNumbers: studentNumbers,
+      validation,
+      results: attendanceResult.results,
+      summary: attendanceResult.summary,
+      error: attendanceResult.error,
+    };
+  } catch (err) {
+    error(`${serviceName}:bulkProcessAttendance:error`, {
+      error: err.message,
+    });
+
+    return {
+      success: false,
+      error: err.message || "Failed to process bulk attendance",
+      parsedNumbers: [],
+      validation: { found: [], notFound: [] },
+      results: [],
+    };
   }
-  
-  return formatQatarDateOnly(date);
+};
+
+// Export all functions for easy importing
+export default {
+  parseBulkStudentNumbers,
+  bulkValidateStudents,
+  bulkUpsertAttendance,
+  computeDateKey,
+  bulkProcessAttendance,
 };

@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 /**
  * Qatar Date Standardization
  * 
@@ -257,7 +259,7 @@ export function getQatarTimeAgo(date) {
  * These exist only to prevent breaking changes during migration
  */
 export function formatQatarDate(date) {
-  console.warn('formatQatarDate is deprecated. Use formatQatarStandard instead.');
+  warn('formatQatarDate is deprecated. Use formatQatarStandard instead.');
   return formatQatarStandard(date);
 }
 

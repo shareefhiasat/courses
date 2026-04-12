@@ -3,15 +3,18 @@ import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
-import AuthForm from '@/components/AuthForm';
 import { Container } from '@ui';
 import { GlobalLoadingFallback } from '@/contexts/GlobalLoadingContext';
 import { Navbar } from '@ui';
 import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
+import AuthForm from '@components/AuthForm';
 import styles from './LoginPage.module.css';
 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 const LoginPage = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const { theme } = useTheme();
   const { t } = useLang();
   const [logoutReason, setLogoutReason] = useState(null);
@@ -35,7 +38,7 @@ const LoginPage = () => {
           return <Navigate to={backUrl} replace />;
         }
       } catch (error) {
-        console.warn('Invalid backUrl:', backUrl);
+        warn('Invalid backUrl:', backUrl);
       }
     }
     
@@ -136,11 +139,22 @@ const LoginPage = () => {
     }
   }, [t]);
 
+  // Add logging for debugging
+  console.log('🔐 AuthContext State:', {
+    loading,
+    user: user ? 'Present' : 'Missing',
+    hasToken: !!user?.token
+  });
+
   if (loading) {
+    info('🔄 Auth loading...');
     return <GlobalLoadingFallback />;
   }
 
   if (user) {
+    console.log('✅ User authenticated, redirecting...');
+    info('👤 User info:', user);
+    info('🎭 Roles:', user.roles);
     return handlePostLoginRedirect();
   }
 

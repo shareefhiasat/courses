@@ -1,27 +1,4 @@
 services:
-  # MongoDB Database (Primary Data Store)
-  mongodb:
-    image: mongo:7.0
-    container_name: lms-qaf-mongodb
-    restart: unless-stopped
-    command: ["--replSet", "rs0", "--bind_ip_all"]
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGO_INITDB_DATABASE=lms_dev
-    volumes:
-      - mongodb_dev_data:/data/db
-      - mongodb_dev_config:/data/configdb
-      - ./mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-      - ./mongo/setup-replica-set.js:/docker-entrypoint-initdb.d/setup-replica-set.js:ro
-    networks:
-      - lms-qaf
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "try { rs.status() } catch(err) { rs.initiate() }"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
   # Redis Cache and Session Storage
   redis:
     image: redis:7-alpine
@@ -72,13 +49,34 @@ services:
       - POSTGRES_USER=keycloak
       - POSTGRES_PASSWORD=keycloak123
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - keycloak_db_data:/var/lib/postgresql/data
     networks:
       - lms-qaf
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL Database (for the app - Prisma schema)
+  app-db:
+    image: postgres:15-alpine
+    container_name: lms-qaf-app-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=military_lms
+      - POSTGRES_USER=military_lms
+      - POSTGRES_PASSWORD=military_lms123
+    ports:
+      - "5432:5432"
+    volumes:
+      - app_db_data:/var/lib/postgresql/data
+    networks:
+      - lms-qaf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U military_lms -d military_lms"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -100,11 +98,21 @@ services:
       - KC_HOSTNAME=localhost
       - KC_HOSTNAME_PORT=8080
       - KC_HTTP_ENABLED=true
+      # CORS and CSP fixes for development
+      - KC_HOSTNAME_STRICT=false
+      - KC_HOSTNAME_STRICT_HTTPS=false
+      - KC_SPI_X509_ENABLED=false
+      - KEYCLOAK_EXTRA_ARGS="--http-enabled=true --hostname-strict=false"
+      # Auto-configure client with redirect URIs
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin123
     depends_on:
       keycloak-db:
         condition: service_healthy
     networks:
       - lms-qaf
+    volumes:
+      - ./keycloak-setup:/opt/keycloak/data/import
     command: ["start-dev"]
     healthcheck:
       test: ["CMD-SHELL", "exec", "keycloak", "health", "--server"]
@@ -250,16 +258,39 @@ services:
       timeout: 10s
       retries: 5
 
+  # Allure Test Reporting Dashboard
+  allure:
+    image: frankescobar/allure-docker-service:latest
+    container_name: lms-qaf-allure
+    restart: unless-stopped
+    ports:
+      - "5050:5050"  # Allure UI
+      - "4040:4040"  # Allure API
+    environment:
+      CHECK_RESULTS_EVERY_SECONDS: 3
+      KEEP_HISTORY: 1
+      CLEAN_RESULTS_DIR: false
+      HOST: 0.0.0.0
+      PORT: 5050
+    volumes:
+      - ../../client/test-results/allure-results:/app/allure-results
+      - ../../client/test-results/allure-reports:/app/default-reports
+    networks:
+      - lms-qaf
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5050/allure-docker-service/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
 volumes:
-  mongodb_dev_data:
-    driver: local
-  mongodb_dev_config:
-    driver: local
   redis_dev_data:
     driver: local
   minio_dev_data:
     driver: local
   keycloak_db_data:
+    driver: local
+  app_db_data:
     driver: local
   elasticsearch_data:
     driver: local

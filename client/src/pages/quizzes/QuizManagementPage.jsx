@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { DIFFICULTY_TYPES, DIFFICULTY_LABELS } from '@constants/difficultyTypes';
-import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Container, Card, CardBody, Button, Spinner } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import {
@@ -12,9 +11,8 @@ import {
   CheckCircle, AlertCircle, Repeat, Award
 } from 'lucide-react';
 import { getAllQuizzes, getQuizzesByCreator, deleteQuiz } from '@services/business/quizService';
+import { deleteActivity } from '@services/business/activitiesService';
 import { getUser } from '@services/business/userService';
-import { db } from '@services/other/config';
-import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import { DeleteConfirmationModal } from '@ui';
 import styles from './QuizManagementPage.module.css';
@@ -65,7 +63,7 @@ export default function QuizManagementPage() {
           creatorName = displayName || name || emailName || t('quiz_unknown_creator');
         }
       } catch (err) {
-        logger.warn('Failed to load creator name:', err);
+        warn('Failed to load creator name:', err);
       }
     }
 
@@ -119,7 +117,7 @@ export default function QuizManagementPage() {
 
       setQuizzes(normalized);
     } catch (error) {
-      logger.error('Error loading quizzes:', error);
+      error('Error loading quizzes:', error);
       const message = String(error?.message || '').toLowerCase().includes('permission')
         ? t('quiz_no_permission')
         : (error?.message || t('quiz_failed_to_load'));
@@ -165,11 +163,11 @@ export default function QuizManagementPage() {
                 quizId,
                 quizTitle: quiz?.title || quiz?.name || t('quiz_unknown_title')
               });
-            } catch (e) { logger.warn('Failed to log activity:', e); }
+            } catch (e) { warn('Failed to log activity:', e); }
 
             // Best-effort clean up of mirrored activity document
             try {
-              await deleteDoc(doc(db, RECORD_TYPES.ACTIVITY, quizId));
+              await deleteActivity(quizId);
             } catch {
               // ignore if no activity doc exists
             }
@@ -193,7 +191,7 @@ export default function QuizManagementPage() {
           : null
       });
     } catch (error) {
-      logger.error('Failed to check related data:', error);
+      error('Failed to check related data:', error);
       // Still show modal but without related data
       setDeleteModal({
         open: true,
@@ -355,7 +353,7 @@ export default function QuizManagementPage() {
       try {
         await loadQuizzes();
       } catch (error) {
-        console.error('Error loading quizzes:', error);
+        error('Error loading quizzes:', error);
       } finally {
         safeStop();
       }

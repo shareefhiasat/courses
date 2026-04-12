@@ -56,7 +56,8 @@ const LoadingProgressDemo = () => {
         <pre style={{ margin: '0.5rem 0', padding: '0.5rem', background: 'var(--background-tertiary, #f1f5f9)', borderRadius: '4px', fontSize: '0.75rem', overflow: 'auto' }}>
 {`import { useLoadingProgress } from '@/hooks/useLoadingProgress';
 
-const MyComponent = () => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const MyComponent = () => {
   const { startLoading, updateProgress, endLoading } = useLoadingProgress();
   
   const handleAsyncOperation = async () => {

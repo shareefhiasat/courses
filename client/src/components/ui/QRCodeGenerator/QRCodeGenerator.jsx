@@ -2,7 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
 import { getThemedIcon } from '@constants/iconTypes';
 
-export default function QRCodeGenerator({ url, title = 'QR Code', size = 256 }) {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default function QRCodeGenerator({ url, title = 'QR Code', size = 256 }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -39,7 +40,7 @@ export default function QRCodeGenerator({ url, title = 'QR Code', size = 256 }) 
           url: url
         });
       } catch (err) {
-        logger.log('Share cancelled');
+        info('Share cancelled');
       }
     } else {
       handleCopyLink();

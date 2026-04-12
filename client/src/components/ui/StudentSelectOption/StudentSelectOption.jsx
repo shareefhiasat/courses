@@ -4,7 +4,8 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { USER_STATUS, getStatusIconProps } from '../../../utils/userStatus';
 import styles from './StudentSelectOption.module.css';
 
-const ICON_MAP = {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const ICON_MAP = {
   UserCheck: 'user_check',
   UserX: 'user_x',
   UserMinus: 'user_minus',

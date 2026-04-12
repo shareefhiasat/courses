@@ -9,7 +9,7 @@ import { createBehavior, deleteBehavior } from '@services/business/behaviorServi
 import { getPerformedByFields } from '@services/business/userService';
 import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import eventBus, { EVENTS } from '@utils/eventBus';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { formatQatarDateOnly } from '@utils/qatarDate';
 
 /**
@@ -54,7 +54,7 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       }
       return result;
     } catch (error) {
-      logger.error('[AttendanceActions] markAttendance failed', error);
+      error('[AttendanceActions] markAttendance failed', error);
       toast?.showError?.(t('failed_to_mark_attendance') || 'Failed to mark attendance');
       return { success: false, error };
     }
@@ -70,7 +70,7 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       }
       return result;
     } catch (error) {
-      logger.error('[AttendanceActions] deleteAttendance failed', error);
+      error('[AttendanceActions] deleteAttendance failed', error);
       toast?.showError?.(t('failed_to_delete_record') || 'Failed to delete record');
       return { success: false, error };
     }
@@ -94,7 +94,7 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       }
       return result;
     } catch (error) {
-      logger.error('[AttendanceActions] createParticipation failed', error);
+      error('[AttendanceActions] createParticipation failed', error);
       toast?.showError?.(t('failed_to_add_participation') || 'Failed to add participation');
       return { success: false, error };
     }
@@ -110,7 +110,7 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       }
       return result;
     } catch (error) {
-      logger.error('[AttendanceActions] deleteParticipation failed', error);
+      error('[AttendanceActions] deleteParticipation failed', error);
       toast?.showError?.(t('failed_to_delete_record') || 'Failed to delete record');
       return { success: false, error };
     }
@@ -134,7 +134,7 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       }
       return result;
     } catch (error) {
-      logger.error('[AttendanceActions] createPenalty failed', error);
+      error('[AttendanceActions] createPenalty failed', error);
       toast?.showError?.(t('failed_to_add_penalty') || 'Failed to add penalty');
       return { success: false, error };
     }
@@ -150,7 +150,7 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       }
       return result;
     } catch (error) {
-      logger.error('[AttendanceActions] deletePenalty failed', error);
+      error('[AttendanceActions] deletePenalty failed', error);
       toast?.showError?.(t('failed_to_delete_record') || 'Failed to delete record');
       return { success: false, error };
     }
@@ -174,7 +174,7 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       }
       return result;
     } catch (error) {
-      logger.error('[AttendanceActions] createBehavior failed', error);
+      error('[AttendanceActions] createBehavior failed', error);
       toast?.showError?.(t('failed_to_log_behavior') || 'Failed to log behavior');
       return { success: false, error };
     }
@@ -190,7 +190,7 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       }
       return result;
     } catch (error) {
-      logger.error('[AttendanceActions] deleteBehavior failed', error);
+      error('[AttendanceActions] deleteBehavior failed', error);
       toast?.showError?.(t('failed_to_delete_record') || 'Failed to delete record');
       return { success: false, error };
     }

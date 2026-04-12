@@ -1,0 +1,127 @@
+services:
+  nextcloud-db:
+    image: postgres:16-alpine
+    container_name: lms-qaf-nextcloud-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=nextcloud123
+    volumes:
+      - nextcloud_db_data:/var/lib/postgresql/data
+    networks:
+      - nextcloud-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nextcloud -d nextcloud"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nextcloud-redis:
+    image: redis:7-alpine
+    container_name: lms-qaf-nextcloud-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "redis-nextcloud-123"]
+    volumes:
+      - nextcloud_redis_data:/data
+    networks:
+      - nextcloud-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis-nextcloud-123", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nextcloud:
+    image: nextcloud:29-apache
+    container_name: lms-qaf-nextcloud
+    restart: unless-stopped
+    ports:
+      - "8085:80"
+    depends_on:
+      nextcloud-db:
+        condition: service_healthy
+      nextcloud-redis:
+        condition: service_healthy
+    environment:
+      - POSTGRES_HOST=nextcloud-db
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=nextcloud123
+      - REDIS_HOST=nextcloud-redis
+      - REDIS_HOST_PASSWORD=redis-nextcloud-123
+      - NEXTCLOUD_ADMIN_USER=admin
+      - NEXTCLOUD_ADMIN_PASSWORD=admin123
+      - NEXTCLOUD_TRUSTED_DOMAINS=localhost 127.0.0.1 nextcloud
+      - NEXTCLOUD_OVERWRITEPROTOCOL=http
+      - NEXTCLOUD_DATA_DIR=/var/www/html/data
+    volumes:
+      - nextcloud_html:/var/www/html
+      - nextcloud_apps:/var/www/html/custom_apps
+      - nextcloud_config:/var/www/html/config
+      - nextcloud_data:/var/www/html/data
+    networks:
+      - nextcloud-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/status.php || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  collabora:
+    image: collabora/code:24.04.12.3.1
+    container_name: lms-qaf-collabora
+    restart: unless-stopped
+    ports:
+      - "9980:9980"
+    environment:
+      - username=admin
+      - password=admin123
+      - domain=localhost(:[0-9]+)?
+      - extra_params=--o:ssl.enable=false --o:ssl.termination=true
+    cap_add:
+      - MKNOD
+    networks:
+      - nextcloud-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9980/hosting/discovery || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Optional: internal TURN for stable LAN calls in Nextcloud Talk.
+  # Uncomment if/when Talk video meetings become a higher priority.
+  # coturn:
+  #   image: coturn/coturn:4.6.2-r2
+  #   container_name: lms-qaf-coturn
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3478:3478"
+  #     - "3478:3478/udp"
+  #   command: >
+  #     -n
+  #     --log-file=stdout
+  #     --lt-cred-mech
+  #     --fingerprint
+  #     --realm=lms.local
+  #     --user=turnuser:turnpassword
+  #   networks:
+  #     - nextcloud-net
+
+volumes:
+  nextcloud_db_data:
+    driver: local
+  nextcloud_redis_data:
+    driver: local
+  nextcloud_html:
+    driver: local
+  nextcloud_apps:
+    driver: local
+  nextcloud_config:
+    driver: local
+  nextcloud_data:
+    driver: local
+
+networks:
+  nextcloud-net:
+    driver: bridge

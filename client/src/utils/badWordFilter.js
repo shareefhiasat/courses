@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 // Simple bad word filter for English and Arabic
 // Free and lightweight solution
 

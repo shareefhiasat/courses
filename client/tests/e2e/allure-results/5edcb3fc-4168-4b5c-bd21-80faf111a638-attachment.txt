@@ -1,0 +1,4 @@
+🔍 Testing programs query without authentication...
+🔍 Programs query response status: 200
+✅ Programs query succeeded (no auth required)
+📊 Programs found: 0

@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 /**
  * Question Types Configuration for Phase 3.1
  * Extended question types beyond basic multiple choice

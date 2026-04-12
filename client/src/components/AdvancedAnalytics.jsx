@@ -9,7 +9,7 @@ import { Select, YearSelect, SimpleLoading, UserSelect } from '@ui';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import useAnalyticsData, { processWidgetData } from '@hooks/useAnalyticsData';
 import DashboardEngine from './analytics/DashboardEngine';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import PortalTooltip from '@ui/PortalTooltip';
 
 /**
@@ -157,7 +157,7 @@ export default function AdvancedAnalytics({
         setAccentColor(c);
         try { localStorage.setItem(`accent_color_${user.uid}`, c); } catch {}
       }
-    }).catch(e => logger.warn('[AdvancedAnalytics] accent color load failed:', e));
+    }).catch(e => warn('[AdvancedAnalytics] accent color load failed:', e));
 
     const handler = (e) => {
       if (e?.detail?.color) {
@@ -175,12 +175,12 @@ export default function AdvancedAnalytics({
   const [lastUpdatedAt, setLastUpdatedAt] = useState(Date.now());
 
   const handleReload = useCallback(async () => {
-    console.log('[WIDGET DEBUG] 🔄 Refresh button clicked on analytics dashboard!');
+    info('[WIDGET DEBUG] 🔄 Refresh button clicked on analytics dashboard!');
     console.log('[WIDGET DEBUG] 🕐 Timestamp:', new Date().toISOString());
-    console.log('[WIDGET DEBUG] 📊 Current lastUpdatedAt:', new Date(lastUpdatedAt).toISOString());
+    info('[WIDGET DEBUG] 📊 Current lastUpdatedAt:', new Date(lastUpdatedAt).toISOString());
     await reload();
     setLastUpdatedAt(Date.now());
-    console.log('[WIDGET DEBUG] ✅ Reload completed, new lastUpdatedAt:', new Date(Date.now()).toISOString());
+    info('[WIDGET DEBUG] ✅ Reload completed, new lastUpdatedAt:', new Date(Date.now()).toISOString());
   }, [reload, lastUpdatedAt]);
 
   // ── Widget Builder Reference ─────────────────────────────────────────────────
@@ -233,7 +233,7 @@ export default function AdvancedAnalytics({
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      logger.warn('[AdvancedAnalytics] export failed:', e);
+      warn('[AdvancedAnalytics] export failed:', e);
     }
   }, [rawData, mergedFilters, storageKey, processWidgetData, t, lang]);
 

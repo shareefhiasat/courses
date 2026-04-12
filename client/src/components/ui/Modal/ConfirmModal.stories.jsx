@@ -26,7 +26,7 @@ export const Basic = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          logger.log('Confirmed!');
+          info('Confirmed!');
           setIsOpen(false);
         }}
         title="Confirm Action"
@@ -49,7 +49,7 @@ export const DeleteConfirmation = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          logger.log('Item deleted');
+          info('Item deleted');
           setIsOpen(false);
         }}
         title="Delete Confirmation"
@@ -105,7 +105,7 @@ export const AllVariants = () => {
   };
 
   const handleConfirm = () => {
-    logger.log(`${modal} confirmed`);
+    info(`${modal} confirmed`);
     handleClose();
   };
 
@@ -180,7 +180,7 @@ export const DifferentSizes = () => {
           isOpen={!!size}
           onClose={() => setSize(null)}
           onConfirm={() => {
-            logger.log(`${size} modal confirmed`);
+            info(`${size} modal confirmed`);
             setSize(null);
           }}
           title={`${size.charAt(0).toUpperCase() + size.slice(1)} Confirmation`}
@@ -205,7 +205,7 @@ export const CompactDeleteConfirmation = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          logger.log('Item deleted');
+          info('Item deleted');
           setIsOpen(false);
         }}
         title="Delete Class"
@@ -257,7 +257,7 @@ export const CustomMessages = () => {
           isOpen={!!modalType}
           onClose={() => setModalType(null)}
           onConfirm={() => {
-            logger.log(`${modalType} action confirmed`);
+            info(`${modalType} action confirmed`);
             setModalType(null);
           }}
           {...modals[modalType]}

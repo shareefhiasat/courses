@@ -5,7 +5,8 @@ import DifficultyFilterChips from './DifficultyFilterChips';
 import ToggleFilterChips from './ToggleFilterChips';
 import HierarchyFilters from './HierarchyFilters';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Unified Filter Section Component
  * Centralized filtering UI used across HomePage, StudentDashboard, and ReviewResultsPage
  * 

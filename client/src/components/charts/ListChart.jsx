@@ -2,7 +2,7 @@ import React, { useMemo, useContext, useState, memo } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import ColumnManager from '../analytics/ColumnManager';
 import PortalTooltip from '@ui/PortalTooltip';
 import {
@@ -58,7 +58,7 @@ function ListChart({
 
   // Disable all logging to prevent console spam
   // // Comprehensive logging for debugging
-  // logger.log('[ListChart] Widget configuration:', {
+  // info('[ListChart] Widget configuration:', {
   //   chartType,
   //   dataSource: widget.dataSource,
   //   groupBy: widget.groupBy,
@@ -134,7 +134,7 @@ function ListChart({
 
     // Disable all logging to prevent console spam
     // // Log sample data for debugging
-    // logger.log('[ListChart] Processed items:', {
+    // info('[ListChart] Processed items:', {
     //   totalSourceRecords: filteredData.length,
     //   finalItemsCount: sortedData.length,
     //   sampleItem: sortedData[0] || 'No items',

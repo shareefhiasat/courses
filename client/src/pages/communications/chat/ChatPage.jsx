@@ -5,36 +5,16 @@ import { useTheme } from '@contexts/ThemeContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  deleteDoc,
-  doc,
-  setDoc,
-  getDoc,
-  serverTimestamp,
-  getDocs,
-  updateDoc,
-  arrayUnion,
-  arrayRemove,
-  deleteField,
-  Timestamp
-} from 'firebase/firestore';
-import { ref, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage } from '@services/other/config';
 import { getClasses } from '@services/business/classService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getUsers } from '@services/business/userService';
-import { getUserProfile } from '@services/business/userService';
+import { getUserProfile, updateUser } from '@services/business/userService';
 import { addNotification } from '@services/business/notificationService';
 import { chatService } from '@services/business/chatService';
+import { getChatServerTimestamp } from '@services/business/chatRealtimeService';
 import { useToast, Input } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import './ChatPage.css';
 import './ChatPageEmojiStyles.css';
 import { formatDateTime, formatDate } from '@utils/date';
@@ -318,7 +298,7 @@ const ChatPage = memo(() => {
         msgs.push({ id: doc.id, ...doc.data() });
       });
       
-      logger.info('Messages loaded', { 
+      info('Messages loaded', { 
         chatType, 
         chatId, 
         messageCount: msgs.length,
@@ -328,7 +308,7 @@ const ChatPage = memo(() => {
       // Check for duplicates
       const duplicateIds = msgs.filter((msg, index) => msgs.findIndex(m => m.id === msg.id) !== index);
       if (duplicateIds.length > 0) {
-        logger.warn('Duplicate messages found', { 
+        warn('Duplicate messages found', { 
           duplicateIds: duplicateIds.map(d => ({ id: d.id, content: d.content?.substring(0, 20) }))
         });
       }
@@ -346,7 +326,7 @@ const ChatPage = memo(() => {
         } catch {}
       })();
     }, (error) => {
-      logger.error('Error loading messages:', error);
+      error('Error loading messages:', error);
     });
     
     return unsubscribe;
@@ -623,7 +603,7 @@ const ChatPage = memo(() => {
     if (selectedClass && user && selectedClass !== 'global' && !selectedClass.startsWith('dm:')) {
       // Prevent loading the same class multiple times
       if (loadingClassMembersRef.current.has(selectedClass)) {
-        logger.info('Skipping loadClassMembers - already loaded', { selectedClass });
+        info('Skipping loadClassMembers - already loaded', { selectedClass });
         return;
       }
       loadingClassMembersRef.current.add(selectedClass);
@@ -644,24 +624,24 @@ const ChatPage = memo(() => {
         
         // Check if user is instructor for any classes (for all users including admins)
         try {
-          logger.info('Checking for instructor classes', { userId: user.uid, userEmail: user.email });
+          info('Checking for instructor classes', { userId: user.uid, userEmail: user.email });
           const classesResult = await getClasses();
           if (classesResult.success) {
             const allClasses = classesResult.data || [];
-            logger.info('Total classes fetched', { count: allClasses.length });
+            info('Total classes fetched', { count: allClasses.length });
             const instructorClasses = allClasses.filter(cls => 
               cls.instructorId === user.uid || cls.ownerEmail === user.email || cls.createdBy === user.uid
             );
             instructorClasses.forEach(cls => ids.add(cls.docId));
-            logger.info('Found instructor classes', { 
+            info('Found instructor classes', { 
               count: instructorClasses.length,
               classIds: instructorClasses.map(c => ({ id: c.docId, name: c.name, instructorId: c.instructorId, ownerEmail: c.ownerEmail, createdBy: c.createdBy }))
             });
           } else {
-            logger.error('Failed to fetch classes', { error: classesResult.error });
+            error('Failed to fetch classes', { error: classesResult.error });
           }
         } catch (error) {
-          logger.error('Error fetching instructor classes:', error);
+          error('Error fetching instructor classes:', error);
         }
         
         if (!isAdmin && !isSuperAdmin) {
@@ -686,7 +666,7 @@ const ChatPage = memo(() => {
         }
         
         const unsub = chatService.subscribeToClasses((all) => {
-          logger.info('Classes received from subscription', { 
+          info('Classes received from subscription', { 
             count: all.length,
             classIds: all.map(c => ({ id: c.docId, name: c.name }))
           });
@@ -695,7 +675,7 @@ const ChatPage = memo(() => {
           // Auto-select first class for students if needed (only if no user interaction)
           if (!userHasInteracted && (!selectedClass || selectedClass === 'global')) {
             if (all.length > 0) {
-              logger.info('Auto-selecting first class', { 
+              info('Auto-selecting first class', { 
                 reason: 'student_auto_select',
                 currentSelectedClass: selectedClass,
                 firstClassId: all[0].docId,
@@ -716,7 +696,7 @@ const ChatPage = memo(() => {
         } catch {}
         setLoading(false);
       } catch (error) {
-        logger.error('Error setting up classes subscription:', error);
+        error('Error setting up classes subscription:', error);
         setLoading(false);
       }
     };
@@ -758,7 +738,7 @@ const ChatPage = memo(() => {
       const unsub = loadMessages();
       messagesUnsubRef.current = unsub;
     } catch (e) {
-      logger.error('Failed to (re)subscribe messages:', e);
+      error('Failed to (re)subscribe messages:', e);
     }
     // cleanup on dependency change/unmount
     return () => {
@@ -876,7 +856,7 @@ const ChatPage = memo(() => {
       ]);
 
       if (!classesResult.success) {
-        logger.error('Failed to load classes:', classesResult.error);
+        error('Failed to load classes:', classesResult.error);
         const errStr = typeof classesResult.error === 'string' ? classesResult.error : (classesResult.error?.message || 'Unknown error');
         toast?.showError(`Failed to load classes: ${errStr}`);
         return;
@@ -914,7 +894,7 @@ const ChatPage = memo(() => {
           const params = new URLSearchParams(location.search);
           const dest = params.get('dest');
           if (!dest && !userHasInteracted && (!selectedClass || selectedClass === 'global') && mineClasses.length > 0) {
-            logger.info('Auto-selecting first class (location check)', { 
+            info('Auto-selecting first class (location check)', { 
               reason: 'location_dest_check',
               currentSelectedClass: selectedClass,
               firstClassId: mineClasses[0].docId,
@@ -936,7 +916,7 @@ const ChatPage = memo(() => {
         setSelectedClass('global');
       }
     } catch (error) {
-      logger.error('Error loading classes:', error);
+      error('Error loading classes:', error);
       const msg = (error && (error.message || error.code)) ? `Failed to load classes: ${error.code || ''} ${error.message || ''}`.trim() : 'Failed to load classes';
       toast?.showError(msg);
     } finally {
@@ -952,7 +932,7 @@ const ChatPage = memo(() => {
   const hasLoadedInitialMessages = useRef(false);
   
   useLayoutEffect(() => {
-    logger.info('Global loading effect triggered', { 
+    info('Global loading effect triggered', { 
       authLoading, 
       hasUser: !!user,
       messagesLength: messages?.length || 0,
@@ -966,7 +946,7 @@ const ChatPage = memo(() => {
 
     // Only show loading for initial load, not for chat transitions
     if (hasLoadedInitialMessages.current) {
-      logger.info('Skipping global loading - already loaded initial messages');
+      info('Skipping global loading - already loaded initial messages');
       return;
     }
 
@@ -974,24 +954,24 @@ const ChatPage = memo(() => {
     hasLoadedInitialMessages.current = true;
 
     if (messages && messages.length > 0) {
-      logger.info('Messages already loaded, marking as initial load complete', { messagesLength: messages.length });
+      info('Messages already loaded, marking as initial load complete', { messagesLength: messages.length });
       return;
     }
 
     let stopped = false;
-    logger.info('Starting global loading for initial load');
+    info('Starting global loading for initial load');
     const stopGlobalLoading = startLoading();
     const safeStop = () => {
       if (stopped) return;
       stopped = true;
-      logger.info('Stopping global loading');
+      info('Stopping global loading');
       stopGlobalLoading();
     };
 
     // Wait a bit for messages to load, then stop loading
     const timeout = setTimeout(() => {
       if (!stopped) {
-        logger.info('Global loading timeout reached, stopping loading', { messagesLength: messages?.length || 0 });
+        info('Global loading timeout reached, stopping loading', { messagesLength: messages?.length || 0 });
         safeStop();
       }
     }, 1000);
@@ -1137,7 +1117,7 @@ const ChatPage = memo(() => {
                           const next = { ...archivedClasses };
                           if (next[cls.docId]) delete next[cls.docId]; else next[cls.docId] = true;
                           setArchivedClasses(next);
-                          await setDoc(doc(db,'users',user.uid), { archivedClasses: next }, { merge: true });
+                          await updateUser(user.uid, { archivedClasses: next });
                         } catch {}
                       }}
                       title={archivedClasses[cls.docId] ? (t('unarchive') || 'Unarchive') : (t('archive') || 'Archive')}
@@ -1312,7 +1292,7 @@ const ChatPage = memo(() => {
                             const next = { ...archivedRooms };
                             if (next[room.id]) delete next[room.id]; else next[room.id] = true;
                             setArchivedRooms(next);
-                            await setDoc(doc(db,'users',user.uid), { archivedRooms: next }, { merge: true });
+                            await updateUser(user.uid, { archivedRooms: next });
                           } catch {}
                         }}
                         title={archivedRooms[room.id] ? (t('unarchive') || 'Unarchive') : (t('archive') || 'Archive')}
@@ -1773,7 +1753,6 @@ const ChatPage = memo(() => {
                               onClick={async () => {
                                 try {
                                   suppressAutoScrollRef.current = true;
-                                  const msgRef = doc(db, 'messages', msg.id);
                                   // Initialize pollVotes if it doesn't exist
                                   const currentVotes = msg.pollVotes || {};
                                   // Remove user from all options
@@ -1781,15 +1760,15 @@ const ChatPage = memo(() => {
                                     msg.pollOptions.map(async (_, i) => {
                                       const currentOptionVotes = currentVotes[i] || [];
                                       if (currentOptionVotes.includes(user.uid)) {
-                                        await chatService.removePollVote(msgRef.id, user.uid, i);
+                                        await chatService.removePollVote(msg.id, user.uid, i);
                                       }
                                     })
                                   );
                                   
                                   // Add to selected option
-                                  await chatService.votePoll(msgRef.id, user.uid, idx);
+                                  await chatService.votePoll(msg.id, user.uid, idx);
                                 } catch (err) {
-                                  logger.error('Poll vote error:', err);
+                                  error('Poll vote error:', err);
                                   toast?.showError('Failed to vote');
                                 }
                               }}
@@ -2886,7 +2865,7 @@ const ChatPage = memo(() => {
                     pollQuestion: pollQuestion.trim(),
                     pollOptions: pollOptions.filter(o=>o.trim()),
                     pollVotes: {},
-                    createdAt: serverTimestamp()
+                    createdAt: getChatServerTimestamp()
                   };
                   await chatService.createPollMessage(pollData);
                   setShowPollModal(false);
@@ -2894,7 +2873,7 @@ const ChatPage = memo(() => {
                   setPollOptions(['','']);
                   toast?.showSuccess('Poll created!');
                 } catch (err) {
-                  logger.error('Failed to create poll:', err);
+                  error('Failed to create poll:', err);
                   toast?.showError('Failed to create poll');
                 }
               }}
@@ -3052,7 +3031,7 @@ const ChatPage = memo(() => {
                   {m.docId !== user.uid && (
                     <button 
                       onClick={() => {
-                        logger.info('Member clicked for DM', { 
+                        info('Member clicked for DM', { 
                           member: m,
                           hasDocId: !!m.docId,
                           hasId: !!m.id,

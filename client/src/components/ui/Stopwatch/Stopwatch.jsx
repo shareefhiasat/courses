@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 
-const Stopwatch = ({ onTimeUpdate, autoStart = false, showControls = true }) => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const Stopwatch = ({ onTimeUpdate, autoStart = false, showControls = true }) => {
   const { t } = useLang();
   const [time, setTime] = useState(0);
   const [isRunning, setIsRunning] = useState(autoStart);

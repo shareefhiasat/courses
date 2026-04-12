@@ -1,679 +1,822 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// User model - Firebase-compatible with JSON fields
+// ======================================================================
+// COMBINED PRISMA SCHEMA - Auto-generated from multiple files
+// Generated at: 2026-03-25T14:54:41.345Z
+// ======================================================================
+
+// ======================================================================
+// LOOKUPS.PRISMA - From lookups.prisma
+// ======================================================================
+
+// ======================================================================
+// LOOKUP TABLES - Centralized Type Management
+// ======================================================================
+
+model UserRoles {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  nameEn      String
+  nameAr      String?
+  description String?
+  level       Int    @default(0) // For hierarchy
+  isActive    Boolean @default(true)
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  users User[]
+  creator User? @relation("UserRolesCreator", fields: [createdBy], references: [id])
+  updater User? @relation("UserRolesUpdater", fields: [updatedBy], references: [id])
+
+  @@map("user_roles")
+}
+
+model UserStatusTypes {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  nameEn      String
+  nameAr      String?
+  description String?
+  isActive    Boolean @default(true)
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  creator User? @relation("UserStatusTypesCreator", fields: [createdBy], references: [id])
+  updater User? @relation("UserStatusTypesUpdater", fields: [updatedBy], references: [id])
+
+  @@map("user_status_types")
+}
+
+model EnrollmentStatusTypes {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  nameEn      String
+  nameAr      String?
+  description String?
+  isActive    Boolean @default(true)
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  enrollments Enrollment[]
+  subjectEnrollments SubjectEnrollment[]
+  creator User? @relation("EnrollmentStatusTypesCreator", fields: [createdBy], references: [id])
+  updater User? @relation("EnrollmentStatusTypesUpdater", fields: [updatedBy], references: [id])
+
+  @@map("enrollment_status_types")
+}
+
+model ActivityTypes {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  nameEn      String
+  nameAr      String?
+  description String?
+  icon        String?
+  color       String?
+  isActive    Boolean @default(true)
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  activities Activity[]
+  creator User? @relation("ActivityTypesCreator", fields: [createdBy], references: [id])
+  updater User? @relation("ActivityTypesUpdater", fields: [updatedBy], references: [id])
+
+  @@map("activity_types")
+}
+
+model AttendanceStatusTypes {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  nameEn      String
+  nameAr      String?
+  description String?
+  color       String?
+  isActive    Boolean @default(true)
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  attendances Attendance[]
+  creator User? @relation("AttendanceStatusTypesCreator", fields: [createdBy], references: [id])
+  updater User? @relation("AttendanceStatusTypesUpdater", fields: [updatedBy], references: [id])
+
+  @@map("attendance_status_types")
+}
+
+model SubmissionStatusTypes {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  nameEn      String
+  nameAr      String?
+  description String?
+  color       String?
+  isActive    Boolean @default(true)
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  submissions Submission[]
+  creator User? @relation("SubmissionStatusTypesCreator", fields: [createdBy], references: [id])
+  updater User? @relation("SubmissionStatusTypesUpdater", fields: [updatedBy], references: [id])
+
+  @@map("submission_status_types")
+}
+
+model QuizStatusTypes {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  nameEn      String
+  nameAr      String?
+  description String?
+  color       String?
+  isActive    Boolean @default(true)
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  // TODO: Add Quiz model relationship when Quiz model is created
+  creator User? @relation("QuizStatusTypesCreator", fields: [createdBy], references: [id])
+  updater User? @relation("QuizStatusTypesUpdater", fields: [updatedBy], references: [id])
+
+  @@map("quiz_status_types")
+}
+
+model QuestionDifficultyTypes {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  nameEn      String
+  nameAr      String?
+  description String?
+  color       String?
+  isActive    Boolean @default(true)
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  // TODO: Add QuestionBank model relationship when QuestionBank model is created
+  creator User? @relation("QuestionDifficultyTypesCreator", fields: [createdBy], references: [id])
+  updater User? @relation("QuestionDifficultyTypesUpdater", fields: [updatedBy], references: [id])
+
+  @@map("question_difficulty_types")
+}
+
+model ScheduleTypes {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  nameEn      String
+  nameAr      String?
+  description String?
+  icon        String?
+  color       String?
+  isActive    Boolean @default(true)
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  // TODO: Add Schedule model relationship when Schedule model is created
+  creator User? @relation("ScheduleTypesCreator", fields: [createdBy], references: [id])
+  updater User? @relation("ScheduleTypesUpdater", fields: [updatedBy], references: [id])
+
+  @@map("schedule_types")
+}
+
+model TemplateTypes {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  nameEn      String
+  nameAr      String?
+  description String?
+  icon        String?
+  isActive    Boolean @default(true)
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  // TODO: Add Template model relationship when Template model is created
+  creator User? @relation("TemplateTypesCreator", fields: [createdBy], references: [id])
+  updater User? @relation("TemplateTypesUpdater", fields: [updatedBy], references: [id])
+
+  @@map("template_types")
+}
+
+model ConfigTypes {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  nameEn      String
+  nameAr      String?
+  description String?
+  isActive    Boolean @default(true)
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  // TODO: Add Config model relationship when Config model is created
+  creator User? @relation("ConfigTypesCreator", fields: [createdBy], references: [id])
+  updater User? @relation("ConfigTypesUpdater", fields: [updatedBy], references: [id])
+
+  @@map("config_types")
+}
+
+model AssessmentTypes {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  nameEn      String
+  nameAr      String?
+  description String?
+  isActive    Boolean @default(true)
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  // TODO: Add EnrollmentMark model relationship when EnrollmentMark model is created
+  creator User? @relation("AssessmentTypesCreator", fields: [createdBy], references: [id])
+  updater User? @relation("AssessmentTypesUpdater", fields: [updatedBy], references: [id])
+
+  @@map("assessment_types")
+}
+
+model AcademicTerms {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  nameEn      String
+  nameAr      String?
+  description String?
+  isActive    Boolean @default(true)
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  // TODO: Add EnrollmentMark model relationship when EnrollmentMark model is created
+  creator User? @relation("AcademicTermsCreator", fields: [createdBy], references: [id])
+  updater User? @relation("AcademicTermsUpdater", fields: [updatedBy], references: [id])
+
+  @@map("academic_terms")
+}
+
+model ActivityLogActionTypes {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  nameEn      String
+  nameAr      String?
+  description String?
+  isActive    Boolean @default(true)
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  // TODO: Add ActivityLog model relationship when ActivityLog model is created
+  creator User? @relation("ActivityLogActionTypesCreator", fields: [createdBy], references: [id])
+  updater User? @relation("ActivityLogActionTypesUpdater", fields: [updatedBy], references: [id])
+
+  @@map("activity_log_action_types")
+}
+
+
+// ======================================================================
+// CORE-MINIMAL.PRISMA - From core-minimal.prisma
+// ======================================================================
+
+// ======================================================================
+// CORE USER MANAGEMENT - Minimal Version
+// ======================================================================
+
 model User {
-  id                          String   @id @default(auto()) @map("_id") @db.ObjectId
-  email                       String   @unique
-  displayName                 String
-  realName                    String?
-  passwordHash                String?
-  isAdmin                     Boolean  @default(false)
-  isSuperAdmin                Boolean  @default(false)
-  isInstructor                Boolean  @default(false)
-  isStudent                   Boolean  @default(true)
-  isHR                        Boolean  @default(false)
-  isDisabled                  Boolean  @default(false)
-  disabled                    Boolean  @default(false)
-  disabledAt                  DateTime?
-  disabledBy                  String?  @db.ObjectId
-  enabledAt                   DateTime?
-  enabledBy                   String?  @db.ObjectId
-  status                      String   @default("active")
-  phoneNumber                 String?
-  studentNumber               String?
-  order                       String?
-  // Firebase-compatible JSON fields
-  enrolledClasses             Json?     // Simple array like Firebase: ["class1", "class2"]
-  archivedClasses             Json?     // Simple array like Firebase: ["oldClass1"]
-  archivedRooms               Json?     // Simple array like Firebase: ["room1"]
-  bookmarks                   Json?     // Nested object like Firebase: { activities: {}, resources: {} }
-  chatReads                   Json?     // Simple object like Firebase: { "global": "timestamp" }
-  createdAt                   DateTime @default(now())
-  updatedAt                   DateTime @updatedAt
-  
-  // Relations - Keep only what we need for Categories
-  instructedClasses           Class[]   @relation("ClassInstructor")
-  uploadedFiles               File[]    @relation("FileUploader")
-  
-  // Phase 10 Relations
-  penalties                   Penalty[] @relation("StudentPenalties")
-  participations              Participation[] @relation("StudentParticipations")
-  behaviors                   Behavior[] @relation("StudentBehaviors")
-  instructorPenalties         Penalty[] @relation("InstructorPenalties")
-  instructorBehaviors         Behavior[] @relation("InstructorBehaviors")
-  recorderParticipations     Participation[] @relation("RecorderParticipations")
-  reporterBehaviors          Behavior[] @relation("ReporterBehaviors")
-  resolverPenalties           Penalty[] @relation("ResolverPenalties")
-  resolverBehaviors           Behavior[] @relation("ResolverBehaviors")
-  
-  // Quiz & Assessment Relations
-  quizResults                 QuizResult[] @relation("StudentQuizResults")
-  quizSubmissions             QuizSubmission[] @relation("StudentQuizSubmissions")
-  notifications               Notification[] @relation("UserNotifications")
-  gamifications               Gamification[] @relation("UserGamification")
-  bookmarks                   Bookmark[] @relation("UserBookmarks")
-  attendance                  Attendance[] @relation("UserAttendance")
-  activityLogs                ActivityLog[] @relation("UserActivityLogs")
-  dashboards                  Dashboard[] @relation("UserDashboards")
-  enrollments                 Enrollment[] @relation("UserEnrollments")
-  subjectEnrollments          SubjectEnrollment[] @relation("UserSubjectEnrollments")
-  sentMessages                Chat[] @relation("SentMessages")
-  receivedMessages            Chat[] @relation("ReceivedMessages")
-  createdQuizzes              Quiz[] @relation("InstructorQuizzes")
-  schedules                   Schedule[] @relation("InstructorSchedules")
-  createdTemplates            Template[] @relation("CreatorTemplates")
-  createdQuestionBank         QuestionBank[] @relation("CreatorQuestionBank")
-  markedAttendance            Attendance[] @relation("MarkedAttendance")
-  approvedEnrollments         Enrollment[] @relation("ApprovedEnrollments")
-  attendanceSessions          AttendanceSession[] @relation("InstructorAttendanceSessions")
-}
-
-// Class model - Keep only relations needed for Categories
-model Class {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  nameEn      String
-  nameAr      String?
-  code        String   @unique
-  description String?
-  programId   String   @db.ObjectId
-  subjectId   String   @db.ObjectId
-  instructorId String?  @db.ObjectId
-  locationEn  String?
-  locationAr  String?
-  schedule    Json?     // ClassScheduleSchema - Complex schedule object
-  year        String?
-  term        String?
-  startDate   DateTime?
-  endDate     DateTime?
+  id          Int      @id @default(autoincrement())
+  email       String   @unique
+  firstName   String?
+  lastName    String?
+  displayName String?
+  roleId      Int
+  isActive    Boolean  @default(true)
+  createdBy   Int?
+  updatedBy   Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Relationships
+  role               UserRoles           @relation(fields: [roleId], references: [id])
+  programsCreated     Program[]           @relation("ProgramCreator")
+  programsUpdated     Program[]           @relation("ProgramUpdater")
+  enrollments         Enrollment[]
+  subjectEnrollments  SubjectEnrollment[]
+  attendances         Attendance[]
+  submissions         Submission[]
+  instructorClasses    Class[]             @relation("ClassInstructor")
+  instructorSubjects   Subject[]           @relation("SubjectInstructor")
   
-  // Relations
-  program     Program @relation(fields: [programId], references: [id])
-  subject     Subject @relation(fields: [subjectId], references: [id])
-  instructor  User?    @relation("ClassInstructor", fields: [instructorId], references: [id])
-  resources   Resource[]
+  // Academic structure relationships
+  createdSubjects     Subject[]           @relation("SubjectCreator")
+  updatedSubjects     Subject[]           @relation("SubjectUpdater")
+  createdClasses      Class[]             @relation("ClassCreator")
+  updatedClasses      Class[]             @relation("ClassUpdater")
+  createdEnrollments  Enrollment[]        @relation("EnrollmentCreator")
+  updatedEnrollments  Enrollment[]        @relation("EnrollmentUpdater")
+  createdSubjectEnrollments SubjectEnrollment[] @relation("SubjectEnrollmentCreator")
+  updatedSubjectEnrollments SubjectEnrollment[] @relation("SubjectEnrollmentUpdater")
+  createdAttendances  Attendance[]        @relation("AttendanceCreator")
+  updatedAttendances  Attendance[]        @relation("AttendanceUpdater")
+  recordedAttendances Attendance[]        @relation("AttendanceRecorder")
+  createdActivities   Activity[]          @relation("ActivityCreator")
+  updatedActivities   Activity[]          @relation("ActivityUpdater")
+  createdSubmissions  Submission[]        @relation("SubmissionCreator")
+  updatedSubmissions  Submission[]        @relation("SubmissionUpdater")
+  createdResources    Resource[]           @relation("ResourceCreator")
+  updatedResources    Resource[]           @relation("ResourceUpdater")
+  createdAnnouncements Announcement[]     @relation("AnnouncementCreator")
+  updatedAnnouncements Announcement[]     @relation("AnnouncementUpdater")
   
-  // Phase 10 Relations
-  activities  Activity[] @relation("ActivityClass")
-  penalties   Penalty[] @relation("ClassPenalties")
-  participations Participation[] @relation("ClassParticipations")
-  behaviors    Behavior[] @relation("ClassBehaviors")
+  // Quiz system relationships
+  createdQuizzes      Quiz[]              @relation("QuizCreator")
+  updatedQuizzes      Quiz[]              @relation("QuizUpdater")
+  createdQuestions    Question[]          @relation("QuestionCreator")
+  updatedQuestions    Question[]          @relation("QuestionUpdater")
+  quizAttempts        QuizAttempt[]       @relation("QuizAttemptUser")
   
-  // Quiz & Assessment Relations
-  quizzes      Quiz[] @relation("ClassQuizzes")
-  quizResults  QuizResult[] @relation("ClassQuizResults")
-  schedules    Schedule[] @relation("ClassSchedules")
-  attendance   Attendance[] @relation("ClassAttendance")
-  enrollments  Enrollment[] @relation("ClassEnrollments")
-  attendanceSessions AttendanceSession[] @relation("ClassAttendanceSessions")
-  chats        Chat[] @relation("ClassChats")
+  // Lookup table relationships
+  createdUserRoles    UserRoles[]         @relation("UserRolesCreator")
+  updatedUserRoles    UserRoles[]         @relation("UserRolesUpdater")
+  createdUserStatusTypes UserStatusTypes[] @relation("UserStatusTypesCreator")
+  updatedUserStatusTypes UserStatusTypes[] @relation("UserStatusTypesUpdater")
+  createdEnrollmentStatusTypes EnrollmentStatusTypes[] @relation("EnrollmentStatusTypesCreator")
+  updatedEnrollmentStatusTypes EnrollmentStatusTypes[] @relation("EnrollmentStatusTypesUpdater")
+  createdActivityTypes ActivityTypes[]   @relation("ActivityTypesCreator")
+  updatedActivityTypes ActivityTypes[]   @relation("ActivityTypesUpdater")
+  createdAttendanceStatusTypes AttendanceStatusTypes[] @relation("AttendanceStatusTypesCreator")
+  updatedAttendanceStatusTypes AttendanceStatusTypes[] @relation("AttendanceStatusTypesUpdater")
+  createdSubmissionStatusTypes SubmissionStatusTypes[] @relation("SubmissionStatusTypesCreator")
+  updatedSubmissionStatusTypes SubmissionStatusTypes[] @relation("SubmissionStatusTypesUpdater")
+  createdQuizStatusTypes QuizStatusTypes[] @relation("QuizStatusTypesCreator")
+  updatedQuizStatusTypes QuizStatusTypes[] @relation("QuizStatusTypesUpdater")
+  createdQuestionDifficultyTypes QuestionDifficultyTypes[] @relation("QuestionDifficultyTypesCreator")
+  updatedQuestionDifficultyTypes QuestionDifficultyTypes[] @relation("QuestionDifficultyTypesUpdater")
+  createdScheduleTypes ScheduleTypes[]   @relation("ScheduleTypesCreator")
+  updatedScheduleTypes ScheduleTypes[]   @relation("ScheduleTypesUpdater")
+  createdTemplateTypes TemplateTypes[]   @relation("TemplateTypesCreator")
+  updatedTemplateTypes TemplateTypes[]   @relation("TemplateTypesUpdater")
+  createdConfigTypes ConfigTypes[]       @relation("ConfigTypesCreator")
+  updatedConfigTypes ConfigTypes[]       @relation("ConfigTypesUpdater")
+  createdAssessmentTypes AssessmentTypes[] @relation("AssessmentTypesCreator")
+  updatedAssessmentTypes AssessmentTypes[] @relation("AssessmentTypesUpdater")
+  createdAcademicTerms AcademicTerms[]   @relation("AcademicTermsCreator")
+  updatedAcademicTerms AcademicTerms[]   @relation("AcademicTermsUpdater")
+  createdActivityLogActionTypes ActivityLogActionTypes[] @relation("ActivityLogActionTypesCreator")
+  updatedActivityLogActionTypes ActivityLogActionTypes[] @relation("ActivityLogActionTypesUpdater")
+
+  @@map("users")
 }
 
-// Program model
+
+// ======================================================================
+// ACADEMIC.PRISMA - From academic.prisma
+// ======================================================================
+
+// ======================================================================
+// ACADEMIC STRUCTURE
+// ======================================================================
+
 model Program {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  nameEn      String
-  nameAr      String?
-  code        String   @unique
-  description String?
-  isActive    Boolean  @default(true)
-  durationYears Int?    // in years
-  minGPA      Float?
+  id              Int      @id @default(autoincrement())
+  code            String   @unique
+  nameEn          String
+  nameAr          String?
+  descriptionEn   String?  // English description
+  descriptionAr   String?  // Arabic description
+  durationYears   Int?
+  minGPA          Float?
   totalCreditHours Int?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  classes     Class[]
-  subjects    Subject[]
-  resources   Resource[]
-  
-  // Phase 10 Relations
-  activities  Activity[] @relation("ActivityProgram")
+  isActive        Boolean  @default(true)
+  createdBy       Int
+  updatedBy       Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  creator         User       @relation("ProgramCreator", fields: [createdBy], references: [id])
+  updater         User?      @relation("ProgramUpdater", fields: [updatedBy], references: [id])
+  subjects        Subject[]
+  classes         Class[]
+  announcements   Announcement[]
+
+  @@map("programs")
 }
 
-// Subject model
 model Subject {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
   nameEn      String
   nameAr      String?
-  code        String   @unique
-  description String?
-  credits     Int?
-  hoursPerWeek Int?
-  totalHours  Int?
-  type        String?  // lecture, lab, etc.
-  requirementType String? // general_mandatory, elective, etc.
-  isActive    Boolean  @default(true)
-  programId   String   @db.ObjectId
-  classIds    Json?     // SubjectClassesSchema - Array of class IDs with status
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  program     Program @relation(fields: [programId], references: [id])
-  classes     Class[]
-  resources   Resource[]
-  
-  // Phase 10 Relations
-  activities  Activity[] @relation("ActivitySubject")
-  enrollments  Enrollment[] @relation("SubjectEnrollments")
-  subjectEnrollments SubjectEnrollment[] @relation("SubjectEnrollments")
-}
-
-// Category model - THE MODEL WE'RE MIGRATING
-model Category {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  nameEn        String
-  nameAr        String?
-  icon          String?
   descriptionEn String?
   descriptionAr String?
-  color         String?
-  order         Int      @default(0)
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  resources    Resource[]
+  credits     Int      @default(3)
+  type        String   @default("lecture") // NEW: Subject type (lecture, lab, seminar, etc.)
+  requirementType String @default("general_mandatory") // NEW: Requirement type
+  isActive    Boolean  @default(true)
+  programId   Int
+  instructorId Int?
+  createdBy   Int
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  program        Program       @relation(fields: [programId], references: [id])
+  instructor     User?         @relation("SubjectInstructor", fields: [instructorId], references: [id])
+  classes        Class[]
+  enrollments    SubjectEnrollment[]
+  creator User? @relation("SubjectCreator", fields: [createdBy], references: [id])
+  updater User? @relation("SubjectUpdater", fields: [updatedBy], references: [id])
+
+  @@map("subjects")
 }
 
-// Resource model - Keep only relations needed for Categories
+model Class {
+  id           Int      @id @default(autoincrement())
+  code         String   @unique
+  nameEn       String
+  nameAr       String?
+  descriptionEn String?
+  descriptionAr String?
+  maxCapacity  Int?
+  isActive     Boolean  @default(true)
+  programId    Int
+  subjectId    Int
+  instructorId Int?
+  createdBy    Int
+  updatedBy    Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relationships
+  program     Program  @relation(fields: [programId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  instructor  User?    @relation("ClassInstructor", fields: [instructorId], references: [id])
+  enrollments Enrollment[]
+  activities  Activity[]
+  resources   Resource[]
+  attendances Attendance[]
+  announcements Announcement[]
+  creator User? @relation("ClassCreator", fields: [createdBy], references: [id])
+  updater User? @relation("ClassUpdater", fields: [updatedBy], references: [id])
+
+  @@map("classes")
+}
+
+
+// ======================================================================
+// ENROLLMENT.PRISMA - From enrollment.prisma
+// ======================================================================
+
+// ======================================================================
+// ENROLLMENT AND ATTENDANCE
+// ======================================================================
+
+model Enrollment {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  classId      Int
+  statusId     Int
+  enrolledAt   DateTime @default(now())
+  completedAt  DateTime?
+  finalGrade   Float?
+  creditsEarned Float?
+  createdBy    Int?
+  updatedBy    Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relationships
+  user    User                 @relation(fields: [userId], references: [id])
+  class   Class                @relation(fields: [classId], references: [id])
+  status  EnrollmentStatusTypes @relation(fields: [statusId], references: [id])
+  // TODO: Add EnrollmentMark relationship when EnrollmentMark model is created
+  creator User? @relation("EnrollmentCreator", fields: [createdBy], references: [id])
+  updater User? @relation("EnrollmentUpdater", fields: [updatedBy], references: [id])
+
+  @@unique([userId, classId])
+  @@map("enrollments")
+}
+
+model SubjectEnrollment {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  subjectId    Int
+  statusId     Int
+  enrolledAt   DateTime @default(now())
+  completedAt  DateTime?
+  finalGrade   Float?
+  creditsEarned Float?
+  createdBy    Int?
+  updatedBy    Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relationships
+  user    User                 @relation(fields: [userId], references: [id])
+  subject Subject              @relation(fields: [subjectId], references: [id])
+  status  EnrollmentStatusTypes @relation(fields: [statusId], references: [id])
+  // TODO: Add EnrollmentMark relationship when EnrollmentMark model is created
+  creator User? @relation("SubjectEnrollmentCreator", fields: [createdBy], references: [id])
+  updater User? @relation("SubjectEnrollmentUpdater", fields: [updatedBy], references: [id])
+
+  @@unique([userId, subjectId])
+  @@map("subject_enrollments")
+}
+
+model Attendance {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  classId     Int
+  date        DateTime @default(now())
+  statusId    Int
+  checkInTime DateTime?
+  checkOutTime DateTime?
+  notes       String?
+  recordedBy  Int?
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  user       User                  @relation(fields: [userId], references: [id])
+  class      Class                 @relation(fields: [classId], references: [id])
+  status     AttendanceStatusTypes @relation(fields: [statusId], references: [id])
+  recorder   User?                 @relation("AttendanceRecorder", fields: [recordedBy], references: [id])
+  creator    User?                 @relation("AttendanceCreator", fields: [createdBy], references: [id])
+  updater    User?                 @relation("AttendanceUpdater", fields: [updatedBy], references: [id])
+
+  @@map("attendances")
+}
+
+
+// ======================================================================
+// ACTIVITIES.PRISMA - From activities.prisma
+// ======================================================================
+
+// ======================================================================
+// ACTIVITIES AND ASSESSMENTS
+// ======================================================================
+
+model Activity {
+  id        Int      @id @default(autoincrement())
+  classId   Int
+  titleEn   String
+  titleAr   String?
+  descriptionEn String?
+  descriptionAr String?
+  typeId    Int
+  dueDate   DateTime?
+  maxScore  Float?
+  weight    Float    @default(1.0)
+  imageUrl  String?  // NEW: Activity image URL
+  link      String?  // NEW: External link for activity
+  quizId    Int?     // NEW: Link to quiz
+  allowRetake Boolean @default(false) // NEW: Allow quiz retake
+  isActive  Boolean  @default(true)
+  createdBy Int
+  updatedBy Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  class       Class        @relation(fields: [classId], references: [id])
+  type        ActivityTypes @relation(fields: [typeId], references: [id])
+  submissions Submission[]
+  quiz        Quiz?        @relation("ActivityQuiz", fields: [quizId], references: [id])
+  creator User? @relation("ActivityCreator", fields: [createdBy], references: [id])
+  updater User? @relation("ActivityUpdater", fields: [updatedBy], references: [id])
+
+  @@map("activities")
+}
+
+model Submission {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  activityId  Int
+  content     String?
+  fileUrl     String?
+  fileName    String?
+  fileSize    Int?
+  statusId    Int
+  score       Float?
+  maxScore    Float?
+  feedback    String?
+  gradedAt    DateTime?
+  submittedAt DateTime @default(now())
+  createdBy   Int?
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  user    User                  @relation(fields: [userId], references: [id])
+  activity Activity             @relation(fields: [activityId], references: [id])
+  status  SubmissionStatusTypes @relation(fields: [statusId], references: [id])
+  creator User? @relation("SubmissionCreator", fields: [createdBy], references: [id])
+  updater User? @relation("SubmissionUpdater", fields: [updatedBy], references: [id])
+
+  @@unique([userId, activityId])
+  @@map("submissions")
+}
+
+// ======================================================================
+// RESOURCES AND CONTENT
+// ======================================================================
+
 model Resource {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id        Int      @id @default(autoincrement())
+  classId   Int
+  titleEn   String
+  titleAr   String?
+  descriptionEn String?
+  descriptionAr String?
+  type      String   @default("document") // NEW: Resource type (video, link, document)
+  category  String?  // NEW: Resource category
+  tags      String?  // NEW: Comma-separated tags
+  fileUrl   String?
+  fileName  String?
+  fileSize  Int?
+  fileType  String?
+  downloadCount Int @default(0) // NEW: Download counter
+  isRequired Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdBy Int
+  updatedBy Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  class    Class    @relation(fields: [classId], references: [id])
+  creator User? @relation("ResourceCreator", fields: [createdBy], references: [id])
+  updater User? @relation("ResourceUpdater", fields: [updatedBy], references: [id])
+
+  @@map("resources")
+}
+
+// ======================================================================
+// COMMUNICATIONS
+// ======================================================================
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  titleEn   String
+  titleAr   String?
+  descriptionEn String?
+  descriptionAr String?
+  priority  String   @default("normal") // low, normal, high, urgent
+  targetAudience String @default("all") // all, students, instructors, admin
+  programId Int?
+  classId   Int?
+  isActive  Boolean  @default(true)
+  createdBy Int
+  updatedBy Int?
+  publishAt DateTime?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  program   Program? @relation(fields: [programId], references: [id])
+  class     Class?   @relation(fields: [classId], references: [id])
+  creator  User?    @relation("AnnouncementCreator", fields: [createdBy], references: [id])
+  updater  User?    @relation("AnnouncementUpdater", fields: [updatedBy], references: [id])
+
+  @@map("announcements")
+}
+
+// ======================================================================
+// QUIZ SYSTEM
+// ======================================================================
+
+model Quiz {
+  id          Int      @id @default(autoincrement())
   titleEn     String
   titleAr     String?
   descriptionEn String?
   descriptionAr String?
-  type        String
-  url         String?
-  categoryId  String?  @db.ObjectId
-  classId     String?  @db.ObjectId
-  programId   String?  @db.ObjectId
-  subjectId   String?  @db.ObjectId
-  fileId      String?  @db.ObjectId
-  featured    Boolean  @default(false)
-  optional    Boolean  @default(false)
-  dueDate     DateTime?
-  createdBy   String?  @db.ObjectId
-  updatedBy   String?  @db.ObjectId
+  duration    Int      @default(60) // Duration in minutes
+  maxAttempts Int      @default(1) // Maximum attempts allowed
+  passingScore Float   @default(60) // Passing score percentage
+  randomizeQuestions Boolean @default(false)
+  randomizeAnswers   Boolean @default(false)
+  showCorrectAnswers Boolean @default(false)
+  isActive    Boolean  @default(true)
+  createdBy   Int
+  updatedBy   Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  // Relations
-  category    Category? @relation(fields: [categoryId], references: [id])
-  file        File?    @relation(fields: [fileId], references: [id])
-  class       Class?   @relation(fields: [classId], references: [id])
-  program     Program? @relation(fields: [programId], references: [id])
-  subject     Subject? @relation(fields: [subjectId], references: [id])
+
+  // Relationships
+  activities  Activity[]   @relation("ActivityQuiz")
+  questions   Question[]
+  attempts    QuizAttempt[]
+  creator     User?       @relation("QuizCreator", fields: [createdBy], references: [id])
+  updater     User?       @relation("QuizUpdater", fields: [updatedBy], references: [id])
+
+  @@map("quizzes")
 }
 
-// File model - Keep only relations needed for Categories
-model File {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  originalName String
-  mimeType    String
-  size        Int
-  path        String
-  url         String?
-  folder      String?
-  type        String?  // report, document, etc.
-  status      String   @default("active")
-  downloads   Int      @default(0)
-  lastAccessedAt DateTime?
-  accessControl Json?    // FileAccessControlSchema - Access control rules
-  uploadedBy  String?  @db.ObjectId
-  isPublic    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  uploader    User?    @relation("FileUploader", fields: [uploadedBy], references: [id])
-  resources   Resource[]
-}
-
-// Activity model - for classroom activities and assignments
-model Activity {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  description String?
-  classId     String   @db.ObjectId
-  subjectId   String   @db.ObjectId
-  type        String   // quiz, assignment, project, exam, etc.
-  dueDate     DateTime?
-  maxScore    Float?
-  isPublished Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  class       Class    @relation("ActivityClass", fields: [classId], references: [id])
-  subject     Subject  @relation("ActivitySubject", fields: [subjectId], references: [id])
-  submissions Participation[] @relation("ActivityParticipations")
-}
-
-// Config model for system configuration
-model Config {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  data        Json
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-// Penalty model - for student penalties and disciplinary actions
-model Penalty {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  studentId     String   @db.ObjectId
-  classId       String?  @db.ObjectId
-  instructorId  String?  @db.ObjectId
-  type          String   // late_submission, plagiarism, misconduct, absence, etc.
-  description   String
-  severity      String   // low, medium, high, critical
-  points        Int?     // penalty points if applicable
-  status        String   @default("active") // active, resolved, appealed
-  resolvedAt    DateTime?
-  resolvedBy    String?  @db.ObjectId
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  student       User     @relation("StudentPenalties", fields: [studentId], references: [id])
-  class         Class?   @relation("ClassPenalties", fields: [classId], references: [id])
-  instructor    User?    @relation("InstructorPenalties", fields: [instructorId], references: [id])
-  resolver      User?    @relation("ResolverPenalties", fields: [resolvedBy], references: [id])
-}
-
-// Participation model - for tracking student participation in activities
-model Participation {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  studentId     String   @db.ObjectId
-  activityId    String   @db.ObjectId
-  classId       String   @db.ObjectId
-  type          String   // attendance, discussion, presentation, group_work, etc.
-  score         Float?   // participation score if applicable
-  maxScore      Float?   // maximum possible score
-  status        String   @default("present") // present, absent, late, excused
-  notes         String?  // instructor notes
-  recordedAt    DateTime @default(now())
-  recordedBy    String   @db.ObjectId
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  student       User     @relation("StudentParticipations", fields: [studentId], references: [id])
-  activity      Activity @relation("ActivityParticipations", fields: [activityId], references: [id])
-  class         Class    @relation("ClassParticipations", fields: [classId], references: [id])
-  recorder      User     @relation("RecorderParticipations", fields: [recordedBy], references: [id])
-}
-
-// Behavior model - for tracking student behavior and conduct
-model Behavior {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  studentId     String   @db.ObjectId
-  classId       String?  @db.ObjectId
-  instructorId  String?  @db.ObjectId
-  type          String   // positive_behavior, negative_behavior, incident, achievement
-  category      String   // academic, social, disciplinary, leadership
-  description   String
-  severity      String   // low, medium, high
-  impact        String?  // impact on learning environment
-  actionTaken   String?  // actions taken by instructor/admin
-  status        String   @default("active") // active, resolved, reviewed
-  reportedAt    DateTime @default(now())
-  reportedBy    String   @db.ObjectId
-  resolvedAt    DateTime?
-  resolvedBy    String?  @db.ObjectId
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  student       User     @relation("StudentBehaviors", fields: [studentId], references: [id])
-  class         Class?   @relation("ClassBehaviors", fields: [classId], references: [id])
-  instructor    User?    @relation("InstructorBehaviors", fields: [instructorId], references: [id])
-  reporter      User     @relation("ReporterBehaviors", fields: [reportedBy], references: [id])
-  resolver      User?    @relation("ResolverBehaviors", fields: [resolvedBy], references: [id])
-}
-
-// Quiz Result model - for quiz results and scoring
-model QuizResult {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  quizId        String   @db.ObjectId
-  studentId     String   @db.ObjectId
-  classId       String   @db.ObjectId
-  score         Float
-  maxScore      Float
-  percentage    Float
-  status        String   // passed, failed, pending
-  startedAt     DateTime
-  completedAt   DateTime?
-  timeSpent     Int?     // in minutes
-  attempts      Int      @default(1)
-  feedback      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  quiz          Quiz     @relation("QuizResults", fields: [quizId], references: [id])
-  student       User     @relation("StudentQuizResults", fields: [studentId], references: [id])
-  class         Class    @relation("ClassQuizResults", fields: [classId], references: [id])
-}
-
-// Quiz Submission model - for individual quiz question submissions
-model QuizSubmission {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  quizResultId  String   @db.ObjectId
-  questionId    String   @db.ObjectId
-  studentId     String   @db.ObjectId
-  answer        Json     // flexible answer structure
-  isCorrect     Boolean
-  points        Float
-  maxPoints     Float
-  timeSpent     Int?     // in seconds
-  submittedAt   DateTime @default(now())
-  
-  // Relations
-  quizResult    QuizResult @relation("QuizSubmissions", fields: [quizResultId], references: [id])
-  question      Question   @relation("QuestionSubmissions", fields: [questionId], references: [id])
-  student       User       @relation("StudentQuizSubmissions", fields: [studentId], references: [id])
-}
-
-// Quiz model - for quiz definitions
-model Quiz {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  title         String
-  description   String?
-  classId       String   @db.ObjectId
-  instructorId  String   @db.ObjectId
-  type          String   // quiz, exam, test
-  duration      Int?     // in minutes
-  maxScore      Float
-  passingScore  Float
-  isPublished   Boolean  @default(false)
-  startsAt      DateTime?
-  endsAt        DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  class         Class       @relation("ClassQuizzes", fields: [classId], references: [id])
-  instructor    User        @relation("InstructorQuizzes", fields: [instructorId], references: [id])
-  questions     Question[]
-  results       QuizResult[]
-}
-
-// Question model - for quiz questions
 model Question {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  quizId        String   @db.ObjectId
-  questionBankId String? @db.ObjectId
-  type          String   // multiple_choice, true_false, short_answer, essay
-  question      String
-  options       Json?    // for multiple choice questions
-  correctAnswer Json
-  explanation   String?
-  points        Float
-  order         Int
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  quiz          Quiz             @relation("QuizQuestions", fields: [quizId], references: [id])
-  questionBank  QuestionBank?    @relation("BankQuestions", fields: [questionBankId], references: [id])
-  submissions   QuizSubmission[]
+  id          Int      @id @default(autoincrement())
+  quizId      Int
+  questionEn  String
+  questionAr  String?
+  type        String   @default("multiple_choice") // multiple_choice, true_false, short_answer, essay
+  options     String?  // JSON string for multiple choice options
+  correctAnswer String? // JSON string for correct answer(s)
+  points      Float    @default(1)
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdBy   Int
+  updatedBy   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  quiz        Quiz       @relation(fields: [quizId], references: [id])
+  answers     Answer[]
+  creator     User?      @relation("QuestionCreator", fields: [createdBy], references: [id])
+  updater     User?      @relation("QuestionUpdater", fields: [updatedBy], references: [id])
+
+  @@map("questions")
 }
 
-// Question Bank model - for reusable questions
-model QuestionBank {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  title         String
-  description   String?
-  category      String?
-  type          String   // multiple_choice, true_false, short_answer, essay
-  question      String
-  options       Json?    // for multiple choice questions
-  correctAnswer Json
-  explanation   String?
-  points        Float
-  difficulty    String   // easy, medium, hard
-  tags          Json?    // array of tags
-  createdBy     String   @db.ObjectId
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  creator       User       @relation("CreatorQuestionBank", fields: [createdBy], references: [id])
-  questions     Question[]
+model Answer {
+  id          Int      @id @default(autoincrement())
+  questionId  Int
+  quizAttemptId Int
+  answer      String   // JSON string for answer data
+  isCorrect   Boolean  @default(false)
+  points      Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  question    Question    @relation(fields: [questionId], references: [id])
+  quizAttempt QuizAttempt @relation(fields: [quizAttemptId], references: [id])
+
+  @@map("answers")
 }
 
-// Notification model - for system notifications
-model Notification {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String   @db.ObjectId
-  title         String
-  message       String
-  type          String   // info, warning, error, success
-  category      String   // announcement, grade, deadline, system
-  isRead        Boolean  @default(false)
-  actionUrl     String?
-  actionText    String?
-  expiresAt     DateTime?
-  createdAt     DateTime @default(now())
-  
-  // Relations
-  user          User     @relation("UserNotifications", fields: [userId], references: [id])
+model QuizAttempt {
+  id          Int      @id @default(autoincrement())
+  quizId      Int
+  userId      Int
+  score       Float?
+  maxScore    Float?
+  percentage  Float?
+  passed      Boolean?
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  timeSpent   Int?     // Time spent in seconds
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  quiz        Quiz       @relation(fields: [quizId], references: [id])
+  user        User       @relation("QuizAttemptUser", fields: [userId], references: [id])
+  answers     Answer[]
+
+  @@map("quiz_attempts")
 }
 
-// Schedule model - for class schedules and events
-model Schedule {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  title         String
-  description   String?
-  classId       String?  @db.ObjectId
-  instructorId  String   @db.ObjectId
-  type          String   // class, exam, meeting, deadline
-  startDate     DateTime
-  endDate       DateTime?
-  location      String?
-  isRecurring   Boolean  @default(false)
-  recurrence    Json?    // recurrence rules
-  status        String   @default("active") // active, cancelled, completed
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  class         Class?   @relation("ClassSchedules", fields: [classId], references: [id])
-  instructor    User     @relation("InstructorSchedules", fields: [instructorId], references: [id])
-}
 
-// Template model - for reusable templates
-model Template {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  name          String
-  description   String?
-  type          String   // quiz, assignment, announcement, email
-  content       Json     // template content structure
-  variables     Json?    // template variables
-  createdBy     String   @db.ObjectId
-  isActive      Boolean  @default(true)
-  usageCount    Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  creator       User     @relation("CreatorTemplates", fields: [createdBy], references: [id])
-}
-
-// Gamification model - for points and achievements
-model Gamification {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String   @db.ObjectId
-  type          String   // points, badge, achievement, level
-  name          String
-  description   String?
-  value         Int?
-  criteria      Json?    // achievement criteria
-  earnedAt      DateTime @default(now())
-  expiresAt     DateTime?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  
-  // Relations
-  user          User     @relation("UserGamification", fields: [userId], references: [id])
-}
-
-// Bookmark model - for user bookmarks
-model Bookmark {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String   @db.ObjectId
-  type          String   // resource, activity, quiz, class, etc.
-  targetId      String   @db.ObjectId
-  title         String
-  description   String?
-  tags          Json?    // array of tags
-  isPublic      Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  user          User     @relation("UserBookmarks", fields: [userId], references: [id])
-}
-
-// Attendance model - for attendance tracking
-model Attendance {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String   @db.ObjectId
-  classId       String   @db.ObjectId
-  date          DateTime
-  status        String   // present, absent, late, excused
-  checkInTime   DateTime?
-  checkOutTime  DateTime?
-  notes         String?
-  markedBy      String   @db.ObjectId
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  user          User     @relation("UserAttendance", fields: [userId], references: [id])
-  class         Class    @relation("ClassAttendance", fields: [classId], references: [id])
-  marker        User     @relation("MarkedAttendance", fields: [markedBy], references: [id])
-}
-
-// Activity Log model - for system activity tracking
-model ActivityLog {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String   @db.ObjectId
-  action        String   // login, logout, view, create, update, delete
-  resource      String   // user, class, activity, etc.
-  resourceId    String   @db.ObjectId
-  details       Json?    // additional details
-  ipAddress     String?
-  userAgent     String?
-  timestamp     DateTime @default(now())
-  
-  // Relations
-  user          User     @relation("UserActivityLogs", fields: [userId], references: [id])
-}
-
-// Dashboard model - for user dashboard configurations
-model Dashboard {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String   @db.ObjectId
-  name          String
-  layout        Json     // widget layout configuration
-  widgets       Json     // widget definitions
-  isDefault     Boolean  @default(false)
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  user          User     @relation("UserDashboards", fields: [userId], references: [id])
-}
-
-// Enrollment model - for class enrollments
-model Enrollment {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String   @db.ObjectId
-  classId       String   @db.ObjectId
-  status        String   // pending, approved, rejected, completed
-  enrolledAt    DateTime @default(now())
-  completedAt   DateTime?
-  grade         Float?
-  notes         String?
-  approvedBy    String?  @db.ObjectId
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  user          User     @relation("UserEnrollments", fields: [userId], references: [id])
-  class         Class    @relation("ClassEnrollments", fields: [classId], references: [id])
-  approver      User?    @relation("ApprovedEnrollments", fields: [approvedBy], references: [id])
-}
-
-// Attendance Session model - for attendance sessions
-model AttendanceSession {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  classId       String   @db.ObjectId
-  instructorId  String   @db.ObjectId
-  sessionDate   DateTime
-  startTime     DateTime
-  endTime       DateTime?
-  status        String   @default("active") // active, completed, cancelled
-  description   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  class         Class    @relation("ClassAttendanceSessions", fields: [classId], references: [id])
-  instructor    User     @relation("InstructorAttendanceSessions", fields: [instructorId], references: [id])
-}
-
-// Chat model - for messaging system
-model Chat {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  senderId      String   @db.ObjectId
-  receiverId    String   @db.ObjectId
-  classId       String?  @db.ObjectId
-  message       String
-  type          String   @default("text") // text, file, image, system
-  isRead        Boolean  @default(false)
-  timestamp     DateTime @default(now())
-  
-  // Relations
-  sender        User     @relation("SentMessages", fields: [senderId], references: [id])
-  receiver      User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
-  class         Class?   @relation("ClassChats", fields: [classId], references: [id])
-}
-
-// Subject Enrollment model - for subject enrollments
-model SubjectEnrollment {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String   @db.ObjectId
-  subjectId     String   @db.ObjectId
-  status        String   @default("active") // active, completed, dropped, suspended
-  enrolledAt    DateTime @default(now())
-  completedAt   DateTime?
-  grade         Float?
-  credits       Float?
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  user          User     @relation("UserSubjectEnrollments", fields: [userId], references: [id])
-  subject       Subject  @relation("SubjectEnrollments", fields: [subjectId], references: [id])
-}

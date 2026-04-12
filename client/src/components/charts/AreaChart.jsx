@@ -1,7 +1,8 @@
 import React from 'react';
 import { useLang } from '@contexts/LangContext';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Custom Area Chart Component (Pure React/SVG)
  * Stacked or grouped area charts
  */

@@ -3,7 +3,8 @@ import Modal from './Modal';
 import Button from '../Button';
 import Input from '../Input';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'UI/Modal',
   component: Modal,
   tags: ['autodocs'],
@@ -95,7 +96,7 @@ export const FormModal = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    logger.log('Form submitted:', formData);
+    info('Form submitted:', formData);
     setIsOpen(false);
   };
 
@@ -144,7 +145,7 @@ export const DeleteConfirmation = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleDelete = () => {
-    logger.log('Item deleted');
+    info('Item deleted');
     setIsOpen(false);
   };
 

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Hook for controlling the global loading progress bar
  * Provides easy methods to show/hide/update loading progress
  */

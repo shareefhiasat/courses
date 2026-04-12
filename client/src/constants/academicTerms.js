@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '../services/utils/logger.js';
+
 /**
  * Academic Terms Configuration
  * Centralized configuration for academic terms with localization support
@@ -11,68 +13,57 @@ export const ACADEMIC_TERMS = {
     order: 1
   },
   SPRING: {
-    value: 'spring', 
+    value: 'spring',
     label: { en: 'Spring', ar: 'ربيع' },
     labelKey: 'term_spring',
     order: 2
-  },
-  WINTER: {
-    value: 'winter',
-    label: { en: 'Winter', ar: 'شتاء' },
-    labelKey: 'term_winter',
-    order: 3
   },
   SUMMER: {
     value: 'summer',
     label: { en: 'Summer', ar: 'صيف' },
     labelKey: 'term_summer',
+    order: 3
+  },
+  WINTER: {
+    value: 'winter',
+    label: { en: 'Winter', ar: 'شتاء' },
+    labelKey: 'term_winter',
     order: 4
   }
 };
 
-/**
- * Get all academic terms as array for dropdown options
- * @param {string} lang - Language code ('en' | 'ar')
- * @param {Function} t - Translation function
- * @returns {Array} Array of term options with value and label
- */
-export const getAcademicTermOptions = (lang = 'en', t = (key) => key) => {
-  return Object.values(ACADEMIC_TERMS)
-    .sort((a, b) => a.order - b.order)
-    .map(term => ({
-      value: term.value,
-      label: t(term.labelKey) || term.label[lang] || term.label.en
-    }));
+// Helper functions
+export const getAcademicTermLabel = (term, lang = 'en') => {
+  const termConfig = Object.values(ACADEMIC_TERMS).find(t => t.value === term);
+  if (!termConfig) return term;
+  return termConfig.label[lang] || termConfig.label.en || term;
 };
 
-/**
- * Get localized term label by value
- * @param {string} termValue - Term value (e.g., 'fall', 'spring')
- * @param {string} lang - Language code ('en' | 'ar')
- * @param {Function} t - Translation function
- * @returns {string} Localized term label
- */
-export const getAcademicTermLabel = (termValue, lang = 'en', t = (key) => key) => {
-  const term = Object.values(ACADEMIC_TERMS).find(term => term.value === termValue);
-  if (!term) return termValue;
-  
-  return t(term.labelKey) || term.label[lang] || term.label.en;
+export const getAcademicTerms = () => {
+  return Object.values(ACADEMIC_TERMS).sort((a, b) => a.order - b.order);
 };
 
-/**
- * Get all term values for filtering
- * @returns {Array} Array of term values
- */
-export const getAcademicTermValues = () => {
-  return Object.values(ACADEMIC_TERMS).map(term => term.value);
+export const getAcademicTermByValue = (value) => {
+  return Object.values(ACADEMIC_TERMS).find(term => term.value === value);
 };
 
-/**
- * Default term options for components that don't need localization
- */
-export const DEFAULT_TERM_OPTIONS = [
-  { value: 'fall', label: 'Fall' },
-  { value: 'spring', label: 'Spring' },
-  { value: 'winter', label: 'Winter' },
-  { value: 'summer', label: 'Summer' }
-];
+export const isValidAcademicTerm = (term) => {
+  return Object.values(ACADEMIC_TERMS).some(t => t.value === term);
+};
+
+export const getAcademicTermOptions = (lang = 'en') => {
+  return getAcademicTerms().map(term => ({
+    value: term.value,
+    label: term.label[lang] || term.label.en,
+    labelKey: term.labelKey
+  }));
+};
+
+export default {
+  ACADEMIC_TERMS,
+  getAcademicTermLabel,
+  getAcademicTerms,
+  getAcademicTermByValue,
+  isValidAcademicTerm,
+  getAcademicTermOptions
+};

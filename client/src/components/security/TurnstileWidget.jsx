@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 const TURNSTILE_ENABLED = import.meta.env.VITE_TURNSTILE_ENABLED === 'true';
 
 let turnstileScriptLoaded = false;
@@ -91,7 +92,7 @@ const TurnstileWidget = ({ action = 'login', onVerify, theme = 'auto' }) => {
         widgetIdRef.current = id;
         setIsReady(true);
       } catch (err) {
-        console.error('Turnstile init error:', err);
+        error('Turnstile init error:', err);
         setError('Failed to load security check.');
       }
     };

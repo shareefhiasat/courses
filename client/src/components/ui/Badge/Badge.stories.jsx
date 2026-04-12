@@ -1,7 +1,8 @@
 import React from 'react';
 import Badge from './Badge';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'UI/Badge',
   component: Badge,
   tags: ['autodocs'],

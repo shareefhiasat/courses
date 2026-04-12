@@ -40,7 +40,7 @@ class NotificationManager {
         
         return true;
       } catch (error) {
-        logger.error('Failed to initialize audio context:', error);
+        error('Failed to initialize audio context:', error);
         return false;
       }
     }
@@ -57,7 +57,7 @@ class NotificationManager {
       this.permissions.notification = permission;
       return permission === 'granted';
     } catch (error) {
-      logger.error('Failed to request notification permission:', error);
+      error('Failed to request notification permission:', error);
       return false;
     }
   }
@@ -127,7 +127,7 @@ class NotificationManager {
 
       return true;
     } catch (error) {
-      logger.error('Failed to play notification sound:', error);
+      error('Failed to play notification sound:', error);
       return false;
     }
   }
@@ -173,7 +173,7 @@ class NotificationManager {
       navigator.vibrate(vibratePattern);
       return true;
     } catch (error) {
-      logger.error('Failed to vibrate:', error);
+      error('Failed to vibrate:', error);
       return false;
     }
   }
@@ -222,7 +222,7 @@ class NotificationManager {
 
       return true;
     } catch (error) {
-      logger.error('Failed to show browser notification:', error);
+      error('Failed to show browser notification:', error);
       return false;
     }
   }
@@ -276,7 +276,7 @@ class NotificationManager {
         this.permissions = { ...this.permissions, ...permissions };
       }
     } catch (error) {
-      logger.error('Failed to load stored permissions:', error);
+      error('Failed to load stored permissions:', error);
     }
   }
 

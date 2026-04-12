@@ -101,6 +101,65 @@
   gap: 1.25rem;
 }
 
+.tabNavigationContainer {
+  margin-bottom: 1rem;
+}
+
+.tabNavigationHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.tabActions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.tabActionButtons {
+  margin-left: 0.5rem;
+}
+
+.instructionalMessage {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #94a3b8;
+  border: 2px dashed #e2e8f0;
+  border-radius: 0.5rem;
+  background: #f8fafc;
+}
+
+.dark .instructionalMessage {
+  background: #1f2937;
+}
+
+.instructionalIcon {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.instructionalTitle {
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.dark .instructionalTitle {
+  color: #f3f4f6;
+}
+
+.instructionalDescription {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.dark .instructionalDescription {
+  color: #9ca3af;
+}
+
 .inputSection {
   display: flex;
   flex-direction: column;
@@ -370,7 +429,7 @@
 
 .chipsContainer {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.5rem;
   max-height: 12rem;
   overflow-y: auto;
@@ -388,13 +447,15 @@
 .chip {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.625rem;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
   background: white;
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
   font-size: 0.8125rem;
   transition: all 0.2s;
+  width: 100%;
 }
 
 .dark .chip {
@@ -437,6 +498,8 @@
   font-weight: 400;
   color: #059669;
   font-size: 0.75rem;
+  display: inline;
+  margin-left: 0.5rem;
 }
 
 .dark .chipName {
@@ -646,7 +709,7 @@
 
 .summaryGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
 }
 

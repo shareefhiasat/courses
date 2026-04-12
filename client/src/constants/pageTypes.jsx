@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 // Common Page States
 export const PAGE_STATES = {
   LOADING: 'loading',
@@ -52,7 +54,7 @@ export const TYPE_ICONS = {
     late: 'clock',
     absent_no_excuse: 'x_circle',
     absent_with_excuse: 'alert_circle',
-    excused_leave: 'info',
+    excused_leave: 'heart',
     human_case: 'help_circle'
   },
   

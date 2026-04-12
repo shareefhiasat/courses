@@ -1,132 +1,130 @@
-import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
+/**
+ * Announcement Service - Interface Layer
+ * 
+ * PURPOSE: Public API for announcement operations
+ * ARCHITECTURE: Frontend Components → Announcement Service → Announcement Business Service → Database Service
+ */
+
+import { info, error, warn, debug } from '../utils/logger.js';
+
+// Import business service functions
 import { 
-  getAnnouncements as getAnnouncementsFromDb,
-  create as createAnnouncement,
-  update as updateAnnouncementInDb,
-  deleteAnnouncement as deleteAnnouncementFromDb
-} from '../db/announcementDbService';
-import logger from '@utils/logger';
+  getAllAnnouncements as getAllAnnouncementsBusiness,
+  getAnnouncementById as getAnnouncementByIdBusiness,
+  createAnnouncement as createAnnouncementBusiness,
+  updateAnnouncement as updateAnnouncementBusiness,
+  deleteAnnouncement as deleteAnnouncementBusiness
+} from './announcementsBusinessService.js';
+
+const serviceName = 'announcementService';
 
 /**
- * Announcement Service
- * Handles all Firebase operations for announcements
- * Extracted from activityService.js for better modularity
+ * Get all announcements - public interface
  */
-
-/**
- * Get all announcements ordered by creation date - with performance monitoring and memoization
- * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
- */
-export const getAnnouncements = async () => {
+export const getAnnouncements = async (params = {}) => {
   try {
-    const result = await getAnnouncementsFromDb();
-    if (result.success) {
-      return { success: true, data: result.data };
-    }
-    return { success: false, error: result.error };
-  } catch (error) {
-    logger.error("Error getting announcements:", error);
-    return { success: false, error: error.message };
+    info(`${serviceName}:getAnnouncements`, { params });
+    
+    // Use business service layer
+    const result = await getAllAnnouncementsBusiness(params);
+    return result;
+  } catch (err) {
+    error(`${serviceName}:getAnnouncements:error`, { error: err.message, params });
+    return {
+      success: false,
+      error: err.message || 'Failed to load announcements',
+      data: []
+    };
   }
 };
 
 /**
- * Add a new announcement
- * @param {Object} announcementData - Announcement data
- * @param {Object} user - User object
- * @returns {Promise<{success: boolean, id?: string, error?: string}>}
+ * Get announcement by ID - public interface
  */
-export const addAnnouncement = async (announcementData, user) => {
+export const getAnnouncementById = async (id) => {
   try {
-    const result = await createAnnouncement(announcementData, user);
+    info(`${serviceName}:getAnnouncementById`, { id });
     
-    if (result.success) {
-      // Log announcement creation (non-blocking)
-      try {
-        await logActivity(ACTIVITY_LOG_TYPES.ANNOUNCEMENT_CREATED, {
-          announcementId: result.id,
-          announcementTitle: announcementData.title,
-          target: announcementData.target,
-          programId: announcementData.programId,
-          subjectId: announcementData.subjectId,
-          classId: announcementData.classId
-        });
-      } catch (logError) {
-        logger.warn('Failed to log announcement creation:', logError);
-      }
-      
-      return { success: true, id: result.id };
-    }
-    
-    return { success: false, error: result.error };
-  } catch (error) {
-    logger.error("Error adding announcement:", error);
-    return { success: false, error: error.message };
+    // Use business service layer
+    const result = await getAnnouncementByIdBusiness(id);
+    return result;
+  } catch (err) {
+    error(`${serviceName}:getAnnouncementById:error`, { error: err.message, id });
+    return {
+      success: false,
+      error: err.message || 'Failed to load announcement',
+      data: null
+    };
   }
 };
 
 /**
- * Update an existing announcement
- * @param {string} id - Announcement document ID
- * @param {Object} announcementData - Updated announcement data
- * @param {Object} user - User object
- * @returns {Promise<{success: boolean, error?: string}>}
+ * Create announcement - public interface
  */
-export const updateAnnouncement = async (id, announcementData, user) => {
+export const createAnnouncement = async (announcementData, user = null) => {
   try {
-    const result = await updateAnnouncementInDb(id, announcementData, user);
+    info(`${serviceName}:createAnnouncement`, { data: announcementData });
     
-    if (result.success) {
-      // Log announcement update
-      try {
-        await logActivity(ACTIVITY_LOG_TYPES.ANNOUNCEMENT_UPDATED, {
-          announcementId: id,
-          announcementTitle: announcementData.title
-        });
-      } catch (logError) {
-        logger.warn('Failed to log announcement update:', logError);
-      }
-      
-      return { success: true };
-    }
+    // Use business service layer
+    const result = await createAnnouncementBusiness(announcementData, user);
+    return result;
+  } catch (err) {
+    error(`${serviceName}:createAnnouncement:error`, { error: err.message, data: announcementData });
+    return {
+      success: false,
+      error: err.message || 'Failed to create announcement',
+      data: null
+    };
+  }
+};
+
+export const addAnnouncement = createAnnouncement;
+
+/**
+ * Update announcement - public interface
+ */
+export const updateAnnouncement = async (id, updateData, user = null) => {
+  try {
+    info(`${serviceName}:updateAnnouncement`, { id, data: updateData });
     
-    return { success: false, error: result.error };
-  } catch (error) {
-    logger.error("Error updating announcement:", error);
-    return { success: false, error: error.message };
+    // Use business service layer
+    const result = await updateAnnouncementBusiness(id, updateData, user);
+    return result;
+  } catch (err) {
+    error(`${serviceName}:updateAnnouncement:error`, { error: err.message, id, data: updateData });
+    return {
+      success: false,
+      error: err.message || 'Failed to update announcement',
+      data: null
+    };
   }
 };
 
 /**
- * Delete an announcement
- * @param {string} id - Announcement document ID
- * @param {Object} announcementData - Announcement data for logging (optional)
- * @returns {Promise<{success: boolean, error?: string}>}
+ * Delete announcement - public interface
  */
-export const deleteAnnouncement = async (id, announcementData = null) => {
+export const deleteAnnouncement = async (id, user = null) => {
   try {
-    const result = await deleteAnnouncementFromDb(id);
+    info(`${serviceName}:deleteAnnouncement`, { id });
     
-    if (result.success) {
-      // Log announcement deletion
-      if (announcementData) {
-        try {
-          await logActivity(ACTIVITY_LOG_TYPES.ANNOUNCEMENT_DELETED, {
-            announcementId: id,
-            announcementTitle: announcementData.title
-          });
-        } catch (logError) {
-          logger.warn('Failed to log announcement deletion:', logError);
-        }
-      }
-      
-      return { success: true };
-    }
-    
-    return { success: false, error: result.error };
-  } catch (error) {
-    logger.error("Error deleting announcement:", error);
-    return { success: false, error: error.message };
+    // Use business service layer
+    const result = await deleteAnnouncementBusiness(id, user);
+    return result;
+  } catch (err) {
+    error(`${serviceName}:deleteAnnouncement:error`, { error: err.message, id });
+    return {
+      success: false,
+      error: err.message || 'Failed to delete announcement',
+      data: null
+    };
   }
 };
 
+export default {
+  getAnnouncements,
+  getAnnouncementById,
+  createAnnouncement,
+  addAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncement
+};

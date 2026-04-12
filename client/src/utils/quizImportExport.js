@@ -5,7 +5,8 @@
 import Papa from 'papaparse';
 import { QUESTION_TYPES } from './questionTypes';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Export quiz to CSV
  */
 export function exportToCSV(quiz) {
@@ -77,7 +78,7 @@ export function importFromCSV(csvText) {
     
     return { success: true, data: questions };
   } catch (error) {
-    console.error('Error importing CSV:', error);
+    error('Error importing CSV:', error);
     return { success: false, error: error.message };
   }
 }
@@ -99,7 +100,7 @@ export function importFromJSON(jsonText) {
     const quiz = JSON.parse(jsonText);
     return { success: true, data: quiz };
   } catch (error) {
-    console.error('Error importing JSON:', error);
+    error('Error importing JSON:', error);
     return { success: false, error: error.message };
   }
 }
@@ -191,7 +192,7 @@ export function importFromGoogleForms(googleFormsData) {
     
     return { success: true, data: questions };
   } catch (error) {
-    console.error('Error importing from Google Forms:', error);
+    error('Error importing from Google Forms:', error);
     return { success: false, error: error.message };
   }
 }

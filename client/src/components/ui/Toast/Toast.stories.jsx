@@ -1,7 +1,8 @@
 import React from 'react';
 import { ToastProvider, useToast, Button } from '@ui';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'UI/Toast',
   decorators: [
     (Story) => (

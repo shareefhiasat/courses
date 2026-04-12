@@ -3,7 +3,8 @@ import { getColoredIcon, getThemedIcon } from '@constants/iconTypes';
 import { SUBMISSION_STATUS, getStatusLabel } from '@utils/sharedTypes';
 import PortalTooltip from '@ui/PortalTooltip';
 
-// Import deriveIconColor separately to avoid module loading issues
+
+import { info, error, warn, debug } from '@services/utils/logger.js';// Import deriveIconColor separately to avoid module loading issues
 let deriveIconColor;
 try {
   const iconTypes = require('@constants/iconTypes');

@@ -3,7 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import AdvancedAnalyticsWithRoleSupport from '@components/AdvancedAnalyticsWithRoleSupport';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import styles from './PerformanceTab.module.css';
 
 /**
@@ -50,7 +50,7 @@ const PerformanceTab = memo(({
       filters.subjectId = selectedSubjectId;
     }
     
-    logger.log('[PerformanceTab] Global filters applied:', filters);
+    info('[PerformanceTab] Global filters applied:', filters);
     return filters;
   }, [selectedClassId, selectedStudentId, selectedProgramId, selectedSubjectId]);
 
@@ -75,9 +75,9 @@ const PerformanceTab = memo(({
   const handleDataRefresh = useCallback(async (refreshFunction) => {
     try {
       await refreshFunction();
-      logger.log('[PerformanceTab] Widgets refreshed successfully');
+      info('[PerformanceTab] Widgets refreshed successfully');
     } catch (error) {
-      logger.error('[PerformanceTab] Error refreshing widgets:', error);
+      error('[PerformanceTab] Error refreshing widgets:', error);
     }
   }, []);
 

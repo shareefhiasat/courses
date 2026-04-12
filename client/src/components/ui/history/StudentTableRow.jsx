@@ -3,43 +3,51 @@ import { createPortal } from 'react-dom';
 import { Button } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import StudentRosterHistory from './StudentRosterHistory';
-import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
-import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getAttendanceIcon } from '@constants/attendanceTypes';
-import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
+import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getAttendanceIcon, ATTENDANCE_TYPE_CATEGORY, STANDUP_ATTENDANCE_TYPES } from '@constants/attendanceTypes';
 import { useNavigate } from 'react-router-dom';
 import { useLang } from '@contexts/LangContext';
 import PortalTooltip from '@ui/PortalTooltip';
 import { ICON_TYPES } from '@constants/iconTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes.js';
+import StudentInfoCell from './StudentInfoCell';
+import AttendanceStatusCell from './AttendanceStatusCell';
+import QuickAttendanceButtons from './QuickAttendanceButtons';
+import StudentStatsRow from './StudentStatsRow';
+import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
 
-const StudentTableRow = ({ 
-  student, 
-  isExpanded, 
-  favoriteStudents, 
-  toggleFavorite, 
-  toggleRowExpansion, 
-  onStudentAction, 
+import { info, error, warn, debug } from '@services/utils/logger.js';
+const StudentTableRow = ({
+  student,
+  isExpanded,
+  favoriteStudents,
+  toggleFavorite,
+  toggleRowExpansion,
+  onStudentAction,
   onStudentSelect,
   onQuickAttendance, // New prop for quick attendance
-  studentHistory, 
-  expandedDays, 
-  activeFilters, 
+  programId,
+  studentHistory,
+  expandedDays,
+  activeFilters,
   toggleDayExpansion,
   expandAllDays,
   collapseAllDays,
-  handleDeleteAttendance, 
+  handleDeleteAttendance,
   handleDeleteParticipation,
   handleDeleteBehavior,
-  handleDeletePenalty, 
-  getAttendanceBadge, 
-  showTotalAttendance, 
-  selectedStudentId, 
-  sendingEmails, 
+  handleDeletePenalty,
+  getAttendanceBadge,
+  showTotalAttendance,
+  selectedStudentId,
+  sendingEmails,
   setSendingEmails,
-  sendStudentSummaryEmail, 
+  sendStudentSummaryEmail,
   isRTL,
   groupLogsByDay,
   toggleFilter,
-  historyLoading = {}
+  historyLoading = {},
+  todayAttendanceOverrides = {},
+  attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR
 }) => {
   const navigate = useNavigate();
   const { t, lang } = useLang();
@@ -48,13 +56,68 @@ const StudentTableRow = ({
   const [showResultModal, setShowResultModal] = useState(false);
   const [resultModalData, setResultModalData] = useState({ type: '', message: '', attendanceStatus: null });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const avatarColor = getAvatarColor(student.displayName || student.realName || student.name || '');
+
+  // Use local override if available, otherwise fall back to student prop
+  // Today column always shows regular attendance, regardless of mode
+  const todayStatus = todayAttendanceOverrides[student.id] ?? student.attendance;
+
+  // Status for current mode (used for button disable logic)
+  const currentModeStatus = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? student.standupStatus : student.attendance;
+
+  // Check if student has attendance for the current mode (already filtered by date in QRScannerPage)
+  const hasAttendanceForMode = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
+    ? !!student.standupStatus
+    : !!student.attendance;
+
+  // Toggle logic: buttons are disabled based on current status, not just if any attendance exists
+  // If marked as Present, disable Present button but enable Late button (and vice versa)
+  const isPresentButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'standup_present' : 'present');
+  const isLateButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'standup_late' : 'late');
+  const isAbsentButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'standup_absent' : 'absent');
+  const isClinicButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'standup_clinic' : 'clinic');
+
+  // Log 1: Inside disabled check, log Student ID and the specific record object being compared
+  console.log('🔍 [LOG 1] StudentTableRow - Button disabled logic:', {
+    studentId: student.id,
+    studentName: student.displayName || student.name,
+    attendanceMode,
+    todayStatus,
+    hasAttendanceForMode,
+    isPresentButtonDisabled,
+    isLateButtonDisabled,
+    studentAttendance: student.attendance,
+    studentStandupStatus: student.standupStatus,
+    todayAttendanceOverrides: todayAttendanceOverrides[student.id],
+    comparison: {
+      presentComparison: todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT'),
+      lateComparison: todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE')
+    }
+  });
+
+  // Use pre-calculated totals from student object (calculated in QRScannerPage during initial load)
+  // These are always available, regardless of whether studentHistory is populated
+  const participationValue = student.participation || 0;
+  const behaviorValue = student.behavior || 0;
+  const penaltyValue = student.penalty || 0;
+
+  // Student history logs are only used for the expanded history view
+  const studentLogs = React.useMemo(() => studentHistory?.[student.id] || [], [studentHistory, student.id]);
+
+  console.log('🔍 [DEBUG] StudentTableRow - Totals from student object:', {
+    studentId: student.id,
+    studentName: student.displayName || student.name,
+    participationValue,
+    behaviorValue,
+    penaltyValue,
+    studentParticipation: student.participation,
+    studentBehavior: student.behavior,
+    studentPenalty: student.penalty,
+    studentLogsCount: studentLogs.length
+  });
 
   // Get attendance icon and label function using official constants
   const getAttendanceDisplay = (status) => {
-    const statusInfo = ATTENDANCE_STATUS_LABELS[status];
-    if (!statusInfo) {
+    if (!ATTENDANCE_STATUS_LABELS[status]) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           {ICON_TYPES.attendance_status.none}
@@ -65,39 +128,41 @@ const StudentTableRow = ({
       );
     }
 
-    // Get icon based on status
-    const getIcon = (status) => {
-      switch(status?.toLowerCase()) {
-        case 'present': 
-          return <CheckSmallIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
-        case 'late': 
-          return <ClockSmallIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
-        case 'absent':
-        case 'absent_no_excuse':
-        case 'absent_with_excuse':
-        case 'excused_leave':
-          return <XSmallIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
-        case 'human_case':
-          return <HeartIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
-        // Standup attendance icons
-        case 'standup_present':
-          return getThemedIcon('ui', 'star', 16, statusInfo.color);
-        case 'standup_absent':
-          return <XSmallIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
-        case 'standup_clinic':
-          return <HeartIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
-        case 'standup_late':
-          return <ClockSmallIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
-        default: 
-          return <CircleIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
+    const color = getAttendanceColor(status);
+    const label = getAttendanceLabel(status);
+
+    const getIcon = (s) => {
+      const statusUpper = s?.toUpperCase();
+      switch(statusUpper) {
+        case 'PRESENT':
+        case 'STANDUP_PRESENT':
+          return <CheckSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+        case 'LATE':
+        case 'STANDUP_LATE':
+          return <ClockSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+        case 'ABSENT':
+        case 'ABSENT_NO_EXCUSE':
+        case 'STANDUP_ABSENT':
+          return <XSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+        case 'ABSENT_WITH_EXCUSE':
+        case 'EXCUSED':
+          return <XSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+        case 'EXCUSED_LEAVE':
+          return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+        case 'STANDUP_CLINIC':
+          return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+        case 'HUMAN_CASE':
+          return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+        default:
+          return <CircleIcon style={{ width: '16px', height: '16px', stroke: color }} />;
       }
     };
 
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
         {getIcon(status)}
-        <span style={{ fontSize: '0.75rem', color: statusInfo.color, fontWeight: 500 }}>
-          {lang === 'ar' ? (statusInfo.ar || statusInfo.en) : statusInfo.en}
+        <span style={{ fontSize: '0.75rem', color, fontWeight: 500 }}>
+          {label}
         </span>
       </div>
     );
@@ -123,36 +188,36 @@ const StudentTableRow = ({
   }, [lang]);
 
   // Handle attendance with confirmation modal
-  const handleQuickAttendance = useCallback(async (student, status) => {
+  const handleQuickAttendance = useCallback(async (student, status, mode, programIdParam) => {
     if (isSubmitting) return;
-    
-    // Check if student already has this status
-    const currentStatus = student.attendance;
+
+    // Check if student already has this status (use override if available)
+    const currentStatus = todayStatus;
     if (currentStatus === status) {
       showResult('info', `${t('already_marked_as')} ${getAttendanceLabel(status, lang)}`, status);
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
-      await onQuickAttendance(student, status);
+      await onQuickAttendance(student, status, mode || attendanceMode, programIdParam || programId);
       // Show modal immediately, delay table refresh
       showResult('success', `${t('successfully_marked')} ${getAttendanceLabel(status, lang)}`, status);
-      
+
       // Delay to let user see the modal before table refresh
       setTimeout(() => {
         setIsSubmitting(false);
       }, 2000); // 2 seconds delay
     } catch (error) {
       showResult('error', `${t('failed_to_mark')} ${getAttendanceLabel(status, lang)}: ${error.message}`, status);
-      
+
       // Delay to let user see the error modal
       setTimeout(() => {
         setIsSubmitting(false);
       }, 2000); // 2 seconds delay
     }
-  }, [isSubmitting, onQuickAttendance, showResult, lang]);
+  }, [isSubmitting, onQuickAttendance, showResult, lang, t, todayStatus, attendanceMode, programId]);
 
   // Prevent double click
   const preventDoubleClick = useCallback((e) => {
@@ -180,357 +245,285 @@ const StudentTableRow = ({
           }
         }}
       >
-        <td style={{ padding: '0.5rem 0.75rem' }}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleRowExpansion(student.id);
-            }}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '0.25rem',
-              display: 'flex',
-              alignItems: 'center'
-            }}
-          >
-            {isExpanded ? (
-              getThemedIcon('ui', 'chevron_down', 16)
-            ) : (
-              isRTL ? (
-                getThemedIcon('ui', 'chevron_down', 16)
-              ) : (
-                getThemedIcon('ui', 'chevron_right', 16)
-              )
-            )}
-          </button>
+        {/* Student Number/ID Column - First */}
+        <td style={{
+          padding: '0.5rem 0.75rem',
+          textAlign: 'center',
+          fontSize: '0.75rem',
+          color: 'var(--text-muted, #6b7280)',
+          width: '80px',
+          fontWeight: 600
+        }}>
+          {student.studentNumber || student.id}
         </td>
-        <td style={{ padding: '0.5rem 0.75rem' }} onClick={() => onStudentSelect(student)}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <td style={{ padding: '0.5rem 0.75rem' }}>
+          {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                console.log('🔖 Bookmark clicked for student:', student.id, student.displayName || student.name);
-                console.log('🔖 Current favorite status:', favoriteStudents.includes(student.id));
-                console.log('🔖 All favorite students:', favoriteStudents);
-                toggleFavorite(student.id);
+                toggleRowExpansion(student.id);
               }}
               style={{
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                padding: 0
+                padding: '0.25rem',
+                display: 'flex',
+                alignItems: 'center'
               }}
             >
-              {favoriteStudents.includes(student.id) 
-                ? getThemedIcon('ui', 'star', 16, '#fbbf24') // Yellow when favorited
-                : getThemedIcon('ui', 'star', 16, '#9ca3af') // Gray when not favorited
-              }
+              {isExpanded ? (
+                getThemedIcon('ui', 'chevron_down', 16)
+              ) : (
+                isRTL ? (
+                  getThemedIcon('ui', 'chevron_down', 16)
+                ) : (
+                  getThemedIcon('ui', 'chevron_right', 16)
+                )
+              )}
             </button>
-            <div>
-              <div style={{ fontWeight: 500, color: 'var(--text, #111827)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {student.displayName || student.realName || student.name || student.email}
-                {student.studentOrder !== null && student.studentOrder !== undefined && student.studentOrder !== '' && (
-                  <span style={{
-                    background: 'var(--color-primary-light, #dbeafe)',
-                    color: 'var(--color-primary, #2563eb)',
-                    fontSize: '0.625rem',
-                    fontWeight: 600,
-                    padding: '0.125rem 0.375rem',
-                    borderRadius: '0.25rem',
-                    border: '1px solid var(--color-primary-border, #93c5fd)'
-                  }}>
-                    #{student.studentOrder}
-                  </span>
-                )}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-                {t('id')}: {student.studentNumber || '0000'}
-              </div>
-            </div>
-          </div>
+          )}
         </td>
-        <td style={{ padding: '0.5rem 0.75rem' }} onClick={() => onStudentSelect(student)}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {student.attendance && student.attendance !== 'absent_no_excuse' ? getAttendanceDisplay(student.attendance) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                </svg>
-                <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 500 }}>None</span>
-              </div>
-            )}
-          </div>
-        </td>
-        <td style={{ padding: '0.5rem 0.75rem' }} onClick={() => onStudentSelect(student)}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {student.standupStatus && student.standupStatus !== 'absent_no_excuse' ? getAttendanceDisplay(student.standupStatus) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                </svg>
-                <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 500 }}>None</span>
-              </div>
-            )}
-          </div>
-        </td>
-        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '2.5rem',
-            height: '2.5rem',
-            borderRadius: '0.5rem',
-            fontWeight: 500,
-            background: '#dbeafe',
-            color: '#1e40af'
-          }}>
-            {student.participation}
-          </span>
-        </td>
-        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '2.5rem',
-            height: '2.5rem',
-            borderRadius: '0.5rem',
-            fontWeight: 500,
-            background: student.behavior >= 0 ? '#d1fae5' : '#fee2e2',
-            color: student.behavior >= 0 ? '#065f46' : '#991b1b'
-          }}>
-            {student.behavior}
-          </span>
-        </td>
-        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '2.5rem',
-            height: '2.5rem',
-            borderRadius: '0.5rem',
-            fontWeight: 500,
-            background: student.penalty < 0 ? '#fee2e2' : '#f3f4f6',
-            color: student.penalty < 0 ? '#991b1b' : '#374151'
-          }}>
-            {student.penalty}
-          </span>
-        </td>
+        <StudentInfoCell
+          student={student}
+          favoriteStudents={favoriteStudents}
+          toggleFavorite={toggleFavorite}
+          onStudentSelect={onStudentSelect}
+          t={t}
+          attendanceMode={attendanceMode}
+          todayStatus={todayStatus}
+        />
+        {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+          <td style={{ padding: '0.5rem 0.75rem' }} onClick={() => onStudentSelect(student)}>
+            <AttendanceStatusCell status={todayStatus} type="regular" />
+          </td>
+        )}
+        {attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+          <td style={{ padding: '0.5rem 0.75rem' }} onClick={() => onStudentSelect(student)}>
+            <AttendanceStatusCell status={student.standupStatus} type="standup" />
+          </td>
+        )}
+        {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+          <StudentStatsRow
+            participationValue={participationValue}
+            behaviorValue={behaviorValue}
+            penaltyValue={penaltyValue}
+            onStudentSelect={onStudentSelect}
+            student={student}
+            attendanceMode={attendanceMode}
+          />
+        )}
         {/* Attendance Statistics Columns */}
-        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '2.5rem',
-            height: '2.5rem',
-            borderRadius: '0.5rem',
-            fontWeight: 500,
-            background: student.attendanceStats?.present > 0 ? '#dcfce7' : '#f3f4f6',
-            color: student.attendanceStats?.present > 0 ? '#166534' : '#374151'
-          }}>
-            {student.attendanceStats?.present || 0}
-          </span>
-        </td>
-        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '2.5rem',
-            height: '2.5rem',
-            borderRadius: '0.5rem',
-            fontWeight: 500,
-            background: student.attendanceStats?.late > 0 ? '#fef3c7' : '#f3f4f6',
-            color: student.attendanceStats?.late > 0 ? '#92400e' : '#374151'
-          }}>
-            {student.attendanceStats?.late || 0}
-          </span>
-        </td>
-        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '2.5rem',
-            height: '2.5rem',
-            borderRadius: '0.5rem',
-            fontWeight: 500,
-            background: student.attendanceStats?.absent > 0 ? '#fee2e2' : '#f3f4f6',
-            color: student.attendanceStats?.absent > 0 ? '#991b1b' : '#374151'
-          }}>
-            {student.attendanceStats?.absent || 0}
-          </span>
-        </td>
-        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '2.5rem',
-            height: '2.5rem',
-            borderRadius: '0.5rem',
-            fontWeight: 500,
-            background: student.attendanceStats?.absentWithExcuse > 0 ? '#dbeafe' : '#f3f4f6',
-            color: student.attendanceStats?.absentWithExcuse > 0 ? '#1e40af' : '#374151'
-          }}>
-            {student.attendanceStats?.absentWithExcuse || 0}
-          </span>
-        </td>
-        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '2.5rem',
-            height: '2.5rem',
-            borderRadius: '0.5rem',
-            fontWeight: 500,
-            background: student.attendanceStats?.excusedLeave > 0 ? '#f3e8ff' : '#f3f4f6',
-            color: student.attendanceStats?.excusedLeave > 0 ? '#6b21a8' : '#374151'
-          }}>
-            {student.attendanceStats?.excusedLeave || 0}
-          </span>
-        </td>
-        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '2.5rem',
-            height: '2.5rem',
-            borderRadius: '0.5rem',
-            fontWeight: 500,
-            background: student.attendanceStats?.humanitarianCase > 0 ? '#fef2f2' : '#f3f4f6',
-            color: student.attendanceStats?.humanitarianCase > 0 ? '#b91c1c' : '#374151'
-          }}>
-            {student.attendanceStats?.humanitarianCase || 0}
-          </span>
-        </td>
+        {attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (
+          // Standup Mode: Show standup-specific stats (present, late, absent, clinic)
+          <>
+            <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '2.5rem',
+                height: '2.5rem',
+                borderRadius: '0.5rem',
+                fontWeight: 500,
+                background: student.standupStats?.present > 0 ? '#dcfce7' : '#f3f4f6',
+                color: student.standupStats?.present > 0 ? '#166534' : '#374151'
+              }}>
+                {student.standupStats?.present || 0}
+              </span>
+            </td>
+            <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '2.5rem',
+                height: '2.5rem',
+                borderRadius: '0.5rem',
+                fontWeight: 500,
+                background: student.standupStats?.late > 0 ? '#fef3c7' : '#f3f4f6',
+                color: student.standupStats?.late > 0 ? '#92400e' : '#374151'
+              }}>
+                {student.standupStats?.late || 0}
+              </span>
+            </td>
+            <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '2.5rem',
+                height: '2.5rem',
+                borderRadius: '0.5rem',
+                fontWeight: 500,
+                background: student.standupStats?.absent > 0 ? '#fee2e2' : '#f3f4f6',
+                color: student.standupStats?.absent > 0 ? '#991b1b' : '#374151'
+              }}>
+                {student.standupStats?.absent || 0}
+              </span>
+            </td>
+            <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '2.5rem',
+                height: '2.5rem',
+                borderRadius: '0.5rem',
+                fontWeight: 500,
+                background: student.standupStats?.clinic > 0 ? '#fce7f3' : '#f3f4f6',
+                color: student.standupStats?.clinic > 0 ? '#ec4899' : '#374151'
+              }}>
+                {student.standupStats?.clinic || 0}
+              </span>
+            </td>
+          </>
+        ) : (
+          // Regular Mode: Show regular attendance stats
+          <>
+            <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '2.5rem',
+                height: '2.5rem',
+                borderRadius: '0.5rem',
+                fontWeight: 500,
+                background: student.attendanceStats?.present > 0 ? '#dcfce7' : '#f3f4f6',
+                color: student.attendanceStats?.present > 0 ? '#166534' : '#374151'
+              }}>
+                {student.attendanceStats?.present || 0}
+              </span>
+            </td>
+            <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '2.5rem',
+                height: '2.5rem',
+                borderRadius: '0.5rem',
+                fontWeight: 500,
+                background: student.attendanceStats?.late > 0 ? '#fef3c7' : '#f3f4f6',
+                color: student.attendanceStats?.late > 0 ? '#92400e' : '#374151'
+              }}>
+                {student.attendanceStats?.late || 0}
+              </span>
+            </td>
+            <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '2.5rem',
+                height: '2.5rem',
+                borderRadius: '0.5rem',
+                fontWeight: 500,
+                background: student.attendanceStats?.absent > 0 ? '#fee2e2' : '#f3f4f6',
+                color: student.attendanceStats?.absent > 0 ? '#991b1b' : '#374151'
+              }}>
+                {student.attendanceStats?.absent || 0}
+              </span>
+            </td>
+            <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '2.5rem',
+                height: '2.5rem',
+                borderRadius: '0.5rem',
+                fontWeight: 500,
+                background: student.attendanceStats?.absentWithExcuse > 0 ? '#dbeafe' : '#f3f4f6',
+                color: student.attendanceStats?.absentWithExcuse > 0 ? '#1e40af' : '#374151'
+              }}>
+                {student.attendanceStats?.absentWithExcuse || 0}
+              </span>
+            </td>
+            <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '2.5rem',
+                height: '2.5rem',
+                borderRadius: '0.5rem',
+                fontWeight: 500,
+                background: student.attendanceStats?.excusedLeave > 0 ? '#f3e8ff' : '#f3f4f6',
+                color: student.attendanceStats?.excusedLeave > 0 ? '#6b21a8' : '#374151'
+              }}>
+                {student.attendanceStats?.excusedLeave || 0}
+              </span>
+            </td>
+            <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '2.5rem',
+                height: '2.5rem',
+                borderRadius: '0.5rem',
+                fontWeight: 500,
+                background: student.attendanceStats?.humanitarianCase > 0 ? '#fef2f2' : '#f3f4f6',
+                color: student.attendanceStats?.humanitarianCase > 0 ? '#b91c1c' : '#374151'
+              }}>
+                {student.attendanceStats?.humanitarianCase || 0}
+              </span>
+            </td>
+          </>
+        )}
         <td style={{ padding: '0.5rem 0.75rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
             {/* Senior-Level Quick Attendance Actions - Moved to first */}
             {onQuickAttendance && (
-              <>
-                {/* Quick Present Button */}
-                <PortalTooltip 
-                  content={student.attendance === 'present' ? t('already_marked_as_present') : t('mark_present')}
-                  position="top"
-                >
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      preventDoubleClick(e);
-                      await handleQuickAttendance(student, 'present');
-                    }}
-                    disabled={isSubmitting || student.attendance === 'present'}
-                    onDoubleClick={preventDoubleClick}
-                    style={{
-                      background: student.attendance === 'present' ? '#9ca3af' : getAttendanceColor('present'),
-                      border: 'none',
-                      color: 'white',
-                      borderRadius: '0.375rem',
-                      transition: 'all 0.2s ease',
-                      boxShadow: student.attendance === 'present' ? 'none' : `0 2px 4px ${getAttendanceColor('present')}30`,
-                      opacity: student.attendance === 'present' ? 0.6 : 1,
-                      cursor: student.attendance === 'present' ? 'not-allowed' : 'pointer'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (student.attendance !== 'present') {
-                        e.target.style.transform = 'translateY(-1px)';
-                        e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('present')}40`;
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (student.attendance !== 'present') {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('present')}30`;
-                      }
-                    }}
-                  >
-                    <CheckSmallIcon style={{ width: '0.875rem', height: '0.875rem' }} />
-                  </Button>
-                </PortalTooltip>
-
-                {/* Quick Late Button */}
-                <PortalTooltip 
-                  content={student.attendance === 'late' ? t('already_marked_as_late') : t('mark_late')}
-                  position="top"
-                >
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      preventDoubleClick(e);
-                      await handleQuickAttendance(student, 'late');
-                    }}
-                    disabled={isSubmitting || student.attendance === 'late'}
-                    onDoubleClick={preventDoubleClick}
-                    style={{
-                      background: student.attendance === 'late' ? '#9ca3af' : getAttendanceColor('late'),
-                      border: 'none',
-                      color: 'white',
-                      borderRadius: '0.375rem',
-                      transition: 'all 0.2s ease',
-                      boxShadow: student.attendance === 'late' ? 'none' : `0 2px 4px ${getAttendanceColor('late')}30`,
-                      opacity: student.attendance === 'late' ? 0.6 : 1,
-                      cursor: student.attendance === 'late' ? 'not-allowed' : 'pointer'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (student.attendance !== 'late') {
-                        e.target.style.transform = 'translateY(-1px)';
-                        e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('late')}40`;
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (student.attendance !== 'late') {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('late')}30`;
-                      }
-                    }}
-                  >
-                    <ClockSmallIcon style={{ width: '0.875rem', height: '0.875rem' }} />
-                  </Button>
-                </PortalTooltip>
-              </>
+              <QuickAttendanceButtons
+                student={student}
+                attendanceMode={attendanceMode}
+                isSubmitting={isSubmitting}
+                isPresentButtonDisabled={isPresentButtonDisabled}
+                isLateButtonDisabled={isLateButtonDisabled}
+                isAbsentButtonDisabled={isAbsentButtonDisabled}
+                isClinicButtonDisabled={isClinicButtonDisabled}
+                handleQuickAttendance={handleQuickAttendance}
+                programId={programId}
+                t={t}
+              />
             )}
-            <PortalTooltip content={t('actions')} position="top">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  try {
-                    onStudentAction(student);
-                  } catch (error) {
-                    logger.error('Error calling onStudentAction:', error);
-                  }
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f59e0b' }}>
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                </svg>
-              </Button>
-            </PortalTooltip>
-            <PortalTooltip content={t('stats')} position="top">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onStudentSelect(student);
-                }}
-              >
-                {getThemedIcon('ui', 'sidebar_open', 16)}
-              </Button>
-            </PortalTooltip>
+            {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+              <PortalTooltip content={t('actions')} position="top">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    try {
+                      onStudentAction(student);
+                    } catch (error) {
+                      error('Error calling onStudentAction:', error);
+                    }
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f59e0b' }}>
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                </Button>
+              </PortalTooltip>
+            )}
+            {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+              <PortalTooltip content={t('stats')} position="top">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onStudentSelect(student);
+                  }}
+                >
+                  {getThemedIcon('ui', 'sidebar_open', 16)}
+                </Button>
+              </PortalTooltip>
+            )}
             <PortalTooltip content={t('open_qr_code')} position="top">
               <Button 
                 variant="ghost" 
@@ -542,6 +535,7 @@ const StudentTableRow = ({
                   const qrUrl = `/qrcode/${studentNumber}`;
                   window.open(qrUrl, '_blank');
                 }}
+                style={{ display: 'none' }}
               >
                 {getThemedIcon('ui', 'qr_code', 16)}
               </Button>
@@ -555,6 +549,7 @@ const StudentTableRow = ({
                   await sendStudentSummaryEmail(student);
                 }}
                 disabled={sendingEmails[student.id]?.summary}
+                style={{ display: 'none' }}
               >
                 {sendingEmails[student.id]?.summary ? (
                   <div style={{
@@ -576,7 +571,7 @@ const StudentTableRow = ({
       </tr>
       
       {/* Expanded History Row */}
-      {isExpanded && (
+      {isExpanded && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
         <tr style={{ background: 'var(--background-secondary, #f9fafb)', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
           <td colSpan="7" style={{ padding: '0.5rem 1rem' }}>
             <StudentRosterHistory 

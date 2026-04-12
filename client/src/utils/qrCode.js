@@ -1,5 +1,8 @@
 import QRCode from 'qrcode';
 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 /**
  * Generate a reference ID for a student based on their UID
  * Format: STU-XXXXXX (6 characters from end of UID)
@@ -59,7 +62,7 @@ export const generateStudentQRCode = async (studentNumber, options = {}) => {
     
     return qrDataUrl;
   } catch (error) {
-    console.error('Failed to generate QR code:', error);
+    error('Failed to generate QR code:', error);
     throw new Error('Failed to generate QR code');
   }
 };
@@ -148,7 +151,7 @@ export const generateStudentQRCard = async (studentNumber, studentInfo = {}, opt
     
     return cardDataUrl;
   } catch (error) {
-    console.error('Failed to generate QR card:', error);
+    error('Failed to generate QR card:', error);
     throw new Error('Failed to generate QR card');
   }
 };
@@ -167,7 +170,7 @@ export const downloadQRCode = (dataUrl, filename = 'student-qr-code.png') => {
     link.click();
     document.body.removeChild(link);
   } catch (error) {
-    console.error('Failed to download QR code:', error);
+    error('Failed to download QR code:', error);
     throw new Error('Failed to download QR code');
   }
 };
@@ -232,7 +235,7 @@ export const generateBatchQRCodes = async (students, options = {}) => {
   for (const student of students) {
     try {
       if (!student.referenceId) {
-        console.warn(`Student ${student.uid} has no reference ID, skipping...`);
+        warn(`Student ${student.uid} has no reference ID, skipping...`);
         continue;
       }
       
@@ -243,7 +246,7 @@ export const generateBatchQRCodes = async (students, options = {}) => {
         success: true
       });
     } catch (error) {
-      console.error(`Failed to generate QR for student ${student.uid}:`, error);
+      error(`Failed to generate QR for student ${student.uid}:`, error);
       results.push({
         student,
         error: error.message,
@@ -294,7 +297,7 @@ export const checkCameraAvailability = async () => {
     const videoDevices = devices.filter(device => device.kind === 'videoinput');
     return videoDevices.length > 0;
   } catch (error) {
-    console.error('Failed to check camera availability:', error);
+    error('Failed to check camera availability:', error);
     return false;
   }
 };
@@ -318,7 +321,7 @@ export const requestCameraPermission = async () => {
     
     return true;
   } catch (error) {
-    console.error('Camera permission denied:', error);
+    error('Camera permission denied:', error);
     return false;
   }
 };
@@ -377,19 +380,19 @@ export const getQRInfo = (studentId, studentNumber) => {
  */
 export const sendQRUrlEmail = async (studentEmail, studentName, studentId, studentNumber, studentRole = 'student') => {
   try {
-    console.log('🎯 DEBUG: Sending QR URL via notification gateway');
+    info('🎯 DEBUG: Sending QR URL via notification gateway');
     console.log('📧 DEBUG: Email:', studentEmail);
-    console.log('👤 DEBUG: Student:', studentName);
-    console.log('🆔 DEBUG: Student ID:', studentId);
-    console.log('🔢 DEBUG: Student Number:', studentNumber);
+    info('👤 DEBUG: Student:', studentName);
+    info('🆔 DEBUG: Student ID:', studentId);
+    info('🔢 DEBUG: Student Number:', studentNumber);
     
     const { qrUrl, referenceId } = getQRInfo(studentId, studentNumber);
     
-    console.log('🔗 DEBUG: Generated QR URL:', qrUrl);
-    console.log('📋 DEBUG: Reference ID:', referenceId);
+    info('🔗 DEBUG: Generated QR URL:', qrUrl);
+    info('📋 DEBUG: Reference ID:', referenceId);
     
     // Use notification gateway instead of direct Firebase function
-    console.log('🔍 DEBUG: Using notification gateway...');
+    info('🔍 DEBUG: Using notification gateway...');
     const { notificationGateway } = await import('../services/business/notificationGateway');
     const { NOTIFICATION_TRIGGERS } = await import('../constants/notificationTypes');
     const { EMAIL_TEMPLATE_TYPES } = await import('../constants/templateTypes');
@@ -421,8 +424,8 @@ export const sendQRUrlEmail = async (studentEmail, studentName, studentId, stude
       type: 'success'
     });
     
-    console.log('📊 DEBUG: Notification gateway result:', result);
-    console.log('✅ DEBUG: QR URL email sent successfully via notification gateway!');
+    info('📊 DEBUG: Notification gateway result:', result);
+    info('✅ DEBUG: QR URL email sent successfully via notification gateway!');
     console.log('🔍 DEBUG: Template used:', EMAIL_TEMPLATE_TYPES.QR_CODE_STUDENT);
     console.log('🔍 DEBUG: Variables sent:', {
       studentName: studentName || 'Student',
@@ -436,7 +439,7 @@ export const sendQRUrlEmail = async (studentEmail, studentName, studentId, stude
     return { success: result.success, qrUrl, result };
     
   } catch (error) {
-    console.error('❌ DEBUG: Failed to send QR URL email:', error);
+    error('❌ DEBUG: Failed to send QR URL email:', error);
     throw error;
   }
 };

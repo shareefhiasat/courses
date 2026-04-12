@@ -1,6 +1,7 @@
 import React from 'react';
 
-const ToggleSwitch = ({ checked, onChange, label, disabled = false }) => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const ToggleSwitch = ({ checked, onChange, label, disabled = false }) => {
   return (
     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1 }}>
       <div

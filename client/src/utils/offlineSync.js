@@ -39,7 +39,7 @@
  * 
  * // Check sync status
  * const status = getSyncStatus();
- * logger.log(`Pending: ${status.pending}, Synced: ${status.synced}`);
+ * info(`Pending: ${status.pending}, Synced: ${status.synced}`);
  * ```
  * 
  * STORAGE:
@@ -53,7 +53,7 @@
 
 import { openDB } from 'idb';
 // Firebase imports are now handled dynamically in the sync functions
-import logger from './logger';
+import { info, error, warn, debug } from '../services/utils/logger.js';
 import { 
   generateReferenceId, 
   validateReferenceId,
@@ -107,7 +107,7 @@ export const saveOfflineScan = async (scanData) => {
     await store.add(scan);
     return scan;
   } catch (error) {
-    logger.error('Failed to save offline scan:', error);
+    error('Failed to save offline scan:', error);
     throw error;
   }
 };
@@ -125,7 +125,7 @@ export const getOfflineScans = async () => {
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    logger.error('Failed to get offline scans:', error);
+    error('Failed to get offline scans:', error);
     return [];
   }
 };
@@ -147,7 +147,7 @@ export const addToSyncQueue = async (action) => {
     await store.add(queueItem);
     return queueItem;
   } catch (error) {
-    logger.error('Failed to add to sync queue:', error);
+    error('Failed to add to sync queue:', error);
     throw error;
   }
 };
@@ -165,7 +165,7 @@ export const getSyncQueue = async () => {
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    logger.error('Failed to get sync queue:', error);
+    error('Failed to get sync queue:', error);
     return [];
   }
 };
@@ -179,7 +179,7 @@ export const removeFromSyncQueue = async (itemId) => {
     
     await store.delete(itemId);
   } catch (error) {
-    logger.error('Failed to remove from sync queue:', error);
+    error('Failed to remove from sync queue:', error);
     throw error;
   }
 };
@@ -198,7 +198,7 @@ export const markScanAsSynced = async (scanId) => {
       await store.put(scan);
     }
   } catch (error) {
-    logger.error('Failed to mark scan as synced:', error);
+    error('Failed to mark scan as synced:', error);
     throw error;
   }
 };
@@ -206,7 +206,7 @@ export const markScanAsSynced = async (scanId) => {
 // Sync offline data with server
 export const syncOfflineData = async (user, onlineActions = {}) => {
   if (!navigator.onLine) {
-    logger.log('Device is offline, skipping sync');
+    info('Device is offline, skipping sync');
     return { success: false, message: 'Device is offline' };
   }
   
@@ -275,7 +275,7 @@ export const syncOfflineData = async (user, onlineActions = {}) => {
             errors.push(`Unknown sync type: ${type}`);
         }
       } catch (error) {
-        logger.error(`Failed to sync item ${item.id}:`, error);
+        error(`Failed to sync item ${item.id}:`, error);
         errors.push(`Failed to sync ${item.type}: ${error.message}`);
       }
     }
@@ -301,7 +301,7 @@ export const syncOfflineData = async (user, onlineActions = {}) => {
     };
     
   } catch (error) {
-    logger.error('Sync failed:', error);
+    error('Sync failed:', error);
     return { 
       success: false, 
       message: error.message,
@@ -329,7 +329,7 @@ export const getOfflineStats = async () => {
         : null
     };
   } catch (error) {
-    logger.error('Failed to get offline stats:', error);
+    error('Failed to get offline stats:', error);
     return {
       totalScans: 0,
       syncedScans: 0,
@@ -357,7 +357,7 @@ export const clearOfflineData = async () => {
     
     return { success: true };
   } catch (error) {
-    logger.error('Failed to clear offline data:', error);
+    error('Failed to clear offline data:', error);
     return { success: false, error: error.message };
   }
 };
@@ -393,10 +393,10 @@ export const setupAutoSync = (user, syncInterval = 30000) => {
       try {
         const result = await syncOfflineData(user);
         if (result.success && result.syncedCount > 0) {
-          logger.log(`Auto-synced ${result.syncedCount} items`);
+          info(`Auto-synced ${result.syncedCount} items`);
         }
       } catch (error) {
-        logger.error('Auto-sync failed:', error);
+        error('Auto-sync failed:', error);
       }
     }
   };

@@ -3,7 +3,8 @@ import { getThemedIcon } from '@constants/iconTypes';
 import DatePicker from '../DatePicker/DatePicker';
 import styles from './DateRangeSlider.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * DateRangeSlider Component
  * 
  * A date range picker with from/to dates, similar to BI tools.

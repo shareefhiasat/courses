@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLang } from '@contexts/LangContext';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * PortalTooltip Component
  * 
  * Renders tooltips outside the component hierarchy to prevent overflow issues.

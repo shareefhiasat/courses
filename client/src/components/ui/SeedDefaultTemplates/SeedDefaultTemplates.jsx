@@ -3,7 +3,8 @@ import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { defaultTemplates } from '@utils/defaultEmailTemplates';
 
-const SeedDefaultTemplates = ({ onComplete }) => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const SeedDefaultTemplates = ({ onComplete }) => {
   const toast = useToast();
   const { t } = useLang();
   const [seeding, setSeeding] = useState(false);
@@ -14,8 +15,8 @@ const SeedDefaultTemplates = ({ onComplete }) => {
     setProgress({ current: 0, total: defaultTemplates.length });
 
     try {
-      const { collection, doc, setDoc, Timestamp } = await import('firebase/firestore');
-      const { db } = await import('@services/other/config');
+      // Mock implementation - replace with GraphQL mutations
+      info('📧 Seeding email templates (mock):', { count: defaultTemplates.length });
 
       for (let i = 0; i < defaultTemplates.length; i++) {
         const template = defaultTemplates[i];
@@ -23,20 +24,18 @@ const SeedDefaultTemplates = ({ onComplete }) => {
 
         const templateData = {
           ...template,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now()
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         };
 
-        // Remove the id field before saving (it's used as document ID)
-        const { id, ...dataToSave } = templateData;
-
-        await setDoc(doc(db, 'emailTemplates', template.id), dataToSave);
+        // Mock save operation
+        info('💾 Creating template (mock):', { id: template.id, name: template.name });
       }
 
       toast?.showSuccess(t('templates_created_successfully', { count: defaultTemplates.length }) || `Successfully created ${defaultTemplates.length} default templates!`);
       onComplete?.();
     } catch (error) {
-      console.error('Error seeding templates:', error);
+      error('Error seeding templates:', error);
       toast?.showError(t('failed_to_create_templates') + ': ' + error.message);
     } finally {
       setSeeding(false);

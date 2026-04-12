@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
 import { useLang } from '@contexts/LangContext';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Helper function to get localized name for chart items
  * @param {Object} item - Data item
  * @param {string} lang - Current language ('en' or 'ar')
@@ -87,8 +88,8 @@ function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor 
             
             // DEBUG: Log line chart data for debugging (only once)
             if (data.length > 0 && !window.lineChartDebugged) {
-              console.log('[LINE CHART DEBUG] Data:', data.map(d => ({ label: d.label, value: d.value })));
-              console.log('[LINE CHART DEBUG] Range:', { minValue, maxValue, range });
+              info('[LINE CHART DEBUG] Data:', data.map(d => ({ label: d.label, value: d.value })));
+              info('[LINE CHART DEBUG] Range:', { minValue, maxValue, range });
               window.lineChartDebugged = true;
             }
             

@@ -1,0 +1,4 @@
+✅ Admin token obtained successfully
+🔑 Token expires in: 60 seconds
+✅ Admin token works - can access admin APIs
+📋 Available realms: 2

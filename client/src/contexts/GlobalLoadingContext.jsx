@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState, useEffect } from 'react';
 import { SimpleLoading } from '@ui';
 
-const GlobalLoadingContext = createContext({
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const GlobalLoadingContext = createContext({
   startLoading: () => () => {},
   isLoading: false,
   clearLoading: () => {}

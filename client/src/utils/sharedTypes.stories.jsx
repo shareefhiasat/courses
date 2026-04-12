@@ -1,5 +1,6 @@
 ﻿import React from 'react';
-import { 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import { 
   TYPE_CATEGORIES, 
   getTypeLabel, 
   getTypeIcon, 

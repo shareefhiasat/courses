@@ -2,7 +2,8 @@ import React from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './StatCard.module.css';
 
-export default function StatCard({
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default function StatCard({
   title,
   value,
   subtitle,

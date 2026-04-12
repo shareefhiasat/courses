@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 // Semester Report Export Function
 // This will be integrated into QRScannerPage.jsx
 
@@ -20,7 +22,7 @@ const exportSemesterReport = useCallback(async () => {
       scopeId = selectedProgramId;
     }
 
-    console.log('📊 Semester Report - Scope:', { scope, scopeId, selectedClassId, selectedSubjectId, selectedProgramId });
+    info('📊 Semester Report - Scope:', { scope, scopeId, selectedClassId, selectedSubjectId, selectedProgramId });
 
     // Get all attendance data for the semester (no date filter)
     const attendanceResponse = await getAttendanceRecords({ 
@@ -217,7 +219,7 @@ const exportSemesterReport = useCallback(async () => {
     showSuccess(t('semester_report_exported_successfully') || 'Semester report exported successfully');
 
   } catch (error) {
-    console.error('Semester Report Export failed:', error);
+    error('Semester Report Export failed:', error);
     showError((t('export_failed') || 'Export failed: ') + error.message);
   }
 }, [selectedClassId, selectedSubjectId, selectedProgramId, programs, subjects, classes, lang, t, showError, showSuccess]);

@@ -1,23 +1,27 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
 import { getAttendanceByStudent, deleteAttendance } from '@services/business/attendanceService';
-import { getPenalties, deletePenalty } from '@services/business/penaltyService';
-import { getParticipations, deleteParticipation } from '@services/business/participationService';
-import { getBehaviors, deleteBehavior } from '@services/business/behaviorService';
+import { getPenaltiesByStudent, deletePenalty } from '@services/business/penaltyService';
+import { getParticipationsByStudent, deleteParticipation } from '@services/business/participationService';
+import { getBehaviorsByStudent, deleteBehavior } from '@services/business/behaviorService';
 import { getFunctions } from '@services/other/config';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { SimpleLoading } from '@ui';
-import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
-import { PARTICIPATION_TYPES } from '@constants/participationTypes';
-import { PENALTY_TYPES } from '@constants/penaltyTypes';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
+// OLD: import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
+// OLD: import { PARTICIPATION_TYPES } from '@constants/participationTypes';
+// OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
+// NOW: Using useLookupTypes hook for all lookup data
 import { RECORD_TYPES, getRecordTypeLabel } from '@utils/sharedTypes';
 import {ParticipationIcon, PenaltyIcon, StudentHistory, DeleteModal} from '@ui/history';
 import {CircleIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, HelpCircleIcon, UserIcon, ZapIcon} from "@utils/icons.jsx";
+import PanelHeader from './PanelHeader';
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/attendanceMethods';
-import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_COLORS, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
+import { MANUAL_NOTE_TYPES, getNoteTypeFromStatus, getLocalizedNoteText } from '@constants/noteTypes';
 import PortalTooltip from '@ui/PortalTooltip';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -37,12 +41,17 @@ export default function StudentActionStatsPanel({
   onToggleFavorite,
   sendNotifications = false,
   onToggleNotifications,
-  attendanceMode = 'regular'
+  attendanceMode = 'regular',
+  programId = null,
+  subjectId = null
 }) {
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const { showSuccess, showError } = useToast();
+  const { data: lookupData, loading: lookupLoading, error: lookupError } = useLookupTypes({
+    types: ['behavior-types', 'participation-types', 'penalty-types']
+  });
   
   // DEBUG: Log attendanceMode
   console.log('🔍 StudentActionStatsPanel - attendanceMode:', attendanceMode);
@@ -75,7 +84,15 @@ export default function StudentActionStatsPanel({
   const [deleteType, setDeleteType] = useState('');
   const [deleteLogId, setDeleteLogId] = useState('');
   const [bulkDeleteType, setBulkDeleteType] = useState(null); // For bulk delete operations
-  const [currentAttendanceStatus, setCurrentAttendanceStatus] = useState(null);
+  const [currentAttendanceStatus, setCurrentAttendanceStatus] = useState(() => {
+    // Initialize from student prop to prevent initial flash of "None"
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      return student?.standupStatus || null;
+    } else {
+      // Regular attendance mode - use attendance field and normalize to uppercase
+      return student?.attendance ? student.attendance.toUpperCase() : null;
+    }
+  });
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [actionPoints, setActionPoints] = useState({});
   const [internalNote, setInternalNote] = useState('');
@@ -107,10 +124,18 @@ export default function StudentActionStatsPanel({
 
   // Initialize current attendance status from student data
   useEffect(() => {
-    if (student?.attendance) {
-      setCurrentAttendanceStatus(student.attendance);
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      if (student?.standupStatus) {
+        setCurrentAttendanceStatus(student.standupStatus);
+      }
+    } else {
+      // Regular attendance mode - use attendance field and normalize to uppercase
+      if (student?.attendance) {
+        const normalizedStatus = student.attendance.toUpperCase();
+        setCurrentAttendanceStatus(normalizedStatus);
+      }
     }
-  }, [student?.attendance]);
+  }, [student?.attendance, student?.standupStatus, attendanceMode]);
 
   // Debounced resize handler for performance
   useEffect(() => {
@@ -131,7 +156,7 @@ export default function StudentActionStatsPanel({
   // Send QR code email
   const sendQRCodeEmail = async () => {
     if (!student?.id || !student?.email) {
-      logger.error('Student information missing');
+      error('Student information missing');
       return;
     }
 
@@ -146,12 +171,12 @@ export default function StudentActionStatsPanel({
       });
 
       if (result.success) {
-        logger.debug('QR code email sent successfully');
+        debug('QR code email sent successfully');
       } else {
-        logger.error('Failed to send QR code email:', result.message);
+        error('Failed to send QR code email:', result.message);
       }
-    } catch (error) {
-      logger.error('Error sending QR code email:', error);
+    } catch (err) {
+      error('Error sending QR code email:', err);
     } finally {
       setSendingQRCode(false);
     }
@@ -160,7 +185,7 @@ export default function StudentActionStatsPanel({
   // Send student summary email
   const sendStudentSummaryEmail = async () => {
     if (!student?.id || !student?.email) {
-      logger.error('Student information missing');
+      error('Student information missing');
       return;
     }
 
@@ -251,12 +276,12 @@ export default function StudentActionStatsPanel({
       });
 
       if (result.success) {
-        logger.debug('Student summary email sent successfully');
+        debug('Student summary email sent successfully');
       } else {
-        logger.error('Failed to send student summary email:', result.message);
+        error('Failed to send student summary email:', result.message);
       }
     } catch (error) {
-      logger.error('Error sending student summary email:', error);
+      error('Error sending student summary email:', error);
     } finally {
       setSendingSummary(false);
     }
@@ -298,34 +323,37 @@ export default function StudentActionStatsPanel({
       penalty: {}
     };
 
-    // Calculate behavior stats
-    BEHAVIOR_TYPES.forEach(type => {
+    // Calculate behavior stats using lookup data
+    const behaviorTypes = lookupData['behavior-types'] || [];
+    behaviorTypes.forEach(type => {
       stats.behavior[type.id] = {
         count: 0,
         totalPoints: 0,
-        label: type.label_en,
+        label: type.nameEn,
         color: type.color,
         icon: type.icon
       };
     });
 
-    // Calculate participation stats
-    PARTICIPATION_TYPES.forEach(type => {
+    // Calculate participation stats using lookup data
+    const participationTypes = lookupData['participation-types'] || [];
+    participationTypes.forEach(type => {
       stats.participation[type.id] = {
         count: 0,
         totalPoints: 0,
-        label: type.label_en,
+        label: type.nameEn,
         color: '#3b82f6',
         icon: type.icon
       };
     });
 
-    // Calculate penalty stats using dedicated PENALTY_TYPES
-    PENALTY_TYPES.forEach(type => {
+    // Calculate penalty stats using lookup data
+    const penaltyTypes = lookupData['penalty-types'] || [];
+    penaltyTypes.forEach(type => {
       stats.penalty[type.id] = {
         count: 0,
         totalPoints: 0,
-        label: lang === 'ar' ? type.label_ar : type.label_en,
+        label: lang === 'ar' ? (type.nameAr || type.nameEn) : type.nameEn,
         color: type.color,
         icon: type.icon
       };
@@ -363,7 +391,7 @@ export default function StudentActionStatsPanel({
     });
 
     return stats;
-  }, [todayLogs]);
+  }, [todayLogs, lookupData, lang]);
 
   // Fetch historical logs for student - defined before usage
   const fetchHistoricalLogs = useCallback(async () => {
@@ -385,36 +413,47 @@ export default function StudentActionStatsPanel({
 
       // Get all attendance records for this student (no date filter)
       const attendanceResponse = await getAttendanceByStudent(student.id);
-      const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
+      const attendanceRecords = (attendanceResponse.success ? attendanceResponse.data : []).map(r => ({
+        ...r,
+        status: typeof r.status === 'object' ? (r.status?.code ?? null) : r.status,
+        studentId: r.studentId ?? r.userId
+      }));
 
       // Get penalties for this student
-      const penaltiesResponse = await getPenalties(student.id);
+      const penaltiesResponse = await getPenaltiesByStudent(student.id);
       const studentPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
 
       // Get behavior records for this student
-      const behaviorResponse = await getBehaviors();
-      const studentBehaviors = behaviorResponse.success ? behaviorResponse.data.filter(b => b.studentId === student.id) : [];
+      const behaviorResponse = await getBehaviorsByStudent(student.id);
+      const studentBehaviors = behaviorResponse.success ? behaviorResponse.data : [];
 
       // Get participation records for this student
-      const participationResponse = await getParticipations();
-      const studentParticipations = participationResponse.success ? participationResponse.data.filter(p => p.studentId === student.id) : [];
+      const participationResponse = await getParticipationsByStudent(student.id);
+      const studentParticipations = participationResponse.success ? participationResponse.data : [];
 
       // Combine and format logs with date information
       const logs = [
         ...attendanceRecords.map(record => ({
-          id: record.id || record.docId,
+          id: record.id,
           type: record.category || (record.delta ? (record.delta > 0 ? RECORD_TYPES.PARTICIPATION : RECORD_TYPES.BEHAVIOR) : RECORD_TYPES.ATTENDANCE),
-          date: record.date || (record.timestamp?.toDate ? record.timestamp.toDate().toISOString().split('T')[0] : new Date(record.timestamp).toISOString().split('T')[0]),
-          time: record.timestamp || record.date,
-          status: record.status,  // ← Flatten status to top level
+          date: record.date || new Date(record.timestamp).toISOString().split('T')[0],
+          time: record.updatedAt || record.createdAt || record.timestamp || null,
+          status: record.status,
           method: record.method, // ← Include method field for attendance method display
           label: record.category === RECORD_TYPES.PARTICIPATION
               ? getRecordTypeLabel(RECORD_TYPES.PARTICIPATION, lang)
               : (record.category === RECORD_TYPES.BEHAVIOR
                   ? getRecordTypeLabel(RECORD_TYPES.BEHAVIOR, lang)
-                  : (ATTENDANCE_STATUS_LABELS[record.status]?.[lang] || record.status || t('unknown') || 'Unknown')),
+                  : (ATTENDANCE_STATUS_LABELS[record.status]?.[lang] || ATTENDANCE_STATUS_LABELS[record.status?.toLowerCase?.()]?.[lang] || record.status || t('unknown') || 'Unknown')),
           points: record.delta || 0,
-          comment: record.reason || record.notes || '',
+          comment: (() => {
+            const noteContent = record.reason || record.notes || '';
+            // Check if it's a note constant (uppercase with underscores)
+            if (/^[A-Z_]+$/.test(noteContent)) {
+              return getLocalizedNoteText(noteContent, t) || noteContent;
+            }
+            return noteContent;
+          })(),
           severity: 'low',
           color: record.category === RECORD_TYPES.PARTICIPATION
               ? '#3b82f6'
@@ -423,24 +462,24 @@ export default function StudentActionStatsPanel({
                   : (ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'))
         })),
         ...studentBehaviors.map(behavior => ({
-          id: behavior.id || behavior.docId,
+          id: behavior.id,
           type: RECORD_TYPES.BEHAVIOR,
-          date: behavior.date || (behavior.createdAt?.toDate ? behavior.createdAt.toDate().toISOString().split('T')[0] : new Date(behavior.createdAt).toISOString().split('T')[0]),
+          date: behavior.date || new Date(behavior.createdAt).toISOString().split('T')[0],
           time: behavior.createdAt,
           data: behavior,
-          label: behavior.type ? (BEHAVIOR_TYPES.find(bt => bt.id === behavior.type)?.label_en || behavior.type) : getRecordTypeLabel(RECORD_TYPES.BEHAVIOR, lang),
+          label: behavior.type ? ((lookupData['behavior-types'] || []).find(bt => bt.id === behavior.type)?.nameEn || behavior.type) : getRecordTypeLabel(RECORD_TYPES.BEHAVIOR, lang),
           points: behavior.points || 0,
           comment: behavior.comment || behavior.description || behavior.reason || '',
           severity: behavior.severity || 'medium',
           color: '#f97316'
         })),
         ...studentParticipations.map(participation => ({
-          id: participation.id || participation.docId,
+          id: participation.id,
           type: RECORD_TYPES.PARTICIPATION,
-          date: participation.date || (participation.createdAt?.toDate ? participation.createdAt.toDate().toISOString().split('T')[0] : new Date(participation.createdAt).toISOString().split('T')[0]),
+          date: participation.date || new Date(participation.createdAt).toISOString().split('T')[0],
           time: participation.createdAt,
           data: participation,
-          label: participation.type ? (PARTICIPATION_TYPES.find(pt => pt.id === participation.type)?.label_en || participation.type) : getRecordTypeLabel(RECORD_TYPES.PARTICIPATION, lang),
+          label: participation.type ? ((lookupData['participation-types'] || []).find(pt => pt.id === participation.type)?.nameEn || participation.type) : getRecordTypeLabel(RECORD_TYPES.PARTICIPATION, lang),
           points: participation.points || 0,
           comment: participation.comment || participation.description || participation.reason || '',
           severity: 'low',
@@ -449,16 +488,16 @@ export default function StudentActionStatsPanel({
         ...studentPenalties.map(penalty => {
           // Try multiple possible fields for the penalty type
           const penaltyTypeId = penalty.type || penalty.penaltyType || penalty.category;
-          const penaltyType = penaltyTypeId ? PENALTY_TYPES.find(pt => pt.id === penaltyTypeId) : null;
+          const penaltyType = penaltyTypeId ? (lookupData['penalty-types'] || []).find(pt => pt.id === penaltyTypeId) : null;
 
           const mappedPenalty = {
-            id: penalty.id || penalty.docId,
+            id: penalty.id,
             type: RECORD_TYPES.PENALTY,
-            date: penalty.date || (penalty.createdAt?.toDate ? penalty.createdAt.toDate().toISOString().split('T')[0] : new Date(penalty.createdAt).toISOString().split('T')[0]),
+            date: penalty.date || new Date(penalty.createdAt).toISOString().split('T')[0],
             time: penalty.createdAt,
             data: penalty,
             label: penaltyType
-                ? (penaltyType.label_en || penaltyType.label_ar)
+                ? (penaltyType.nameEn || penaltyType.nameAr)
                 : (penalty.reason || penalty.description || penaltyTypeId || getRecordTypeLabel(RECORD_TYPES.PENALTY, lang)),
             points: penalty.points !== undefined ? -Math.abs(penalty.points) : (penaltyType ? -Math.abs(penaltyType.points) : -1), // Always negative for penalties
             comment: penalty.comment || penalty.description || penalty.reason || '',
@@ -473,8 +512,8 @@ export default function StudentActionStatsPanel({
         return dateB - dateA; // Most recent first
       });
 
-      logger.debug('StudentActionStatsPanel - total logs fetched:', logs.length);
-      logger.debug('StudentActionStatsPanel - logs:', logs);
+      debug('StudentActionStatsPanel - total logs fetched:', logs.length);
+      debug('StudentActionStatsPanel - logs:', logs);
 
       // Helper function to check if a date matches today (handles both ISO and human-readable formats)
       const isToday = (dateString) => {
@@ -484,8 +523,8 @@ export default function StudentActionStatsPanel({
           
           // Check if both dates represent the same day
           return today.toDateString() === logDate.toDateString();
-        } catch (error) {
-          logger.warn('StudentActionStatsPanel - Error parsing date:', dateString, error);
+        } catch (err) {
+          warn('StudentActionStatsPanel - Error parsing date:', dateString, err);
           return false;
         }
       };
@@ -493,8 +532,8 @@ export default function StudentActionStatsPanel({
       // Filter today's logs (handles both ISO and human-readable formats)
       const todayLogsFiltered = logs.filter(log => isToday(log.date));
 
-      logger.debug('StudentActionStatsPanel - today logs filtered:', todayLogsFiltered.length);
-      logger.debug('StudentActionStatsPanel - historical logs to set:', logs.length);
+      debug('StudentActionStatsPanel - today logs filtered:', todayLogsFiltered.length);
+      debug('StudentActionStatsPanel - historical logs to set:', logs.length);
 
       console.log('🔍 StudentActionStatsPanel - Fetch results:', {
         totalLogs: logs.length,
@@ -515,8 +554,8 @@ export default function StudentActionStatsPanel({
 
       setLogsError('');
       console.log('🔍 StudentActionStatsPanel - Setting logsLoading to FALSE (success)');
-    } catch (error) {
-      logger.error('Error fetching historical logs:', error);
+    } catch (err) {
+      error('Error fetching historical logs:', err);
       setLogsError('Failed to load history');
       setHistoricalLogs([]);
       setTodayLogs([]);
@@ -525,7 +564,7 @@ export default function StudentActionStatsPanel({
       setLogsLoading(false);
       console.log('🔍 StudentActionStatsPanel - fetchHistoricalLogs completed, logsLoading set to FALSE');
     }
-  }, [student?.id]);
+  }, [student?.id, lookupData, lang]);
 
   // Fetch today's logs when student changes or manual refresh triggered
   useEffect(() => {
@@ -605,19 +644,19 @@ export default function StudentActionStatsPanel({
   const handleMarkAttendance = useCallback(async (studentId, status) => {
     setShowLoadingOverlay(true);
     try {
-      await onMarkAttendance(studentId, status);
+      await onMarkAttendance(studentId, status, programId, subjectId);
       // Update the current attendance status immediately for UI feedback
       setCurrentAttendanceStatus(status);
       // Force refresh the history by incrementing the key
       setHistoryRefreshKey(prev => prev + 1);
       // Refresh data after marking attendance
       await fetchHistoricalLogs();
-    } catch (error) {
-      logger.error('Error marking attendance:', error);
+    } catch (err) {
+      error('Error marking attendance:', err);
     } finally {
       setShowLoadingOverlay(false);
     }
-  }, [onMarkAttendance, fetchHistoricalLogs]);
+  }, [onMarkAttendance, fetchHistoricalLogs, programId, subjectId]);
 
   // Delete attendance log
   const handleDeleteAttendance = useCallback((logId) => {
@@ -773,7 +812,7 @@ export default function StudentActionStatsPanel({
             // Show success feedback
             showSuccess('Participation record deleted successfully');
           } else {
-            logger.error('Failed to delete participation record:', result.error);
+            error('Failed to delete participation record:', result.error);
             showError('Failed to delete participation record: ' + result.error);
           }
         } else if (deleteType === RECORD_TYPES.PENALTY) {
@@ -801,7 +840,7 @@ export default function StudentActionStatsPanel({
             // Show success feedback
             showSuccess('Penalty record deleted successfully');
           } else {
-            logger.error('Failed to delete penalty record:', result.error);
+            error('Failed to delete penalty record:', result.error);
             showError('Failed to delete penalty record: ' + result.error);
           }
         } else if (deleteType === RECORD_TYPES.BEHAVIOR) {
@@ -829,14 +868,14 @@ export default function StudentActionStatsPanel({
             // Show success feedback
             showSuccess('Behavior record deleted successfully');
           } else {
-            logger.error('Failed to delete behavior record:', result.error);
+            error('Failed to delete behavior record:', result.error);
             showError('Failed to delete behavior record: ' + result.error);
           }
         }
       }
-    } catch (error) {
-      logger.error(`Error deleting ${deleteType} record:`, error);
-      showError(`Error deleting ${deleteType} record: ` + error.message);
+    } catch (err) {
+      error(`Error deleting ${deleteType} record:`, err);
+      showError(`Error deleting ${deleteType} record: ` + err.message);
     } finally {
       setDeleteLoading(false);
       setDeleteModalOpen(false);
@@ -882,8 +921,8 @@ export default function StudentActionStatsPanel({
     Object.keys(grouped).forEach(date => {
       const sortLogs = (logs) => {
         return logs.sort((a, b) => {
-          const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
-          const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
+          const timeA = new Date(a.time);
+          const timeB = new Date(b.time);
           return timeB - timeA; // Newest first
         });
       };
@@ -901,7 +940,7 @@ export default function StudentActionStatsPanel({
       return result;
     });
 
-    logger.debug('StudentActionStatsPanel final grouped logs:', sortedGrouped.map(g => ({ date: g.date, counts: { attendance: g.attendance.length, penalties: g.penalties.length, participation: g.participation.length, behavior: g.behavior.length } })));
+    debug('StudentActionStatsPanel final grouped logs:', sortedGrouped.map(g => ({ date: g.date, counts: { attendance: g.attendance.length, penalties: g.penalties.length, participation: g.participation.length, behavior: g.behavior.length } })));
 
     return sortedGrouped;
   }, []);
@@ -909,9 +948,9 @@ export default function StudentActionStatsPanel({
   // Memoized grouped logs for display
   const memoizedGroupedLogs = useMemo(() => {
     const grouped = groupLogsByDay(historicalLogs);
-    logger.debug('StudentActionStatsPanel - memoizedGroupedLogs:', grouped);
-    logger.debug('StudentActionStatsPanel - historicalLogs length:', historicalLogs.length);
-    logger.debug('StudentActionStatsPanel - activeFilters:', activeFilters);
+    debug('StudentActionStatsPanel - memoizedGroupedLogs:', grouped);
+    debug('StudentActionStatsPanel - historicalLogs length:', historicalLogs.length);
+    debug('StudentActionStatsPanel - activeFilters:', activeFilters);
 
     // Debug today's logs specifically
     const today = new Date().toISOString().split('T')[0];
@@ -1031,9 +1070,21 @@ export default function StudentActionStatsPanel({
     ), [todayLogs]);
   
   const attendanceStatus = useMemo(() => {
-    // If no actual attendance records for today, show None (matching roster)
+    // First check currentAttendanceStatus (from student prop) - this is the most up-to-date
+    if (currentAttendanceStatus) {
+      const statusLabel = ATTENDANCE_STATUS_LABELS[currentAttendanceStatus];
+      const statusColor = ATTENDANCE_COLORS[currentAttendanceStatus];
+      if (statusLabel && statusColor) {
+        return {
+          en: statusLabel,
+          ar: statusLabel, // TODO: Add Arabic translations
+          color: statusColor
+        };
+      }
+    }
+
+    // If no currentAttendanceStatus, check todayLogs for attendance records
     if (!hasTodayAttendance) {
-      logger.debug('No attendance found - showing None');
       return {
         en: t('none') || 'None',
         ar: t('none') || 'لا شيء',
@@ -1041,33 +1092,26 @@ export default function StudentActionStatsPanel({
       };
     }
 
-    // If there are attendance records, check for current status (prefer current status for immediate updates)
-    const attendanceToUse = currentAttendanceStatus;
-    if (attendanceToUse) {
-      const statusInfo = ATTENDANCE_STATUS_LABELS[attendanceToUse];
-      if (statusInfo) {
-        logger.debug('Using direct attendance status:', attendanceToUse, statusInfo);
-        return statusInfo;
-      }
-    }
-
-    // Fallback to None if no valid status found
+    // If there are attendance records but no currentAttendanceStatus, use the latest from todayLogs
+    // This shouldn't normally happen since todayLogs should set currentAttendanceStatus
     return {
       en: t('none') || 'None',
       ar: t('none') || 'لا شيء',
       color: '#9ca3af'
     };
-  }, [hasTodayAttendance, student?.attendance, todayLogs, currentAttendanceStatus, t]);
+  }, [hasTodayAttendance, todayLogs, currentAttendanceStatus, t]);
 
   // Helper variable to check if attendance status is None (no attendance recorded)
-  const isAttendanceNone = !hasTodayAttendance;
+  // Consider both todayLogs and currentAttendanceStatus from student prop
+  const isAttendanceNone = !hasTodayAttendance && !currentAttendanceStatus;
   
   // Debug logs to track attendance state
-  logger.debug('StudentActionStatsPanel - Attendance State Debug:', {
+  debug('StudentActionStatsPanel - Attendance State Debug:', {
     studentId: student.id,
     studentNumber: student.studentNumber,
     hasTodayAttendance,
     currentAttendanceStatus,
+    studentAttendanceValue: student.attendanceValue,
     studentAttendance: student.attendance,
     todayLogsCount: todayLogs.length,
     attendanceLogs: todayLogs.filter(log => log.type === RECORD_TYPES.ATTENDANCE).map(log => ({
@@ -1112,7 +1156,7 @@ export default function StudentActionStatsPanel({
     }
 
     return stats;
-  }, [todayLogs, currentAttendanceStatus, student?.attendance]);
+  }, [todayLogs, currentAttendanceStatus]);
 
   // Memoized TOTAL attendance statistics calculation (ALL TIME)
   const totalAttendanceStats = useMemo(() => {
@@ -1174,7 +1218,7 @@ export default function StudentActionStatsPanel({
           top: 0,
           [isRTL ? 'left' : 'right']: 0,
           width: isMobile ? '100%' : '100%',
-          maxWidth: isMobile ? '100%' : '28rem',
+          maxWidth: isMobile ? '100%' : '32.2rem',
           height: '100%',
           background: 'var(--panel, white)',
           boxShadow: isRTL ? '4px 0 24px rgba(0,0,0,0.1)' : '-4px 0 24px rgba(0,0,0,0.1)',
@@ -1192,68 +1236,16 @@ export default function StudentActionStatsPanel({
               justifyContent: 'space-between',
               marginBottom: '1rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
-                <div style={{
-                  width: '3rem',
-                  height: '3rem',
-                  borderRadius: '9999px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  background: avatarColor.bg,
-                  color: avatarColor.color
-                }}>
-                  {getInitials(student.displayName || student.realName || student.name || '')}
-                </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '0.875rem' }}>
-                      {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
-                    </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      {currentAttendanceStatus ? (
-                          <>
-                        <span style={{
-                          width: '0.375rem',
-                          height: '0.375rem',
-                          background: attendanceStatus.color,
-                          borderRadius: '9999px'
-                        }} />
-                            {/* Only show text for attendance status if it's not 'present' */}
-                            {currentAttendanceStatus !== 'present' && (
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-                            {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
-                          </span>
-                            )}
-                          </>
-                      ) : (
-                          // Show None when no attendance status
-                          <>
-                            <CircleIcon style={{ width: '14px', height: '14px', stroke: 'var(--text-muted, #9ca3af)' }} />
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #9ca3af)' }}>
-                          {t('none') || 'None'}
-                        </span>
-                          </>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{
-                    fontSize: '0.625rem',
-                    color: 'var(--text-muted, #6b7280)',
-                    marginTop: '0.125rem',
-                    fontFamily: 'monospace',
-                    background: 'var(--panel-hover, #f3f4f6)',
-                    padding: '0.125rem 0.375rem',
-                    borderRadius: '0.25rem',
-                    display: 'inline-block'
-                  }}>
-                    ID: STU-{student.studentNumber || student.id?.slice(-4) || '0000'}
-                  </div>
-                </div>
-              </div>
+
+              <PanelHeader
+                student={student}
+                attendanceStatus={attendanceStatus}
+                t={t}
+                lang={lang}
+                isRTL={isRTL}
+              />
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0 }}>
+                {/* Notifications toggle hidden
                 <PortalTooltip 
                     content={sendNotifications ? t('notifications_on') : t('notifications_off')}
                     position="top"
@@ -1301,6 +1293,7 @@ export default function StudentActionStatsPanel({
                     </span>
                     </div>
                   </PortalTooltip>
+                */}
                 <PortalTooltip content={t('close')} position="top">
                 <Button variant="ghost" size="icon" onClick={onClose}>
                   {getThemedIcon('ui', 'close', 20)}
@@ -1310,7 +1303,7 @@ export default function StudentActionStatsPanel({
                 variant="ghost"
                 size="icon"
                 onClick={async () => {
-                  const referenceId = student.studentNumber ? `STU-${student.studentNumber}` : generateReferenceId(student.id || student.docId);
+                  const referenceId = student.studentNumber ? `STU-${student.studentNumber}` : generateReferenceId(student.id);
                   const qrDataUrl = await generateStudentQRCode(referenceId, { width: 512, margin: 4 });
                   const newTab = window.open();
                   newTab.document.write(`<html><head><title>QR Code</title></head><body style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;background:#f3f4f6;"><img src="${qrDataUrl}" style="width:300px;height:300px;"/><h1 style="margin:1rem 0 0;">${student.displayName || student.name}</h1></body></html>`);
@@ -1340,17 +1333,18 @@ export default function StudentActionStatsPanel({
               }}>
                 <button
                     onClick={async () => {
-                      console.log('🔍 Present button clicked - attendanceMode:', attendanceMode);
-                      await handleMarkAttendance(student.id, ATTENDANCE_STATUS.PRESENT);
+                      console.log('🔍 Present button clicked - attendanceMode:', attendanceMode, 'programId:', programId, 'subjectId:', subjectId);
+                      const statusToMark = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT';
+                      await handleMarkAttendance(student.id, statusToMark);
                     }}
-                    disabled={showLoadingOverlay || attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP}
+                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT'))}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid #10b981',
-                      background: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.PRESENT ? 'var(--color-success, #10b981)' : 'var(--panel, white)',
-                      color: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.PRESENT ? 'var(--text-on-success, white)' : 'var(--color-success, #10b981)',
-                      cursor: showLoadingOverlay ? 'not-allowed' : 'pointer',
+                      background: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT') ? 'var(--color-success, #10b981)' : 'var(--panel, white)',
+                      color: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT') ? 'var(--text-on-success, white)' : 'var(--color-success, #10b981)',
+                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT')) ? 'not-allowed' : 'pointer',
                       opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
@@ -1383,16 +1377,17 @@ export default function StudentActionStatsPanel({
                 </button>
                 <button
                     onClick={async () => {
-                      await handleMarkAttendance(student.id, ATTENDANCE_STATUS.LATE);
+                      const statusToMark = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE';
+                      await handleMarkAttendance(student.id, statusToMark);
                     }}
-                    disabled={showLoadingOverlay || attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP}
+                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE'))}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid #f59e0b',
-                      background: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.LATE ? '#f59e0b' : 'var(--panel, white)',
-                      color: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.LATE ? 'white' : '#f59e0b',
-                      cursor: showLoadingOverlay ? 'not-allowed' : 'pointer',
+                      background: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE') ? 'var(--color-warning, #f59e0b)' : 'var(--panel, white)',
+                      color: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE') ? 'var(--text-on-success, white)' : 'var(--color-warning, #f59e0b)',
+                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE')) ? 'not-allowed' : 'pointer',
                       opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
@@ -1427,14 +1422,14 @@ export default function StudentActionStatsPanel({
                     onClick={async () => {
                       await handleMarkAttendance(student.id, ATTENDANCE_STATUS.ABSENT_NO_EXCUSE);
                     }}
-                    disabled={showLoadingOverlay}
+                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE)}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid var(--color-danger, #ef4444)',
                       background: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE ? 'var(--color-danger, #ef4444)' : 'var(--panel, white)',
                       color: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE ? 'var(--text-on-primary, white)' : 'var(--color-danger, #ef4444)',
-                      cursor: showLoadingOverlay ? 'not-allowed' : 'pointer',
+                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) ? 'not-allowed' : 'pointer',
                       opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
@@ -1469,14 +1464,14 @@ export default function StudentActionStatsPanel({
                     onClick={async () => {
                       await handleMarkAttendance(student.id, ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE);
                     }}
-                    disabled={showLoadingOverlay}
+                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE)}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid #ef4444',
                       background: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE ? 'var(--color-danger, #ef4444)' : 'var(--panel, white)',
                       color: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE ? 'var(--text-on-success, white)' : 'var(--color-danger, #ef4444)',
-                      cursor: showLoadingOverlay ? 'not-allowed' : 'pointer',
+                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) ? 'not-allowed' : 'pointer',
                       opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
@@ -1511,14 +1506,14 @@ export default function StudentActionStatsPanel({
                     onClick={async () => {
                       await handleMarkAttendance(student.id, ATTENDANCE_STATUS.EXCUSED_LEAVE);
                     }}
-                    disabled={showLoadingOverlay}
+                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE)}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
-                      border: '2px solid #ef4444',
-                      background: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE ? 'var(--color-danger, #ef4444)' : 'var(--panel, white)',
-                      color: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE ? 'var(--text-on-success, white)' : 'var(--color-danger, #ef4444)',
-                      cursor: showLoadingOverlay ? 'not-allowed' : 'pointer',
+                      border: '2px solid #ec4899',
+                      background: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE ? '#ec4899' : 'var(--panel, white)',
+                      color: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE ? 'white' : '#ec4899',
+                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE) ? 'not-allowed' : 'pointer',
                       opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
@@ -1531,7 +1526,7 @@ export default function StudentActionStatsPanel({
                     }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <XSmallIcon style={{ width: '12px', height: '12px' }} />
+                    <HeartIcon style={{ width: '12px', height: '12px' }} />
                     {/*{attendanceStats.excused_leave && Number(attendanceStats.excused_leave) > 0 && (*/}
                     {/*  <span style={{*/}
                     {/*    fontSize: '0.5rem',*/}
@@ -1553,14 +1548,14 @@ export default function StudentActionStatsPanel({
                     onClick={async () => {
                       await handleMarkAttendance(student.id, ATTENDANCE_STATUS.HUMAN_CASE);
                     }}
-                    disabled={showLoadingOverlay}
+                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.HUMAN_CASE)}
                     style={{
                       padding: '0.375rem',
                       borderRadius: '0.25rem',
                       border: '2px solid #8b5cf6',
                       background: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.HUMAN_CASE ? 'var(--color-purple, #8b5cf6)' : 'var(--panel, white)',
                       color: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.HUMAN_CASE ? 'var(--text-on-success, white)' : 'var(--color-purple, #8b5cf6)',
-                      cursor: showLoadingOverlay ? 'not-allowed' : 'pointer',
+                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.HUMAN_CASE) ? 'not-allowed' : 'pointer',
                       opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
@@ -1815,7 +1810,7 @@ export default function StudentActionStatsPanel({
                 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
                   {t('participation_details')} ({student.participation || 0} {t('points')}, {(() => {
                   const stats = getDetailedStats();
-                  return PARTICIPATION_TYPES.reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
+                  return (lookupData['participation-types'] || []).reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
                 })()} {t('entries')})
                 </span>
                     <span style={{
@@ -1837,7 +1832,7 @@ export default function StudentActionStatsPanel({
                       }}>
                         {(() => {
                           const stats = getDetailedStats();
-                          return PARTICIPATION_TYPES.map(type => {
+                          return (lookupData['participation-types'] || []).map(type => {
                             const stat = stats.participation[type.id];
                             return (
                                 <div key={type.id} style={{
@@ -1947,7 +1942,7 @@ export default function StudentActionStatsPanel({
                           }}>
                             {t('count')}: ({(() => {
                             const stats = getDetailedStats();
-                            return PARTICIPATION_TYPES.reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
+                            return (lookupData['participation-types'] || []).reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
                           })()})
                           </div>
                         </div>
@@ -1973,7 +1968,7 @@ export default function StudentActionStatsPanel({
                 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
                   {t('behavior_details')} ({student.behavior || 0} {t('points')}, {(() => {
                   const stats = getDetailedStats();
-                  return BEHAVIOR_TYPES.reduce((sum, type) => sum + (stats.behavior[type.id]?.count || 0), 0);
+                  return (lookupData['behavior-types'] || []).reduce((sum, type) => sum + (stats.behavior[type.id]?.count || 0), 0);
                 })()} {t('entries')})
                 </span>
                     <span style={{
@@ -1995,7 +1990,7 @@ export default function StudentActionStatsPanel({
                       }}>
                         {(() => {
                           const stats = getDetailedStats();
-                          return BEHAVIOR_TYPES.map(type => {
+                          return (lookupData['behavior-types'] || []).map(type => {
                             const stat = stats.behavior[type.id];
                             return (
                                 <div key={type.id} style={{
@@ -2104,7 +2099,7 @@ export default function StudentActionStatsPanel({
                           }}>
                             {t('count')}: ({(() => {
                             const stats = getDetailedStats();
-                            return BEHAVIOR_TYPES.reduce((sum, type) => sum + (stats.behavior[type.id]?.count || 0), 0);
+                            return (lookupData['behavior-types'] || []).reduce((sum, type) => sum + (stats.behavior[type.id]?.count || 0), 0);
                           })()})
                           </div>
                         </div>
@@ -2130,7 +2125,7 @@ export default function StudentActionStatsPanel({
                 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
                   {t('penalty_details')} ({student.penalty || 0} {t('points')}, {(() => {
                   const stats = getDetailedStats();
-                  return PENALTY_TYPES.reduce((sum, type) => sum + (stats.penalty[type.id]?.count || 0), 0);
+                  return (lookupData['penalty-types'] || []).reduce((sum, type) => sum + (stats.penalty[type.id]?.count || 0), 0);
                 })()} {t('entries')})
                 </span>
                     <span style={{
@@ -2153,7 +2148,7 @@ export default function StudentActionStatsPanel({
                         {(() => {
                           const stats = getDetailedStats();
 
-                          return PENALTY_TYPES.map(type => {
+                          return (lookupData['penalty-types'] || []).map(type => {
                             const stat = stats.penalty[type.id];
                             return (
                                 <div key={type.id} style={{
@@ -2262,7 +2257,7 @@ export default function StudentActionStatsPanel({
                           }}>
                             {t('count')}: ({(() => {
                             const stats = getDetailedStats();
-                            return PENALTY_TYPES.reduce((sum, type) => sum + (stats.penalty[type.id]?.count || 0), 0);
+                            return (lookupData['penalty-types'] || []).reduce((sum, type) => sum + (stats.penalty[type.id]?.count || 0), 0);
                           })()})
                           </div>
                         </div>

@@ -1,9 +1,5 @@
-/**
- * Difficulty Types Constants
- * Centralized difficulty levels for activities, quizzes, and assessments
- */
-
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon } from './iconTypes';
+import { info, error, warn, debug } from '../services/utils/logger.js';
 
 // Difficulty level types
 export const DIFFICULTY_TYPES = {
@@ -19,57 +15,80 @@ export const DIFFICULTY_LABELS = {
   [DIFFICULTY_TYPES.ADVANCED]: 'Advanced'
 };
 
-// Arabic labels for bilingual support
-export const DIFFICULTY_LABELS_AR = {
-  [DIFFICULTY_TYPES.BEGINNER]: 'مبتدئ',
-  [DIFFICULTY_TYPES.INTERMEDIATE]: 'متوسط',
-  [DIFFICULTY_TYPES.ADVANCED]: 'متقدم'
+// Colors for difficulty levels
+export const DIFFICULTY_COLORS = {
+  [DIFFICULTY_TYPES.BEGINNER]: '#10b981', // Green
+  [DIFFICULTY_TYPES.INTERMEDIATE]: '#f59e0b', // Yellow
+  [DIFFICULTY_TYPES.ADVANCED]: '#ef4444' // Red
 };
 
-// Options for dropdown/select components
-export const DIFFICULTY_OPTIONS = Object.entries(DIFFICULTY_LABELS).map(([value, label]) => ({
-  value,
-  label
-}));
+// Icons for difficulty levels
+export const DIFFICULTY_ICONS = {
+  [DIFFICULTY_TYPES.BEGINNER]: getThemedIcon('difficulty', 'beginner'),
+  [DIFFICULTY_TYPES.INTERMEDIATE]: getThemedIcon('difficulty', 'intermediate'),
+  [DIFFICULTY_TYPES.ADVANCED]: getThemedIcon('difficulty', 'advanced')
+};
 
-// Get difficulty configuration with icon and text
-export const getDifficultyConfig = (type, theme = 'light', lang = 'en') => {
-  const labels = lang === 'ar' ? DIFFICULTY_LABELS_AR : DIFFICULTY_LABELS;
-  
-  const typeConfig = {
-    [DIFFICULTY_TYPES.BEGINNER]: { 
-      icon: 'star', 
-      text: labels[DIFFICULTY_TYPES.BEGINNER] 
-    },
-    [DIFFICULTY_TYPES.INTERMEDIATE]: { 
-      icon: 'zap', 
-      text: labels[DIFFICULTY_TYPES.INTERMEDIATE] 
-    },
-    [DIFFICULTY_TYPES.ADVANCED]: { 
-      icon: 'trophy', 
-      text: labels[DIFFICULTY_TYPES.ADVANCED] 
-    }
+// Helper functions
+export const getDifficultyLabel = (type) => {
+  return DIFFICULTY_LABELS[type] || type;
+};
+
+export const getDifficultyColor = (type) => {
+  return DIFFICULTY_COLORS[type] || '#6b7280';
+};
+
+export const getDifficultyIcon = (type) => {
+  return DIFFICULTY_ICONS[type] || getThemedIcon('difficulty', 'default');
+};
+
+export const isValidDifficultyType = (type) => {
+  return Object.values(DIFFICULTY_TYPES).includes(type);
+};
+
+export const getDifficultyLevel = (type) => {
+  const levels = {
+    [DIFFICULTY_TYPES.BEGINNER]: 1,
+    [DIFFICULTY_TYPES.INTERMEDIATE]: 2,
+    [DIFFICULTY_TYPES.ADVANCED]: 3
   };
   
-  const config = typeConfig[type] || { 
-    icon: 'star', 
-    text: type || 'Unknown' 
-  };
-  
+  return levels[type] || 1;
+};
+
+export const compareDifficulty = (type1, type2) => {
+  return getDifficultyLevel(type1) - getDifficultyLevel(type2);
+};
+
+// Get difficulty configuration
+export const getDifficultyConfig = (type) => {
   return {
-    ...config,
-    icon: config.icon
+    type,
+    label: DIFFICULTY_LABELS[type] || type,
+    color: DIFFICULTY_COLORS[type] || '#6b7280',
+    icon: DIFFICULTY_ICONS[type] || getThemedIcon('difficulty', 'default'),
+    level: getDifficultyLevel(type)
   };
 };
 
-// Get difficulty options for dropdown with icons
-export const getDifficultyOptionsForDropdown = (theme = 'light', lang = 'en') => {
-  return Object.entries(DIFFICULTY_TYPES).map(([key, value]) => {
-    const config = getDifficultyConfig(value, theme, lang);
-    return {
-      value,
-      label: config.text,
-      icon: getThemedIcon('ui', config.icon, 16, theme)
-    };
-  });
+export const getDifficultyOptionsForDropdown = () => {
+  return Object.entries(DIFFICULTY_LABELS).map(([key, value]) => ({
+    value: key,
+    label: value
+  }));
+};
+
+export default {
+  DIFFICULTY_TYPES,
+  DIFFICULTY_LABELS,
+  DIFFICULTY_COLORS,
+  DIFFICULTY_ICONS,
+  getDifficultyLabel,
+  getDifficultyColor,
+  getDifficultyIcon,
+  isValidDifficultyType,
+  getDifficultyLevel,
+  compareDifficulty,
+  getDifficultyConfig,
+  getDifficultyOptionsForDropdown
 };

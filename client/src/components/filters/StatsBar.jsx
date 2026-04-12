@@ -2,7 +2,8 @@ import React from 'react';
 import { getColoredIcon } from '@constants/iconTypes';
 import PortalTooltip from '@ui/PortalTooltip';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Reusable stats bar component
  * Displays compact statistics with icons and counts
  * Used in HomePage, StudentDashboard, and ReviewResultsPage

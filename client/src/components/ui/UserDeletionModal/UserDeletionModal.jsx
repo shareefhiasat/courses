@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button, Card, CardBody, Modal } from '@ui';
 
-const UserDeletionModal = ({ open, onClose, user }) => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const UserDeletionModal = ({ open, onClose, user }) => {
   const [loading, setLoading] = React.useState(false);
 
   const handleDelete = async () => {

@@ -3,7 +3,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { getUsers } from '@services/business/userService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * Manages cascading program → subject → class → student selection for the
@@ -69,7 +69,7 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
   const loadFilters = useCallback(async () => {
     setLoading(true);
     try {
-      logger.log('[StudentDashboardFilters] Loading filters data...');
+      info('[StudentDashboardFilters] Loading filters data...');
       const [programsRes, subjectsRes, classesRes, studentsRes] = await Promise.allSettled([
         getPrograms(),
         getSubjects(),
@@ -82,7 +82,7 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
       const classesData = classesRes.status === 'fulfilled' ? (classesRes.value?.data || []) : [];
       const studentsData = studentsRes.status === 'fulfilled' ? (studentsRes.value?.data || []) : [];
 
-      logger.log('[StudentDashboardFilters] Raw data counts:', {
+      info('[StudentDashboardFilters] Raw data counts:', {
         programs: programsData.length,
         subjects: subjectsData.length,
         classes: classesData.length,
@@ -92,7 +92,7 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
 
       // Debug: Log first few students to understand data structure
       if (studentsData.length > 0) {
-        logger.log('[StudentDashboardFilters] Sample students:', studentsData.slice(0, 3).map(s => ({
+        info('[StudentDashboardFilters] Sample students:', studentsData.slice(0, 3).map(s => ({
           id: s.id || s.docId,
           displayName: s.displayName,
           email: s.email,
@@ -107,10 +107,10 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
       setClasses(classesData);
       
       const filteredStudents = shouldLoadStudents ? studentsData.filter(u => u.isStudent === true) : [];
-      logger.log('[StudentDashboardFilters] Filtered students (isStudent=true):', filteredStudents.length);
+      info('[StudentDashboardFilters] Filtered students (isStudent=true):', filteredStudents.length);
       setStudents(filteredStudents);
     } catch (error) {
-      logger.error('Failed to load dashboard filters', error);
+      error('Failed to load dashboard filters', error);
     } finally {
       setLoading(false);
     }
@@ -144,7 +144,7 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
   // Derived: students filtered by selected class (via enrollments collection)
   const filteredStudents = useMemo(() => {
     if (!selectedClassId || selectedClassId === 'all') {
-      logger.log('[StudentDashboardFilters] No class selected, returning all students:', students.length);
+      info('[StudentDashboardFilters] No class selected, returning all students:', students.length);
       return students;
     }
     
@@ -154,7 +154,7 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
       if (s.enrollments && Array.isArray(s.enrollments)) {
         const hasEnrollment = s.enrollments.some(enrollment => enrollment.classId === selectedClassId);
         if (hasEnrollment) {
-          logger.log('[StudentDashboardFilters] Student', s.displayName, 'has enrollment in class', selectedClassId);
+          info('[StudentDashboardFilters] Student', s.displayName, 'has enrollment in class', selectedClassId);
         }
         return hasEnrollment;
       }
@@ -162,14 +162,14 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
       const hasDirectClass = s.classId === selectedClassId ||
              s.enrolledClassIds?.includes(selectedClassId);
       if (hasDirectClass) {
-        logger.log('[StudentDashboardFilters] Student', s.displayName, 'has direct class access', selectedClassId);
+        info('[StudentDashboardFilters] Student', s.displayName, 'has direct class access', selectedClassId);
       }
       return hasDirectClass;
     });
     
-    logger.log('[StudentDashboardFilters] Filtered students for class', selectedClassId, ':', filtered.length, 'from', students.length);
+    info('[StudentDashboardFilters] Filtered students for class', selectedClassId, ':', filtered.length, 'from', students.length);
     if (filtered.length === 0 && students.length > 0) {
-      logger.log('[StudentDashboardFilters] No students found for class. Sample student data:', students.slice(0, 2).map(s => ({
+      info('[StudentDashboardFilters] No students found for class. Sample student data:', students.slice(0, 2).map(s => ({
         displayName: s.displayName,
         enrollments: s.enrollments,
         classId: s.classId,

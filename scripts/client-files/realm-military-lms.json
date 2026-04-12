@@ -1,0 +1,532 @@
+{
+  "id": "military-lms",
+  "realm": "military-lms",
+  "displayName": "Military LMS",
+  "displayNameHtml": "<div class=\"kc-logo-text\"><span>Military LMS</span></div>",
+  "enabled": true,
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "verifyEmail": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 30,
+  "roles": {
+    "realm": [
+      {
+        "id": "super-admin-role",
+        "name": "super-admin",
+        "description": "Super Administrator - Full system access",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "military-lms"
+      },
+      {
+        "id": "admin-role",
+        "name": "admin",
+        "description": "Administrator - Can manage users and content",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "military-lms"
+      },
+      {
+        "id": "hr-role",
+        "name": "hr",
+        "description": "HR - Can manage users and reports",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "military-lms"
+      },
+      {
+        "id": "instructor-role",
+        "name": "instructor",
+        "description": "Instructor - Can manage classes and students",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "military-lms"
+      },
+      {
+        "id": "student-role",
+        "name": "student",
+        "description": "Student - Can view content and submit work",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "military-lms"
+      }
+    ],
+    "client": {},
+    "composite": {}
+  },
+  "users": [
+    {
+      "id": "super-admin-user",
+      "createdTimestamp": 1710425100000,
+      "username": "shareef.hiasat@gmail.com",
+      "enabled": true,
+      "totp": false,
+      "emailVerified": true,
+      "firstName": "Shareef",
+      "lastName": "Hiasat",
+      "email": "shareef.hiasat@gmail.com",
+      "federationLink": null,
+      "credentials": [
+        {
+          "id": "credential-1",
+          "type": "password",
+          "createdDate": 1710425100000,
+          "secretData": "{\"value\":\"$2a$10$abcdefghijklmnopqrstuv\",\"algorithm\":\"bcrypt\",\"iterations\":1}",
+          "credentialData": "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\",\"additionalParameters\":{}}",
+          "priority": 0,
+          "userLabel": "Password",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [],
+      "realmRoles": [
+        "super-admin",
+        "admin",
+        "instructor"
+      ],
+      "clientRoles": {},
+      "federatedIdentities": [],
+      "serviceAccountLinkId": null,
+      "notBefore": 0,
+      "groups": [],
+      "attributes": {
+        "studentNumber": "ADMIN001",
+        "department": "IT",
+        "phoneNumber": "+1234567890"
+      }
+    }
+  ],
+  "clients": [
+    {
+      "id": "military-lms-app-client",
+      "clientId": "military-lms-app",
+      "name": "Military LMS Application",
+      "description": "Main LMS application for military training",
+      "rootUrl": "http://localhost:5173",
+      "adminUrl": "",
+      "baseUrl": "",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "military-lms-secret-change-me",
+      "registrationAccessToken": "",
+      "defaultRoles": [],
+      "redirectUris": [
+        "http://localhost:5174/*",
+        "http://localhost:4001/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5174",
+        "http://localhost:4001"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "saml.assertion.signature": "RSA_SHA256",
+        "saml.multivalued.attributes": "false",
+        "saml.force.post.binding": "false",
+        "saml.encrypt": "false",
+        "saml.server.signature": "false",
+        "saml.server.signature.key.id": "",
+        "exclude.session.state.from.auth.response": "false",
+        "saml_force_name_id_format": "false",
+        "saml.client.signature": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "saml.authnstatement": "false",
+        "display.on.consent.screen": "false",
+        "saml.onetimeuse.condition": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": 0,
+      "protocolMappers": [
+        {
+          "id": "realm-roles-mapper",
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true"
+          }
+        },
+        {
+          "id": "student-number-mapper",
+          "name": "student-number",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "claim.name": "studentNumber",
+            "jsonType.label": "String",
+            "user.attribute": "studentNumber"
+          }
+        },
+        {
+          "id": "department-mapper",
+          "name": "department",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "claim.name": "department",
+            "jsonType.label": "String",
+            "user.attribute": "department"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "email",
+        "profile",
+        "lms-roles"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    }
+  ],
+  "clientScopes": [
+    {
+      "id": "lms-roles-scope",
+      "name": "lms-roles",
+      "description": "LMS specific roles and attributes",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false",
+        "gui.order": "0",
+        "consent.screen.text": "",
+        "display.on.consent.screen.text": ""
+      },
+      "protocolMappers": [
+        {
+          "id": "lms-roles-mapper",
+          "name": "lms-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "lmsRoles",
+            "jsonType.label": "String",
+            "multivalued": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "scopeMappings": [
+    {
+      "clientScope": "email",
+      "roles": []
+    },
+    {
+      "clientScope": "profile",
+      "roles": []
+    },
+    {
+      "clientScope": "lms-roles",
+      "roles": [
+        {
+          "id": "super-admin-role",
+          "name": "super-admin",
+          "description": "Super Administrator - Full system access",
+          "composite": false,
+          "clientRole": false,
+          "containerId": "military-lms"
+        },
+        {
+          "id": "admin-role",
+          "name": "admin",
+          "description": "Administrator - Can manage users and content",
+          "composite": false,
+          "clientRole": false,
+          "containerId": "military-lms"
+        },
+        {
+          "id": "hr-role",
+          "name": "hr",
+          "description": "HR - Can manage users and reports",
+          "composite": false,
+          "clientRole": false,
+          "containerId": "military-lms"
+        },
+        {
+          "id": "instructor-role",
+          "name": "instructor",
+          "description": "Instructor - Can manage classes and students",
+          "composite": false,
+          "clientRole": false,
+          "containerId": "military-lms"
+        },
+        {
+          "id": "student-role",
+          "name": "student",
+          "description": "Student - Can view content and submit work",
+          "composite": false,
+          "clientRole": false,
+          "containerId": "military-lms"
+        }
+      ]
+    }
+  ],
+  "components": {
+    "org.keycloak.storage.UserStorageProvider": [],
+    "org.keycloak.storage.UserStorageProviderFactory": [],
+    "org.keycloak.storage.ClientStorageProvider": [],
+    "org.keycloak.storage.ClientStorageProviderFactory": [],
+    "org.keycloak.storage.RoleStorageProvider": [],
+    "org.keycloak.storage.RoleStorageProviderFactory": []
+  },
+  "authenticationFlows": [
+    {
+      "id": "browser-auth-flow",
+      "alias": "browser",
+      "description": "browser based authentication",
+      "provider": "basic-flow",
+      "topLevel": true,
+      "builtIn": true,
+      "authentications": [
+        {
+          "authenticator": "auth-cookie",
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-spnego-logout",
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "identity-provider-redirector",
+          "requirement": "ALTERNATIVE",
+          "priority": 25,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "basic-auth",
+          "requirement": "ALTERNATIVE",
+          "priority": 30,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "ALTERNATIVE",
+          "priority": 40,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "requirement": "ALTERNATIVE",
+          "priority": 50,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-conditional-otp-form",
+          "requirement": "ALTERNATIVE",
+          "priority": 60,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-recaptcha",
+          "requirement": "REQUIRED",
+          "priority": 70,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-conditional-recaptcha",
+          "requirement": "ALTERNATIVE",
+          "priority": 80,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        }
+      ],
+      "executions": []
+    },
+    {
+      "id": "registration-auth-flow",
+      "alias": "registration",
+      "description": "registration flow",
+      "provider": "basic-flow",
+      "topLevel": true,
+      "builtIn": true,
+      "authentications": [
+        {
+          "authenticator": "registration-page-recaptcha",
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "registration-user-creation",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "registration-password-action",
+          "requirement": "REQUIRED",
+          "priority": 40,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "registration-recaptcha-action",
+          "requirement": "ALTERNATIVE",
+          "priority": 50,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        }
+      ],
+      "executions": []
+    },
+    {
+      "id": "reset-credentials-auth-flow",
+      "alias": "reset credentials",
+      "description": "reset credentials flow",
+      "provider": "basic-flow",
+      "topLevel": true,
+      "builtIn": true,
+      "authentications": [
+        {
+          "authenticator": "reset-credential-email",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "reset-password",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "reset-otp",
+          "requirement": "ALTERNATIVE",
+          "priority": 30,
+          "userSetup": "ALTERNATIVE",
+          "autheticatorFlow": false
+        }
+      ],
+      "executions": []
+    }
+  ],
+  "requiredActions": [
+    {
+      "id": "update-profile-action",
+      "alias": "UPDATE_PROFILE",
+      "name": "Update Profile",
+      "description": "${updateProfileAction}",
+      "providerId": "update-profile",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 0,
+      "config": {}
+    },
+    {
+      "id": "update-password-action",
+      "alias": "UPDATE_PASSWORD",
+      "name": "Update Password",
+      "description": "${updatePasswordAction}",
+      "providerId": "update-password",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 0,
+      "config": {}
+    },
+    {
+      "id": "verify-email-action",
+      "alias": "VERIFY_EMAIL",
+      "name": "Verify Email",
+      "description": "${verifyEmailAction}",
+      "providerId": "verify-email",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 0,
+      "config": {}
+    },
+    {
+      "id": "configure-totp-action",
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "description": "${configureTotpAction}",
+      "providerId": "totp",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 0,
+      "config": {}
+    }
+  ],
+  "browserSecurityHeaders": {
+    "contentSecurityPolicyReportOnly": "",
+    "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
+    "xContentTypeOptions": "nosniff",
+    "xRobotsTag": "none",
+    "xFrameOptions": "SAMEORIGIN",
+    "xXSSProtection": "1; mode=block",
+    "strictTransportSecurity": "max-age=31536000; includeSubDomains"
+  },
+  "smtpServer": {},
+  "loginTheme": "keycloak",
+  "accountTheme": "keycloak",
+  "adminTheme": "keycloak",
+  "emailTheme": "keycloak",
+  "eventsEnabled": false,
+  "eventsListeners": [],
+  "adminEventsEnabled": false,
+  "adminEventsDetailsEnabled": false,
+  "internationalizationEnabled": false,
+  "supportedLocales": [],
+  "defaultLocale": "en",
+  "passwordPolicies": [],
+  "defaultSignatureAlgorithm": "RS256"
+}

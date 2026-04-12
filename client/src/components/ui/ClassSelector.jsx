@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Select } from '@ui';
 
-const ClassSelector = ({
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const ClassSelector = ({
   programs = [],
   subjects = [],
   classes = [],

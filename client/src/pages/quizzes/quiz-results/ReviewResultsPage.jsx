@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { useFilterCounts } from '@hooks/useFilterCounts';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -13,7 +13,7 @@ import iconTypes from '@constants/iconTypes';
 const { getThemedIcon, getColoredIcon, getIconWithColor } = iconTypes;
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
-import { getActivities } from '@services/business/activityService';
+import { getActivities } from '@services/business/activitiesService';
 import { getUsers } from '@services/business/userService';
 import { getQuizSubmissions } from '@services/business/quizSubmissionsService';
 import { getSubmissions } from '@services/business/submissionsService';
@@ -247,7 +247,7 @@ const ReviewResultsPage = () => {
 
       setSubmissions(enrichedSubmissions);
     } catch (error) {
-      logger.error('Failed to load data:', error);
+      error('Failed to load data:', error);
     } finally {
       setLoading(false);
     }
@@ -595,7 +595,7 @@ const ReviewResultsPage = () => {
       try {
         await loadData();
       } catch (error) {
-        console.error('Error loading review data:', error);
+        error('Error loading review data:', error);
       } finally {
         safeStop();
       }
@@ -627,25 +627,25 @@ const ReviewResultsPage = () => {
               {
                 value: 'quiz',
                 label: lang === 'en' ? 'Quiz' : 'اختبار',
-                icon: activityType === 'quiz' ? getIconWithColor('ui', getActivityTypeConfig('quiz', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('quiz', theme, lang).icon, 16, primaryColor),
+                icon: activityType === 'quiz' ? getIconWithColor('ui', getActivityTypeConfig('quiz').icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('quiz').icon, 16, primaryColor),
                 badge: getActivityTypeCount('quiz')
               },
               {
                 value: 'homework',
                 label: lang === 'en' ? 'Homework' : 'واجب',
-                icon: activityType === 'homework' ? getIconWithColor('ui', getActivityTypeConfig('homework', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('homework', theme, lang).icon, 16, primaryColor),
+                icon: activityType === 'homework' ? getIconWithColor('ui', getActivityTypeConfig('homework').icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('homework').icon, 16, primaryColor),
                 badge: getActivityTypeCount('homework')
               },
               {
                 value: 'training',
                 label: lang === 'en' ? 'Training' : 'تدريب',
-                icon: activityType === 'training' ? getIconWithColor('ui', getActivityTypeConfig('training', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('training', theme, lang).icon, 16, primaryColor),
+                icon: activityType === 'training' ? getIconWithColor('ui', getActivityTypeConfig('training').icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('training').icon, 16, primaryColor),
                 badge: getActivityTypeCount('training')
               },
               {
                 value: 'labandproject',
                 label: lang === 'en' ? 'Lab & Project' : 'معمل ومشروع',
-                icon: activityType === 'labandproject' ? getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, primaryColor),
+                icon: activityType === 'labandproject' ? getIconWithColor('ui', getActivityTypeConfig('labandproject').icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('labandproject').icon, 16, primaryColor),
                 badge: getActivityTypeCount('labandproject')
               }
             ]}

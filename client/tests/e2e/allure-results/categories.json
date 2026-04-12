@@ -1,0 +1,1 @@
+[{"name":"Critical","matchedStatuses":["failed","broken"]},{"name":"Flaky","matchedStatuses":["passed"],"messageRegex":".*retry.*"}]

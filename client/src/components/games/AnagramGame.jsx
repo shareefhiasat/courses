@@ -3,7 +3,8 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 
-export default function AnagramGame({ questions, settings, onComplete }) {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default function AnagramGame({ questions, settings, onComplete }) {
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);

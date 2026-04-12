@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Checkbox from './Checkbox';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 export default {
   title: 'Form/Checkbox',
@@ -44,7 +44,7 @@ const Template = (args) => {
         checked={checked}
         onChange={(e) => {
           setChecked(e.target.checked);
-          logger.log('Checkbox checked:', e.target.checked);
+          info('Checkbox checked:', e.target.checked);
         }}
       />
       <div style={{ marginTop: '1rem', padding: '0.5rem', background: '#f0f0f0', borderRadius: 4, fontSize: '0.875rem' }}>

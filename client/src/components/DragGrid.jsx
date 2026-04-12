@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 
-/* Lightweight draggable grid with localStorage persistence
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/* Lightweight draggable grid with localStorage persistence
 Props:
 - widgets: Array<{ id: string, title: string, render: () => React.ReactNode }>
 - storageKey: string

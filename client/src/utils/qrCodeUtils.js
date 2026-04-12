@@ -1,7 +1,7 @@
 import React from 'react';
 import { generateStudentQRCode } from '@utils/qrCode';
 import { getFunctions } from '@services/other/config';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 // Component for displaying QR code in new tab
 export const QRCodeDisplay = ({ student }) => {
@@ -9,7 +9,7 @@ export const QRCodeDisplay = ({ student }) => {
     try {
       const studentNumber = student.studentNumber;
       if (!studentNumber) {
-        logger.error('Student number is required to generate QR code');
+        error('Student number is required to generate QR code');
         alert('Student number is required to generate QR code');
         return;
       }
@@ -42,7 +42,7 @@ export const QRCodeDisplay = ({ student }) => {
       `);
       newTab.document.close();
     } catch (error) {
-      logger.error('Error generating QR code:', error);
+      error('Error generating QR code:', error);
       alert('Failed to generate QR code');
     }
   };
@@ -66,14 +66,14 @@ export const useQRCodeEmail = () => {
       });
 
       if (result.data?.success) {
-        logger.debug('QR code email sent successfully');
+        debug('QR code email sent successfully');
         alert('QR Code email sent successfully!');
       } else {
-        logger.error('Failed to send QR code email:', result.data?.message);
+        error('Failed to send QR code email:', result.data?.message);
         alert('Failed to send QR Code email');
       }
     } catch (error) {
-      logger.error('Error sending QR code email:', error);
+      error('Error sending QR code email:', error);
       alert('Failed to send QR Code email');
     } finally {
       setSendingEmails(prev => ({

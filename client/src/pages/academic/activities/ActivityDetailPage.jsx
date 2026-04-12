@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@services/other/config';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { RECORD_TYPES } from '@utils/sharedTypes';
+import { getActivityById } from '@services/business/activitiesService';
 import { Container, Card, CardBody, Button, Badge, Modal, SimpleLoading } from '@ui';
 import { QRCodeGenerator } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatDateTime } from '@utils/date';
 import styles from './ActivityDetailPage.module.css';
 
-export default function ActivityDetailPage() {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default function ActivityDetailPage() {
   const { activityId } = useParams();
   const navigate = useNavigate();
   const { t, lang } = useLang();
@@ -23,9 +22,9 @@ export default function ActivityDetailPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const snap = await getDoc(doc(db, RECORD_TYPES.ACTIVITY, activityId));
-        if (snap.exists()) {
-          setActivity({ id: snap.id, ...snap.data() });
+        const activityData = await getActivityById(activityId);
+        if (activityData) {
+          setActivity({ id: activityData.id || activityId, ...activityData });
         }
       } finally {
         setLoading(false);

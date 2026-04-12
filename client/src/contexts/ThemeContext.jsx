@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { SimpleLoading } from '@ui';
 import './ThemeContext.css';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@logger';
 
 const ThemeContext = createContext({ theme: 'dark', toggleTheme: () => {} });
 
@@ -36,28 +36,28 @@ export const ThemeProvider = ({ children }) => {
   }, [isThemeChanging]);
 
   useEffect(() => {
-    logger.log('🎨 [ThemeContext] Theme changed to:', theme);
-    logger.log('📄 [ThemeContext] Current data-theme attribute:', document.documentElement.getAttribute('data-theme'));
+    info('🎨 [ThemeContext] Theme changed to:', theme);
+    info('📄 [ThemeContext] Current data-theme attribute:', document.documentElement.getAttribute('data-theme'));
     setIsThemeChanging(true);
     try {
       localStorage.setItem('app_theme', theme);
-      logger.log('💾 [ThemeContext] Saved to localStorage:', theme);
+      info('💾 [ThemeContext] Saved to localStorage:', theme);
     } catch (e) {
-      logger.error('❌ [ThemeContext] Failed to save to localStorage:', e);
+      error('❌ [ThemeContext] Failed to save to localStorage:', e);
     }
     const root = document.documentElement;
     root.setAttribute('data-theme', theme);
-    logger.log('📄 [ThemeContext] Set data-theme attribute to:', theme);
+    info('📄 [ThemeContext] Set data-theme attribute to:', theme);
     
     // Set proper body background based on theme
     if (theme === 'dark') {
-      logger.log('🌙 [ThemeContext] Applied dark mode');
+      info('🌙 [ThemeContext] Applied dark mode');
       document.body.style.background = '#0f1115';
       document.body.style.color = '#e6e6e6';
       // Add dark mode class to body for additional specificity
       document.body.classList.add('dark-mode');
     } else {
-      logger.log('☀️ [ThemeContext] Applied light mode');
+      info('☀️ [ThemeContext] Applied light mode');
       document.body.style.background = '#f5f6fa';
       document.body.style.color = '#212529';
       // Remove dark mode class
@@ -70,7 +70,7 @@ export const ThemeProvider = ({ children }) => {
     isThemeChanging,
     toggleTheme: () => {
       const newTheme = theme === 'dark' ? 'light' : 'dark';
-      logger.log('🔄 [ThemeContext] Toggling theme from', theme, 'to', newTheme);
+      info('🔄 [ThemeContext] Toggling theme from', theme, 'to', newTheme);
       setTheme(newTheme);
     }
   }), [theme, isThemeChanging]);

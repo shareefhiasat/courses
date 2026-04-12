@@ -1,0 +1,181 @@
+🔍 Exploring input types...
+🔍 Program input types: [
+  {
+    "name": "ProgramWhereInput",
+    "kind": "INPUT_OBJECT",
+    "inputFields": [
+      {
+        "name": "id",
+        "type": {
+          "name": "ID",
+          "kind": "SCALAR"
+        }
+      },
+      {
+        "name": "nameEn",
+        "type": {
+          "name": "String",
+          "kind": "SCALAR"
+        }
+      },
+      {
+        "name": "code",
+        "type": {
+          "name": "String",
+          "kind": "SCALAR"
+        }
+      },
+      {
+        "name": "categoryId",
+        "type": {
+          "name": "String",
+          "kind": "SCALAR"
+        }
+      }
+    ]
+  },
+  {
+    "name": "ProgramOrderByInput",
+    "kind": "INPUT_OBJECT",
+    "inputFields": [
+      {
+        "name": "field",
+        "type": {
+          "name": null,
+          "kind": "NON_NULL"
+        }
+      },
+      {
+        "name": "direction",
+        "type": {
+          "name": null,
+          "kind": "NON_NULL"
+        }
+      }
+    ]
+  },
+  {
+    "name": "CreateProgramInput",
+    "kind": "INPUT_OBJECT",
+    "inputFields": [
+      {
+        "name": "nameEn",
+        "type": {
+          "name": null,
+          "kind": "NON_NULL"
+        }
+      },
+      {
+        "name": "nameAr",
+        "type": {
+          "name": null,
+          "kind": "NON_NULL"
+        }
+      },
+      {
+        "name": "code",
+        "type": {
+          "name": null,
+          "kind": "NON_NULL"
+        }
+      },
+      {
+        "name": "descriptionEn",
+        "type": {
+          "name": "String",
+          "kind": "SCALAR"
+        }
+      },
+      {
+        "name": "descriptionAr",
+        "type": {
+          "name": "String",
+          "kind": "SCALAR"
+        }
+      },
+      {
+        "name": "durationYears",
+        "type": {
+          "name": "Int",
+          "kind": "SCALAR"
+        }
+      },
+      {
+        "name": "minGPA",
+        "type": {
+          "name": "Float",
+          "kind": "SCALAR"
+        }
+      },
+      {
+        "name": "totalCreditHours",
+        "type": {
+          "name": "Int",
+          "kind": "SCALAR"
+        }
+      }
+    ]
+  },
+  {
+    "name": "UpdateProgramInput",
+    "kind": "INPUT_OBJECT",
+    "inputFields": [
+      {
+        "name": "nameEn",
+        "type": {
+          "name": "String",
+          "kind": "SCALAR"
+        }
+      },
+      {
+        "name": "nameAr",
+        "type": {
+          "name": "String",
+          "kind": "SCALAR"
+        }
+      },
+      {
+        "name": "code",
+        "type": {
+          "name": "String",
+          "kind": "SCALAR"
+        }
+      },
+      {
+        "name": "descriptionEn",
+        "type": {
+          "name": "String",
+          "kind": "SCALAR"
+        }
+      },
+      {
+        "name": "descriptionAr",
+        "type": {
+          "name": "String",
+          "kind": "SCALAR"
+        }
+      },
+      {
+        "name": "durationYears",
+        "type": {
+          "name": "Int",
+          "kind": "SCALAR"
+        }
+      },
+      {
+        "name": "minGPA",
+        "type": {
+          "name": "Float",
+          "kind": "SCALAR"
+        }
+      },
+      {
+        "name": "totalCreditHours",
+        "type": {
+          "name": "Int",
+          "kind": "SCALAR"
+        }
+      }
+    ]
+  }
+]

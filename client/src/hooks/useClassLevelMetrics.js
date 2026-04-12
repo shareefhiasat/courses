@@ -8,7 +8,7 @@ import { getAttendanceByClass } from '@services/business/attendanceService';
 import { getPenalties } from '@services/business/penaltyService';
 import { getBehaviors } from '@services/business/behaviorService';
 import { getParticipations } from '@services/business/participationService';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * Hook for fetching class-level metrics when no specific student is selected.
@@ -55,7 +55,7 @@ const useClassLevelMetrics = (classId, shouldLoad = true) => {
     setError(null);
 
     try {
-      logger.log('[ClassLevelMetrics] Loading metrics for class:', classId);
+      info('[ClassLevelMetrics] Loading metrics for class:', classId);
 
       const [
         classRes,
@@ -80,7 +80,7 @@ const useClassLevelMetrics = (classId, shouldLoad = true) => {
       const behaviors = behaviorsRes.status === 'fulfilled' ? (behaviorsRes.value?.data || []) : [];
       const participations = participationsRes.status === 'fulfilled' ? (participationsRes.value?.data || []) : [];
 
-      logger.log('[ClassLevelMetrics] Raw data:', {
+      info('[ClassLevelMetrics] Raw data:', {
         classes: classes.length,
         enrollments: enrollments.length,
         attendance: attendance.length,
@@ -140,9 +140,9 @@ const useClassLevelMetrics = (classId, shouldLoad = true) => {
 
       setMetrics(calculatedMetrics);
       
-      logger.log('[ClassLevelMetrics] Metrics calculated:', calculatedMetrics);
+      info('[ClassLevelMetrics] Metrics calculated:', calculatedMetrics);
     } catch (err) {
-      logger.error('[ClassLevelMetrics] Failed to load class metrics', err);
+      error('[ClassLevelMetrics] Failed to load class metrics', err);
       setError(err);
       toast?.showError?.(t('failed_to_load_class_metrics') || 'Failed to load class metrics');
     } finally {

@@ -3,7 +3,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { FILTER_CONFIGS } from '@constants/filterConfig.js';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import Select from '../Select/Select';
 
 /**
@@ -25,7 +25,7 @@ const FilterSelect = ({
   
   const config = FILTER_CONFIGS[filterKey];
   if (!config) {
-    logger.warn(`FilterSelect: No configuration found for filterKey "${filterKey}"`);
+    warn(`FilterSelect: No configuration found for filterKey "${filterKey}"`);
     return null;
   }
 

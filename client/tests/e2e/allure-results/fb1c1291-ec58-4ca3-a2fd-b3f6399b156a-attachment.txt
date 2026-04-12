@@ -1,0 +1,21 @@
+🔍 User token response status: 401
+🔍 User token response headers: {
+  'cache-control': 'no-store',
+  pragma: 'no-cache',
+  'content-length': '72',
+  'content-type': 'application/json',
+  'referrer-policy': 'no-referrer',
+  'strict-transport-security': 'max-age=31536000; includeSubDomains',
+  'x-content-type-options': 'nosniff',
+  'x-frame-options': 'ALLOW',
+  'x-xss-protection': '1; mode=block'
+}
+🔍 User token response data: {
+  error: 'invalid_grant',
+  error_description: 'Invalid user credentials'
+}
+❌ User token request failed with status: 401
+🔍 Error details: {
+  error: 'invalid_grant',
+  error_description: 'Invalid user credentials'
+}

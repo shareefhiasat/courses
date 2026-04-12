@@ -1,92 +1,75 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@contexts/AuthContext';
-import logger from '@utils/logger';
-import { getUserById } from '@services/business/userService';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getRoleScreens } from '@services/business/configService';
 
-// Default role screens (fallback if Firestore fails) - moved outside component to prevent re-creation
-// User requirements: Super Admin/HR/Admin/Instructor get ALL screens, Student gets only student-related screens
 const defaultRoleScreens = {
-  admin: { 
-    // Admin gets ALL screens EXCEPT roleAccess
-    home: true, dashboard: true, studentDashboard: true, studentProfile: true, 
-    activities: true, resources: true, quizzes: true, quizManagement: true, 
-    quizBuilder: true, quizResults: true, reviewResults: true, classSchedules: true, 
-    classSchedule: true, manageEnrollments: true, myEnrollments: true, enrollments: true, 
-    programs: true, subjects: true, classes: true, marksEntry: true, courseProgress: true, 
-    courses: true, attendance: true, hrAttendance: true, myAttendance: true, 
-    hrPenalties: true, instructorParticipation: true, instructorBehavior: true, 
-    analytics: true, advancedAnalytics: true, chat: true, scheduledReports: true, 
+  admin: {
+    home: true, dashboard: true, studentDashboard: true, studentProfile: true,
+    activities: true, resources: true, quizzes: true, quizManagement: true,
+    quizBuilder: true, quizResults: true, reviewResults: true, classSchedules: true,
+    classSchedule: true, manageEnrollments: true, myEnrollments: true, enrollments: true,
+    programs: true, subjects: true, classes: true, marksEntry: true, courseProgress: true,
+    courses: true, attendance: true, hrAttendance: true, myAttendance: true,
+    hrPenalties: true, instructorParticipation: true, instructorBehavior: true,
+    analytics: true, advancedAnalytics: true, chat: true, scheduledReports: true,
     notifications: true, profile: true, timer: true, roleAccess: false
   },
-  instructor: { 
-    // Instructor gets ALL screens EXCEPT roleAccess
-    home: true, dashboard: true, studentDashboard: true, studentProfile: true, 
-    activities: true, resources: true, quizzes: true, quizManagement: true, 
-    quizBuilder: true, quizResults: true, reviewResults: true, classSchedules: true, 
-    classSchedule: true, manageEnrollments: true, myEnrollments: true, enrollments: true, 
-    programs: true, subjects: true, classes: true, marksEntry: true, courseProgress: true, 
-    courses: true, attendance: true, hrAttendance: true, myAttendance: true, 
-    hrPenalties: true, instructorParticipation: true, instructorBehavior: true, 
-    analytics: true, advancedAnalytics: true, chat: true, scheduledReports: true, 
+  instructor: {
+    home: true, dashboard: true, studentDashboard: true, studentProfile: true,
+    activities: true, resources: true, quizzes: true, quizManagement: true,
+    quizBuilder: true, quizResults: true, reviewResults: true, classSchedules: true,
+    classSchedule: true, manageEnrollments: true, myEnrollments: true, enrollments: true,
+    programs: true, subjects: true, classes: true, marksEntry: true, courseProgress: true,
+    courses: true, attendance: true, hrAttendance: true, myAttendance: true,
+    hrPenalties: true, instructorParticipation: true, instructorBehavior: true,
+    analytics: true, advancedAnalytics: true, chat: true, scheduledReports: true,
     notifications: true, profile: true, timer: true, roleAccess: false
   },
-  hr: { 
-    // HR gets ALL screens EXCEPT roleAccess
-    home: true, dashboard: true, studentDashboard: true, studentProfile: true, 
-    activities: true, resources: true, quizzes: true, quizManagement: true, 
-    quizBuilder: true, quizResults: true, reviewResults: true, classSchedules: true, 
-    classSchedule: true, manageEnrollments: true, myEnrollments: true, enrollments: true, 
-    programs: true, subjects: true, classes: true, marksEntry: true, courseProgress: true, 
-    courses: true, attendance: true, hrAttendance: true, myAttendance: true, 
-    hrPenalties: true, instructorParticipation: true, instructorBehavior: true, 
-    analytics: true, advancedAnalytics: true, chat: true, scheduledReports: true, 
+  hr: {
+    home: true, dashboard: true, studentDashboard: true, studentProfile: true,
+    activities: true, resources: true, quizzes: true, quizManagement: true,
+    quizBuilder: true, quizResults: true, reviewResults: true, classSchedules: true,
+    classSchedule: true, manageEnrollments: true, myEnrollments: true, enrollments: true,
+    programs: true, subjects: true, classes: true, marksEntry: true, courseProgress: true,
+    courses: true, attendance: true, hrAttendance: true, myAttendance: true,
+    hrPenalties: true, instructorParticipation: true, instructorBehavior: true,
+    analytics: true, advancedAnalytics: true, chat: true, scheduledReports: true,
     notifications: true, profile: true, timer: true, roleAccess: false
   },
-  student: { 
-    // Student gets ONLY student-related screens
-    home: true, dashboard: false, studentDashboard: true, studentProfile: true, 
-    activities: true, resources: true, quizzes: true, quizResults: true, reviewResults: false, 
-    classSchedules: true, classSchedule: true, myEnrollments: true, courseProgress: true, 
-    courses: true, myAttendance: true, chat: true, notifications: true, profile: true, 
+  student: {
+    home: true, dashboard: false, studentDashboard: true, studentProfile: true,
+    activities: true, resources: true, quizzes: true, quizResults: true, reviewResults: false,
+    classSchedules: true, classSchedule: true, myEnrollments: true, courseProgress: true,
+    courses: true, myAttendance: true, chat: true, notifications: true, profile: true,
     timer: true, roleAccess: false,
-    // These are admin/instructor only
-    quizManagement: false, quizBuilder: false, manageEnrollments: false, enrollments: false, 
-    programs: false, subjects: false, classes: false, marksEntry: false, attendance: false, 
-    hrAttendance: false, hrPenalties: false, instructorParticipation: false, instructorBehavior: false, 
+    quizManagement: false, quizBuilder: false, manageEnrollments: false, enrollments: false,
+    programs: false, subjects: false, classes: false, marksEntry: false, attendance: false,
+    hrAttendance: false, hrPenalties: false, instructorParticipation: false, instructorBehavior: false,
     analytics: false, advancedAnalytics: false, scheduledReports: false
   },
   super_admin: {
-    // Super Admin gets ALL screens including roleAccess
-    home: true, dashboard: true, studentDashboard: true, studentProfile: true, 
-    activities: true, resources: true, quizzes: true, quizManagement: true, 
-    quizBuilder: true, quizResults: true, reviewResults: true, classSchedules: true, 
-    classSchedule: true, manageEnrollments: true, myEnrollments: true, enrollments: true, 
-    programs: true, subjects: true, classes: true, marksEntry: true, courseProgress: true, 
-    courses: true, attendance: true, hrAttendance: true, myAttendance: true, 
-    hrPenalties: true, instructorParticipation: true, instructorBehavior: true, 
-    analytics: true, advancedAnalytics: true, chat: true, scheduledReports: true, 
+    home: true, dashboard: true, studentDashboard: true, studentProfile: true,
+    activities: true, resources: true, quizzes: true, quizManagement: true,
+    quizBuilder: true, quizResults: true, reviewResults: true, classSchedules: true,
+    classSchedule: true, manageEnrollments: true, myEnrollments: true, enrollments: true,
+    programs: true, subjects: true, classes: true, marksEntry: true, courseProgress: true,
+    courses: true, attendance: true, hrAttendance: true, myAttendance: true,
+    hrPenalties: true, instructorParticipation: true, instructorBehavior: true,
+    analytics: true, advancedAnalytics: true, chat: true, scheduledReports: true,
     notifications: true, profile: true, timer: true, roleAccess: true
   }
 };
 
-/**
- * useRoleAccess Hook
- * 
- * Fetches and caches role-screen permissions from Firestore.
- * Integrates with the RoleAccessPro dynamic configuration.
- * 
- * @returns {Object} { hasAccess, loading, roleScreens, reload }
- */
 export const useRoleAccess = () => {
   const { user, role, isSuperAdmin, loading: authLoading, roleLoading } = useAuth();
   const [roleScreens, setRoleScreens] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load role screens from Firestore
   const loadRoleScreens = useCallback(async () => {
     if (!user) {
+      setRoleScreens({});
       setLoading(false);
       return;
     }
@@ -94,97 +77,70 @@ export const useRoleAccess = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const result = await getRoleScreens();
-      
-      if (result.success) {
+
+      if (result?.success && result.data) {
         setRoleScreens(result.data);
-        logger.debug('[useRoleAccess] Loaded role screens from Firestore');
+        debug('[useRoleAccess] Loaded role screens from config service');
       } else {
-        logger.info('[useRoleAccess] No role screens found, using defaults');
+        info('[useRoleAccess] No role screens found, using defaults');
         setRoleScreens(defaultRoleScreens);
       }
     } catch (err) {
-      logger.error('[useRoleAccess] Error loading role screens:', err);
+      error('[useRoleAccess] Error loading role screens:', err);
       setError(err.message);
-      // Fallback to defaults on error
-      logger.info('[useRoleAccess] Using default role screens due to error');
       setRoleScreens(defaultRoleScreens);
     } finally {
       setLoading(false);
     }
-  }, [user]); // Only depend on user object
+  }, [user]);
 
-  // Load on mount and when user changes
   useEffect(() => {
     if (!authLoading) {
       loadRoleScreens();
     }
   }, [authLoading, loadRoleScreens]);
 
-  /**
-   * Check if current user has access to a screen
-   * @param {string} screenId - Screen ID from screenDefinitions.js
-   * @returns {boolean} - True if user has access
-   */
   const hasAccess = useCallback((screenId) => {
-    // Not authenticated
     if (!user) {
       return false;
     }
 
-    // During initial loading, if user exists but role is still loading, be patient and allow access
-    // This prevents the access denied flicker during role detection
+    if (!screenId) {
+      return true;
+    }
+
     if (!role || roleLoading) {
       return true;
     }
 
-    // Super admins bypass all restrictions
     if (isSuperAdmin) {
       return true;
     }
 
-    // Simplified logic: Always grant access to 'home' for authenticated users to prevent infinite loops
     if (screenId === 'home') {
       return true;
     }
 
-    // Check role-specific permissions
-    const userRole = role.toLowerCase();
-    const screenPermissions = roleScreens[userRole];
-    
-    if (!screenPermissions) {
-      // Fallback to default permissions
-      const defaultPermissions = defaultRoleScreens[userRole];
-      if (defaultPermissions) {
-        return !!defaultPermissions[screenId];
-      }
-      return false;
+    const userRole = String(role).toLowerCase();
+    const screenPermissions = roleScreens[userRole] || defaultRoleScreens[userRole];
+
+    if (!screenPermissions || typeof screenPermissions[screenId] === 'undefined') {
+      return true;
     }
 
-    const hasPermission = !!screenPermissions[screenId];
-    
-    return hasPermission;
-  }, [user, role, isSuperAdmin, roleScreens]);
+    return screenPermissions[screenId] === true;
+  }, [user, role, roleLoading, isSuperAdmin, roleScreens]);
 
-  /**
-   * Check if user has access to any of the provided screens
-   * @param {string[]} screenIds - Array of screen IDs
-   * @returns {boolean} - True if user has access to at least one
-   */
   const hasAnyAccess = useCallback((screenIds) => {
-    if (!Array.isArray(screenIds)) return false;
-    return screenIds.some(screenId => hasAccess(screenId));
+    if (!Array.isArray(screenIds) || screenIds.length === 0) return false;
+    return screenIds.some((screenId) => hasAccess(screenId));
   }, [hasAccess]);
 
-  /**
-   * Check if user has access to all provided screens
-   * @param {string[]} screenIds - Array of screen IDs
-   * @returns {boolean} - True if user has access to all
-   */
   const hasAllAccess = useCallback((screenIds) => {
-    if (!Array.isArray(screenIds)) return false;
-    return screenIds.every(screenId => hasAccess(screenId));
+    if (!Array.isArray(screenIds) || screenIds.length === 0) return false;
+    return screenIds.every((screenId) => hasAccess(screenId));
   }, [hasAccess]);
 
   return {

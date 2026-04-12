@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 
-const ChatGame = ({ questions, settings, onComplete }) => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const ChatGame = ({ questions, settings, onComplete }) => {
     const { t, lang } = useLang();
     const [messages, setMessages] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);

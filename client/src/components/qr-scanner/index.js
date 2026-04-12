@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 // Export all QR Scanner components
 export { default as QRScanner } from './QRScanner';
 

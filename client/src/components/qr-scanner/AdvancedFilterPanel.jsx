@@ -5,7 +5,8 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import PortalTooltip from '@ui/PortalTooltip';
 
-const AdvancedFilterPanel = ({
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const AdvancedFilterPanel = ({
   students,
   onFilterChange,
   isOpen,
@@ -285,7 +286,7 @@ const AdvancedFilterPanel = ({
                     icon={status.icon}
                     isSelected={selectedFilters.attendanceStatus.includes(status.value)}
                     onClick={() => {
-                      console.log('🔍 Status card clicked:', status.value);
+                      info('🔍 Status card clicked:', status.value);
                       setSelectedFilters(prev => ({
                         ...prev,
                         attendanceStatus: prev.attendanceStatus.includes(status.value)
@@ -355,7 +356,7 @@ const AdvancedFilterPanel = ({
                     icon={filter.icon}
                     isSelected={selectedFilters.attendanceStatus.includes(filter.value)}
                     onClick={() => {
-                      console.log('🔍 Quick filter clicked:', filter.value);
+                      info('🔍 Quick filter clicked:', filter.value);
                       setSelectedFilters(prev => ({
                         ...prev,
                         attendanceStatus: prev.attendanceStatus.includes(filter.value)

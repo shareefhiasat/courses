@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * Virtual scrolling component for large lists
@@ -72,7 +72,7 @@ const VirtualScroll = ({
   // Log performance metrics in development
   useEffect(() => {
     if (import.meta.env.DEV && items.length > 1000) {
-      logger.debug(`VirtualScroll: Rendering ${visibleItems.length} of ${items.length} items`);
+      debug(`VirtualScroll: Rendering ${visibleItems.length} of ${items.length} items`);
     }
   }, [visibleItems.length, items.length]);
 

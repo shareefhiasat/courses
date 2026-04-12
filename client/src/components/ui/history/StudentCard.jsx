@@ -8,7 +8,8 @@ import { CircleIcon, ZapIcon } from '@utils/icons.jsx';
 import { useNavigate } from 'react-router-dom';
 import PortalTooltip from '@ui/PortalTooltip';
 
-const StudentCard = ({ 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const StudentCard = ({ 
   student, 
   isExpanded, 
   favoriteStudents, 
@@ -57,7 +58,7 @@ const StudentCard = ({
 
   const handleStudentAction = useCallback((e) => {
     e.stopPropagation();
-    try { onStudentAction(student); } catch (error) { logger.error('Error calling onStudentAction:', error); }
+    try { onStudentAction(student); } catch (error) { error('Error calling onStudentAction:', error); }
   }, [onStudentAction, student]);
 
   const handleStudentSelect = useCallback((e) => {
@@ -228,9 +229,9 @@ const StudentCard = ({
             {student.behavior}
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.375rem' : '0.5rem' }}>
+        <div style={{ display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: isMobile ? '0.375rem' : '0.5rem' }}>
           <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-            {t('penalties')}:
+            {t('penalties') || 'Penalties'}:
           </span>
           <span style={{
             display: 'inline-flex',
@@ -240,12 +241,12 @@ const StudentCard = ({
             height: isMobile ? '1.5rem' : '1.75rem',
             borderRadius: '0.375rem',
             fontWeight: 500,
-            background: student.penalty < 0 ? '#fee2e2' : '#f3f4f6',
-            color: student.penalty < 0 ? '#991b1b' : '#374151',
+            background: (student.penaltyHistory?.length || 0) > 0 ? '#fee2e2' : '#f3f4f6',
+            color: (student.penaltyHistory?.length || 0) > 0 ? '#991b1b' : '#374151',
             fontSize: isMobile ? '0.7rem' : '0.75rem',
             padding: '0 0.5rem'
           }}>
-            {student.penalty}
+            {student.penaltyHistory?.length || 0}
           </span>
         </div>
         <div style={{ display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: isMobile ? '0.375rem' : '0.5rem' }}>
@@ -439,6 +440,7 @@ const StudentCard = ({
             size="icon"
             onClick={handleQRNavigate}
             aria-label={t('open_qr_code')}
+            style={{ display: 'none' }}
           >
             {getThemedIcon('ui', 'qr_code', 16)}
           </Button>

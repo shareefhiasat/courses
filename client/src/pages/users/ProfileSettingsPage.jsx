@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Navigate } from 'react-router-dom';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import { db } from '@services/other/config';
-import { getUserProfile, getUserDisplayName } from '@services/business/userService';
+import { getUserProfile, updateUser } from '@services/business/userService';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Container, Card, CardBody, Button, Input, Spinner, useToast } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
@@ -50,7 +48,7 @@ const ProfileSettingsPage = () => {
 
     const loadProfile = async () => {
       try {
-        const userProfile = await getUserProfile(user);
+        const userProfile = await getUserProfile(user.uid);
         if (userProfile) {
           const resolvedColor = normalizeHexColor(userProfile.messageColor, DEFAULT_ACCENT);
           // Save to localStorage for ChatPage access
@@ -67,6 +65,7 @@ const ProfileSettingsPage = () => {
           // Apply color on load
           applyAccentColorGlobally(resolvedColor);
         } else {
+          // Fallback to Keycloak user data if API fails
           const fallbackColor = normalizeHexColor(null, DEFAULT_ACCENT);
           setProfileData(prev => ({
             ...prev,
@@ -77,9 +76,18 @@ const ProfileSettingsPage = () => {
           // Apply fallback color on load
           applyAccentColorGlobally(fallbackColor);
         }
-      } catch (error) {
-        logger.error('Error loading profile:', error);
-        toast.error(t('error_loading_profile') || 'Error loading profile');
+      } catch (err) {
+        // Fallback to Keycloak user data if API fails
+        warn('Profile API failed, using Keycloak data:', err);
+        const fallbackColor = normalizeHexColor(null, DEFAULT_ACCENT);
+        setProfileData(prev => ({
+          ...prev,
+          displayName: user.displayName || '',
+          messageColor: fallbackColor
+        }));
+        setCustomColorInput(fallbackColor);
+        // Apply fallback color on load
+        applyAccentColorGlobally(fallbackColor);
       } finally {
         setLoading(false);
       }
@@ -101,7 +109,7 @@ const ProfileSettingsPage = () => {
           });
         toast.success(t('test_notification_sent') || 'Test notification sent');
       } catch (error) {
-        logger.error('Failed to send test notification:', error);
+        error('Failed to send test notification:', error);
         toast.error(t('failed_to_send_test_notification') || 'Failed to send test notification');
       }
     } else {
@@ -115,28 +123,30 @@ const ProfileSettingsPage = () => {
     setSaving(true);
     try {
       const normalizedColor = normalizeHexColor(profileData.messageColor, DEFAULT_ACCENT);
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        displayName: profileData.displayName,
-        realName: profileData.realName,
+      // Only save LMS-managed fields, exclude Keycloak-managed fields
+      const updateResult = await updateUser(user.uid, {
         phoneNumber: profileData.phoneNumber,
         messageColor: normalizedColor,
         preferOTPLogin: profileData.preferOTPLogin
       });
 
+      if (!updateResult?.success) {
+        throw new Error(updateResult?.error || 'Failed to update profile');
+      }
+
       // Log profile update activity
       try {
         await ActivityLogger.profileUpdate();
       } catch (error) {
-        logger.warn('Failed to log profile update activity:', error);
+        warn('Failed to log profile update activity:', error);
       }
 
       // Apply color globally immediately
       applyAccentColorGlobally(normalizedColor);
       
       toast.success(t('profile_updated') || 'Profile updated successfully');
-    } catch (error) {
-      logger.error('Error updating profile:', error);
+    } catch (err) {
+      error('Error updating profile:', err);
       toast.error(t('error_updating_profile') || 'Error updating profile');
     } finally {
       setSaving(false);
@@ -173,7 +183,7 @@ const ProfileSettingsPage = () => {
           initializeNotifications()
         ]);
       } catch (error) {
-        console.error('Error loading profile data:', error);
+        error('Error loading profile data:', error);
       } finally {
         safeStop();
       }
@@ -266,16 +276,16 @@ const ProfileSettingsPage = () => {
                 label={t('email')}
                 value={user.email || ''}
                 disabled
-                helperText={t('email_cannot_be_changed') || 'Email address cannot be changed'}
+                helperText={t('email_managed_by_keycloak') || 'Email address is managed by Keycloak authentication system'}
               />
 
               <Input
                 id="displayName"
                 type="text"
                 label={t('display_name')}
-                value={profileData.displayName}
-                onChange={(e) => handleChange('displayName', e.target.value)}
-                placeholder={t('display_name_placeholder') || 'Enter your display name'}
+                value={user.displayName || ''}
+                disabled
+                helperText={t('display_name_managed_by_keycloak') || 'Display name is managed by Keycloak authentication system'}
                 maxLength={100}
               />
 
@@ -283,9 +293,9 @@ const ProfileSettingsPage = () => {
                 id="realName"
                 type="text"
                 label={t('real_name')}
-                value={profileData.realName}
-                onChange={(e) => handleChange('realName', e.target.value)}
-                placeholder={t('real_name_placeholder')}
+                value={`${user.firstName || ''} ${user.lastName || ''}`.trim() || ''}
+                disabled
+                helperText={t('real_name_managed_by_keycloak') || 'Real name is managed by Keycloak authentication system'}
                 maxLength={100}
               />
 

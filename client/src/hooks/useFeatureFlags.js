@@ -5,7 +5,8 @@
 
 import { useCallback, useMemo } from 'react';
 import { useAuth } from '@contexts/AuthContext';
-import { 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import { 
   isFeatureEnabledForUser, 
   isFeatureEnabledForRole,
   getEnabledFeaturesForRole,

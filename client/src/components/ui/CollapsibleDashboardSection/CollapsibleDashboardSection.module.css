@@ -146,7 +146,7 @@
   background: transparent;
   border-radius: 6px;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--section-color, #6366f1);
   transition: all 0.2s ease;
 }
 

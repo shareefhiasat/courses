@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { StudentHistory } from './index';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'UI/History/StudentHistory',
   component: StudentHistory,
   parameters: {

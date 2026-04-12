@@ -1,6 +1,6 @@
 import React from 'react';
 import styles from './Tabs.module.css';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * Modern Tabs Component
@@ -16,11 +16,11 @@ const Tabs = ({
 }) => {
   // Debug: Log tab props and interactions
   React.useEffect(() => {
-    logger.log('[Tabs] Tabs props:', { tabs, activeTab, variant, size, className });
+    info('[Tabs] Tabs props:', { tabs, activeTab, variant, size, className });
   }, [tabs, activeTab, variant, size, className]);
 
   const handleTabClick = (tabValue) => {
-    logger.log('[Tabs] Tab clicked:', { tabValue, currentActiveTab: activeTab });
+    info('[Tabs] Tab clicked:', { tabValue, currentActiveTab: activeTab });
     if (onTabChange && tabValue !== activeTab) {
       onTabChange(tabValue);
     }

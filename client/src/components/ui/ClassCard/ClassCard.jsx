@@ -6,7 +6,8 @@ import { getThemedIcon, deriveIconColor } from '@constants/iconTypes';
 import { Tooltip, PortalTooltip } from '@ui';
 import { createClassStatBadge, CLASS_STAT_CONFIGS } from '@constants/iconTypes';
 
-const ClassCard = ({ 
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const ClassCard = ({ 
   cls, 
   classStats, 
   primaryColor, 
@@ -152,6 +153,25 @@ const ClassCard = ({
         }}>
           {getLocalizedClassName(cls)}
         </h4>
+        
+        {/* Subject Name */}
+        {cls.subjectName && (
+          <div style={{ 
+            marginTop: '0.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            {getThemedIcon('ui', 'book', 10, theme)}
+            <span style={{ 
+              fontSize: '0.75rem', 
+              color: theme === 'dark' ? '#9ca3af' : '#6b7280',
+              fontWeight: 500
+            }}>
+              {cls.subjectName}
+            </span>
+          </div>
+        )}
         
         {/* Term and Year */}
         <div style={{ 

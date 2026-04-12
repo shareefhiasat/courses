@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Button, Modal } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getDeleteMessage, getDeleteTitle, createDeleteModalState, resetDeleteModalState } from '@utils/deleteMessages';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * Unified DeleteModal Component
@@ -56,7 +56,7 @@ const DeleteModal = ({
         await onConfirm();
         onClose();
       } catch (error) {
-        logger.error('Delete operation failed:', error);
+        console.error('Delete operation failed:', error);
         // Still close modal on error
         onClose();
       }
@@ -93,7 +93,7 @@ const DeleteModal = ({
       closeOnOverlayClick={!loading}
       closeOnEscape={!loading}
       className="delete-modal compact-modal"
-      titleStyle={{ fontSize: '1rem', fontWeight: '600' }}
+      titleStyle={{ fontSize: '1.25rem', fontWeight: '600', textTransform: 'capitalize' }}
     >
       <div dangerouslySetInnerHTML={{ __html: getMessage() }} />
     </Modal>
@@ -120,8 +120,8 @@ export const useDeleteModal = (t = (key) => key) => {
       try {
         await deleteModal.onConfirm();
         hideDeleteModal();
-      } catch (error) {
-        logger.error('Delete operation failed:', error);
+      } catch (err) {
+        error('Delete operation failed:', err);
         // Still close modal on error
         hideDeleteModal();
       }

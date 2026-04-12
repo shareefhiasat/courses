@@ -1,5 +1,5 @@
 // Service Worker Registration Utility
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 class ServiceWorkerManager {
   constructor() {
     this.swRegistration = null;
@@ -8,7 +8,7 @@ class ServiceWorkerManager {
 
   async register() {
     if (!this.isSupported) {
-      logger.warn('Service Worker not supported');
+      warn('Service Worker not supported');
       return false;
     }
 
@@ -22,10 +22,10 @@ class ServiceWorkerManager {
       // Wait for service worker to be ready
       await navigator.serviceWorker.ready;
       
-      logger.log('Service Worker registered successfully:', registration);
+      info('Service Worker registered successfully:', registration);
       return true;
     } catch (error) {
-      logger.error('Service Worker registration failed:', error);
+      error('Service Worker registration failed:', error);
       return false;
     }
   }
@@ -38,33 +38,33 @@ class ServiceWorkerManager {
     try {
       const result = await this.swRegistration.unregister();
       this.swRegistration = null;
-      logger.log('Service Worker unregistered:', result);
+      info('Service Worker unregistered:', result);
       return result;
     } catch (error) {
-      logger.error('Service Worker unregistration failed:', error);
+      error('Service Worker unregistration failed:', error);
       return false;
     }
   }
 
   async requestNotificationPermission() {
     if (!this.swRegistration) {
-      logger.warn('Service Worker not registered');
+      warn('Service Worker not registered');
       return false;
     }
 
     try {
       const permission = await Notification.requestPermission();
-      logger.log('Notification permission:', permission);
+      info('Notification permission:', permission);
       return permission === 'granted';
     } catch (error) {
-      logger.error('Failed to request notification permission:', error);
+      error('Failed to request notification permission:', error);
       return false;
     }
   }
 
   async subscribeToPush() {
     if (!this.swRegistration) {
-      logger.warn('Service Worker not registered');
+      warn('Service Worker not registered');
       return null;
     }
 
@@ -83,7 +83,7 @@ class ServiceWorkerManager {
       
       return subscription;
     } catch (error) {
-      logger.error('Failed to subscribe to push:', error);
+      error('Failed to subscribe to push:', error);
       return null;
     }
   }
@@ -105,7 +105,7 @@ class ServiceWorkerManager {
 
   async showLocalNotification(title, options = {}) {
     if (!this.swRegistration) {
-      logger.warn('Service Worker not registered');
+      warn('Service Worker not registered');
       return false;
     }
 
@@ -120,7 +120,7 @@ class ServiceWorkerManager {
       });
       return true;
     } catch (error) {
-      logger.error('Failed to show local notification:', error);
+      error('Failed to show local notification:', error);
       return false;
     }
   }
@@ -148,7 +148,7 @@ if (typeof window !== 'undefined' && serviceWorkerManager.isSupported && import.
     serviceWorkerManager.register();
   }
 } else if (typeof window !== 'undefined' && !import.meta.env.PROD) {
-  logger.log('Service Worker auto-registration disabled in development');
+  info('Service Worker auto-registration disabled in development');
 }
 
 export default serviceWorkerManager;

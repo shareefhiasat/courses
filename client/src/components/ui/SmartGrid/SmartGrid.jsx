@@ -3,7 +3,7 @@ import { formatDateTime } from '@utils/date';
 import './SmartGrid.css';
 import { Modal, useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { VirtualScroll } from '@ui';
 
 const SmartGrid = React.memo(({ 

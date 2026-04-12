@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 
-export default function GroupSortGame({ data, settings, onComplete }) {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default function GroupSortGame({ data, settings, onComplete }) {
   const { t, lang } = useLang();
   // data structure: { groups: [{name: 'True', items: ['item1', 'item2']}, {name: 'False', items: [...]}] }
   const [items, setItems] = useState([]);

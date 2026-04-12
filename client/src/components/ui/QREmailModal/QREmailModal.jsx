@@ -3,7 +3,7 @@ import { Button, Modal, Input } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useToast } from '@ui';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * QR Code Email Modal Component
@@ -98,7 +98,7 @@ const QREmailModal = ({
             useCustomEmail: useCustomEmail
           });
         } catch (e) {
-          logger.error('Failed to log QR code email activity:', e);
+          error('Failed to log QR code email activity:', e);
         }
         
         onClose();
@@ -106,7 +106,7 @@ const QREmailModal = ({
         toast?.showError('Failed to send QR code email');
       }
     } catch (error) {
-      logger.error('Error sending QR code email:', error);
+      error('Error sending QR code email:', error);
       toast?.showError('Failed to send QR code email');
     } finally {
       setLoading(false);

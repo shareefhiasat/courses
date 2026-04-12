@@ -1,0 +1,116 @@
+🔍 Exploring Subject schema for pagination...
+🔍 Subject type: {
+  "data": {
+    "__type": {
+      "name": "Subject",
+      "kind": "OBJECT",
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "nameEn",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "nameAr",
+          "type": {
+            "name": "String",
+            "kind": "SCALAR"
+          }
+        },
+        {
+          "name": "code",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "description",
+          "type": {
+            "name": "String",
+            "kind": "SCALAR"
+          }
+        },
+        {
+          "name": "credits",
+          "type": {
+            "name": "Int",
+            "kind": "SCALAR"
+          }
+        },
+        {
+          "name": "status",
+          "type": {
+            "name": "String",
+            "kind": "SCALAR"
+          }
+        },
+        {
+          "name": "createdAt",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "createdBy",
+          "type": {
+            "name": "User",
+            "kind": "OBJECT"
+          }
+        },
+        {
+          "name": "updatedBy",
+          "type": {
+            "name": "User",
+            "kind": "OBJECT"
+          }
+        },
+        {
+          "name": "program",
+          "type": {
+            "name": "Program",
+            "kind": "OBJECT"
+          }
+        },
+        {
+          "name": "classes",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "activities",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        },
+        {
+          "name": "resources",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          }
+        }
+      ]
+    }
+  }
+}

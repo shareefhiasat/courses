@@ -1,0 +1,7 @@
+🔍 Checking test configuration...
+🌐 Base URL: http://localhost:5174
+🔗 GraphQL URL: http://localhost:4001/graphql
+🏛️ Keycloak URL: http://localhost:8080
+👤 Test User: shareef.hiasat@gmail.com
+🔑 Client ID: military-lms-app
+✅ Demo test passed - Configuration loaded successfully

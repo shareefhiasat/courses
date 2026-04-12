@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 ﻿/**
  * Avatar Utilities
  * Extracted for DRY principle and reusability

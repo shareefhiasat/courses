@@ -8,7 +8,8 @@
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { ICON_TYPES } from '@constants/iconTypes';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Convert React icon component to SVG string for HTML usage
  * @param {React.Component} iconComponent - React icon component from ICON_TYPES
  * @returns {string} SVG string

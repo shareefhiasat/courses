@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '../services/utils/logger.js';
+
 /**
  * Absence Types Constants
  * 
@@ -16,91 +18,131 @@ export const ABSENCE_TYPES = [
     deduction: 0.25,
     icon: "FileSignature",
     color: "#3b82f6",
+    description: "Absence with official documentation (medical certificate, etc.)"
   },
   {
     id: "without_excuse",
     label_ar: "بدون عذر",
     label_en: "Without Excuse",
-    deduction: 0.5,
+    deduction: 0.50,
     icon: "XCircle",
     color: "#ef4444",
+    description: "Absence without official documentation"
   },
   {
     id: "bereavement",
-    label_ar: "وفاة قريب",
+    label_ar: "وفاة",
     label_en: "Bereavement",
     deduction: 0,
-    icon: "Users",
+    icon: "Heart",
     color: "#6b7280",
+    description: "Death of close relative, up to 3 days leave"
   },
   {
-    id: "beyond_control",
-    label_ar: "أسباب خارجة عن السيطرة",
-    label_en: "Beyond Control (accident, weather, hospitalization)",
+    id: "medical_emergency",
+    label_ar: "طوارئ طبية",
+    label_en: "Medical Emergency",
     deduction: 0.25,
     icon: "AlertTriangle",
     color: "#f59e0b",
+    description: "Medical emergency requiring immediate attention"
   },
+  {
+    id: "family_emergency",
+    label_ar: "طوارئ عائلية",
+    label_en: "Family Emergency",
+    deduction: 0.25,
+    icon: "Users",
+    color: "#8b5cf6",
+    description: "Family emergency requiring immediate attention"
+  }
 ];
 
-// Helper functions
+export const ABSENCE_THRESHOLDS = {
+  WARNING_PERCENTAGE: 10, // 10% absence triggers warning
+  CRITICAL_PERCENTAGE: 15, // 15% absence triggers critical warning
+  FAILURE_PERCENTAGE: 20, // 20% absence triggers automatic failure
+  MAX_ALLOWED_ABSENCES: 5, // Maximum allowed absences per term
+  FAILURE_GRADE: "FB" // Grade for automatic failure
+};
+
 export const getAbsenceTypeById = (id) => {
   return ABSENCE_TYPES.find(type => type.id === id);
 };
 
-export const getAbsenceLabel = (id, lang = 'en') => {
+export const getAbsenceTypeLabel = (id, lang = 'en') => {
   const type = getAbsenceTypeById(id);
-  return type ? (lang === 'ar' ? type.label_ar : type.label_en) : id;
+  if (!type) return id;
+  return lang === 'ar' ? type.label_ar : type.label_en;
 };
 
-export const getAbsenceIcon = (id) => {
-  const type = getAbsenceTypeById(id);
-  return type ? type.icon : 'Clock';
+export const calculateAbsenceDeduction = (sessions, absenceType) => {
+  const type = getAbsenceTypeById(absenceType);
+  if (!type) return 0;
+  return sessions * type.deduction;
 };
 
-export const getAbsenceColor = (id) => {
-  const type = getAbsenceTypeById(id);
-  return type ? type.color : '#6b7280';
-};
-
-/**
- * Calculate absence percentage and penalties
- */
-export const calculateAbsenceStats = (absences, totalSessions) => {
-  if (!totalSessions || totalSessions === 0) {
+export const checkAbsenceThreshold = (totalSessions, absentSessions) => {
+  const percentage = (absentSessions / totalSessions) * 100;
+  
+  if (percentage >= ABSENCE_THRESHOLDS.FAILURE_PERCENTAGE) {
     return {
-      totalAbsences: 0,
-      withExcuse: 0,
-      withoutExcuse: 0,
-      percentage: 0,
-      attendanceDeduction: 0,
-      exceedsLimit: false,
-      willFail: false,
+      level: 'failure',
+      percentage,
+      message: 'Student has exceeded absence limit and will receive FB grade',
+      grade: ABSENCE_THRESHOLDS.FAILURE_GRADE
     };
   }
-
-  const withExcuse = absences.filter(
-    (a) => a.type === "with_excuse" || a.type === "beyond_control"
-  ).length;
-  const withoutExcuse = absences.filter(
-    (a) => a.type === "without_excuse"
-  ).length;
-  const totalAbsences = absences.length;
-  const percentage = (totalAbsences / totalSessions) * 100;
-
-  // Calculate attendance deduction
-  const attendanceDeduction = withExcuse * 0.25 + withoutExcuse * 0.5;
-
-  const exceedsLimit = percentage > 20;
-  const willFail = exceedsLimit;
-
+  
+  if (percentage >= ABSENCE_THRESHOLDS.CRITICAL_PERCENTAGE) {
+    return {
+      level: 'critical',
+      percentage,
+      message: 'Student is approaching absence limit',
+      grade: null
+    };
+  }
+  
+  if (percentage >= ABSENCE_THRESHOLDS.WARNING_PERCENTAGE) {
+    return {
+      level: 'warning',
+      percentage,
+      message: 'Student absence rate requires attention',
+      grade: null
+    };
+  }
+  
   return {
-    totalAbsences,
-    withExcuse,
-    withoutExcuse,
-    percentage: Math.round(percentage * 100) / 100,
-    attendanceDeduction: Math.round(attendanceDeduction * 100) / 100,
-    exceedsLimit,
-    willFail,
+    level: 'normal',
+    percentage,
+    message: 'Student attendance is within acceptable range',
+    grade: null
   };
+};
+
+// Add missing getAbsenceColor function
+export const getAbsenceColor = (absenceType) => {
+  const type = getAbsenceTypeById(absenceType);
+  return type?.color || '#6b7280';
+};
+
+// Add missing getAbsenceIcon function
+export const getAbsenceIcon = (absenceType) => {
+  const type = getAbsenceTypeById(absenceType);
+  return type?.icon || 'HelpCircle';
+};
+
+// Add missing getAbsenceLabel function (alias for getAbsenceTypeLabel)
+export const getAbsenceLabel = getAbsenceTypeLabel;
+
+export default {
+  ABSENCE_TYPES,
+  ABSENCE_THRESHOLDS,
+  getAbsenceTypeById,
+  getAbsenceTypeLabel,
+  calculateAbsenceDeduction,
+  checkAbsenceThreshold,
+  getAbsenceColor,
+  getAbsenceIcon,
+  getAbsenceLabel
 };

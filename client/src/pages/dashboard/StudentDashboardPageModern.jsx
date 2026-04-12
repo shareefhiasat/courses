@@ -11,7 +11,8 @@ const { getIconWithColor } = iconTypes;
 import useDashboardData from '@hooks/useDashboardData';
 import useStudentDashboardFilters from '@hooks/useStudentDashboardFilters';
 import { UnifiedFilterSection } from '@/components/filters';
-import './StudentDashboardPageModern.css';
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import './StudentDashboardPageModern.css';
 
 export default function StudentDashboardPageModern() {
   const { t, lang } = useLang();
@@ -120,7 +121,7 @@ export default function StudentDashboardPageModern() {
       try {
         await reload(); // Use the reload function from useDashboardData
       } catch (error) {
-        console.error('Error loading dashboard data:', error);
+        error('Error loading dashboard data:', error);
       } finally {
         safeStop();
       }

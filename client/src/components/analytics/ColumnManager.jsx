@@ -3,7 +3,8 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Column Manager Component - UI dialog for managing list widget columns
  * Allows users to show/hide columns and add related collection columns
  */

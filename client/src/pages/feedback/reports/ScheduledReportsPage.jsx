@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -77,7 +77,7 @@ const ScheduledReportsPage = () => {
         setTemplates(result.data || []);
       }
     } catch (error) {
-      logger.error('Error loading templates:', error);
+      error('Error loading templates:', error);
     }
   }, []);
 
@@ -290,7 +290,7 @@ const ScheduledReportsPage = () => {
           loadTemplates()
         ]);
       } catch (error) {
-        console.error('Error loading reports data:', error);
+        error('Error loading reports data:', error);
       } finally {
         safeStop();
       }

@@ -1,0 +1,7 @@
+🔧 Creating test programs for pagination...
+✅ Created 15 test programs
+🔍 Testing large page size...
+✅ Large page size test completed
+📊 Programs returned: 16
+📊 Has next page: false
+📊 Has previous page: false

@@ -1,3 +1,5 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 // Attendance Method Types and Labels
 export const ATTENDANCE_METHODS = {
   ROSTER_QUICK_ACTION: 'roster_quick_action',

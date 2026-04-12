@@ -1,5 +1,6 @@
 import React from 'react';
-import './qr-scanner-ui.css';
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import './qr-scanner-ui.css';
 
 const Button = React.forwardRef(({ 
   className = '', 

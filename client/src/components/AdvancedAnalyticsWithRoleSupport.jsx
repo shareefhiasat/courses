@@ -11,7 +11,7 @@ import { processWidgetData } from '@hooks/useAnalyticsData';
 import useRoleBasedWidgets from '@hooks/useRoleBasedWidgets';
 import DashboardEngine from './analytics/DashboardEngine';
 import WidgetAssignmentManager from './admin/WidgetAssignmentManager';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import PortalTooltip from '@ui/PortalTooltip';
 
 /**
@@ -92,7 +92,7 @@ export default function AdvancedAnalytics({
         setAccentColor(c);
         try { localStorage.setItem(`accent_color_${user.uid}`, c); } catch {}
       }
-    }).catch(e => logger.warn('[AdvancedAnalytics] accent color load failed:', e));
+    }).catch(e => warn('[AdvancedAnalytics] accent color load failed:', e));
 
     const handler = (e) => {
       if (e?.detail?.color) {
@@ -147,7 +147,7 @@ export default function AdvancedAnalytics({
       ]);
       setLastUpdatedAt(Date.now());
     } catch (error) {
-      logger.error('[AdvancedAnalytics] Error during parallel reload:', error);
+      error('[AdvancedAnalytics] Error during parallel reload:', error);
     }
   }, [reload]);
 
@@ -167,7 +167,7 @@ export default function AdvancedAnalytics({
 
   const mergedFilters = useMemo(() => {
     const merged = { ...localFilters, ...externalFilters };
-    logger.log('[AdvancedAnalytics] Merged filters:', merged);
+    info('[AdvancedAnalytics] Merged filters:', merged);
     return merged;
   }, [localFilters, externalFilters]);
 
@@ -205,14 +205,14 @@ export default function AdvancedAnalytics({
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      logger.warn('[AdvancedAnalytics] export failed:', e);
+      warn('[AdvancedAnalytics] export failed:', e);
     }
   }, [effectiveWidgets, rawData, mergedFilters, t, lang]);
 
   // ── Handle widget assignment save ───────────────────────────────────────────
   const handleWidgetAssignmentSave = useCallback(async (config) => {
     // TODO: Save to Firestore or configuration service
-    logger.log('[AdvancedAnalytics] Saving widget assignment:', config);
+    info('[AdvancedAnalytics] Saving widget assignment:', config);
     // This would integrate with the widget configuration service
   }, []);
 

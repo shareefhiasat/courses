@@ -1,231 +1,273 @@
-import logger from '@utils/logger';
-import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
-import { getProgramsSorted } from '../db/programDbService';
-import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
+import { info, error, warn, debug } from '../utils/logger.js';
 
-// Re-export getClasses from classService for convenience
-export { getClasses, addClass, updateClass, deleteClass, getClassById } from './classService';
+const serviceName = 'programService';
 
-/**
- * Programs Collection - Top-level academic programs that contain subjects
- */
-export const getPrograms = async () => {
+// Import business service instead of DB service
+import programBusinessService from './programBusinessService.js';
+
+// Core program operations
+export const getAllPrograms = async (params = {}) => {
   try {
-    return await getProgramsSorted();
-  } catch (error) {
-    logger.error('PROGRAM: Failed to fetch programs', { error: error.message });
-    return { success: false, error: error.message };
-  }
-};
-
-export const getProgram = async (programId) => {
-  try {
-    // Use database service to get program
-    const { getProgram: getProgramFromDb } = await import('../db/programDbService');
-    const result = await getProgramFromDb(programId);
+    info(`${serviceName}:getAllPrograms`, { params });
     
-    if (result.success) {
-      return { success: true, data: { docId: programId, ...result.data } };
-    }
-    return { success: false, error: 'Program not found' };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const createProgram = async (data, user) => {
-  try {
-    const auditData = getCreateAuditData(user);
-    const programData = {
-      ...data,
-      ...auditData
-    };
-    
-    // Use database service to create program
-    const { createProgram: createProgramToDb } = await import('../db/programDbService');
-    const result = await createProgramToDb(programData, auditData);
-    
-    return { success: true, id: result.id };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const updateProgram = async (programId, data, user) => {
-  try {
-    const auditData = getUpdateAuditData(user);
-    const updateData = {
-      ...data,
-      ...auditData
-    };
-    
-    // Use database service to update program
-    const { updateProgram: updateProgramInDb } = await import('../db/programDbService');
-    const result = await updateProgramInDb(programId, updateData, auditData);
-    
+    // Use business service layer
+    const result = await programBusinessService.getAllPrograms(params);
     return result;
-  } catch (error) {
-    logger.error('Error updating program:', error);
-    return { success: false, error: error.message };
+  } catch (err) {
+    console.error(`${serviceName}:getAllPrograms:error`, { error: err.message, params });
+    return {
+      success: false,
+      error: err.message || 'Failed to load programs',
+      data: []
+    };
   }
 };
 
-export const deleteProgram = async (programId) => {
+export const getProgramById = async (id, params = {}) => {
   try {
-    // Use database service to delete program
-    const { deleteProgram: deleteProgramFromDb } = await import('../db/programDbService');
-    const result = await deleteProgramFromDb(programId);
+    info(`${serviceName}:getProgramById`, { id });
     
-    return result;
-  } catch (error) {
-    logger.error('Error deleting program:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Subjects Collection
- * Subjects belong to programs, students enroll in subjects
- */
-export const getSubjects = async (programId = null) => {
-  try {
-    // Use subjectDbService instead of direct Firestore
-    const { getSubjects, getSubjectsByProgram } = await import('../db/subjectDbService');
-    
-    let result;
-    if (programId) {
-      result = await getSubjectsByProgram(programId);
-    } else {
-      result = await getSubjects();
+    if (!id) {
+      return {
+        success: false,
+        error: 'Program ID is required',
+        data: null
+      };
     }
     
+    // Use business service layer
+    const result = await programBusinessService.getProgramById(id, params);
     return result;
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const getSubject = async (subjectId) => {
-  try {
-    // Use subjectDbService instead of direct Firestore
-    const { getSubject: getSubjectFromDb } = await import('../db/subjectDbService');
-    const result = await getSubjectFromDb(subjectId);
-    
-    return result;
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const createSubject = async (data, user) => {
-  try {
-    // Use subjectDbService with proper audit data
-    const { createSubject: createSubjectToDb } = await import('../db/subjectDbService');
-    const auditData = getCreateAuditData(user);
-    const result = await createSubjectToDb(data, auditData);
-    
-    return result;
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const updateSubject = async (subjectId, data, user) => {
-  try {
-    // Use subjectDbService with proper audit data
-    const { updateSubject: updateSubjectInDb } = await import('../db/subjectDbService');
-    const auditData = getUpdateAuditData(user);
-    const result = await updateSubjectInDb(subjectId, data, auditData);
-    
-    return result;
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const deleteSubject = async (subjectId) => {
-  try {
-    // Use subjectDbService instead of direct Firestore
-    const { deleteSubject: deleteSubjectFromDb } = await import('../db/subjectDbService');
-    const result = await deleteSubjectFromDb(subjectId);
-    
-    return result;
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Subject Enrollments
- * Track which students are enrolled in which subjects
- */
-export const getSubjectEnrollments = async (subjectId = null, studentId = null) => {
-  try {
-    // Use subjectEnrollmentsDbService instead of direct Firestore
-    const { getSubjectEnrollments: getEnrollmentsFromDb } = await import('../db/subjectEnrollmentsDbService');
-    
-    const filters = {};
-    if (subjectId) filters.subjectId = subjectId;
-    if (studentId) filters.studentId = studentId;
-    
-    const result = await getEnrollmentsFromDb(filters);
-    return result;
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const enrollStudentInSubject = async (studentId, subjectId, semester, academicYear, user = null) => {
-  try {
-    // Use subjectEnrollmentsDbService with proper audit data
-    const { enrollStudentInSubject: enrollStudentToDb } = await import('../db/subjectEnrollmentsDbService');
-    
-    const enrollmentData = {
-      studentId,
-      subjectId,
-      semester,
-      academicYear,
-      status: 'active' // 'active' | 'completed' | 'withdrawn' | 'failed'
+  } catch (err) {
+    console.error(`${serviceName}:getProgramById:error`, { error: err.message, id });
+    return {
+      success: false,
+      error: err.message || 'Failed to retrieve program',
+      data: null
     };
-    
-    const auditData = user ? getCreateAuditData(user) : null;
-    const result = await enrollStudentToDb(enrollmentData, auditData);
-    
-    return result;
-  } catch (error) {
-    return { success: false, error: error.message };
   }
 };
 
-export const updateEnrollment = async (enrollmentId, data, user = null) => {
+export const createProgram = async (programData, user = null) => {
   try {
-    // Use subjectEnrollmentsDbService with proper audit data
-    const { updateSubjectEnrollment: updateEnrollmentInDb } = await import('../db/subjectEnrollmentsDbService');
-    
-    const auditData = user ? getUpdateAuditData(user) : null;
-    const result = await updateEnrollmentInDb(enrollmentId, data, auditData);
-    
+    // Use business service layer
+    const result = await programBusinessService.createProgram(programData, user);
     return result;
-  } catch (error) {
-    return { success: false, error: error.message };
+  } catch (err) {
+    console.error(`${serviceName}:createProgram:error`, { error: err.message, data: programData });
+    return {
+      success: false,
+      error: err.message || 'Failed to create program',
+      data: null
+    };
   }
 };
-
-// Get program by ID - using existing DB service
-export const getProgramById = async (programId) => {
+export const updateProgram = async (id, updateData, user = null) => {
   try {
-    // Use programDbService instead of direct Firestore
-    const { getProgram: getProgramFromDb } = await import('../db/programDbService');
-    const result = await getProgramFromDb(programId);
+    info(`${serviceName}:updateProgram`, { id, data: updateData });
     
+    if (!id) {
+      return {
+        success: false,
+        error: 'Program ID is required',
+        data: null
+      };
+    }
+    
+    // Use business service layer
+    const result = await programBusinessService.updateProgram(id, updateData, user);
     return result;
-  } catch (error) {
-    return { success: false, error: error.message };
+  } catch (err) {
+    console.error(`${serviceName}:updateProgram:error`, { error: err.message, id, data: updateData });
+    return {
+      success: false,
+      error: err.message || 'Failed to update program',
+      data: null
+    };
   }
 };
 
-// Alias functions for consistency with other services
+export const deleteProgram = async (id, user = null) => {
+  try {
+    info(`${serviceName}:deleteProgram`, { id });
+    
+    if (!id) {
+      return {
+        success: false,
+        error: 'Program ID is required',
+        data: null
+      };
+    }
+    
+    // Use business service layer
+    const result = await programBusinessService.deleteProgram(id);
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:deleteProgram:error`, { error: err.message, id });
+    return {
+      success: false,
+      error: err.message || 'Failed to delete program',
+      data: null
+    };
+  }
+};
+
+// Query functions
+export const getActivePrograms = async (params = {}) => {
+  try {
+    info(`${serviceName}:getActivePrograms`, { params });
+    
+    // Use business service layer
+    const result = await programBusinessService.getActivePrograms(params);
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:getActivePrograms:error`, { error: err.message, params });
+    return {
+      success: false,
+      error: err.message || 'Failed to retrieve active programs',
+      data: []
+    };
+  }
+};
+
+export const getProgramCount = async (params = {}) => {
+  try {
+    info(`${serviceName}:getProgramCount`, { params });
+    
+    // Use business service layer
+    const result = await programBusinessService.getProgramCount(params);
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:getProgramCount:error`, { error: err.message, params });
+    return {
+      success: false,
+      error: err.message || 'Failed to get program count',
+      data: 0
+    };
+  }
+};
+
+// Subject management functions
+export const addSubjectToProgram = async (programId, subjectId, user = null) => {
+  try {
+    info(`${serviceName}:addSubjectToProgram`, { programId, subjectId });
+    
+    if (!programId || !subjectId) {
+      return {
+        success: false,
+        error: 'Program ID and Subject ID are required',
+        data: null
+      };
+    }
+    
+    // Use business service layer
+    const result = await programBusinessService.addSubjectToProgram(programId, subjectId, user);
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:addSubjectToProgram:error`, { error: err.message, programId, subjectId });
+    return {
+      success: false,
+      error: err.message || 'Failed to add subject to program',
+      data: null
+    };
+  }
+};
+
+export const removeSubjectFromProgram = async (programId, subjectId, user = null) => {
+  try {
+    info(`${serviceName}:removeSubjectFromProgram`, { programId, subjectId });
+    
+    if (!programId || !subjectId) {
+      return {
+        success: false,
+        error: 'Program ID and Subject ID are required',
+        data: null
+      };
+    }
+    
+    // Use business service layer
+    const result = await programBusinessService.removeSubjectFromProgram(programId, subjectId, user);
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:removeSubjectFromProgram:error`, { error: err.message, programId, subjectId });
+    return {
+      success: false,
+      error: err.message || 'Failed to remove subject from program',
+      data: null
+    };
+  }
+};
+
+// Add getSubjects function for NotificationDrawer.jsx
+export const getSubjects = async (params = {}) => {
+  try {
+    info(`${serviceName}:getSubjects`, { params });
+    
+    // Use business service layer
+    const result = await programBusinessService.getSubjects(params);
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:getSubjects:error`, { error: err.message, params });
+    return {
+      success: false,
+      error: err.message || 'Failed to retrieve subjects',
+      data: []
+    };
+  }
+};
+
+// Add getSubject function
+export const getSubject = async (id, params = {}) => {
+  try {
+    info(`${serviceName}:getSubject`, { id });
+    
+    // Import subject service dynamically to avoid circular dependency
+    const { getSubjectById } = await import('@services/business/subjectService');
+    const result = await getSubjectById(id, params);
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:getSubject:error`, { error: err.message, id });
+    return {
+      success: false,
+      error: err.message || 'Failed to retrieve subject',
+      data: null
+    };
+  }
+};
+
+// Aliases for commonly expected function names
+export const getPrograms = getAllPrograms;
+export const getProgram = getProgramById;
 export const fetchProgram = getProgramById;
 export const fetchSubject = getSubject;
+export const addProgram = createProgram;
+export const updateProgramData = updateProgram;
+export const removeProgram = deleteProgram;
 
-
+export default {
+  // Core functions
+  getAllPrograms,
+  getProgramById,
+  createProgram,
+  updateProgram,
+  deleteProgram,
+  
+  // Query functions
+  getActivePrograms,
+  getProgramCount,
+  
+  // Subject management
+  addSubjectToProgram,
+  removeSubjectFromProgram,
+  getSubjects,
+  getSubject,
+  
+  // Aliases
+  getPrograms,
+  getProgram,
+  fetchProgram,
+  fetchSubject,
+  addProgram,
+  updateProgramData,
+  removeProgram
+};

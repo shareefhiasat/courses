@@ -12,7 +12,7 @@ import WidgetWrapper from './WidgetWrapper';
 import WidgetBuilder, { DEFAULT_WIDGET_CONFIG } from './WidgetBuilder';
 import OptimizedChartRenderer from '../charts/OptimizedChartRenderer';
 import { normalizeAttendanceStatus, normalizeActivityType } from '@utils/listChartResolvers';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const ResponsiveGrid = WidthProvider(GridLayout);
 
@@ -77,13 +77,13 @@ const DashboardEngine = React.forwardRef(({
         // Only clear if the data is corrupted (not an array)
         if (!Array.isArray(parsed?.widgets)) {
           localStorage.removeItem(`wdg_${storageKey}`);
-          logger.log(`[DashboardEngine] Cleared corrupted localStorage cache for ${storageKey}`);
+          info(`[DashboardEngine] Cleared corrupted localStorage cache for ${storageKey}`);
         }
       }
     } catch (e) {
       // Only clear if there's an actual error parsing
       localStorage.removeItem(`wdg_${storageKey}`);
-      logger.warn(`[DashboardEngine] Cleared invalid localStorage cache for ${storageKey}:`, e);
+      warn(`[DashboardEngine] Cleared invalid localStorage cache for ${storageKey}:`, e);
     }
   }, [storageKey]);
 
@@ -116,8 +116,8 @@ const DashboardEngine = React.forwardRef(({
       
       const shouldKeep = !hasOriginal && earlierCopyIndex === -1;
       
-      if (process.env.NODE_ENV === 'development' && !shouldKeep) {
-        logger.log(`[DashboardEngine] Filtering out duplicate widget: ${widget.title}`);
+      if (import.meta.env.MODE === 'development' && !shouldKeep) {
+        info(`[DashboardEngine] Filtering out duplicate widget: ${widget.title}`);
       }
       
       return shouldKeep;
@@ -161,13 +161,13 @@ const DashboardEngine = React.forwardRef(({
         className: isMinimized ? 'minimized' : ''
       };
       // Only log in development mode
-      if (process.env.NODE_ENV === 'development') {
-        logger.log(`[gridLayout] Widget ${w.id}: minimized=${isMinimized}, w=${item.w}, h=${item.h}, original=${JSON.stringify(originalSize)}, RTL=${isRTL}, x=${x}`);
+      if (import.meta.env.MODE === 'development') {
+        info(`[gridLayout] Widget ${w.id}: minimized=${isMinimized}, w=${item.w}, h=${item.h}, original=${JSON.stringify(originalSize)}, RTL=${isRTL}, x=${x}`);
       }
       return item;
     });
-    if (process.env.NODE_ENV === 'development') {
-      logger.log(`[gridLayout] Total widgets in layout: ${layout.length}, RTL=${isRTL}`);
+    if (import.meta.env.MODE === 'development') {
+      info(`[gridLayout] Total widgets in layout: ${layout.length}, RTL=${isRTL}`);
     }
     return layout;
   }, [sortedWidgets, minimizedIds, originalSizes]);
@@ -231,27 +231,27 @@ const DashboardEngine = React.forwardRef(({
 
   // ── Widget actions ────────────────────────────────────────────────────────
   const handleDelete = useCallback((id) => {
-    if (process.env.NODE_ENV === 'development') {
-      logger.log(`[handleDelete] Deleting widget: ${id}`);
+    if (import.meta.env.MODE === 'development') {
+      info(`[handleDelete] Deleting widget: ${id}`);
     }
     
     // Clear any cached widget data that might interfere
     try {
       localStorage.removeItem(`wdg_${storageKey}`);
-      if (process.env.NODE_ENV === 'development') {
-        logger.log(`[handleDelete] Cleared localStorage cache for ${storageKey}`);
+      if (import.meta.env.MODE === 'development') {
+        info(`[handleDelete] Cleared localStorage cache for ${storageKey}`);
       }
     } catch (e) {
-      if (process.env.NODE_ENV === 'development') {
-        logger.warn(`[handleDelete] Failed to clear localStorage:`, e);
+      if (import.meta.env.MODE === 'development') {
+        warn(`[handleDelete] Failed to clear localStorage:`, e);
       }
     }
     
     // Remove widget from widgets array (allow save to persist deletion)
     setWidgets(prev => {
       const newWidgets = prev.filter(w => w.id !== id);
-      if (process.env.NODE_ENV === 'development') {
-        logger.log(`[handleDelete] Widgets after removal: ${newWidgets.length}`);
+      if (import.meta.env.MODE === 'development') {
+        info(`[handleDelete] Widgets after removal: ${newWidgets.length}`);
       }
       return newWidgets;
     }); // Allow save to persist deletion
@@ -260,8 +260,8 @@ const DashboardEngine = React.forwardRef(({
     setMinimizedIds(prev => {
       const newState = { ...prev };
       delete newState[id];
-      if (process.env.NODE_ENV === 'development') {
-        logger.log(`[handleDelete] MinimizedIds after removal:`, newState);
+      if (import.meta.env.MODE === 'development') {
+        info(`[handleDelete] MinimizedIds after removal:`, newState);
       }
       return newState;
     });
@@ -287,16 +287,16 @@ const DashboardEngine = React.forwardRef(({
   }, [storageKey, setWidgets]);
 
   const handleMinimize = useCallback((id) => {
-    if (process.env.NODE_ENV === 'development') {
-      logger.log(`[handleMinimize] Toggling widget: ${id}`);
+    if (import.meta.env.MODE === 'development') {
+      info(`[handleMinimize] Toggling widget: ${id}`);
     }
     
     // Get current minimized state
     const currentMinimized = minimizedIds[id];
     const isMinimizing = !currentMinimized;
     
-    if (process.env.NODE_ENV === 'development') {
-      logger.log(`[handleMinimize] ${isMinimizing ? 'Minimizing' : 'Restoring'} widget ${id}`);
+    if (import.meta.env.MODE === 'development') {
+      info(`[handleMinimize] ${isMinimizing ? 'Minimizing' : 'Restoring'} widget ${id}`);
     }
     
     // Store original size before minimizing
@@ -309,8 +309,8 @@ const DashboardEngine = React.forwardRef(({
           ...prev,
           [id]: { w: currentWidth, h: currentHeight }
         }));
-        if (process.env.NODE_ENV === 'development') {
-          logger.log(`[handleMinimize] Stored original size for ${id}:`, { w: currentWidth, h: currentHeight });
+        if (import.meta.env.MODE === 'development') {
+          info(`[handleMinimize] Stored original size for ${id}:`, { w: currentWidth, h: currentHeight });
         }
       }
     }
@@ -318,20 +318,20 @@ const DashboardEngine = React.forwardRef(({
     // Clear any cached widget data that might interfere
     try {
       localStorage.removeItem(`wdg_${storageKey}`);
-      if (process.env.NODE_ENV === 'development') {
-        logger.log(`[handleMinimize] Cleared localStorage cache for ${storageKey}`);
+      if (import.meta.env.MODE === 'development') {
+        info(`[handleMinimize] Cleared localStorage cache for ${storageKey}`);
       }
     } catch (e) {
-      if (process.env.NODE_ENV === 'development') {
-        logger.warn(`[handleMinimize] Failed to clear localStorage:`, e);
+      if (import.meta.env.MODE === 'development') {
+        warn(`[handleMinimize] Failed to clear localStorage:`, e);
       }
     }
     
     // Update minimized state
     setMinimizedIds(prev => {
       const newState = { ...prev, [id]: isMinimizing };
-      if (process.env.NODE_ENV === 'development') {
-        logger.log(`[handleMinimize] Updated minimizedIds:`, newState);
+      if (import.meta.env.MODE === 'development') {
+        info(`[handleMinimize] Updated minimizedIds:`, newState);
       }
       return newState;
     });
@@ -351,15 +351,15 @@ const DashboardEngine = React.forwardRef(({
               isResizable: !isMinimizing  // Allow resizing when not minimized
             }
           };
-          if (process.env.NODE_ENV === 'development') {
-            logger.log(`[handleMinimize] Updated widget ${id} layout:`, updatedWidget.layout);
+          if (import.meta.env.MODE === 'development') {
+            info(`[handleMinimize] Updated widget ${id} layout:`, updatedWidget.layout);
           }
           return updatedWidget;
         }
         return widget;
       });
-      if (process.env.NODE_ENV === 'development') {
-        logger.log(`[handleMinimize] Total widgets updated: ${updatedWidgets.length}`);
+      if (import.meta.env.MODE === 'development') {
+        info(`[handleMinimize] Total widgets updated: ${updatedWidgets.length}`);
       }
       return updatedWidgets;
     }, true); // Skip save to prevent Firestore reload

@@ -1,0 +1,631 @@
+{
+  "timestamp": "2026-04-04T18:31:20.453Z",
+  "summary": {
+    "totalFiles": 587,
+    "filesNeedingMigration": 37,
+    "filesCompliant": 550
+  },
+  "files": [
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\components\\analytics\\DashboardEngine.jsx",
+      "hasLookupConstants": false,
+      "constantsFound": [],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\components\\games\\CategorizeGame.jsx",
+      "hasLookupConstants": false,
+      "constantsFound": [],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\components\\games\\SpinWheelGame.jsx",
+      "hasLookupConstants": false,
+      "constantsFound": [],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\components\\games\\TrueFalseGame.jsx",
+      "hasLookupConstants": false,
+      "constantsFound": [],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\components\\qr-scanner\\QRScanner.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "PARTICIPATION_TYPES",
+          "lookupType": "participation-types",
+          "line": 32
+        },
+        {
+          "constant": "PENALTY_TYPES",
+          "lookupType": "penalty-types",
+          "line": 33
+        },
+        {
+          "constant": "BEHAVIOR_TYPES",
+          "lookupType": "behavior-types",
+          "line": 34
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\components\\qr-scanner\\StudentActionStatsPanel.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "BEHAVIOR_TYPES",
+          "lookupType": "behavior-types",
+          "line": 14
+        },
+        {
+          "constant": "PARTICIPATION_TYPES",
+          "lookupType": "participation-types",
+          "line": 15
+        },
+        {
+          "constant": "PENALTY_TYPES",
+          "lookupType": "penalty-types",
+          "line": 16
+        }
+      ],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook",
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\components\\qr-scanner\\StudentActionZapPanel.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "BEHAVIOR_TYPES",
+          "lookupType": "behavior-types",
+          "line": 11
+        },
+        {
+          "constant": "PARTICIPATION_TYPES",
+          "lookupType": "participation-types",
+          "line": 12
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\components\\qr-scanner\\StudentRoster.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "PENALTY_TYPES",
+          "lookupType": "penalty-types",
+          "line": 24
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\components\\student-dashboard\\attendance\\AttendanceTab.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "BEHAVIOR_TYPES",
+          "lookupType": "behavior-types",
+          "line": 6
+        },
+        {
+          "constant": "PARTICIPATION_TYPES",
+          "lookupType": "participation-types",
+          "line": 6
+        },
+        {
+          "constant": "PENALTY_TYPES",
+          "lookupType": "penalty-types",
+          "line": 6
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\components\\ui\\NotificationDrawer.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "PENALTY_TYPES",
+          "lookupType": "penalty-types",
+          "line": 29
+        }
+      ],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook",
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\components\\ui\\RibbonTabs\\RibbonTabs.jsx",
+      "hasLookupConstants": false,
+      "constantsFound": [],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\components\\ui\\StudentQuickActionModal.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "BEHAVIOR_TYPES",
+          "lookupType": "behavior-types",
+          "line": 32
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\components\\ui\\VariableHelper.jsx",
+      "hasLookupConstants": false,
+      "constantsFound": [],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\components\\UnifiedCard.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "ACTIVITY_TYPES",
+          "lookupType": "activity-types",
+          "line": 8
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\constants\\qrScannerTypes.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "PARTICIPATION_TYPES",
+          "lookupType": "participation-types",
+          "line": 7
+        },
+        {
+          "constant": "PENALTY_TYPES",
+          "lookupType": "penalty-types",
+          "line": 8
+        },
+        {
+          "constant": "BEHAVIOR_TYPES",
+          "lookupType": "behavior-types",
+          "line": 9
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\constants\\resourceTypes.js",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "RESOURCE_TYPES",
+          "lookupType": "resource-types",
+          "line": 2
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\contexts\\HelpContext.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "PENALTY_TYPES",
+          "lookupType": "penalty-types",
+          "line": 6
+        },
+        {
+          "constant": "PARTICIPATION_TYPES",
+          "lookupType": "participation-types",
+          "line": 7
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\hooks\\useAnalyticsData.js",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "PENALTY_TYPES",
+          "lookupType": "penalty-types",
+          "line": 7
+        },
+        {
+          "constant": "ACTIVITY_TYPES",
+          "lookupType": "activity-types",
+          "line": 8
+        }
+      ],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook",
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\academic\\activities\\ActivitiesPage.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "ACTIVITY_TYPES",
+          "lookupType": "activity-types",
+          "line": 13
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\academic\\announcements\\AnnouncementsPage.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "PRIORITY_TYPES",
+          "lookupType": "priority-types",
+          "line": 28
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\academic\\classes\\ClassesPage.jsx",
+      "hasLookupConstants": false,
+      "constantsFound": [],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\academic\\enrollments\\EnrollmentsManagementPage.jsx",
+      "hasLookupConstants": false,
+      "constantsFound": [],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\academic\\enrollments\\grading\\MarksPage.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "ACTIVITY_TYPES",
+          "lookupType": "activity-types",
+          "line": 19
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\academic\\resources\\ResourcesPage.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "RESOURCE_TYPES",
+          "lookupType": "resource-types",
+          "line": 20
+        }
+      ],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook",
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\academic\\subjects\\SubjectsPage.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "ACTIVITY_TYPES",
+          "lookupType": "activity-types",
+          "line": 20
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\communications\\chat\\ChatPage.jsx",
+      "hasLookupConstants": false,
+      "constantsFound": [],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\communications\\chat\\components\\ChatSidebar.jsx",
+      "hasLookupConstants": false,
+      "constantsFound": [],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\communications\\chat\\components\\MessageBubble.jsx",
+      "hasLookupConstants": false,
+      "constantsFound": [],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\communications\\notifications\\NotificationsPage.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "PENALTY_TYPES",
+          "lookupType": "penalty-types",
+          "line": 31
+        }
+      ],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook",
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\HomePage.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "RESOURCE_TYPES",
+          "lookupType": "resource-types",
+          "line": 26
+        },
+        {
+          "constant": "ACTIVITY_TYPES",
+          "lookupType": "activity-types",
+          "line": 27
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\operations\\attendance\\AttendancePage.jsx",
+      "hasLookupConstants": false,
+      "constantsFound": [],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\operations\\attendance\\QRScannerPage.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "PENALTY_TYPES",
+          "lookupType": "penalty-types",
+          "line": 8
+        },
+        {
+          "constant": "BEHAVIOR_TYPES",
+          "lookupType": "behavior-types",
+          "line": 9
+        },
+        {
+          "constant": "PARTICIPATION_TYPES",
+          "lookupType": "participation-types",
+          "line": 10
+        },
+        {
+          "constant": "PENALTY_TYPES",
+          "lookupType": "penalty-types",
+          "line": 8
+        },
+        {
+          "constant": "BEHAVIOR_TYPES",
+          "lookupType": "behavior-types",
+          "line": 9
+        },
+        {
+          "constant": "PARTICIPATION_TYPES",
+          "lookupType": "participation-types",
+          "line": 10
+        },
+        {
+          "constant": "USER_ROLES",
+          "lookupType": "user-roles",
+          "line": 39
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\operations\\behavior\\BehaviorPage.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "BEHAVIOR_TYPES",
+          "lookupType": "behavior-types",
+          "line": 18
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\operations\\participation\\ParticipationPage.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "PARTICIPATION_TYPES",
+          "lookupType": "participation-types",
+          "line": 12
+        }
+      ],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook",
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\pages\\operations\\penalty\\PenaltiesPage.jsx",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "PENALTY_TYPES",
+          "lookupType": "penalty-types",
+          "line": 12
+        }
+      ],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook",
+        "Replace hardcoded arrays with lookup data"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\utils\\sharedTypes.js",
+      "hasLookupConstants": true,
+      "constantsFound": [
+        {
+          "constant": "BEHAVIOR_TYPES",
+          "lookupType": "behavior-types",
+          "line": 7
+        },
+        {
+          "constant": "PARTICIPATION_TYPES",
+          "lookupType": "participation-types",
+          "line": 8
+        },
+        {
+          "constant": "PENALTY_TYPES",
+          "lookupType": "penalty-types",
+          "line": 10
+        }
+      ],
+      "usesHardcodedData": false,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace constant imports with useLookupTypes hook"
+      ]
+    },
+    {
+      "filePath": "E:\\QAF\\Github\\courses\\client\\src\\utils\\sharedTypes.stories.jsx",
+      "hasLookupConstants": false,
+      "constantsFound": [],
+      "usesHardcodedData": true,
+      "needsMigration": true,
+      "suggestions": [
+        "Replace hardcoded arrays with lookup data"
+      ]
+    }
+  ]
+}

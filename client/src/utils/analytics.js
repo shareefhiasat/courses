@@ -1,147 +1,64 @@
-﻿/**
- * Analytics and logging utility with PostHog integration
- * Configurable through environment variables
+/**
+ * Simplified analytics and logging utility
+ * All PostHog functionality has been deprecated
+ * Only local logging remains for debugging purposes
  */
 
-import PostHog from 'posthog-js';
-import logger from './logger';
+import { info, error, warn, debug } from '../services/utils/logger.js';
 
 class AnalyticsManager {
   constructor() {
     this.enabled = false;
     this.environment = import.meta.env.MODE || 'development';
-    // PostHogProvider handles initialization
+    // Analytics functionality has been deprecated
   }
 
   initialize() {
-    // Check if analytics is enabled
-    this.enabled = import.meta.env.VITE_PUBLIC_POSTHOG_ENABLED !== 'false';
-    
-    logger.log('🔍 PostHog Debug - Analytics Manager:', {
-      enabled: this.enabled,
-      envKey: import.meta.env.VITE_PUBLIC_POSTHOG_KEY,
-      envHost: import.meta.env.VITE_PUBLIC_POSTHOG_HOST
-    });
-    
-    if (!this.enabled) {
-      logger.info('Analytics disabled via VITE_PUBLIC_POSTHOG_ENABLED');
-      return;
-    }
+    // Analytics disabled - PostHog has been deprecated
+    this.enabled = false;
+    info('Analytics functionality has been deprecated');
   }
 
   setUserProperties() {
-    if (!this.posthog) return;
-
-    try {
-      const userProperties = {
-        environment: this.environment,
-        app_version: import.meta.env.VITE_APP_VERSION || 'unknown',
-        build_time: import.meta.env.VITE_BUILD_TIME || 'unknown',
-        user_agent: navigator.userAgent,
-        screen_resolution: `${screen.width}x${screen.height}`,
-        language: navigator.language,
-      };
-
-      this.posthog.register(userProperties);
-      logger.debug('User properties set:', userProperties);
-    } catch (error) {
-      logger.error('Failed to set user properties:', error);
-    }
+    // Deprecated - PostHog functionality removed
+    debug('User properties setting deprecated - no analytics service active');
   }
 
-  // Identify user
+  // Identify user - deprecated
   identify(userId, properties = {}) {
-    if (!this.posthog || !this.enabled) return;
-
-    try {
-      this.posthog.identify(userId, properties);
-      logger.info(`User identified: ${userId}`);
-    } catch (error) {
-      logger.error('Failed to identify user:', error);
-    }
+    // Deprecated - PostHog functionality removed
+    info(`User identification deprecated for user: ${userId}`);
   }
 
-  // Track custom events using usePostHog hook pattern
+  // Track custom events - deprecated
   track(eventName, properties = {}) {
-    logger.log('🔍 PostHog Debug - Track called:', {
+    // Deprecated - PostHog functionality removed, only local logging remains
+    info('🔍 Analytics Track called (deprecated):', {
       eventName,
       properties,
       enabled: this.enabled
     });
     
     if (!this.enabled) {
-      logger.log('🔍 PostHog Debug - Track blocked: Analytics disabled');
+      info('🔍 Analytics Track blocked: Analytics deprecated');
       return;
     }
 
-    try {
-      // Use global PostHog instance from PostHogProvider
-      const posthog = window.posthog;
-      if (!posthog) {
-        logger.log('🔍 PostHog Debug - Track blocked: No PostHog instance');
-        return;
-      }
-
-      // Add common properties
-      const enrichedProperties = {
-        timestamp: new Date().toISOString(),
-        url: window.location.href,
-        ...properties,
-      };
-
-      logger.log('🔍 PostHog Debug - Sending event:', {
-        eventName,
-        enrichedProperties
-      });
-
-      posthog.capture(eventName, enrichedProperties);
-      logger.debug(`Event tracked: ${eventName}`, enrichedProperties);
-    } catch (error) {
-      logger.error('❌ PostHog track error:', error);
-      logger.error('Failed to track event:', error);
-    }
+    // Only log locally - no external tracking
+    debug(`Event tracked locally (deprecated): ${eventName}`, properties);
   }
 
-  // Track page views
+  // Track page views - deprecated
   pageview(path = null, properties = {}) {
-    logger.log('🔍 PostHog Debug - Pageview called:', {
+    // Deprecated - PostHog functionality removed
+    info('🔍 Analytics Pageview called (deprecated):', {
       path,
       properties,
       enabled: this.enabled
     });
     
-    if (!this.enabled) {
-      logger.log('🔍 PostHog Debug - Pageview blocked: Analytics disabled');
-      return;
-    }
-
-    try {
-      // Use global PostHog instance from PostHogProvider
-      const posthog = window.posthog;
-      if (!posthog) {
-        logger.log('🔍 PostHog Debug - Pageview blocked: No PostHog instance');
-        return;
-      }
-
-      const pagePath = path || window.location.pathname;
-      const enrichedProperties = {
-        path: pagePath,
-        referrer: document.referrer,
-        title: document.title,
-        ...properties,
-      };
-
-      logger.log('🔍 PostHog Debug - Sending pageview:', {
-        pagePath,
-        enrichedProperties
-      });
-
-      posthog.capture('$pageview', enrichedProperties);
-      logger.debug(`Page view tracked: ${pagePath}`);
-    } catch (error) {
-      logger.error('❌ PostHog pageview error:', error);
-      logger.error('Failed to track page view:', error);
-    }
+    const pagePath = path || window.location.pathname;
+    debug(`Page view tracked locally (deprecated): ${pagePath}`);
   }
 
   // Track user actions with comprehensive data
@@ -256,88 +173,49 @@ class AnalyticsManager {
     });
   }
 
-  // Reset user identification
+  // Reset user identification - deprecated
   reset() {
-    if (!this.posthog || !this.enabled) return;
-
-    try {
-      this.posthog.reset();
-      logger.info('User identification reset');
-    } catch (error) {
-      logger.error('Failed to reset user identification:', error);
-    }
+    // Deprecated - PostHog functionality removed
+    info('User identification reset deprecated');
   }
 
-  // Get current user distinct ID
+  // Get current user distinct ID - deprecated
   getDistinctId() {
-    if (!this.posthog || !this.enabled) return null;
-    
-    try {
-      return this.posthog.get_distinct_id();
-    } catch (error) {
-      logger.error('Failed to get distinct ID:', error);
-      return null;
-    }
+    // Deprecated - PostHog functionality removed
+    debug('Get distinct ID deprecated - no analytics service active');
+    return null;
   }
 
-  // Feature flag checking
+  // Feature flag checking - deprecated
   isFeatureEnabled(flagKey, defaultValue = false) {
-    if (!this.posthog || !this.enabled) return defaultValue;
-
-    try {
-      return this.posthog.isFeatureEnabled(flagKey);
-    } catch (error) {
-      logger.error('Failed to check feature flag:', error);
-      return defaultValue;
-    }
+    // Deprecated - PostHog functionality removed
+    debug(`Feature flag check deprecated for: ${flagKey}`);
+    return defaultValue;
   }
 
-  // A/B testing
+  // A/B testing - deprecated
   getVariant(experimentKey, defaultValue = null) {
-    if (!this.posthog || !this.enabled) return defaultValue;
-
-    try {
-      return this.posthog.getFeatureFlag(experimentKey);
-    } catch (error) {
-      logger.error('Failed to get experiment variant:', error);
-      return defaultValue;
-    }
+    // Deprecated - PostHog functionality removed
+    debug(`A/B test variant get deprecated for: ${experimentKey}`);
+    return defaultValue;
   }
 
-  // Flush events
+  // Flush events - deprecated
   flush() {
-    if (!this.posthog || !this.enabled) return;
-
-    try {
-      this.posthog.flush();
-      logger.debug('PostHog events flushed');
-    } catch (error) {
-      logger.error('Failed to flush PostHog events:', error);
-    }
+    // Deprecated - PostHog functionality removed
+    debug('Event flush deprecated - no analytics service active');
   }
 
-  // Opt out of tracking
+  // Opt out of tracking - deprecated
   optOut() {
-    if (!this.posthog || !this.enabled) return;
-
-    try {
-      this.posthog.opt_out_capturing();
-      logger.info('User opted out of tracking');
-    } catch (error) {
-      logger.error('Failed to opt out:', error);
-    }
+    // Deprecated - PostHog functionality removed
+    info('Opt out deprecated - no analytics service active');
   }
 
-  // Opt in to tracking
+  // Opt in to tracking - deprecated
   optIn() {
-    if (!this.posthog || !this.enabled) return;
-
-    try {
-      this.posthog.opt_in_capturing();
-      logger.info('User opted in to tracking');
-    } catch (error) {
-      logger.error('Failed to opt in:', error);
-    }
+    // Deprecated - PostHog functionality removed
+    info('Opt in deprecated - no analytics service active');
   }
 }
 

@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { calculateBookmarkCount } from '@services/business/bookmarkService';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Custom hook to calculate filter counts for status filters
  * Encapsulates the filter count logic to reduce prop drilling
  * 

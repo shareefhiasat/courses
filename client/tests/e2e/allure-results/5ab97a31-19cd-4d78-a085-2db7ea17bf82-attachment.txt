@@ -1,0 +1,4 @@
+🚀 Starting demo test...
+👤 Using test user: shareef.hiasat@gmail.com
+🔍 Current URL: http://localhost:8080/realms/military-lms/protocol/openid-connect/auth?client_id=military-lms-app&redirect_uri=http%3A%2F%2Flocalhost%3A5174%2F&state=b2d432a8-5bf6-4545-ae83-7b200242c913&response_mode=fragment&response_type=code&scope=openid&nonce=afd7dd27-50c9-442f-b59e-b7dd2fcb26fe&code_challenge=EFb5d9ktD3uhq_NlhltVmxFIqy_NstyopdNYBhYhCf0&code_challenge_method=S256
+✅ Demo test passed - Application redirects to Keycloak as expected

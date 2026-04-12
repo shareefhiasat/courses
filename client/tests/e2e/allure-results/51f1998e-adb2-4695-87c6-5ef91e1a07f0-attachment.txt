@@ -1,0 +1,51 @@
+🔐 Attempting admin login via master realm...
+🔐 Admin login response status: 200
+🔐 Admin login response data: {
+  access_token: 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJoR3dtYVBGVmRnWkxRZzVlYy1XOTRNN3NNa3pwR20wdnA3cV9xVnc4S0RjIn0.eyJleHAiOjE3NzQxNjkwOTUsImlhdCI6MTc3NDE2OTAzNSwianRpIjoiNjkzODk3ZmEtZTk1OC00MzFjLWFmN2UtNTY5YzRmNjBjODMzIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9tYXN0ZXIiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJhZG1pbi1jbGkiLCJzaWQiOiIzMmNiM2VhNi1mODkzLTRkNzItYWQ0MS05NTQxYjc0ZGU1MmEiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.L10J4CATrQYnO6gRQrjVZTrXIiyrWMrt5R7eCfXEZXfkNiFPPrQesH3KzhqA-pxV22jiiKEjt_DAKxqYrtezRzYOYV6msCwUU3v7dmb0ylNw2_dO3cflVpnL6nvGmUWa9SN2xOyuliCZ6sfDWjA25BgKXcf8OmuwdytOhMEMMMUSUk2e3Khv2FSLupOD6JV7TRF-FvgAprM4nBi_GDrGOED0BKQ4ib284q1OGeUZd4GrOOsB2oMpC34KgyuhYx9tkcYAbTctHBRH9hCZl9Hh-Ft43ydCMMQ2wj6hxK1bQqMQW-8_XIPceSDJ6bBju6pcUm-44VgzmGLZ2C_Bh_JwLQ',
+  expires_in: 60,
+  refresh_expires_in: 1800,
+  refresh_token: 'eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICIwOWU5ZjI3YS0xOWIyLTQ2MzMtYTEwOS01YTZhNmE4NTEwOTUifQ.eyJleHAiOjE3NzQxNzA4MzUsImlhdCI6MTc3NDE2OTAzNSwianRpIjoiM2NkNjRjMWMtOWQ4OS00ODhjLTg1ODgtOTc4MmJkMTVhMzY1IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvcmVhbG1zL21hc3RlciIsInR5cCI6IlJlZnJlc2giLCJhenAiOiJhZG1pbi1jbGkiLCJzaWQiOiIzMmNiM2VhNi1mODkzLTRkNzItYWQ0MS05NTQxYjc0ZGU1MmEiLCJzY29wZSI6ImVtYWlsIHdlYi1vcmlnaW5zIHByb2ZpbGUgYWNyIGJhc2ljIHJvbGVzIn0.lOPGeHbh_cDIsxqjSxUfWUQGdchnHe2X-XaoszDGMaj4SsZCb31zTiKbBF82bUhM4J4XuJfBCnqpq-NiNPgtgw',
+  token_type: 'Bearer',
+  'not-before-policy': 0,
+  session_state: '32cb3ea6-f893-4d72-ad41-9541b74de52a',
+  scope: 'email profile'
+}
+✅ Admin authentication successful
+🔑 Token expires in: 60 seconds
+🔍 CREATE response: {
+  "errors": [
+    {
+      "message": "Variable \"$input\" got invalid value { nameEn: \"Test Subject 1774169035762\", nameAr: \"مادة اختبار 1774169035762\", code: \"SUBJ-1774169035762\", description: \"Test subject description\", credits: 3 }; Field \"programId\" of required type \"String!\" was not provided.",
+      "locations": [
+        {
+          "line": 2,
+          "column": 34
+        }
+      ],
+      "extensions": {
+        "code": "BAD_USER_INPUT",
+        "stacktrace": [
+          "GraphQLError: Field \"programId\" of required type \"String!\" was not provided.",
+          "    at coerceInputValueImpl (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\utilities\\coerceInputValue.js:111:13)",
+          "    at coerceInputValueImpl (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\utilities\\coerceInputValue.js:49:14)",
+          "    at coerceInputValue (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\utilities\\coerceInputValue.js:32:10)",
+          "    at coerceVariableValues (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\execution\\values.js:132:69)",
+          "    at getVariableValues (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\execution\\values.js:45:21)",
+          "    at buildExecutionContext (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\execution\\execute.js:331:63)",
+          "    at execute (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\graphql@16.13.1\\node_modules\\graphql\\execution\\execute.js:165:22)",
+          "    at executeIncrementally (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\incrementalDeliveryPolyfill.js:72:34)",
+          "    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)",
+          "    at async execute (E:\\QAF\\Github\\courses\\client\\node_modules\\.pnpm\\@apollo+server@5.4.0_graphql@16.13.1\\node_modules\\@apollo\\server\\dist\\cjs\\requestPipeline.js:249:37)"
+        ]
+      }
+    }
+  ]
+}
+❌ GraphQL errors: [
+  {
+    message: 'Variable "$input" got invalid value { nameEn: "Test Subject 1774169035762", nameAr: "مادة اختبار 1774169035762", code: "SUBJ-1774169035762", description: "Test subject description", credits: 3 }; Field "programId" of required type "String!" was not provided.',
+    locations: [ [Object] ],
+    extensions: { code: 'BAD_USER_INPUT', stacktrace: [Array] }
+  }
+]
+🔄 Trying alternative mutation...

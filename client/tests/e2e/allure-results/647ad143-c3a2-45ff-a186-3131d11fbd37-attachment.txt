@@ -1,0 +1,9 @@
+🔍 DELETE response: {
+  "data": {
+    "deleteSubject": true
+  }
+}
+✅ Subject deleted: 69bfac425ae6da109bf928fc
+🗑️ Deletion verified - subject no longer exists
+🧹 Cleaning up parent program...
+✅ Parent program deleted: 69bfac425ae6da109bf928fb

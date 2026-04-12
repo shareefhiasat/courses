@@ -1,7 +1,8 @@
 ﻿import React, { useState } from 'react';
 import DatePicker from './DatePicker';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'Form/DatePicker',
   component: DatePicker,
   tags: ['autodocs'],
@@ -56,7 +57,7 @@ const Template = (args) => {
         value={value}
         onChange={(isoString) => {
           setValue(isoString);
-          logger.log('Selected date:', isoString);
+          info('Selected date:', isoString);
         }}
       />
       <div style={{ marginTop: '1rem', padding: '0.5rem', background: '#f0f0f0', borderRadius: 4, fontSize: '0.875rem' }}>

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useToast } from '@ui';
 
-const VariableHelper = ({ templateType = 'custom' }) => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const VariableHelper = ({ templateType = 'custom' }) => {
   const toast = useToast();
   const [activeCategory, setActiveCategory] = useState('common');
 

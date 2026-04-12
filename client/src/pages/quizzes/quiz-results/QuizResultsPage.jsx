@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -136,7 +136,7 @@ const QuizResultsPage = () => {
                 return usersResult.data.find(u => (u.docId || u.id) === studentId);
               }
             } catch (err) {
-              logger.warn('Failed to load student:', studentId, err);
+              warn('Failed to load student:', studentId, err);
             }
             return null;
           })
@@ -149,7 +149,7 @@ const QuizResultsPage = () => {
         setStudents(studentsData);
       }
     } catch (error) {
-      logger.error('Failed to load data:', error);
+      error('Failed to load data:', error);
       toast.error('Failed to load data: ' + error.message);
     } finally {
       setLoading(false);
@@ -246,7 +246,7 @@ const QuizResultsPage = () => {
                 enrichedResult.quizClassId = quizData.classId || (quizData.assignedClassIds && quizData.assignedClassIds.length > 0 ? quizData.assignedClassIds[0] : null);
               }
             } catch (err) {
-              logger.warn('Failed to load quiz:', result.quizId, err);
+              warn('Failed to load quiz:', result.quizId, err);
             }
           }
 
@@ -260,7 +260,7 @@ const QuizResultsPage = () => {
                 enrichedResult.studentEmail = studentData.email;
               }
             } catch (err) {
-              logger.warn('Failed to load student:', result.userId, err);
+              warn('Failed to load student:', result.userId, err);
             }
           }
 
@@ -281,7 +281,7 @@ const QuizResultsPage = () => {
                 enrichedResult.classSubjectId = classData.subjectId;
               }
             } catch (err) {
-              logger.warn('Failed to load class:', classId, err);
+              warn('Failed to load class:', classId, err);
             }
           }
           
@@ -295,7 +295,7 @@ const QuizResultsPage = () => {
                 enrichedResult.subjectProgramId = subject.programId;
               }
             } catch (err) {
-              logger.warn('Failed to load subject:', enrichedResult.classSubjectId, err);
+              warn('Failed to load subject:', enrichedResult.classSubjectId, err);
             }
           }
           
@@ -308,11 +308,11 @@ const QuizResultsPage = () => {
                 enrichedResult.programName = program.nameEn || program.nameAr || program.code || 'N/A';
               }
             } catch (err) {
-              logger.warn('Failed to load program:', enrichedResult.subjectProgramId, err);
+              warn('Failed to load program:', enrichedResult.subjectProgramId, err);
             }
           }
         } catch (err) {
-          logger.warn('Failed to enrich result:', err);
+          warn('Failed to enrich result:', err);
         }
         return enrichedResult;
       }));
@@ -353,11 +353,11 @@ const QuizResultsPage = () => {
       
       // Log for debugging
       if (filtered.length === 0 && results.length > 0) {
-        logger.log('Results filtered out:', { total: results.length, filtered: filtered.length });
+        info('Results filtered out:', { total: results.length, filtered: filtered.length });
       }
     } catch (error) {
-      logger.error('Failed to load quiz results:', error);
-      logger.error('Error details:', {
+      error('Failed to load quiz results:', error);
+      error('Error details:', {
         code: error.code,
         message: error.message,
         stack: error.stack
@@ -582,7 +582,7 @@ const QuizResultsPage = () => {
       setEditingResult(null);
       setOverrideScore('');
     } catch (error) {
-      logger.error('Error overriding score:', error);
+      error('Error overriding score:', error);
       toast.error('Failed to override score: ' + error.message);
     }
   };
@@ -612,7 +612,7 @@ const QuizResultsPage = () => {
 
       toast.success('Result approved successfully');
     } catch (error) {
-      logger.error('Error approving result:', error);
+      error('Error approving result:', error);
       toast.error('Failed to approve result: ' + error.message);
     }
   };
@@ -684,7 +684,7 @@ const QuizResultsPage = () => {
 
       toast.success('Notification sent successfully');
     } catch (error) {
-      logger.error('Error sending notification:', error);
+      error('Error sending notification:', error);
       toast.error('Failed to send notification: ' + error.message);
     }
   };
@@ -738,7 +738,7 @@ const QuizResultsPage = () => {
         setBulkActionModal({ open: false, action: null });
       }
     } catch (error) {
-      logger.error('Error bulk approving:', error);
+      error('Error bulk approving:', error);
       toast.error('Failed to approve results: ' + error.message);
     }
   };

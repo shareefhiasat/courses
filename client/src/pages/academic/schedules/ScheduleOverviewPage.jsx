@@ -10,7 +10,7 @@ import { getSchedules } from '@services/business/scheduleService';
 import { transformSchedulesToCalendarEvents } from '@services/business/scheduleService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getUsers } from '@services/business/userService';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import './ScheduleOverviewPage.css';
 
 const ScheduleOverviewPage = () => {
@@ -54,7 +54,7 @@ const ScheduleOverviewPage = () => {
           loadSchedules()
         ]);
       } catch (error) {
-        console.error('Error loading schedule data:', error);
+        error('Error loading schedule data:', error);
       } finally {
         safeStop();
       }
@@ -80,7 +80,7 @@ const ScheduleOverviewPage = () => {
       if (subjectsRes?.success) setSubjects(subjectsRes.data || []);
       if (usersRes?.success) setUsers(usersRes.data || []);
     } catch (error) {
-      logger.error('[ScheduleOverview] Error loading metadata:', error);
+      error('[ScheduleOverview] Error loading metadata:', error);
     }
   }, []);
 
@@ -103,7 +103,7 @@ const ScheduleOverviewPage = () => {
         throw new Error(result.error);
       }
     } catch (error) {
-      logger.error('[ScheduleOverview] Error loading schedules:', error);
+      error('[ScheduleOverview] Error loading schedules:', error);
       toast?.error?.((t('error_loading_schedules') || 'Error loading schedules: ') + error.message);
     } finally {
       setLoading(false);

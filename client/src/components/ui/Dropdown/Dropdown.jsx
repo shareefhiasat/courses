@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Dropdown.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Dropdown Component
  * 
  * A dropdown menu with customizable trigger and items.

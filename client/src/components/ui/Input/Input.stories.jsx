@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import Input from './Input';
 import { getThemedIcon } from '@constants/iconTypes';
 
-export default {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export default {
   title: 'UI/Input',
   component: Input,
   tags: ['autodocs'],

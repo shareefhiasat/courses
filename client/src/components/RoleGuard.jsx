@@ -1,14 +1,15 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useRoleAccess } from '@/hooks/useRoleAccess';
+import { useAuth } from '@contexts/AuthContext';
 import { GlobalLoadingFallback } from '@/contexts/GlobalLoadingContext';
 import { useLang } from '@contexts/LangContext';
-import logger from '@utils/logger';
+import { hasScreenAccess } from '@constants/screenDefinitions';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * RoleGuard Component
  * 
- * Protects routes based on role-based access control.
+ * Protects routes based on Keycloak role-based access control.
  * Checks if the current user's role has permission to access a screen.
  * Redirects to /unauthorized if access is denied.
  * 
@@ -29,7 +30,7 @@ const RoleGuard = ({
   screenName,
   loadingComponent = null 
 }) => {
-  const { hasAccess, loading } = useRoleAccess();
+  const { user, loading, isSuperAdmin } = useAuth();
   const location = useLocation();
   const { t } = useLang();
 
@@ -41,11 +42,30 @@ const RoleGuard = ({
     return <GlobalLoadingFallback />;
   }
 
-  // Check if user has access to this screen
-  const authorized = hasAccess(screenId);
+  // Not authenticated - redirect to login
+  if (!user) {
+    return (
+      <Navigate 
+        to={`/login?redirect=${encodeURIComponent(location.pathname)}`}
+        replace 
+        state={{ from: location.pathname }}
+      />
+    );
+  }
+
+  // Super admin always has access
+  if (isSuperAdmin) {
+    return <>{children}</>;
+  }
+
+  // Check if user has access to this screen based on Keycloak roles
+  const authorized = hasScreenAccess(screenId, user.roles || []);
 
   if (!authorized) {
-    logger.warn(`[RoleGuard] Access denied to screen: ${screenId}`);
+    warn(`[RoleGuard] Access denied to screen: ${screenId}`, {
+      userRoles: user.roles,
+      screenId
+    });
     
     // Redirect to unauthorized page with context
     return (

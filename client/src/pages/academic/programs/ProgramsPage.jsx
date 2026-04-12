@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
+import { getUserDisplayProps } from '@utils/userDisplayUtils.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { getPrograms, createProgram, updateProgram, deleteProgram } from '@services/business/programService';
 import { getUsers } from '@services/business/userService';
+import { getThemedIcon } from '@constants/iconTypes';
+import { formatDateTime } from '@utils/dateUtils.js';
 import { SimpleLoading, Button, Input, Textarea, useToast, AdvancedDataGrid } from '@ui';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
-import { getThemedIcon } from '@constants/iconTypes';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import styles from './ProgramsPage.module.css';
 
@@ -70,14 +72,25 @@ const ProgramsPage = () => {
       if (programsResult.success) {
         setPrograms(programsResult.data || []);
       } else {
-        toast.error(programsResult.error || t('failed_to_load_programs') || 'Failed to load programs');
+        // Don't show toast on initial load, only on manual refresh
+        if (!isInitial) {
+          toast.error(programsResult.error || t('failed_to_load_programs') || 'Failed to load programs');
+        }
       }
       
       if (usersResult.success) {
         setUsers(usersResult.data || []);
+      } else {
+        // Don't show toast on initial load, only on manual refresh
+        if (!isInitial) {
+          toast.error(usersResult.error || 'Failed to load users');
+        }
       }
     } catch (error) {
-      toast.error(error.message || t('programs_error_message', { error: error.message }));
+      // Don't show toast on initial load, only on manual refresh
+      if (!isInitial) {
+        toast.error(error.message || t('programs_error_message', { error: error.message }));
+      }
     } finally {
       if (!isInitial) setLoading(false);
     }
@@ -102,7 +115,7 @@ const ProgramsPage = () => {
     return () => {
       if (stopLoading) stopLoading();
     };
-  }, [authLoading, isAdmin, isSuperAdmin, startLoading, loadPrograms, t]);
+  }, [authLoading, isAdmin, isSuperAdmin, startLoading, t]);
 
   // Sync refs when editing an existing program
   useEffect(() => {
@@ -133,13 +146,14 @@ const ProgramsPage = () => {
     const programData = {
       ...formData,
       ...textValues
+      // No mapping needed - schemas now match UI form exactly!
     };
 
     setLoading(true);
     try {
       let result;
       if (editingProgram) {
-        result = await updateProgram(editingProgram.docId, programData, user);
+        result = await updateProgram(editingProgram.id, programData, user);
       } else {
         result = await createProgram(programData, user);
       }
@@ -148,11 +162,11 @@ const ProgramsPage = () => {
         // Log activity
         try {
           await logActivity(editingProgram ? ACTIVITY_LOG_TYPES.PROGRAM_UPDATED : ACTIVITY_LOG_TYPES.PROGRAM_CREATED, {
-            programId: editingProgram?.docId || result.id,
+            programId: editingProgram?.id || result.id,
             programName: textValues.nameEn,
             programCode: formData.code
           });
-        } catch (e) { logger.warn('Failed to log activity:', e); }
+        } catch (e) { /* Activity logging failed */ }
         toast.success(editingProgram ? t('program_updated_successfully') || 'Program updated successfully' : t('program_created_successfully') || 'Program created successfully');
         setEditingProgram(null);
         resetForm();
@@ -160,9 +174,8 @@ const ProgramsPage = () => {
       } else {
         toast.error(result.error || t('operation_failed') || 'Operation failed');
       }
-    } catch (error) {
-      logger.error('Error saving program:', error);
-      toast.error(error.message || t('programs_error_message', { error: error.message }));
+    } catch (err) {
+      toast.error(err.message || t('programs_error_message', { error: err.message }));
     } finally {
       setLoading(false);
       console.timeEnd('[PERF] handleProgramSubmit');
@@ -194,16 +207,16 @@ const ProgramsPage = () => {
       setPrograms(prev => prev.filter(p => (p.docId || p.id) !== (program.docId || program.id)));
       
       try {
-        const result = await deleteProgram(program.docId);
+        const result = await deleteProgram(program.id);
         if (result.success) {
           // Log activity
           try {
             await logActivity(ACTIVITY_LOG_TYPES.PROGRAM_DELETED, {
-              programId: program.docId,
+              programId: program.id,
               programName: program.nameEn || program.nameAr,
               programCode: program.code
             });
-          } catch (e) { logger.warn('Failed to log activity:', e); }
+          } catch (e) { /* Activity logging failed */ }
           toast.success(t('program_deleted_successfully') || 'Program deleted successfully');
           await loadPrograms();
         } else {
@@ -214,7 +227,6 @@ const ProgramsPage = () => {
       } catch (error) {
         // Rollback on error
         setPrograms(prev => [...prev, program]);
-        logger.error('Error deleting program:', error);
         toast.error(error.message || t('programs_error_message', { error: error.message }));
       }
     });
@@ -282,46 +294,19 @@ const ProgramsPage = () => {
         const createdAt = row.createdAt || params?.value;
         if (!createdAt) return '—';
         
-        // If it's already a formatted Qatar string, return it as-is
-        if (typeof createdAt === 'string' && createdAt.includes('UTC+3')) {
-          return createdAt;
-        }
-        
         try {
           // Handle Firestore Timestamp
           if (typeof createdAt === 'object' && createdAt.toDate) {
-            return createdAt.toDate().toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
-            });
+            return formatDateTime(createdAt.toDate(), t.lang || 'en');
           }
           
           // Handle ISO string or timestamp string
-          if (typeof createdAt === 'string') {
-            const date = new Date(createdAt);
-            if (isNaN(date.getTime())) return createdAt; // Return original if can't parse
-            return date.toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
-            });
-          }
-          
-          // Handle timestamp number
-          if (typeof createdAt === 'number') {
-            const date = new Date(createdAt);
-            if (isNaN(date.getTime())) return 'Invalid Date';
-            return date.toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
-            });
+          if (typeof createdAt === 'string' || typeof createdAt === 'number') {
+            return formatDateTime(createdAt, t.lang || 'en');
           }
           
           return createdAt;
         } catch (error) {
-          console.warn('Date formatting error:', error, createdAt);
           return createdAt || 'Invalid Date';
         }
       }
@@ -331,34 +316,9 @@ const ProgramsPage = () => {
       headerName: t('created_by') || 'Created By',
       width: 200,
       renderCell: (params) => {
-        const createdBy = params.value || params.row?.createdBy;
-        if (!createdBy) return '—';
-        
-        // Try to find user display name from users array
-        const user = users.find(u => (u.uid || u.id) === createdBy);
-        if (user) {
-          const displayName = user.displayName || user.name || user.email;
-          return (
-            <span title={createdBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
-              {displayName || createdBy}
-            </span>
-          );
-        }
-        
-        // Fallback to UID with truncation if long
-        if (typeof createdBy === 'string' && createdBy.length > 20) {
-          return (
-            <span title={createdBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
-              {`${createdBy.substring(0, 8)}...${createdBy.substring(createdBy.length - 4)}`}
-            </span>
-          );
-        }
-        
-        return (
-          <span title={createdBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
-            {createdBy}
-          </span>
-        );
+        const creator = params.row?.creator;
+        const props = getUserDisplayProps(creator, users);
+        return <span {...props} />;
       }
     },
     {
@@ -366,34 +326,9 @@ const ProgramsPage = () => {
       headerName: t('updated_by') || 'Updated By',
       width: 200,
       renderCell: (params) => {
-        const updatedBy = params.value || params.row?.updatedBy;
-        if (!updatedBy) return '—';
-        
-        // Try to find user display name from users array
-        const user = users.find(u => (u.uid || u.id) === updatedBy);
-        if (user) {
-          const displayName = user.displayName || user.name || user.email;
-          return (
-            <span title={updatedBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
-              {displayName || updatedBy}
-            </span>
-          );
-        }
-        
-        // Fallback to UID with truncation if long
-        if (typeof updatedBy === 'string' && updatedBy.length > 20) {
-          return (
-            <span title={updatedBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
-              {`${updatedBy.substring(0, 8)}...${updatedBy.substring(updatedBy.length - 4)}`}
-            </span>
-          );
-        }
-        
-        return (
-          <span title={updatedBy} style={{ fontFamily: 'monospace', fontSize: '12px' }}>
-            {updatedBy}
-          </span>
-        );
+        const updater = params.row?.updater;
+        const props = getUserDisplayProps(updater, users);
+        return <span {...props} />;
       }
     },
     {
@@ -444,7 +379,6 @@ const ProgramsPage = () => {
           
           return updatedAt;
         } catch (error) {
-          console.warn('Date formatting error:', error, updatedAt);
           return updatedAt || 'Invalid Date';
         }
       }

@@ -3,7 +3,8 @@ import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
 import { onLatestAnnouncementChange } from '@services/db/announcementDbService';
 
-export const useRealTimeUpdates = () => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';export const useRealTimeUpdates = () => {
   const { user } = useAuth();
   const toast = useToast();
   const initialLoadRef = useRef(true);

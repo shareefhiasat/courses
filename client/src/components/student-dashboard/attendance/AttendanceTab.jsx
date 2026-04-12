@@ -2,9 +2,11 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { EmptyState } from '@ui';
 import { StudentRosterHistory } from '@components/ui/history';
 import useStudentAttendanceActions from '@hooks/useStudentAttendanceActions';
-import { PARTICIPATION_TYPES, BEHAVIOR_TYPES, PENALTY_TYPES } from '@constants';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
+// OLD: import { PARTICIPATION_TYPES, BEHAVIOR_TYPES, PENALTY_TYPES } from '@constants';
+// NOW: Using useLookupTypes hook for all lookup data
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import styles from './AttendanceTab.module.css';
 import { getThemedIcon } from '@constants/iconTypes';
 
@@ -27,6 +29,9 @@ const AttendanceTab = React.memo(({
   studentName,
 }) => {
   const isRTL = lang === 'ar';
+  const { data: lookupData } = useLookupTypes({
+    types: ['behavior-types', 'participation-types', 'penalty-types']
+  });
 
   const [activeFilters, setActiveFilters] = useState({
     attendance: true, participation: true, behavior: true, penalties: true,
@@ -40,7 +45,7 @@ const AttendanceTab = React.memo(({
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    logger.log('[AttendanceTab] Data received:', {
+    info('[AttendanceTab] Data received:', {
       studentId, classId,
       attendanceCount: attendance.length,
       participationsCount: participations.length,
@@ -57,7 +62,7 @@ const AttendanceTab = React.memo(({
     const dataScope = studentId ? `SINGLE_STUDENT (${studentId})` : `ALL_STUDENTS_IN_CLASS (${classId})`;
     const isSingleStudent = !!studentId;
     
-    logger.log('🔧 AttendanceTab - CALCULATING STATS:', {
+    info('🔧 AttendanceTab - CALCULATING STATS:', {
       dataScope,
       isSingleStudent,
       studentId,
@@ -82,7 +87,7 @@ const AttendanceTab = React.memo(({
       className: a.className
     }));
     
-    logger.log('🔧 AttendanceTab - ATTENDANCE RECORDS VERIFICATION:', {
+    info('🔧 AttendanceTab - ATTENDANCE RECORDS VERIFICATION:', {
       dataScope,
       totalRecords: attendance.length,
       records: attendanceLog,
@@ -97,7 +102,7 @@ const AttendanceTab = React.memo(({
       date: p.date
     }));
     
-    logger.log('🔧 AttendanceTab - PENALTIES VERIFICATION:', {
+    info('🔧 AttendanceTab - PENALTIES VERIFICATION:', {
       dataScope,
       totalRecords: penalties.length,
       records: penaltiesLog,
@@ -112,7 +117,7 @@ const AttendanceTab = React.memo(({
       date: b.date
     }));
     
-    logger.log('🔧 AttendanceTab - BEHAVIORS VERIFICATION:', {
+    info('🔧 AttendanceTab - BEHAVIORS VERIFICATION:', {
       dataScope,
       totalRecords: behaviors.length,
       records: behaviorsLog,
@@ -127,7 +132,7 @@ const AttendanceTab = React.memo(({
       date: p.date
     }));
     
-    logger.log('🔧 AttendanceTab - PARTICIPATIONS VERIFICATION:', {
+    info('🔧 AttendanceTab - PARTICIPATIONS VERIFICATION:', {
       dataScope,
       totalRecords: participations.length,
       records: participationsLog,
@@ -152,7 +157,7 @@ const AttendanceTab = React.memo(({
     };
     
     // Final verification log
-    logger.log('🔧 AttendanceTab - FINAL CARD COUNTS VERIFICATION:', {
+    info('🔧 AttendanceTab - FINAL CARD COUNTS VERIFICATION:', {
       dataScope,
       isSingleStudent,
       '📊 CARD COUNTS': {
@@ -190,22 +195,22 @@ const AttendanceTab = React.memo(({
 
   // Per-type breakdown for expandable sections (images 4 & 5 style — all types shown, even zero)
   const typeBreakdown = useMemo(() => {
-    const participationBreakdown = PARTICIPATION_TYPES.map(pt => {
+    const participationBreakdown = (lookupData['participation-types'] || []).map(pt => {
       const matching = participations.filter(p => p.type === pt.id);
       return {
         id: pt.id,
-        label: lang === 'ar' ? pt.label_ar : pt.label_en,
+        label: lang === 'ar' ? (pt.nameAr || pt.nameEn) : pt.nameEn,
         total: matching.reduce((s, p) => s + (p.points || 0), 0),
         count: matching.length,
         hasEntries: matching.length > 0,
       };
     });
 
-    const behaviorBreakdown = BEHAVIOR_TYPES.map(bt => {
+    const behaviorBreakdown = (lookupData['behavior-types'] || []).map(bt => {
       const matching = behaviors.filter(b => b.type === bt.id);
       return {
         id: bt.id,
-        label: lang === 'ar' ? bt.label_ar : bt.label_en,
+        label: lang === 'ar' ? (bt.nameAr || bt.nameEn) : bt.nameEn,
         total: matching.reduce((s, b) => s + (b.points || 0), 0),
         count: matching.length,
         hasEntries: matching.length > 0,
@@ -223,11 +228,11 @@ const AttendanceTab = React.memo(({
       isTotal: true,
     });
 
-    const penaltyBreakdown = PENALTY_TYPES.map(pt => {
+    const penaltyBreakdown = (lookupData['penalty-types'] || []).map(pt => {
       const matching = penalties.filter(p => p.type === pt.id);
       return {
         id: pt.id,
-        label: lang === 'ar' ? pt.label_ar : pt.label_en,
+        label: lang === 'ar' ? (pt.nameAr || pt.nameEn) : pt.nameEn,
         total: matching.reduce((s, p) => s + (p.points || 0), 0),
         count: matching.length,
         hasEntries: matching.length > 0,
@@ -235,10 +240,10 @@ const AttendanceTab = React.memo(({
     });
 
     return { participationBreakdown, behaviorBreakdown, penaltyBreakdown };
-  }, [participations, behaviors, penalties, lang, t]);
+  }, [participations, behaviors, penalties, lang, t, lookupData]);
 
   const groupedLogs = useMemo(() => {
-    logger.log('🔧 AttendanceTab - START processing logs:', {
+    info('🔧 AttendanceTab - START processing logs:', {
       attendanceCount: attendance.length,
       participationsCount: participations.length,
       penaltiesCount: penalties.length,
@@ -250,7 +255,7 @@ const AttendanceTab = React.memo(({
 
     const resolveDate = (log) => {
       // Debug: Log the entire log object to understand the structure
-      logger.debug('[AttendanceTab] resolveDate called with:', {
+      debug('[AttendanceTab] resolveDate called with:', {
         logType: log.logType,
         method: log.method,
         hasDate: !!log.date,
@@ -271,7 +276,7 @@ const AttendanceTab = React.memo(({
           const combinedDateTime = `${log.date}T${log.time}`;
           const d = new Date(combinedDateTime);
           if (!isNaN(d.getTime())) {
-            logger.debug('[AttendanceTab] Resolved date using date+time combination:', combinedDateTime);
+            debug('[AttendanceTab] Resolved date using date+time combination:', combinedDateTime);
             return d;
           }
         }
@@ -281,7 +286,7 @@ const AttendanceTab = React.memo(({
           const dateWithCurrentTime = `${log.date}T${new Date().toTimeString().split(' ')[0]}`;
           const d = new Date(dateWithCurrentTime);
           if (!isNaN(d.getTime())) {
-            logger.debug('[AttendanceTab] Resolved date using date+current time:', dateWithCurrentTime);
+            debug('[AttendanceTab] Resolved date using date+current time:', dateWithCurrentTime);
             return d;
           }
         }
@@ -290,7 +295,7 @@ const AttendanceTab = React.memo(({
         if (log.date) {
           const d = new Date(log.date);
           if (!isNaN(d.getTime())) {
-            logger.debug('[AttendanceTab] Resolved date using date only:', log.date);
+            debug('[AttendanceTab] Resolved date using date only:', log.date);
             return d;
           }
         }
@@ -309,19 +314,19 @@ const AttendanceTab = React.memo(({
         if (candidate?.toDate) {
           const d = candidate.toDate();
           if (!isNaN(d.getTime())) {
-            logger.debug('[AttendanceTab] Resolved date using timestamp:', candidate);
+            debug('[AttendanceTab] Resolved date using timestamp:', candidate);
             return d;
           }
         }
         const d = new Date(candidate);
         if (!isNaN(d.getTime())) {
-          logger.debug('[AttendanceTab] Resolved date using string candidate:', candidate);
+          debug('[AttendanceTab] Resolved date using string candidate:', candidate);
           return d;
         }
       }
       
       // Ultimate fallback: use current date
-      logger.warn('[AttendanceTab] All date resolution failed, using current date as fallback for:', {
+      warn('[AttendanceTab] All date resolution failed, using current date as fallback for:', {
         logType: log.logType,
         hasDate: !!log.date,
         hasTime: !!log.time,
@@ -346,8 +351,8 @@ const AttendanceTab = React.memo(({
       ...behaviors.map(b => ({ ...b, logType: RECORD_TYPES.BEHAVIOR, rawTime: b.time, time: resolveDate(b), studentName: getStudentInfo(b.studentId) })),
     ];
 
-    logger.log('🔧 AttendanceTab - all logs count:', allLogs.length);
-    logger.log('🔧 AttendanceTab - sample logs:', allLogs.slice(0, 5).map(log => ({
+    info('🔧 AttendanceTab - all logs count:', allLogs.length);
+    info('🔧 AttendanceTab - sample logs:', allLogs.slice(0, 5).map(log => ({
       id: log.id,
       logType: log.logType,
       rawTime: log.rawTime,
@@ -361,7 +366,7 @@ const AttendanceTab = React.memo(({
       const dateObj = log.time;
       const dateKey = dateObj ? dateObj.toISOString().split('T')[0] : 'unknown';
 
-      logger.log(`🔧 AttendanceTab - processing log ${index}:`, {
+      info(`🔧 AttendanceTab - processing log ${index}:`, {
         logId: log.id,
         logType: log.logType,
         rawTime: log.rawTime,
@@ -371,7 +376,7 @@ const AttendanceTab = React.memo(({
       });
 
       if (!dateObj || isNaN(dateObj.getTime())) {
-        logger.log('🔧 AttendanceTab - invalid/unknown date found:', {
+        info('🔧 AttendanceTab - invalid/unknown date found:', {
           logId: log.id,
           logType: log.logType,
           rawTime: log.rawTime,
@@ -397,7 +402,7 @@ const AttendanceTab = React.memo(({
       .sort(([a], [b]) => b.localeCompare(a))
       .map(([, data]) => data);
 
-    logger.log('🔧 AttendanceTab - grouped logs result:', result.map(group => ({
+    info('🔧 AttendanceTab - grouped logs result:', result.map(group => ({
       date: group.date,
       attendance: group.attendance.length,
       participation: group.participation.length,
@@ -479,7 +484,7 @@ const AttendanceTab = React.memo(({
           break;
       }
     } catch (error) {
-      logger.error('Delete failed:', error);
+      error('Delete failed:', error);
     }
   }, [deleteModalData, actions]);
 

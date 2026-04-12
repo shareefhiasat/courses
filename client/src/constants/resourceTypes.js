@@ -1,10 +1,6 @@
-/**
- * Resource Types Constants
- * Centralized resource types with colors for consistent theming
- */
-
-import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
-import { RESOURCE_TYPES } from '@utils/sharedTypes';
+import { getThemedIcon, getColoredIcon } from './iconTypes';
+import { RESOURCE_TYPES } from '../utils/sharedTypes';
+import { info, error, warn, debug } from '../services/utils/logger.js';
 
 // Labels for UI display
 export const RESOURCE_TYPE_LABELS = {
@@ -22,55 +18,49 @@ export const RESOURCE_TYPE_LABELS_AR = {
   [RESOURCE_TYPES.DOCUMENT]: 'مستند'
 };
 
-// Resource type configuration with colors and icons
-export const getResourceTypeConfig = (type, theme = 'light', lang = 'en') => {
-  const labels = lang === 'ar' ? RESOURCE_TYPE_LABELS_AR : RESOURCE_TYPE_LABELS;
-  
-  const typeConfig = {
-    [RESOURCE_TYPES.ALL]: { 
-      icon: 'layers', 
-      color: null, // Use themed icon
-      text: labels[RESOURCE_TYPES.ALL] 
-    },
-    [RESOURCE_TYPES.VIDEO]: { 
-      icon: 'video', 
-      color: '#3b82f6', // Blue for video
-      text: labels[RESOURCE_TYPES.VIDEO] 
-    },
-    [RESOURCE_TYPES.LINK]: { 
-      icon: 'link', 
-      color: '#3b82f6', // Blue for link
-      text: labels[RESOURCE_TYPES.LINK] 
-    },
-    [RESOURCE_TYPES.DOCUMENT]: { 
-      icon: 'file', 
-      color: null, // Use themed icon
-      text: labels[RESOURCE_TYPES.DOCUMENT] 
-    }
-  };
-  
-  const config = typeConfig[type] || { 
-    icon: 'file', 
-    color: null,
-    text: type || 'Unknown' 
-  };
-  
+// Colors for resource types
+export const RESOURCE_TYPE_COLORS = {
+  [RESOURCE_TYPES.ALL]: '#6b7280',
+  [RESOURCE_TYPES.VIDEO]: '#ef4444',
+  [RESOURCE_TYPES.LINK]: '#3b82f6',
+  [RESOURCE_TYPES.DOCUMENT]: '#10b981'
+};
+
+// Helper functions
+export const getResourceTypeLabel = (type, lang = 'en') => {
+  if (lang === 'ar') {
+    return RESOURCE_TYPE_LABELS_AR[type] || type;
+  }
+  return RESOURCE_TYPE_LABELS[type] || type;
+};
+
+export const getResourceTypeColor = (type) => {
+  return RESOURCE_TYPE_COLORS[type] || '#6b7280';
+};
+
+export const getResourceTypeIcon = (type) => {
+  return getThemedIcon('resource', type);
+};
+
+export const getResourceTypeConfig = (type) => {
   return {
-    ...config,
-    icon: config.color 
-      ? getColoredIcon('ui', config.icon, 14, config.color, theme)
-      : getThemedIcon('ui', config.icon, 14, theme)
+    label: getResourceTypeLabel(type),
+    color: getResourceTypeColor(type),
+    icon: getResourceTypeIcon(type)
   };
 };
 
-// Get resource type options for dropdown with icons
-export const getResourceTypeOptionsForDropdown = (theme = 'light', lang = 'en') => {
-  return Object.entries(RESOURCE_TYPES).map(([key, value]) => {
-    const config = getResourceTypeConfig(value, theme, lang);
-    return {
-      value,
-      label: config.text,
-      icon: config.icon
-    };
-  });
+export const isValidResourceType = (type) => {
+  return Object.values(RESOURCE_TYPES).includes(type);
+};
+
+export default {
+  RESOURCE_TYPE_LABELS,
+  RESOURCE_TYPE_LABELS_AR,
+  RESOURCE_TYPE_COLORS,
+  getResourceTypeLabel,
+  getResourceTypeColor,
+  getResourceTypeIcon,
+  getResourceTypeConfig,
+  isValidResourceType
 };

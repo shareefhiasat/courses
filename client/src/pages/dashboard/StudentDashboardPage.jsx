@@ -9,7 +9,7 @@ import { Container, Button, Select, UserSelect, Tabs } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { ROLE_STRINGS } from '@constants';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 import useStudentDashboardPermissions from '@hooks/useStudentDashboardPermissions';
 import useStudentDashboardFilters from '@hooks/useStudentDashboardFilters';
@@ -80,19 +80,28 @@ export default function StudentDashboardPage() {
       }
 
       setLoadingClassEnrollments(true);
-      logger.log('[StudentDashboardPage] Loading enrollments for class:', filters.selectedClassId);
+      info('[StudentDashboardPage] Loading enrollments for class:', filters.selectedClassId);
       
       try {
         const result = await getStudentsByClass(filters.selectedClassId);
         if (result.success) {
-          logger.log('[StudentDashboardPage] Loaded class enrollments:', result.data.length, 'students');
-          setClassEnrollments(result.data || []);
+          info('[StudentDashboardPage] Loaded class enrollments:', result.data.length, 'students');
+          // Transform enrollment data to student structure for compatibility
+          const students = result.data.map(enrollment => ({
+            id: enrollment.userId,
+            docId: enrollment.userId,
+            displayName: enrollment.user?.displayName || enrollment.user?.realName || enrollment.user?.email,
+            email: enrollment.user?.email,
+            realName: enrollment.user?.realName,
+            isDisabled: enrollment.isDisabled
+          }));
+          setClassEnrollments(students || []);
         } else {
-          logger.error('[StudentDashboardPage] Failed to load class enrollments:', result.error);
+          error('[StudentDashboardPage] Failed to load class enrollments:', result.error);
           setClassEnrollments([]);
         }
       } catch (error) {
-        logger.error('[StudentDashboardPage] Error loading class enrollments:', error);
+        error('[StudentDashboardPage] Error loading class enrollments:', error);
         setClassEnrollments([]);
       } finally {
         setLoadingClassEnrollments(false);
@@ -115,7 +124,7 @@ export default function StudentDashboardPage() {
 
   // Debug logging for data flow
   useEffect(() => {
-    logger.log('[StudentDashboardPage] Dashboard state:', {
+    info('[StudentDashboardPage] Dashboard state:', {
       authLoading,
       user: user?.uid,
       userProfile: userProfile?.displayName,
@@ -144,7 +153,7 @@ export default function StudentDashboardPage() {
 
   // Debug: Log tab changes
   useEffect(() => {
-    logger.log('[StudentDashboardPage] Tab state:', {
+    info('[StudentDashboardPage] Tab state:', {
       activeTab,
       showSelectionPrompt,
       dashDataLoading: dashData.loading,
@@ -229,7 +238,7 @@ export default function StudentDashboardPage() {
                 disabled={loadingClassEnrollments}
               />
               {/* Debug info for student filtering */}
-              {process.env.NODE_ENV === 'development' && (
+              {import.meta.env.MODE === 'development' && (
                 <details closed={true} style={{ marginTop: '1rem' }}>
                   <summary style={{ cursor: 'pointer', padding: '1rem', background: '#f0f9ff', border: '1px solid #3b82f6', borderRadius: '8px', fontSize: '0.8rem' }}>
                     <strong>Debug - Student Selection</strong>

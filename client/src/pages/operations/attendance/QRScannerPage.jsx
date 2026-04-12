@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { formatQatarDateOnly, getQatarNow } from '@utils/qatarDate';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { useLookupTypes } from '@hooks/useLookupTypes.js';
+// OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
+// OLD: import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
+// OLD: import { PARTICIPATION_TYPES } from '@constants/participationTypes';
+// NOW: Using useLookupTypes hook for all lookup data
 import { useNavigate } from 'react-router-dom';
-import { db } from '@services/other/config';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
 import { getUsers } from '@services/business/userService';
-import { getEnrollments } from '@services/business/enrollmentService';
+import { getEnrollments, getEnrollmentsByProgram } from '@services/business/enrollmentService';
 import { getClasses } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { notificationGateway } from '@services/business/notificationGateway';
@@ -16,31 +19,33 @@ import { uploadReport } from '@services/business/fileStorageService';
 import { REPORT_TYPES, STORAGE_CONSTANTS, REPORT_TYPE_IDS } from '@constants/reportConstants';
 import { getThemedIcon } from '@constants/iconTypes';
 import Modal from '@ui/Modal/Modal';
-import { markAttendance, getAttendanceByClass, getAttendanceByStudent, deleteAttendance } from '@services/business/attendanceService';
-import { getAttendanceRecords } from '@services/db/attendanceDbService';
+import { markAttendance, getAttendanceByClass, getAttendanceByStudent, deleteAttendance, getClassAttendanceByDate } from '@services/business/attendanceServiceUnified.js';
+import { createStandupAttendance, getStandupAttendanceByUserAndDate, deleteStandupAttendance, getStandupAttendanceByProgramForDateRange, getStandupAttendanceByProgramAndDate } from '@services/business/standupAttendanceService';
+import { getAttendanceRecords } from '@services/business/attendanceService.js';
 import { createPenalty, getPenalties, deletePenalty } from '@services/business/penaltyService';
 import { createParticipation, getParticipations, deleteParticipation } from '@services/business/participationService';
 import { createBehavior, getBehaviors, deleteBehavior } from '@services/business/behaviorService';
 import { getPerformedByFields } from '@services/business/userService';
-import { PENALTY_TYPES } from '@constants/penaltyTypes';
+// OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ATTENDANCE_METHODS, getAttendanceMethodLabel } from '@constants/attendanceMethods';
-import { ATTENDANCE_TYPES, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
-import { EMAIL_TEMPLATE_TYPES } from '@constants/templateTypes';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
+import { getNoteTypeFromStatus, getLocalizedNoteText } from '@constants/noteTypes';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { useToast } from '@ui/ToastProvider.jsx';
 import { addNotification } from '@services/business/notificationService';
 import { sendStudentNotification } from '@services/business/notificationService';
-import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
-import { PARTICIPATION_TYPES } from '@constants/participationTypes';
+// OLD: import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
+// OLD: import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { USER_ROLES } from '@constants/activityTypes';
-import { Select, DatePicker, Button, Card, CardBody } from '@ui';
+import { Select, DatePicker, Button, Card, CardBody, ProgramsSelect } from '@ui';
 import QRScanner from '@/components/qr-scanner/QRScanner';
 import StudentRoster from '@/components/qr-scanner/StudentRoster';
 import StudentActionStatsPanel from '@/components/qr-scanner/StudentActionStatsPanel';
 import StudentActionZapPanel from '@/components/qr-scanner/StudentActionZapPanel';
 import BulkScanDialog from '@components/ui/BulkScanDialog/BulkScanDialog';
 import ReportExportModal from '@/components/qr-scanner/ReportExportModal';
+import { BulkScanProvider } from '@/contexts/BulkScanContext';
 import '@/components/qr-scanner/ui/qr-scanner-ui.css';
 import './QRScannerPage.module.css';
 import eventBus, { EVENTS } from '@utils/eventBus';
@@ -53,9 +58,10 @@ const QRScannerPage = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const toast = useToast();
-  const showSuccess = toast?.showSuccess || ((msg) => console.log('SUCCESS:', msg));
-  const showError = toast?.showError || ((msg) => console.log('ERROR:', msg));
-  const showInfo = toast?.showInfo || ((msg) => console.log('INFO:', msg));
+  const { activityTypeOptions } = useLookupTypes();
+  const showSuccess = useMemo(() => toast?.showSuccess || ((msg) => console.log('SUCCESS:', msg)), [toast]);
+  const showError = useMemo(() => toast?.showError || ((msg) => console.log('ERROR:', msg)), [toast]);
+  const showInfo = useMemo(() => toast?.showInfo || ((msg) => console.log('INFO:', msg)), [toast]);
   const { startLoading } = useGlobalLoading();
 
   // Helper functions to save selections to localStorage
@@ -66,7 +72,7 @@ const QRScannerPage = () => {
       console.warn(t('instructor_qr_failed_to_save_program_id'), error);
     }
     setSelectedProgramId(programId);
-  }, []);
+  }, [t]);
 
   const saveSelectedSubjectId = useCallback((subjectId) => {
     try {
@@ -75,7 +81,7 @@ const QRScannerPage = () => {
       console.warn(t('instructor_qr_failed_to_save_subject_id'), error);
     }
     setSelectedSubjectId(subjectId);
-  }, []);
+  }, [t]);
 
   const saveSelectedClassId = useCallback((classId) => {
     try {
@@ -84,13 +90,13 @@ const QRScannerPage = () => {
       console.warn(t('instructor_qr_failed_to_save_class_id'), error);
     }
     setSelectedClassId(classId);
-  }, []);
+  }, [t]);
 
   // Helper function to validate if a selection still exists in available data
   const validateSelection = useCallback((selectionId, availableItems, itemType) => {
     if (selectionId === 'all') return true;
     return availableItems.some(item => 
-      (item.id === selectionId) || (item.docId === selectionId)
+      (item.id === selectionId)
     );
   }, []);
 
@@ -140,10 +146,16 @@ const QRScannerPage = () => {
 
   // DEBUG: Track attendanceMode changes
   useEffect(() => {
-    logger.log('🔍 [DEBUG] attendanceMode changed:', {
+    info('🔍 [DEBUG] attendanceMode changed:', {
       attendanceMode,
       constants: ATTENDANCE_TYPE_CATEGORY
     });
+
+    // Reset subject selection to 'all' when switching to standup mode
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      setSelectedSubjectId('all');
+      setSelectedClassId('all');
+    }
   }, [attendanceMode]);
 
   // Fetch performed by fields when user is available
@@ -185,14 +197,15 @@ const QRScannerPage = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [enrollments, setEnrollments] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [standupRecords, setStandupRecords] = useState([]);
   const [penaltyRecords, setPenaltyRecords] = useState([]);
-  const [error, setError] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [favoriteBehaviors, setFavoriteBehaviors] = useState([]);
-  const [showScanner, setShowScanner] = useState(true);
+  const [showScanner, setShowScanner] = useState(true); // Show QR scanner by default
   const [sendNotifications, setSendNotifications] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
-  const [isScannerMinimized, setIsScannerMinimized] = useState(false);
+  const [isScannerMinimized, setIsScannerMinimized] = useState(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP); // Minimized by default in standup mode
   
   // Report export modal state (unified for both daily and summary)
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
@@ -201,6 +214,7 @@ const QRScannerPage = () => {
   const [dailyExportFormat, setDailyExportFormat] = useState('csv'); // For daily report
   const [isExporting, setIsExporting] = useState(false);
   const [selectedSubjectsForReport, setSelectedSubjectsForReport] = useState([]);
+  const [selectedProgramsForReport, setSelectedProgramsForReport] = useState([]); // For standup mode
   const [emailRecipients, setEmailRecipients] = useState([]); // For email functionality
   const [dailyEmailRecipients, setDailyEmailRecipients] = useState([]); // For daily report email
   const [showEmailRecipientDialog, setShowEmailRecipientDialog] = useState(false);
@@ -211,14 +225,14 @@ const QRScannerPage = () => {
   // Computed values for selected names
   const selectedClassName = useMemo(() => {
     if (!selectedClassId || selectedClassId === 'all') return null;
-    const selectedClass = classes.find(c => c.id === selectedClassId);
-    return selectedClass?.name || selectedClass?.nameEn || 'Unknown Class';
+    const selectedClass = classes.find(c => c.id == selectedClassId);
+    return selectedClass?.nameEn || selectedClass?.name || selectedClass?.code || 'Unknown Class';
   }, [selectedClassId, classes]);
 
   const selectedProgramName = useMemo(() => {
     if (!selectedProgramId || selectedProgramId === 'all') return null;
-    const selectedProgram = programs.find(p => p.id === selectedProgramId);
-    return selectedProgram?.name || selectedProgram?.nameEn || 'Unknown Program';
+    const selectedProgram = programs.find(p => p.id == selectedProgramId);
+    return selectedProgram?.nameEn || selectedProgram?.name || selectedProgram?.code || 'Unknown Program';
   }, [selectedProgramId, programs]);
 
   // Debounced resize handler for performance
@@ -239,14 +253,14 @@ const QRScannerPage = () => {
 
   // Handle QR scanner minimization changes
   const handleScannerMinimizeChange = useCallback((isMinimized) => {
-    logger.log(t('instructor_qr_qr_scanner_minimization_changed'), isMinimized); // Debug
+    info(t('instructor_qr_qr_scanner_minimization_changed'), isMinimized); // Debug
     setIsScannerMinimized(isMinimized);
   }, []);
 
   // Redirect to login if session expired (no user)
   useEffect(() => {
     if (!user && !authLoading) {
-      logger.debug(t('instructor_qr_no_user_found_redirecting'));
+      debug(t('instructor_qr_no_user_found_redirecting'));
       navigate('/login');
     }
   }, [user, authLoading, navigate]);
@@ -270,14 +284,40 @@ const QRScannerPage = () => {
     setDeleteActivityModalOpen(true);
   };
 
+  // Handle bulk scan success - stable callback to prevent hook re-initialization
+  const handleBulkScanSuccess = useCallback((result) => {
+    info('🔍 [DEBUG] BulkScanDialog onSuccess called:', {
+      selectedClassId,
+      selectedDate,
+      attendanceMode,
+      selectedProgramId,
+      result
+    });
+    setShowBulkScanDialog(false);
+    // Refresh students
+    // In standup mode, pass programId to loadStudents
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      loadStudents(selectedClassId === 'all' ? null : selectedClassId, selectedDate, selectedProgramId);
+    } else {
+      loadStudents(selectedClassId === 'all' ? null : selectedClassId, selectedDate);
+    }
+    // Refresh activities for today
+    triggerActivityRefresh();
+  }, [selectedClassId, selectedDate, attendanceMode, selectedProgramId]);
+
   const confirmDeleteActivity = async () => {
     if (!activityToDelete) return;
-    
+
     setDeleteActivityLoading(true);
     try {
       let result;
       if (activityToDelete.type === RECORD_TYPES.ATTENDANCE) {
-        result = await deleteAttendance(activityToDelete.id);
+        // Use standup attendance delete service when in standup mode
+        if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+          result = await deleteStandupAttendance(activityToDelete.id);
+        } else {
+          result = await deleteAttendance(activityToDelete.id);
+        }
         if (result.success) {
           eventBus.emit(EVENTS.ATTENDANCE_MARKED, { studentId: activityToDelete.studentId });
         }
@@ -300,7 +340,12 @@ const QRScannerPage = () => {
       
       if (result?.success) {
         triggerActivityRefresh();
-        loadStudents(selectedClassId, selectedDate);
+        // In standup mode, pass programId to loadStudents
+        if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+          loadStudents(selectedClassId === 'all' ? null : selectedClassId, selectedDate, selectedProgramId);
+        } else {
+          loadStudents(selectedClassId === 'all' ? null : selectedClassId, selectedDate);
+        }
       }
     } catch (error) {
       console.error(t('instructor_qr_error_deleting_activity'), error);
@@ -340,9 +385,9 @@ const QRScannerPage = () => {
       { value: 'all', label: t('instructor_qr_all_programs'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validPrograms = programs
-      .filter(prog => prog.docId || prog.id)
+      .filter(prog => prog.id)
       .map(prog => {
-        const value = prog.docId || prog.id;
+        const value = prog.id;
         const label = lang === 'ar' ? (prog.nameAr || prog.nameEn || prog.name || prog.code || value) : (prog.nameEn || prog.name || prog.code || value);
         return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
       });
@@ -357,12 +402,12 @@ const QRScannerPage = () => {
       .filter(sub => {
         if (!selectedProgramId || selectedProgramId === 'all') return true;
         const subProgramId = sub.programId || sub.program || '';
-        const formProgramId = selectedProgramId;
-        return subProgramId === formProgramId;
+        // Use == for type coercion (string vs number)
+        return subProgramId == selectedProgramId;
       })
-      .filter(sub => sub.docId || sub.id)
+      .filter(sub => sub.id)
       .map(sub => {
-        const value = sub.docId || sub.id;
+        const value = sub.id;
         const label = lang === 'ar' ? (sub.nameAr || sub.nameEn || sub.name || sub.code || value) : (sub.nameEn || sub.name || sub.code || value);
         return { value, label, icon: getThemedIcon('ui', 'file_text', 16, theme) };
       });
@@ -377,12 +422,12 @@ const QRScannerPage = () => {
       .filter(cls => {
         if (!selectedSubjectId || selectedSubjectId === 'all') return true;
         const clsSubjectId = cls.subjectId || cls.subject || '';
-        const formSubjectId = selectedSubjectId;
-        return clsSubjectId === formSubjectId;
+        // Use == for type coercion (string vs number)
+        return clsSubjectId == selectedSubjectId;
       })
-      .filter(cls => cls.docId || cls.id)
+      .filter(cls => cls.id)
       .map(cls => {
-        const value = cls.docId || cls.id;
+        const value = cls.id;
         const name = lang === 'ar' ? (cls.nameAr || cls.name) : (cls.name || cls.nameAr || t('unnamed_class'));
         const label = `${name}${cls.code ? ` (${cls.code})` : ''}`;
         return { value, label, icon: getThemedIcon('ui', 'users', 16, theme) };
@@ -392,7 +437,7 @@ const QRScannerPage = () => {
 
   // Load programs on mount
   useEffect(() => {
-    logger.debug('[QR Scanner] Initializing page...');
+    debug('[QR Scanner] Initializing page...');
     const stopLoading = startLoading();
     
     // Wrap loadPrograms to ensure loading stops
@@ -414,83 +459,273 @@ const QRScannerPage = () => {
       setGridLoading(true);
       loadSubjects(selectedProgramId);
     } else {
-      setGridLoading(true);
-      loadSubjects(null);
       setSubjects([]);
-      // Don't reset selections here - let the auto-selection logic handle it
       setGridLoading(false);
     }
   }, [selectedProgramId]);
 
-  // Load classes when subject changes
+  // Load all classes once - ProgramsSelect will handle filtering
   useEffect(() => {
-    if (selectedSubjectId && selectedSubjectId !== 'all') {
-      loadClasses(selectedSubjectId);
-    } else {
-      setClasses([]);
-      // Don't reset selectedClassId here - let the auto-selection logic handle it
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSubjectId]);
+    const loadAllClasses = async () => {
+      try {
+        const classesResponse = await getClasses();
+        const allClasses = classesResponse.success ? classesResponse.data : [];
+        
+        // Show all classes (like AttendancePage does)
+        setClasses(allClasses);
+        // debug('[QR Scanner] Loaded classes:', allClasses.length); // Disabled
+      } catch (err) {
+        error('[QR Scanner] Error loading classes:', err);
+        setClasses([]);
+      }
+    };
+    
+    loadAllClasses();
+  }, []); // Remove user dependency to load once
 
   // Memoized loadStudents function for performance
-  const loadStudents = useCallback(async (classId, date) => {
-    logger.log('🔍 [DEBUG] loadStudents called from BulkScanDialog:', {
+  const loadStudents = useCallback(async (classId, date, programId = null) => {
+    console.log('🚨🚨🚨 loadStudents FUNCTION CALLED 🚨🚨🚨', { classId, date, programId, attendanceMode });
+    info('🔍 [DEBUG] loadStudents called:', {
       classId,
       date,
+      programId,
+      attendanceMode,
       timestamp: new Date().toISOString()
     });
     try {
-      logger.debug('[QR Scanner] Loading students for class:', classId, 'date:', date);
+      debug('[QR Scanner] Loading students for class:', classId, 'date:', date, 'program:', programId);
       setLoading(true);
 
+      // In standup mode, load students by program instead of class
+      const isStandupMode = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
+      const shouldLoadByProgram = isStandupMode && programId && (!classId || classId === 'all');
+
+      info('🔍 [DEBUG] loadStudents mode check:', {
+        isStandupMode,
+        attendanceMode,
+        programId,
+        classId,
+        shouldLoadByProgram,
+        ATTENDANCE_TYPE_CATEGORY_STANDUP: ATTENDANCE_TYPE_CATEGORY.STANDUP,
+        isStandupModeBool: !!isStandupMode,
+        hasProgramId: !!programId,
+        noClassId: !classId,
+        classIdIsAll: classId === 'all'
+      });
+
       // Parallel data fetching for better performance
-      const [enrollmentsResponse, usersResponse, penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
-        getEnrollments(),
-        getUsers(),
-        getPenalties(),
-        getParticipations(),
-        getBehaviors()
-      ]);
+      let enrollmentsResponse, usersResponse, penaltiesResponse, participationsResponse, behaviorsResponse;
+
+      if (shouldLoadByProgram) {
+        // In standup mode, use program-based queries
+        [enrollmentsResponse, usersResponse] = await Promise.all([
+          getEnrollmentsByProgram(programId),
+          getUsers()
+        ]);
+        console.log('🚨🚨🚨 getEnrollmentsByProgram RESPONSE 🚨🚨🚨', {
+          success: enrollmentsResponse.success,
+          total: enrollmentsResponse.total,
+          dataLength: enrollmentsResponse.data?.length,
+          programId,
+          allUserIds: enrollmentsResponse.data?.map(e => e.userId),
+          allProgramIds: enrollmentsResponse.data?.map(e => e.programId)
+        });
+        info('🔍 [DEBUG] getEnrollmentsByProgram returned:', {
+          success: enrollmentsResponse.success,
+          total: enrollmentsResponse.total,
+          dataLength: enrollmentsResponse.data?.length,
+          programId,
+          sampleData: enrollmentsResponse.data?.slice(0, 3).map(e => ({
+            id: e.id,
+            userId: e.userId,
+            programId: e.programId,
+            classId: e.classId
+          }))
+        });
+        // For penalties, participations, behaviors in standup mode, we don't filter by class
+        // Get all and filter client-side, or pass empty params
+        [penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
+          getPenalties({}), // No class filter for standup mode
+          getParticipations({}), // No class filter for standup mode
+          getBehaviors({}) // No class filter for standup mode
+        ]);
+      } else {
+        // In regular mode, use class-based queries
+        [enrollmentsResponse, usersResponse, penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
+          getEnrollments({ classId }),
+          getUsers(),
+          getPenalties({ classId }),
+          getParticipations({ classId }),
+          getBehaviors({ classId })
+        ]);
+      }
 
       const allEnrollments = enrollmentsResponse.success ? enrollmentsResponse.data : [];
       const allUsers = usersResponse.success ? usersResponse.data : [];
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
       const allParticipations = participationsResponse.success ? participationsResponse.data : [];
       const allBehaviors = behaviorsResponse.success ? behaviorsResponse.data : [];
-      
+
       // Create Set for O(1) lookup performance
-      const classEnrollments = allEnrollments.filter(e => e.classId === classId);
-      const studentIdSet = new Set(classEnrollments.map(e => e.userId));
-      const studentUsers = allUsers.filter(u => 
-        studentIdSet.has(u.id) || studentIdSet.has(u.docId)
+      info('🔍 [DEBUG] Loading students - mode:', isStandupMode ? 'standup' : 'regular', 'filter:', shouldLoadByProgram ? 'program' : 'class');
+      info('🔍 [DEBUG] Total enrollments:', allEnrollments.length);
+      info('🔍 [DEBUG] Sample enrollments:', allEnrollments.slice(0, 3).map(e => ({
+        id: e.id,
+        classId: e.classId,
+        classIdType: typeof e.classId,
+        userId: e.userId,
+        userIdType: typeof e.userId
+      })));
+
+      // Filter enrollments based on mode
+      let filteredEnrollments;
+      if (shouldLoadByProgram) {
+        // In standup mode, use all enrollments from the program (already filtered by API)
+        filteredEnrollments = allEnrollments;
+      } else {
+        // In regular mode, filter by classId
+        const classIdNum = Number(classId);
+        filteredEnrollments = allEnrollments.filter(e => {
+          const matches = e.classId === classId || e.classId === classIdNum;
+          if (!matches && e.classId !== undefined && e.classId !== null) {
+            info('🔍 [DEBUG] Enrollment classId mismatch:', {
+              enrollmentClassId: e.classId,
+              enrollmentType: typeof e.classId,
+              searchClassId: classId,
+              searchClassIdNum: classIdNum
+            });
+          }
+          return matches;
+        });
+      }
+      info('🔍 [DEBUG] Filtered enrollments:', filteredEnrollments.length);
+
+      const studentIdSet = new Set(filteredEnrollments.map(e => e.userId));
+      const studentUsers = allUsers.filter(u =>
+        studentIdSet.has(u.id)
       );
-      
-      setEnrollments(classEnrollments);
+
+      setEnrollments(filteredEnrollments);
 
       if (studentUsers.length === 0) {
-        logger.warn('[QR Scanner] No students found for this class');
+        warn('[QR Scanner] No students found');
       }
 
       // Get attendance for selected date
       const dateStr = date;
-      const attendanceResponse = await getAttendanceByClass(classId, dateStr);
-      const attendance = attendanceResponse.success ? attendanceResponse.data : [];
+      let attendance = [];
+      if (shouldLoadByProgram) {
+        // In standup mode, load attendance for each student individually
+        // This is a workaround since there's no program-based attendance endpoint
+        const attendancePromises = studentUsers.map(student =>
+          getStandupAttendanceByUserAndDate(student.id, dateStr)
+            .then(res => {
+              console.log('🔍 [DEBUG] getStandupAttendanceByUserAndDate result for student', student.id, ':', res);
+              console.log('🔍 [DEBUG] getStandupAttendanceByUserAndDate data for student', student.id, ':', res.data);
+              // getStandupAttendanceByUserAndDate returns a single object or null, not an array
+              // Convert to array for consistent processing
+              if (res.success && res.data) {
+                return [res.data];
+              }
+              return [];
+            })
+            .catch(err => {
+              console.error('🔍 [DEBUG] Error loading standup attendance for student', student.id, ':', err);
+              return [];
+            })
+        );
+        const attendanceArrays = await Promise.all(attendancePromises);
+        console.log('🔍 [DEBUG] attendanceArrays before flat:', attendanceArrays);
+        
+        // Map statusId to status string (uppercase to match database)
+        const statusIdMap = {
+          7: 'STANDUP_PRESENT',
+          8: 'STANDUP_LATE',
+          9: 'STANDUP_ABSENT',
+          10: 'STANDUP_CLINIC'
+        };
+        
+        attendance = attendanceArrays.flat().map(a => {
+          // If statusId exists, map it to status string
+          const status = a.statusId ? statusIdMap[a.statusId] : 
+                        (typeof a.status === 'object' ? (a.status?.code ?? null) : 
+                        (a.status ?? null));
+          
+          return {
+            ...a,
+            status: status,
+            studentId: a.studentId ?? a.userId ?? a.userId
+          };
+        }).filter(a => {
+          // Filter by programId to ensure only attendance for selected program is shown
+          if (!programId || programId === 'all') return true;
+          return a.programId == programId;
+        });
+        console.log('🔍 [DEBUG] attendance after mapping:', attendance);
+      } else {
+        // In regular mode, load by class
+        const attendanceResponse = await getAttendanceByClass(classId, dateStr);
+        attendance = (attendanceResponse.success ? attendanceResponse.data : []).map(a => ({
+          ...a,
+          status: typeof a.status === 'object' ? (a.status?.code?.toLowerCase() ?? null) : (a.status?.toLowerCase?.() ?? a.status),
+          studentId: a.studentId ?? a.userId
+        })).filter(a => {
+          // Filter by programId and subjectId to ensure only attendance for selected program/subject is shown
+          if (!programId || programId === 'all') return true;
+          if (a.programId && a.programId != programId) return false;
+          if (subjectId && subjectId !== 'all' && a.subjectId && a.subjectId != subjectId) return false;
+          return true;
+        });
+      }
       
       // DEBUG: Log attendance data
-      logger.log('🔍 [DEBUG] Attendance data loaded:', {
+// ...
+      info('🔍 [DEBUG] Attendance data loaded:', {
         classId,
         dateStr,
         totalRecords: attendance.length,
         records: attendance.map(a => ({
           studentId: a.studentId,
-          status: a.status,
+          rawStatus: a.status,
+          statusCode: a.status?.code,
+          statusLower: typeof a.status === 'string' ? a.status.toLowerCase() : null,
           isStandup: a.status?.startsWith('standup_'),
           date: a.date
         }))
       });
       
       setAttendanceRecords(attendance);
+
+      // Fetch standup attendance for selected date using unified service
+      // Only call this when we have a valid classId (regular mode)
+      let classAttendanceResponse;
+      if (classId && classId !== 'all') {
+        classAttendanceResponse = await getClassAttendanceByDate(classId, dateStr);
+      } else {
+        classAttendanceResponse = { success: true, data: [] };
+      }
+      const standupResponse = {
+        success: classAttendanceResponse.success,
+        data: classAttendanceResponse.data?.standup || []
+      };
+      const standup = (standupResponse.success ? standupResponse.data : []).map(s => ({
+        ...s,
+        status: typeof s.status === 'object' ? `standup_${s.status?.code?.toLowerCase()}` : (s.status?.startsWith?.('standup_') ? s.status : `standup_${s.status?.toLowerCase()}`),
+        studentId: s.userId || s.studentId
+      }));
+
+      info('🔍 [DEBUG] Standup attendance data loaded:', {
+        classId,
+        dateStr,
+        attendanceMode,
+        totalRecords: standup.length,
+        records: standup.map(s => ({ studentId: s.studentId, status: s.status })),
+        responseSuccess: standupResponse.success,
+        responseData: standupResponse.data
+      });
+
+      setStandupRecords(standup);
 
       // Create penalty map for O(1) lookup
       const penaltyMap = new Map();
@@ -506,7 +741,7 @@ const QRScannerPage = () => {
       // Create participation/behavior maps for O(1) lookup
       const participationMap = new Map();
       allParticipations.forEach(p => {
-        if (studentIdSet.has(p.studentId) || studentIdSet.has(p.docId)) {
+        if (studentIdSet.has(p.studentId)) {
           const existing = participationMap.get(p.studentId) || [];
           existing.push(p);
           participationMap.set(p.studentId, existing);
@@ -515,7 +750,7 @@ const QRScannerPage = () => {
 
       const behaviorMap = new Map();
       allBehaviors.forEach(b => {
-        if (studentIdSet.has(b.studentId) || studentIdSet.has(b.docId)) {
+        if (studentIdSet.has(b.studentId)) {
           const existing = behaviorMap.get(b.studentId) || [];
           existing.push(b);
           behaviorMap.set(b.studentId, existing);
@@ -529,47 +764,111 @@ const QRScannerPage = () => {
       for (let i = 0; i < studentUsers.length; i += BATCH_SIZE) {
         const batch = studentUsers.slice(i, i + BATCH_SIZE);
         const batchResults = await Promise.all(batch.map(async (student) => {
-          const studentId = student.id || student.docId;
+          const studentId = student.id;
           const studentName = student.displayName || student.realName || student.name || student.email;
           
           // Find the primary attendance record
-          const studentRecords = attendance.filter(a => a.studentId === studentId);
-          
+          // In standup mode, attendance records are in the attendance array
+          // Check both studentId and userId since API returns userId
+          const studentRecords = attendance.filter(a => (a.studentId === studentId || a.userId === studentId));
+          // Filter standup records from attendance array in standup mode (case-insensitive)
+          const studentStandupRecords = shouldLoadByProgram 
+            ? studentRecords.filter(a => a.status?.toLowerCase().startsWith('standup_'))
+            : standup.filter(a => (a.studentId === studentId || a.userId === studentId));
+
           // DEBUG: Log student records
-          logger.log('🔍 [DEBUG] Student attendance records:', {
+          info('🔍 [DEBUG] Student attendance records:', {
             studentId,
             studentName,
             totalRecords: studentRecords.length,
+            standupRecords: studentStandupRecords.length,
             records: studentRecords.map(r => ({
               status: r.status,
-              isStandup: r.status?.startsWith('standup_'),
+              isStandup: r.status?.toLowerCase().startsWith('standup_'),
               date: r.date,
               delta: r.delta
             }))
           });
+
+          // Separate regular and standup attendance records by status prefix (case-insensitive)
+          const regularAttendance = studentRecords.filter(a => !a.status?.toLowerCase().startsWith('standup_'));
+          // Also include records from standup array that don't have standup_ prefix already
+          const standupAttendance = studentStandupRecords;
+
+          // Find today's attendance records
+          const todayAttendanceRecord = regularAttendance.find(a => {
+            const recordDate = typeof a.date === 'string' ? a.date.split('T')[0] : a.date;
+            return recordDate === dateStr;
+          });
+          const todayStandupAttendanceRecord = standupAttendance.find(a => {
+            const recordDate = typeof a.date === 'string' ? a.date.split('T')[0] : a.date;
+            return recordDate === dateStr;
+          });
+
+          // Helper function to map attendance status
+          const mapAttendanceStatus = (status) => {
+            if (!status) return 'absent_no_excuse';
+            const statusLower = status.toLowerCase();
+            if (statusLower === 'present' || statusLower === 'present') return 'present';
+            if (statusLower === 'late') return 'late';
+            if (statusLower === 'absent' || statusLower === 'absent_no_excuse') return 'absent_no_excuse';
+            if (statusLower === 'absent_with_excuse' || statusLower === 'excused') return 'absent_with_excuse';
+            if (statusLower === 'excused_leave' || statusLower === 'leave') return 'excused_leave';
+            if (statusLower === 'human_case') return 'human_case';
+            return statusLower;
+          };
+
+          console.log('🔍 [DEBUG] QRScannerPage - Attendance filtering for student:', studentId, {
+            dateStr,
+            regularAttendanceCount: regularAttendance.length,
+            standupAttendanceCount: standupAttendance.length,
+            regularAttendanceDates: regularAttendance.map(a => ({ date: a.date, status: a.status })),
+            standupAttendanceDates: standupAttendance.map(a => ({ date: a.date, status: a.status })),
+            todayAttendanceRecord: todayAttendanceRecord,
+            todayStandupAttendanceRecord: todayStandupAttendanceRecord
+          });
+
+          const todayAttendanceStatus = todayAttendanceRecord ? mapAttendanceStatus(todayAttendanceRecord.status) : null;
           
-          // Separate regular and standup attendance records by status prefix
-          const regularAttendance = studentRecords.filter(a => !a.status?.startsWith('standup_'));
-          const standupAttendance = studentRecords.filter(a => a.status?.startsWith('standup_'));
-          
-          const todayAttendance = regularAttendance.find(a => !a.delta) || regularAttendance[0];
-          const todayStandupAttendance = standupAttendance.find(a => !a.delta) || standupAttendance[0];
+          // Map statusId to status string for standup attendance
+          const statusIdMap = {
+            7: 'STANDUP_PRESENT',
+            8: 'STANDUP_LATE',
+            9: 'STANDUP_ABSENT',
+            10: 'STANDUP_CLINIC'
+          };
+          const todayStandupStatus = todayStandupAttendanceRecord?.statusId 
+            ? statusIdMap[todayStandupAttendanceRecord.statusId] || null
+            : (todayStandupAttendanceRecord?.status?.toLowerCase() || null);
+
+          // DEBUG: Log status assignment
+          console.log('🔍 [DEBUG] Status assignment:', {
+            studentId,
+            todayStandupAttendanceRecord,
+            statusId: todayStandupAttendanceRecord?.statusId,
+            todayStandupStatus
+          });
 
           // DEBUG: Log separated records
-          logger.log('🔍 [DEBUG] Separated attendance:', {
+          info('🔍 [DEBUG] Separated attendance:', {
             regularCount: regularAttendance.length,
             standupCount: standupAttendance.length,
-            todayAttendance: todayAttendance?.status,
-            todayStandupAttendance: todayStandupAttendance?.status
+            todayAttendance: todayAttendanceStatus,
+            todayStandupAttendance: todayStandupStatus
           });
 
           // Fetch all attendance records for this student (attendance only)
           const studentAttendanceResponse = await getAttendanceByStudent(studentId);
-          const studentAttendanceRecords = studentAttendanceResponse.success ? studentAttendanceResponse.data : [];
+          const studentAttendanceRecords = (studentAttendanceResponse.success ? studentAttendanceResponse.data : []).map(r => ({
+            ...r,
+            status: typeof r.status === 'object' ? (r.status?.code?.toLowerCase() ?? null) : (r.status?.toLowerCase?.() ?? r.status),
+            studentId: r.studentId ?? r.userId
+          }));
           
           // Separate regular and standup attendance for statistics by status prefix
           const regularAttendanceRecords = studentAttendanceRecords.filter(r => !r.status?.startsWith('standup_'));
-          const standupAttendanceRecords = studentAttendanceRecords.filter(r => r.status?.startsWith('standup_'));
+          // Use the standupAttendance array that's already been populated from standup-specific API calls
+          const standupAttendanceRecords = standupAttendance;
 
           // Attendance total should count status records only
           let totalAttendanceCount = 0;
@@ -582,29 +881,60 @@ const QRScannerPage = () => {
             humanitarianCase: 0
           };
 
+          const standupStats = {
+            present: 0,
+            late: 0,
+            absent: 0,
+            clinic: 0
+          };
+
           // Only count regular attendance for statistics
           regularAttendanceRecords.forEach(record => {
-            if (record.status === 'present' || record.status === 'late') {
+            const mappedStatus = mapAttendanceStatus(record.status);
+            if (mappedStatus === 'present' || mappedStatus === 'late') {
               totalAttendanceCount++;
             }
-            switch (record.status) {
+            switch (mappedStatus) {
               case 'present':
                 attendanceStats.present++;
                 break;
               case 'late':
                 attendanceStats.late++;
                 break;
-              case 'absent_no_excuse':
+              case 'absent':
                 attendanceStats.absent++;
                 break;
-              case 'absent_with_excuse':
+              case 'absent_no_excuse':
                 attendanceStats.absentWithExcuse++;
                 break;
               case 'excused_leave':
                 attendanceStats.excusedLeave++;
                 break;
-              case 'humanitarian_case':
+              case 'human_case':
                 attendanceStats.humanitarianCase++;
+                break;
+            }
+          });
+
+          // Count standup attendance for standup statistics
+          standupAttendanceRecords.forEach(record => {
+            // Handle both uppercase (from database) and lowercase status strings
+            const status = record.status || '';
+            const statusUpper = status.toUpperCase();
+            const statusLower = status.toLowerCase();
+            
+            switch (statusUpper) {
+              case 'STANDUP_PRESENT':
+                standupStats.present++;
+                break;
+              case 'STANDUP_LATE':
+                standupStats.late++;
+                break;
+              case 'STANDUP_ABSENT':
+                standupStats.absent++;
+                break;
+              case 'STANDUP_CLINIC':
+                standupStats.clinic++;
                 break;
             }
           });
@@ -617,7 +947,7 @@ const QRScannerPage = () => {
           const behaviorTotal = behaviors.reduce((sum, b) => sum + (Number(b.points) || 0), 0);
 
           const studentParticipationHistory = participations.map(p => ({
-            id: p.docId || p.id,
+            id: p.id,
             date: p.date,
             time: p.createdAt,
             points: p.points,
@@ -627,7 +957,7 @@ const QRScannerPage = () => {
           }));
 
           const studentBehaviorHistory = behaviors.map(b => ({
-            id: b.docId || b.id,
+            id: b.id,
             date: b.date,
             time: b.createdAt,
             points: b.points,
@@ -648,35 +978,56 @@ const QRScannerPage = () => {
             return sum;
           }, 0);
 
+          // Calculate penalty count (number of penalty records)
+          const penaltyCount = penalties.length;
+
           // DEBUG: Log final student object creation
           const studentObject = {
             id: studentId,
-            docId: student.docId,
+            userId: studentId, // Use the actual user ID from users table
             studentId: student.studentId || studentId,
             studentNumber: student.studentNumber,
             name: studentName,
             email: student.email,
             studentOrder: student.studentOrder, // Add student order field
-            attendance: todayAttendance?.status || 'absent_no_excuse', // Regular attendance
-            standupStatus: todayStandupAttendance?.status || null, // Standup attendance (null if none)
+            attendance: todayAttendanceStatus, // Regular attendance
+            standupStatus: todayStandupStatus, // Standup attendance (null if none)
             participation: participationTotal,
             behavior: behaviorTotal,
             penalty: penaltyTotal,
+            penaltyCount: penaltyCount, // Add penalty count for display
             totalAttendance: totalAttendanceCount,
             attendanceStats, // Add detailed attendance statistics
+            standupStats, // Add standup statistics
             isPinned: student.isPinned || false,
             behaviorHistory: studentBehaviorHistory,
             participationHistory: studentParticipationHistory,
             penaltyHistory: penalties
           };
 
-          logger.log('🔍 [DEBUG] Student object created:', {
+          // Log 2: Log data object in StudentRoster after totals are calculated
+          console.log('🔍 [LOG 2] QRScannerPage - Student object with calculated totals:', {
+            studentId,
+            studentName,
+            attendance: studentObject.attendance,
+            standupStatus: studentObject.standupStatus,
+            participationTotal: studentObject.participation,
+            behaviorTotal: studentObject.behavior,
+            penaltyTotal: studentObject.penalty,
+            penaltyCount: studentObject.penaltyCount,
+            attendanceStats: studentObject.attendanceStats,
+            dateStr
+          });
+
+          info('🔍 [DEBUG] Student object created:', {
             studentId,
             studentName,
             attendance: studentObject.attendance,
             standupStatus: studentObject.standupStatus,
             attendanceIsStandup: studentObject.attendance?.startsWith('standup_'),
-            standupIsStandup: studentObject.standupStatus?.startsWith('standup_')
+            standupIsStandup: studentObject.standupStatus?.startsWith('standup_'),
+            attendanceMode,
+            hasStandupRecords: standupRecords.length > 0
           });
 
           return studentObject;
@@ -686,25 +1037,52 @@ const QRScannerPage = () => {
       }
 
       setStudents(studentsWithData);
-      
-      logger.debug('[LoadStudents] Loaded', studentsWithData.length, 'students');
-    } catch (error) {
-      logger.error('[QR Scanner] Error loading students:', error);
+
+      info('🔍 [DEBUG] Students state updated:', {
+        totalStudents: studentsWithData.length,
+        studentsWithStandupStatus: studentsWithData.filter(s => s.standupStatus).length,
+        studentsWithAttendance: studentsWithData.filter(s => s.attendance).length,
+        attendanceMode,
+        standupRecordsCount: standupRecords.length
+      });
+
+      debug('[LoadStudents] Loaded', studentsWithData.length, 'students');
+    } catch (err) {
+      error('[QR Scanner] Error loading students:', err.message);
       setStudents([]);
-      setError('Failed to load students: ' + error.message);
+      setErrorMessage('Failed to load students: ' + err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [attendanceMode]);
 
-  // Load students when class or date changes
+  // Load students when class or date changes, or when in standup mode with program selected
   useEffect(() => {
-    if (selectedClassId && selectedClassId !== 'all') {
+    console.log('🚨🚨🚨 useEffect for loadStudents RUNNING 🚨🚨🚨', { selectedClassId, selectedDate, attendanceMode, selectedProgramId });
+    const isStandupMode = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
+    console.log('🚨🚨🚨 useEffect condition check 🚨🚨🚨', {
+      isStandupMode,
+      attendanceMode,
+      selectedProgramId,
+      selectedProgramIdNotAll: selectedProgramId !== 'all',
+      selectedClassId,
+      selectedClassIdNotAll: selectedClassId !== 'all'
+    });
+    if (isStandupMode && selectedProgramId && selectedProgramId !== 'all') {
+      console.log('🚨🚨🚨 TAKING STANDUP BRANCH - calling loadStudents 🚨🚨🚨');
+      // In standup mode, load students by program (no class required)
+      loadStudents(null, selectedDate, selectedProgramId);
+    } else if (selectedClassId && selectedClassId !== 'all') {
+      console.log('🚨🚨🚨 TAKING CLASS BRANCH - calling loadStudents 🚨🚨🚨');
+      // In regular mode, load students by class
       loadStudents(selectedClassId, selectedDate);
     } else {
+      console.log('🚨🚨🚨 TAKING ELSE BRANCH - setting students to empty 🚨🚨🚨');
       setStudents([]);
     }
-  }, [selectedClassId, selectedDate, loadStudents]);
+  }, [selectedClassId, selectedDate, attendanceMode, selectedProgramId, loadStudents]);
+  
+  console.log('🚨🚨🚨 QRScannerPage RENDERED 🚨🚨🚨', { selectedClassId, selectedDate, attendanceMode, selectedProgramId, studentsCount: students.length });
 
   // Load favorite behaviors when student changes
   useEffect(() => {
@@ -719,11 +1097,12 @@ const QRScannerPage = () => {
   // Listen for real-time attendance updates with debouncing
   useEffect(() => {
     const unsubscribe = eventBus.on(EVENTS.ATTENDANCE_MARKED, (data) => {
-      // If the update is for the current class, refresh students immediately
-      if (data.classId === selectedClassId) {
-        logger.debug('🔄 Attendance marked event received, refreshing students for class:', selectedClassId);
-        
-        // Immediate refresh to update UI
+      // In standup mode, refresh by program; in regular mode, refresh by class
+      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        debug('🔄 Attendance marked event received in standup mode, refreshing students for program:', selectedProgramId);
+        loadStudents(selectedClassId, selectedDate, selectedProgramId);
+      } else if (data.classId === selectedClassId) {
+        debug('🔄 Attendance marked event received, refreshing students for class:', selectedClassId);
         loadStudents(selectedClassId, selectedDate);
       }
     });
@@ -731,7 +1110,7 @@ const QRScannerPage = () => {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [selectedClassId, selectedDate, loadStudents]);
+  }, [selectedClassId, selectedDate, selectedProgramId, attendanceMode, loadStudents]);
 
   const loadPrograms = async () => {
     try {
@@ -739,7 +1118,7 @@ const QRScannerPage = () => {
       let programsData = programsResponse.success ? programsResponse.data : [];
 
       if (programsData.length === 0) {
-        logger.warn('[QR Scanner] No programs found in database');
+        warn('[QR Scanner] No programs found in database');
         setPrograms(programsData);
         setInitialLoading(false);
         return;
@@ -747,31 +1126,30 @@ const QRScannerPage = () => {
 
       setPrograms(programsData);
       
-      // Validate saved selection or auto-select first program
+      // Validate saved selection — if stale, reset to 'all' (no auto-select)
       const currentSelection = selectedProgramId;
       const isValidSelection = validateSelection(currentSelection, programsData, 'program');
       
-      if (!isValidSelection || currentSelection === 'all') {
-        const firstProgram = programsData[0];
-        const programId = firstProgram.id || firstProgram.docId;
-        saveSelectedProgramId(programId);
-        logger.debug('[QR Scanner] Auto-selected first program:', firstProgram.name || firstProgram.code);
+      if (!isValidSelection) {
+        saveSelectedProgramId('all');
+        debug('[QR Scanner] Saved program selection invalid, resetting to all');
       } else {
-        logger.debug('[QR Scanner] Using saved program selection:', currentSelection);
+        debug('[QR Scanner] Using saved program selection:', currentSelection);
       }
       
       setInitialLoading(false);
-    } catch (error) {
-      logger.error('[QR Scanner] Error loading programs:', error);
+    } catch (err) {
+      error('[QR Scanner] Error loading programs:', err);
       setPrograms([]);
-      setError('Failed to load programs: ' + error.message);
+      setErrorMessage('Failed to load programs: ' + err.message);
       setInitialLoading(false);
     }
   };
 
   const loadSubjects = useCallback(async (programId) => {
     try {
-      const subjectsResponse = await getSubjects(programId || null);
+      const resolvedProgramId = programId && typeof programId === 'object' ? (programId.id ?? programId.value ?? null) : programId;
+      const subjectsResponse = await getSubjects(resolvedProgramId ? { programId: resolvedProgramId } : {});
       let subjectsData = subjectsResponse.success ? subjectsResponse.data : [];
       
       // Sort client-side when filtering by program to avoid index requirement
@@ -780,34 +1158,32 @@ const QRScannerPage = () => {
       }
 
       setSubjects(subjectsData);
-      
-      // Validate saved selection or auto-select first subject
+
+      // Validate saved selection - don't auto-select first subject
+      // This gives users more control over their selection
       const currentSelection = selectedSubjectId;
       const isValidSelection = validateSelection(currentSelection, subjectsData, 'subject');
-      
-      if (!isValidSelection || currentSelection === 'all') {
-        if (subjectsData.length > 0) {
-          const firstSubject = subjectsData[0];
-          const subjectId = firstSubject.id || firstSubject.docId;
-          saveSelectedSubjectId(subjectId);
-          logger.debug('[QR Scanner] Auto-selected first subject:', firstSubject.name || firstSubject.code);
-        }
+
+      if (!isValidSelection) {
+        // Reset to 'all' if saved selection is invalid, but don't auto-select
+        setSelectedSubjectId('all');
+        debug('[QR Scanner] Reset subject selection to "all" (invalid saved selection)');
       } else {
-        logger.debug('[QR Scanner] Using saved subject selection:', currentSelection);
+        debug('[QR Scanner] Using saved subject selection:', currentSelection);
       }
-      
+
       setGridLoading(false);
-    } catch (error) {
-      logger.error('[QR Scanner] Error loading subjects:', error);
+    } catch (err) {
+      error('[QR Scanner] Error loading subjects:', err);
       setSubjects([]);
       setGridLoading(false);
-      setError('Failed to load subjects: ' + error.message);
+      setErrorMessage('Failed to load subjects: ' + err.message);
     }
   }, [selectedSubjectId, saveSelectedSubjectId, validateSelection]);
 
   const loadClasses = async (subjectId) => {
     try {
-      const classesResponse = await getClasses();
+      const classesResponse = await getClasses(subjectId ? { subjectId } : {});
       const allClasses = classesResponse.success ? classesResponse.data : [];
       
       let filteredClasses = allClasses;
@@ -815,7 +1191,8 @@ const QRScannerPage = () => {
       // If user is admin or super admin, show all classes
       if (user?.role === 'admin' || user?.role === 'super_admin') {
         if (subjectId && subjectId !== 'all') {
-          filteredClasses = allClasses.filter(c => c.subjectId === subjectId);
+          // Use == for type coercion (string vs number)
+          filteredClasses = allClasses.filter(c => c.subjectId == subjectId);
         }
       } else {
         // Regular instructor - only show their classes
@@ -823,7 +1200,8 @@ const QRScannerPage = () => {
           c.instructorId === user?.uid || c.ownerEmail === user?.email
         );
         if (subjectId && subjectId !== 'all') {
-          filteredClasses = filteredClasses.filter(c => c.subjectId === subjectId);
+          // Use == for type coercion (string vs number)
+          filteredClasses = filteredClasses.filter(c => c.subjectId == subjectId);
         }
       }
       
@@ -840,46 +1218,63 @@ const QRScannerPage = () => {
       if (!isValidSelection || currentSelection === 'all') {
         if (filteredClasses.length > 0) {
           const firstClass = filteredClasses[0];
-          const classId = firstClass.id || firstClass.docId;
+          const classId = firstClass.id;
           saveSelectedClassId(classId);
-          logger.debug('[QR Scanner] Auto-selected first class:', firstClass.name || firstClass.code);
+          debug('[QR Scanner] Auto-selected first class:', firstClass.name || firstClass.code);
         }
       } else {
-        logger.debug('[QR Scanner] Using saved class selection:', currentSelection);
+        debug('[QR Scanner] Using saved class selection:', currentSelection);
       }
-    } catch (error) {
-      logger.error('[QR Scanner] Error loading classes:', error);
+    } catch (err) {
+      error('[QR Scanner] Error loading classes:', err);
       setClasses([]);
-      setError('Failed to load classes: ' + error.message);
+      setErrorMessage('Failed to load classes: ' + err.message);
     }
   };
 
-  const handleMarkAttendance = useCallback(async (studentId, status, notes = '', method = ATTENDANCE_METHODS.MANUAL_INSTRUCTOR) => {
+  const handleMarkAttendance = useCallback(async (studentId, status, passedProgramId = null, passedSubjectId = null, notes = '', method = ATTENDANCE_METHODS.MANUAL_INSTRUCTOR) => {
     try {
       // DEBUG: Log attendance marking attempt
-      logger.log('🔍 [DEBUG] handleMarkAttendance called:', {
+      info('🔍 [DEBUG] handleMarkAttendance called:', {
         studentId,
         status,
         attendanceMode,
         isStandup: status?.startsWith('standup_'),
+        passedProgramId,
+        passedSubjectId,
         notes,
         method,
         timestamp: new Date().toISOString()
       });
 
+      // Log mode-specific behavior
+      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        info('🔍 [STANDUP MODE] Marking standup attendance:', {
+          studentId,
+          status,
+          expectedStatus: status?.startsWith('standup_') ? status : `standup_${status}`
+        });
+      } else {
+        info('🔍 [REGULAR MODE] Marking regular attendance:', {
+          studentId,
+          status,
+          isStandupStatus: status?.startsWith('standup_')
+        });
+      }
+
       // Get performedBy fields using shared service
       const performedByFields = await getPerformedByFields(user);
-      
+
       // Ensure selectedDate is a string in yyyy-MM-dd format
       const dateStr = typeof selectedDate === 'string' ? selectedDate : selectedDate.toISOString().split('T')[0];
-      
+
       // Get class data to extract programId and subjectId
-      const currentClass = classes.find(c => (c.id || c.docId) === selectedClassId);
-      
+      const currentClass = classes.find(c => c.id == selectedClassId); // Use == for type coercion
+
       // Extract programId and subjectId with better fallback logic
-      let programId = currentClass?.programId || currentClass?.program;
-      let subjectId = currentClass?.subjectId || currentClass?.subject;
-      
+      let programId = passedProgramId || currentClass?.programId || currentClass?.program;
+      let subjectId = passedSubjectId || currentClass?.subjectId || currentClass?.subject;
+
       // If still null, try the selected values (but not 'all')
       if (!programId && selectedProgramId && selectedProgramId !== 'all') {
         programId = selectedProgramId;
@@ -887,22 +1282,28 @@ const QRScannerPage = () => {
       if (!subjectId && selectedSubjectId && selectedSubjectId !== 'all') {
         subjectId = selectedSubjectId;
       }
-      
+
+      // Use unified attendance service for both regular and standup attendance
       await markAttendance({
-        classId: selectedClassId,
-        studentId,
-        programId,
-        subjectId,
+        userId: studentId,
+        classId: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? selectedClassId : undefined,
         date: dateStr,
-        status,
-        notes,
-        method,
-        markedBy: user.uid,
-        ...performedByFields
-      });
+        status: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? status.toUpperCase() : status,
+        notes: notes || getNoteTypeFromStatus(status, 'quick'),
+        user: user,
+        programId: programId,
+        subjectId: subjectId
+      }, user, attendanceMode);
 
       // Reload students to reflect changes
-      await loadStudents(selectedClassId, selectedDate);
+      // In standup mode, we load by program, not class
+      console.log('🔍 [DEBUG] Reloading students after marking attendance:', { attendanceMode, classId: selectedClassId, date: selectedDate, programId: selectedProgramId });
+      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        await loadStudents(null, selectedDate, selectedProgramId); // Pass programId for standup mode
+      } else {
+        await loadStudents(selectedClassId, selectedDate);
+      }
+      console.log('🔍 [DEBUG] Reload completed');
       
       // Small delay to ensure state is updated
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -927,7 +1328,7 @@ const QRScannerPage = () => {
       // Send notifications if enabled
       if (sendNotifications) {
         const student = students.find(s => s.id === studentId);
-        const currentClass = classes.find(c => (c.id || c.docId) === selectedClassId);
+        const currentClass = classes.find(c => c.id == selectedClassId); // Use == for type coercion
         if (student && currentClass) {
           const statusLabels = {
             present: { en: 'Present', ar: 'حاضر' },
@@ -964,8 +1365,8 @@ const QRScannerPage = () => {
           });
         }
       }
-    } catch (error) {
-      logger.error('Error marking attendance:', error);
+    } catch (err) {
+      error('Error marking attendance:', err);
     }
   }, [selectedClassId, selectedDate, user, students, classes, sendNotifications, t, lang, loadStudents, triggerActivityRefresh]);
 
@@ -975,14 +1376,14 @@ const QRScannerPage = () => {
     if (student) {
       setSelectedStudentForAction(student); // Use new panel instead of old
       // Always use the user ID (student.id) for attendance marking, not reference ID
-      logger.debug('handleScan: Found student', {
+      debug('handleScan: Found student', {
         referenceId: studentId,
         userId: student.id,
         studentName: student.displayName || student.name
       });
       handleMarkAttendance(student.id, 'present', 'QR scan', 'qr_camera');
     } else {
-      logger.error('handleScan: Student not found', { studentId });
+      error('handleScan: Student not found', { studentId });
     }
   }, [students, handleMarkAttendance]);
 
@@ -1011,12 +1412,12 @@ const QRScannerPage = () => {
       
       // Handle participation
       const participationActions = actions.filter(a =>
-        PARTICIPATION_TYPES.some(pt => pt.id === a.type)
+        (activityTypeOptions['participation-types'] || []).some(pt => pt.id === a.type)
       );
 
       // Handle behavior
       const behaviorActions = actions.filter(a =>
-        BEHAVIOR_TYPES.some(bt => bt.id === a.type)
+        (activityTypeOptions['behavior-types'] || []).some(bt => bt.id === a.type)
       );
 
       // Handle penalties
@@ -1041,7 +1442,7 @@ const QRScannerPage = () => {
             ...performedByFields,
             date: selectedDate,
             sendNotification: sendNotifications,
-            className: classes.find(c => c.id === selectedClassId)?.name || ''
+            className: classes.find(c => c.id == selectedClassId)?.name || '' // Use == for type coercion
           });
         } else if (action.category === RECORD_TYPES.BEHAVIOR || action.category === RECORD_TYPES.PARTICIPATION) {
           if (action.category === RECORD_TYPES.BEHAVIOR) {
@@ -1056,7 +1457,7 @@ const QRScannerPage = () => {
               ...performedByFields,
               date: selectedDate,
               sendNotification: sendNotifications,
-              className: classes.find(c => c.id === selectedClassId)?.name || ''
+              className: classes.find(c => c.id == selectedClassId)?.name || '' // Use == for type coercion
             });
           } else {
             await createParticipation({
@@ -1070,7 +1471,7 @@ const QRScannerPage = () => {
               ...performedByFields,
               date: selectedDate,
               sendNotification: sendNotifications,
-              className: classes.find(c => c.id === selectedClassId)?.name || ''
+              className: classes.find(c => c.id == selectedClassId)?.name || '' // Use == for type coercion
             });
           }
         } else {
@@ -1125,7 +1526,7 @@ const QRScannerPage = () => {
       // Send notifications if enabled
       if (sendNotifications) {
         const student = students.find(s => s.id === studentId);
-        const currentClass = classes.find(c => (c.id || c.docId) === selectedClassId);
+        const currentClass = classes.find(c => c.id == selectedClassId); // Use == for type coercion
         if (student && currentClass) {
           for (const action of actions) {
             const points = pointsOverride[action.type] !== undefined
@@ -1140,7 +1541,7 @@ const QRScannerPage = () => {
               type = RECORD_TYPES.PENALTY;
               templateId = 'penalty_assigned_default';
               title = t('delete_penalty_title');
-            } else if (PARTICIPATION_TYPES.some(pt => pt.id === action.type)) {
+            } else if ((activityTypeOptions['participation-types'] || []).some(pt => pt.id === action.type)) {
               type = RECORD_TYPES.PARTICIPATION;
               templateId = 'participation_added_default';
               title = t('participation_recorded');
@@ -1176,8 +1577,8 @@ const QRScannerPage = () => {
           }
         }
       }
-    } catch (error) {
-      logger.error('Error submitting behavior:', error);
+    } catch (err) {
+      error('Error submitting behavior:', err);
     }
   }, [selectedClassId, selectedSubjectId, selectedDate, user, students, classes, sendNotifications, t, lang, loadStudents, triggerActivityRefresh]);
 
@@ -1197,8 +1598,8 @@ const QRScannerPage = () => {
   const handleDownload = useCallback(() => {
     try {
       // Get current class and subject info for filename
-      const currentClass = classes.find(c => (c.id || c.docId) === selectedClassId);
-      const currentSubject = subjects.find(s => (s.id || s.docId) === selectedSubjectId);
+      const currentClass = classes.find(c => c.id == selectedClassId); // Use == for type coercion
+      const currentSubject = subjects.find(s => s.id == selectedSubjectId); // Use == for type coercion
       
       const className = currentClass?.name || currentClass?.code || 'Class';
       const subjectName = currentSubject?.name || currentSubject?.code || 'Subject';
@@ -1218,10 +1619,10 @@ const QRScannerPage = () => {
       const csvContent = [
         headers.join(','),
         ...students.map(student => [
-          `STU-${student.studentNumber || student.id?.slice(-4) || '0000'}`,
+          student.studentNumber || student.id || '',
           `"${student.name || 'Unknown'}"`,
           student.email || '',
-          student.attendance || 'absent_no_excuse',
+          student.attendance || '',
           student.participation || 0,
           student.behavior || 0,
           student.penalty || 0,
@@ -1242,9 +1643,9 @@ const QRScannerPage = () => {
       link.click();
       document.body.removeChild(link);
       
-      logger.debug('CSV downloaded successfully');
-    } catch (error) {
-      logger.error('Error downloading CSV:', error);
+      debug('CSV downloaded successfully');
+    } catch (err) {
+      error('Error downloading CSV:', err);
       alert(t('failed_to_download_csv') || 'Failed to download CSV. Please try again.');
     }
   }, [students, classes, subjects, selectedClassId, selectedSubjectId, selectedDate, t]);
@@ -1253,10 +1654,16 @@ const QRScannerPage = () => {
     // Reload students data
     if (selectedClassId && selectedClassId !== 'all') {
       loadStudents(selectedClassId, selectedDate);
+    } else if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && selectedProgramId) {
+      // In standup mode with program selection, reload using null classId and programId to trigger program-based loading
+      loadStudents(null, selectedDate, selectedProgramId);
+    } else {
+      // Fallback to current classId or null
+      loadStudents(selectedClassId || null, selectedDate);
     }
     // Trigger activity refresh
     triggerActivityRefresh();
-  }, [selectedClassId, selectedDate, loadStudents, triggerActivityRefresh]);
+  }, [selectedClassId, selectedDate, loadStudents, triggerActivityRefresh, attendanceMode, selectedProgramId]);
 
   const handleSort = useCallback((field) => {
     console.log('🔄 Sort clicked:', field, 'current sortField:', sortField, 'current direction:', sortDirection);
@@ -1333,44 +1740,71 @@ const QRScannerPage = () => {
 
   // Export Daily Report function
   const exportDailyReport = useCallback(async () => {
-    if (!selectedClassId || selectedClassId === 'all') {
-      showError(t('please_select_class') || 'Please select a class first');
-      return;
+    // Validate based on attendance mode
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      if (!selectedProgramId || selectedProgramId === 'all') {
+        showError(t('please_select_program') || 'Please select a program first');
+        return;
+      }
+    } else {
+      if (!selectedClassId || selectedClassId === 'all') {
+        showError(t('please_select_class') || 'Please select a class first');
+        return;
+      }
     }
 
     try {
-      // Get all attendance data for the selected class
       const formattedDate = formatQatarDateOnly(selectedDate);
       console.log('🔍 Export Debug - Fetching attendance with:', {
+        attendanceMode,
         selectedClassId,
+        selectedProgramId,
         selectedDate,
         formattedDate,
         selectedDateType: typeof selectedDate,
         formattedDateType: typeof formattedDate
       });
       
-      // Try different date formats
       let attendanceResponse;
       let attendanceData = [];
       
-      // Try with formatted date first
-      attendanceResponse = await getAttendanceByClass(selectedClassId, formattedDate);
-      attendanceData = attendanceResponse.success ? attendanceResponse.data : [];
-      
-      console.log('🔍 Export Debug - First attempt result:', {
-        attendanceDataLength: attendanceData.length,
-        attendanceResponse
-      });
-      
-      // If still no data, try with raw date
-      if (attendanceData.length === 0) {
-        console.log('🔍 Export Debug - Trying with raw date...');
-        attendanceResponse = await getAttendanceByClass(selectedClassId, selectedDate);
-        attendanceData = attendanceResponse.success ? attendanceResponse.data : [];
-        
-        console.log('🔍 Export Debug - Second attempt result:', {
+      // Fetch attendance based on mode
+      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        // Standup mode: fetch by program
+        attendanceResponse = await getStandupAttendanceByProgramAndDate(selectedProgramId, selectedDate);
+        attendanceData = (attendanceResponse.success ? attendanceResponse.data : []).map(a => ({
+          ...a,
+          status: typeof a.status === 'object' ? (a.status?.code ?? null) : a.status,
+          studentId: a.userId ?? a.studentId
+        }));
+      } else {
+        // Regular mode: fetch by class
+        // Use ISO date format for proper date filtering
+        attendanceResponse = await getAttendanceByClass(selectedClassId, { date: selectedDate });
+        attendanceData = (attendanceResponse.success ? attendanceResponse.data : []).map(a => ({
+          ...a,
+          status: typeof a.status === 'object' ? (a.status?.code ?? null) : a.status,
+          studentId: a.studentId ?? a.userId
+        }));
+
+        console.log('🔍 Export Debug - Attendance result:', {
           attendanceDataLength: attendanceData.length,
-          attendanceResponse
+          attendanceResponse,
+          selectedDate,
+          dateParam: selectedDate
+        });
+
+        // Filter attendance data to ensure only selected date is included
+        attendanceData = attendanceData.filter(record => {
+          const recordDate = record.date || record.createdAt;
+          if (!recordDate) return false;
+          const recordDateStr = typeof recordDate === 'string' ? recordDate.split('T')[0] : new Date(recordDate).toISOString().split('T')[0];
+          return recordDateStr === selectedDate;
+        });
+
+        console.log('🔍 Export Debug - After date filter:', {
+          filteredDataLength: attendanceData.length,
+          selectedDate
         });
       }
       
@@ -1402,9 +1836,9 @@ const QRScannerPage = () => {
       
       // Enrich attendance data with student information
       const enrichedData = attendanceData.map(record => {
-        // Find student by studentId (not studentNumber)
-        const student = allUsers.find(u => u.id === record.studentId);
-        
+        // Find student by studentId (not studentNumber) - use type-safe comparison
+        const student = allUsers.find(u => String(u.id) === String(record.studentId));
+
         // Helper function to safely format date
         const safeFormatDate = (timestamp, formatFunc) => {
           if (!timestamp) return '';
@@ -1418,7 +1852,7 @@ const QRScannerPage = () => {
             } else {
               date = new Date(timestamp);
             }
-            
+
             if (isNaN(date.getTime())) {
               console.log('🔍 Invalid date detected:', timestamp);
               return '';
@@ -1429,16 +1863,18 @@ const QRScannerPage = () => {
             return '';
           }
         };
-        
+
         return {
-          studentNumber: student?.studentNumber || record.studentId || '',
+          studentId: record.studentId,
+          studentNumber: student?.studentNumber || '',
           studentName: student?.displayName || student?.realName || '',
           status: record.status || 'present',
           date: record.date || formatQatarDateOnly(selectedDate),
-          time: safeFormatDate(record.timestamp, (date) => date.toLocaleTimeString(lang === 'ar' ? 'ar-QA' : 'en-US', { 
-            hour: '2-digit', 
+          time: safeFormatDate(record.timestamp, (date) => date.toLocaleTimeString(lang === 'ar' ? 'ar-QA' : 'en-US', {
+            hour: '2-digit',
             minute: '2-digit',
-            hour12: true 
+            hour12: true,
+            timeZone: 'Asia/Qatar'
           })),
           method: record.method || 'manual',
           notes: record.notes || '',
@@ -1474,44 +1910,122 @@ const QRScannerPage = () => {
       }
 
       // Create CSV content with localized headers using constants
-      const headers = lang === 'ar' ? [
-        '#',
-        t('student_number'),
-        t('student_name'),
-        ...ATTENDANCE_TYPES.map(type => type.label_ar),
-        t('date'),
-        t('time'),
-        t('method'),
-        t('notes'),
-        t('marked_by'),
-        t('timestamp')
-      ] : [
-        '#',
-        t('student_number'),
-        t('student_name'),
-        ...ATTENDANCE_TYPES.map(type => type.label_en),
-        t('date'),
-        t('time'),
-        t('method'),
-        t('notes'),
-        t('marked_by'),
-        t('timestamp')
-      ];
+      let headers;
+      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        // Standup mode: use standup-specific columns (no timestamp)
+        headers = lang === 'ar' ? [
+          '#',
+          t('student_id') || 'معرف الطالب',
+          t('student_number') || 'رقم الطالب',
+          t('student_name') || 'اسم الطالب',
+          t('present') || 'حاضر',
+          t('late') || 'متأخر',
+          t('absent') || 'غائب',
+          t('clinic') || 'عيادة',
+          t('date') || 'التاريخ',
+          t('time') || 'الوقت',
+          t('method') || 'الطريقة',
+          t('notes') || 'ملاحظات',
+          t('marked_by') || 'تم بواسطة'
+        ] : [
+          '#',
+          t('student_id') || 'Student ID',
+          t('student_number') || 'Student Number',
+          t('student_name') || 'Student Name',
+          t('present') || 'Present',
+          t('late') || 'Late',
+          t('absent') || 'Absent',
+          t('clinic') || 'Clinic',
+          t('date') || 'Date',
+          t('time') || 'Time',
+          t('method') || 'Method',
+          t('notes') || 'Notes',
+          t('marked_by') || 'Marked By'
+        ];
+      } else {
+        // Regular mode: use all attendance type columns (excluding standup types)
+        const attendanceTypesArray = Object.entries(ATTENDANCE_STATUS)
+          .filter(([key, value]) => !key.startsWith('STANDUP_')) // Exclude standup statuses
+          .map(([key, value]) => ({
+          id: value,
+          label_en: ATTENDANCE_STATUS_LABELS[value] || value,
+          label_ar: ATTENDANCE_STATUS_LABELS[value] || value // TODO: Add Arabic translations
+        }));
+        headers = lang === 'ar' ? [
+          '#',
+          t('student_number'),
+          t('student_name'),
+          ...attendanceTypesArray.map(type => type.label_ar),
+          t('date'),
+          t('time'),
+          t('method'),
+          t('notes'),
+          t('marked_by'),
+          t('timestamp')
+        ] : [
+          '#',
+          t('student_number'),
+          t('student_name'),
+          ...attendanceTypesArray.map(type => type.label_en),
+          t('date'),
+          t('time'),
+          t('method'),
+          t('notes'),
+          t('marked_by'),
+          t('timestamp')
+        ];
+      }
 
       const csvContent = [
         headers.join(','),
-        ...enrichedData.map((row, index) => [
-          `"${index + 1}"`,
-          `"${row.studentNumber}"`,
-          `"${row.studentName}"`,
-          ...ATTENDANCE_TYPES.map(type => `"${row.status === type.id ? 'X' : ''}"`),
-          `"${row.date}"`,
-          `"${row.time}"`,
-          `"${getAttendanceMethodLabel(row.method, t, lang)}"`,
-          `"${row.notes}"`,
-          `"${row.markedBy}"`,
-          `"${row.timestamp}"`
-        ].join(','))
+        ...enrichedData.map((row, index) => {
+          let rowData;
+
+          if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+            // Standup mode: use standup-specific status columns (no timestamp)
+            const status = (typeof row.status === 'string' ? row.status : row.status?.code || 'present').toUpperCase();
+            // Format date without time suffix
+            const formattedDate = row.date ? row.date.split('T')[0] : '';
+            rowData = [
+              `"${index + 1}"`,
+              `"${row.studentId}"`,
+              `"${row.studentNumber}"`,
+              `"${row.studentName}"`,
+              `"${status === 'STANDUP_PRESENT' ? 'X' : ''}"`,
+              `"${status === 'STANDUP_LATE' ? 'X' : ''}"`,
+              `"${status === 'STANDUP_ABSENT' ? 'X' : ''}"`,
+              `"${status === 'STANDUP_CLINIC' ? 'X' : ''}"`,
+              `"${formattedDate}"`,
+              `"${row.time}"`,
+              `"${getAttendanceMethodLabel(row.method, t, lang)}"`,
+              `"${row.notes}"`,
+              `"${row.markedBy}"`
+            ];
+          } else {
+            // Regular mode: use all attendance type columns (excluding standup types)
+            const attendanceTypesArray = Object.entries(ATTENDANCE_STATUS)
+              .filter(([key, value]) => !key.startsWith('STANDUP_')) // Exclude standup statuses
+              .map(([key, value]) => ({
+              id: value,
+              label_en: ATTENDANCE_STATUS_LABELS[value] || value,
+              label_ar: ATTENDANCE_STATUS_LABELS[value] || value // TODO: Add Arabic translations
+            }));
+            rowData = [
+              `"${index + 1}"`,
+              `"${row.studentNumber}"`,
+              `"${row.studentName}"`,
+              ...attendanceTypesArray.map(type => `"${row.status === type.id ? 'X' : ''}"`),
+              `"${row.date}"`,
+              `"${row.time}"`,
+              `"${getAttendanceMethodLabel(row.method, t, lang)}"`,
+              `"${row.notes}"`,
+              `"${row.markedBy}"`,
+              `"${row.timestamp}"`
+            ];
+          }
+
+          return rowData.join(',');
+        })
       ].join('\n');
 
       console.log('🔍 Export Debug - Final CSV Content:', {
@@ -1524,9 +2038,9 @@ const QRScannerPage = () => {
         selectedProgramId,
         selectedSubjectId,
         selectedClassId,
-        programsState: programs.map(p => ({ id: p.id || p.docId, name: p.name || p.code })),
-        subjectsState: subjects.map(s => ({ id: s.id || s.docId, name: s.name || s.code })),
-        classesState: classes.map(c => ({ id: c.id || c.docId, name: c.name || c.code }))
+        programsState: programs.map(p => ({ id: p.id, name: p.name || p.code })),
+        subjectsState: subjects.map(s => ({ id: s.id, name: s.name || s.code })),
+        classesState: classes.map(c => ({ id: c.id, name: c.name || c.code }))
       });
       
       // Always fetch fresh data to ensure we have the latest
@@ -1534,20 +2048,20 @@ const QRScannerPage = () => {
       
       const programsResponse = await getPrograms();
       const allPrograms = programsResponse.success ? programsResponse.data : [];
-      const currentProgram = allPrograms.find(p => (p.id === selectedProgramId) || (p.docId === selectedProgramId));
+      const currentProgram = allPrograms.find(p => p.id == selectedProgramId); // Use == for type coercion
       
-      const subjectsResponse = await getSubjects(selectedProgramId);
+      const subjectsResponse = await getSubjects(selectedProgramId ? { programId: selectedProgramId } : {});
       const allSubjects = subjectsResponse.success ? subjectsResponse.data : [];
-      const currentSubject = allSubjects.find(s => (s.id === selectedSubjectId) || (s.docId === selectedSubjectId));
+      const currentSubject = allSubjects.find(s => s.id == selectedSubjectId); // Use == for type coercion
       
-      const classesResponse = await getClasses(selectedSubjectId);
+      const classesResponse = await getClasses(selectedSubjectId ? { subjectId: selectedSubjectId } : {});
       const allClasses = classesResponse.success ? classesResponse.data : [];
-      const currentClass = allClasses.find(c => (c.id === selectedClassId) || (c.docId === selectedClassId));
+      const currentClass = allClasses.find(c => c.id == selectedClassId); // Use == for type coercion
       
       console.log('🔍 Export Debug - Fresh Data Results:', {
-        allPrograms: allPrograms.map(p => ({ id: p.id || p.docId, name: p.name || p.code })),
-        allSubjects: allSubjects.map(s => ({ id: s.id || s.docId, name: s.name || s.code })),
-        allClasses: allClasses.map(c => ({ id: c.id || c.docId, name: c.name || c.code })),
+        allPrograms: allPrograms.map(p => ({ id: p.id, name: p.name || p.code })),
+        allSubjects: allSubjects.map(s => ({ id: s.id, name: s.name || s.code })),
+        allClasses: allClasses.map(c => ({ id: c.id, name: c.name || c.code })),
         foundProgram: currentProgram,
         foundSubject: currentSubject,
         foundClass: currentClass
@@ -1735,7 +2249,7 @@ const QRScannerPage = () => {
       // Reset loading state
       setIsExporting(false);
     }
-  }, [selectedClassId, selectedDate, selectedProgramId, selectedSubjectId, programs, subjects, classes, lang, t, dailyExportFormat, dailyEmailRecipients, user, availableUsers, showError, showSuccess]);
+  }, [selectedClassId, selectedDate, selectedProgramId, selectedSubjectId, programs, subjects, classes, lang, t, dailyExportFormat, dailyEmailRecipients, user, availableUsers, showError, showSuccess, attendanceMode]);
 
   
   const toggleUserSelection = useCallback((user) => {
@@ -1804,20 +2318,37 @@ const QRScannerPage = () => {
 
   // Export Summary Report function
   const exportSemesterReport = useCallback(async () => {
-    console.log('📊 Export function called', { selectedClassId, selectedProgramId });
+    console.log('📊 Export function called', { selectedClassId, selectedProgramId, attendanceMode });
     
-    // Validate selection
-    if (!selectedClassId && !selectedProgramId) {
-      console.error('❌ No class or program selected');
-      showError(t('please_select_class_or_program') || 'Please select a class or program first');
-      return;
-    }
+    // Validate selection based on attendance mode
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      // Standup mode: requires program selection and program report selection
+      if (!selectedProgramId || selectedProgramId === 'all') {
+        console.error('❌ No program selected for standup mode');
+        showError(t('please_select_program') || 'Please select a program first');
+        return;
+      }
+      
+      // Validate program selection for report
+      if (selectedProgramsForReport.length === 0) {
+        console.error('❌ No programs selected for standup report');
+        showError(t('select_at_least_one_program') || 'Please select at least one program for the report');
+        return;
+      }
+    } else {
+      // Regular mode: requires class or program selection
+      if (!selectedClassId && !selectedProgramId) {
+        console.error('❌ No class or program selected');
+        showError(t('please_select_class_or_program') || 'Please select a class or program first');
+        return;
+      }
 
-    // Validate subject selection
-    if (selectedSubjectsForReport.length === 0) {
-      console.error('❌ No subjects selected for report');
-      showError(t('select_at_least_one_subject') || 'Please select at least one subject for the report');
-      return;
+      // Validate subject selection (only for regular mode)
+      if (selectedSubjectsForReport.length === 0) {
+        console.error('❌ No subjects selected for report');
+        showError(t('select_at_least_one_subject') || 'Please select at least one subject for the report');
+        return;
+      }
     }
 
     // Validate email recipients if email format is selected
@@ -1832,34 +2363,56 @@ const QRScannerPage = () => {
     console.log('✅ Loading state set, starting export...');
 
     try {
-      // Determine export scope
-      const scope = selectedClassId ? 'class' : 'program';
-      const scopeId = selectedClassId || selectedProgramId;
-      console.log('📊 Export scope:', { scope, scopeId });
-
-      // Get all attendance data based on scope
-      let attendanceResponse;
-      if (scope === 'class') {
-        attendanceResponse = await getAttendanceRecords({ classId: scopeId });
-      } else {
-        // For program scope, get all classes in the program
-        const programClasses = classes.filter(c => c.programId === scopeId);
-        const classIds = programClasses.map(c => c.id);
-        
-        // Get attendance for all classes in the program
-        const attendancePromises = classIds.map(classId => 
-          getAttendanceRecords({ classId }).catch(err => ({ success: false, error: err.message }))
-        );
-        
-        const attendanceResults = await Promise.all(attendancePromises);
-        const allAttendanceData = attendanceResults
-          .filter(result => result.success)
-          .flatMap(result => result.data);
-        
-        attendanceResponse = { success: true, data: allAttendanceData };
-      }
+      let attendanceData = [];
       
-      const attendanceData = attendanceResponse.success ? attendanceResponse.data : [];
+      // Fetch attendance based on mode
+      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        // Standup mode: fetch by program for date range (semester)
+        // For now, use a reasonable date range - this could be parameterized
+        const startDate = '2024-01-01'; // TODO: Make this configurable
+        const endDate = new Date().toISOString().split('T')[0];
+        
+        console.log('📊 Standup mode - fetching attendance for program:', selectedProgramId, 'from', startDate, 'to', endDate);
+        
+        const attendanceResponse = await getStandupAttendanceByProgramForDateRange(selectedProgramId, startDate, endDate);
+        attendanceData = (attendanceResponse.success ? attendanceResponse.data : []).map(a => ({
+          ...a,
+          status: typeof a.status === 'object' ? (a.status?.code ?? null) : a.status,
+          studentId: a.userId ?? a.studentId
+        }));
+      } else {
+        // Regular mode: existing logic
+        const scope = selectedClassId ? 'class' : 'program';
+        const scopeId = selectedClassId || selectedProgramId;
+        console.log('📊 Regular mode - Export scope:', { scope, scopeId });
+
+        let attendanceResponse;
+        if (scope === 'class') {
+          attendanceResponse = await getAttendanceRecords({ classId: scopeId });
+        } else {
+          // For program scope, get all classes in the program
+          const programClasses = classes.filter(c => c.programId === scopeId);
+          const classIds = programClasses.map(c => c.id);
+          
+          // Get attendance for all classes in the program
+          const attendancePromises = classIds.map(classId => 
+            getAttendanceRecords({ classId }).catch(err => ({ success: false, error: err.message }))
+          );
+          
+          const attendanceResults = await Promise.all(attendancePromises);
+          const allAttendanceData = attendanceResults
+            .filter(result => result.success)
+            .flatMap(result => result.data);
+          
+          attendanceResponse = { success: true, data: allAttendanceData };
+        }
+        
+        attendanceData = (attendanceResponse.success ? attendanceResponse.data : []).map(a => ({
+          ...a,
+          status: typeof a.status === 'object' ? (a.status?.code ?? null) : a.status,
+          studentId: a.studentId ?? a.userId
+        }));
+      }
       
       console.log('📊 Semester Report - Attendance Data:', {
         totalRecords: attendanceData.length,
@@ -1888,17 +2441,17 @@ const QRScannerPage = () => {
           };
         }
         
-        const status = record.status?.toLowerCase() || 'present';
+        const status = (typeof record.status === 'string' ? record.status : record.status?.code || 'present').toLowerCase();
         studentAttendanceMap[studentId].total++;
         
         // Map status to counters - handle all 6 attendance types
-        if (status === 'present') {
+        if (status === 'present' || status === 'standup_present') {
           studentAttendanceMap[studentId].present++;
-        } else if (status === 'late') {
+        } else if (status === 'late' || status === 'standup_late') {
           studentAttendanceMap[studentId].late++;
-        } else if (status === 'absent_no_excuse' || status === 'absent') {
+        } else if (status === 'absent_no_excuse' || status === 'absent' || status === 'standup_absent') {
           studentAttendanceMap[studentId].absentNoExcuse++;
-        } else if (status === 'absent_with_excuse' || status === 'absence_excused' || status === 'absenceexcused') {
+        } else if (status === 'absent_with_excuse' || status === 'absence_excused' || status === 'absenceexcused' || status === 'standup_excused' || status === 'standup_clinic') {
           studentAttendanceMap[studentId].absentWithExcuse++;
         } else if (status === 'excused_leave' || status === 'leave') {
           studentAttendanceMap[studentId].excusedLeave++;
@@ -1914,24 +2467,16 @@ const QRScannerPage = () => {
 
       // Create enriched data with calculations
       const enrichedData = Object.entries(studentAttendanceMap).map(([studentId, stats]) => {
-        const student = allUsers.find(u => u.id === studentId);
-        
+        const student = allUsers.find(u => String(u.id) === String(studentId));
+
         // Calculate attendance percentage
-        const attendancePercentage = stats.total > 0 
+        const attendancePercentage = stats.total > 0
           ? ((stats.present / stats.total) * 100).toFixed(2)
           : '0.00';
-        
-        // Calculate mark deductions for each type
-        const absentNoExcuseDeduction = stats.absentNoExcuse * 1.0;      // 1.0 mark per absent
-        const absentWithExcuseDeduction = stats.absentWithExcuse * 0.5;  // 0.5 mark per excused absent
-        const excusedLeaveDeduction = stats.excusedLeave * 0.5;        // 0.5 mark per excused leave
-        const humanCaseDeduction = stats.humanCase * 0.25;             // 0.25 mark per human case
-        
-        // Total deductions
-        const totalDeduction = absentNoExcuseDeduction + absentWithExcuseDeduction + excusedLeaveDeduction + humanCaseDeduction;
-        
-        return {
-          studentNumber: student?.studentNumber || studentId || '',
+
+        const baseData = {
+          studentId: studentId,
+          studentNumber: student?.studentNumber || '',
           studentName: student?.displayName || student?.realName || '',
           present: stats.present,
           late: stats.late,
@@ -1940,13 +2485,29 @@ const QRScannerPage = () => {
           excusedLeave: stats.excusedLeave,
           humanCase: stats.humanCase,
           totalSessions: stats.total,
-          attendancePercentage: attendancePercentage + '%',
-          absentNoExcuseDeduction: absentNoExcuseDeduction.toFixed(2),
-          absentWithExcuseDeduction: absentWithExcuseDeduction.toFixed(2),
-          excusedLeaveDeduction: excusedLeaveDeduction.toFixed(2),
-          humanCaseDeduction: humanCaseDeduction.toFixed(2),
-          totalMarkDeduction: totalDeduction.toFixed(2)
+          attendancePercentage: attendancePercentage + '%'
         };
+        
+        // Only add mark deductions for regular mode (not standup)
+        if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+          const absentNoExcuseDeduction = stats.absentNoExcuse * 1.0;
+          const absentWithExcuseDeduction = stats.absentWithExcuse * 0.5;
+          const excusedLeaveDeduction = stats.excusedLeave * 0.5;
+          const humanCaseDeduction = stats.humanCase * 0.25;
+          const totalDeduction = absentNoExcuseDeduction + absentWithExcuseDeduction + excusedLeaveDeduction + humanCaseDeduction;
+          
+          return {
+            ...baseData,
+            absentNoExcuseDeduction: absentNoExcuseDeduction.toFixed(2),
+            absentWithExcuseDeduction: absentWithExcuseDeduction.toFixed(2),
+            excusedLeaveDeduction: excusedLeaveDeduction.toFixed(2),
+            humanCaseDeduction: humanCaseDeduction.toFixed(2),
+            totalMarkDeduction: totalDeduction.toFixed(2)
+          };
+        }
+        
+        // Standup mode: return without mark calculations
+        return baseData;
       });
 
       // Sort by student number
@@ -1968,49 +2529,88 @@ const QRScannerPage = () => {
       }
 
       // Enhanced headers with per-subject details if enabled
-      let headers = lang === 'ar' ? [
-        '#',
-        t('student_number') || 'رقم الطالب',
-        t('student_name') || 'اسم الطالب',
-        t('present') || 'حاضر',
-        t('late') || 'متأخر',
-        t('absent_no_excuse') || 'غائب بدون عذر',
-        t('absent_with_excuse') || 'غائب مع عذر',
-        t('excused_leave') || 'استئذان',
-        t('human_case') || 'حالة إنسانية',
-        t('total_sessions') || 'إجمالي الجلسات',
-        t('attendance_percentage') || 'نسبة الحضور',
-        t('absent_no_excuse_deduction') || 'خصم الغياب بدون عذر (×1.0)',
-        t('absent_with_excuse_deduction') || 'خصم الغياب مع عذر (×0.5)',
-        t('excused_leave_deduction') || 'خصم الاستئذان (×0.5)',
-        t('human_case_deduction') || 'خصم الحالة (×0.25)',
-        t('total_mark_deduction') || 'إجمالي الخصم'
-      ] : [
-        '#',
-        t('student_number') || 'Student Number',
-        t('student_name') || 'Student Name',
-        t('present') || 'Present',
-        t('late') || 'Late',
-        t('absent_no_excuse') || 'Absent (No Excuse)',
-        t('absent_with_excuse') || 'Absent (With Excuse)',
-        t('excused_leave') || 'Excused Leave',
-        t('human_case') || 'Human Case',
-        t('total_sessions') || 'Total Sessions',
-        t('attendance_percentage') || 'Attendance %',
-        t('absent_no_excuse_deduction') || 'Absent No Excuse Deduction (×1.0)',
-        t('absent_with_excuse_deduction') || 'Absent With Excuse Deduction (×0.5)',
-        t('excused_leave_deduction') || 'Excused Leave Deduction (×0.5)',
-        t('human_case_deduction') || 'Human Case Deduction (×0.25)',
-        t('total_mark_deduction') || 'Total Mark Deduction'
-      ];
+      // For standup mode, use standup-specific columns
+      let headers;
+      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        headers = lang === 'ar' ? [
+          '#',
+          t('student_id') || 'معرف الطالب',
+          t('student_number') || 'رقم الطالب',
+          t('student_name') || 'اسم الطالب',
+          t('present') || 'حاضر',
+          t('late') || 'متأخر',
+          t('absent') || 'غائب',
+          t('clinic') || 'عيادة',
+          t('total_sessions') || 'إجمالي الجلسات',
+          t('attendance_percentage') || 'نسبة الحضور'
+        ] : [
+          '#',
+          t('student_id') || 'Student ID',
+          t('student_number') || 'Student Number',
+          t('student_name') || 'Student Name',
+          t('present') || 'Present',
+          t('late') || 'Late',
+          t('absent') || 'Absent',
+          t('clinic') || 'Clinic',
+          t('total_sessions') || 'Total Sessions',
+          t('attendance_percentage') || 'Attendance %'
+        ];
+      } else {
+        headers = lang === 'ar' ? [
+          '#',
+          t('student_number') || 'رقم الطالب',
+          t('student_name') || 'اسم الطالب',
+          t('present') || 'حاضر',
+          t('late') || 'متأخر',
+          t('absent_no_excuse') || 'غائب بدون عذر',
+          t('absent_with_excuse') || 'غائب مع عذر',
+          t('excused_leave') || 'استئذان',
+          t('human_case') || 'حالة إنسانية',
+          t('total_sessions') || 'إجمالي الجلسات',
+          t('attendance_percentage') || 'نسبة الحضور'
+        ] : [
+          '#',
+          t('student_number') || 'Student Number',
+          t('student_name') || 'Student Name',
+          t('present') || 'Present',
+          t('late') || 'Late',
+          t('absent_no_excuse') || 'Absent (No Excuse)',
+          t('absent_with_excuse') || 'Absent (With Excuse)',
+          t('excused_leave') || 'Excused Leave',
+          t('human_case') || 'Human Case',
+          t('total_sessions') || 'Total Sessions',
+          t('attendance_percentage') || 'Attendance %'
+        ];
+      }
 
-      // Add per-subject columns if subjects are selected
-      if (selectedSubjectsForReport.length > 0) {
+      // Add mark deduction columns only for regular mode
+      if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        if (lang === 'ar') {
+          headers.push(
+            t('absent_no_excuse_deduction') || 'خصم الغياب بدون عذر (×1.0)',
+            t('absent_with_excuse_deduction') || 'خصم الغياب مع عذر (×0.5)',
+            t('excused_leave_deduction') || 'خصم الاستئذان (×0.5)',
+            t('human_case_deduction') || 'خصم الحالة (×0.25)',
+            t('total_mark_deduction') || 'إجمالي الخصم'
+          );
+        } else {
+          headers.push(
+            t('absent_no_excuse_deduction') || 'Absent Deduction (×1.0)',
+            t('absent_with_excuse_deduction') || 'Absent Excused Deduction (×0.5)',
+            t('excused_leave_deduction') || 'Excused Leave Deduction (×0.5)',
+            t('human_case_deduction') || 'Human Case Deduction (×0.25)',
+            t('total_mark_deduction') || 'Total Mark Deduction'
+          );
+        }
+      }
+
+      // Add per-subject columns if subjects are selected (only for regular mode)
+      if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && selectedSubjectsForReport.length > 0) {
         console.log('📊 Adding per-subject details for selected subjects...');
         
         // Get selected subjects
         const selectedSubjects = subjects.filter(s => 
-          selectedSubjectsForReport.includes(s.docId || s.id)
+          selectedSubjectsForReport.includes(s.id)
         );
         
         console.log('📊 Selected Subjects:', selectedSubjects);
@@ -2031,29 +2631,54 @@ const QRScannerPage = () => {
       const csvContent = [
         headers.join(','),
         ...enrichedData.map((row, index) => {
-          let rowData = [
-            `"${index + 1}"`,
-            `"${row.studentNumber}"`,
-            `"${row.studentName}"`,
-            `"${row.present}"`,
-            `"${row.late}"`,
-            `"${row.absentNoExcuse}"`,
-            `"${row.absentWithExcuse}"`,
-            `"${row.excusedLeave}"`,
-            `"${row.humanCase}"`,
-            `"${row.totalSessions}"`,
-            `"${row.attendancePercentage}"`,
-            `"${row.absentNoExcuseDeduction}"`,
-            `"${row.absentWithExcuseDeduction}"`,
-            `"${row.excusedLeaveDeduction}"`,
-            `"${row.humanCaseDeduction}"`,
-            `"${row.totalMarkDeduction}"`
-          ];
+          let rowData;
+          
+          if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+            // Standup mode: use standup-specific columns (Present, Late, Absent, Clinic)
+            // Combine absent types into single "Absent" column, use humanCase as "Clinic"
+            const totalAbsent = parseInt(row.absentNoExcuse) + parseInt(row.absentWithExcuse) + parseInt(row.excusedLeave);
+            rowData = [
+              `"${index + 1}"`,
+              `"${row.studentId}"`,
+              `"${row.studentNumber}"`,
+              `"${row.studentName}"`,
+              `"${row.present}"`,
+              `"${row.late}"`,
+              `"${totalAbsent}"`,
+              `"${row.humanCase}"`,
+              `"${row.totalSessions}"`,
+              `"${row.attendancePercentage}"`
+            ];
+          } else {
+            // Regular mode: use all attendance columns
+            rowData = [
+              `"${index + 1}"`,
+              `"${row.studentNumber}"`,
+              `"${row.studentName}"`,
+              `"${row.present}"`,
+              `"${row.late}"`,
+              `"${row.absentNoExcuse}"`,
+              `"${row.absentWithExcuse}"`,
+              `"${row.excusedLeave}"`,
+              `"${row.humanCase}"`,
+              `"${row.totalSessions}"`,
+              `"${row.attendancePercentage}"`
+            ];
+            
+            // Add mark deduction columns only for regular mode
+            rowData.push(
+              `"${row.absentNoExcuseDeduction}"`,
+              `"${row.absentWithExcuseDeduction}"`,
+              `"${row.excusedLeaveDeduction}"`,
+              `"${row.humanCaseDeduction}"`,
+              `"${row.totalMarkDeduction}"`
+            );
+          }
           
           // Add per-subject data if subjects are selected
           if (selectedSubjectsForReport.length > 0) {
             const selectedSubjects = subjects.filter(s => 
-              selectedSubjectsForReport.includes(s.docId || s.id)
+              selectedSubjectsForReport.includes(s.id)
             );
             
             // For now, add placeholder data for per-subject columns
@@ -2080,10 +2705,9 @@ const QRScannerPage = () => {
         })
       ].join('\n');
 
-      // Get names for filename from current selections (try both id and docId)
-      const currentProgram = programs.find(p => (p.id === selectedProgramId) || (p.docId === selectedProgramId));
-      const currentSubject = subjects.find(s => (s.id === selectedSubjectId) || (s.docId === selectedSubjectId));
-      const currentClass = classes.find(c => (c.id === selectedClassId) || (c.docId === selectedClassId));
+      const currentProgram = programs.find(p => p.id == selectedProgramId);
+      const currentSubject = subjects.find(s => s.id == selectedSubjectId);
+      const currentClass = classes.find(c => c.id == selectedClassId);
       
       console.log('📊 Filename Generation:', {
         currentProgram,
@@ -2113,13 +2737,18 @@ const QRScannerPage = () => {
       
       // Create filename with proper structure
       let filename;
-      if (selectedSubjectsForReport.length > 0) {
+      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        // Standup mode: use program name only, no subjects/classes
+        filename = lang === 'ar'
+          ? `تقرير_الوقوف_${programName}_${formattedDate}${fileExtension}`
+          : `standup_${programName}_${formattedDate}${fileExtension}`;
+      } else if (selectedSubjectsForReport.length > 0) {
         // For multi-subject export, use program name only
         const subjectCount = selectedSubjectsForReport.length;
         filename = lang === 'ar' 
           ? `تقرير_ملخص_${programName}_${subjectCount}_مواد_${formattedDate}${fileExtension}`
           : `summary_report_${programName}_${subjectCount}_subjects_${formattedDate}${fileExtension}`;
-      } else if (scope === 'class') {
+      } else if (selectedClassId) {
         // For class export, include class, program, subject
         filename = lang === 'ar' 
           ? `تقرير_ملخص_${className}_${programName}_${subjectName}_${formattedDate}${fileExtension}`
@@ -2133,7 +2762,7 @@ const QRScannerPage = () => {
       
       console.log('📊 Final Filename:', filename);
       console.log('📊 Export Format:', exportFormat);
-      console.log('📊 Export Scope:', selectedSubjectsForReport.length > 0 ? 'multi-subject' : scope);
+      console.log('📊 Export Mode:', attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'standup' : 'regular');
 
       // Handle export formats (CSV and Email)
       if (exportFormat === 'email') {
@@ -2372,7 +3001,7 @@ const QRScannerPage = () => {
     } finally {
       setIsExporting(false);
     }
-  }, [selectedClassId, selectedSubjectId, selectedProgramId, programs, subjects, classes, lang, t, showError, showSuccess, showInfo, exportFormat, selectedSubjectsForReport, emailRecipients, user, availableUsers, getUserFromKey]);
+  }, [selectedClassId, selectedSubjectId, selectedProgramId, programs, subjects, classes, lang, t, showError, showSuccess, showInfo, exportFormat, selectedSubjectsForReport, selectedProgramsForReport, emailRecipients, user, availableUsers, getUserFromKey, attendanceMode]);
 
   // Fetch users for email recipient selection
   const fetchUsersForEmail = useCallback(async () => {
@@ -2380,26 +3009,20 @@ const QRScannerPage = () => {
     
     setUsersLoading(true);
     try {
-      console.log('🔍 Fetching real users for email recipient selection...');
-      
-      // Fetch real users from Firebase
-      const usersCollection = collection(db, 'users');
-      
-      // Get all users
-      const usersSnapshot = await getDocs(usersCollection);
-      const allUsers = [];
-      
-      usersSnapshot.forEach(doc => {
-        const userData = doc.data();
-        if (userData.email && userData.displayName) {
-          allUsers.push({
-            id: doc.id,
-            name: userData.displayName,
-            email: userData.email,
-            role: userData.role || 'user'
-          });
-        }
-      });
+      const usersResult = await getUsers();
+      const allUsers = (usersResult.success ? (usersResult.data || []) : [])
+        .filter((userData) => userData.email && (userData.displayName || userData.realName))
+        .map((userData) => ({
+          id: userData.id,
+          name: userData.displayName || userData.realName,
+          email: userData.email,
+          role: userData.role || 'user',
+          isAdmin: userData.isAdmin,
+          isSuperAdmin: userData.isSuperAdmin,
+          isInstructor: userData.isInstructor,
+          isHR: userData.isHR,
+          isStudent: userData.isStudent,
+        }));
       
       // Categorize users by role using constants with priority logic
       // Priority: Super Admin > Admin > HR > Instructor > Student
@@ -2425,7 +3048,7 @@ const QRScannerPage = () => {
             categorizedUsers.students.push(firebaseUser);
           }
         } else {
-          // Use Firebase user data for other users
+          // Use profile data for other users
           console.log('🔍 Categorizing user:', firebaseUser.email, 'with role:', firebaseUser.role);
           
           if (firebaseUser.role === USER_ROLES.SUPER_ADMIN || 
@@ -2503,7 +3126,7 @@ const QRScannerPage = () => {
         isInstructor: isInstructor
       });
       } else {
-        console.log('⚠️ No users found in Firebase collection');
+        console.log('⚠️ No users found for recipient selection');
       }
       
       // Log sample users for debugging
@@ -2556,7 +3179,7 @@ const QRScannerPage = () => {
 
     // Apply attendance filter
     if (attendanceFilter !== 'all') {
-      logger.debug('[Filter] Applying attendance filter:', attendanceFilter);
+      debug('[Filter] Applying attendance filter:', attendanceFilter);
       
       // More flexible filtering - check multiple possible attendance fields
       filtered = filtered.filter(student => {
@@ -2607,6 +3230,8 @@ const QRScannerPage = () => {
 
       // Handle attendance statistics fields
       const attendanceStatsFields = ['present', 'late', 'absent', 'absentExcused', 'excusedLeave', 'human'];
+      const standupStatsFields = ['standupPresent', 'standupLate', 'standupAbsent', 'standupClinic'];
+      
       if (attendanceStatsFields.includes(sortField)) {
         const stats = a.attendanceStats || {};
         const statsB = b.attendanceStats || {};
@@ -2619,6 +3244,21 @@ const QRScannerPage = () => {
           'absentExcused': 'absentWithExcuse',
           'excusedLeave': 'excusedLeave',
           'human': 'humanitarianCase'
+        };
+        
+        const statProperty = fieldMapping[sortField];
+        aValue = stats[statProperty] || 0;
+        bValue = statsB[statProperty] || 0;
+      } else if (standupStatsFields.includes(sortField)) {
+        const stats = a.standupStats || {};
+        const statsB = b.standupStats || {};
+        
+        // Map field names to standup stats property names
+        const fieldMapping = {
+          'standupPresent': 'present',
+          'standupLate': 'late',
+          'standupAbsent': 'absent',
+          'standupClinic': 'clinic'
         };
         
         const statProperty = fieldMapping[sortField];
@@ -2681,7 +3321,7 @@ const QRScannerPage = () => {
     return <GlobalLoadingFallback />;
   }
 
-  if (error) {
+  if (errorMessage) {
     return (
       <div style={{
         display: 'flex',
@@ -2698,10 +3338,10 @@ const QRScannerPage = () => {
           maxWidth: '500px'
         }}>
           <h3 style={{ color: 'var(--color-danger, #dc2626)', margin: '0 0 1rem 0' }}>{t('error_loading_page')}</h3>
-          <p style={{ color: 'var(--text-muted, #6b7280)', margin: '0 0 1rem 0' }}>{error}</p>
+          <p style={{ color: 'var(--text-muted, #6b7280)', margin: '0 0 1rem 0' }}>{errorMessage}</p>
           <button
             onClick={() => {
-              setError(null);
+              setErrorMessage(null);
               setInitialLoading(true);
               loadPrograms();
             }}
@@ -2741,130 +3381,58 @@ const QRScannerPage = () => {
           margin: '0 auto',
           flexWrap: 'wrap'
         }}>
-          {/*<div style={{*/}
-          {/*  display: 'flex',*/}
-          {/*  alignItems: 'center',*/}
-          {/*  gap: '0.5rem',*/}
-          {/*  color: '#111827',*/}
-          {/*  fontWeight: 600*/}
-          {/*}}>*/}
-          {/*  <svg style={{ width: '1.25rem', height: '1.25rem', color: '#8b5cf6' }} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">*/}
-          {/*    <rect x="3" y="3" width="7" height="9" />*/}
-          {/*    <rect x="14" y="3" width="7" height="5" />*/}
-          {/*    <rect x="14" y="12" width="7" height="9" />*/}
-          {/*    <rect x="3" y="16" width="7" height="5" />*/}
-          {/*  </svg>*/}
-          {/*  <span>{t('qr_scanner')}</span>*/}
-          {/*</div>*/}
-
-          <div style={{ 
-            display: 'flex', 
-            gap: '0.75rem', 
-            flex: 1, 
-            alignItems: 'center', 
-            flexWrap: 'wrap',
-            flexDirection: 'column'
-          }}>
-            <div style={{ width: '100%', minWidth: '100%' }}>
-              <Select
-                size="small"
-                searchable
-                value={selectedProgramId}
-                onChange={(e) => {
-                  setSelectedProgramId(e.target.value);
-                  setSelectedSubjectId('all');
-                  setSelectedClassId('all');
-                }}
-                options={programOptions}
-                style={{ width: '100%', minWidth: '100%' }}
-                placeholder={gridLoading ? t('loading') || 'Loading...' : (t('all_programs') || 'All Programs')}
-                disabled={gridLoading}
-              />
-            </div>
-
-            <div style={{ width: '100%', minWidth: '100%' }}>
-              <Select
-                size="small"
-                searchable
-                value={selectedSubjectId}
-                onChange={(e) => {
-                  setSelectedSubjectId(e.target.value);
-                  setSelectedClassId('all');
-                }}
-                options={subjectOptions}
-                style={{ width: '100%', minWidth: '100%' }}
-                placeholder={gridLoading ? t('loading') || 'Loading...' : (t('all_subjects') || 'All Subjects')}
-                disabled={gridLoading}
-              />
-            </div>
-
-            <div style={{ width: '100%', minWidth: '100%' }}>
-              <Select
-                size="small"
-                searchable
-                value={selectedClassId}
-                onChange={(e) => {
-                  setSelectedClassId(e.target.value);
-                }}
-                options={classOptions}
-                style={{ width: '100%', minWidth: '100%' }}
-                placeholder={t('all_classes')}
-              />
-            </div>
+          {/* Program/Subject/Class Selection - Always at the start */}
+          <div style={{ flex: '0 0 auto', minWidth: '300px' }}>
+            <ProgramsSelect
+              programs={programs}
+              subjects={subjects}
+              classes={classes}
+              selectedProgram={String(selectedProgramId || '')}
+              selectedSubject={String(selectedSubjectId || '')}
+              selectedClass={String(selectedClassId || '')}
+              showSubjects={attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP}
+              showClasses={attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP}
+              onProgramChange={(val) => {
+                const programId = val && typeof val === 'object' ? (val.value ?? val.id ?? 'all') : (val || 'all');
+                saveSelectedProgramId(programId);
+                setSelectedSubjectId('all');
+                setSelectedClassId('all');
+                setSubjects([]);
+              }}
+              onSubjectChange={(val) => {
+                setSelectedSubjectId(val);
+                setSelectedClassId('');
+              }}
+              onClassChange={(val) => {
+                debug('🔍 [DEBUG] onClassChange called with:', val, 'type:', typeof val);
+                setSelectedClassId(val);
+              }}
+              showLabels={false}
+              style={{ width: '100%' }}
+            />
           </div>
 
-          {/* Date picker and export buttons section */}
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            gap: '1rem',
-            marginTop: '0.5rem'
+          {/* Mode toggle, date picker, and export buttons row */}
+          <div style={{
+            display: 'flex',
+            justifyContent: isMobile ? 'center' : 'flex-end',
+            alignItems: 'center',
+            gap: '0.5rem',
+            flex: '1',
+            flexWrap: 'wrap'
           }}>
-            {/* Date picker and mode toggle row */}
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'flex-start',
-              alignItems: 'center',
-              gap: '1rem',
-              flexWrap: 'wrap'
+            {/* Attendance Mode Toggle */}
+            <div style={{
+              display: 'flex',
+              gap: '0.5rem',
+              background: 'var(--background-secondary, #f3f4f6)',
+              padding: '0.25rem',
+              borderRadius: '0.5rem',
+              border: '1px solid var(--border, #e5e7eb)'
             }}>
-              <div style={{ width: '100%', maxWidth: '300px' }}>
-                {!gridLoading && selectedClassId && selectedClassId !== 'all' && (
-                  <DatePicker
-                    value={selectedDate}
-                    onChange={(date) => setSelectedDate(date)}
-                    format="yyyy-MM-dd"
-                  />
-                )}
-                {gridLoading && (
-                  <div style={{
-                    height: '38px',
-                    background: '#f3f4f6',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.375rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#9ca3af',
-                    fontSize: '0.875rem'
-                  }}>
-                    {t('loading') || 'Loading...'}
-                  </div>
-                )}
-              </div>
-
-              {/* Attendance Mode Toggle */}
-              <div style={{
-                display: 'flex',
-                gap: '0.5rem',
-                background: 'var(--background-secondary, #f3f4f6)',
-                padding: '0.25rem',
-                borderRadius: '0.5rem',
-                border: '1px solid var(--border, #e5e7eb)'
-              }}>
                 <button
                   onClick={() => {
-                  logger.log('🔍 [DEBUG] Regular mode clicked', {
+                  info('🔍 [DEBUG] Regular mode clicked', {
                     currentMode: attendanceMode,
                     newMode: ATTENDANCE_TYPE_CATEGORY.REGULAR,
                     constants: ATTENDANCE_TYPE_CATEGORY
@@ -2872,7 +3440,7 @@ const QRScannerPage = () => {
                   setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.REGULAR);
                 }}
                   style={{
-                    padding: '0.5rem 1rem',
+                    padding: '0.625rem 1.25rem',
                     background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'var(--color-primary, #3b82f6)' : 'transparent',
                     color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : 'var(--text-muted, #6b7280)',
                     border: 'none',
@@ -2891,7 +3459,7 @@ const QRScannerPage = () => {
                 </button>
                 <button
                   onClick={() => {
-                  logger.log('🔍 [DEBUG] Standup mode clicked', {
+                  info('🔍 [DEBUG] Standup mode clicked', {
                     currentMode: attendanceMode,
                     newMode: ATTENDANCE_TYPE_CATEGORY.STANDUP,
                     constants: ATTENDANCE_TYPE_CATEGORY
@@ -2899,7 +3467,7 @@ const QRScannerPage = () => {
                   setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.STANDUP);
                 }}
                   style={{
-                    padding: '0.5rem 1rem',
+                    padding: '0.625rem 1.25rem',
                     background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'var(--color-primary, #3b82f6)' : 'transparent',
                     color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : 'var(--text-muted, #6b7280)',
                     border: 'none',
@@ -2917,26 +3485,50 @@ const QRScannerPage = () => {
                   {t('standup_mode') || 'Standup'}
                 </button>
               </div>
-            </div>
 
-            {/* Export buttons row */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '1rem',
-              flexWrap: 'wrap'
-            }}>
+              {/* Date picker */}
+              <div style={{ width: '180px' }}>
+                {!gridLoading && (selectedClassId || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && selectedProgramId)) && (
+                  <DatePicker
+                    value={selectedDate}
+                    onChange={(date) => setSelectedDate(date)}
+                    format="yyyy-MM-dd"
+                  />
+                )}
+                {gridLoading && (
+                  <div style={{
+                    height: '42px',
+                    background: '#f3f4f6',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.375rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#9ca3af',
+                    fontSize: '0.875rem'
+                  }}>
+                    {t('loading') || 'Loading...'}
+                  </div>
+                )}
+              </div>
+
               <button
                 onClick={() => {
-                  if (!selectedClassId || selectedClassId === 'all') {
-                    showError(t('please_select_class') || 'Please select a class first');
-                    return;
+                  if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+                    if (!selectedProgramId || selectedProgramId === 'all') {
+                      showError(t('please_select_program') || 'Please select a program first');
+                      return;
+                    }
+                  } else {
+                    if (!selectedClassId || selectedClassId === 'all') {
+                      showError(t('please_select_class') || 'Please select a class first');
+                      return;
+                    }
                   }
                   setShowDailyReportModal(true);
                 }}
                 style={{
-                  padding: '0.625rem 1.25rem',
+                  padding: '1rem 1.5rem',
                   background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
                   color: 'white',
                   border: 'none',
@@ -2949,14 +3541,14 @@ const QRScannerPage = () => {
                   gap: '0.5rem',
                   transition: 'all 0.2s',
                   boxShadow: '0 2px 4px rgba(139, 92, 246, 0.2)',
-                  minWidth: '140px',
+                  minWidth: '100px',
                   justifyContent: 'center',
                   opacity: isExporting ? 0.6 : 1
                 }}
-                disabled={gridLoading || !selectedClassId || selectedClassId === 'all' || isExporting}
+                disabled={gridLoading || isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all'))}
               >
                 {getThemedIcon('ui', 'file', 16, 'white')}
-                {t('daily_report') || 'Daily Report'}
+                {t('daily_report') || 'Daily'}
               </button>
 
               <button
@@ -2965,7 +3557,7 @@ const QRScannerPage = () => {
                   setShowSemesterReportConfirm(true);
                 }}
                 style={{
-                  padding: '0.625rem 1.25rem',
+                  padding: '1rem 1.5rem',
                   background: isExporting ? '#94a3b8' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                   color: 'white',
                   border: 'none',
@@ -2978,27 +3570,29 @@ const QRScannerPage = () => {
                   gap: '0.5rem',
                   transition: 'all 0.2s',
                   boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)',
-                  minWidth: '140px',
+                  minWidth: '100px',
                   justifyContent: 'center',
                   opacity: isExporting ? 0.6 : 1
                 }}
-                disabled={gridLoading || (!selectedClassId && !selectedProgramId) || isExporting}
+                disabled={gridLoading || isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all'))}
                 title={t('export_summary_report') || 'Export comprehensive summary report'}
               >
                 {getThemedIcon('ui', 'send', 16, 'white')}
-                {t('summary_report') || 'Summary Report'}
+                {t('summary_report') || 'Summary'}
               </button>
-              
+
               <button
                 onClick={() => {
-                  if (!selectedClassId || selectedClassId === 'all') {
+                  // In standup mode, allow bulk operations without class selection
+                  if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (!selectedClassId || selectedClassId === 'all')) {
                     showError(t('please_select_class') || 'Please select a class first');
                     return;
                   }
                   setShowBulkScanDialog(true);
                 }}
+                disabled={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all')}
                 style={{
-                  padding: '0.625rem 1.25rem',
+                  padding: '1rem 1.5rem',
                   background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                   color: 'white',
                   border: 'none',
@@ -3011,8 +3605,9 @@ const QRScannerPage = () => {
                   gap: '0.5rem',
                   transition: 'all 0.2s',
                   boxShadow: '0 2px 4px rgba(245, 158, 11, 0.2)',
-                  minWidth: '140px',
-                  justifyContent: 'center'
+                  minWidth: '100px',
+                  justifyContent: 'center',
+                  opacity: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all')) ? 0.5 : 1
                 }}
                 title={t('bulk_scan_attendance') || 'Bulk scan attendance for multiple students'}
               >
@@ -3021,95 +3616,42 @@ const QRScannerPage = () => {
               </button>
             </div>
           </div>
-
-          {/* Export Loading Animation */}
-          {isExporting && (
-            <div style={{
-              position: 'fixed',
-              bottom: '2rem',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'white',
-              padding: '1rem 2rem',
-              borderRadius: '0.5rem',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              zIndex: 1000,
-              border: '1px solid #e5e7eb'
-            }}>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                border: '2px solid #e5e7eb',
-                borderTop: '2px solid #10b981',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />
-              <span style={{
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                color: '#374151'
-              }}>
-                {t('exporting_report') || 'Exporting report...'}
-              </span>
-            </div>
-          )}
-
-            <div 
-              onClick={() => setSendNotifications(!sendNotifications)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.5rem 1rem',
-                background: sendNotifications ? '#f0fdf4' : '#fef2f2',
-                borderRadius: '0.5rem',
-                cursor: 'pointer',
-                border: `1px solid ${sendNotifications ? 'var(--color-success-light, #bbf7d0)' : 'var(--color-danger-light, #fecaca)'}`,
-                transition: 'all 0.2s',
-                userSelect: 'none',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <div style={{
-                width: '2.5rem',
-                height: '1.25rem',
-                background: sendNotifications ? '#10b981' : '#ef4444',
-                borderRadius: '1rem',
-                position: 'relative',
-                transition: 'background 0.2s',
-                flexShrink: 0
-              }}>
-                <div style={{
-                  width: '1rem',
-                  height: '1rem',
-                  background: 'white',
-                  borderRadius: '50%',
-                  position: 'absolute',
-                  top: '0.125rem',
-                  left: sendNotifications ? (isRTL ? '0.125rem' : '1.375rem') : (isRTL ? '1.375rem' : '0.125rem'),
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                }} />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  fontWeight: 600, 
-                  color: sendNotifications ? '#166534' : '#991b1b',
-                  lineHeight: 1
-                }}>
-                  {sendNotifications ? `${t('notifications')}: ${lang === 'ar' ? 'مفعلة' : 'ON'}` : `${t('notifications')}: ${lang === 'ar' ? 'معطلة' : 'OFF'}`}
-                </span>
-                <span style={{ fontSize: '0.625rem', color: sendNotifications ? '#15803d' : '#b91c1c', marginTop: '2px' }}>
-                  {t('email_notification')} + {lang === 'ar' ? 'النظام' : 'System'}
-                </span>
-              </div>
-            </div>
-          </div>
       </header>
+
+      {/* Export Loading Animation */}
+      {isExporting && (
+        <div style={{
+          position: 'fixed',
+          bottom: '2rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'white',
+          padding: '1rem 2rem',
+          borderRadius: '0.5rem',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          zIndex: 1000,
+          border: '1px solid #e5e7eb'
+        }}>
+          <div style={{
+            width: '20px',
+            height: '20px',
+            border: '2px solid #e5e7eb',
+            borderTop: '2px solid #10b981',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <span style={{
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            color: '#374151'
+          }}>
+            {t('exporting_report') || 'Exporting report...'}
+          </span>
+        </div>
+      )}
 
       <div style={{
         padding: isMobile ? '0.5rem' : '1.5rem',
@@ -3124,65 +3666,67 @@ const QRScannerPage = () => {
           display: 'flex',
           flexDirection: 'column',
           gap: '1.5rem',
-          width: isMobile ? '100%' : (isScannerMinimized ? '0px' : '300px'), // Hide completely when minimized
+          width: isMobile ? '100%' : (isScannerMinimized || !showScanner ? '60px' : '20%'), // Fixed 25% width for QR scanner
           flexShrink: 0,
           transition: 'width 0.3s ease',
-          overflow: 'hidden' // Hide content when width is 0
+          overflow: 'hidden'
         }}>
-          {showScanner && selectedClassId && (
-            <QRScanner 
-              onScan={handleScan} 
+          {(showScanner || (!showScanner && (selectedClassId || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && selectedProgramId)))) && (selectedClassId || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && selectedProgramId)) && selectedProgramId && selectedProgramId !== 'all' && (
+            <QRScanner
+              onScan={handleScan}
               classId={selectedClassId}
               onActivityUpdate={handleActivityUpdate}
               onDeleteActivity={handleDeleteActivity}
               selectedProgramId={selectedProgramId}
               selectedSubjectId={selectedSubjectId}
               selectedClassId={selectedClassId}
+              attendanceMode={attendanceMode}
               selectedProgramName={(() => {
-                const program = programs.find(p => p.id === selectedProgramId);
-                logger.debug('Program lookup:', {
-                  selectedProgramId,
-                  totalPrograms: programs.length,
-                  found: !!program,
-                  programName: program?.name || 'NOT_FOUND'
-                });
-                return program?.name || '';
+                const program = programs.find(p => p.id == selectedProgramId);
+                // debug('Program lookup:', {
+                //   selectedProgramId,
+                //   totalPrograms: programs.length,
+                //   found: !!program,
+                //   programName: program?.nameEn || program?.name || program?.code || 'NOT_FOUND'
+                // });
+                return program?.nameEn || program?.name || program?.code || '';
               })()}
               selectedSubjectName={(() => {
-                const subject = subjects.find(s => s.id === selectedSubjectId);
-                logger.debug('Subject lookup:', {
-                  selectedSubjectId,
-                  totalSubjects: subjects.length,
-                  found: !!subject,
-                  subjectName: subject?.name || 'NOT_FOUND'
-                });
-                return subject?.name || '';
+                const subject = subjects.find(s => s.id == selectedSubjectId);
+                // debug('Subject lookup:', {
+                //   selectedSubjectId,
+                //   totalSubjects: subjects.length,
+                //   found: !!subject,
+                //   subjectName: subject?.nameEn || subject?.name || subject?.code || 'NOT_FOUND'
+                // });
+                return subject?.nameEn || subject?.name || subject?.code || '';
               })()}
               selectedClassName={(() => {
-                const cls = classes.find(c => c.id === selectedClassId);
-                logger.debug('Class lookup:', {
-                  selectedClassId,
-                  totalClasses: classes.length,
-                  found: !!cls,
-                  className: cls?.name || 'NOT_FOUND'
-                });
-                return cls?.name || '';
+                const cls = classes.find(c => c.id == selectedClassId);
+                // debug('Class lookup:', {
+                //   selectedClassId,
+                //   totalClasses: classes.length,
+                //   found: !!cls,
+                //   className: cls?.nameEn || cls?.name || cls?.code || 'NOT_FOUND'
+                // });
+                return cls?.nameEn || cls?.name || cls?.code || '';
               })()}
               loading={false}
               students={students}
               onMinimizeChange={handleScannerMinimizeChange}
+              forceMinimized={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? isScannerMinimized : !showScanner} // Use isScannerMinimized in standup mode
             />
           )}
         </div>
 
         {/* Main Content */}
         <div style={{ 
-          width: isMobile ? '100%' : (isScannerMinimized ? '100%' : 'calc(100% - 300px)'),
+          width: isMobile ? '100%' : (isScannerMinimized || !showScanner ? 'calc(100% - 60px)' : '75%'), // Fixed 75% width for roster
           transition: 'width 0.3s ease' // Smooth transition
         }}>
           {loading && <GlobalLoadingFallback />}
           
-          {!selectedClassId || selectedClassId === 'all' ? (
+          {(!selectedClassId || selectedClassId === 'all') && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP ? (
             <div style={{
               background: 'white',
               borderRadius: '0.75rem',
@@ -3195,7 +3739,7 @@ const QRScannerPage = () => {
               </p>
             </div>
           ) : (
-            <div style={{ width: '100%' }}>
+            <div style={{ width: '100%', overflowX: 'auto' }}>
               <StudentRoster
               students={paginatedStudents}
               onStudentSelect={handleStudentSelect}
@@ -3253,32 +3797,36 @@ const QRScannerPage = () => {
               });
               return null;
             })()}
-            <StudentActionStatsPanel
-              student={selectedStudent}
-              onClose={handleClosePanel}
-              onBehaviorSubmit={handleBehaviorSubmit}
-              onMarkAttendance={handleMarkAttendance}
-              behaviorTypes={showFavoritesOnly ? BEHAVIOR_TYPES.filter(b => favoriteBehaviors.includes(b.id)) : BEHAVIOR_TYPES}
-              participationTypes={showFavoritesOnly ? PARTICIPATION_TYPES.filter(p => favoriteBehaviors.includes(p.id)) : PARTICIPATION_TYPES}
-              showFavoritesOnly={showFavoritesOnly}
-              onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
-              attendanceMode={attendanceMode}
-              favoriteBehaviors={favoriteBehaviors}
-              onToggleFavorite={(behaviorId) => {
-                setFavoriteBehaviors(prev => 
-                  prev.includes(behaviorId) 
-                    ? prev.filter(id => id !== behaviorId)
-                    : [...prev, behaviorId]
-                );
-              }}
-              sendNotifications={sendNotifications}
-              onToggleNotifications={() => setSendNotifications(!sendNotifications)}
-            />
+            {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+              <StudentActionStatsPanel
+                student={selectedStudent}
+                onClose={handleClosePanel}
+                onBehaviorSubmit={handleBehaviorSubmit}
+                onMarkAttendance={handleMarkAttendance}
+                behaviorTypes={showFavoritesOnly ? (activityTypeOptions['behavior-types'] || []).filter(b => favoriteBehaviors.includes(b.id)) : (activityTypeOptions['behavior-types'] || [])}
+                participationTypes={showFavoritesOnly ? (activityTypeOptions['participation-types'] || []).filter(p => favoriteBehaviors.includes(p.id)) : (activityTypeOptions['participation-types'] || [])}
+                showFavoritesOnly={showFavoritesOnly}
+                onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                attendanceMode={attendanceMode}
+                favoriteBehaviors={favoriteBehaviors}
+                programId={selectedProgramId}
+                subjectId={selectedSubjectId}
+                onToggleFavorite={(behaviorId) => {
+                  setFavoriteBehaviors(prev => 
+                    prev.includes(behaviorId) 
+                      ? prev.filter(id => id !== behaviorId)
+                      : [...prev, behaviorId]
+                  );
+                }}
+                sendNotifications={sendNotifications}
+                onToggleNotifications={() => setSendNotifications(!sendNotifications)}
+              />
+            )}
           </>
         )}
 
         {/* Student Action Panel New */}
-        {selectedStudentForAction && (
+        {selectedStudentForAction && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
           <>
             <StudentActionZapPanel
               student={selectedStudentForAction}
@@ -3288,19 +3836,10 @@ const QRScannerPage = () => {
               onPenaltySubmit={handleBehaviorSubmit}
               onMarkAttendance={handleMarkAttendance}
               attendanceMode={attendanceMode}
-              options={[
-                ...BEHAVIOR_TYPES.map(type => ({ ...type, category: RECORD_TYPES.BEHAVIOR })),
-                ...PARTICIPATION_TYPES.map(type => ({ ...type, category: RECORD_TYPES.PARTICIPATION })),
-                ...PENALTY_TYPES.map(type => ({
-                  id: type.id,
-                  label_en: type.label_en,
-                  label_ar: type.label_ar,
-                  icon: type.icon,
-                  color: type.color,
-                  points: -type.points, // Make points negative for penalties
-                  category: RECORD_TYPES.PENALTY
-                }))
-              ]}
+              classId={selectedClassId}
+              programId={selectedProgramId}
+              subjectId={selectedSubjectId}
+              options={activityTypeOptions}
               showFavoritesOnly={showFavoritesOnly}
               onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
               favoriteBehaviors={favoriteBehaviors}
@@ -3314,6 +3853,15 @@ const QRScannerPage = () => {
               sendNotifications={sendNotifications}
               onToggleNotifications={() => setSendNotifications(!sendNotifications)}
               selectedDate={selectedDate}
+              onUpdate={() => {
+                // Refresh students after marking attendance
+                if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+                  loadStudents(null, selectedDate, selectedProgramId);
+                } else {
+                  loadStudents(selectedClassId, selectedDate);
+                }
+                triggerActivityRefresh();
+              }}
             />
           </>
         )}
@@ -3527,6 +4075,9 @@ const QRScannerPage = () => {
           subjects={subjects}
           selectedProgramId={selectedProgramId}
           programs={programs}
+          attendanceMode={attendanceMode}
+          selectedProgramsForReport={selectedProgramsForReport}
+          setSelectedProgramsForReport={setSelectedProgramsForReport}
           emailRecipients={emailRecipients}
           setEmailRecipients={setEmailRecipients}
           usersLoading={usersLoading}
@@ -3555,6 +4106,9 @@ const QRScannerPage = () => {
           subjects={subjects}
           selectedProgramId={selectedProgramId}
           programs={programs}
+          attendanceMode={attendanceMode}
+          selectedProgramsForReport={[selectedProgramId]}
+          setSelectedProgramsForReport={() => {}}
           emailRecipients={dailyEmailRecipients}
           setEmailRecipients={setDailyEmailRecipients}
           usersLoading={usersLoading}
@@ -3724,16 +4278,7 @@ const QRScannerPage = () => {
         </Modal>
 
         {/* BulkScanDialog */}
-        {console.log('🔍 QRScannerPage - User data for BulkScanDialog:', {
-          uid: user?.uid,
-          displayName: user?.displayName,
-          name: user?.name,
-          email: user?.email,
-          performedByName: user?.displayName || user?.name || 'Unknown'
-        })}
-        <BulkScanDialog
-          isOpen={showBulkScanDialog}
-          onClose={() => setShowBulkScanDialog(false)}
+        <BulkScanProvider
           programId={selectedProgramId}
           subjectId={selectedSubjectId}
           classId={selectedClassId}
@@ -3742,26 +4287,23 @@ const QRScannerPage = () => {
           performedByName={performedByFields.performedByName}
           performedByEmail={performedByFields.performedByEmail}
           attendanceMode={attendanceMode}
-          onModeChange={setAttendanceMode}
-          onSuccess={() => {
-            logger.log('🔍 [DEBUG] BulkScanDialog onSuccess called:', {
-              selectedClassId,
-              selectedDate,
-              attendanceMode
-            });
-            setShowBulkScanDialog(false);
-            loadStudents(selectedClassId, selectedDate);
-          }}
-          t={t}
-          lang={lang}
-          showSuccess={showSuccess}
-          showError={showError}
-        />
-
-              </div>
+          onSuccess={handleBulkScanSuccess}
+        >
+          <BulkScanDialog
+            key="bulk-scan-dialog-page"
+            isOpen={showBulkScanDialog}
+            onClose={() => setShowBulkScanDialog(false)}
+            onModeChange={setAttendanceMode}
+            t={t}
+            lang={lang}
+            showSuccess={showSuccess}
+            showError={showError}
+          />
+        </BulkScanProvider>
+      </div>
     </div>
   );
-};
+}
 
 export default () => (
   <ErrorBoundary>

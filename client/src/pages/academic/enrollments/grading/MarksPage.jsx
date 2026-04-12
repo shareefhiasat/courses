@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect, useRef } from 'react';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
@@ -8,30 +8,35 @@ import {
   getSubjectMarksDistribution,
   setSubjectMarksDistribution,
   getStudentMarks,
-  saveStudentMarks
+  updateStudentMarks,
+  getAllStudentMarksReport,
+  calculateLetterGrade
 } from '@services/business/enrollmentMarksService';
 import { getUsers } from '@services/business/userService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getClasses } from '@services/business/classService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger.jsx';
-import { MARK_TYPES } from '@constants/activityTypes';
+// OLD: import { ACTIVITY_TYPES } from '@constants/activityTypes';
+// NOW: Not used in this component
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { ROLE_STRINGS } from '@utils/userUtils';
-import { SimpleLoading, Modal, Button, Input, Select, useToast, AdvancedDataGrid, Card, CardBody, Container } from '@ui';
-import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import { Container, Card, CardBody, Button, Input, Badge, EmptyState, useToast, Select, AdvancedDataGrid, SimpleLoading } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { ProgramsSelect } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
+import { getStudentMarksHistory } from '@services/business/enrollmentMarksService';
 import { getThemedIcon } from '@constants/iconTypes';
 import { CollapsibleSideWindow } from '@ui';
 import BehaviorPage from '../../../operations/behavior/BehaviorPage';
 import PenaltiesPage from '../../../operations/penalty/PenaltiesPage';
 import ParticipationPage from '../../../operations/participation/ParticipationPage';
+import MarksHistoryDrawer from '@components/academic/MarksHistoryDrawer';
 import styles from './EnrollmentsMarksPage.module.css';
 
 const MarksPage = () => {
   const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading } = useAuth();
   const { lang, t } = useLang();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
   
@@ -42,6 +47,8 @@ const MarksPage = () => {
   const [students, setStudents] = useState([]);
   const [marksDistribution, setMarksDistribution] = useState(null);
   const [studentMarks, setStudentMarks] = useState({});
+  const [marksReportData, setMarksReportData] = useState([]);
+  const [marksReportLoading, setMarksReportLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
@@ -65,10 +72,20 @@ const MarksPage = () => {
     attendance: 10
   });
 
+  const [showNotificationNote, setShowNotificationNote] = useState(false);
+  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
+  const [historyData, setHistoryData] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historySearchTerm, setHistorySearchTerm] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState(null);
+
   // Filters
   const [programFilter, setProgramFilter] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
   const [classFilter, setClassFilter] = useState('');
+  const [termFilter, setTermFilter] = useState('');
+  const [yearFilter, setYearFilter] = useState('');
+  const [repeatedFilter, setRepeatedFilter] = useState(''); // '', 'true', 'false'
 
   // Side window state
   const [sideWindowOpen, setSideWindowOpen] = useState(false);
@@ -78,16 +95,108 @@ const MarksPage = () => {
 
   const selectedSubject = useMemo(() => {
     if (subjectFilter === '') return null;
-    return subjects.find((s) => (s.docId || s.id) === subjectFilter) || null;
+    
+    // Try multiple matching strategies
+    const subject = subjects.find((s) => {
+      const id1 = s.docId || s.id;
+      const id2 = subjectFilter;
+      
+      // Try direct string match
+      if (String(id1) === String(id2)) return true;
+      
+      // Try converting both to numbers
+      const num1 = Number(id1);
+      const num2 = Number(id2);
+      if (!isNaN(num1) && !isNaN(num2) && num1 === num2) return true;
+      
+      return false;
+    }) || null;
+    
+    return subject;
   }, [subjectFilter, subjects]);
 
-  // Memoized normalize Select onChange
+  // Memoized students with enrollment counts per subject
+  const studentsWithSubjectCounts = useMemo(() => {
+    const subjectEnrollmentMap = {};
+    
+    enrollments.forEach(enrollment => {
+      const subjectId = enrollment.subjectId;
+      if (!subjectEnrollmentMap[subjectId]) {
+        subjectEnrollmentMap[subjectId] = 0;
+      }
+      subjectEnrollmentMap[subjectId]++;
+    });
+    
+    return students.map(student => ({
+      ...student,
+      enrollments: student.enrollments || [],
+      subjectCounts: subjectEnrollmentMap
+    }));
+  }, [students, enrollments]);
+
+  // Helper function to get enrollment count for a subject
+  const getSubjectEnrollmentCount = useCallback((subjectId) => {
+    return enrollments.filter(e => e.subjectId === subjectId).length;
+  }, [enrollments]);
+
+  // Available years from classes
+  const availableYears = useMemo(() => {
+    const years = new Set();
+    classes.forEach(cls => {
+      if (cls.year) {
+        years.add(String(cls.year));
+      }
+    });
+    return Array.from(years).sort((a, b) => Number(b) - Number(a));
+  }, [classes]);
+
+  // Available terms from classes
+  const availableTerms = useMemo(() => {
+    const terms = new Set();
+    classes.forEach(cls => {
+      if (cls.term) {
+        terms.add(cls.term);
+      }
+    });
+    return Array.from(terms).sort();
+  }, [classes]);
   const getSelectValue = useCallback((eventOrValue) => {
     if (eventOrValue && typeof eventOrValue === 'object' && 'target' in eventOrValue) {
       return eventOrValue.target?.value ?? '';
     }
     return eventOrValue ?? '';
   }, []);
+
+  // Load marks report data
+  const loadMarksReport = useCallback(async () => {
+    setMarksReportLoading(true);
+    try {
+      const filters = {};
+      if (programFilter) filters.programId = programFilter;
+      if (subjectFilter) filters.subjectId = subjectFilter;
+      if (classFilter) filters.classId = classFilter;
+      if (yearFilter) filters.year = yearFilter;
+      if (termFilter) filters.term = termFilter;
+      if (repeatedFilter) filters.isRepeated = repeatedFilter;
+
+      const result = await getAllStudentMarksReport(filters);
+      
+      if (result.success) {
+        setMarksReportData(result.data);
+      } else {
+        error('[MarksPage] Error loading marks report:', result.error);
+      }
+    } catch (err) {
+      error('[MarksPage] Error loading marks report:', err);
+    } finally {
+      setMarksReportLoading(false);
+    }
+  }, [programFilter, subjectFilter, classFilter, yearFilter, termFilter, repeatedFilter]);
+
+  // Load marks report when filters change
+  useEffect(() => {
+    loadMarksReport();
+  }, [loadMarksReport]);
 
   const loadData = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoading(true);
@@ -104,33 +213,46 @@ const MarksPage = () => {
       if (classesRes.success) setClasses(classesRes.data || []);
       if (enrollmentsRes.success) setEnrollments(enrollmentsRes.data || []);
       
-      // Extract students from enrollments
-      const studentIds = [...new Set(enrollmentsRes.data?.map(e => e.userId).filter(Boolean) || [])];
-      const uniqueStudents = studentIds.map(id => ({ 
-        uid: id, 
-        docId: id, 
-        id: id,
-        displayName: `Student ${id}`,
-        email: `student${id}@example.com`
-      }));
-      setStudents(uniqueStudents);
+      // Extract students from enrollments and get real student data
+      const enrollmentStudents = enrollmentsRes.data || [];
+      const studentIds = [...new Set(enrollmentStudents.map(e => e.userId).filter(Boolean))];
+      
+      // Create students array with enrollment info
+      const studentsWithEnrollment = studentIds.map(id => {
+        const enrollment = enrollmentStudents.find(e => e.userId === id);
+        return {
+          uid: id,
+          docId: id,
+          id: id,
+          displayName: enrollment?.user?.displayName || enrollment?.user?.realName || `Student ${id}`,
+          email: enrollment?.user?.email || `student${id}@example.com`,
+          enrollments: enrollmentStudents.filter(e => e.userId === id)
+        };
+      });
+      setStudents(studentsWithEnrollment);
       
     } catch (error) {
-      logger.error('[MarksPage] Error loading data:', error);
-      toast?.error?.(t('error_loading_data') || 'Error loading data');
+      error('[MarksPage] Error loading data:', error);
+      toast?.error?.('Error loading data');
     } finally {
       setLoading(false);
     }
-  }, [t, toast]);
+  }, []); // Remove t and toast dependencies to prevent re-renders
 
   const loadMarksDistribution = useCallback(async () => {
     if (!selectedSubject) return;
     
     try {
-      const distribution = await getSubjectMarksDistribution(selectedSubject.docId || selectedSubject.id);
-      setMarksDistribution(distribution);
+      const result = await getSubjectMarksDistribution(selectedSubject.docId || selectedSubject.id);
+      
+      if (result.success) {
+        setMarksDistribution(result.data);
+      } else {
+        error('[MarksPage] Error loading marks distribution:', result.error);
+        toast?.error?.(result.error || t('error_loading_distribution') || 'Error loading marks distribution');
+      }
     } catch (error) {
-      logger.error('[MarksPage] Error loading marks distribution:', error);
+      error('[MarksPage] Error loading marks distribution:', error);
       toast?.error?.(t('error_loading_distribution') || 'Error loading marks distribution');
     }
   }, [selectedSubject, t, toast]);
@@ -139,20 +261,25 @@ const MarksPage = () => {
     if (!selectedSubject) return;
     
     try {
-      const marks = await getStudentMarks(selectedSubject.docId || selectedSubject.id);
-      setStudentMarks(marks);
+      const result = await getStudentMarks(selectedSubject.docId || selectedSubject.id);
+      if (result.success) {
+        setStudentMarks(result.data || {});
+      } else {
+        error('[MarksPage] Error loading student marks:', result.error);
+        toast?.error?.(result.error || t('error_loading_marks') || 'Error loading student marks');
+      }
     } catch (error) {
-      logger.error('[MarksPage] Error loading student marks:', error);
+      error('[MarksPage] Error loading student marks:', error);
       toast?.error?.(t('error_loading_marks') || 'Error loading student marks');
     }
   }, [selectedSubject, t, toast]);
 
-  // Initial load with Global Loading
+  // Initial load with Global Loading - run only once
   useLayoutEffect(() => {
     let stopLoading = null;
 
     const initialLoad = async () => {
-      stopLoading = startLoading({ message: t('loading_marks') || 'Loading marks...' });
+      stopLoading = startLoading({ message: 'Loading marks...' });
       await loadData(true);
       if (stopLoading) stopLoading();
       setLoading(false);
@@ -163,7 +290,7 @@ const MarksPage = () => {
     return () => {
       if (stopLoading) stopLoading();
     };
-  }, [startLoading, loadData, t]);
+  }, []); // Remove dependencies to run only once
 
   // Load marks data when subject changes
   useEffect(() => {
@@ -177,15 +304,42 @@ const MarksPage = () => {
   }, [selectedSubject, loadMarksDistribution, loadStudentMarks]);
 
   const filteredClasses = useMemo(() => {
-    let result = [...classes];
-    
-    if (subjectFilter && c.subjectId !== subjectFilter) return false;
-    if (programFilter) {
-      const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-      if (subject?.programId !== programFilter) return false;
-    }
-    return true;
+    return classes.filter(c => {
+      if (subjectFilter && c.subjectId !== subjectFilter) return false;
+      if (programFilter) {
+        const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
+        if (subject?.programId !== programFilter) return false;
+      }
+      return true;
+    });
   }, [classes, subjectFilter, programFilter, subjects]);
+
+  // Load marks history for a student
+  const loadMarksHistory = useCallback(async (student) => {
+    try {
+      setHistoryLoading(true);
+      const studentId = student.studentId || student.id || student.userId;
+      const subjectId = student.subjectId;
+      const classId = student.classId;
+      
+      const result = await getStudentMarksHistory(studentId, subjectId, classId);
+      
+      if (result.success) {
+        setHistoryData(result.data);
+        setSelectedStudent(student);
+        setShowHistoryDrawer(true);
+      } else {
+        toast?.error?.(result.error || 'Failed to load marks history');
+      }
+    } catch (error) {
+      console.error('Error loading marks history:', error);
+      toast?.error?.('Failed to load marks history');
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [toast]);
+
+  // Filters state is below
 
   const handleEditMarks = useCallback((student) => {
     setEditingStudent(student);
@@ -434,41 +588,23 @@ const MarksPage = () => {
     },
     {
       field: 'totalScore',
-      headerName: t('total_score') || 'Total Score',
+      headerName: t('total_marks') || 'Total Marks',
       width: 120,
+      type: 'number',
+      editable: false,
       renderCell: (params) => {
-        const row = params.row;
-        const total = (row.midTermExam || 0) + (row.finalExam || 0) + (row.homework || 0) + 
-                     (row.labsProjectResearch || 0) + (row.quizzes || 0) + (row.participation || 0) + 
-                     (row.attendance || 0);
-        const maxTotal = (marksDistribution?.midTermExam || 20) + (marksDistribution?.finalExam || 40) + 
-                        (marksDistribution?.homework || 5) + (marksDistribution?.labsProjectResearch || 10) + 
-                        (marksDistribution?.quizzes || 5) + (marksDistribution?.participation || 10) + 
-                        (marksDistribution?.attendance || 10);
-        const percentage = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
-        
-        let grade = 'F';
-        if (percentage >= 90) grade = 'A';
-        else if (percentage >= 80) grade = 'B';
-        else if (percentage >= 70) grade = 'C';
-        else if (percentage >= 60) grade = 'D';
-        
+        const value = params.value || 0;
+        const maxTotal = 100; // Total is always out of 100 after weighting
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <div style={{ 
-              padding: '4px 8px', 
-              borderRadius: '4px',
-              background: percentage >= 90 ? '#10b981' : percentage >= 70 ? '#3b82f6' : percentage >= 50 ? '#f59e0b' : '#ef4444',
-              color: 'white',
-              textAlign: 'center',
-              fontWeight: 600,
-              minWidth: '60px'
-            }}>
-              {total.toFixed(1)}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-              {grade} ({percentage.toFixed(1)}%)
-            </div>
+          <div style={{ 
+            padding: '4px 8px', 
+            borderRadius: '4px',
+            background: value >= 90 ? '#dc2626' : value >= 80 ? '#f59e0b' : value >= 70 ? '#fbbf24' : value >= 60 ? '#60a5fa' : '#ef4444',
+            color: 'white',
+            textAlign: 'center',
+            fontWeight: 500
+          }}>
+            {value.toFixed(2)}%
           </div>
         );
       }
@@ -553,24 +689,13 @@ const MarksPage = () => {
 
   return (
     <Container maxWidth="xl" className={styles.page} style={{ padding: '1rem 0' }}>
-      <Card style={{ marginBottom: '1rem', background: '#fef3c7', border: '1px solid #fbbf24' }}>
-        <CardBody>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {getThemedIcon('ui', 'info', 20, theme)}
-            <span style={{ fontSize: '0.9rem', color: '#92400e' }}>
-              <strong>Note:</strong> {t('note_marks_no_notifications') || 'Marks entered here will not send any notifications to students. This is for manual entry only.'}
-            </span>
-          </div>
-        </CardBody>
-      </Card>
-
       <Card style={{ marginBottom: '1.5rem' }}>
         <CardBody>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
             <ProgramsSelect
               programs={programs}
               subjects={subjects}
-              classes={filteredClasses}
+              classes={classes}
               selectedProgram={programFilter}
               selectedSubject={subjectFilter}
               selectedClass={classFilter}
@@ -587,8 +712,16 @@ const MarksPage = () => {
       {selectedSubject && marksDistribution && (
         <Card style={{ marginBottom: '1.5rem' }}>
           <CardBody>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <h3 style={{ margin: 0 }}>{t('marks_distribution') || 'Marks Distribution'}</h3>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <div className={styles.distributionGrid} style={{ flex: 1, marginRight: '0.5rem' }}>
+                <div>{t('mid_term') || 'Mid-Term'} {marksDistribution.midTermExam}%</div>
+                <div>{t('final') || 'Final'} {marksDistribution.finalExam}%</div>
+                <div>{t('homework') || 'Homework'} {marksDistribution.homework}%</div>
+                <div>{t('labs_projects_research') || 'Labs/Projects/Research'} {marksDistribution.labsProjectResearch}%</div>
+                <div>{t('quizzes') || 'Quizzes'} {marksDistribution.quizzes}%</div>
+                <div>{t('participation') || 'Participation'} {marksDistribution.participation}%</div>
+                <div>{t('attendance') || 'Attendance'} {marksDistribution.attendance}%</div>
+              </div>
               <Button
                 variant="outline"
                 size="sm"
@@ -604,27 +737,10 @@ const MarksPage = () => {
                   });
                   setEditingDistribution(true);
                 }}
+                style={{ display: 'flex', alignItems: 'center', padding: '0.25rem 0.5rem' }}
               >
-                {t('configure') || 'Configure'}
+                {getThemedIcon('ui', 'settings', 14, theme)}
               </Button>
-            </div>
-            <div className={styles.distributionGrid}>
-              <div>{t('mid_term') || 'Mid-Term'}: {marksDistribution.midTermExam}%</div>
-              <div>{t('final') || 'Final'}: {marksDistribution.finalExam}%</div>
-              <div>{t('homework') || 'Homework'}: {marksDistribution.homework}%</div>
-              <div>{t('labs_projects_research') || 'Labs/Projects/Research'}: {marksDistribution.labsProjectResearch}%</div>
-              <div>{t('quizzes') || 'Quizzes'}: {marksDistribution.quizzes}%</div>
-              <div>{t('participation') || 'Participation'}: {marksDistribution.participation}%</div>
-              <div>{t('attendance') || 'Attendance'}: {marksDistribution.attendance}%</div>
-              <div style={{ fontWeight: 600 }}>{t('total') || 'Total'}: {(
-                (marksDistribution.midTermExam || 0) +
-                (marksDistribution.finalExam || 0) +
-                (marksDistribution.homework || 0) +
-                (marksDistribution.labsProjectResearch || 0) +
-                (marksDistribution.quizzes || 0) +
-                (marksDistribution.participation || 0) +
-                (marksDistribution.attendance || 0)
-              )}%</div>
             </div>
           </CardBody>
         </Card>
@@ -658,15 +774,19 @@ const MarksPage = () => {
 
                 try {
                   await setSubjectMarksDistribution(selectedSubject.docId || selectedSubject.id, distributionForm);
-                  setMarksDistribution(distributionForm);
                   setEditingDistribution(false);
-                  toast?.success?.(t('distribution_updated') || 'Distribution updated');
+                  toast?.success?.('Distribution updated');
+                  // Reload just the marks distribution, not all data
+                  const result = await getSubjectMarksDistribution(selectedSubject.docId || selectedSubject.id);
+                  if (result.success) {
+                    setMarksDistribution(result.data);
+                  }
                   await logActivity({
                     type: ACTIVITY_LOG_TYPES.MARKS_DISTRIBUTION_UPDATED,
                     details: { subjectId: selectedSubject.docId || selectedSubject.id, distribution: distributionForm }
                   });
                 } catch (error) {
-                  logger.error('[MarksPage] Error updating distribution:', error);
+                  error('[MarksPage] Error updating distribution:', error);
                   toast?.error?.(t('error_updating_distribution') || 'Error updating distribution');
                 }
               }}
@@ -774,99 +894,587 @@ const MarksPage = () => {
       {selectedSubject && (
         <Card>
           <CardBody>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ margin: 0 }}>
-                {t('student_marks') || 'Student Marks'} - {selectedSubject.name || selectedSubject.nameAr || selectedSubject.code}
-              </h3>
+            <div style={{ marginBottom: '1rem' }}>
+              {/* Additional Filters */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8, marginBottom: '1rem' }}>
+              <Select
+                searchable
+                value={yearFilter}
+                onChange={(e) => setYearFilter(e.target.value)}
+                options={[
+                  { value: '', label: t('all_years') || 'All Years' },
+                  ...availableYears.map(year => ({ value: year, label: year }))
+                ]}
+                fullWidth
+              />
+              <Select
+                searchable
+                value={termFilter}
+                onChange={(e) => setTermFilter(e.target.value)}
+                options={[
+                  { value: '', label: t('all_terms') || 'All Terms' },
+                  ...availableTerms.map(term => ({ value: term, label: term }))
+                ]}
+                fullWidth
+              />
+              <Select
+                searchable
+                value={repeatedFilter}
+                onChange={(e) => setRepeatedFilter(e.target.value)}
+                options={[
+                  { value: '', label: t('all') || 'All' },
+                  { value: 'false', label: t('first_attempt') || 'First Attempt' },
+                  { value: 'true', label: t('repeated') || 'Repeated' }
+                ]}
+                fullWidth
+              />
             </div>
             
-            {loading ? (
+            {marksReportLoading && !marksReportData.length ? (
               <SimpleLoading loading type="spinner" size="md" />
+            ) : marksReportData.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <p>{t('no_students_found') || 'No students found for the selected filters'}</p>
+                <p style={{ fontSize: '0.875rem', color: '#666' }}>
+                  {t('try_different_filters') || 'Try adjusting your filters or check if students are enrolled'}
+                </p>
+              </div>
             ) : (
               <AdvancedDataGrid
-                rows={students.map(student => {
-                  const studentId = student.docId || student.id || student.uid;
-                  const marks = studentMarks[studentId] || {};
-                  return {
-                    id: studentId,
-                    docId: studentId,
-                    studentName: student.displayName || student.realName || student.email,
-                    midTermExam: marks.midTermExam || 0,
-                    finalExam: marks.finalExam || 0,
-                    homework: marks.homework || 0,
-                    labsProjectResearch: marks.labsProjectResearch || 0,
-                    quizzes: marks.quizzes || 0,
-                    participation: marks.participation || 0,
-                    attendance: marks.attendance || 0,
-                    totalScore: (marks.midTermExam || 0) + (marks.finalExam || 0) + (marks.homework || 0) + 
-                               (marks.labsProjectResearch || 0) + (marks.quizzes || 0) + (marks.participation || 0) + 
-                               (marks.attendance || 0)
-                  };
-                })}
-                columns={columns}
-                getRowId={(row) => row.docId || row.id}
+                key={`marks-grid-${subjectFilter}-${marksReportData.length}`}
+                rows={marksReportData.filter(row => row.subjectId == subjectFilter)}
+                columns={[
+                  {
+                    field: 'studentNumber',
+                    headerName: t('student_number') || 'Student No.',
+                    width: 100,
+                    editable: false,
+                    renderCell: (params) => {
+                      const row = params?.row || {};
+                      const value = row.studentNumber || row.studentId || '';
+                      return <span>{value}</span>;
+                    }
+                  },
+                  {
+                    field: 'studentName',
+                    headerName: t('student_name') || 'Student Name',
+                    flex: 1,
+                    minWidth: 180,
+                    editable: false
+                  },
+                  {
+                    field: 'programName',
+                    headerName: t('program') || 'Program',
+                    flex: 1,
+                    minWidth: 120,
+                    editable: false
+                  },
+                  {
+                    field: 'subjectName',
+                    headerName: t('subject') || 'Subject',
+                    flex: 1,
+                    minWidth: 120,
+                    editable: false
+                  },
+                  {
+                    field: 'className',
+                    headerName: t('class') || 'Class',
+                    flex: 1,
+                    minWidth: 120,
+                    editable: false
+                  },
+                  {
+                    field: 'midTermExam',
+                    headerName: t('mid_term') || 'Mid-Term',
+                    width: 90,
+                    editable: true,
+                    type: 'number',
+                    valueParser: (value) => {
+                      const num = parseFloat(value);
+                      const max = marksDistribution?.midTermExam || 20;
+                      return isNaN(num) ? 0 : Math.max(0, Math.min(max, num));
+                    },
+                    renderCell: (params) => {
+                      const value = params.value || 0;
+                      const max = marksDistribution?.midTermExam || 20;
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <span>{value}/{max}</span>
+                        </div>
+                      );
+                    }
+                  },
+                  {
+                    field: 'finalExam',
+                    headerName: t('final') || 'Final',
+                    width: 90,
+                    editable: true,
+                    type: 'number',
+                    valueParser: (value) => {
+                      const num = parseFloat(value);
+                      const max = marksDistribution?.finalExam || 40;
+                      return isNaN(num) ? 0 : Math.max(0, Math.min(max, num));
+                    },
+                    renderCell: (params) => {
+                      const value = params.value || 0;
+                      const max = marksDistribution?.finalExam || 40;
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <span>{value}/{max}</span>
+                        </div>
+                      );
+                    }
+                  },
+                  {
+                    field: 'homework',
+                    headerName: t('homework') || 'Homework',
+                    width: 90,
+                    editable: true,
+                    type: 'number',
+                    valueParser: (value) => {
+                      const num = parseFloat(value);
+                      const max = marksDistribution?.homework || 5;
+                      return isNaN(num) ? 0 : Math.max(0, Math.min(max, num));
+                    },
+                    renderCell: (params) => {
+                      const value = params.value || 0;
+                      const max = marksDistribution?.homework || 5;
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <span>{value}/{max}</span>
+                        </div>
+                      );
+                    }
+                  },
+                  {
+                    field: 'labsProjectResearch',
+                    headerName: t('labs') || 'Labs',
+                    width: 90,
+                    editable: true,
+                    type: 'number',
+                    valueParser: (value) => {
+                      const num = parseFloat(value);
+                      const max = marksDistribution?.labsProjectResearch || 10;
+                      return isNaN(num) ? 0 : Math.max(0, Math.min(max, num));
+                    },
+                    renderCell: (params) => {
+                      const value = params.value || 0;
+                      const max = marksDistribution?.labsProjectResearch || 10;
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <span>{value}/{max}</span>
+                        </div>
+                      );
+                    }
+                  },
+                  {
+                    field: 'quizzes',
+                    headerName: t('quizzes') || 'Quizzes',
+                    width: 90,
+                    editable: true,
+                    type: 'number',
+                    valueParser: (value) => {
+                      const num = parseFloat(value);
+                      const max = marksDistribution?.quizzes || 5;
+                      return isNaN(num) ? 0 : Math.max(0, Math.min(max, num));
+                    },
+                    renderCell: (params) => {
+                      const value = params.value || 0;
+                      const max = marksDistribution?.quizzes || 5;
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <span>{value}/{max}</span>
+                        </div>
+                      );
+                    }
+                  },
+                  {
+                    field: 'participation',
+                    headerName: t('participation') || 'Participation',
+                    width: 90,
+                    editable: true,
+                    type: 'number',
+                    valueParser: (value) => {
+                      const num = parseFloat(value);
+                      const max = marksDistribution?.participation || 10;
+                      return isNaN(num) ? 0 : Math.max(0, Math.min(max, num));
+                    },
+                    renderCell: (params) => {
+                      const value = params.value || 0;
+                      const max = marksDistribution?.participation || 10;
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <span>{value}/{max}</span>
+                        </div>
+                      );
+                    }
+                  },
+                  {
+                    field: 'attendance',
+                    headerName: t('attendance') || 'Attendance',
+                    width: 90,
+                    editable: true,
+                    type: 'number',
+                    valueParser: (value) => {
+                      const num = parseFloat(value);
+                      const max = marksDistribution?.attendance || 10;
+                      return isNaN(num) ? 0 : Math.max(0, Math.min(max, num));
+                    },
+                    renderCell: (params) => {
+                      const value = params.value || 0;
+                      const max = marksDistribution?.attendance || 10;
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <span>{value}/{max}</span>
+                        </div>
+                      );
+                    }
+                  },
+                  {
+                    field: 'gradeType',
+                    headerName: t('grade_type') || 'Grade Type',
+                    width: 120,
+                    editable: true,
+                    type: 'singleSelect',
+                    valueOptions: [
+                      { value: 'calculated', label: t('calculated') || 'Calculated' },
+                      { value: 'FB', label: 'FB - Fail Due to Absence' },
+                      { value: 'FA', label: 'FA - Fail Due to Absence' },
+                      { value: 'WF', label: 'WF - Withdrawal' }
+                    ],
+                    renderCell: (params) => {
+                      const value = params.value || 'calculated';
+                      const options = {
+                        'calculated': t('calculated') || 'Calculated',
+                        'FB': 'FB - Fail Due to Absence',
+                        'FA': 'FA - Fail Due to Absence',
+                        'WF': 'WF - Withdrawal'
+                      };
+                      return (
+                        <div style={{ 
+                          padding: '4px 8px', 
+                          borderRadius: '4px',
+                          background: value === 'calculated' ? '#e5e7eb' : '#fef3c7',
+                          color: value === 'calculated' ? '#374151' : '#92400e',
+                          textAlign: 'center',
+                          fontSize: '0.875rem',
+                          fontWeight: 500
+                        }}>
+                          {options[value] || value}
+                        </div>
+                      );
+                    }
+                  },
+                  {
+                    field: 'totalMarks',
+                    headerName: t('total') || 'Total',
+                    width: 100,
+                    editable: false,
+                    renderCell: (params) => {
+                      const row = params.row;
+                      const gradeType = row.gradeType || 'calculated';
+                      
+                      // For manual grades, show the grade letter instead of percentage
+                      if (gradeType !== 'calculated') {
+                        return (
+                          <div style={{ 
+                            padding: '4px 8px', 
+                            borderRadius: '4px',
+                            background: '#dc2626',
+                            color: 'white',
+                            textAlign: 'center',
+                            fontWeight: 600
+                          }}>
+                            {gradeType}
+                          </div>
+                        );
+                      }
+                      
+                      const value = params.value || 0;
+                      return (
+                        <div style={{ 
+                          padding: '4px 8px', 
+                          borderRadius: '4px',
+                          background: value >= 90 ? '#dc2626' : value >= 80 ? '#f59e0b' : value >= 70 ? '#fbbf24' : value >= 60 ? '#60a5fa' : '#ef4444',
+                          color: 'white',
+                          textAlign: 'center',
+                          fontWeight: 500
+                        }}>
+                          {value.toFixed(1)}%
+                        </div>
+                      );
+                    }
+                  },
+                  {
+                    field: 'letterGrade',
+                    headerName: t('grade') || 'Grade',
+                    width: 80,
+                    editable: false,
+                    renderCell: (params) => {
+                      const row = params.row;
+                      const gradeType = row.gradeType || 'calculated';
+                      const grade = params.value || '';
+                      
+                      // For manual grades, show the manual grade description
+                      if (gradeType !== 'calculated') {
+                        const manualGrades = {
+                          'FB': { description: 'Fail Due to Absence', color: '#dc2626' },
+                          'FA': { description: 'Fail Due to Absence', color: '#dc2626' },
+                          'WF': { description: 'Withdrawal', color: '#6b7280' }
+                        };
+                        const manual = manualGrades[gradeType];
+                        return (
+                          <div style={{ 
+                            padding: '4px 8px', 
+                            borderRadius: '4px',
+                            background: manual.color,
+                            color: 'white',
+                            textAlign: 'center',
+                            fontSize: '0.75rem',
+                            fontWeight: 600
+                          }}>
+                            {gradeType}
+                          </div>
+                        );
+                      }
+                      
+                      // Normal calculated grades
+                      let className = '';
+                      if (grade === 'A+' || grade === 'A' || grade === 'A-') className = 'grade-excellent';
+                      else if (grade.startsWith('B')) className = 'grade-good';
+                      else if (grade.startsWith('C')) className = 'grade-average';
+                      else if (grade.startsWith('D')) className = 'grade-pass';
+                      else className = 'grade-fail';
+                      
+                      return <span className={className}>{grade}</span>;
+                    }
+                  },
+                  // Hide these columns to save space
+                  {
+                    field: 'gradeRange',
+                    headerName: t('range') || 'Range',
+                    width: 80,
+                    editable: false
+                  },
+                  {
+                    field: 'isRepeated',
+                    headerName: t('repeated') || 'Repeated',
+                    width: 120,
+                    editable: false,
+                    renderCell: (params) => {
+                      const isRepeated = Boolean(params.value);
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                          <div
+                            style={{
+                              position: 'relative',
+                              width: '44px',
+                              height: '24px',
+                              backgroundColor: isRepeated ? '#22c55e' : '#ef4444',
+                              borderRadius: '12px',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.2s',
+                              border: isRepeated ? '2px solid #16a34a' : '2px solid #dc2626'
+                            }}
+                            onClick={async () => {
+                              try {
+                                // Create the updated row data with toggled isRepeated
+                                const updatedRow = {
+                                  ...params.row,
+                                  isRepeated: !isRepeated
+                                };
+                                
+                                // Get current marks distribution for validation
+                                const distribution = marksDistribution || {
+                                  midTermExam: 20,
+                                  finalExam: 40,
+                                  homework: 5,
+                                  labsProjectResearch: 10,
+                                  quizzes: 5,
+                                  participation: 10,
+                                  attendance: 10
+                                };
+
+                                // Create marks data
+                                const marksData = {
+                                  midTermExam: updatedRow.midTermExam || 0,
+                                  finalExam: updatedRow.finalExam || 0,
+                                  homework: updatedRow.homework || 0,
+                                  labsProjectResearch: updatedRow.labsProjectResearch || 0,
+                                  quizzes: updatedRow.quizzes || 0,
+                                  participation: updatedRow.participation || 0,
+                                  attendance: updatedRow.attendance || 0,
+                                  isRepeated: updatedRow.isRepeated,
+                                  gradeType: updatedRow.gradeType || 'calculated'
+                                };
+
+                                // Update the marks
+                                await updateStudentMarks(
+                                  updatedRow.studentId, 
+                                  updatedRow.subjectId,
+                                  updatedRow.classId,
+                                  marksData
+                                );
+                                
+                                // Render filtered history data to get updated grades
+                                await loadMarksReport();
+                                
+                                // Update the local state to show immediate feedback
+                                params.api.updateRows([{ id: params.id, isRepeated: !isRepeated }]);
+                                
+                                toast?.success?.(t('marks_updated_successfully') || 'Marks updated successfully');
+                              } catch (error) {
+                                console.error('Error updating isRepeated:', error);
+                                toast?.error?.(error.message || 'Failed to update marks');
+                              }
+                            }}
+                          >
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: '2px',
+                                left: isRepeated ? '20px' : '2px',
+                                width: '16px',
+                                height: '16px',
+                                backgroundColor: 'white',
+                                borderRadius: '50%',
+                                transition: 'left 0.2s',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                              }}
+                            />
+                          </div>
+                          <span style={{ marginLeft: '8px', fontSize: '12px', color: isRepeated ? '#22c55e' : '#ef4444' }}>
+                            {isRepeated ? 'Yes' : 'No'}
+                          </span>
+                        </div>
+                      );
+                    }
+                  },
+                  {
+                    field: 'history',
+                    headerName: t('history') || 'History',
+                    width: 80,
+                    sortable: false,
+                    filterable: false,
+                    renderCell: (params) => {
+                      return (
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                          <Button
+                            size="sm"
+                            variant="outline-primary"
+                            onClick={() => loadMarksHistory(params.row)}
+                            disabled={historyLoading}
+                            style={{ 
+                              padding: '4px 8px',
+                              fontSize: '0.75rem',
+                              minWidth: '60px'
+                            }}
+                          >
+                            {historyLoading ? (
+                              <span>...</span>
+                            ) : (
+                              <>
+                                {getThemedIcon('ui', 'clock', 14, theme)}
+                                <span style={{ marginLeft: '4px' }}>{t('history') || 'History'}</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      );
+                    }
+                  }
+                ]}
+                pageSize={10}
+                pageSizeOptions={[10, 25, 50, 100]}
+                checkboxSelection
+                disableRowSelectionOnClick
+                exportFileName="student-marks"
+                showExportButton
+                exportLabel={t('export') || 'Export'}
+                loadingOverlayMessage={marksReportLoading ? (t('loading_marks') || 'Loading marks...') : undefined}
                 processRowUpdate={async (newRow) => {
                   try {
-                    await saveStudentMarks(selectedSubject.docId || selectedSubject.id, {
-                      userId: newRow.docId || newRow.id,
-                      midTermExam: newRow.midTermExam,
-                      finalExam: newRow.finalExam,
-                      homework: newRow.homework,
-                      labsProjectResearch: newRow.labsProjectResearch,
-                      quizzes: newRow.quizzes,
-                      participation: newRow.participation,
-                      attendance: newRow.attendance
-                    });
+                    // Get current marks distribution for validation
+                    const distribution = marksDistribution || {
+                      midTermExam: 20,
+                      finalExam: 40,
+                      homework: 5,
+                      labsProjectResearch: 10,
+                      quizzes: 5,
+                      participation: 10,
+                      attendance: 10
+                    };
                     
-                    setStudentMarks(prev => ({
-                      ...prev,
-                      [newRow.docId || newRow.id]: {
-                        userId: newRow.docId || newRow.id,
-                        midTermExam: newRow.midTermExam,
-                        finalExam: newRow.finalExam,
-                        homework: newRow.homework,
-                        labsProjectResearch: newRow.labsProjectResearch,
-                        quizzes: newRow.quizzes,
-                        participation: newRow.participation,
-                        attendance: newRow.attendance
-                      }
-                    }));
+                    // Validate marks against distribution
+                    const validationErrors = [];
+                    if (newRow.midTermExam > distribution.midTermExam) validationErrors.push(`Mid-term exam cannot exceed ${distribution.midTermExam}`);
+                    if (newRow.finalExam > distribution.finalExam) validationErrors.push(`Final exam cannot exceed ${distribution.finalExam}`);
+                    if (newRow.homework > distribution.homework) validationErrors.push(`Homework cannot exceed ${distribution.homework}`);
+                    if (newRow.labsProjectResearch > distribution.labsProjectResearch) validationErrors.push(`Labs/Projects cannot exceed ${distribution.labsProjectResearch}`);
+                    if (newRow.quizzes > distribution.quizzes) validationErrors.push(`Quizzes cannot exceed ${distribution.quizzes}`);
+                    if (newRow.participation > distribution.participation) validationErrors.push(`Participation cannot exceed ${distribution.participation}`);
+                    if (newRow.attendance > distribution.attendance) validationErrors.push(`Attendance cannot exceed ${distribution.attendance}`);
                     
-                    toast?.success?.(t('marks_updated') || 'Marks updated');
-                    await logActivity({
-                      type: ACTIVITY_LOG_TYPES.MARKS_UPDATED,
-                      details: { 
-                        subjectId: selectedSubject.docId || selectedSubject.id, 
-                        studentId: newRow.docId || newRow.id,
-                        marks: newRow
-                      }
-                    });
-                  } catch (error) {
-                    logger.error('[MarksPage] Error saving marks:', error);
+                    if (validationErrors.length > 0) {
+                      toast?.error?.(validationErrors.join(', '));
+                      throw new Error('Validation failed');
+                    }
+                    
+                    const marksData = {
+                      midTermExam: newRow.midTermExam || 0,
+                      finalExam: newRow.finalExam || 0,
+                      homework: newRow.homework || 0,
+                      labsProjectResearch: newRow.labsProjectResearch || 0,
+                      quizzes: newRow.quizzes || 0,
+                      participation: newRow.participation || 0,
+                      attendance: newRow.attendance || 0,
+                      isRepeated: Boolean(newRow.isRepeated),
+                      gradeType: newRow.gradeType || 'calculated'
+                    };
+                    
+                    const result = await updateStudentMarks(
+                      newRow.studentId, 
+                      newRow.subjectId,
+                      newRow.classId,
+                      marksData
+                    );
+                    
+                    if (result.success) {
+                      // Refresh the marks report data to get updated calculations
+                      await loadMarksReport();
+                      
+                      toast?.success?.(t('marks_updated') || 'Marks updated');
+                    }
+                    return newRow;
+                  } catch (err) {
+                    error('[MarksPage] Error saving marks:', err);
                     toast?.error?.(t('error_saving_marks') || 'Error saving marks');
+                    throw err;
                   }
                 }}
               />
             )}
+            </div>
           </CardBody>
-        </Card>
-      )}
+      </Card>
+    )}
 
       <CollapsibleSideWindow
         isOpen={sideWindowOpen}
         onClose={closeSideWindow}
-        title={(() => {
-          switch (sideWindowContent) {
-            case RECORD_TYPES.BEHAVIOR: return t('behavior_records') || 'Behavior Records';
-            case RECORD_TYPES.PENALTY: return t('penalty_records') || 'Penalty Records';
-            case RECORD_TYPES.PARTICIPATION: return t('participation_records') || 'Participation Records';
-            case 'sneakpeek': return t('student_overview') || 'Student Overview';
-            default: return '';
-          }
-        })()}
-      >
-        {renderSideWindowContent()}
-      </CollapsibleSideWindow>
+        title={sideWindowContent}
+        student={sideWindowStudent}
+        filters={sideWindowFilters}
+      />
+
+      {/* Marks History Drawer */}
+      <MarksHistoryDrawer
+        isOpen={showHistoryDrawer}
+        onClose={() => setShowHistoryDrawer(false)}
+        historyData={historyData}
+        loading={historyLoading}
+        selectedStudent={selectedStudent}
+      />
     </Container>
   );
 };

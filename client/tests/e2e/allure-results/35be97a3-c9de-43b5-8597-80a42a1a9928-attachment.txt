@@ -1,0 +1,31 @@
+🔍 Checking programs query arguments...
+🔍 Programs query arguments: [
+  {
+    "name": "first",
+    "type": {
+      "name": "Int",
+      "kind": "SCALAR"
+    }
+  },
+  {
+    "name": "after",
+    "type": {
+      "name": "String",
+      "kind": "SCALAR"
+    }
+  },
+  {
+    "name": "where",
+    "type": {
+      "name": "ProgramWhereInput",
+      "kind": "INPUT_OBJECT"
+    }
+  },
+  {
+    "name": "orderBy",
+    "type": {
+      "name": "ProgramOrderByInput",
+      "kind": "INPUT_OBJECT"
+    }
+  }
+]

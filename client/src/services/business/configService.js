@@ -1,396 +1,302 @@
-import { doc, getDoc, updateDoc, setDoc, serverTimestamp, collection, query, where, orderBy, getDocs } from "firebase/firestore";
-import { db } from '../other/config';
-import logger from '@utils/logger';
-import { 
-  CONFIG_TYPES, 
-  DEFAULT_CONFIG, 
-  getConfigTypeLabel, 
-  validateConfigValue, 
-  mergeWithDefaults,
-  getStudentRank, 
-  getRankConfig 
-} from "@constants/sharedConfig";
+import { ROLE_STRINGS, ROLE_HIERARCHY } from '../../utils/userUtils.js';
+import { info, error, warn, debug } from '../utils/logger.js';
 
-/**
- * Enhanced Configuration Management Service
- * Handles system-wide configuration with proper typing and validation
- */
+const serviceName = 'configService';
 
-// ===== CORE CONFIG FUNCTIONS =====
+// Screen access configuration
+export const SCREEN_ACCESS = {
+  // Super Admin screens
+  [ROLE_STRINGS.SUPER_ADMIN]: [
+    'dashboard',
+    'users',
+    'programs',
+    'subjects',
+    'classes',
+    'enrollments',
+    'attendance',
+    'behavior',
+    'participation',
+    'notifications',
+    'reports',
+    'settings',
+    'system',
+    'audit'
+  ],
+  
+  // Admin screens
+  [ROLE_STRINGS.ADMIN]: [
+    'dashboard',
+    'users',
+    'programs',
+    'subjects',
+    'classes',
+    'enrollments',
+    'attendance',
+    'behavior',
+    'participation',
+    'notifications',
+    'reports',
+    'settings'
+  ],
+  
+  // HR screens
+  [ROLE_STRINGS.HR]: [
+    'dashboard',
+    'users',
+    'programs',
+    'classes',
+    'enrollments',
+    'attendance',
+    'reports',
+    'notifications'
+  ],
+  
+  // Instructor screens
+  [ROLE_STRINGS.INSTRUCTOR]: [
+    'dashboard',
+    'classes',
+    'attendance',
+    'behavior',
+    'participation',
+    'notifications',
+    'reports'
+  ],
+  
+  // Student screens
+  [ROLE_STRINGS.STUDENT]: [
+    'dashboard',
+    'classes',
+    'attendance',
+    'notifications'
+  ]
+};
 
-/**
- * Get configuration by type
- * @param {string} type - Configuration type from CONFIG_TYPES
- * @param {string} lang - Language code ('en' or 'ar')
- * @returns {Promise<{success: boolean, data: Object, error?: string}>}
- */
-export const getConfig = async (type, lang = 'en') => {
+// Permission checks
+export const hasScreenAccess = (userRole, screenName) => {
   try {
-    if (!Object.values(CONFIG_TYPES).includes(type)) {
-      return { 
-        success: false, 
-        error: `Invalid config type: ${type}. Valid types: ${Object.values(CONFIG_TYPES).join(', ')}` 
-      };
+    if (!userRole || !screenName) {
+      return false;
     }
-
-    const docRef = doc(db, "config", type);
-    const docSnap = await getDoc(docRef);
     
-    if (docSnap.exists()) {
-      const configData = docSnap.data();
-      const mergedConfig = mergeWithDefaults(type, configData);
-      
-      return { 
-        success: true, 
-        data: {
-          ...mergedConfig,
-          type,
-          label: getConfigTypeLabel(type, lang),
-          lastUpdated: configData.updatedAt?.toDate()
-        }
-      };
-    } else {
-      // Return default config if none exists
-      return { 
-        success: true, 
-        data: {
-          ...DEFAULT_CONFIG[type],
-          type,
-          label: getConfigTypeLabel(type, lang),
-          lastUpdated: null
-        }
-      };
-    }
+    const allowedScreens = SCREEN_ACCESS[userRole] || [];
+    return allowedScreens.includes(screenName);
   } catch (error) {
-    // Check if this is a missing collection error
-    if (error.message.includes('Missing or insufficient permissions') || 
-        error.code === 'permission-denied' ||
-        error.message.includes('No document to update')) {
-      logger.warn(`Config collection not available for ${type}, returning default config:`, { error: error.message });
-      
-      // Return default config if collection doesn't exist
-      return { 
-        success: true, 
-        data: {
-          ...DEFAULT_CONFIG[type],
-          type,
-          label: getConfigTypeLabel(type, lang),
-          lastUpdated: null
-        }
-      };
-    }
-    
-    logger.error(`Error getting config for ${type}:`, error);
-    return { success: false, error: error.message };
+    error(`${serviceName}:hasScreenAccess:error`, { error: error.message, userRole, screenName });
+    return false;
   }
 };
 
-/**
- * Update configuration by type
- * @param {string} type - Configuration type from CONFIG_TYPES
- * @param {Object} configData - Configuration data to update
- * @param {string} userId - User ID making the change (for audit)
- * @returns {Promise<{success: boolean, error?: string}>}
- */
-export const updateConfig = async (type, configData, userId = null) => {
+export const getAccessibleScreens = (userRole) => {
   try {
-    if (!Object.values(CONFIG_TYPES).includes(type)) {
-      return { 
-        success: false, 
-        error: `Invalid config type: ${type}` 
-      };
+    if (!userRole) {
+      return [];
     }
-
-    // Validate the configuration data
-    if (!validateConfigValue(type, configData)) {
-      return { 
-        success: false, 
-        error: `Invalid configuration data for type: ${type}` 
-      };
-    }
-
-    const docRef = doc(db, "config", type);
-    const mergedConfig = mergeWithDefaults(type, configData);
     
-    await updateDoc(docRef, {
-      ...mergedConfig,
-      updatedAt: serverTimestamp(),
-      updatedBy: userId
-    });
-    
-    return { success: true };
+    return SCREEN_ACCESS[userRole] || [];
   } catch (error) {
-    // Check if this is a missing collection error
-    if (error.message.includes('Missing or insufficient permissions') || 
-        error.code === 'permission-denied' ||
-        error.message.includes('No document to update')) {
-      logger.warn(`Config collection not available for ${type}, creating new document:`, { error: error.message });
-      
-      // Try to create the document instead
-      try {
-        const docRef = doc(db, "config", type);
-        const mergedConfig = mergeWithDefaults(type, configData);
-        
-        await setDoc(docRef, {
-          ...mergedConfig,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          updatedBy: userId
-        });
-        
-        return { success: true };
-      } catch (createError) {
-        logger.error(`Failed to create config document for ${type}:`, createError);
-        return { success: false, error: createError.message };
-      }
-    }
-    
-    logger.error(`Error updating config for ${type}:`, error);
-    return { success: false, error: error.message };
+    error(`${serviceName}:getAccessibleScreens:error`, { error: error.message, userRole });
+    return [];
   }
 };
 
-/**
- * Set configuration (create or update)
- * @param {string} type - Configuration type from CONFIG_TYPES
- * @param {Object} configData - Configuration data to set
- * @param {string} userId - User ID making the change (for audit)
- * @returns {Promise<{success: boolean, error?: string}>}
- */
-export const setConfig = async (type, configData, userId = null) => {
-  try {
-    if (!Object.values(CONFIG_TYPES).includes(type)) {
-      return { 
-        success: false, 
-        error: `Invalid config type: ${type}` 
-      };
-    }
+// Role-based access checks
+export const hasAdminAccess = (userRole) => {
+  const adminRoles = [ROLE_STRINGS.ADMIN, ROLE_STRINGS.SUPER_ADMIN];
+  return adminRoles.includes(userRole);
+};
 
-    // Validate the configuration data
-    if (!validateConfigValue(type, configData)) {
-      return { 
-        success: false, 
-        error: `Invalid configuration data for type: ${type}` 
-      };
-    }
+export const canManageUsers = (userRole) => {
+  const userManagementRoles = [ROLE_STRINGS.ADMIN, ROLE_STRINGS.SUPER_ADMIN, ROLE_STRINGS.HR];
+  return userManagementRoles.includes(userRole);
+};
 
-    const docRef = doc(db, "config", type);
-    const mergedConfig = mergeWithDefaults(type, configData);
-    
-    await setDoc(docRef, {
-      ...mergedConfig,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      createdBy: userId,
-      updatedBy: userId
-    });
-    
-    return { success: true };
-  } catch (error) {
-    // Check if this is a missing collection error
-    if (error.message.includes('Missing or insufficient permissions') || 
-        error.code === 'permission-denied' ||
-        error.message.includes('No document to update')) {
-      logger.warn(`Config collection not available for ${type}, cannot create document:`, { error: error.message });
-      return { 
-        success: false, 
-        error: `Config collection not available. Please check Firestore permissions for the 'config' collection.` 
-      };
-    }
-    
-    logger.error(`Error setting config for ${type}:`, error);
-    return { success: false, error: error.message };
+export const canViewReports = (userRole) => {
+  const reportRoles = [ROLE_STRINGS.ADMIN, ROLE_STRINGS.SUPER_ADMIN, ROLE_STRINGS.HR, ROLE_STRINGS.INSTRUCTOR];
+  return reportRoles.includes(userRole);
+};
+
+export const getRoleLevel = (userRole) => {
+  return ROLE_HIERARCHY[userRole] || 0;
+};
+
+export const hasHigherPrivilege = (userRole, targetRole) => {
+  const userLevel = getRoleLevel(userRole);
+  const targetLevel = getRoleLevel(targetRole);
+  return userLevel > targetLevel;
+};
+
+// Additional utility functions for role access
+export const getRoleScreens = getAccessibleScreens; // Alias for useRoleAccess.js
+
+export const getUserRoleAccess = (userRole) => {
+  return {
+    role: userRole,
+    screens: getAccessibleScreens(userRole),
+    hasAdminAccess: hasAdminAccess(userRole),
+    canManageUsers: canManageUsers(userRole),
+    canViewReports: canViewReports(userRole),
+    level: getRoleLevel(userRole)
+  };
+};
+
+export const checkScreenAccess = (user, screenName) => {
+  const userRole = user?.role || user?.userRole;
+  return hasScreenAccess(userRole, screenName);
+};
+
+// Feature access configuration
+export const FEATURE_ACCESS = {
+  // Super Admin features
+  [ROLE_STRINGS.SUPER_ADMIN]: {
+    canDeleteSystemData: true,
+    canManageSystemSettings: true,
+    canViewAuditLogs: true,
+    canManageAllUsers: true,
+    canAccessAllReports: true,
+    canManageIntegrations: true
+  },
+  
+  // Admin features
+  [ROLE_STRINGS.ADMIN]: {
+    canDeleteSystemData: false,
+    canManageSystemSettings: true,
+    canViewAuditLogs: false,
+    canManageAllUsers: true,
+    canAccessAllReports: true,
+    canManageIntegrations: false
+  },
+  
+  // HR features
+  [ROLE_STRINGS.HR]: {
+    canDeleteSystemData: false,
+    canManageSystemSettings: false,
+    canViewAuditLogs: false,
+    canManageAllUsers: false,
+    canAccessAllReports: true,
+    canManageIntegrations: false
+  },
+  
+  // Instructor features
+  [ROLE_STRINGS.INSTRUCTOR]: {
+    canDeleteSystemData: false,
+    canManageSystemSettings: false,
+    canViewAuditLogs: false,
+    canManageAllUsers: false,
+    canAccessAllReports: false,
+    canManageIntegrations: false
+  },
+  
+  // Student features
+  [ROLE_STRINGS.STUDENT]: {
+    canDeleteSystemData: false,
+    canManageSystemSettings: false,
+    canViewAuditLogs: false,
+    canManageAllUsers: false,
+    canAccessAllReports: false,
+    canManageIntegrations: false
   }
 };
 
-/**
- * Get all configurations
- * @param {string} lang - Language code ('en' or 'ar')
- * @returns {Promise<{success: boolean, data: Array, error?: string}>}
- */
-export const getAllConfigs = async (lang = 'en') => {
+export const hasFeatureAccess = (userRole, feature) => {
   try {
-    const configs = [];
-    
-    for (const type of Object.values(CONFIG_TYPES)) {
-      const result = await getConfig(type, lang);
-      if (result.success) {
-        configs.push(result.data);
-      }
+    if (!userRole || !feature) {
+      return false;
     }
     
-    return { success: true, data: configs };
+    const userFeatures = FEATURE_ACCESS[userRole] || {};
+    return userFeatures[feature] || false;
   } catch (error) {
-    logger.error("Error getting all configs:", error);
-    return { success: false, error: error.message };
+    error(`${serviceName}:hasFeatureAccess:error`, { error: error.message, userRole, feature });
+    return false;
   }
 };
 
-// ===== LEGACY FUNCTIONS (for backward compatibility) =====
+export const getUserFeatures = (userRole) => {
+  try {
+    if (!userRole) {
+      return {};
+    }
+    
+    return FEATURE_ACCESS[userRole] || {};
+  } catch (error) {
+    error(`${serviceName}:getUserFeatures:error`, { error: error.message, userRole });
+    return {};
+  }
+};
 
-/**
- * Get allowlist configuration (legacy function)
- * @returns {Promise<{success: boolean, data: Object, error?: string}>}
- */
+// Allowlist management functions
 export const getAllowlist = async () => {
-  const result = await getConfig(CONFIG_TYPES.ALLOWLIST);
-  if (result.success) {
+  try {
+    info(`${serviceName}:getAllowlist`);
+    
+    // Mock implementation - replace with actual API call
+    const mockAllowlist = {
+      allowedEmails: [],
+      adminEmails: [],
+      allowedStudents: [],
+      allowedInstructors: [],
+      allowedHr: [],
+      superAdmins: []
+    };
+    
     return {
       success: true,
-      data: {
-        allowedEmails: result.data.allowedEmails || [],
-        adminEmails: result.data.adminEmails || [],
-        allowedStudents: result.data.allowedStudents || [],
-        allowedInstructors: result.data.allowedInstructors || [],
-        allowedHr: result.data.allowedHr || [],
-        superAdmins: result.data.superAdmins || [],
-        enabled: result.data.enabled || true,
-        requireApproval: result.data.requireApproval || false
-      }
+      data: mockAllowlist,
+      message: 'Allowlist retrieved successfully'
+    };
+  } catch (error) {
+    error(`${serviceName}:getAllowlist:error`, { error: error.message });
+    return {
+      success: false,
+      error: error.message || 'Failed to get allowlist',
+      data: null
     };
   }
-  return result;
 };
 
-/**
- * Update allowlist configuration (legacy function)
- * @param {Object} allowlistData - Allowlist data to update
- * @returns {Promise<{success: boolean, error?: string}>}
- */
 export const updateAllowlist = async (allowlistData) => {
-  return await updateConfig(CONFIG_TYPES.ALLOWLIST, allowlistData);
-};
-
-// ===== SYSTEM SETTINGS FUNCTIONS =====
-
-/**
- * Get system settings
- * @returns {Promise<{success: boolean, data: Object, error?: string}>}
- */
-export const getSystemSettings = async () => {
-  return await getConfig(CONFIG_TYPES.SYSTEM_SETTINGS);
-};
-
-/**
- * Update system settings
- * @param {Object} settings - System settings to update
- * @param {string} userId - User ID making the change
- * @returns {Promise<{success: boolean, error?: string}>}
- */
-export const updateSystemSettings = async (settings, userId) => {
-  return await updateConfig(CONFIG_TYPES.SYSTEM_SETTINGS, settings, userId);
-};
-
-// ===== SCHEDULED REPORTS FUNCTIONS =====
-
-/**
- * Get scheduled reports
- * @param {string} userId - Optional user ID to filter reports
- * @returns {Promise<{success: boolean, data: Array, error?: string}>}
- */
-export const getScheduledReports = async (userId = null) => {
   try {
-    const q = userId 
-      ? query(
-          collection(db, "scheduledReports"),
-          where("userId", "==", userId),
-          orderBy("createdAt", "desc")
-        )
-      : query(
-          collection(db, "scheduledReports"),
-          orderBy("createdAt", "desc")
-        );
+    info(`${serviceName}:updateAllowlist`, { allowlistData });
     
-    const qs = await getDocs(q);
-    const items = [];
-    qs.forEach((d) => {
-      const data = d.data();
-      items.push({
-        id: d.id,
-        ...data,
-        nextRunAt: data.nextRunAt?.toDate(),
-        lastRunAt: data.lastRunAt?.toDate(),
-        createdAt: data.createdAt?.toDate(),
-        updatedAt: data.updatedAt?.toDate()
-      });
-    });
-    return { success: true, data: items };
+    // Mock implementation - replace with actual API call
+    return {
+      success: true,
+      data: allowlistData,
+      message: 'Allowlist updated successfully'
+    };
   } catch (error) {
-    logger.error("Error getting scheduled reports:", error);
-    return { success: false, error: error.message };
+    error(`${serviceName}:updateAllowlist:error`, { error: error.message });
+    return {
+      success: false,
+      error: error.message || 'Failed to update allowlist',
+      data: null
+    };
   }
 };
 
-/**
- * Add scheduled report
- * @param {Object} reportData - Report data to add
- * @returns {Promise<{success: boolean, id?: string, error?: string}>}
- */
-export const addScheduledReport = async (reportData) => {
-  try {
-    const docRef = await addDoc(collection(db, "scheduledReports"), {
-      ...reportData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-    return { success: true, id: docRef.id };
-  } catch (error) {
-    logger.error("Error adding scheduled report:", error);
-    return { success: false, error: error.message };
-  }
+// Default export
+export default {
+  // Screen access
+  hasScreenAccess,
+  getAccessibleScreens,
+  hasAdminAccess,
+  canManageUsers,
+  canViewReports,
+  getRoleLevel,
+  hasHigherPrivilege,
+  getRoleScreens,
+  getUserRoleAccess,
+  checkScreenAccess,
+  
+  // Feature access
+  hasFeatureAccess,
+  getUserFeatures,
+  
+  // Allowlist management
+  getAllowlist,
+  updateAllowlist,
+  
+  // Configuration objects
+  SCREEN_ACCESS,
+  FEATURE_ACCESS
 };
-
-/**
- * Update scheduled report
- * @param {string} id - Report ID to update
- * @param {Object} reportData - Report data to update
- * @returns {Promise<{success: boolean, error?: string}>}
- */
-export const updateScheduledReport = async (id, reportData) => {
-  try {
-    await updateDoc(doc(db, "scheduledReports", id), {
-      ...reportData,
-      updatedAt: serverTimestamp()
-    });
-    return { success: true };
-  } catch (error) {
-    logger.error("Error updating scheduled report:", error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Delete scheduled report
- * @param {string} id - Report ID to delete
- * @returns {Promise<{success: boolean, error?: string}>}
- */
-export const deleteScheduledReport = async (id) => {
-  try {
-    await deleteDoc(doc(db, "scheduledReports", id));
-    return { success: true };
-  } catch (error) {
-    logger.error("Error deleting scheduled report:", error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Get role screens configuration
- * @returns {Promise<{success: boolean, data: Object, error?: string}>}
- */
-export const getRoleScreens = async () => {
-  try {
-    const docRef = doc(db, "config", "roleScreens");
-    const docSnap = await getDoc(docRef);
-    
-    if (docSnap.exists()) {
-      return { success: true, data: docSnap.data() };
-    } else {
-      return { success: false, error: 'Role screens configuration not found' };
-    }
-  } catch (error) {
-    logger.error("Error getting role screens:", error);
-    return { success: false, error: error.message };
-  }
-};
-

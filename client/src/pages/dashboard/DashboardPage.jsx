@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense, useLayoutEffect } from 'react';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -12,27 +12,44 @@ import { InfoTooltip } from '@ui';
 import { RibbonTabs } from '@ui';
 import './DashboardPage.css';
 
-const CategoriesPage = lazy(() => import('../CategoriesPage'));
-const AnnouncementsPage = lazy(() => import('../academic/announcements/AnnouncementsPage'));
-const ResourcesPage = lazy(() => import('../academic/resources/ResourcesPage'));
-const ClassesPage = lazy(() => import('../academic/classes/ClassesPage'));
-const UsersPage = lazy(() => import('../users/UsersPage'));
-const LogsActivityPage = lazy(() => import('../system/LogsActivityPage'));
-const EnrollmentsManagementPage = lazy(() => import('../academic/enrollments/EnrollmentsManagementPage'));
-const EnrollmentsPage = lazy(() => import('../academic/enrollments/EnrollmentsPage'));
-const ActivitiesPage = lazy(() => import('../academic/activities/ActivitiesPage'));
-const ScheduledReportsPage = lazy(() => import('../feedback/reports/ScheduledReportsPage'));
-const ProgramsManagementPage = lazy(() => import('../academic/programs/ProgramsPage'));
-const SubjectsManagementPage = lazy(() => import('../academic/subjects/SubjectsPage'));
-const MarksPage = lazy(() => import('../academic/enrollments/grading/MarksPage'));
-const ClassSchedulePage = lazy(() => import('../academic/classes/ClassSchedulePage'));
-const PenaltiesPage = lazy(() => import('../operations/penalty/PenaltiesPage'));
-const ParticipationPage = lazy(() => import('../operations/participation/ParticipationPage'));
-const BehaviorPage = lazy(() => import('../operations/behavior/BehaviorPage'));
-const AnalyticsDashboardPage = lazy(() => import('../feedback/analytics/AnalyticsDashboardPage'));
-const AllowlistPage = lazy(() => import('../system/AllowlistPage'));
-const EmailTemplatesPage = lazy(() => import('../communications/email/EmailTemplatesPage'));
-const NotificationLogsPage = lazy(() => import('../communications/notifications/NotificationLogsPage'));
+// ===== PHASE 1: Core Entities =====
+const AnnouncementsPage = lazy(() => import('../academic/announcements/AnnouncementsPage.jsx'));
+const ResourcesPage = lazy(() => import('../academic/resources/ResourcesPage.jsx'));
+const ClassesPage = lazy(() => import('../academic/classes/ClassesPage.jsx'));
+const ActivitiesPage = lazy(() => import('../academic/activities/ActivitiesPage.jsx'));
+const ProgramsManagementPage = lazy(() => import('../academic/programs/ProgramsPage.jsx'));
+const SubjectsManagementPage = lazy(() => import('../academic/subjects/SubjectsPage.jsx'));
+
+// ===== LOOKUP MANAGEMENT PAGES =====
+const ResourceTypesPage = lazy(() => import('../ResourceTypesPage.jsx'));
+const PriorityTypesPage = lazy(() => import('../PriorityTypesPage.jsx'));
+const UserRolesPage = lazy(() => import('../UserRolesPage.jsx'));
+const SubjectTypesPage = lazy(() => import('../SubjectTypesPage.jsx'));
+const AssessmentTypesPage = lazy(() => import('../AssessmentTypesPage.jsx'));
+const QuestionTypesPage = lazy(() => import('../QuestionTypesPage.jsx'));
+const AttendanceStatusTypesPage = lazy(() => import('../AttendanceStatusTypesPage.jsx'));
+const EnrollmentStatusTypesPage = lazy(() => import('../EnrollmentStatusTypesPage.jsx'));
+const ActivityTypesPage = lazy(() => import('../ActivityTypesPage.jsx'));
+const BehaviorTypesPage = lazy(() => import('../BehaviorTypesPage.jsx'));
+const ParticipationTypesPage = lazy(() => import('../ParticipationTypesPage.jsx'));
+const PenaltyTypesPage = lazy(() => import('../PenaltyTypesPage.jsx'));
+
+// ===== PHASE 2: Deferred Features =====
+const CategoriesPage = lazy(() => import('../CategoriesPage.jsx'));
+const UsersPage = lazy(() => import('../users/UsersPage.jsx'));
+const LogsActivityPage = lazy(() => import('../system/LogsActivityPage.jsx'));
+const EnrollmentsManagementPage = lazy(() => import('../academic/enrollments/EnrollmentsManagementPage.jsx'));
+const EnrollmentsPage = lazy(() => import('../academic/enrollments/EnrollmentsPage.jsx'));
+const ScheduledReportsPage = lazy(() => import('../feedback/reports/ScheduledReportsPage.jsx'));
+const MarksPage = lazy(() => import('../academic/enrollments/grading/MarksPage.jsx'));
+const ClassSchedulePage = lazy(() => import('../academic/classes/ClassSchedulePage.jsx'));
+const PenaltiesPage = lazy(() => import('../operations/penalty/PenaltiesPage.jsx'));
+const ParticipationPage = lazy(() => import('../operations/participation/ParticipationPage.jsx'));
+const BehaviorPage = lazy(() => import('../operations/behavior/BehaviorPage.jsx'));
+// const AnalyticsDashboardPage = lazy(() => import('../feedback/analytics/AnalyticsDashboardPage.jsx'));
+// AllowlistPage removed - now using Keycloak for user management
+const EmailTemplatesPage = lazy(() => import('../communications/email/EmailTemplatesPage.jsx'));
+const NotificationLogsPage = lazy(() => import('../communications/notifications/NotificationLogsPage.jsx'));
 
 const DashboardPage = () => {
   const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading } = useAuth();
@@ -70,7 +87,7 @@ const DashboardPage = () => {
       [MODE_TYPES.ANNOUNCEMENTS]: 'content', 
       [MODE_TYPES.RESOURCES]: 'content',
       users: 'users', 
-      allowlist: 'users',
+      // allowlist: 'users', - removed, now using Keycloak
       classes: 'academic', 
       enrollments: 'academic', 
       submissions: 'academic',
@@ -111,7 +128,7 @@ const DashboardPage = () => {
     // Stop loading after a short delay to allow lazy components to load
     setTimeout(() => stopLoading(), 500);
     // Tabs that should update the URL with query parameters
-    const queryParamTabs = [MODE_TYPES.ACTIVITIES, MODE_TYPES.ANNOUNCEMENTS, MODE_TYPES.RESOURCES, 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'classschedule', 'penalty', 'participation', 'behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'notificationLogs', 'scheduled-reports', 'categories', 'logging'];
+    const queryParamTabs = [MODE_TYPES.ACTIVITIES, MODE_TYPES.ANNOUNCEMENTS, MODE_TYPES.RESOURCES, 'users', /* 'allowlist' - removed, now using Keycloak */ 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'class-schedule', 'penalty', 'participation', 'behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'notificationLogs', 'scheduled-reports', 'categories', 'logging', 'resource-types', 'priority-types', 'user-roles', 'subject-types', 'assessment-types', 'question-types', 'attendance-status-types', 'enrollment-status-types', 'activity-types', 'behavior-types', 'participation-types', 'penalty-types'];
     if (queryParamTabs.includes(tab)) {
       const searchParams = new URLSearchParams(location.search);
       searchParams.set('tab', tab);
@@ -119,7 +136,7 @@ const DashboardPage = () => {
       const nextUrl = `${location.pathname}${newSearch}`;
       const currentUrl = `${location.pathname}${location.search}`;
       if (currentUrl !== nextUrl) {
-          logger.debug('URL changed', {
+          debug('URL changed', {
           nextUrl,
           previousUrl: currentUrl,
           source
@@ -134,7 +151,7 @@ const DashboardPage = () => {
         'classes': '#classes',
         'enrollments': '#enrollments',
         'marks': '#marks',
-        'classschedule': '#classschedule'
+        'class-schedule': '#class-schedule'
       };
       if (tabToHashMap[tab]) {
         const hashTarget = `${location.pathname}${tabToHashMap[tab]}`;
@@ -146,14 +163,14 @@ const DashboardPage = () => {
     if (shouldEmit) {
       window.dispatchEvent(new CustomEvent('dashboard-tab-change', { detail: { tab, source: 'dashboard-page' } }));
     } else {
-          logger.debug('Tab changed', {
+          debug('Tab changed', {
         tab,
         source
       });
     }
   }, [navigate, location, t, startLoading]);
 
-  // Upload default email templates to Firestore (smart upload - only missing templates)
+  // ===== PHASE 2: Email Templates Upload Feature =====
   const uploadDefaultEmailTemplates = useCallback(async () => {
     try {
       // Import the templates service
@@ -170,13 +187,13 @@ const DashboardPage = () => {
       
       return result;
     } catch (error) {
-      console.error('❌ Upload function error:', error);
+      error('❌ Upload function error:', error);
       alert((t('error_uploading_templates') || 'Error uploading templates: ') + error.message);
       return { success: false, error: error.message };
     }
   }, [t]);
 
-  // Make the function available globally for debugging
+  // Make the function available globally for debugging (Phase 2 feature)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.uploadDefaultEmailTemplates = uploadDefaultEmailTemplates;
@@ -206,6 +223,7 @@ const DashboardPage = () => {
 
   // Show loading while auth is initializing to prevent useAuth errors
   // Note: Removed early return to avoid hooks order issues
+  // ===== PHASE 1: Core Dashboard Tabs =====
   const ribbonCategories = useMemo(() => [
     {
       id: 'content',
@@ -214,24 +232,6 @@ const DashboardPage = () => {
         { key: MODE_TYPES.ACTIVITIES, label: t('activities') },
         { key: MODE_TYPES.ANNOUNCEMENTS, label: t('announcements') },
         { key: MODE_TYPES.RESOURCES, label: t('resources') }
-      ]
-    },
-    {
-      id: 'users',
-      label: t('users'),
-      items: [
-        { key: 'users', label: t('users') },
-        { key: 'allowlist', label: t('allowlist') }
-      ]
-    },
-    {
-      id: 'communication',
-      label: t('communication'),
-      items: [
-        // { key: 'smtp', label: t('smtp') }, // DEPRECATED - Use environment variables instead
-        { key: 'emailTemplates', label: t('templates') },
-        { key: 'notificationLogs', label: t('notification_logs') },
-        { key: 'scheduled-reports', label: t('scheduled_reports') }
       ]
     },
     {
@@ -244,11 +244,33 @@ const DashboardPage = () => {
         { key: 'enrollments', label: t('enrollments') },
         { key: 'manage-enrollments', label: t('manage_enrollments') },
         { key: 'marks', label: t('mark_entry') },
-        { key: 'classschedule', label: t('class_schedules') },
-        // { key: 'submissions', label: t('submissions') },
+        { key: 'class-schedule', label: t('class_schedules') }
+      ]
+    },
+    {
+      id: 'operations',
+      label: t('operations'),
+      items: [
         { key: 'penalty', label: t('penalty') },
         { key: 'participation', label: t('participation') },
         { key: 'behavior', label: t('behavior') }
+      ]
+    },
+    {
+      id: 'users',
+      label: t('users'),
+      items: [
+        { key: 'users', label: t('users') }
+        // { key: 'allowlist', label: t('allowlist') } - removed, now using Keycloak
+      ]
+    },
+    {
+      id: 'communication',
+      label: t('communication'),
+      items: [
+        { key: 'emailTemplates', label: t('templates') },
+        { key: 'notificationLogs', label: t('notification_logs') },
+        { key: 'scheduled-reports', label: t('scheduled_reports') }
       ]
     },
     {
@@ -257,6 +279,24 @@ const DashboardPage = () => {
       items: [
         { key: 'categories', label: t('categories') },
         { key: 'logging', label: t('logs') }
+      ]
+    },
+    {
+      id: 'lookups',
+      label: 'Lookups',
+      items: [
+        { key: 'resource-types', label: 'Resource Types' },
+        { key: 'priority-types', label: 'Priority Types' },
+        { key: 'user-roles', label: 'User Roles' },
+        { key: 'subject-types', label: 'Subject Types' },
+        { key: 'assessment-types', label: 'Assessment Types' },
+        { key: 'question-types', label: 'Question Types' },
+        { key: 'attendance-status-types', label: 'Attendance Status' },
+        { key: 'enrollment-status-types', label: 'Enrollment Status' },
+        { key: 'activity-types', label: 'Activity Types' },
+        { key: 'behavior-types', label: 'Behavior Types' },
+        { key: 'participation-types', label: 'Participation Types' },
+        { key: 'penalty-types', label: 'Penalty Types' }
       ]
     }
   ], [t]);
@@ -324,7 +364,7 @@ const DashboardPage = () => {
         'classes': 'classes',
         'enrollments': 'manage-enrollments',
         'marks': 'marks',
-        'classschedule': 'classschedule'
+        'class-schedule': 'class-schedule'
       };
       const tab = hashToHashMap[hash];
       if (tab && tab !== activeTab) {
@@ -397,10 +437,10 @@ const DashboardPage = () => {
       onChange={({ category, item }) => { setActiveCategory(category); handleTabChange(item); }}
     />
   </div>
-        {/* Summary Cards with Filters */}
-        <Suspense fallback={null}>
+        {/* ===== PHASE 2: Analytics Dashboard ===== */}
+        {/* <Suspense fallback={null}>
            <AnalyticsDashboardPage />
-         </Suspense>
+         </Suspense> */}
 
          <div className="tab-content">
     <div className="tab-header">
@@ -412,6 +452,7 @@ const DashboardPage = () => {
                <InfoTooltip contentKey={`help.${activeTab}`} />
              </div>
            </div>
+        {/* ===== PHASE 1: Core Pages ===== */}
         <Suspense fallback={null}>
           {activeTab === MODE_TYPES.ACTIVITIES && (
             <ActivitiesPage />
@@ -419,24 +460,25 @@ const DashboardPage = () => {
           {activeTab === MODE_TYPES.ANNOUNCEMENTS && (
             <AnnouncementsPage />
           )}
+          {activeTab === MODE_TYPES.RESOURCES && <ResourcesPage />}
           {activeTab === 'programs' && isSuperAdmin && (
             <ProgramsManagementPage />
           )}
           {activeTab === 'subjects' && (isSuperAdmin || isAdmin || isInstructor) && (
             <SubjectsManagementPage />
           )}
+          {activeTab === 'classes' && (isSuperAdmin || isAdmin || isInstructor) && (
+            <ClassesPage />
+          )}
           {activeTab === 'marks' && (isSuperAdmin || isAdmin || isInstructor) && (
             <MarksPage />
           )}
-          {activeTab === 'classschedule' && (isSuperAdmin || isAdmin || isInstructor) && (
+          {activeTab === 'class-schedule' && (isSuperAdmin || isAdmin || isInstructor) && (
             <ClassSchedulePage />
           )}
           {activeTab === 'manage-enrollments' && (isSuperAdmin || isAdmin || isInstructor) && (
-            <EnrollmentsPage />
+            <EnrollmentsManagementPage />
           )}
-        </Suspense>
-        
-        <Suspense fallback={null}>
           {activeTab === 'penalty' && (isSuperAdmin || isAdmin || isInstructor) && (
             <PenaltiesPage />
           )}
@@ -452,16 +494,27 @@ const DashboardPage = () => {
           {activeTab === 'logging' && (
             <LogsActivityPage />
           )}
-          {activeTab === 'classes' && (
-            <ClassesPage />
-          )}
-          {activeTab === 'enrollments' && <EnrollmentsManagementPage />}
+          {activeTab === 'enrollments' && <EnrollmentsPage />}
           {activeTab === 'users' && <UsersPage />}
-          {activeTab === MODE_TYPES.RESOURCES && <ResourcesPage />}
           {activeTab === 'categories' && <CategoriesPage isDashboardTab />}
           {activeTab === 'emailTemplates' && <EmailTemplatesPage />}
           {activeTab === 'notificationLogs' && <NotificationLogsPage />}
-          {activeTab === 'allowlist' && <AllowlistPage />}
+          
+          {/* ===== LOOKUP MANAGEMENT PAGES ===== */}
+          {activeTab === 'resource-types' && <ResourceTypesPage />}
+          {activeTab === 'priority-types' && <PriorityTypesPage />}
+          {activeTab === 'user-roles' && <UserRolesPage />}
+          {activeTab === 'subject-types' && <SubjectTypesPage />}
+          {activeTab === 'assessment-types' && <AssessmentTypesPage />}
+          {activeTab === 'question-types' && <QuestionTypesPage />}
+          {activeTab === 'attendance-status-types' && <AttendanceStatusTypesPage />}
+          {activeTab === 'enrollment-status-types' && <EnrollmentStatusTypesPage />}
+          {activeTab === 'activity-types' && <ActivityTypesPage />}
+          {activeTab === 'behavior-types' && <BehaviorTypesPage />}
+          {activeTab === 'participation-types' && <ParticipationTypesPage />}
+          {activeTab === 'penalty-types' && <PenaltyTypesPage />}
+          
+          {/* AllowlistPage removed - now using Keycloak for user management */}
         </Suspense>
         </div>
       </div>

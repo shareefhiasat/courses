@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Drawer.module.css';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Drawer Component
  * 
  * Side panel that slides in from the edge.

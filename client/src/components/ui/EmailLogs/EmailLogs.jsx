@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
-import { collection, query, orderBy, limit, where, getDocs } from 'firebase/firestore';
-import { db } from '@services/other/config';
 import { formatDateTime } from '@utils/date';
 import { AdvancedDataGrid, SimpleLoading, Select, Input, Badge } from '@ui';
 import { 
@@ -15,7 +13,8 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import PortalTooltip from '@ui/PortalTooltip';
 
-const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
   const toast = useToast();
   const { t } = useLang();
   const { theme } = useTheme();
@@ -39,36 +38,40 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
   const loadLogs = async () => {
     setLoading(true);
     try {
-      let q = query(
-          collection(db, 'emailLogs'),
-          orderBy('timestamp', 'desc'),
-          limit(100)
-      );
+      // Mock implementation - replace with GraphQL query
+      info('📧 Loading email logs (mock):', { filters });
+      
+      // Mock data
+      const mockLogs = [
+        {
+          id: '1',
+          type: 'welcome',
+          status: 'delivered',
+          recipient: 'user@example.com',
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+          subject: 'Welcome to Military LMS'
+        },
+        {
+          id: '2', 
+          type: 'password_reset',
+          status: 'delivered',
+          recipient: 'admin@example.com',
+          timestamp: new Date(Date.now() - 7200000).toISOString(),
+          subject: 'Password Reset Request'
+        }
+      ];
 
       // Apply filters
+      let filteredLogs = mockLogs;
       if (filters.type !== 'all') {
-        q = query(q, where('type', '==', filters.type));
+        filteredLogs = filteredLogs.filter(log => log.type === filters.type);
       }
-
       if (filters.status !== 'all') {
-        q = query(q, where('status', '==', filters.status));
+        filteredLogs = filteredLogs.filter(log => log.status === filters.status);
       }
-
-      const snapshot = await getDocs(q);
-
-      const logList = [];
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        // Only add valid objects, skip any malformed data
-        if (data && typeof data === 'object') {
-          logList.push({ id: doc.id, ...data });
-        } else {
-          logger.warn('[EmailLogs] Skipping invalid document:', doc.id, data);
-        }
-      });
 
       setMissingIndexUrl('');
-      setLogs(logList);
+      setLogs(filteredLogs);
     } catch (error) {
       // Detect missing index error and provide a helpful link instead of noisy toasts
       const msg = error?.message || '';
@@ -77,7 +80,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
       if (match && match[0]) {
         setMissingIndexUrl(match[0]);
       } else {
-        logger.error('Error loading logs:', error);
+        error('Error loading logs:', error);
         toast?.showError(t('emaillogs_failed_to_load') + (error?.message || ''));
       }
     } finally {
@@ -101,7 +104,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
   const gridRows = filteredLogs
   .map((log, index) => {
     if (!log || typeof log !== 'object') {
-      logger.warn('[EmailLogs] Skipping malformed log row:', log);
+      warn('[EmailLogs] Skipping malformed log row:', log);
       return null;
     }
 
@@ -288,7 +291,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
                   padding: '3rem 2rem 2rem'
                 }}
                 onClick={() => {
-                  logger.log('Closing email log preview overlay');
+                  info('Closing email log preview overlay');
                   setShowPreview(false);
                   setSelectedLog(null);
                 }}

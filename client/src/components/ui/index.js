@@ -1,10 +1,13 @@
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
 // Core UI Components
 export { default as Button } from './Button';
-export { default as Card, CardHeader, CardBody, CardFooter } from './Card';
+export { default as Card, CardHeader, CardBody, CardFooter, CardContent, CardTitle } from './Card';
 export { default as ClassCard } from './ClassCard';
 export { default as Badge } from './Badge';
 export { default as Input } from './Input';
 export { default as Select } from './Select';
+export { default as TermSelect } from './Select';
 export { default as AttendanceTypeSelect } from './AttendanceTypeSelect';
 export { default as Slider } from './Slider';
 export { ToastProvider, useToast } from './Toast';
@@ -24,6 +27,7 @@ export { default as Avatar } from './Avatar';
 export { default as Tooltip } from './Tooltip';
 export { default as PortalTooltip } from './PortalTooltip';
 export { default as ProgressBar } from './ProgressBar';
+export { default as Progress } from './ProgressBar';
 export { default as Accordion } from './Accordion';
 export { default as Calendar } from './Calendar';
 
@@ -61,7 +65,7 @@ export { default as UserSelect } from './UserSelect';
 export { default as Tag } from './Tag';
 export { default as EmptyState } from './EmptyState';
 export { default as Skeleton } from './Skeleton';
-export { default as SimpleLoading } from './SimpleLoading';
+export { default as SimpleLoading, default as LoadingSpinner } from './SimpleLoading';
 export { default as AdvancedDataGrid } from './AdvancedDataGrid';
 export { default as ExpandablePanel } from './ExpandablePanel';
 export { default as CollapsibleDashboardSection } from './CollapsibleDashboardSection';
@@ -108,7 +112,6 @@ export { default as HelpDrawer } from './HelpDrawer';
 export { default as SideDrawer } from './SideDrawer';
 export { default as Navbar } from './Navbar';
 export { default as RankDisplay } from './RankDisplay';
-export { default as RankHistory } from './RankHistory';
 export { default as VariableHelper } from './VariableHelper';
 export { default as StudentQRCodeDisplay } from './StudentQRCodeDisplay';
 export { default as CollapsibleSideWindow } from './CollapsibleSideWindow';

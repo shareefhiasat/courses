@@ -1,5 +1,6 @@
 import React from 'react';
-import './SimpleLoading.css';
+
+import { info, error, warn, debug } from '@services/utils/logger.js';import './SimpleLoading.css';
 
 /**
  * SimpleLoading - A simplified, single loading component

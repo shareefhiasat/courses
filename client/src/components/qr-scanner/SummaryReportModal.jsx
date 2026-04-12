@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { Button, Card, CardBody } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 
-const SummaryReportModal = ({
+
+import { info, error, warn, debug } from '@services/utils/logger.js';const SummaryReportModal = ({
   showSemesterReportConfirm,
   setShowSemesterReportConfirm,
   exportFormat,
@@ -126,10 +127,10 @@ const SubjectSelection = ({
         overflowY: 'auto'
       }}>
         {subjects
-          .filter(s => (s.programId === selectedProgramId) || (s.programId === programs.find(p => (p.id === selectedProgramId) || (p.docId === selectedProgramId))?.docId))
+          .filter(s => (s.programId === selectedProgramId) || (s.programId === programs.find(p => p.id == selectedProgramId)?.id))
           .map(subject => (
             <label
-              key={subject.docId || subject.id}
+              key={subject.id}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -144,9 +145,9 @@ const SubjectSelection = ({
             >
               <input
                 type="checkbox"
-                checked={selectedSubjectsForReport.includes(subject.docId || subject.id)}
+                checked={selectedSubjectsForReport.includes(subject.id)}
                 onChange={(e) => {
-                  const subjectId = subject.docId || subject.id;
+                  const subjectId = subject.id;
                   if (e.target.checked) {
                     setSelectedSubjectsForReport([...selectedSubjectsForReport, subjectId]);
                   } else {
@@ -601,7 +602,7 @@ const ActionButtons = ({
         onClick={() => {
           // Validate subject selection with safety check
           if (!selectedSubjectsForReport || selectedSubjectsForReport.length === 0) {
-            console.error('❌ No subjects selected for report');
+            error('❌ No subjects selected for report');
             // Use toast instead of alert - we'll need to import this properly
             alert('Please select at least one subject for the report');
             return;
@@ -609,9 +610,9 @@ const ActionButtons = ({
           
           // Validate email recipients if email format
           if (exportFormat === 'email') {
-            console.log('🔍 Email validation debug:', { emailRecipients, exportFormat });
+            info('🔍 Email validation debug:', { emailRecipients, exportFormat });
             if (!emailRecipients || emailRecipients.length === 0) {
-              console.error('❌ No email recipients selected');
+              error('❌ No email recipients selected');
               alert('Please select at least one email recipient');
               return;
             }
@@ -622,7 +623,7 @@ const ActionButtons = ({
         }}
         loading={isExporting}
         style={{ 
-          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%);',
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem'

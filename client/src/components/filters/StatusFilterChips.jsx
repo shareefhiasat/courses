@@ -3,7 +3,8 @@ import { getColoredIcon } from '@constants/iconTypes';
 import { TASK_STATUS, getStatusLabel } from '@utils/sharedTypes';
 import PortalTooltip from '@ui/PortalTooltip';
 
-/**
+
+import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * Reusable status filter chips component
  * Used in HomePage, StudentDashboard, and ReviewResultsPage
  * 

@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@services/other/config';
-import logger from '@utils/logger';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * Migration function to fix widgets with invalid groupBy values
@@ -10,7 +8,7 @@ const migrateWidgetConfigs = (widgets) => {
   return widgets.map(widget => {
     // If groupBy is empty, undefined, null, or invalid, fix it
     if (!widget.groupBy || widget.groupBy.trim() === '' || widget.groupBy === 'undefined' || widget.groupBy === 'null') {
-      logger.warn('[useWidgetDashboard] Migrating widget with invalid groupBy:', { 
+      warn('[useWidgetDashboard] Migrating widget with invalid groupBy:', { 
         title: widget.title, 
         dataSource: widget.dataSource, 
         groupBy: widget.groupBy 
@@ -95,9 +93,9 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
                       }
                     }
                   }, { merge: true });
-                  logger.log('[useWidgetDashboard] Migrated widgets saved to Firestore');
+                  info('[useWidgetDashboard] Migrated widgets saved to Firestore');
                 } catch (e) {
-                  logger.warn('[useWidgetDashboard] Failed to save migrated widgets:', e);
+                  warn('[useWidgetDashboard] Failed to save migrated widgets:', e);
                 }
               }
               
@@ -106,7 +104,7 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
             }
           }
         } catch (e) {
-          logger.warn('[useWidgetDashboard] Firestore load failed, falling back to localStorage:', e);
+          warn('[useWidgetDashboard] Firestore load failed, falling back to localStorage:', e);
         }
       }
 
@@ -125,9 +123,9 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
               try {
                 const payload = { widgets: migratedWidgets, pinnedIds: parsed.pinnedIds || [] };
                 localStorage.setItem(`wdg_${dashboardKey}`, JSON.stringify(payload));
-                logger.log('[useWidgetDashboard] Migrated widgets saved to localStorage');
+                info('[useWidgetDashboard] Migrated widgets saved to localStorage');
               } catch (e) {
-                logger.warn('[useWidgetDashboard] Failed to save migrated widgets to localStorage:', e);
+                warn('[useWidgetDashboard] Failed to save migrated widgets to localStorage:', e);
               }
             }
           }
@@ -153,21 +151,8 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
         localStorage.setItem(`wdg_${dashboardKey}`, JSON.stringify(payload));
       } catch {}
 
-      // Write Firestore if authenticated
-      if (uid) {
-        try {
-          const ref = doc(db, 'users', uid);
-          await setDoc(ref, {
-            preferences: {
-              dashboards: {
-                [dashboardKey]: { ...payload, updatedAt: serverTimestamp() }
-              }
-            }
-          }, { merge: true });
-        } catch (e) {
-          logger.warn('[useWidgetDashboard] Firestore save failed:', e);
-        }
-      }
+      // Firestore removed - using localStorage only
+      info('[useWidgetDashboard] Dashboard saved to localStorage:', { dashboardKey, widgetCount: payload.widgets?.length || 0 });
     }, 800);
   }, [uid, dashboardKey]);
 
