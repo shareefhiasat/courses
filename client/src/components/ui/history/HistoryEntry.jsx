@@ -5,6 +5,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants';
+import { getLocalizedNoteText } from '@constants/noteTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import PortalTooltip from '@ui/PortalTooltip';
 
@@ -148,14 +149,21 @@ export const HistoryEntry = ({
         let displayComment = log.comment;
         let showTooltip = false;
         
+        // Translate note constants if present
+        if (log.comment && /^[A-Z_]+$/.test(log.comment)) {
+          displayComment = getLocalizedNoteText(log.comment, t) || log.comment;
+        }
+        
         if (type === RECORD_TYPES.ATTENDANCE && log.method) {
           if (shouldShowMethodLabel(log.method, log.comment)) {
             // Use localized method label instead of notes
             displayComment = getAttendanceMethodLabel(log.method, t, lang);
             showTooltip = log.comment && log.comment !== displayComment; // Show tooltip if original notes were different
           } else {
-            // Use original notes
-            displayComment = log.comment;
+            // Use original notes (already translated above if it's a constant)
+            displayComment = log.comment && /^[A-Z_]+$/.test(log.comment) 
+              ? getLocalizedNoteText(log.comment, t) || log.comment 
+              : log.comment;
             showTooltip = log.comment && log.comment.length > 30;
           }
         } else if (log.comment) {

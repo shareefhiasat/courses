@@ -1298,18 +1298,48 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       debug('[QR Scanner] Final unique logs:', uniqueLogs.length);
 
       // Format time for display
-      const formattedLogs = uniqueLogs.map(log => ({
-        ...log,
-        time: log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        }) : (log.time instanceof Date ? log.time.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        }) : log.time || '')
-      }));
+      const formattedLogs = uniqueLogs.map(log => {
+        let formattedTime = '';
+        if (log.time?.toDate) {
+          const date = log.time.toDate();
+          const hours = date.getHours();
+          const minutes = date.getMinutes();
+          const seconds = date.getSeconds();
+          
+          // If all time components are 0, it's likely a date-only timestamp
+          if (hours === 0 && minutes === 0 && seconds === 0) {
+            formattedTime = '';
+          } else {
+            formattedTime = date.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            });
+          }
+        } else if (log.time instanceof Date) {
+          const hours = log.time.getHours();
+          const minutes = log.time.getMinutes();
+          const seconds = log.time.getSeconds();
+          
+          // If all time components are 0, it's likely a date-only timestamp
+          if (hours === 0 && minutes === 0 && seconds === 0) {
+            formattedTime = '';
+          } else {
+            formattedTime = log.time.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            });
+          }
+        } else {
+          formattedTime = log.time || '';
+        }
+        
+        return {
+          ...log,
+          time: formattedTime
+        };
+      });
 
       setRecentActivity(formattedLogs);
     } catch (err) {

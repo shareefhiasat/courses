@@ -156,8 +156,14 @@ const StudentRoster = React.memo(function StudentRoster({
       // Combine and format logs
       const logs = [
         ...allAttendanceRecords.filter(r => r.status || r.statusId).map(record => {
-          // Map statusId to status string for standup attendance
+          // Map statusId to status string for both regular and standup attendance
           const statusIdMap = {
+            1: 'PRESENT',
+            2: 'LATE',
+            3: 'ABSENT',
+            4: 'ABSENT_NO_EXCUSE',
+            5: 'ABSENT_WITH_EXCUSE',
+            6: 'HUMAN_CASE',
             7: 'STANDUP_PRESENT',
             8: 'STANDUP_LATE',
             9: 'STANDUP_ABSENT',

@@ -214,6 +214,20 @@ const BulkScanDialog = ({
     const formatTime = (timestamp) => {
       try {
         const date = new Date(timestamp);
+        if (isNaN(date.getTime())) return '';
+        
+        // Check if the timestamp has time information (not just date)
+        const hours = date.getHours();
+        const minutes = date.getMinutes();
+        const seconds = date.getSeconds();
+        
+        // If all time components are 0, it's likely a date-only timestamp
+        // In this case, don't display a time
+        if (hours === 0 && minutes === 0 && seconds === 0) {
+          return '';
+        }
+        
+        // Otherwise, display the time in local timezone
         return date.toLocaleTimeString('ar-SA', { 
           hour: '2-digit', 
           minute: '2-digit',

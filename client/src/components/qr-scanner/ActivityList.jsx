@@ -4,6 +4,7 @@ import { DeleteIcon, ChevronDownIcon } from '@utils/icons.jsx';
 import { PerformedBy } from '@ui';
 import QuickActionButtons from './QuickActionButtons.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import { getLocalizedNoteText } from '@constants/noteTypes';
 
 const ActivityList = ({
   recentActivity,
@@ -25,15 +26,26 @@ const ActivityList = ({
   isMobile
 }) => {
   const formatActivityTime = (time) => {
-    if (time?.toDate) {
-      return time.toDate().toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    } else if (time instanceof Date) {
-      return time.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    } else if (typeof time === 'string') {
-      const date = new Date(time);
-      return date.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    try {
+      const raw = time?.toDate ? time.toDate() : time ? new Date(time) : null;
+      if (!raw || isNaN(raw.getTime())) return '--:--';
+      
+      // Check if the timestamp has time information (not just date)
+      const hours = raw.getHours();
+      const minutes = raw.getMinutes();
+      const seconds = raw.getSeconds();
+      
+      // If all time components are 0, it's likely a date-only timestamp
+      // In this case, don't display a time
+      if (hours === 0 && minutes === 0 && seconds === 0) {
+        return '--:--';
+      }
+      
+      // Otherwise, display the time in local timezone
+      return raw.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch (e) {
+      return '--:--';
     }
-    return time || '';
   };
 
   return (
@@ -186,7 +198,13 @@ const ActivityList = ({
                 {(activity.comment || activity.scanMethod) && (
                   <div style={{ marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     {activity.comment && (
-                      <span>{activity.comment}</span>
+                      <span>{(() => {
+                        // Check if it's a note constant (uppercase with underscores)
+                        if (/^[A-Z_]+$/.test(activity.comment)) {
+                          return getLocalizedNoteText(activity.comment, t) || activity.comment;
+                        }
+                        return activity.comment;
+                      })()}</span>
                     )}
                     {activity.scanMethod && (
                       <span style={{
