@@ -45,6 +45,17 @@ export const STANDUP_NOTE_TYPES = {
   STANDUP_CLINIC: 'STANDUP_CLINIC'
 };
 
+// Bulk scan notes (for bulk upload operations)
+export const BULK_NOTE_TYPES = {
+  BULK_PRESENT: 'BULK_PRESENT',
+  BULK_LATE: 'BULK_LATE',
+  BULK_ABSENT: 'BULK_ABSENT',
+  BULK_ABSENT_NO_EXCUSE: 'BULK_ABSENT_NO_EXCUSE',
+  BULK_ABSENT_WITH_EXCUSE: 'BULK_ABSENT_WITH_EXCUSE',
+  BULK_EXCUSED_LEAVE: 'BULK_EXCUSED_LEAVE',
+  BULK_HUMAN_CASE: 'BULK_HUMAN_CASE'
+};
+
 /**
  * Get localized note text from note type constant
  * @param {string} noteType - The note type constant
@@ -86,7 +97,16 @@ export const getLocalizedNoteText = (noteType, t) => {
     [STANDUP_NOTE_TYPES.STANDUP_PRESENT]: t('note_standup_present') || 'Standup Present',
     [STANDUP_NOTE_TYPES.STANDUP_LATE]: t('note_standup_late') || 'Standup Late',
     [STANDUP_NOTE_TYPES.STANDUP_ABSENT]: t('note_standup_absent') || 'Standup Absent',
-    [STANDUP_NOTE_TYPES.STANDUP_CLINIC]: t('note_standup_clinic') || 'Standup Clinic'
+    [STANDUP_NOTE_TYPES.STANDUP_CLINIC]: t('note_standup_clinic') || 'Standup Clinic',
+
+    // Bulk scan notes
+    [BULK_NOTE_TYPES.BULK_PRESENT]: t('note_bulk_present') || 'Bulk Present',
+    [BULK_NOTE_TYPES.BULK_LATE]: t('note_bulk_late') || 'Bulk Late',
+    [BULK_NOTE_TYPES.BULK_ABSENT]: t('note_bulk_absent') || 'Bulk Absent',
+    [BULK_NOTE_TYPES.BULK_ABSENT_NO_EXCUSE]: t('note_bulk_absent_no_excuse') || 'Bulk Absent',
+    [BULK_NOTE_TYPES.BULK_ABSENT_WITH_EXCUSE]: t('note_bulk_absent_with_excuse') || 'Bulk Absent Excused',
+    [BULK_NOTE_TYPES.BULK_EXCUSED_LEAVE]: t('note_bulk_excused_leave') || 'Bulk Excused Leave',
+    [BULK_NOTE_TYPES.BULK_HUMAN_CASE]: t('note_bulk_human_case') || 'Bulk Human Case'
   };
 
   return noteMap[noteType] || noteType;
@@ -105,7 +125,8 @@ export const getNoteTypeFromStatus = (status, method = 'manual') => {
     quick: 'QUICK',
     manual: 'MANUAL',
     qr: 'QR',
-    standup: 'STANDUP'
+    standup: 'STANDUP',
+    bulk: 'BULK'
   };
   
   const prefix = methodPrefixes[method] || 'MANUAL';

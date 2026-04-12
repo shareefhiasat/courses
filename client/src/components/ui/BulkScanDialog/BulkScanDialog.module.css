@@ -101,6 +101,47 @@
   gap: 1.25rem;
 }
 
+.contextInfo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.dark .contextInfo {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+.contextItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.contextLabel {
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.dark .contextLabel {
+  color: #9ca3af;
+}
+
+.contextValue {
+  font-weight: 500;
+  color: #111827;
+}
+
+.dark .contextValue {
+  color: #f9fafb;
+}
+
 .tabNavigationContainer {
   margin-bottom: 1rem;
 }

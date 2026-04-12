@@ -162,7 +162,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const [isMobile, setIsMobile] = useState(false);
   const [recentActivity, setRecentActivity] = useState([]);
   const [activityLoading, setActivityLoading] = useState(false);
-  const [activityDateFilter, setActivityDateFilter] = useState('today'); // 'today' or 'all'
   const [expandedActivities, setExpandedActivities] = useState(new Set());
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
@@ -1061,52 +1060,25 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           }
         }
       } else {
-        // In regular mode, fetch from regular attendance table for the class
-        if (activityDateFilter === 'today') {
-          const attendanceResponse = await getAttendanceByClass(classId, { date: todayStr });
-          attendanceRecords = attendanceResponse.success ? attendanceResponse.data.filter(r => r.status).map(r => ({ ...r, category: RECORD_TYPES.ATTENDANCE })) : [];
-        } else {
-          // Get all attendance records for this class
-          const attendanceResponse = await getAttendanceByClass(classId);
-          attendanceRecords = attendanceResponse.success ? attendanceResponse.data.filter(r => r.status).map(r => ({ ...r, category: RECORD_TYPES.ATTENDANCE })) : [];
-        }
+        // In regular mode, fetch from regular attendance table for the class (today only)
+        const attendanceResponse = await getAttendanceByClass(classId, { date: todayStr });
+        attendanceRecords = attendanceResponse.success ? attendanceResponse.data.filter(r => r.status).map(r => ({ ...r, category: RECORD_TYPES.ATTENDANCE })) : [];
       }
 
-      // Get penalties based on date filter
+      // Get penalties for today only
       let penaltyRecords = [];
-      if (activityDateFilter === 'today') {
-        const penaltiesResponse = await getPenaltiesByClassAndDate(classId, todayStr);
-        penaltyRecords = penaltiesResponse.success && penaltiesResponse.data ? penaltiesResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PENALTY })) : [];
-      } else {
-        // Get all penalties for this class
-        const penaltiesResponse = await getPenalties();
-        const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
-        penaltyRecords = allPenalties.filter(p => p.classId === classId).map(p => ({ ...p, category: RECORD_TYPES.PENALTY }));
-      }
+      const penaltiesResponse = await getPenaltiesByClassAndDate(classId, todayStr);
+      penaltyRecords = penaltiesResponse.success && penaltiesResponse.data ? penaltiesResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PENALTY })) : [];
 
-      // Get participations based on date filter
+      // Get participations for today only
       let participationRecords = [];
-      if (activityDateFilter === 'today') {
-        const participationsResponse = await getParticipationsByClassAndDate(classId, todayStr);
-        participationRecords = participationsResponse.success && participationsResponse.data ? participationsResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PARTICIPATION })) : [];
-      } else {
-        // Get all participations for this class
-        const participationsResponse = await getParticipations();
-        const allParticipations = participationsResponse.success ? participationsResponse.data : [];
-        participationRecords = allParticipations.filter(p => p.classId === classId).map(p => ({ ...p, category: RECORD_TYPES.PARTICIPATION }));
-      }
+      const participationsResponse = await getParticipationsByClassAndDate(classId, todayStr);
+      participationRecords = participationsResponse.success && participationsResponse.data ? participationsResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PARTICIPATION })) : [];
 
-      // Get behaviors based on date filter
+      // Get behaviors for today only
       let behaviorRecords = [];
-      if (activityDateFilter === 'today') {
-        const behaviorsResponse = await getBehaviorsByClassAndDate(classId, todayStr);
-        behaviorRecords = behaviorsResponse.success && behaviorsResponse.data ? behaviorsResponse.data.map(b => ({ ...b, category: RECORD_TYPES.BEHAVIOR })) : [];
-      } else {
-        // Get all behaviors for this class
-        const behaviorsResponse = await getBehaviors();
-        const allBehaviors = behaviorsResponse.success ? behaviorsResponse.data : [];
-        behaviorRecords = allBehaviors.filter(b => b.classId === classId).map(b => ({ ...b, category: RECORD_TYPES.BEHAVIOR }));
-      }
+      const behaviorsResponse = await getBehaviorsByClassAndDate(classId, todayStr);
+      behaviorRecords = behaviorsResponse.success && behaviorsResponse.data ? behaviorsResponse.data.map(b => ({ ...b, category: RECORD_TYPES.BEHAVIOR })) : [];
 
       debug('[QR Scanner] Attendance records fetched:', attendanceRecords.length);
       const allRecords = [...attendanceRecords, ...penaltyRecords, ...participationRecords, ...behaviorRecords];
@@ -1346,7 +1318,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     } finally {
       setActivityLoading(false);
     }
-  }, [classId, students, user, selectedProgramName, selectedSubjectName, selectedClassName, lang, t, activityDateFilter, attendanceMode, selectedProgramId]);
+  }, [classId, students, user, selectedProgramName, selectedSubjectName, selectedClassName, lang, t, attendanceMode, selectedProgramId]);
 
   // Memoized helper functions for activity display - defined outside map for performance
   const getScanMethodDisplay = useCallback((scanMethod) => {
@@ -1885,8 +1857,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         fetchRecentActivity();
       }
 
-      // Emit event to update student roster
+      // Emit events to update student roster and grid
       eventBus.emit(EVENTS.ATTENDANCE_MARKED, { forceRefresh: true });
+      eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
+      eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
+      eventBus.emit(EVENTS.REFRESH_STUDENT_DATA, { forceRefresh: true });
     } catch (err) {
       addDebugLog(`❌ Error clearing regular attendance: ${err.message}`, 'error');
       showResult('error', `Failed to clear attendance: ${err.message}`);
@@ -2195,32 +2170,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   </button>
                 </PortalTooltip>
 
-                <PortalTooltip content={activityDateFilter === 'today' ? (t('show_all') || 'Show all') : (t('show_today') || 'Show today')} position="top">
-                <button
-                    onClick={() => {
-                      const newFilter = activityDateFilter === 'today' ? 'all' : 'today';
-                      setActivityDateFilter(newFilter);
-                      fetchRecentActivity();
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      padding: '0.375rem 0.5rem',
-                      borderRadius: '0.375rem',
-                      border: '1px solid var(--border, #e5e7eb)',
-                      background: activityDateFilter === 'today' ? '#10b981' : 'white',
-                      color: activityDateFilter === 'today' ? 'white' : 'var(--text, #111827)',
-                      fontSize: '0.75rem',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {activityDateFilter === 'today' ? (t('today') || 'Today') : (t('all') || 'All')}
-                  </button>
-                </PortalTooltip>
-
                 <PortalTooltip content={t('refresh_today_activity')} position="top">
                   <button
                     onClick={() => {
@@ -2259,9 +2208,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   </button>
                 </PortalTooltip>
 
-                {/* Recycle Button - Clear attendance for today (shown in both regular and standup mode when filter is 'today') */}
-                {activityDateFilter === 'today' && (
-                  <PortalTooltip content={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (t('clear_standup_for_today') || 'Clear Standup For Today') : (t('clear_attendance_for_today') || 'Clear Attendance For Today')} position="top">
+                {/* Recycle Button - Clear attendance for today */}
+                <PortalTooltip content={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (t('clear_standup_for_today') || 'Clear Standup For Today') : (t('clear_attendance_for_today') || 'Clear Attendance For Today')} position="top">
                     <button
                       onClick={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? handleClearStandup : handleClearRegular}
                       disabled={activityLoading || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all'))}
@@ -2284,7 +2232,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       <TrashIcon style={{ width: '14px', height: '14px' }} />
                     </button>
                   </PortalTooltip>
-                )}
 
                 {/* Stop Scanner Button - Only show when scanning */}
                 {isScanning && (

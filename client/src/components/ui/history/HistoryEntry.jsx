@@ -23,16 +23,28 @@ export const HistoryEntry = ({
 }) => {
   const isMobile = useIsMobile();
 
-  // Handle invalid times - always display in Qatar timezone (UTC+3)
+  // Handle invalid times - display in local timezone without forcing Qatar timezone
   const getTimeDisplay = () => {
     try {
       const raw = log.time?.toDate ? log.time.toDate() : log.time ? new Date(log.time) : null;
       if (!raw || isNaN(raw.getTime())) return '--:--';
+      
+      // Check if the timestamp has time information (not just date)
+      const hours = raw.getHours();
+      const minutes = raw.getMinutes();
+      const seconds = raw.getSeconds();
+      
+      // If all time components are 0, it's likely a date-only timestamp
+      // In this case, don't display a time
+      if (hours === 0 && minutes === 0 && seconds === 0) {
+        return '--:--';
+      }
+      
+      // Otherwise, display the time in local timezone
       return new Intl.DateTimeFormat('en-US', {
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true,
-        timeZone: 'Asia/Qatar'
+        hour12: true
       }).format(raw);
     } catch (e) {
       return '--:--';

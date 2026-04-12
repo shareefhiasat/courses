@@ -54,7 +54,7 @@ class EnrollmentDbService extends BaseDbService {
   async getStudentsByClass(classId, params = {}) {
     try {
       const queryParams = new URLSearchParams();
-      if (params.classId) queryParams.append('classId', params.classId);
+      if (classId) queryParams.append('classId', classId);
       if (params.includeUsers) queryParams.append('includeUsers', params.includeUsers);
       
       const url = `/enrollments/students-by-class${queryParams.toString() ? '?' + queryParams.toString() : ''}`;

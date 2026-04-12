@@ -36,6 +36,54 @@ const BulkScanDialog = ({
   // Tab state for bulk operations
   const [activeTab, setActiveTab] = useState(null); // null, 'manual', 'addAll', 'addAllExcept'
 
+  // State for context info names
+  const [programName, setProgramName] = useState('');
+  const [className, setClassName] = useState('');
+  const [subjectName, setSubjectName] = useState('');
+
+  // Fetch names for context info
+  useEffect(() => {
+    const fetchNames = async () => {
+      if (programId) {
+        try {
+          const { getProgram } = await import('@services/business/programService');
+          const programResult = await getProgram(programId);
+          if (programResult.success) {
+            setProgramName(programResult.data.nameEn || programResult.data.name || programId);
+          }
+        } catch (err) {
+          console.error('[BulkScanDialog] Error fetching program name:', err);
+        }
+      }
+
+      if (classId && attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR) {
+        try {
+          const { getClassById } = await import('@services/business/classService');
+          const classResult = await getClassById(classId);
+          if (classResult.success) {
+            setClassName(classResult.data.nameEn || classResult.data.name || classId);
+          }
+        } catch (err) {
+          console.error('[BulkScanDialog] Error fetching class name:', err);
+        }
+      }
+
+      if (subjectId && attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR) {
+        try {
+          const { getSubject } = await import('@services/business/programService');
+          const subjectResult = await getSubject(subjectId);
+          if (subjectResult.success) {
+            setSubjectName(subjectResult.data.nameEn || subjectResult.data.name || subjectId);
+          }
+        } catch (err) {
+          console.error('[BulkScanDialog] Error fetching subject name:', err);
+        }
+      }
+    };
+
+    fetchNames();
+  }, [programId, classId, subjectId, attendanceMode]);
+
   // Tab handlers - just change tab, don't auto-execute
   const handleTabChange = (tab) => {
     // Clear stale data when switching between different operation types
@@ -306,6 +354,58 @@ const BulkScanDialog = ({
           >
             <X size={20} />
           </button>
+        </div>
+
+        {/* Context Info Section - Display attendance mode, program, class, subject */}
+        <div className={styles.contextInfo}>
+          <div className={styles.contextItem}>
+            <span className={styles.contextLabel}>
+              {t('mode') || 'Mode'}:
+            </span>
+            <span className={styles.contextValue}>
+              {attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
+                ? (t('standup_mode') || 'Standup Mode')
+                : (t('regular_mode') || 'Regular Mode')
+              }
+            </span>
+          </div>
+          {attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (
+            <div className={styles.contextItem}>
+              <span className={styles.contextLabel}>
+                {t('program') || 'Program'}:
+              </span>
+              <span className={styles.contextValue}>
+                {programName || programId || '-'}
+              </span>
+            </div>
+          ) : (
+            <>
+              <div className={styles.contextItem}>
+                <span className={styles.contextLabel}>
+                  {t('program') || 'Program'}:
+                </span>
+                <span className={styles.contextValue}>
+                  {programName || programId || '-'}
+                </span>
+              </div>
+              <div className={styles.contextItem}>
+                <span className={styles.contextLabel}>
+                  {t('class') || 'Class'}:
+                </span>
+                <span className={styles.contextValue}>
+                  {className || classId || '-'}
+                </span>
+              </div>
+              <div className={styles.contextItem}>
+                <span className={styles.contextLabel}>
+                  {t('subject') || 'Subject'}:
+                </span>
+                <span className={styles.contextValue}>
+                  {subjectName || subjectId || '-'}
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Progress Bar - Positioned at top for maximum visibility */}

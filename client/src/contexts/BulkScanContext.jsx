@@ -281,11 +281,14 @@ export const BulkScanProvider = ({
           // Ensure date is in YYYY-MM-DD string format
           const dateStr = selectedDate ? new Date(selectedDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
+          // Import getNoteTypeFromStatus for proper note type constants
+          const { getNoteTypeFromStatus } = await import("@constants/noteTypes");
+
           const attendanceData = {
             userId: student.userId || student.id,
             status: selectedStatus || 'present',
             date: dateStr,
-            notes: (selectedStatus || 'present').toUpperCase(),
+            notes: getNoteTypeFromStatus(selectedStatus || 'present', 'bulk'),
             markedBy: currentMarkedBy,
             performedBy: currentPerformedBy,
             performedByName: currentPerformedByName,
