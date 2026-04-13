@@ -61,7 +61,7 @@ export const ATTENDANCE_COLORS = {
   [ATTENDANCE_STATUS.PRESENT]: '#10b981', // Green
   [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: '#ef4444', // Red
   [ATTENDANCE_STATUS.LATE]: '#f59e0b', // Yellow
-  [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: '#f97316', // Orange
+  [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: '#ef4444', // Red (same as ABSENT_NO_EXCUSE)
   [ATTENDANCE_STATUS.EXCUSED_LEAVE]: '#ec4899', // Purple
   [ATTENDANCE_STATUS.HUMAN_CASE]: '#8b5cf6', // Purple (Human Case)
   // Standup types (matching database codes)
@@ -76,7 +76,7 @@ export const ATTENDANCE_ICONS = {
   [ATTENDANCE_STATUS.PRESENT]: 'CheckCircle',
   [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: 'XCircle',
   [ATTENDANCE_STATUS.LATE]: 'Clock',
-  [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: 'AlertCircle',
+  [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: 'XCircle',
   [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'Heart',
   [ATTENDANCE_STATUS.HUMAN_CASE]: 'Heart',
   // Standup types (matching database codes)

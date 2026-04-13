@@ -11,6 +11,7 @@ import { getFunctions } from '@services/other/config';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { SimpleLoading } from '@ui';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
+import { usePermissions } from '@hooks/usePermissions';
 // OLD: import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 // OLD: import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 // OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
@@ -49,6 +50,7 @@ export default function StudentActionStatsPanel({
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const { showSuccess, showError } = useToast();
+  const { canDeleteAttendance, canEditAttendance } = usePermissions();
   const { data: lookupData, loading: lookupLoading, error: lookupError } = useLookupTypes({
     types: ['behavior-types', 'participation-types', 'penalty-types']
   });
@@ -2449,18 +2451,18 @@ export default function StudentActionStatsPanel({
           </div>
 
           {/* Delete Confirmation Modal */}
-          {deleteModalOpen && (
+          {canDeleteAttendance && deleteModalOpen && (
               <div style={{
                 position: 'fixed',
                 top: 0,
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                background: 'rgba(0, 0, 0, 0.5)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                zIndex: 1000
+                zIndex: 9999
               }}>
                 <Card style={{ maxWidth: '400px', margin: '1rem' }}>
                   <CardBody>

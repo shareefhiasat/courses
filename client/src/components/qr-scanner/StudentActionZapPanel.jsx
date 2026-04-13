@@ -9,6 +9,7 @@ import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPE_CATEGORY, 
 import { MANUAL_NOTE_TYPES, getNoteTypeFromStatus } from '@constants/noteTypes';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
+import { usePermissions } from '@hooks/usePermissions';
 // OLD: import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
 // OLD: import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
 // NOW: Using useLookupTypes hook for behavior and participation types
@@ -74,6 +75,7 @@ export default function StudentActionZapPanel({
   });
   const { t, lang, isRTL } = useLang();
   const { showSuccess, showError } = useToast();
+  const { canDeleteAttendance, canEditAttendance } = usePermissions();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedActions, setSelectedActions] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);

@@ -2,7 +2,6 @@ import { ReactKeycloakProvider } from '@react-keycloak/web';
 import keycloak from '../config/keycloak';
 import { SimpleLoading } from '../components/ui';
 
-
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
 export const KeycloakProvider = ({ children }) => {

@@ -10,6 +10,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { TimerStopwatch } from '@ui';
 import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { usePermissions } from '@hooks/usePermissions';
 
 const SideDrawer = ({ isOpen, onClose }) => {
   const { user, isAdmin, isSuperAdmin, isHR, isInstructor, role, impersonating, stopImpersonation, logout } = useAuth();
@@ -17,6 +18,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
+  const { canAccessScreen: checkScreenAccess, roleCode } = usePermissions();
   const [drawerWidth, setDrawerWidth] = useState(() => {
     try { return Math.min(480, Math.max(260, parseInt(localStorage.getItem('drawer_width') || '280', 10))); } catch { return 280; }
   });
@@ -498,6 +500,41 @@ const SideDrawer = ({ isOpen, onClose }) => {
         settings: { ...hrLinks.settings, items: [...hrLinks.settings.items] }
       };
     }
+  }
+
+  // Filter menu items based on screen access permissions
+  const filterMenuItems = (items) => {
+    return items.filter(item => {
+      // Super admin sees all items
+      if (roleCode === 'super_admin') return true;
+      
+      // Check if user can access this screen
+      return checkScreenAccess(item.path);
+    });
+  };
+
+  // Filter menu sections based on permissions
+  const filterMenuSections = (sections) => {
+    const filteredSections = {};
+    
+    Object.keys(sections).forEach(sectionKey => {
+      const filteredItems = filterMenuItems(sections[sectionKey].items);
+      
+      // Only include section if it has visible items
+      if (filteredItems.length > 0) {
+        filteredSections[sectionKey] = {
+          ...sections[sectionKey],
+          items: filteredItems
+        };
+      }
+    });
+    
+    return filteredSections;
+  };
+
+  // Apply filtering to links (unless super admin who sees all)
+  if (roleCode !== 'super_admin') {
+    links = filterMenuSections(links);
   }
   
   return (

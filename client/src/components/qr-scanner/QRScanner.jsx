@@ -24,6 +24,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
+import { usePermissions } from '@hooks/usePermissions';
 import { useToast } from '@ui';
 import PortalTooltip from '@ui/PortalTooltip';
 import { GENERAL_STATUS } from '@utils/sharedTypes';
@@ -98,6 +99,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const { theme } = useTheme();
   const { showSuccess, showError } = useToast();
   const { isEnabled, loading: featureLoading } = useFeatureFlags();
+  const { 
+    canManualInput, 
+    canDeleteAttendance, 
+    canEditAttendance,
+    canUseStatsPanel,
+    canUseZapPanel,
+    canSeeQuickButtons
+  } = usePermissions();
   const { activityTypeOptions, loading: lookupLoading } = useLookupTypes();
 
   // Refs must be defined before early return (React Hooks rule)
@@ -1217,7 +1226,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         const finalActivityLog = {
           id: uniqueActivityId,
           recordId: record.id, // Preserve original record ID for deduplication
-          time: record.timestamp || record.updatedAt || record.date || record.createdAt,
+          time: record.createdAt || record.updatedAt || record.timestamp,
           type: computedType,
           studentId,
           studentName,
@@ -2118,50 +2127,51 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 {/*  <DebugIcon style={{ width: '14px', height: '14px' }} />*/}
                 {/*</button>*/}
 
-                <PortalTooltip content={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
-                  ? (t('manual_input_not_available_in_standup_mode') || 'Manual input not available in standup mode')
-                  : ((!selectedProgramId || !selectedSubjectId || !selectedClassId)
-                    ? (t('please_select_program_subject_class') || 'Please select Program, Subject, and Class')
-                    : t('manual_student_id_input')
-                  )
-                } position="top">
-                <button
-                    disabled={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP}
-                    onClick={() => {
-                      // Check if all required fields are selected before allowing manual input
-                      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-                        if (!selectedProgramId || selectedProgramId === 'all') {
-                          showResult('error', t('please_select_program') || 'Please select Program before scanning');
-                          return;
-                        }
-                      } else {
-                        if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
-                          showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
-                          return;
-                        }
-                      }
-                      setShowManualInput(!showManualInput);
-                    }}
-                    disabled={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      padding: '0.375rem 0.5rem',
-                      borderRadius: '0.375rem',
-                      border: '1px solid var(--border, #e5e7eb)',
-                      background: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#f3f4f6' : (showManualInput ? '#3b82f6' : 'white'),
-                      color: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#9ca3af' : (showManualInput ? 'white' : 'var(--text, #111827)'),
-                      fontSize: '0.75rem',
-                      fontWeight: 500,
-                      cursor: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s',
-                      opacity: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 0.6 : 1
-                    }}
+                {canManualInput && (
+                  <PortalTooltip content={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
+                    ? (t('manual_input_not_available_in_standup_mode') || 'Manual input not available in standup mode')
+                    : ((!selectedProgramId || !selectedSubjectId || !selectedClassId)
+                      ? (t('please_select_program_subject_class') || 'Please select Program, Subject, and Class')
+                      : t('manual_student_id_input')
+                      )
+                    } position="top">
+                    <button
+                        disabled={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)}
+                        onClick={() => {
+                          // Check if all required fields are selected before allowing manual input
+                          if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+                            if (!selectedProgramId || selectedProgramId === 'all') {
+                              showResult('error', t('please_select_program') || 'Please select Program before scanning');
+                              return;
+                            }
+                          } else {
+                            if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
+                              showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+                              return;
+                            }
+                          }
+                          setShowManualInput(!showManualInput);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          padding: '0.375rem 0.5rem',
+                          borderRadius: '0.375rem',
+                          border: '1px solid var(--border, #e5e7eb)',
+                          background: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#f3f4f6' : (showManualInput ? '#3b82f6' : 'white'),
+                          color: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#9ca3af' : (showManualInput ? 'white' : 'var(--text, #111827)'),
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          cursor: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s',
+                          opacity: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 0.6 : 1
+                        }}
                   >
                     <UserInputIcon style={{ width: '14px', height: '14px' }} />
                   </button>
                 </PortalTooltip>
+                )}
 
                 <PortalTooltip content={(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? t(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'please_select_program' : 'please_select_program_subject_class') : (t('bulk_scan') || 'Bulk Scan')} position="top">
                 <button
@@ -2641,7 +2651,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             attendanceStatus={resultModalData.attendanceStatus}
           />
 
-          {showStudentActionStatsPanel && studentForAction && (
+          {canUseStatsPanel && showStudentActionStatsPanel && studentForAction && (
               <StudentActionStatsPanel
                   student={studentForAction}
                   onClose={() => {
@@ -2664,7 +2674,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               />
           )}
 
-          {showStudentActionZapPanel && studentForAction && (
+          {canUseZapPanel && showStudentActionZapPanel && studentForAction && (
               <StudentActionZapPanel
                   student={studentForAction}
                   initialTab={initialTab}

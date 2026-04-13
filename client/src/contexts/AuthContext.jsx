@@ -487,32 +487,35 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async () => {
     try {
-      console.log('[AuthContext] � Initiating logout');
+      console.log('[AuthContext] 🔄 Initiating logout');
       
-      // Use Keycloak's built-in logout method
-      if (keycloak) {
-        await keycloak.logout({
-          redirectUri: window.location.origin
-        });
-        console.log('[AuthContext] ✅ Keycloak logout completed');
-      }
-      
-      // Fallback: clear storage and redirect
+      // Clear all storage
       localStorage.removeItem('keycloak_token');
+      localStorage.removeItem('lastRefreshTime');
       localStorage.clear();
       sessionStorage.clear();
+      console.log('[AuthContext] 🧹 Storage cleared');
       
-      console.log('[AuthContext] 🔄 Redirecting to home page');
-      window.location.href = window.location.origin;
+      // Redirect to Keycloak account page for manual logout
+      // Use dynamic URL from environment variables
+      const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080';
+      const keycloakRealm = import.meta.env.VITE_KEYCLOAK_REALM || 'master';
+      const accountUrl = `${keycloakUrl}/realms/${keycloakRealm}/account`;
+      
+      console.log('[AuthContext] 🔄 Redirecting to Keycloak account page:', accountUrl);
+      window.location.href = accountUrl;
     } catch (error) {
       error('Logout error:', error);
-      // As a fallback, just clear everything and redirect
+      // As a fallback, just clear everything and redirect to Keycloak account page
       console.log('[AuthContext] 🔄 Fallback: clearing session and redirecting');
       localStorage.clear();
       sessionStorage.clear();
-      window.location.href = window.location.origin;
+      const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080';
+      const keycloakRealm = import.meta.env.VITE_KEYCLOAK_REALM || 'master';
+      const accountUrl = `${keycloakUrl}/realms/${keycloakRealm}/account`;
+      window.location.href = accountUrl;
     }
-  }, [keycloak]);
+  }, []);
 
   const hasRole = (role) => {
     return user?.roles?.includes(role) || false;

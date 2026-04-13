@@ -181,7 +181,7 @@ const StudentRoster = React.memo(function StudentRoster({
             id: record.id,
             type: RECORD_TYPES.ATTENDANCE,
             date: record.date || toYmd(record.timestamp) || toYmd(record.updatedAt) || toYmd(record.createdAt),
-            time: record.timestamp || record.date,
+            time: record.createdAt || record.updatedAt || record.timestamp,
             label: getLocalizedAttendanceLabel(statusStr, t, lang) || statusStr || 'Unknown',
             points: 0,
             comment: record.reason || record.notes || '',
@@ -958,22 +958,6 @@ const StudentRoster = React.memo(function StudentRoster({
       );
     }
 
-    // If status is a default absent status (likely set when no actual attendance exists), show None
-    if (status === 'absent_no_excuse' || status === 'absent') {
-      return (
-          <span style={{
-            padding: '0.25rem 0.75rem',
-            borderRadius: '0.375rem',
-            fontSize: '0.75rem',
-            fontWeight: 500,
-            background: 'var(--panel-hover, #f3f4f6)',
-            color: 'var(--text-muted, #9ca3af)',
-            border: '1px solid var(--border, #e5e7eb)'
-          }}>
-          {t('none') || 'None'}
-        </span>
-      );
-    }
 
     // Use the proper attendance status labels from lookup
     const statusInfo = ATTENDANCE_STATUS_LABELS[status];

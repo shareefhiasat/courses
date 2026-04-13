@@ -5,6 +5,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
+import { usePermissions } from '@hooks/usePermissions';
 // OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
 // OLD: import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 // OLD: import { PARTICIPATION_TYPES } from '@constants/participationTypes';
@@ -59,6 +60,18 @@ const QRScannerPage = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const { activityTypeOptions } = useLookupTypes();
+  const { 
+    canBulkScan, 
+    canManualInput, 
+    canClearToday, 
+    canDeleteAttendance, 
+    canEditAttendance, 
+    canExport, 
+    canSeeStandupMode,
+    canSeeQuickButtons,
+    canUseStatsPanel,
+    canUseZapPanel
+  } = usePermissions();
   const showSuccess = useMemo(() => toast?.showSuccess || ((msg) => console.log('SUCCESS:', msg)), [toast]);
   const showError = useMemo(() => toast?.showError || ((msg) => console.log('ERROR:', msg)), [toast]);
   const showInfo = useMemo(() => toast?.showInfo || ((msg) => console.log('INFO:', msg)), [toast]);
@@ -902,9 +915,10 @@ const QRScannerPage = () => {
                 attendanceStats.late++;
                 break;
               case 'absent':
+              case 'absent_no_excuse':
                 attendanceStats.absent++;
                 break;
-              case 'absent_no_excuse':
+              case 'absent_with_excuse':
                 attendanceStats.absentWithExcuse++;
                 break;
               case 'excused_leave':
@@ -3512,108 +3526,114 @@ const QRScannerPage = () => {
                 )}
               </div>
 
-              <button
-                onClick={() => {
-                  if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-                    if (!selectedProgramId || selectedProgramId === 'all') {
-                      showError(t('please_select_program') || 'Please select a program first');
-                      return;
-                    }
-                  } else {
-                    if (!selectedClassId || selectedClassId === 'all') {
+              {canExport && (
+                <>
+                  <button
+                    onClick={() => {
+                      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+                        if (!selectedProgramId || selectedProgramId === 'all') {
+                          showError(t('please_select_program') || 'Please select a program first');
+                          return;
+                        }
+                      } else {
+                        if (!selectedClassId || selectedClassId === 'all') {
+                          showError(t('please_select_class') || 'Please select a class first');
+                          return;
+                        }
+                      }
+                      setShowDailyReportModal(true);
+                    }}
+                    style={{
+                      padding: '1rem 1.5rem',
+                      background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      cursor: isExporting ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      transition: 'all 0.2s',
+                      boxShadow: '0 2px 4px rgba(139, 92, 246, 0.2)',
+                      minWidth: '100px',
+                      justifyContent: 'center',
+                      opacity: isExporting ? 0.6 : 1
+                    }}
+                    disabled={gridLoading || isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all'))}
+                  >
+                    {getThemedIcon('ui', 'file', 16, 'white')}
+                    {t('daily_report') || 'Daily'}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      console.log('🔍 Summary Report button clicked');
+                      setShowSemesterReportConfirm(true);
+                    }}
+                    style={{
+                      padding: '1rem 1.5rem',
+                      background: isExporting ? '#94a3b8' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      cursor: isExporting ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      transition: 'all 0.2s',
+                      boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)',
+                      minWidth: '100px',
+                      justifyContent: 'center',
+                      opacity: isExporting ? 0.6 : 1
+                    }}
+                    disabled={gridLoading || isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all'))}
+                    title={t('export_summary_report') || 'Export comprehensive summary report'}
+                  >
+                    {getThemedIcon('ui', 'send', 16, 'white')}
+                    {t('summary_report') || 'Summary'}
+                  </button>
+                </>
+              )}
+
+              {canBulkScan && (
+                <button
+                  onClick={() => {
+                    // In standup mode, allow bulk operations without class selection
+                    if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (!selectedClassId || selectedClassId === 'all')) {
                       showError(t('please_select_class') || 'Please select a class first');
                       return;
                     }
-                  }
-                  setShowDailyReportModal(true);
-                }}
-                style={{
-                  padding: '1rem 1.5rem',
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  cursor: isExporting ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 2px 4px rgba(139, 92, 246, 0.2)',
-                  minWidth: '100px',
-                  justifyContent: 'center',
-                  opacity: isExporting ? 0.6 : 1
-                }}
-                disabled={gridLoading || isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all'))}
-              >
-                {getThemedIcon('ui', 'file', 16, 'white')}
-                {t('daily_report') || 'Daily'}
-              </button>
-
-              <button
-                onClick={() => {
-                  console.log('🔍 Summary Report button clicked');
-                  setShowSemesterReportConfirm(true);
-                }}
-                style={{
-                  padding: '1rem 1.5rem',
-                  background: isExporting ? '#94a3b8' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  cursor: isExporting ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)',
-                  minWidth: '100px',
-                  justifyContent: 'center',
-                  opacity: isExporting ? 0.6 : 1
-                }}
-                disabled={gridLoading || isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all'))}
-                title={t('export_summary_report') || 'Export comprehensive summary report'}
-              >
-                {getThemedIcon('ui', 'send', 16, 'white')}
-                {t('summary_report') || 'Summary'}
-              </button>
-
-              <button
-                onClick={() => {
-                  // In standup mode, allow bulk operations without class selection
-                  if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (!selectedClassId || selectedClassId === 'all')) {
-                    showError(t('please_select_class') || 'Please select a class first');
-                    return;
-                  }
-                  setShowBulkScanDialog(true);
-                }}
-                disabled={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all')}
-                style={{
-                  padding: '1rem 1.5rem',
-                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 2px 4px rgba(245, 158, 11, 0.2)',
-                  minWidth: '100px',
-                  justifyContent: 'center',
-                  opacity: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all')) ? 0.5 : 1
-                }}
-                title={t('bulk_scan_attendance') || 'Bulk scan attendance for multiple students'}
-              >
-                {getThemedIcon('ui', 'users', 16, 'white')}
-                {t('bulk_scan') || 'Bulk Scan'}
-              </button>
+                    setShowBulkScanDialog(true);
+                  }}
+                  disabled={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all')}
+                  style={{
+                    padding: '1rem 1.5rem',
+                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 2px 4px rgba(245, 158, 11, 0.2)',
+                    minWidth: '100px',
+                    justifyContent: 'center',
+                    opacity: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all')) ? 0.5 : 1
+                  }}
+                  title={t('bulk_scan_attendance') || 'Bulk scan attendance for multiple students'}
+                >
+                  {getThemedIcon('ui', 'users', 16, 'white')}
+                  {t('bulk_scan') || 'Bulk Scan'}
+                </button>
+              )}
             </div>
           </div>
       </header>
