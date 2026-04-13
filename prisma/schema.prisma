@@ -1297,3 +1297,54 @@ model UserFavorite {
   @@unique([userId, favoriteType, targetId])
   @@map("user_favorites")
 }
+
+// Permission System Tables
+model Screen {
+  id           Int         @id @default(autoincrement())
+  screenId     String      @unique
+  nameEn       String
+  nameAr       String?
+  descriptionEn String?
+  descriptionAr String?
+  category     String
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  operations   Operation[]
+  rolePermissions RolePermission[]
+
+  @@map("screens")
+}
+
+model Operation {
+  id           Int         @id @default(autoincrement())
+  screenId     Int
+  operationKey String      @unique
+  nameEn       String
+  nameAr       String?
+  descriptionEn String?
+  descriptionAr String?
+  category     String
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  screen       Screen      @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  rolePermissions RolePermission[]
+
+  @@map("operations")
+}
+
+model RolePermission {
+  id           Int      @id @default(autoincrement())
+  role         String
+  screenId     Int
+  operationId  Int?
+  allowed      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  screen       Screen    @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  operation    Operation? @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@unique([role, screenId, operationId])
+  @@map("role_permissions")
+}

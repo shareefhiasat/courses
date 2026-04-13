@@ -303,6 +303,7 @@ import marksRoutes from "./routes/marks.js";
 import attendanceRoutes from "./routes/attendances.js";
 import lookupRoutes from "./routes/lookup.js";
 import standupAttendanceRoutes from "./routes/standupAttendances.js";
+import permissionsRoutes from "./routes/permissions.js";
 
 // Mount routes with versioning
 app.use(`/api/${API_VERSION}/programs`, programRoutes);
@@ -330,6 +331,7 @@ app.use(`/api/${API_VERSION}/marks`, marksRoutes);
 app.use(`/api/${API_VERSION}/attendance`, attendanceRoutes);
 app.use(`/api/${API_VERSION}/standup-attendance`, standupAttendanceRoutes);
 app.use(`/api/${API_VERSION}/lookup`, lookupRoutes);
+app.use(`/api/${API_VERSION}/permissions`, permissionsRoutes);
 
 // ==================== ERROR HANDLING ====================
 

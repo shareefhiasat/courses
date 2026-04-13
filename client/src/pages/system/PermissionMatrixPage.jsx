@@ -1,276 +1,394 @@
-import React, { useState, useMemo } from 'react';
-import { ROLE_STRINGS } from '@utils/userUtils';
-import { SCREEN_ROLE_ACCESS } from '@constants/screenDefinitions';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 
 /**
- * Permission Matrix Visualization Page
+ * Permission Matrix Visualization Page (Editable)
  * 
- * PURPOSE: Visualize role-based access control across screens and operations
- * Displays a matrix showing which roles have access to which screens
+ * PURPOSE: Visualize and manage role-based access control for screens and operations
+ * Displays a tree structure: Screens → Operations → Roles (checkboxes)
  */
 
 const PermissionMatrixPage = () => {
   const { t, lang } = useLang();
-  const [selectedRole, setSelectedRole] = useState(null);
+  const { isSuperAdmin } = useAuth();
+  const [permissions, setPermissions] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [editMode, setEditMode] = useState(false);
   const [selectedScreen, setSelectedScreen] = useState(null);
-
-  // Get all screens from SCREEN_ROLE_ACCESS
-  const allScreens = useMemo(() => Object.keys(SCREEN_ROLE_ACCESS).sort(), []);
-  
-  // Get all roles
-  const allRoles = useMemo(() => [ROLE_STRINGS.SUPER_ADMIN, ROLE_STRINGS.ADMIN, ROLE_STRINGS.HR, ROLE_STRINGS.INSTRUCTOR, ROLE_STRINGS.STUDENT], []);
+  const [selectedOperation, setSelectedOperation] = useState(null);
+  const [pendingUpdates, setPendingUpdates] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState(null);
 
   // Role display names
   const roleDisplayNames = {
-    [ROLE_STRINGS.SUPER_ADMIN]: 'Super Admin',
-    [ROLE_STRINGS.ADMIN]: 'Admin',
-    [ROLE_STRINGS.HR]: 'HR',
-    [ROLE_STRINGS.INSTRUCTOR]: 'Instructor',
-    [ROLE_STRINGS.STUDENT]: 'Student'
+    super_admin: 'Super Admin',
+    admin: 'Admin',
+    hr: 'HR',
+    instructor: 'Instructor',
+    student: 'Student'
   };
 
-  // Group screens by category (based on naming convention)
-  const groupedScreens = useMemo(() => {
-    const groups = {};
-    allScreens.forEach(screen => {
-      const category = screen.includes('-') ? screen.split('-')[0] : 'other';
-      if (!groups[category]) groups[category] = [];
-      groups[category].push(screen);
-    });
-    return groups;
-  }, [allScreens]);
+  const allRoles = useMemo(() => ['super_admin', 'admin', 'hr', 'instructor', 'student'], []);
 
-  // Check if role has access to screen
-  const hasAccess = (role, screen) => {
-    const allowedRoles = SCREEN_ROLE_ACCESS[screen] || [];
-    return allowedRoles.includes(role);
+  // Fetch permissions on mount
+  useEffect(() => {
+    fetchPermissions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
+
+  const fetchPermissions = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('keycloak_token');
+      const response = await fetch('/api/v1/permissions', {
+        headers: {
+          'Accept-Language': lang,
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch permissions');
+      
+      const data = await response.json();
+      setPermissions(data.data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching permissions:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Count total permissions per role
-  const permissionCounts = useMemo(() => {
-    const counts = {};
-    allRoles.forEach(role => {
-      counts[role] = allScreens.filter(screen => hasAccess(role, screen)).length;
-    });
-    return counts;
-  }, [allRoles, allScreens]);
+  const handleTogglePermission = (screenId, operationId, role, currentAllowed) => {
+    if (!editMode) return;
 
-  // Count total permissions per screen
-  const screenCounts = useMemo(() => {
-    const counts = {};
-    allScreens.forEach(screen => {
-      counts[screen] = allRoles.filter(role => hasAccess(role, screen)).length;
+    const update = {
+      role,
+      screenId,
+      operationId,
+      allowed: !currentAllowed
+    };
+
+    setPendingUpdates(prev => {
+      const existingIndex = prev.findIndex(
+        u => u.role === role && u.screenId === screenId && u.operationId === operationId
+      );
+      
+      if (existingIndex >= 0) {
+        const newUpdates = [...prev];
+        newUpdates[existingIndex] = update;
+        return newUpdates;
+      }
+      
+      return [...prev, update];
     });
-    return counts;
-  }, [allScreens, allRoles]);
+
+    // Optimistic UI update
+    setPermissions(prev => {
+      return prev.map(screen => {
+        if (screen.id !== screenId) return screen;
+        
+        return {
+          ...screen,
+          operations: screen.operations.map(op => {
+            if (op.id !== operationId) return op;
+            
+            return {
+              ...op,
+              permissions: op.permissions.map(perm => {
+                if (perm.role !== role) return perm;
+                return { ...perm, allowed: !perm.allowed };
+              })
+            };
+          })
+        };
+      });
+    });
+  };
+
+  const handleSave = async () => {
+    if (pendingUpdates.length === 0) return;
+
+    try {
+      setSaving(true);
+      const token = localStorage.getItem('keycloak_token');
+      const response = await fetch('/api/v1/permissions', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify({ updates: pendingUpdates })
+      });
+
+      if (!response.ok) throw new Error('Failed to save permissions');
+
+      setSaveMessage(t('permission_matrix_saved') || 'Permissions saved successfully');
+      setPendingUpdates([]);
+      setEditMode(false);
+      
+      setTimeout(() => setSaveMessage(null), 3000);
+      
+      // Refresh permissions
+      await fetchPermissions();
+    } catch (err) {
+      console.error('Error saving permissions:', err);
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setPendingUpdates([]);
+    setEditMode(false);
+    fetchPermissions(); // Revert optimistic updates
+  };
+
+  if (loading) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <div style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>
+          {t('loading') || 'Loading...'}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <div style={{ color: 'var(--error)', marginBottom: '1rem' }}>
+          {error}
+        </div>
+        <button 
+          onClick={fetchPermissions}
+          style={{ 
+            padding: '0.5rem 1rem', 
+            backgroundColor: 'var(--accent)', 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          {t('retry') || 'Retry'}
+        </button>
+      </div>
+    );
+  }
+
+  if (!permissions || permissions.length === 0) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <h2 style={{ marginBottom: '1rem' }}>
+          {t('permission_matrix') || 'Permission Matrix'}
+        </h2>
+        <p>{t('no_permissions_configured') || 'No permissions configured'}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="permission-matrix-page" style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
-      <h1 style={{ marginBottom: '1.5rem', fontSize: '1.8rem', fontWeight: '600' }}>
-        {t('permission_matrix') || 'Permission Matrix'}
-      </h1>
-
-      {/* Summary Stats */}
+    <div style={{ padding: '2rem', maxWidth: '1600px', margin: '0 auto' }}>
+      {/* Header */}
       <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-        gap: '1rem', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
         marginBottom: '2rem' 
       }}>
-        {allRoles.map(role => (
-          <div 
-            key={role}
-            style={{
-              padding: '1rem',
-              backgroundColor: 'var(--panel)',
-              borderRadius: '8px',
-              border: '1px solid var(--border)'
-            }}
-          >
-            <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-              {roleDisplayNames[role]}
-            </div>
-            <div style={{ fontSize: '2rem', fontWeight: '600', color: 'var(--primary)' }}>
-              {permissionCounts[role]}
-            </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Screens Accessible
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Full Matrix */}
-      <div style={{ 
-        overflowX: 'auto', 
-        backgroundColor: 'var(--panel)', 
-        borderRadius: '8px',
-        padding: '1rem',
-        border: '1px solid var(--border)'
-      }}>
-        <table style={{ 
-          width: '100%', 
-          borderCollapse: 'collapse', 
-          minWidth: '800px' 
-        }}>
-          <thead>
-            <tr>
-              <th style={{ 
-                padding: '0.75rem', 
-                textAlign: 'left', 
-                borderBottom: '2px solid var(--border)',
-                backgroundColor: 'var(--panel)',
-                position: 'sticky',
-                left: 0
-              }}>
-                Screen
-              </th>
-              {allRoles.map(role => (
-                <th 
-                  key={role}
-                  style={{ 
-                    padding: '0.75rem', 
-                    textAlign: 'center', 
-                    borderBottom: '2px solid var(--border)',
-                    minWidth: '120px'
+        <div>
+          <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem', margin: 0 }}>
+            {t('permission_matrix') || 'Permission Matrix'}
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: 0 }}>
+            {t('permission_matrix_description') || 'View and manage role-based access control for screens and operations'}
+          </p>
+        </div>
+        
+        {isSuperAdmin && (
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {editMode && (
+              <>
+                <button
+                  onClick={handleCancel}
+                  disabled={saving}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: 'var(--error)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    opacity: saving ? 0.6 : 1
                   }}
                 >
-                  {roleDisplayNames[role]}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(groupedScreens).map(([category, screens]) => (
-              <React.Fragment key={category}>
-                <tr>
-                  <td 
-                    colSpan={allRoles.length + 1}
-                    style={{
-                      padding: '0.5rem 0.75rem',
-                      backgroundColor: 'var(--accent)',
-                      color: 'white',
-                      fontWeight: '600',
-                      fontSize: '0.85rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px'
-                    }}
-                  >
-                    {category}
-                  </td>
-                </tr>
-                {screens.map(screen => (
-                  <tr 
-                    key={screen}
-                    style={{
-                      backgroundColor: selectedScreen === screen ? 'var(--accent-light)' : 'transparent',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => setSelectedScreen(selectedScreen === screen ? null : screen)}
-                  >
-                    <td style={{ 
-                      padding: '0.75rem', 
-                      borderBottom: '1px solid var(--border)',
-                      fontWeight: '500',
-                      fontSize: '0.9rem'
-                    }}>
-                      {screen}
-                    </td>
-                    {allRoles.map(role => (
-                      <td 
-                        key={`${screen}-${role}`}
-                        style={{ 
-                          padding: '0.75rem', 
-                          textAlign: 'center', 
-                          borderBottom: '1px solid var(--border)'
-                        }}
-                      >
-                        {hasAccess(role, screen) ? (
-                          <span style={{ 
-                            color: '#10b981', 
-                            fontSize: '1.2rem',
-                            fontWeight: 'bold'
-                          }}>
-                            ✓
-                          </span>
-                        ) : (
-                          <span style={{ 
-                            color: '#ef4444', 
-                            fontSize: '1.2rem'
-                          }}>
-                            ✗
-                          </span>
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
+                  {t('permission_matrix_cancel') || 'Cancel'}
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving || pendingUpdates.length === 0}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: 'var(--success)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: (saving || pendingUpdates.length === 0) ? 'not-allowed' : 'pointer',
+                    opacity: (saving || pendingUpdates.length === 0) ? 0.6 : 1
+                  }}
+                >
+                  {saving ? 'Saving...' : (t('permission_matrix_save') || 'Save Changes')}
+                  {pendingUpdates.length > 0 && ` (${pendingUpdates.length})`}
+                </button>
+              </>
+            )}
+            {!editMode && (
+              <button
+                onClick={() => setEditMode(true)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: 'var(--accent)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                {t('permission_matrix_edit') || 'Edit Permissions'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Legend */}
-      <div style={{ 
-        marginTop: '1.5rem', 
-        display: 'flex', 
-        gap: '2rem',
-        fontSize: '0.9rem',
-        color: 'var(--text-secondary)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ color: '#10b981', fontSize: '1.2rem', fontWeight: 'bold' }}>✓</span>
-          <span>Has Access</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ color: '#ef4444', fontSize: '1.2rem' }}>✗</span>
-          <span>No Access</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span>Click on a screen row to highlight</span>
-        </div>
-      </div>
-
-      {/* Screen Details Panel */}
-      {selectedScreen && (
+      {saveMessage && (
         <div style={{
-          marginTop: '2rem',
-          padding: '1.5rem',
-          backgroundColor: 'var(--panel)',
-          borderRadius: '8px',
-          border: '1px solid var(--accent)'
+          padding: '1rem',
+          backgroundColor: 'var(--success)',
+          color: 'white',
+          borderRadius: '4px',
+          marginBottom: '1rem'
         }}>
-          <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>
-            {selectedScreen}
-          </h3>
-          <div style={{ marginBottom: '1rem' }}>
-            <strong>Accessible by:</strong>
-            <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {allRoles
-                .filter(role => hasAccess(role, selectedScreen))
-                .map(role => (
-                  <span
-                    key={role}
-                    style={{
-                      padding: '0.25rem 0.75rem',
-                      backgroundColor: 'var(--accent)',
-                      color: 'white',
-                      borderRadius: '4px',
-                      fontSize: '0.85rem'
-                    }}
-                  >
-                    {roleDisplayNames[role]}
-                  </span>
-                ))}
-            </div>
-          </div>
-          <div>
-            <strong>Total roles with access:</strong> {screenCounts[selectedScreen]}/{allRoles.length}
-          </div>
+          {saveMessage}
         </div>
       )}
+
+      {/* Permission Tree */}
+      {permissions.map(screen => (
+        <div 
+          key={screen.id}
+          style={{ 
+            marginBottom: '2rem',
+            backgroundColor: 'var(--card-bg)',
+            borderRadius: '8px',
+            border: '1px solid var(--border)',
+            overflow: 'hidden'
+          }}
+        >
+          {/* Screen Header */}
+          <div 
+            style={{
+              padding: '1rem',
+              backgroundColor: 'var(--header-bg)',
+              borderBottom: '1px solid var(--border)',
+              cursor: 'pointer',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+            onClick={() => setSelectedScreen(selectedScreen === screen.id ? null : screen.id)}
+          >
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600' }}>
+                {screen.name}
+              </h3>
+              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                {screen.description}
+              </p>
+            </div>
+            <div style={{ fontSize: '1.25rem' }}>
+              {selectedScreen === screen.id ? '▼' : '▶'}
+            </div>
+          </div>
+
+          {/* Operations */}
+          {selectedScreen === screen.id && (
+            <div style={{ padding: '1rem' }}>
+              {screen.operations.map(operation => (
+                <div 
+                  key={operation.id}
+                  style={{ 
+                    marginBottom: '1rem',
+                    padding: '1rem',
+                    backgroundColor: 'var(--surface)',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)'
+                  }}
+                >
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <strong>{operation.name}</strong>
+                    {operation.description && (
+                      <span style={{ marginLeft: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                        - {operation.description}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Role Permissions Grid */}
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: `repeat(${allRoles.length}, 1fr)`, 
+                    gap: '1rem' 
+                  }}>
+                    {allRoles.map(role => {
+                      const perm = operation.permissions.find(p => p.role === role);
+                      const allowed = perm ? perm.allowed : false;
+                      const hasPendingUpdate = pendingUpdates.some(
+                        u => u.role === role && u.screenId === screen.id && u.operationId === operation.id
+                      );
+                      
+                      return (
+                        <div 
+                          key={role}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.5rem',
+                            backgroundColor: hasPendingUpdate ? 'var(--accent-light)' : 'transparent',
+                            borderRadius: '4px'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={allowed}
+                            disabled={!editMode}
+                            onChange={() => handleTogglePermission(screen.id, operation.id, role, allowed)}
+                            style={{
+                              cursor: editMode ? 'pointer' : 'default',
+                              width: '18px',
+                              height: '18px'
+                            }}
+                          />
+                          <span style={{ fontSize: '0.875rem' }}>
+                            {roleDisplayNames[role]}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 };
