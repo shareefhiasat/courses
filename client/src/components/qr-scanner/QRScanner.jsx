@@ -108,6 +108,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const canUseZapPanel = hasPermission('qr-scanner.canUseZapPanel');
   const canSeeQuickButtons = hasPermission('qr-scanner.canSeeQuickButtons');
   const canMarkAttendance = hasPermission('qr-scanner.canMarkAttendance');
+  const canBulkScan = hasPermission('qr-scanner.canBulkScan');
   const { activityTypeOptions, loading: lookupLoading } = useLookupTypes();
 
   // Refs must be defined before early return (React Hooks rule)
