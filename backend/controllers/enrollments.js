@@ -22,6 +22,9 @@ import {
  */
 export const getAllEnrollmentsController = async (req, res) => {
   try {
+    console.log('🔍 [EnrollmentsController] getAllEnrollments - Query:', req.query);
+    console.log('🔍 [EnrollmentsController] getAllEnrollments - User:', req.user);
+    
     const result = await getAllEnrollments(req.query, req.user);
     
     if (result.success) {
@@ -34,6 +37,7 @@ export const getAllEnrollmentsController = async (req, res) => {
         totalPages: result.totalPages
       });
     } else {
+      console.log('❌ [EnrollmentsController] getAllEnrollments - Error:', result.error);
       res.status(400).json({
         success: false,
         error: result.error

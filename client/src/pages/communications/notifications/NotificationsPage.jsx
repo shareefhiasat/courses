@@ -355,27 +355,21 @@ const NotificationsPage = () => {
       stopGlobalLoading();
     };
 
-    const loadData = async () => {
-      try {
-        // Subscribe to notifications
-        const unsubscribe = subscribeToNotifications(user.uid, (newNotifications) => {
-          setNotifications(newNotifications);
-          safeStop(); // Stop loading when data arrives
-        }, true);
-        
-        return unsubscribe;
-      } catch (error) {
-        error('Error loading notifications:', error);
+    try {
+      // Subscribe to notifications
+      const unsubscribe = subscribeToNotifications(user.uid, (newNotifications) => {
+        setNotifications(newNotifications);
+        safeStop(); // Stop loading when data arrives
+      }, true);
+      
+      return () => {
         safeStop();
-      }
-    };
-
-    const unsubscribe = loadData();
-
-    return () => {
+        if (unsubscribe) unsubscribe();
+      };
+    } catch (error) {
+      error('Error loading notifications:', error);
       safeStop();
-      if (unsubscribe) unsubscribe();
-    };
+    }
   }, [authLoading, user, startLoading]);
 
   return (
@@ -394,7 +388,7 @@ const NotificationsPage = () => {
           </h1>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Volume2 size={18} style={{ color: isDark ? '#9ca3af' : '#6b7280' }} />
+              {getThemedIcon('ui', 'volume2', 18, theme)}
               <ToggleSwitch
                 label=""
                 checked={soundEnabled}

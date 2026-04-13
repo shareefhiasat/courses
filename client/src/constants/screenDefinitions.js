@@ -1,4 +1,5 @@
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { ROLES } from './permissionConfig';
 
 /**
  * Screen Definitions for Localization
@@ -298,55 +299,56 @@ export const getScreensByGroup = (group, t) => {
  */
 export const SCREEN_ROLE_ACCESS = {
   // Main screens
-  home: ['super_admin', 'admin', 'hr', 'instructor', 'student'],
-  dashboard: ['super_admin', 'admin', 'hr', 'instructor'],
-  studentDashboard: ['super_admin', 'admin', 'student'],
-  studentProfile: ['super_admin', 'admin', 'hr', 'instructor'],
-  activities: ['super_admin', 'admin', 'instructor', 'student'],
-  resources: ['super_admin', 'admin', 'instructor', 'student'],
+  home: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR, ROLES.STUDENT],
+  dashboard: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR],
+  studentDashboard: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.STUDENT],
+  studentProfile: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR],
+  activities: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.STUDENT],
+  resources: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.STUDENT],
   
   // Quiz screens
-  quizzes: ['super_admin', 'admin', 'instructor', 'student'],
-  quizManagement: ['super_admin', 'admin', 'instructor'],
-  quizBuilder: ['super_admin', 'admin', 'instructor'],
-  quizResults: ['super_admin', 'admin', 'instructor', 'student'],
-  reviewResults: ['super_admin', 'admin'],
+  quizzes: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.STUDENT],
+  quizManagement: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
+  quizBuilder: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
+  quizResults: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.STUDENT],
+  reviewResults: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
   
   // Class screens
-  classSchedules: ['super_admin', 'admin', 'instructor', 'student'],
-  manageEnrollments: ['super_admin', 'admin', 'instructor'],
-  myEnrollments: ['super_admin', 'admin', 'student'],
-  enrollments: ['super_admin', 'admin'],
+  classSchedules: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.STUDENT],
+  manageEnrollments: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
+  myEnrollments: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.STUDENT],
+  enrollments: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
   
   // Academic screens
-  programs: ['super_admin', 'admin'],
-  subjects: ['super_admin', 'admin'],
-  classes: ['super_admin', 'admin', 'instructor'],
-  marksEntry: ['super_admin', 'admin', 'instructor'],
-  courseProgress: ['super_admin', 'admin', 'student'],
-  courses: ['super_admin', 'admin', 'instructor', 'student'],
+  programs: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
+  subjects: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
+  classes: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
+  marksEntry: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
+  courseProgress: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.STUDENT],
+  courses: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.STUDENT],
   
   // Attendance screens
-  attendance: ['super_admin', 'admin', 'instructor'],
-  hrAttendance: ['super_admin', 'hr'],
-  myAttendance: ['super_admin', 'admin', 'student'],
-  hrPenalties: ['super_admin', 'hr'],
-  instructorParticipation: ['super_admin', 'admin', 'instructor'],
-  instructorBehavior: ['super_admin', 'admin', 'instructor'],
+  attendance: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
+  hrAttendance: [ROLES.SUPER_ADMIN, ROLES.HR],
+  myAttendance: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.STUDENT],
+  hrPenalties: [ROLES.SUPER_ADMIN, ROLES.HR],
+  instructorParticipation: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
+  instructorBehavior: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
+  qrScanner: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR],
   
   // Analytics screens
-  analytics: ['super_admin', 'admin', 'hr', 'instructor'],
-  advancedAnalytics: ['super_admin', 'admin'],
+  analytics: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR],
+  advancedAnalytics: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
   
   // Communication screens
-  chat: ['super_admin', 'admin', 'instructor', 'student'],
-  scheduledReports: ['super_admin', 'admin'],
-  smtpConfig: ['super_admin'],
-  notifications: ['super_admin', 'admin', 'hr', 'instructor', 'student'],
+  chat: [ROLES.SUPER_ADMIN],
+  scheduledReports: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
+  smtpConfig: [ROLES.SUPER_ADMIN],
+  notifications: [ROLES.SUPER_ADMIN],
   
   // Settings screens
-  profile: ['super_admin', 'admin', 'hr', 'instructor', 'student'],
-  roleAccess: ['super_admin'] // REMOVED from UI - kept for reference only
+  profile: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR, ROLES.STUDENT],
+  roleAccess: [ROLES.SUPER_ADMIN] // REMOVED from UI - kept for reference only
 };
 
 /**
@@ -358,7 +360,8 @@ export const SCREEN_ROLE_ACCESS = {
 export const hasScreenAccess = (screenId, userRoles) => {
   // Super admin always has access
   const roles = Array.isArray(userRoles) ? userRoles : [userRoles];
-  if (roles.includes('super_admin')) return true;
+  const normalizedRoles = roles.map(role => role.toUpperCase().replace(/-/g, '_'));
+  if (normalizedRoles.includes(ROLES.SUPER_ADMIN)) return true;
   
   // Home is accessible to all authenticated users
   if (screenId === 'home') return true;
@@ -367,5 +370,5 @@ export const hasScreenAccess = (screenId, userRoles) => {
   const allowedRoles = SCREEN_ROLE_ACCESS[screenId];
   if (!allowedRoles) return false; // Unknown screen - deny by default
   
-  return roles.some(role => allowedRoles.includes(role));
+  return normalizedRoles.some(role => allowedRoles.includes(role));
 };

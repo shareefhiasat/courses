@@ -350,11 +350,17 @@ export const getEnrollmentsByProgram = async (
   user = null,
 ) => {
   try {
+    console.log('🔍 [EnrollmentsService] getEnrollmentsByProgram - programId:', programId);
+    console.log('🔍 [EnrollmentsService] getEnrollmentsByProgram - params:', params);
+    console.log('🔍 [EnrollmentsService] getEnrollmentsByProgram - user:', user);
+    
     // Use the db service which already supports programId filtering
     const result = await enrollmentDbService.getEnrollments({
       ...params,
       programId,
     });
+
+    console.log('🔍 [EnrollmentsService] getEnrollmentsByProgram - result:', result);
 
     return {
       ...result,

@@ -1,10 +1,18 @@
 // QR Scanner screen permissions - code-based configuration
 // This will be migrated to DB in Phase 2
 
+export const ROLES = {
+  SUPER_ADMIN: 'SUPER_ADMIN',
+  HR: 'HR',
+  ADMIN: 'ADMIN',
+  INSTRUCTOR: 'INSTRUCTOR',
+  STUDENT: 'STUDENT'
+};
+
 export const PERMISSION_CONFIG = {
   // Role definitions
   roles: {
-    super_admin: {
+    [ROLES.SUPER_ADMIN]: {
       // Screen access
       canAccessAllScreens: true,
       canAccessQRScanner: true,
@@ -25,7 +33,7 @@ export const PERMISSION_CONFIG = {
       canExport: true,
       canSeeQuickButtons: true
     },
-    hr: {
+    [ROLES.HR]: {
       // Screen access
       canAccessAllScreens: false,
       canAccessQRScanner: true,
@@ -46,7 +54,7 @@ export const PERMISSION_CONFIG = {
       canExport: true,
       canSeeQuickButtons: true
     },
-    admin: {
+    [ROLES.ADMIN]: {
       // Screen access
       canAccessAllScreens: false,
       canAccessQRScanner: true,
@@ -67,7 +75,7 @@ export const PERMISSION_CONFIG = {
       canExport: true,
       canSeeQuickButtons: true
     },
-    instructor: {
+    [ROLES.INSTRUCTOR]: {
       // Screen access
       canAccessAllScreens: false,
       canAccessQRScanner: true,
@@ -88,7 +96,7 @@ export const PERMISSION_CONFIG = {
       canExport: true,
       canSeeQuickButtons: true
     },
-    student: {
+    [ROLES.STUDENT]: {
       // Screen access
       canAccessAllScreens: false,
       canAccessQRScanner: false,
@@ -113,11 +121,11 @@ export const PERMISSION_CONFIG = {
 
   // Screen access mapping for side menu
   screenAccess: {
-    super_admin: ['all'], // Special key for all screens
-    hr: ['operations/attendance/qr-scanner'],
-    admin: ['operations/attendance/qr-scanner'],
-    instructor: ['operations/attendance/qr-scanner'],
-    student: []
+    [ROLES.SUPER_ADMIN]: ['all'], // Special key for all screens
+    [ROLES.HR]: ['/', '/qr-scanner', '/hr-attendance', '/analytics', '/student-profile', '/profile'],
+    [ROLES.ADMIN]: ['all'], // Admin can access all screens except role-access-pro
+    [ROLES.INSTRUCTOR]: ['all'], // Instructor can access all screens except role-access-pro
+    [ROLES.STUDENT]: ['/', '/student-dashboard', '/my-enrollments', '/class-schedules', '/my-attendance', '/profile']
   }
 };
 

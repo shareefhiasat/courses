@@ -59,8 +59,14 @@ export const hasScreenAccess = (userRole, screenName) => {
   return screenAccess[userRole]?.includes(screenName) || false;
 };
 
-export const getUserRoleDisplay = (role) => {
-  return ROLE_DISPLAY_NAMES[role] || 'Unknown';
+export const getUserRoleDisplay = (userOrRole, t, lang) => {
+  // Handle user object with role property
+  if (typeof userOrRole === 'object' && userOrRole !== null) {
+    const role = userOrRole.role || userOrRole.roles?.[0];
+    return ROLE_DISPLAY_NAMES[role] || 'Unknown';
+  }
+  // Handle direct role string
+  return ROLE_DISPLAY_NAMES[userOrRole] || 'Unknown';
 };
 
 export const getUserDisplayName = (user) => {

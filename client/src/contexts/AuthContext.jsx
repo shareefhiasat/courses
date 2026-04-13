@@ -8,6 +8,7 @@ import React, { createContext, useContext, useEffect, useState, useRef, useCallb
 import { useKeycloak } from '@react-keycloak/web';
 import { info, error, warn, debug } from '@logger';
 import { ConfirmModal } from '@ui';
+import { ROLES } from '@constants/permissionConfig';
 
 // Session configuration from environment variables
 const SESSION_CONFIG = {
@@ -39,6 +40,7 @@ export const AuthProvider = ({ children }) => {
   const [isInstructor, setIsInstructor] = useState(false);
   const [isStudent, setIsStudent] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [role, setRole] = useState(null);
   
   // Session extension modal state
   const [showSessionModal, setShowSessionModal] = useState(false);
@@ -416,11 +418,10 @@ export const AuthProvider = ({ children }) => {
       // Combine and deduplicate roles
       const allRoles = [...new Set([...realmRoles, ...clientRoles])];
       
-      // Normalize role names (ensure underscores for consistency)
+      // Normalize role names (ensure uppercase and underscores to match database codes)
       const normalizedRoles = allRoles.map(role => {
-        // Convert super-admin or superadmin to super_admin
-        if (role === 'super-admin' || role === 'superadmin') return 'super_admin';
-        return role.toLowerCase();
+        // Convert to uppercase and replace hyphens with underscores
+        return role.toUpperCase().replace(/-/g, '_');
       });
       
       // Create user object from Keycloak token
@@ -435,12 +436,20 @@ export const AuthProvider = ({ children }) => {
         refreshToken: keycloak.refreshToken
       };
 
-      // Set role flags
-      setIsAdmin(normalizedRoles.includes('admin'));
-      setIsHR(normalizedRoles.includes('hr'));
-      setIsInstructor(normalizedRoles.includes('instructor'));
-      setIsStudent(normalizedRoles.includes('student'));
-      setIsSuperAdmin(normalizedRoles.includes('super_admin'));
+      // Set role flags (matching database user_roles table codes)
+      setIsAdmin(normalizedRoles.includes(ROLES.ADMIN));
+      setIsHR(normalizedRoles.includes(ROLES.HR));
+      setIsInstructor(normalizedRoles.includes(ROLES.INSTRUCTOR));
+      setIsStudent(normalizedRoles.includes(ROLES.STUDENT));
+      setIsSuperAdmin(normalizedRoles.includes(ROLES.SUPER_ADMIN));
+
+      // Set role code
+      if (normalizedRoles.includes(ROLES.SUPER_ADMIN)) setRole(ROLES.SUPER_ADMIN);
+      else if (normalizedRoles.includes(ROLES.ADMIN)) setRole(ROLES.ADMIN);
+      else if (normalizedRoles.includes(ROLES.HR)) setRole(ROLES.HR);
+      else if (normalizedRoles.includes(ROLES.INSTRUCTOR)) setRole(ROLES.INSTRUCTOR);
+      else if (normalizedRoles.includes(ROLES.STUDENT)) setRole(ROLES.STUDENT);
+      else setRole(null);
 
       setUser(userObj);
       setLoading(false);
@@ -451,7 +460,7 @@ export const AuthProvider = ({ children }) => {
         console.log('[AuthContext] ✅ Token saved to localStorage');
       }
       
-      info('🔐 Keycloak user authenticated:', {
+      console.log('🔐 [DEBUG] Keycloak user authenticated:', {
         email: userObj.email,
         realmRoles: realmRoles,
         clientRoles: clientRoles,
@@ -473,6 +482,7 @@ export const AuthProvider = ({ children }) => {
       setIsInstructor(false);
       setIsStudent(false);
       setIsSuperAdmin(false);
+      setRole(null);
       setLoading(false);
     }
   }, [initialized, keycloak, scheduleSessionWarning, scheduleIdleWarning]);
@@ -761,6 +771,7 @@ export const AuthProvider = ({ children }) => {
     isInstructor,
     isStudent,
     isSuperAdmin,
+    role,
     logout,
     hasRole,
     hasAnyRole,

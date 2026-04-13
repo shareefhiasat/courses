@@ -1,23 +1,23 @@
 import { useMemo } from 'react';
 import { useAuth } from '@contexts/AuthContext';
-import { getPermission, canAccessScreen, PERMISSION_CONFIG } from '@constants/permissionConfig';
+import { getPermission, canAccessScreen, PERMISSION_CONFIG, ROLES } from '@constants/permissionConfig';
 
 export const usePermissions = () => {
   const { role, isSuperAdmin, isHR, isAdmin, isInstructor, isStudent } = useAuth();
 
-  // Determine user's role code
+  // Determine user's role code (matching database user_roles table codes)
   const roleCode = useMemo(() => {
-    if (isSuperAdmin) return 'super_admin';
-    if (isHR) return 'hr';
-    if (isAdmin) return 'admin';
-    if (isInstructor) return 'instructor';
-    if (isStudent) return 'student';
+    if (isSuperAdmin) return ROLES.SUPER_ADMIN;
+    if (isHR) return ROLES.HR;
+    if (isAdmin) return ROLES.ADMIN;
+    if (isInstructor) return ROLES.INSTRUCTOR;
+    if (isStudent) return ROLES.STUDENT;
     return null;
   }, [isSuperAdmin, isHR, isAdmin, isInstructor, isStudent]);
 
   // Get permissions for this role
   const permissions = useMemo(() => {
-    if (!roleCode) return PERMISSION_CONFIG.roles.student;
+    if (!roleCode) return PERMISSION_CONFIG.roles[ROLES.STUDENT];
     return PERMISSION_CONFIG.roles[roleCode];
   }, [roleCode]);
 

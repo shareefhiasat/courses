@@ -322,7 +322,7 @@ const AppContent = () => {
           <Route 
             path="/qr-scanner" 
             element={
-              <ProtectedRoute screenId="attendance" screenName="QR Scanner">
+              <ProtectedRoute screenId="qrScanner" screenName="QR Scanner">
                 <QRScannerPage />
               </ProtectedRoute>
             } 

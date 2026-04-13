@@ -119,16 +119,6 @@ const UnauthorizedPage = () => {
                   {t('go_home') || 'Go Home'}
                 </span>
               </Button>
-
-              <Button
-                variant="success"
-                onClick={handleContactAdmin}
-                style={{ minWidth: 120 }}
-              >
-                <span style={{ marginLeft: lang === 'ar' ? 0 : 8, marginRight: lang === 'ar' ? 8 : 0 }}>
-                  {t('contact_admin') || 'Contact Admin'}
-                </span>
-              </Button>
             </div>
 
             {/* Help Text */}

@@ -448,6 +448,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: t('main') || 'MAIN',
       items: [
         { path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: t('home') || 'Home' },
+        { path: '/qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: t('daily_scan') || 'Daily Scan' },
         { path: '/hr-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: t('hr_attendance') || 'HR Attendance' },
         { path: '/analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: t('analytics') || 'Analytics' },
       ]
