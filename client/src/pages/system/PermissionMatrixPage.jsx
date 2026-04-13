@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ROLES } from '@utils/userUtils';
+import { ROLE_STRINGS } from '@utils/userUtils';
 import { SCREEN_ROLE_ACCESS } from '@constants/screenDefinitions';
 import { useLang } from '@contexts/LangContext';
 
@@ -19,15 +19,15 @@ const PermissionMatrixPage = () => {
   const allScreens = useMemo(() => Object.keys(SCREEN_ROLE_ACCESS).sort(), []);
   
   // Get all roles
-  const allRoles = useMemo(() => [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR, ROLES.STUDENT], []);
+  const allRoles = useMemo(() => [ROLE_STRINGS.SUPER_ADMIN, ROLE_STRINGS.ADMIN, ROLE_STRINGS.HR, ROLE_STRINGS.INSTRUCTOR, ROLE_STRINGS.STUDENT], []);
 
   // Role display names
   const roleDisplayNames = {
-    [ROLES.SUPER_ADMIN]: 'Super Admin',
-    [ROLES.ADMIN]: 'Admin',
-    [ROLES.HR]: 'HR',
-    [ROLES.INSTRUCTOR]: 'Instructor',
-    [ROLES.STUDENT]: 'Student'
+    [ROLE_STRINGS.SUPER_ADMIN]: 'Super Admin',
+    [ROLE_STRINGS.ADMIN]: 'Admin',
+    [ROLE_STRINGS.HR]: 'HR',
+    [ROLE_STRINGS.INSTRUCTOR]: 'Instructor',
+    [ROLE_STRINGS.STUDENT]: 'Student'
   };
 
   // Group screens by category (based on naming convention)

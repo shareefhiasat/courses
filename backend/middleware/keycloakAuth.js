@@ -6,6 +6,7 @@
  */
 
 import jwt from 'jsonwebtoken';
+import { LMS_ROLES as ROLES } from '../services/keycloakAdminService.js';
 
 /**
  * Verify Keycloak JWT token
@@ -71,10 +72,12 @@ const hasRequiredRole = (token, requiredRoles) => {
     });
   }
   
-  // Normalize role names
+  // Normalize role names to match LMS canonical roles
   const normalizedRoles = userRoles.map(role => {
-    if (role === 'super-admin' || role === 'superadmin') return 'super_admin';
-    return role.toLowerCase();
+    const lowerRole = role.toLowerCase();
+    // Handle common Keycloak role format variations
+    if (lowerRole === 'super-admin' || lowerRole === 'superadmin') return ROLES.SUPER_ADMIN;
+    return lowerRole;
   });
   
   // Check if user has any of the required roles
@@ -109,14 +112,37 @@ export const keycloakAuth = (requiredRoles = []) => {
         });
       }
       
+      // Extract all roles from token
+      const userRoles = [];
+      
+      // Extract roles from realm_access
+      if (decoded.realm_access && decoded.realm_access.roles) {
+        userRoles.push(...decoded.realm_access.roles);
+      }
+      
+      // Extract roles from client_access
+      if (decoded.resource_access) {
+        Object.values(decoded.resource_access).forEach(client => {
+          if (client.roles) {
+            userRoles.push(...client.roles);
+          }
+        });
+      }
+      
+      // Normalize role names
+      const normalizedRoles = userRoles.map(role => {
+        if (role === 'super-admin' || role === 'superadmin') return LMS_ROLES.SUPER_ADMIN;
+        return role.toLowerCase();
+      });
+      
       // Add user info to request
       req.user = {
         id: decoded.sub,
         email: decoded.email,
         firstName: decoded.given_name,
         lastName: decoded.family_name,
-        roles: decoded.realm_access?.roles || [],
-        isAdmin: hasRequiredRole(decoded, ['super_admin', 'admin'])
+        roles: normalizedRoles,
+        isAdmin: hasRequiredRole(decoded, [ROLES.SUPER_ADMIN, ROLES.ADMIN])
       };
       
       next();
@@ -133,12 +159,12 @@ export const keycloakAuth = (requiredRoles = []) => {
 /**
  * Middleware for super admin only endpoints
  */
-export const requireSuperAdmin = keycloakAuth(['super_admin']);
+export const requireSuperAdmin = keycloakAuth([ROLES.SUPER_ADMIN]);
 
 /**
  * Middleware for admin or super admin endpoints
  */
-export const requireAdmin = keycloakAuth(['admin', 'super_admin']);
+export const requireAdmin = keycloakAuth([ROLES.ADMIN, ROLES.SUPER_ADMIN]);
 
 /**
  * Middleware for any authenticated user

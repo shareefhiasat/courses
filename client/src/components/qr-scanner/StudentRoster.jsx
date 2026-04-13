@@ -188,10 +188,10 @@ const StudentRoster = React.memo(function StudentRoster({
             color: ATTENDANCE_STATUS_LABELS[statusStr]?.color || '#6b7280',
             status: record.status,  // ← Keep original status object for other uses
             method: record.method, // ← Add method field for localization
-            // Add user information - map markedBy fields to performedBy fields for consistency
-            performedBy: record.markedBy,
-            performedByName: record.markedByName || record.performedByName,
-            performedByEmail: record.markedByEmail || record.performedByEmail
+            // Add user information - use creator from database first, then fallback to markedBy/performedBy
+            performedBy: record.creator?.id || record.markedBy || record.performedBy,
+            performedByName: record.creator?.displayName || record.markedByName || record.performedByName,
+            performedByEmail: record.creator?.email || record.markedByEmail || record.performedByEmail
           };
 
           debug('Processing attendance record:', {
@@ -227,10 +227,10 @@ const StudentRoster = React.memo(function StudentRoster({
             comment: p.description || '',
             severity: 'low',
             color: '#dbeafe',
-            // Add user information
-            performedBy: p.performedBy,
-            performedByName: p.performedByName,
-            performedByEmail: p.performedByEmail,
+            // Add user information - use creator from database first
+            performedBy: p.creator?.id || p.performedBy,
+            performedByName: p.creator?.displayName || p.performedByName,
+            performedByEmail: p.creator?.email || p.performedByEmail,
             user: p.user,
             createdBy: p.createdBy
           };
@@ -251,10 +251,10 @@ const StudentRoster = React.memo(function StudentRoster({
             comment: b.description || '',
             severity: 'low',
             color: '#fff7ed',
-            // Add user information
-            performedBy: b.performedBy,
-            performedByName: b.performedByName,
-            performedByEmail: b.performedByEmail,
+            // Add user information - use creator from database first
+            performedBy: b.creator?.id || b.performedBy,
+            performedByName: b.creator?.displayName || b.performedByName,
+            performedByEmail: b.creator?.email || b.performedByEmail,
             user: b.user,
             createdBy: b.createdBy
           };
@@ -278,10 +278,10 @@ const StudentRoster = React.memo(function StudentRoster({
             comment: penalty.reason || penalty.note || penalty.comment || '',
             severity: penalty.severity || 'medium',
             color: penalty.points > 0 ? '#dcfce7' : '#fee2e2',
-            // Add user information
-            performedBy: penalty.performedBy,
-            performedByName: penalty.performedByName,
-            performedByEmail: penalty.performedByEmail,
+            // Add user information - use creator from database first
+            performedBy: penalty.creator?.id || penalty.performedBy,
+            performedByName: penalty.creator?.displayName || penalty.performedByName,
+            performedByEmail: penalty.creator?.email || penalty.performedByEmail,
             user: penalty.user,
             createdBy: penalty.createdBy
           };
