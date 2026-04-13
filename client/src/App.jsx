@@ -7,8 +7,10 @@ import { ThemeProvider } from '@contexts/ThemeContext';
 import { ColorThemeProvider } from '@contexts/ColorThemeContext';
 import { GlobalLoadingProvider, GlobalLoadingFallback } from '@contexts/GlobalLoadingContext';
 import { HelpProvider } from '@contexts/HelpContext';
-import { info, error, warn, debug } from '@logger';
-import ProtectedRoute from './components/ProtectedRoute';
+import { info, error, warn, debug } from './services/utils/logger.js';
+import { ROLE_STRINGS } from './utils/userUtils.js';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
+import ErrorBoundary from './components/ui/ErrorBoundary.jsx';
 import './App.css';
 import './styles/colors.css';
 import './styles/tokens.css';
@@ -18,7 +20,6 @@ import './utils/userRoleManager';
 
 // Direct imports — always-on shell components (not lazy, no barrel)
 import Navbar from '@ui/Navbar/Navbar';
-import ErrorBoundary from '@ui/ErrorBoundary.jsx';
 import HelpDrawer from '@ui/HelpDrawer.jsx';
 import SideDrawer from '@ui/SideDrawer/SideDrawer';
 import LoadingProgress from '@ui/LoadingProgress/LoadingProgress';
@@ -47,6 +48,7 @@ const ClassSchedulePage = lazy(() => import('./pages/academic/classes/ClassSched
 const ScheduleOverviewPage = lazy(() => import('./pages/academic/schedules/ScheduleOverviewPage'));
 const EnrollmentsPage = lazy(() => import('./pages/academic/enrollments/EnrollmentsPage'));
 const AnalyticsPage = lazy(() => import('./pages/feedback/analytics/AnalyticsPage'));
+const PermissionMatrixPage = lazy(() => import('./pages/system/PermissionMatrixPage'));
 // RoleAccessPro removed - now using Keycloak roles for RBAC
 const StudentProfilePage = lazy(() => import('./pages/users/StudentProfilePage'));
 const StudentDashboardPage = lazy(() => import('./pages/dashboard/StudentDashboardPage'));
@@ -514,6 +516,16 @@ const AppContent = () => {
                 <ProfileSettingsPage />
               </ProtectedRoute>
             } 
+          />
+          
+          {/* Permission Matrix - Super Admin only */}
+          <Route
+            path="/permission-matrix"
+            element={
+              <ProtectedRoute allowedRoles={[ROLE_STRINGS.SUPER_ADMIN]}>
+                <PermissionMatrixPage />
+              </ProtectedRoute>
+            }
           />
           
           {/* RoleAccessPro route removed - now using Keycloak roles for RBAC */}

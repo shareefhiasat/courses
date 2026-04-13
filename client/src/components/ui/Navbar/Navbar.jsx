@@ -254,7 +254,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 alignItems: 'center',
                 gap: '0.35rem'
               }}>
-                <NotificationBell />
+                {isSuperAdmin && <NotificationBell />}
 
                 <PortalTooltip content={lang === 'en' ? 'العربية' : 'English'} position="bottom">
                 <button
@@ -555,7 +555,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 </>
               )}
 
-              <NotificationBell />
+              {isSuperAdmin && <NotificationBell />}
               
               <PortalTooltip content={lang==='en'?'العربية':'English'} position="bottom">
               <button onClick={toggleLang} className="icon-btn">

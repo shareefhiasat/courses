@@ -449,8 +449,6 @@ const SideDrawer = ({ isOpen, onClose }) => {
       items: [
         { path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: t('home') || 'Home' },
         { path: '/qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: t('daily_scan') || 'Daily Scan' },
-        { path: '/hr-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: t('hr_attendance') || 'HR Attendance' },
-        { path: '/analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: t('analytics') || 'Analytics' },
       ]
     },
     community: {
@@ -490,9 +488,13 @@ const SideDrawer = ({ isOpen, onClose }) => {
         tools: { ...adminLinks.tools, items: [...adminLinks.tools.items] },
         settings: { ...adminLinks.settings, items: [...adminLinks.settings.items] }
       };
-      // Add Role Access only for SuperAdmin
+      // Add Permission Matrix only for SuperAdmin
       if (isSuperAdmin) {
-        links.main.items.push({ path: '/role-access-pro', icon: getThemedIcon('ui', 'shield', 18, theme), label: t('role_access') || 'Role Access' });
+        links.tools.items.push({ 
+          path: '/permission-matrix', 
+          icon: getThemedIcon('ui', 'shield', 18, theme), 
+          label: t('permission_matrix') || 'Permission Matrix' 
+        });
       }
     } else if (isHR) {
       links = {

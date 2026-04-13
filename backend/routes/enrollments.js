@@ -17,6 +17,7 @@ import {
   getStudentsByClassController,
   getEnrollmentsByProgramController,
 } from "../controllers/enrollments.js";
+import { requireAuth } from "../middleware/keycloakAuth.js";
 
 const router = Router();
 
@@ -117,7 +118,7 @@ const router = Router();
  *                   type: integer
  *                   example: 10
  */
-router.get("/", getAllEnrollmentsController);
+router.get("/", requireAuth, getAllEnrollmentsController);
 
 /**
  * @swagger
@@ -148,7 +149,7 @@ router.get("/", getAllEnrollmentsController);
  *                   items:
  *                     type: object
  */
-router.get("/students-by-class", getStudentsByClassController);
+router.get("/students-by-class", requireAuth, getStudentsByClassController);
 
 /**
  * @swagger
@@ -398,6 +399,6 @@ router.get("/class/:classId", getEnrollmentsByClassController);
  *                   items:
  *                     $ref: '#/components/schemas/Enrollment'
  */
-router.get("/program/:programId", getEnrollmentsByProgramController);
+router.get("/program/:programId", requireAuth, getEnrollmentsByProgramController);
 
 export default router;

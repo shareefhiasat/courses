@@ -6,6 +6,7 @@
  */
 
 import enrollmentDbService from "../db/enrollments-postgres.js";
+import { LMS_ROLES } from './keycloakAdminService.js';
 
 const serviceName = "enrollmentsBusinessService";
 
@@ -18,14 +19,32 @@ const serviceName = "enrollmentsBusinessService";
  */
 export const getAllEnrollments = async (params = {}, user = null) => {
   try {
-    console.log(`[${serviceName}] getAllEnrollments`, { params });
+    console.log(`[${serviceName}] getAllEnrollments`, { params, user });
 
     // Add business logic filters if needed
     const businessParams = { ...params };
 
-    // For non-admin users, only show their own enrollments
-    if (user && !user.isAdmin) {
-      businessParams.userId = user.id;
+    // Role-based data filtering
+    if (user && user.roles) {
+      const roles = user.roles;
+      
+      // HR, Admin, and Super Admin can see all enrollments (no userId filter)
+      if (roles.includes(LMS_ROLES.HR) || roles.includes(LMS_ROLES.ADMIN) || roles.includes(LMS_ROLES.SUPER_ADMIN)) {
+        // No userId filter - can see all enrollments
+      }
+      // Instructor can only see enrollments for classes they teach
+      else if (roles.includes(LMS_ROLES.INSTRUCTOR)) {
+        // This will be handled at the DB level by filtering by class.instructorId
+        // For now, we don't add userId filter for instructors
+      }
+      // Student can only see their own enrollments
+      else if (roles.includes(LMS_ROLES.STUDENT)) {
+        businessParams.userId = user.id;
+      }
+      // Fallback: if no recognized role, filter by userId for safety
+      else {
+        businessParams.userId = user.id;
+      }
     }
 
     const result = await enrollmentDbService.getEnrollments(businessParams);
@@ -354,11 +373,34 @@ export const getEnrollmentsByProgram = async (
     console.log('🔍 [EnrollmentsService] getEnrollmentsByProgram - params:', params);
     console.log('🔍 [EnrollmentsService] getEnrollmentsByProgram - user:', user);
     
+    // Add business logic filters if needed
+    const businessParams = { ...params, programId };
+
+    // Role-based data filtering
+    if (user && user.roles) {
+      const roles = user.roles;
+      
+      // HR, Admin, and Super Admin can see all enrollments (no userId filter)
+      if (roles.includes(LMS_ROLES.HR) || roles.includes(LMS_ROLES.ADMIN) || roles.includes(LMS_ROLES.SUPER_ADMIN)) {
+        // No userId filter - can see all enrollments
+      }
+      // Instructor can only see enrollments for classes they teach
+      else if (roles.includes(LMS_ROLES.INSTRUCTOR)) {
+        // This will be handled at the DB level by filtering by class.instructorId
+        // For now, we don't add userId filter for instructors
+      }
+      // Student can only see their own enrollments
+      else if (roles.includes(LMS_ROLES.STUDENT)) {
+        businessParams.userId = user.id;
+      }
+      // Fallback: if no recognized role, filter by userId for safety
+      else {
+        businessParams.userId = user.id;
+      }
+    }
+    
     // Use the db service which already supports programId filtering
-    const result = await enrollmentDbService.getEnrollments({
-      ...params,
-      programId,
-    });
+    const result = await enrollmentDbService.getEnrollments(businessParams);
 
     console.log('🔍 [EnrollmentsService] getEnrollmentsByProgram - result:', result);
 
