@@ -28,6 +28,7 @@ import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { StudentHistory, StudentRosterHistory } from '@ui/history';
 import { DeleteModal } from '@ui';
 import { StudentCard, StudentTableRow } from '@ui/history';
+import { usePermissions } from '@hooks/usePermissions';
 
 const StudentRoster = React.memo(function StudentRoster({
   students,
@@ -61,9 +62,20 @@ const StudentRoster = React.memo(function StudentRoster({
   const { data: lookupData } = useLookupTypes({
     types: ['penalty-types', 'behavior-types', 'participation-types']
   });
+  const { hasPermission } = usePermissions();
+  const canSeeStandupMode = hasPermission('qr-scanner.canSeeStandupMode');
+  const canDeleteAttendance = hasPermission('qr-scanner.canDeleteAttendance');
+  const canUseStatsPanel = hasPermission('qr-scanner.canUseStatsPanel');
+  const canUseZapPanel = hasPermission('qr-scanner.canUseZapPanel');
+  const canSeeQuickButtons = hasPermission('qr-scanner.canSeeQuickButtons');
+  const canMarkAttendance = hasPermission('qr-scanner.canMarkAttendance');
+  const canUseQuickAttendance = canSeeQuickButtons && canMarkAttendance;
+  
+  // Force attendanceMode to REGULAR if user doesn't have canSeeStandupMode permission
+  const effectiveAttendanceMode = canSeeStandupMode ? attendanceMode : ATTENDANCE_TYPE_CATEGORY.REGULAR;
   
   // DEBUG: Log attendanceMode
-  console.log('🔍 StudentRoster - attendanceMode:', attendanceMode);
+  console.log('🔍 StudentRoster - attendanceMode:', attendanceMode, 'effective:', effectiveAttendanceMode);
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -138,8 +150,10 @@ const StudentRoster = React.memo(function StudentRoster({
       const standupAttendanceRecords = standupAttendanceResponse.success
           ? standupAttendanceResponse.data : [];
 
-      // Merge regular and standup attendance records
-      const allAttendanceRecords = [...attendanceRecords, ...standupAttendanceRecords];
+      // Merge regular and standup attendance records (only if user has canSeeStandupMode permission)
+      const allAttendanceRecords = canSeeStandupMode 
+        ? [...attendanceRecords, ...standupAttendanceRecords]
+        : attendanceRecords;
 
       const [penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
         getPenalties(studentId),
@@ -1227,10 +1241,13 @@ const StudentRoster = React.memo(function StudentRoster({
                   toggleDayExpansion={toggleDayExpansion}
                   expandAllDays={expandAllDays}
                   collapseAllDays={collapseAllDays}
-                  handleDeleteAttendance={handleDeleteAttendance}
-                  handleDeleteParticipation={handleDeleteParticipation}
-                  handleDeleteBehavior={handleDeleteBehavior}
-                  handleDeletePenalty={handleDeletePenalty}
+                  handleDeleteAttendance={canDeleteAttendance ? handleDeleteAttendance : null}
+                  handleDeleteParticipation={canDeleteAttendance ? handleDeleteParticipation : null}
+                  handleDeleteBehavior={canDeleteAttendance ? handleDeleteBehavior : null}
+                  handleDeletePenalty={canDeleteAttendance ? handleDeletePenalty : null}
+                  canDeleteAttendance={canDeleteAttendance}
+                  canUseStatsPanel={canUseStatsPanel}
+                  canUseZapPanel={canUseZapPanel}
                   getAttendanceBadge={getAttendanceBadge}
                   t={t}
                   isRTL={isRTL}
@@ -1577,19 +1594,24 @@ const StudentRoster = React.memo(function StudentRoster({
                     toggleRowExpansion={toggleRowExpansion}
                     onStudentAction={onStudentAction}
                     onStudentSelect={onStudentSelect}
-                    onQuickAttendance={handleQuickAttendance}
+                    onQuickAttendance={canUseQuickAttendance ? handleQuickAttendance : null}
                     programId={selectedProgramId}
                     studentHistory={studentHistory}
                     expandedDays={expandedDays}
                     activeFilters={activeFilters}
                     toggleDayExpansion={toggleDayExpansion}
-                    attendanceMode={attendanceMode}
+                    attendanceMode={effectiveAttendanceMode}
                     expandAllDays={expandAllDays}
                     collapseAllDays={collapseAllDays}
-                    handleDeleteAttendance={handleDeleteAttendance}
-                    handleDeleteParticipation={handleDeleteParticipation}
-                    handleDeleteBehavior={handleDeleteBehavior}
-                    handleDeletePenalty={handleDeletePenalty}
+                    handleDeleteAttendance={canDeleteAttendance ? handleDeleteAttendance : null}
+                    handleDeleteParticipation={canDeleteAttendance ? handleDeleteParticipation : null}
+                    handleDeleteBehavior={canDeleteAttendance ? handleDeleteBehavior : null}
+                    canDeleteAttendance={canDeleteAttendance}
+                    handleDeletePenalty={canDeleteAttendance ? handleDeletePenalty : null}
+                    canUseStatsPanel={canUseStatsPanel}
+                    canUseZapPanel={canUseZapPanel}
+                    canSeeQuickButtons={canSeeQuickButtons}
+                    canMarkAttendance={canMarkAttendance}
                     getAttendanceBadge={getAttendanceBadge}
                     showTotalAttendance={showTotalAttendance}
                     selectedStudentId={selectedStudentId}

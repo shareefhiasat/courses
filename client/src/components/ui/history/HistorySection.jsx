@@ -29,7 +29,8 @@ export const HistorySection = ({
   onDelete, 
   t, 
   isRTL,
-  borderColor = '#f1f5f9'
+  borderColor = '#f1f5f9',
+  showDeleteButton = true
 }) => {
   const isMobile = useIsMobile();
   const { data: lookupData } = useLookupTypes({
@@ -132,6 +133,7 @@ export const HistorySection = ({
           t={t}
           isRTL={isRTL}
           borderColor={idx === sortedLogs.length - 1 ? 'none' : borderColor}
+          showDeleteButton={showDeleteButton}
         />
       ))}
     </div>

@@ -18,7 +18,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
-  const { canAccessScreen: checkScreenAccess, roleCode } = usePermissions();
+  const { canAccessScreen: checkScreenAccess, roleCode, loading: permissionsLoading } = usePermissions();
   const [drawerWidth, setDrawerWidth] = useState(() => {
     try { return Math.min(480, Math.max(260, parseInt(localStorage.getItem('drawer_width') || '280', 10))); } catch { return 280; }
   });

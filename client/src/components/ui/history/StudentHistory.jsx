@@ -22,7 +22,8 @@ const StudentHistory = React.memo(({
   isRTL,
   studentId,
   lang = 'en',
-  studentName
+  studentName,
+  canDeleteAttendance = false
 }) => {
   info('🔧 StudentHistory rendering with groupedLogs:', groupedLogs);
   info('🔧 StudentHistory expandedDays:', expandedDays);
@@ -170,25 +171,33 @@ const StudentHistory = React.memo(({
                     const isStandupAttendance = (typeof log.status === 'string' && log.status?.startsWith('standup_')) || 
                                                 (typeof log.label === 'string' && log.label?.includes('Standup')) ||
                                                 (log.table && log.table === 'standup_attendances');
-                    onDelete = (logId) => handleDeleteAttendance(studentId, logId, isStandupAttendance);
+                    if (canDeleteAttendance && handleDeleteAttendance) {
+                      onDelete = (logId) => handleDeleteAttendance(studentId, logId, isStandupAttendance);
+                    }
                     break;
                   case RECORD_TYPES.PARTICIPATION:
                     icon = <ParticipationIcon />;
                     iconColor = "var(--color-info, #3b82f6)";
                     borderColor = "var(--border, #e5e7eb)";
-                    onDelete = (logId) => handleDeleteParticipation(studentId, logId);
+                    if (canDeleteAttendance && handleDeleteParticipation) {
+                      onDelete = (logId) => handleDeleteParticipation(studentId, logId);
+                    }
                     break;
                   case RECORD_TYPES.BEHAVIOR:
                     icon = <ZapIcon />;
                     iconColor = "var(--color-warning, #f97316)";
                     borderColor = "var(--color-warning-border, #fed7aa)";
-                    onDelete = (logId) => handleDeleteBehavior(studentId, logId);
+                    if (canDeleteAttendance && handleDeleteBehavior) {
+                      onDelete = (logId) => handleDeleteBehavior(studentId, logId);
+                    }
                     break;
                   case RECORD_TYPES.PENALTY:
                     icon = <PenaltyIcon />;
                     iconColor = "var(--color-danger, #ef4444)";
                     borderColor = "var(--color-danger-border, #fecaca)";
-                    onDelete = (logId) => handleDeletePenalty(studentId, logId);
+                    if (canDeleteAttendance && handleDeletePenalty) {
+                      onDelete = (logId) => handleDeletePenalty(studentId, logId);
+                    }
                     break;
                   default:
                     return null;
@@ -216,6 +225,7 @@ const StudentHistory = React.memo(({
         isRTL={isRTL}
         lang={lang}
         studentName={studentName || log.studentName}
+        showDeleteButton={canDeleteAttendance && onDelete !== null}
       />
     );
               });

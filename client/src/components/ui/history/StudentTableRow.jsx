@@ -36,6 +36,11 @@ const StudentTableRow = ({
   handleDeleteParticipation,
   handleDeleteBehavior,
   handleDeletePenalty,
+  canDeleteAttendance = false,
+  canUseZapPanel = false,
+  canUseStatsPanel = false,
+  canSeeQuickButtons = false,
+  canMarkAttendance = false,
   getAttendanceBadge,
   showTotalAttendance,
   selectedStudentId,
@@ -476,7 +481,7 @@ const StudentTableRow = ({
         <td style={{ padding: '0.5rem 0.75rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
             {/* Senior-Level Quick Attendance Actions - Moved to first */}
-            {onQuickAttendance && (
+            {canSeeQuickButtons && canMarkAttendance && onQuickAttendance && (
               <QuickAttendanceButtons
                 student={student}
                 attendanceMode={attendanceMode}
@@ -490,7 +495,7 @@ const StudentTableRow = ({
                 t={t}
               />
             )}
-            {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+            {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && canUseZapPanel && (
               <PortalTooltip content={t('actions')} position="top">
                 <Button
                   variant="ghost"
@@ -510,7 +515,7 @@ const StudentTableRow = ({
                 </Button>
               </PortalTooltip>
             )}
-            {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+            {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && canUseStatsPanel && (
               <PortalTooltip content={t('stats')} position="top">
                 <Button
                   variant="ghost"
@@ -582,16 +587,17 @@ const StudentTableRow = ({
               toggleDayExpansion={toggleDayExpansion}
               expandAllDays={expandAllDays}
               collapseAllDays={collapseAllDays}
-              handleDeleteAttendance={handleDeleteAttendance}
-              handleDeleteParticipation={handleDeleteParticipation}
-              handleDeleteBehavior={handleDeleteBehavior}
-              handleDeletePenalty={handleDeletePenalty}
+              handleDeleteAttendance={canDeleteAttendance ? handleDeleteAttendance : null}
+              handleDeleteParticipation={canDeleteAttendance ? handleDeleteParticipation : null}
+              handleDeleteBehavior={canDeleteAttendance ? handleDeleteBehavior : null}
+              handleDeletePenalty={canDeleteAttendance ? handleDeletePenalty : null}
               t={t}
               isRTL={isRTL}
               groupLogsByDay={groupLogsByDay}
               toggleFilter={toggleFilter}
               lang={lang}
               historyLoading={historyLoading}
+              canDeleteAttendance={canDeleteAttendance}
             />
           </td>
         </tr>

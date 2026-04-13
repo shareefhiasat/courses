@@ -12,7 +12,7 @@ import { useLang } from '@contexts/LangContext';
 const PermissionMatrixPage = () => {
   const { t, lang } = useLang();
   const { isSuperAdmin } = useAuth();
-  const [permissions, setPermissions] = useState(null);
+  const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editMode, setEditMode] = useState(false);
@@ -20,7 +20,8 @@ const PermissionMatrixPage = () => {
   const [selectedOperation, setSelectedOperation] = useState(null);
   const [pendingUpdates, setPendingUpdates] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState(null);
+  const [saveMessage, setSaveMessage] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Role display names
   const roleDisplayNames = {
@@ -32,6 +33,29 @@ const PermissionMatrixPage = () => {
   };
 
   const allRoles = useMemo(() => ['super_admin', 'admin', 'hr', 'instructor', 'student'], []);
+
+  // Filter permissions based on search query
+  const filteredPermissions = useMemo(() => {
+    if (!searchQuery.trim()) return permissions;
+    
+    const query = searchQuery.toLowerCase();
+    return permissions.filter(screen => {
+      const screenName = (screen.nameEn || screen.nameAr || '').toLowerCase();
+      const screenId = (screen.screenId || '').toLowerCase();
+      
+      // Check if screen matches
+      if (screenName.includes(query) || screenId.includes(query)) return true;
+      
+      // Check if any operation matches
+      const hasMatchingOperation = screen.operations.some(op => {
+        const opName = (op.nameEn || op.nameAr || '').toLowerCase();
+        const opKey = (op.operationKey || '').toLowerCase();
+        return opName.includes(query) || opKey.includes(query);
+      });
+      
+      return hasMatchingOperation;
+    });
+  }, [permissions, searchQuery]);
 
   // Fetch permissions on mount
   useEffect(() => {
@@ -211,8 +235,21 @@ const PermissionMatrixPage = () => {
           </p>
         </div>
         
-        {isSuperAdmin && (
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder={t('search_screens') || 'Search screens...'}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              padding: '0.5rem 1rem',
+              border: '1px solid var(--border)',
+              borderRadius: '4px',
+              backgroundColor: 'var(--card-bg)',
+              color: 'var(--text-primary)',
+              minWidth: '250px'
+            }}
+          />
             {editMode && (
               <>
                 <button
@@ -255,16 +292,16 @@ const PermissionMatrixPage = () => {
                   padding: '0.5rem 1rem',
                   backgroundColor: 'var(--accent)',
                   color: 'white',
-                  border: 'none',
+                  border: '1px solid var(--accent)',
                   borderRadius: '4px',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  fontWeight: '600'
                 }}
               >
                 {t('permission_matrix_edit') || 'Edit Permissions'}
               </button>
             )}
           </div>
-        )}
       </div>
 
       {saveMessage && (
@@ -280,7 +317,7 @@ const PermissionMatrixPage = () => {
       )}
 
       {/* Permission Tree */}
-      {permissions.map(screen => (
+      {filteredPermissions.map(screen => (
         <div 
           key={screen.id}
           style={{ 

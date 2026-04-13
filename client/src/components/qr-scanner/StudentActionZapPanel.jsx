@@ -75,7 +75,9 @@ export default function StudentActionZapPanel({
   });
   const { t, lang, isRTL } = useLang();
   const { showSuccess, showError } = useToast();
-  const { canDeleteAttendance, canEditAttendance } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canDeleteAttendance = hasPermission('qr-scanner.canDeleteAttendance');
+  const canEditAttendance = hasPermission('qr-scanner.canEditAttendance');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedActions, setSelectedActions] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);

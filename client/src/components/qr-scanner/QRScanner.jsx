@@ -99,14 +99,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const { theme } = useTheme();
   const { showSuccess, showError } = useToast();
   const { isEnabled, loading: featureLoading } = useFeatureFlags();
-  const { 
-    canManualInput, 
-    canDeleteAttendance, 
-    canEditAttendance,
-    canUseStatsPanel,
-    canUseZapPanel,
-    canSeeQuickButtons
-  } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canManualInput = hasPermission('qr-scanner.canManualInput');
+  const canDeleteAttendance = hasPermission('qr-scanner.canDeleteAttendance');
+  const canClearToday = hasPermission('qr-scanner.canClearToday');
+  const canEditAttendance = hasPermission('qr-scanner.canEditAttendance');
+  const canUseStatsPanel = hasPermission('qr-scanner.canUseStatsPanel');
+  const canUseZapPanel = hasPermission('qr-scanner.canUseZapPanel');
+  const canSeeQuickButtons = hasPermission('qr-scanner.canSeeQuickButtons');
+  const canMarkAttendance = hasPermission('qr-scanner.canMarkAttendance');
   const { activityTypeOptions, loading: lookupLoading } = useLookupTypes();
 
   // Refs must be defined before early return (React Hooks rule)
@@ -2173,42 +2174,44 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 </PortalTooltip>
                 )}
 
-                <PortalTooltip content={(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? t(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'please_select_program' : 'please_select_program_subject_class') : (t('bulk_scan') || 'Bulk Scan')} position="top">
-                <button
-                    onClick={() => {
-                      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-                        if (!selectedProgramId || selectedProgramId === 'all') {
-                          showResult('error', t('please_select_program') || 'Please select Program before scanning');
-                          return;
+                {canBulkScan && (
+                  <PortalTooltip content={(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? t(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'please_select_program' : 'please_select_program_subject_class') : (t('bulk_scan') || 'Bulk Scan')} position="top">
+                  <button
+                      onClick={() => {
+                        if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+                          if (!selectedProgramId || selectedProgramId === 'all') {
+                            showResult('error', t('please_select_program') || 'Please select Program before scanning');
+                            return;
+                          }
+                        } else {
+                          if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
+                            showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+                            return;
+                          }
                         }
-                      } else {
-                        if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
-                          showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
-                          return;
-                        }
-                      }
-                      setShowBulkScanDialog(true);
-                    }}
-                    disabled={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      padding: '0.375rem 0.5rem',
-                      borderRadius: '0.375rem',
-                      border: '1px solid var(--border, #e5e7eb)',
-                      background: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#f3f4f6' : '#8b5cf6',
-                      color: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#9ca3af' : 'white',
-                      fontSize: '0.75rem',
-                      fontWeight: 500,
-                      cursor: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s',
-                      opacity: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 0.6 : 1
-                    }}
-                  >
-                    <Upload style={{ width: '14px', height: '14px' }} />
-                  </button>
-                </PortalTooltip>
+                        setShowBulkScanDialog(true);
+                      }}
+                      disabled={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        padding: '0.375rem 0.5rem',
+                        borderRadius: '0.375rem',
+                        border: '1px solid var(--border, #e5e7eb)',
+                        background: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#f3f4f6' : '#8b5cf6',
+                        color: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#9ca3af' : 'white',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        cursor: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s',
+                        opacity: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 0.6 : 1
+                      }}
+                    >
+                      <Upload style={{ width: '14px', height: '14px' }} />
+                    </button>
+                  </PortalTooltip>
+                )}
 
                 <PortalTooltip content={t('refresh_today_activity')} position="top">
                   <button
@@ -2249,7 +2252,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 </PortalTooltip>
 
                 {/* Recycle Button - Clear attendance for today */}
-                <PortalTooltip content={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (t('clear_standup_for_today') || 'Clear Standup For Today') : (t('clear_attendance_for_today') || 'Clear Attendance For Today')} position="top">
+                {canClearToday && (
+                  <PortalTooltip content={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (t('clear_standup_for_today') || 'Clear Standup For Today') : (t('clear_attendance_for_today') || 'Clear Attendance For Today')} position="top">
                     <button
                       onClick={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? handleClearStandup : handleClearRegular}
                       disabled={activityLoading || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all'))}
@@ -2272,6 +2276,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       <TrashIcon style={{ width: '14px', height: '14px' }} />
                     </button>
                   </PortalTooltip>
+                )}
 
                 {/* Stop Scanner Button - Only show when scanning */}
                 {isScanning && (
@@ -2368,8 +2373,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 getScanMethodDisplay={getScanMethodDisplay}
                 t={t}
                 lang={lang}
+                canDeleteAttendance={canDeleteAttendance}
                 isRTL={isRTL}
                 isMobile={isMobile}
+                canSeeQuickButtons={canSeeQuickButtons}
+                canMarkAttendance={canMarkAttendance}
               />
 
 
@@ -3021,88 +3029,92 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             t={t}
           />
 
-          {/* Bulk Scan Dialog */}
-          <BulkScanProvider
-            programId={selectedProgramId}
-            subjectId={selectedSubjectId}
-            classId={selectedClassId}
-            markedBy={performedByFields.performedBy}
-            performedBy={performedByFields.performedBy}
-            performedByName={performedByFields.performedByName}
-            performedByEmail={performedByFields.performedByEmail}
-            attendanceMode={attendanceMode}
-            onSuccess={(result) => {
-              // Store the result for the success modal (selectedStatus is already in result)
-              setBulkSuccessResult(result);
-              // Close the bulk dialog
-              setShowBulkScanDialog(false);
-              // The success modal will show automatically when bulkSuccessResult is set
-            }}
-            t={t}
-            lang={lang}
-            showSuccess={showSuccess}
-            showError={showError}
-          >
-            <BulkScanDialog
-              isOpen={showBulkScanDialog}
-              onClose={() => setShowBulkScanDialog(false)}
-              programId={selectedProgramId}
-              subjectId={selectedSubjectId}
-              classId={selectedClassId}
-              markedBy={performedByFields.performedBy}
-              performedBy={performedByFields.performedBy}
-              performedByName={performedByFields.performedByName}
-              performedByEmail={performedByFields.performedByEmail}
-              attendanceMode={attendanceMode}
-              t={t}
-              lang={lang}
-              showSuccess={showSuccess}
-              showError={showError}
-            />
-          </BulkScanProvider>
+          {canBulkScan && (
+            <>
+              {/* Bulk Scan Dialog */}
+              <BulkScanProvider
+                programId={selectedProgramId}
+                subjectId={selectedSubjectId}
+                classId={selectedClassId}
+                markedBy={performedByFields.performedBy}
+                performedBy={performedByFields.performedBy}
+                performedByName={performedByFields.performedByName}
+                performedByEmail={performedByFields.performedByEmail}
+                attendanceMode={attendanceMode}
+                onSuccess={(result) => {
+                  // Store the result for the success modal (selectedStatus is already in result)
+                  setBulkSuccessResult(result);
+                  // Close the bulk dialog
+                  setShowBulkScanDialog(false);
+                  // The success modal will show automatically when bulkSuccessResult is set
+                }}
+                t={t}
+                lang={lang}
+                showSuccess={showSuccess}
+                showError={showError}
+              >
+                <BulkScanDialog
+                  isOpen={showBulkScanDialog}
+                  onClose={() => setShowBulkScanDialog(false)}
+                  programId={selectedProgramId}
+                  subjectId={selectedSubjectId}
+                  classId={selectedClassId}
+                  markedBy={performedByFields.performedBy}
+                  performedBy={performedByFields.performedBy}
+                  performedByName={performedByFields.performedByName}
+                  performedByEmail={performedByFields.performedByEmail}
+                  attendanceMode={attendanceMode}
+                  t={t}
+                  lang={lang}
+                  showSuccess={showSuccess}
+                  showError={showError}
+                />
+              </BulkScanProvider>
 
-          {/* Bulk Success Modal */}
-          <BulkSuccessModal
-            isOpen={!!bulkSuccessResult}
-            result={bulkSuccessResult}
-            programName={selectedProgramName || selectedProgramId}
-            statusLabel={(() => {
-              if (!bulkSuccessResult) return '';
-              const statusFromResult = bulkSuccessResult?.results?.detailed?.[0]?.status;
-              const statusFromParam = bulkSuccessResult?.selectedStatus;
-              const statusToUse = statusFromParam || statusFromResult;
-              return statusToUse ? getLocalizedAttendanceLabel(statusToUse, t, lang) : '';
-            })()}
-            statusIcon={(() => {
-              if (!bulkSuccessResult) return null;
-              const statusFromResult = bulkSuccessResult?.results?.detailed?.[0]?.status;
-              const statusFromParam = bulkSuccessResult?.selectedStatus;
-              const statusToUse = statusFromParam || statusFromResult;
-              return statusToUse ? getAttendanceIcon(statusToUse) : null;
-            })()}
-            statusColor={(() => {
-              if (!bulkSuccessResult) return null;
-              const statusFromResult = bulkSuccessResult?.results?.detailed?.[0]?.status;
-              const statusFromParam = bulkSuccessResult?.selectedStatus;
-              const statusToUse = statusFromParam || statusFromResult;
-              return statusToUse ? getAttendanceColor(statusToUse) : null;
-            })()}
-            dateLabel={new Date().toISOString().split('T')[0]}
-            onClose={() => {
-              setBulkSuccessResult(null);
-              // Refresh data when user clicks OK
-              fetchRecentActivity();
-              eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
-                classId: selectedClassId,
-                timestamp: Date.now(),
-                forceRefresh: true
-              });
-              eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
-              eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
-              eventBus.emit(EVENTS.REFRESH_STUDENT_DATA, { forceRefresh: true });
-            }}
-            t={t}
-          />
+              {/* Bulk Success Modal */}
+              <BulkSuccessModal
+                isOpen={!!bulkSuccessResult}
+                result={bulkSuccessResult}
+                programName={selectedProgramName || selectedProgramId}
+                statusLabel={(() => {
+                  if (!bulkSuccessResult) return '';
+                  const statusFromResult = bulkSuccessResult?.results?.detailed?.[0]?.status;
+                  const statusFromParam = bulkSuccessResult?.selectedStatus;
+                  const statusToUse = statusFromParam || statusFromResult;
+                  return statusToUse ? getLocalizedAttendanceLabel(statusToUse, t, lang) : '';
+                })()}
+                statusIcon={(() => {
+                  if (!bulkSuccessResult) return null;
+                  const statusFromResult = bulkSuccessResult?.results?.detailed?.[0]?.status;
+                  const statusFromParam = bulkSuccessResult?.selectedStatus;
+                  const statusToUse = statusFromParam || statusFromResult;
+                  return statusToUse ? getAttendanceIcon(statusToUse) : null;
+                })()}
+                statusColor={(() => {
+                  if (!bulkSuccessResult) return null;
+                  const statusFromResult = bulkSuccessResult?.results?.detailed?.[0]?.status;
+                  const statusFromParam = bulkSuccessResult?.selectedStatus;
+                  const statusToUse = statusFromParam || statusFromResult;
+                  return statusToUse ? getAttendanceColor(statusToUse) : null;
+                })()}
+                dateLabel={new Date().toISOString().split('T')[0]}
+                onClose={() => {
+                  setBulkSuccessResult(null);
+                  // Refresh data when user clicks OK
+                  fetchRecentActivity();
+                  eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
+                    classId: selectedClassId,
+                    timestamp: Date.now(),
+                    forceRefresh: true
+                  });
+                  eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
+                  eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
+                  eventBus.emit(EVENTS.REFRESH_STUDENT_DATA, { forceRefresh: true });
+                }}
+                t={t}
+              />
+            </>
+          )}
 
           <style>{`
             @keyframes qr-scan-line {

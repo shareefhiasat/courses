@@ -31,7 +31,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
   searchQuery = '',
   setSearchQuery = () => {},
   historyLoading = {},
-  theme = 'light'
+  theme = 'light',
+  canDeleteAttendance = false
 }) => {
   const isMobile = useIsMobile();
   const groupedLogs = useMemo(
@@ -275,15 +276,16 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
         expandedDays={expandedDays}
         activeFilters={activeFilters}
         toggleDayExpansion={toggleDayExpansion}
-        handleDeleteAttendance={handleDeleteAttendance}
-        handleDeleteParticipation={handleDeleteParticipation}
-        handleDeleteBehavior={handleDeleteBehavior}
-        handleDeletePenalty={handleDeletePenalty}
+        handleDeleteAttendance={canDeleteAttendance ? handleDeleteAttendance : null}
+        handleDeleteParticipation={canDeleteAttendance ? handleDeleteParticipation : null}
+        handleDeleteBehavior={canDeleteAttendance ? handleDeleteBehavior : null}
+        handleDeletePenalty={canDeleteAttendance ? handleDeletePenalty : null}
         t={t}
         isRTL={isRTL}
         studentId={student.id}
         lang={lang}
         studentName={studentName}
+        canDeleteAttendance={canDeleteAttendance}
       />
     </div>
   );

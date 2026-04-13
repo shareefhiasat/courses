@@ -50,7 +50,9 @@ export default function StudentActionStatsPanel({
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const { showSuccess, showError } = useToast();
-  const { canDeleteAttendance, canEditAttendance } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canDeleteAttendance = hasPermission('qr-scanner.canDeleteAttendance');
+  const canEditAttendance = hasPermission('qr-scanner.canEditAttendance');
   const { data: lookupData, loading: lookupLoading, error: lookupError } = useLookupTypes({
     types: ['behavior-types', 'participation-types', 'penalty-types']
   });
@@ -2443,6 +2445,7 @@ export default function StudentActionStatsPanel({
                         t={t}
                         isRTL={isRTL}
                         studentId={student?.id}
+                        canDeleteAttendance={canDeleteAttendance}
                     />
                   );
                 })()}

@@ -60,18 +60,18 @@ const QRScannerPage = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const { activityTypeOptions } = useLookupTypes();
-  const { 
-    canBulkScan, 
-    canManualInput, 
-    canClearToday, 
-    canDeleteAttendance, 
-    canEditAttendance, 
-    canExport, 
-    canSeeStandupMode,
-    canSeeQuickButtons,
-    canUseStatsPanel,
-    canUseZapPanel
-  } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canBulkScan = hasPermission('qr-scanner.canBulkScan');
+  const canManualInput = hasPermission('qr-scanner.canManualInput');
+  const canClearToday = hasPermission('qr-scanner.canClearToday');
+  const canDeleteAttendance = hasPermission('qr-scanner.canDeleteAttendance');
+  const canEditAttendance = hasPermission('qr-scanner.canEditAttendance');
+  const canExport = hasPermission('qr-scanner.canExport');
+  const canExportSummary = hasPermission('qr-scanner.canExportSummary');
+  const canSeeStandupMode = hasPermission('qr-scanner.canSeeStandupMode');
+  const canSeeQuickButtons = hasPermission('qr-scanner.canSeeQuickButtons');
+  const canUseStatsPanel = hasPermission('qr-scanner.canUseStatsPanel');
+  const canUseZapPanel = hasPermission('qr-scanner.canUseZapPanel');
   const showSuccess = useMemo(() => toast?.showSuccess || ((msg) => console.log('SUCCESS:', msg)), [toast]);
   const showError = useMemo(() => toast?.showError || ((msg) => console.log('ERROR:', msg)), [toast]);
   const showInfo = useMemo(() => toast?.showInfo || ((msg) => console.log('INFO:', msg)), [toast]);
@@ -3471,33 +3471,35 @@ const QRScannerPage = () => {
                   {getThemedIcon('ui', 'check_circle', 16, attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : theme)}
                   {t('attendance_mode') || 'Attendance'}
                 </button>
-                <button
-                  onClick={() => {
-                  info('🔍 [DEBUG] Standup mode clicked', {
-                    currentMode: attendanceMode,
-                    newMode: ATTENDANCE_TYPE_CATEGORY.STANDUP,
-                    constants: ATTENDANCE_TYPE_CATEGORY
-                  });
-                  setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.STANDUP);
-                }}
-                  style={{
-                    padding: '0.625rem 1.25rem',
-                    background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'var(--color-primary, #3b82f6)' : 'transparent',
-                    color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : 'var(--text-muted, #6b7280)',
-                    border: 'none',
-                    borderRadius: '0.375rem',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.375rem'
-                  }}
-                >
-                  {getThemedIcon('ui', 'users', 16, attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : theme)}
-                  {t('standup_mode') || 'Standup'}
-                </button>
+                {canSeeStandupMode && (
+                  <button
+                    onClick={() => {
+                    info('🔍 [DEBUG] Standup mode clicked', {
+                      currentMode: attendanceMode,
+                      newMode: ATTENDANCE_TYPE_CATEGORY.STANDUP,
+                      constants: ATTENDANCE_TYPE_CATEGORY
+                    });
+                    setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.STANDUP);
+                    }}
+                    style={{
+                      padding: '0.625rem 1.25rem',
+                      background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                      color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : 'var(--text-muted, #6b7280)',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.375rem'
+                    }}
+                  >
+                    {getThemedIcon('ui', 'users', 16, attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : theme)}
+                    {t('standup_mode') || 'Standup'}
+                  </button>
+                )}
               </div>
 
               {/* Date picker */}
@@ -3527,8 +3529,7 @@ const QRScannerPage = () => {
               </div>
 
               {canExport && (
-                <>
-                  <button
+                <button
                     onClick={() => {
                       if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
                         if (!selectedProgramId || selectedProgramId === 'all') {
@@ -3566,7 +3567,9 @@ const QRScannerPage = () => {
                     {getThemedIcon('ui', 'file', 16, 'white')}
                     {t('daily_report') || 'Daily'}
                   </button>
+              )}
 
+              {canExportSummary && (
                   <button
                     onClick={() => {
                       console.log('🔍 Summary Report button clicked');
@@ -3596,7 +3599,6 @@ const QRScannerPage = () => {
                     {getThemedIcon('ui', 'send', 16, 'white')}
                     {t('summary_report') || 'Summary'}
                   </button>
-                </>
               )}
 
               {canBulkScan && (
@@ -3817,7 +3819,7 @@ const QRScannerPage = () => {
               });
               return null;
             })()}
-            {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+            {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && canUseStatsPanel && (
               <StudentActionStatsPanel
                 student={selectedStudent}
                 onClose={handleClosePanel}
@@ -3846,7 +3848,7 @@ const QRScannerPage = () => {
         )}
 
         {/* Student Action Panel New */}
-        {selectedStudentForAction && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+        {selectedStudentForAction && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && canUseZapPanel && (
           <>
             <StudentActionZapPanel
               student={selectedStudentForAction}

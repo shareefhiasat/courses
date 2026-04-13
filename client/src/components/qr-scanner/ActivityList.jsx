@@ -23,8 +23,12 @@ const ActivityList = ({
   t,
   lang,
   isRTL,
-  isMobile
+  isMobile,
+  canDeleteAttendance = false,
+  canSeeQuickButtons = false,
+  canMarkAttendance = false
 }) => {
+  const canUseQuickActions = canSeeQuickButtons && canMarkAttendance && typeof onQuickAttendance === 'function';
   const formatActivityTime = (time) => {
     try {
       const raw = time?.toDate ? time.toDate() : time ? new Date(time) : null;
@@ -112,7 +116,7 @@ const ActivityList = ({
                 {activity.studentName}
               </span>
               
-              {activity.studentId && activity.type === RECORD_TYPES.ATTENDANCE && (
+              {canUseQuickActions && activity.studentId && activity.type === RECORD_TYPES.ATTENDANCE && (
                 <QuickActionButtons
                   studentId={activity.studentId}
                   students={students}
@@ -125,7 +129,7 @@ const ActivityList = ({
               )}
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                {onDeleteActivity && (
+                {onDeleteActivity && canDeleteAttendance && (
                   <PortalTooltip content={t('delete_activity')} position="top">
                     <button
                       onClick={(e) => {

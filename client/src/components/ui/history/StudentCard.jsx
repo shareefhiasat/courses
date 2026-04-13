@@ -25,6 +25,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
   collapseAllDays,
   handleDeleteAttendance, 
   handleDeleteParticipation,
+  canDeleteAttendance = false,
+  canUseZapPanel = false,
+  canUseStatsPanel = false,
   handleDeleteBehavior,
   handleDeletePenalty, 
   getAttendanceBadge, 
@@ -395,7 +398,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
         gap: isMobile ? '0.25rem' : '0.5rem',
         flexWrap: isMobile ? 'wrap' : 'nowrap'
       }}>
-        {isMobile && (
+        {isMobile && canUseStatsPanel && (
           <PortalTooltip content={t('view_details')} position="top">
           <Button 
             variant="ghost" 
@@ -406,19 +409,21 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
           </Button>
           </PortalTooltip>
         )}
-        <PortalTooltip content={t('actions')} position="top">
-        <Button 
-          variant="ghost" 
-          size={isMobile ? 'icon' : 'sm'}
-          onClick={handleStudentAction}
-          style={isMobile ? {} : { flex: 1 }}
-        >
-          {isMobile ? (
-            <ZapIcon style={{ width: '16px', height: '16px', color: '#f59e0b' }} />
-          ) : t('actions')}
-        </Button>
-        </PortalTooltip>
-        {!isMobile && (
+        {canUseZapPanel && (
+          <PortalTooltip content={t('actions')} position="top">
+          <Button 
+            variant="ghost" 
+            size={isMobile ? 'icon' : 'sm'}
+            onClick={handleStudentAction}
+            style={isMobile ? {} : { flex: 1 }}
+          >
+            {isMobile ? (
+              <ZapIcon style={{ width: '16px', height: '16px', color: '#f59e0b' }} />
+            ) : t('actions')}
+          </Button>
+          </PortalTooltip>
+        )}
+        {!isMobile && canUseStatsPanel && (
           <PortalTooltip content={t('stats')} position="top">
           <Button 
             variant="ghost" 
@@ -467,6 +472,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             toggleFilter={toggleFilter}
             lang={lang}
             historyLoading={historyLoading}
+            canDeleteAttendance={canDeleteAttendance}
           />
         </div>
       )}
