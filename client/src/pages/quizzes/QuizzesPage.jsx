@@ -1674,7 +1674,7 @@ export default function QuizzesPage() {
                               onChange={(e) => updateQuestion(activeQuestionIndex, { timeLimit: parseInt(e.target.value) || 0 })}
                               min="0"
                               max="600"
-                              placeholder="No limit"
+                              placeholder={t('quizzes.no_limit', 'No limit')}
                               style={{ width: '120px' }}
                             />
                           </div>

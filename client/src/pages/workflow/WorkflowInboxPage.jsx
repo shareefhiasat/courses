@@ -610,7 +610,7 @@ const WorkflowInboxPage = () => {
                 { value: 'sent', label: t('workflow.inbox.viewSent', 'Sent') }
               ]}
               className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              placeholder="View"
+              placeholder={t('workflow.inbox.viewPlaceholder', 'View')}
             />
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -626,7 +626,7 @@ const WorkflowInboxPage = () => {
               onChange={(valueOrEvent) => updateFilters({ action: valueOrEvent?.target?.value ?? valueOrEvent })}
               options={actionOptions}
               className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Action"
+              placeholder={t('workflow.inbox.actionPlaceholder', 'Action')}
             />
             <Select
               value={filters.isRead !== null ? filters.isRead.toString() : ''}
@@ -642,7 +642,7 @@ const WorkflowInboxPage = () => {
                 { value: 'true', label: t('workflow.inbox.read', 'Read') }
               ]}
               className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Status"
+              placeholder={t('workflow.inbox.statusPlaceholder', 'Status')}
             />
             <Select
               value={recipientRoleFilter}
@@ -658,7 +658,7 @@ const WorkflowInboxPage = () => {
                 { value: 'instructor', label: t('workflow.inbox.roleInstructor', 'Instructor') }
               ]}
               className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Role"
+              placeholder={t('workflow.inbox.rolePlaceholder', 'Role')}
             />
             <Select
               value={filters.recipientId || ''}
@@ -668,7 +668,7 @@ const WorkflowInboxPage = () => {
               }}
               options={recipientOptions}
               className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Recipient"
+              placeholder={t('workflow.inbox.recipientPlaceholder', 'Recipient')}
             />
             <Button
               variant="outline"

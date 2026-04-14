@@ -513,7 +513,7 @@ const StudentProfilePage = () => {
                       type="text"
                       value={searchText}
                       onChange={(e) => searchUsers(e.target.value)}
-                      placeholder="Search students by name or email..."
+                      placeholder={t('student_profile.search_placeholder', 'Search students by name or email...')}
                       className={styles.searchInput}
                     />
                     {searchText && searchResults.length > 0 && (

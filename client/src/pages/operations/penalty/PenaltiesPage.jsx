@@ -467,7 +467,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     // Early validation - check if form is properly filled
     if (!formData.studentId || !formData.type) {
       setTimeout(() => {
-        toast.error('Please select a student and penalty type');
+        toast.error(t('penalty.select_student_and_type', 'Please select a student and penalty type'));
       }, 0);
       return false;
     }
@@ -491,7 +491,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       const userId = currentUser?.data?.id || currentUser?.id;
       
       if (!userId) {
-        toast.error('Failed to get user information');
+        toast.error(t('penalty.user_info_failed', 'Failed to get user information'));
         return;
       }
       

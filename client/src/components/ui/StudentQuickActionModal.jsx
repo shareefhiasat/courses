@@ -438,7 +438,7 @@ const StudentQuickActionModal = ({
                 label: program
               }))
             ]}
-            placeholder="Program"
+            placeholder={t('student_quick_action.program_placeholder', 'Program')}
             searchable={true}
             size="small"
           />
@@ -454,7 +454,7 @@ const StudentQuickActionModal = ({
                 label: `${cls.name || cls.code} - ${cls.status || 'Active'}`
               }))
             ]}
-            placeholder="Class"
+            placeholder={t('student_quick_action.class_placeholder', 'Class')}
             searchable={true}
             size="small"
           />
@@ -470,7 +470,7 @@ const StudentQuickActionModal = ({
                 label: subject
               }))
             ]}
-            placeholder="Subject"
+            placeholder={t('student_quick_action.subject_placeholder', 'Subject')}
             searchable={true}
             size="small"
           />

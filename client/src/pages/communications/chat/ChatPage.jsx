@@ -2790,7 +2790,7 @@ const ChatPage = memo(() => {
               type="text"
               value={pollQuestion}
               onChange={(e)=>setPollQuestion(e.target.value)}
-              placeholder="What would you like to know?"
+              placeholder={t('chat.question_placeholder', 'What would you like to know?')}
               style={{ width:'100%', padding:'0.875rem', border:'2px solid var(--border)', borderRadius:12, marginBottom:'0', background:'var(--panel)', color:'var(--text)', fontSize:'0.95rem', transition:'border-color 0.2s', outline:'none' }}
               onFocus={(e)=>e.target.style.borderColor='var(--brand)'}
               onBlur={(e)=>e.target.style.borderColor='var(--border)'}
@@ -2813,7 +2813,7 @@ const ChatPage = memo(() => {
                       newOpts[idx] = e.target.value;
                       setPollOptions(newOpts);
                     }}
-                    placeholder={`Option ${idx + 1}`}
+                    placeholder={t('chat.option_number', { number: idx + 1 }) || `Option ${idx + 1}`}
                     style={{ flex:1, padding:'0.625rem 0.875rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'var(--text)', fontSize:'0.9rem' }}
                   />
                   {pollOptions.length > 2 && (

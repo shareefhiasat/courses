@@ -138,19 +138,19 @@ export default function QuestionBankPage() {
   };
 
   const handleDelete = async (questionId) => {
-    if (!window.confirm('Are you sure you want to delete this question?')) return;
+    if (!window.confirm(t('question_bank.delete_confirm', 'Are you sure you want to delete this question?'))) return;
 
     try {
       const result = await deleteQuestion(questionId);
       if (result.success) {
-        toast.success('Question deleted');
+        toast.success(t('question_bank.deleted_success', 'Question deleted'));
         loadQuestions();
       } else {
-        toast.error('Failed to delete question');
+        toast.error(t('question_bank.delete_failed', 'Failed to delete question'));
       }
     } catch (error) {
       error('Error deleting question:', error);
-      toast.error('Error deleting question');
+      toast.error(t('question_bank.delete_error', 'Error deleting question'));
     }
   };
 

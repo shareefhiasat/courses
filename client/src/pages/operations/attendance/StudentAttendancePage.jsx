@@ -479,12 +479,12 @@ const StudentAttendancePage = () => {
                   />
                 </div>
                 <div>
-                  <textarea value={leaveNote} onChange={(e)=>setLeaveNote(e.target.value)} placeholder="Enter reason details (optional)..." style={{ width:'100%', padding:'0.6rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit', minHeight: 60, resize: 'vertical' }} />
+                  <textarea value={leaveNote} onChange={(e)=>setLeaveNote(e.target.value)} placeholder={t('attendance.enter_reason_details', 'Enter reason details (optional)...')} style={{ width:'100%', padding:'0.6rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit', minHeight: 60, resize: 'vertical' }} />
                 </div>
               </>
             )}
             <div>
-              <input value={manualText} onChange={(e)=>setManualText(e.target.value)} placeholder="Enter 6-digit code or paste link" style={{ width:'100%', padding:'0.6rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit' }} />
+              <input value={manualText} onChange={(e)=>setManualText(e.target.value)} placeholder={t('attendance.enter_code_or_link', 'Enter 6-digit code or paste link')} style={{ width:'100%', padding:'0.6rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit' }} />
               <div style={{ fontSize:11, color:'var(--muted)', marginTop:4 }}>
                 Enter the code shown on instructor's screen, or paste the full attendance link
               </div>

@@ -634,7 +634,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                 type="text"
                 value={pollQuestion}
                 onChange={(e)=>setPollQuestion(e.target.value)}
-                placeholder="What would you like to know?"
+                placeholder={t('chat.question_placeholder', 'What would you like to know?')}
                 style={{ 
                   width:'100%', 
                   padding:'0.875rem', 

@@ -604,7 +604,7 @@ const ActionButtons = ({
           if (!selectedSubjectsForReport || selectedSubjectsForReport.length === 0) {
             error('❌ No subjects selected for report');
             // Use toast instead of alert - we'll need to import this properly
-            alert('Please select at least one subject for the report');
+            alert(t('summary_report.select_subject', 'Please select at least one subject for the report'));
             return;
           }
           
@@ -613,7 +613,7 @@ const ActionButtons = ({
             info('🔍 Email validation debug:', { emailRecipients, exportFormat });
             if (!emailRecipients || emailRecipients.length === 0) {
               error('❌ No email recipients selected');
-              alert('Please select at least one email recipient');
+              alert(t('summary_report.select_email_recipient', 'Please select at least one email recipient'));
               return;
             }
           }

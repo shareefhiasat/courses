@@ -1789,7 +1789,7 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
                           type="text"
                           value={passwordResetModal.newPassword}
                           onChange={(e) => setPasswordResetModal(prev => ({ ...prev, newPassword: e.target.value }))}
-                          placeholder="Enter new password or generate one"
+                          placeholder={t('users.password_placeholder', 'Enter new password or generate one')}
                           style={{ flex: 1 }}
                         />
                         <Button

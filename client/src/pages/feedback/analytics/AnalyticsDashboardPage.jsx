@@ -142,13 +142,13 @@ const AnalyticsDashboardPage = memo(() => {
       
       // Show success toast for refresh
       if (isRefresh) {
-        toast.success('Dashboard refreshed successfully!', 2000);
+        toast.success(t('analytics.refresh_success', 'Dashboard refreshed successfully!'), 2000);
       }
-      
+
     } catch (error) {
       error('❌ [AnalyticsDashboardPage] Error loading data:', error);
       if (isRefresh) {
-        toast.error('Failed to refresh dashboard', 3000);
+        toast.error(t('analytics.refresh_failed', 'Failed to refresh dashboard'), 3000);
       }
     } finally {
       if (isRefresh) {

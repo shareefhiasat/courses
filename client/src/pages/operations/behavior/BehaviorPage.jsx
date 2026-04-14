@@ -349,7 +349,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     // Early validation - check if form is properly filled
     if (!formData.studentId || !formData.type) {
       setTimeout(() => {
-        toast.error('Please select a student and behavior type');
+        toast.error(t('behavior.select_student_and_type', 'Please select a student and behavior type'));
       }, 0);
       return false;
     }
@@ -1101,7 +1101,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
                   return { value: bt.id, label: getBehaviorLabel(bt.id, lang), icon };
                 })
               ]}
-              placeholder="Type"
+              placeholder={t('behavior.type_placeholder', 'Type')}
             />
           </div>
         </div>

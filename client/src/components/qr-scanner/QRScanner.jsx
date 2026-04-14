@@ -1971,7 +1971,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       <CollapsibleSection
           ref={scannerRef}
           sectionId="qr-scanner"
-           title={'Activity list'}
+           title={t('activity_list') || 'Activity list'}
           titleStyle={{ fontSize: '0.75rem' }}
           icon={<QrCodeIcon />}
           color="#8b5cf6"

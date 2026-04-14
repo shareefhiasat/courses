@@ -29,7 +29,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(url);
-    alert('Link copied to clipboard!');
+    alert(t('qr_code.link_copied', 'Link copied to clipboard!'));
   };
 
   const handleShare = async () => {

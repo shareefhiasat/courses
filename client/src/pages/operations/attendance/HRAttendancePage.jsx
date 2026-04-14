@@ -736,7 +736,7 @@ const HRAttendancePage = () => {
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (e) {
-      alert('Export failed: ' + (e?.message || 'unknown error'));
+      alert(t('hr_attendance.export_failed', 'Export failed: ') + (e?.message || t('common.unknown_error', 'unknown error')));
     }
   };
 
@@ -1423,11 +1423,11 @@ const HRAttendancePage = () => {
                             </div>
                             <div style={{ marginBottom: 6 }}>
                               <label style={{ display: 'block', marginBottom: 3, fontSize: 10, fontWeight: 600 }}>{t('reason') || 'Reason'}</label>
-                              <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g., Medical appointment" style={{ width: '100%', padding: '0.35rem', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11 }} />
+                              <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('hr_attendance.reason_example', 'e.g., Medical appointment')} style={{ width: '100%', padding: '0.35rem', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11 }} />
                             </div>
                             <div style={{ marginBottom: 6 }}>
                               <label style={{ display: 'block', marginBottom: 3, fontSize: 10, fontWeight: 600 }}>{t('feedback') || 'Feedback'}</label>
-                              <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Additional notes..." rows={2} style={{ width: '100%', padding: '0.35rem', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11, resize: 'vertical' }} />
+                              <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder={t('hr_attendance.additional_notes', 'Additional notes...')} rows={2} style={{ width: '100%', padding: '0.35rem', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11, resize: 'vertical' }} />
                             </div>
                             <div style={{ display: 'flex', gap: 6 }}>
                               <Button 

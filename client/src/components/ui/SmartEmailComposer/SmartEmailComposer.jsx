@@ -28,19 +28,19 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Smart
   };
 
   return (
-    <Modal isOpen={open} onClose={onClose} title="Compose Email">
+    <Modal isOpen={open} onClose={onClose} title={t('email_composer.title', 'Compose Email')}>
       <div style={{ padding: '1rem', minWidth: '500px' }}>
         <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem' }}>To:</label>
+          <label style={{ display: 'block', marginBottom: '0.5rem' }}>{t('email_composer.to', 'To')}</label>
           <Input
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            placeholder="recipient@example.com"
+            placeholder={t('email_composer.to_placeholder', 'recipient@example.com')}
           />
         </div>
         
         <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem' }}>Type:</label>
+          <label style={{ display: 'block', marginBottom: '0.5rem' }}>{t('email_composer.type', 'Type')}</label>
           <Select
             value={type}
             onChange={(e) => setType(e.target.value)}
@@ -53,20 +53,20 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Smart
         </div>
         
         <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem' }}>Subject:</label>
+          <label style={{ display: 'block', marginBottom: '0.5rem' }}>{t('email_composer.subject', 'Subject')}</label>
           <Input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            placeholder="Email subject"
+            placeholder={t('email_composer.subject_placeholder', 'Email subject')}
           />
         </div>
         
         <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem' }}>Message:</label>
+          <label style={{ display: 'block', marginBottom: '0.5rem' }}>{t('email_composer.message', 'Message')}</label>
           <Textarea
             value={htmlBody}
             onChange={(e) => setHtmlBody(e.target.value)}
-            placeholder="Email message content..."
+            placeholder={t('email_composer.message_placeholder', 'Email message content...')}
             rows={6}
           />
         </div>

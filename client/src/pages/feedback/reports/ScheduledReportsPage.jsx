@@ -355,7 +355,7 @@ const ScheduledReportsPage = () => {
                   <Input
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="e.g., Weekly Analytics Summary"
+                    placeholder={t('scheduled_reports.title_example', 'e.g., Weekly Analytics Summary')}
                     fullWidth
                   />
                 </div>
@@ -378,7 +378,7 @@ const ScheduledReportsPage = () => {
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Optional description of this report"
+                  placeholder={t('scheduled_reports.description_placeholder', 'Optional description of this report')}
                   rows={3}
                   fullWidth
                 />

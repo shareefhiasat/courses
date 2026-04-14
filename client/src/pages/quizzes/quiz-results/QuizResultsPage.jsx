@@ -150,7 +150,7 @@ const QuizResultsPage = () => {
       }
     } catch (error) {
       error('Failed to load data:', error);
-      toast.error('Failed to load data: ' + error.message);
+      toast.error(t('quiz_results.load_failed', 'Failed to load data: ') + error.message);
     } finally {
       setLoading(false);
     }
@@ -583,7 +583,7 @@ const QuizResultsPage = () => {
       setOverrideScore('');
     } catch (error) {
       error('Error overriding score:', error);
-      toast.error('Failed to override score: ' + error.message);
+      toast.error(t('quiz_results.override_failed', 'Failed to override score: ') + error.message);
     }
   };
 
@@ -610,10 +610,10 @@ const QuizResultsPage = () => {
         await sendResultNotification(result, true);
       }
 
-      toast.success('Result approved successfully');
+      toast.success(t('quiz_results.approved_success', 'Result approved successfully'));
     } catch (error) {
       error('Error approving result:', error);
-      toast.error('Failed to approve result: ' + error.message);
+      toast.error(t('quiz_results.approve_failed', 'Failed to approve result: ') + error.message);
     }
   };
 
@@ -630,7 +630,7 @@ const QuizResultsPage = () => {
       ]);
 
       if (!quizDoc.exists() || !studentDoc.exists()) {
-        toast.error('Quiz or student not found');
+        toast.error(t('quiz_results.not_found', 'Quiz or student not found'));
         return;
       }
 
@@ -682,16 +682,16 @@ const QuizResultsPage = () => {
         });
       }
 
-      toast.success('Notification sent successfully');
+      toast.success(t('quiz_results.notification_sent', 'Notification sent successfully'));
     } catch (error) {
       error('Error sending notification:', error);
-      toast.error('Failed to send notification: ' + error.message);
+      toast.error(t('quiz_results.notification_failed', 'Failed to send notification: ') + error.message);
     }
   };
 
   const handleBulkApprove = async () => {
     if (selectedRows.length === 0) {
-      toast.error('Please select at least one result');
+      toast.error(t('quiz_results.select_result', 'Please select at least one result'));
       return;
     }
 
@@ -739,7 +739,7 @@ const QuizResultsPage = () => {
       }
     } catch (error) {
       error('Error bulk approving:', error);
-      toast.error('Failed to approve results: ' + error.message);
+      toast.error(t('quiz_results.bulk_approve_failed', 'Failed to approve results: ') + error.message);
     }
   };
 
@@ -932,7 +932,7 @@ const QuizResultsPage = () => {
                     label: p.nameEn || p.nameAr || p.code || p.docId
                   }))
                 ]}
-                placeholder="Filter by Program"
+                placeholder={t('quiz_results.filter_by_program', 'Filter by Program')}
                 fullWidth
               />
               <Select
@@ -951,7 +951,7 @@ const QuizResultsPage = () => {
                       label: `${s.code || ''} - ${s.nameEn || s.nameAr || s.docId}`.trim()
                     }))
                 ]}
-                placeholder="Filter by Subject"
+                placeholder={t('quiz_results.filter_by_subject', 'Filter by Subject')}
                 fullWidth
               />
               <Select
@@ -965,7 +965,7 @@ const QuizResultsPage = () => {
                     label: `${c.name || c.code || c.id}${c.term ? ` (${c.term})` : ''}`
                   }))
                 ]}
-                placeholder="Filter by Class"
+                placeholder={t('quiz_results.filter_by_class', 'Filter by Class')}
                 fullWidth
               />
               <Select
@@ -979,7 +979,7 @@ const QuizResultsPage = () => {
                     label: q.title || q.name || q.id
                   }))
                 ]}
-                placeholder="Filter by Quiz"
+                placeholder={t('quiz_results.filter_by_quiz', 'Filter by Quiz')}
                 fullWidth
               />
               <Select
@@ -993,7 +993,7 @@ const QuizResultsPage = () => {
                     label: `${s.displayName || s.email}${s.email ? ` (${s.email})` : ''}`
                   }))
                 ]}
-                placeholder="Filter by Student"
+                placeholder={t('quiz_results.filter_by_student', 'Filter by Student')}
                 fullWidth
               />
             </div>

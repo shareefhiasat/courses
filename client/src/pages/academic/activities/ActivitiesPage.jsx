@@ -985,7 +985,7 @@ const ActivitiesPage = () => {
               <input
                 ref={urlRef}
                 type="url"
-                placeholder="https://example.com or activity-link"
+                placeholder={t('activities.url_placeholder', 'https://example.com or activity-link')}
                 defaultValue=""
                 className="dashboard-input"
                 style={{ flex: 1 }}
@@ -1000,14 +1000,14 @@ const ActivitiesPage = () => {
               <input
                 ref={imageRef}
                 type="url"
-                placeholder="https://example.com/image.jpg"
+                placeholder={t('activities.image_url_placeholder', 'https://example.com/image.jpg')}
                 defaultValue=""
                 className="dashboard-input"
                 style={{ flex: 1 }}
               />
               <input
                 type="number"
-                placeholder="100"
+                placeholder={t('activities.max_score_placeholder', '100')}
                 value={activityForm.maxScore || 100}
                 onChange={(e) => {
                   if (activityForm.quizId && !activityForm.overrideQuizSettings) {
