@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -9,7 +9,8 @@ import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } fro
  * StudentInfoCell - Displays student name, avatar, ID, favorite button, and today's status
  * Logic-free component following workspace constitution
  */
-const StudentInfoCell = ({ student, favoriteStudents, toggleFavorite, onStudentSelect, t, attendanceMode, todayStatus }) => {
+const StudentInfoCell = ({ student, favoriteStudents, toggleFavorite, onStudentSelect, t, attendanceMode, todayStatus, theme = 'light' }) => {
+  const [isHovered, setIsHovered] = useState(false);
   const avatarColorObj = getAvatarColor(student.displayName || student.realName || student.name || '');
   const avatarInitials = getAvatarInitials(student.displayName || student.realName || student.name || '');
   const isStandupMode = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
@@ -36,7 +37,12 @@ const StudentInfoCell = ({ student, favoriteStudents, toggleFavorite, onStudentS
   };
 
   return (
-    <td style={{ padding: '0.5rem 0.75rem' }} onClick={() => onStudentSelect(student)}>
+    <td
+      style={{ padding: '0.5rem 0.75rem' }}
+      onClick={() => onStudentSelect(student)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         {/* Avatar */}
         <div style={{
@@ -76,7 +82,7 @@ const StudentInfoCell = ({ student, favoriteStudents, toggleFavorite, onStudentS
             }
           </button>
           <div>
-            <div style={{ fontWeight: 500, color: 'var(--text, #111827)', display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: isStandupMode ? 'nowrap' : 'normal' }}>
+            <div style={{ fontWeight: 500, color: theme === 'dark' ? (isHovered ? '#000000' : '#ffffff') : 'var(--text, #111827)', display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: isStandupMode ? 'nowrap' : 'normal' }}>
               {student.displayName || student.realName || student.name || student.email}
               {/* Today's Attendance Status - Show with color and icon */}
               {todayStatus && (

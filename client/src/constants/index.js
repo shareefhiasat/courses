@@ -316,6 +316,18 @@ export const DASHBOARD_COLORS = {
   GRAY: '#6b7280'
 };
 
+// Activity type colors for UI display (centralized constants)
+export const ACTIVITY_COLORS = {
+  participation: '#3b82f6', // Blue
+  behavior: '#f97316',      // Orange
+  penalty: '#dc2626',       // Darker red
+  humanitarian: '#8b5cf6',  // Purple
+  attendance: '#10b981',    // Green
+  absent: '#ef4444',       // Red
+  late: '#f59e0b',         // Orange-yellow
+  present: '#10b981'       // Green
+};
+
 export const getTypeIcon = (type) => getIcon(type);
 export const getAttendanceIcon = () => getIcon(ICON_TYPES.ATTENDANCE);
 export const getBehaviorIcon = () => getIcon(ICON_TYPES.BEHAVIOR);

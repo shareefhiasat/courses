@@ -1104,7 +1104,7 @@ const StudentRoster = React.memo(function StudentRoster({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <p style={{
             fontSize: '0.875rem',
-            color: 'var(--text-muted, #6b7280)',
+            color: theme === 'dark' ? '#ffffff' : 'var(--text-muted, #6b7280)',
             marginTop: '0.25rem',
             marginBottom: 0
           }}>
@@ -1624,6 +1624,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     toggleFilter={toggleFilter}
                     lang={lang}
                     historyLoading={historyLoading}
+                    theme={theme}
                   />
                 ))}
             </tbody>
@@ -1638,7 +1639,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   padding: '0.75rem 0.5rem',
                   textAlign: 'center',
                   fontSize: '0.875rem',
-                  color: 'var(--text-primary, #111827)'
+                  color: theme === 'dark' ? '#ffffff' : 'var(--text-primary, #111827)'
                 }}>
                   {t('total') || 'Total'}
                 </td>
@@ -1646,7 +1647,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   padding: '0.75rem',
                   textAlign: isRTL ? 'right' : 'left',
                   fontSize: '0.875rem',
-                  color: 'var(--text-primary, #111827)'
+                  color: theme === 'dark' ? '#ffffff' : 'var(--text-primary, #111827)'
                 }}>
                   {students.filter(student => !showFavoritesOnly || favoriteStudents.includes(student.id)).length} {t('students') || 'students'}
                 </td>

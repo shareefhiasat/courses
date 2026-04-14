@@ -19,18 +19,19 @@ import {
   PenaltyIcon
 } from '@utils/icons.jsx';
 
-export const HistorySection = ({ 
-  title, 
-  logs, 
-  type, 
-  icon, 
-  iconColor, 
-  activeFilters, 
-  onDelete, 
-  t, 
+export const HistorySection = ({
+  title,
+  logs,
+  type,
+  icon,
+  iconColor,
+  activeFilters,
+  onDelete,
+  t,
   isRTL,
   borderColor = '#f1f5f9',
-  showDeleteButton = true
+  showDeleteButton = true,
+  theme = 'light'
 }) => {
   const isMobile = useIsMobile();
   const { data: lookupData } = useLookupTypes({
@@ -134,6 +135,7 @@ export const HistorySection = ({
           isRTL={isRTL}
           borderColor={idx === sortedLogs.length - 1 ? 'none' : borderColor}
           showDeleteButton={showDeleteButton}
+          theme={theme}
         />
       ))}
     </div>

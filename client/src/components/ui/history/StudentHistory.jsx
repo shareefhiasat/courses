@@ -23,7 +23,8 @@ const StudentHistory = React.memo(({
   studentId,
   lang = 'en',
   studentName,
-  canDeleteAttendance = false
+  canDeleteAttendance = false,
+  theme = 'light'
 }) => {
   info('🔧 StudentHistory rendering with groupedLogs:', groupedLogs);
   info('🔧 StudentHistory expandedDays:', expandedDays);
@@ -93,7 +94,7 @@ const StudentHistory = React.memo(({
     
     return (
       <div key={dayIndex} style={{
-        border: '1px solid var(--border, #e5e7eb)',
+        border: theme === 'dark' ? '1px solid #374151' : '1px solid var(--border, #e5e7eb)',
         borderRadius: '0.375rem',
         overflow: 'hidden',
         marginBottom: '0.5rem'
@@ -105,10 +106,14 @@ const StudentHistory = React.memo(({
           onToggle={() => toggleDayExpansion(dayGroup.date)}
           t={t}
           isRTL={isRTL}
+          theme={theme}
         />
         
         {isDayExpanded && (
-          <div style={{ padding: '0.5rem 0.75rem' }}>
+          <div style={{
+            padding: '0.5rem 0.75rem',
+            background: theme === 'dark' ? '#111827' : 'transparent'
+          }}>
             {/* Combined Timeline - All records sorted by time */}
             {(() => {
               // Combine all logs from all types and sort by time
@@ -226,6 +231,7 @@ const StudentHistory = React.memo(({
         lang={lang}
         studentName={studentName || log.studentName}
         showDeleteButton={canDeleteAttendance && onDelete !== null}
+        theme={theme}
       />
     );
               });

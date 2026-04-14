@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
+import { ACTIVITY_COLORS } from '@constants';
 import StudentRosterHistory from './StudentRosterHistory';
 import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getAttendanceIcon, ATTENDANCE_TYPE_CATEGORY, STANDUP_ATTENDANCE_TYPES } from '@constants/attendanceTypes';
 import { useNavigate } from 'react-router-dom';
@@ -52,7 +53,8 @@ const StudentTableRow = ({
   toggleFilter,
   historyLoading = {},
   todayAttendanceOverrides = {},
-  attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR
+  attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR,
+  theme = 'light'
 }) => {
   const navigate = useNavigate();
   const { t, lang } = useLang();
@@ -297,6 +299,7 @@ const StudentTableRow = ({
           t={t}
           attendanceMode={attendanceMode}
           todayStatus={todayStatus}
+          theme={theme}
         />
         {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
           <td style={{ padding: '0.5rem 0.75rem' }} onClick={() => onStudentSelect(student)}>
@@ -470,7 +473,7 @@ const StudentTableRow = ({
                 height: '2.5rem',
                 borderRadius: '0.5rem',
                 fontWeight: 500,
-                background: student.attendanceStats?.humanitarianCase > 0 ? '#8b5cf6' : '#f3f4f6',
+                background: student.attendanceStats?.humanitarianCase > 0 ? ACTIVITY_COLORS.humanitarian : '#f3f4f6',
                 color: student.attendanceStats?.humanitarianCase > 0 ? '#ffffff' : '#374151'
               }}>
                 {student.attendanceStats?.humanitarianCase || 0}

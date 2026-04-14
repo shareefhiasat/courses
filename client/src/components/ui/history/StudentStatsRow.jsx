@@ -1,5 +1,6 @@
 import React from 'react';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
+import { ACTIVITY_COLORS } from '@constants';
 
 /**
  * StudentStatsRow - Displays participation, behavior, and penalty stats
@@ -23,7 +24,7 @@ const StudentStatsRow = ({ participationValue, behaviorValue, penaltyValue, onSt
           height: '2.5rem',
           borderRadius: '0.5rem',
           fontWeight: 500,
-          background: participation > 0 ? '#3b82f6' : '#f3f4f6',
+          background: participation > 0 ? ACTIVITY_COLORS.participation : '#f3f4f6',
           color: participation > 0 ? '#ffffff' : '#374151'
         }}>
           {participation}
@@ -40,7 +41,7 @@ const StudentStatsRow = ({ participationValue, behaviorValue, penaltyValue, onSt
           height: '2.5rem',
           borderRadius: '0.5rem',
           fontWeight: 500,
-          background: behavior >= 0 ? '#f97316' : '#f3f4f6',
+          background: behavior >= 0 ? ACTIVITY_COLORS.behavior : '#f3f4f6',
           color: behavior >= 0 ? '#ffffff' : '#374151'
         }}>
           {behavior}
@@ -57,7 +58,7 @@ const StudentStatsRow = ({ participationValue, behaviorValue, penaltyValue, onSt
           height: '2.5rem',
           borderRadius: '0.5rem',
           fontWeight: 500,
-          background: penalty < 0 ? '#ef4444' : '#f3f4f6',
+          background: penalty < 0 ? ACTIVITY_COLORS.penalty : '#f3f4f6',
           color: penalty < 0 ? '#ffffff' : '#374151'
         }}>
           {penalty}

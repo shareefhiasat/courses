@@ -360,7 +360,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
                 >
-                  {theme==='light'?getThemedIcon('ui', 'moon', 16, 'var(--text-primary)'):getThemedIcon('ui', 'sun', 16, theme)}
+                  {theme==='light'?getThemedIcon('ui', 'moon', 16, 'var(--text-primary)'):getThemedIcon('ui', 'sun', 16, '#fff')}
                 </button>
                 </PortalTooltip>
                 {/* Temporarily hidden - Minified filter toggle button

@@ -2,6 +2,7 @@ import React, { useCallback, useMemo } from 'react';
 import { useIsMobile } from '@hooks/useIsMobile';
 import { Button } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
+import { ACTIVITY_COLORS } from '@constants';
 import StudentRosterHistory from './StudentRosterHistory';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { CircleIcon, ZapIcon } from '@utils/icons.jsx';
@@ -204,7 +205,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             height: isMobile ? '1.5rem' : '1.75rem',
             borderRadius: '0.375rem',
             fontWeight: 500,
-            background: '#3b82f6',
+            background: ACTIVITY_COLORS.participation,
             color: '#ffffff',
             fontSize: isMobile ? '0.7rem' : '0.75rem',
             padding: '0 0.5rem'
@@ -224,7 +225,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             height: isMobile ? '1.5rem' : '1.75rem',
             borderRadius: '0.375rem',
             fontWeight: 500,
-            background: '#f97316',
+            background: ACTIVITY_COLORS.behavior,
             color: '#ffffff',
             fontSize: isMobile ? '0.7rem' : '0.75rem',
             padding: '0 0.5rem'
@@ -381,7 +382,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             height: isMobile ? '1.25rem' : '1.5rem',
             borderRadius: '0.25rem',
             fontWeight: 500,
-            background: student.attendanceStats?.humanitarianCase > 0 ? '#8b5cf6' : '#f3f4f6',
+            background: student.attendanceStats?.humanitarianCase > 0 ? ACTIVITY_COLORS.humanitarian : '#f3f4f6',
             color: student.attendanceStats?.humanitarianCase > 0 ? '#ffffff' : '#374151',
             fontSize: isMobile ? '0.625rem' : '0.7rem',
             padding: '0 0.25rem'

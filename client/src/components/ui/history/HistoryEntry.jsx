@@ -9,18 +9,19 @@ import { getLocalizedNoteText } from '@constants/noteTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import PortalTooltip from '@ui/PortalTooltip';
 
-export const HistoryEntry = ({ 
-  log, 
-  type, 
-  icon, 
-  iconColor, 
-  onDelete, 
-  t, 
+export const HistoryEntry = ({
+  log,
+  type,
+  icon,
+  iconColor,
+  onDelete,
+  t,
   isRTL,
   showDeleteButton = true,
   borderColor = '#f1f5f9',
   lang = 'en',
-  studentName
+  studentName,
+  theme = 'light'
 }) => {
   const isMobile = useIsMobile();
 
@@ -56,28 +57,29 @@ export const HistoryEntry = ({
   const isStandupEntry = type === RECORD_TYPES.ATTENDANCE && (typeof log.status === 'string' && log.status?.startsWith('standup_'));
 
     return (
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: isMobile ? '0.125rem' : '0.5rem', 
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: isMobile ? '0.125rem' : '0.5rem',
       padding: isMobile ? '0.125rem 0' : '0.25rem 0',
       fontSize: isMobile ? '0.75rem' : '0.8125rem',
       borderBottom: 'none',
-      marginBottom: isMobile ? '0.0625rem' : '0.125rem'
+      marginBottom: isMobile ? '0.0625rem' : '0.125rem',
+      background: 'transparent'
     }}>
-      <span style={{ 
-        color: 'var(--text-muted, #64748b)', 
-        minWidth: isMobile ? '50px' : '70px', 
-        fontSize: isMobile ? '0.65rem' : '0.75rem' 
+      <span style={{
+        color: theme === 'dark' ? '#9ca3af' : 'var(--text-muted, #64748b)',
+        minWidth: isMobile ? '50px' : '70px',
+        fontSize: isMobile ? '0.65rem' : '0.75rem'
       }}>
         {timeDisplay}
       </span>
-      
+
       {icon && (
-        <div style={{ 
-          width: isMobile ? '12px' : '16px', 
-          height: isMobile ? '12px' : '16px', 
-          color: iconColor, 
+        <div style={{
+          width: isMobile ? '12px' : '16px',
+          height: isMobile ? '12px' : '16px',
+          color: iconColor,
           [isRTL ? 'marginLeft' : 'marginRight']: isMobile ? '0.125rem' : '0.5rem',
           display: 'flex',
           alignItems: 'center',
@@ -86,7 +88,7 @@ export const HistoryEntry = ({
           {icon}
         </div>
       )}
-      
+
       {isStandupEntry && (
         <PortalTooltip content={t('standup_attendance') || 'Standup Attendance'} position="top">
           <span style={{
@@ -104,39 +106,39 @@ export const HistoryEntry = ({
           </span>
         </PortalTooltip>
       )}
-      
-      <span style={{ 
-        color: 'var(--text-secondary, #374151)', 
+
+      <span style={{
+        color: theme === 'dark' ? '#e5e7eb' : 'var(--text-secondary, #374151)',
         fontWeight: 500,
         fontSize: isMobile ? '0.7rem' : '0.8125rem',
         flex: 1
       }}>
         {log.label}
         {studentName && (
-          <span style={{ 
-            color: 'var(--text-muted, #6b7280)', 
+          <span style={{
+            color: theme === 'dark' ? '#9ca3af' : 'var(--text-muted, #6b7280)',
             fontWeight: 400,
             fontSize: isMobile ? '0.6rem' : '0.7rem',
             marginLeft: '0.5rem'
           }}>
             {studentName.displayName || studentName.name || studentName}
             {studentName.email && studentName.displayName && (
-              <span style={{ color: 'var(--text-secondary, #374151)', fontWeight: 500 }}>
+              <span style={{ color: theme === 'dark' ? '#e5e7eb' : 'var(--text-secondary, #374151)', fontWeight: 500 }}>
                 ({studentName.email})
               </span>
             )}
             {studentName.studentNumber && (
-              <span style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
                 gap: '0.125rem',
                 marginLeft: '0.25rem',
                 padding: '0.125rem 0.25rem',
-                background: 'var(--panel-hover, #f3f4f6)',
+                background: theme === 'dark' ? '#374151' : 'var(--panel-hover, #f3f4f6)',
                 borderRadius: '0.25rem',
                 fontSize: '0.625rem'
               }}>
-                {getThemedIcon('ui', 'user', 10, 'var(--text-muted, #6b7280)')}
+                {getThemedIcon('ui', 'user', 10, theme === 'dark' ? '#9ca3af' : 'var(--text-muted, #6b7280)')}
                 {studentName.studentNumber}
               </span>
             )}
@@ -172,13 +174,13 @@ export const HistoryEntry = ({
 
         return displayComment && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <span style={{ color: '#64748b', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
+            <span style={{ color: theme === 'dark' ? '#9ca3af' : '#64748b', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
               {displayComment}
             </span>
             {showTooltip && (
               <InfoTooltip>
-                <div style={{ 
-                  maxWidth: '300px', 
+                <div style={{
+                  maxWidth: '300px',
                   padding: '0.5rem',
                   fontSize: '0.75rem',
                   lineHeight: '1.4'
@@ -187,12 +189,12 @@ export const HistoryEntry = ({
                     {log.comment}
                   </div>
                   {type === RECORD_TYPES.ATTENDANCE && log.method && shouldShowMethodLabel(log.method, log.comment) && (
-                    <div style={{ 
-                      marginTop: '0.5rem', 
-                      paddingTop: '0.5rem', 
-                      borderTop: '1px solid #e5e7eb',
+                    <div style={{
+                      marginTop: '0.5rem',
+                      paddingTop: '0.5rem',
+                      borderTop: '1px solid var(--border, #e5e7eb)',
                       fontSize: '0.625rem',
-                      color: '#6b7280'
+                      color: theme === 'dark' ? '#9ca3af' : '#6b7280'
                     }}>
                       <strong>Method:</strong> {getAttendanceMethodLabel(log.method, t, lang)}
                     </div>
@@ -205,29 +207,33 @@ export const HistoryEntry = ({
       })()}
       
       {log.points !== undefined && type !== RECORD_TYPES.ATTENDANCE && (
-        <span style={{ 
+        <span style={{
           padding: isMobile ? '0.0625rem 0.25rem' : '0.125rem 0.375rem',
-          background: log.points > 0 ? 'var(--color-info-light, #eff6ff)' : 'var(--color-warning-light, #fff7ed)',
-          color: log.points > 0 ? 'var(--color-info-dark, #1e40af)' : 'var(--color-warning-dark, #c2410c)',
+          background: log.points > 0
+            ? (theme === 'dark' ? '#1e3a8a' : 'var(--color-info-light, #eff6ff)')
+            : (theme === 'dark' ? '#7c2d12' : 'var(--color-warning-light, #fff7ed)'),
+          color: log.points > 0
+            ? (theme === 'dark' ? '#60a5fa' : 'var(--color-info-dark, #1e40af)')
+            : (theme === 'dark' ? '#fb923c' : 'var(--color-warning-dark, #c2410c)'),
           borderRadius: '0.25rem',
           fontSize: isMobile ? '0.7rem' : '0.75rem'
         }}>
           {log.points > 0 ? '+' : ''}{log.points}
         </span>
       )}
-      
+
       {log.severity && (
-        <span style={{ 
+        <span style={{
           padding: isMobile ? '0.0625rem 0.25rem' : '0.125rem 0.375rem',
-          background: 'var(--color-danger-light, #fef2f2)',
-          color: 'var(--color-danger-dark, #b91c1c)',
+          background: theme === 'dark' ? '#7f1d1d' : 'var(--color-danger-light, #fef2f2)',
+          color: theme === 'dark' ? '#f87171' : 'var(--color-danger-dark, #b91c1c)',
           borderRadius: '0.25rem',
           fontSize: isMobile ? '0.7rem' : '0.75rem'
         }}>
           {log.severity}
         </span>
       )}
-      
+
       {/* User Attribution */}
       {log.performedBy && (
         <div style={{
@@ -236,11 +242,11 @@ export const HistoryEntry = ({
           gap: '0.25rem',
           [isRTL ? 'marginRight' : 'marginLeft']: 'auto',
           padding: '0.125rem 0.5rem',
-          background: 'var(--color-info-light, #f0f9ff)',
-          border: '1px solid var(--color-info-border, #bae6fd)',
+          background: theme === 'dark' ? '#1e3a8a' : 'var(--color-info-light, #f0f9ff)',
+          border: theme === 'dark' ? '1px solid #3b82f6' : '1px solid var(--color-info-border, #bae6fd)',
           borderRadius: '1rem',
           fontSize: '0.625rem',
-          color: 'var(--color-info-dark, #0369a1)'
+          color: theme === 'dark' ? '#60a5fa' : 'var(--color-info-dark, #0369a1)'
         }}>
           <PerformedBy 
             performedByName={log.performedByName}

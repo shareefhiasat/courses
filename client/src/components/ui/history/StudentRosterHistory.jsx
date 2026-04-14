@@ -80,7 +80,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
 
   return (
     <div style={{
-      backgroundColor: 'var(--background, #ffffff)',
+      backgroundColor: 'var(--background, white)',
       borderRadius: '0.5rem',
       border: '1px solid var(--border, #e5e7eb)',
       overflow: 'hidden',
@@ -91,7 +91,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
       <div style={{
         padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1rem',
         borderBottom: '1px solid var(--border, #e5e7eb)',
-        backgroundColor: 'var(--surface, #f9fafb)',
+        backgroundColor: 'var(--panel-hover, var(--background-secondary, #f9fafb))',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -114,9 +114,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
               padding: isMobile ? '0.375rem 0.5rem' : '0.5rem 0.75rem',
               fontSize: isMobile ? '0.75rem' : '0.8125rem',
               borderRadius: '0.375rem',
-              border: '1px solid #e2e8f0',
-              background: activeFilters.attendance ? '#10b981' : '#ffffff',
-              color: activeFilters.attendance ? 'white' : '#64748b',
+              border: '1px solid var(--border, #e2e8f0)',
+              background: activeFilters.attendance ? '#10b981' : 'var(--background, white)',
+              color: activeFilters.attendance ? 'white' : 'var(--text-muted, #64748b)',
               cursor: 'pointer',
               boxShadow: activeFilters.attendance ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
               minWidth: isMobile ? 'auto' : '0'
@@ -134,9 +134,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
               padding: isMobile ? '0.375rem 0.5rem' : '0.5rem 0.75rem',
               fontSize: isMobile ? '0.75rem' : '0.8125rem',
               borderRadius: '0.375rem',
-              border: '1px solid #e2e8f0',
-              background: activeFilters.participation ? '#3b82f6' : '#ffffff',
-              color: activeFilters.participation ? 'white' : '#64748b',
+              border: '1px solid var(--border, #e2e8f0)',
+              background: activeFilters.participation ? '#3b82f6' : 'var(--background, white)',
+              color: activeFilters.participation ? 'white' : 'var(--text-muted, #64748b)',
               cursor: 'pointer',
               boxShadow: activeFilters.participation ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
               minWidth: isMobile ? 'auto' : '0'
@@ -154,9 +154,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
               padding: isMobile ? '0.375rem 0.5rem' : '0.5rem 0.75rem',
               fontSize: isMobile ? '0.75rem' : '0.8125rem',
               borderRadius: '0.375rem',
-              border: '1px solid #e2e8f0',
-              background: activeFilters.behavior ? '#f97316' : '#ffffff',
-              color: activeFilters.behavior ? 'white' : '#64748b',
+              border: '1px solid var(--border, #e2e8f0)',
+              background: activeFilters.behavior ? '#f97316' : 'var(--background, white)',
+              color: activeFilters.behavior ? 'white' : 'var(--text-muted, #64748b)',
               cursor: 'pointer',
               boxShadow: activeFilters.behavior ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
               minWidth: isMobile ? 'auto' : '0'
@@ -174,9 +174,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
               padding: isMobile ? '0.375rem 0.5rem' : '0.5rem 0.75rem',
               fontSize: isMobile ? '0.75rem' : '0.8125rem',
               borderRadius: '0.375rem',
-              border: '1px solid #e2e8f0',
-              background: activeFilters.penalties ? '#dc2626' : '#ffffff',
-              color: activeFilters.penalties ? 'white' : '#64748b',
+              border: '1px solid var(--border, #e2e8f0)',
+              background: activeFilters.penalties ? '#dc2626' : 'var(--background, white)',
+              color: activeFilters.penalties ? 'white' : 'var(--text-muted, #64748b)',
               cursor: 'pointer',
               boxShadow: activeFilters.penalties ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
               minWidth: isMobile ? 'auto' : '0'
@@ -185,7 +185,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             <AlertCircleSmallIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} />
             {t('penalties')}
           </button>
-          
+
           {/* Search Input */}
           <div style={{
             position: 'relative',
@@ -198,25 +198,26 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
               placeholder={t('attendance.search_placeholder') || 'Search...'}
               style={{
                 width: '100%',
-                padding: isMobile 
+                padding: isMobile
                 ? `0.375rem ${isRTL ? '2rem' : '0.5rem'} 0.375rem ${isRTL ? '0.5rem' : '2rem'}`
                 : `0.5rem ${isRTL ? '2.5rem' : '0.75rem'} 0.5rem ${isRTL ? '0.75rem' : '2.5rem'}`,
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border, #d1d5db)',
                 borderRadius: '0.375rem',
                 fontSize: isMobile ? '0.75rem' : '0.8125rem',
                 outline: 'none',
                 transition: 'border-color 0.2s',
-                backgroundColor: 'white'
+                backgroundColor: 'var(--input-bg, white)',
+                color: 'var(--text, #111827)'
               }}
               onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-              onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--border, #d1d5db)'}
             />
             <div style={{
               position: 'absolute',
               [isRTL ? 'left' : 'right']: isMobile ? '0.5rem' : '0.75rem',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#6b7280'
+              color: 'var(--text-muted, #6b7280)'
             }}>
               {getThemedIcon('ui', 'search', isMobile ? 14 : 16, theme)}
             </div>
@@ -230,7 +231,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
                   transform: 'translateY(-50%)',
                   background: 'none',
                   border: 'none',
-                  color: '#6b7280',
+                  color: 'var(--text-muted, #6b7280)',
                   cursor: 'pointer',
                   padding: '0.25rem'
                 }}
@@ -240,7 +241,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             )}
           </div>
         </div>
-        
+
         {studentHistory[student.id] && studentHistory[student.id].length > 0 && (
           <PortalTooltip content={(() => {
             const allExpanded = groupedLogs.every(log => expandedDays.has(log.date));
@@ -255,9 +256,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
               padding: '0.25rem 0.5rem',
               fontSize: '0.75rem',
               borderRadius: '0.375rem',
-              border: '1px solid #e2e8f0',
-              background: '#f8fafc',
-              color: '#64748b',
+              border: '1px solid var(--border, #e2e8f0)',
+              background: 'var(--panel-hover, #f8fafc)',
+              color: 'var(--text-muted, #64748b)',
               cursor: 'pointer',
               transition: 'all 0.2s'
             }}
@@ -271,7 +272,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
       </div>
 
       {/* Student History Component */}
-      <StudentHistory 
+      <StudentHistory
         groupedLogs={groupedLogs}
         expandedDays={expandedDays}
         activeFilters={activeFilters}
@@ -286,6 +287,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
         lang={lang}
         studentName={studentName}
         canDeleteAttendance={canDeleteAttendance}
+        theme={theme}
       />
     </div>
   );
