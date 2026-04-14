@@ -646,6 +646,12 @@ export default function StudentActionStatsPanel({
 
   // Fetch real data from Firebase - memoized
   const handleMarkAttendance = useCallback(async (studentId, status) => {
+    // Check if attendance already exists and user doesn't have edit permission
+    if (currentAttendanceStatus && !canEditAttendance) {
+      showError('You do not have permission to edit existing attendance');
+      return;
+    }
+
     setShowLoadingOverlay(true);
     try {
       await onMarkAttendance(studentId, status, programId, subjectId);
@@ -660,7 +666,7 @@ export default function StudentActionStatsPanel({
     } finally {
       setShowLoadingOverlay(false);
     }
-  }, [onMarkAttendance, fetchHistoricalLogs, programId, subjectId]);
+  }, [onMarkAttendance, fetchHistoricalLogs, programId, subjectId, currentAttendanceStatus, canEditAttendance, showError]);
 
   // Delete attendance log
   const handleDeleteAttendance = useCallback((logId) => {
@@ -1247,6 +1253,7 @@ export default function StudentActionStatsPanel({
                 t={t}
                 lang={lang}
                 isRTL={isRTL}
+                theme={theme}
               />
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0 }}>
                 {/* Notifications toggle hidden

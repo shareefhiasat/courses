@@ -9,6 +9,38 @@ import { getLocalizedNoteText } from '@constants/noteTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import PortalTooltip from '@ui/PortalTooltip';
 
+const getEntryPalette = (theme) => {
+  if (theme === 'dark') {
+    return {
+      surface: 'linear-gradient(120deg, rgba(15,23,42,0.92), rgba(30,41,59,0.9))',
+      border: 'rgba(148,163,184,0.2)',
+      divider: 'rgba(51,65,85,0.65)',
+      shadow: '0 20px 30px rgba(2,6,23,0.6)',
+      time: '#94a3b8',
+      primary: '#f1f5f9',
+      muted: '#9ca3af',
+      chipBg: 'rgba(148,163,184,0.12)',
+      chipText: '#cbd5f5',
+      bubble: 'rgba(30,41,59,0.75)',
+      bubbleBorder: 'rgba(148,163,184,0.25)'
+    };
+  }
+
+  return {
+    surface: '#ffffff',
+    border: 'var(--border, #e5e7eb)',
+    divider: 'var(--border-light, #f1f5f9)',
+    shadow: '0 6px 18px rgba(15,23,42,0.08)',
+    time: 'var(--text-muted, #6b7280)',
+    primary: 'var(--text-secondary, #374151)',
+    muted: 'var(--text-muted, #6b7280)',
+    chipBg: 'var(--panel-hover, #f3f4f6)',
+    chipText: 'var(--text-secondary, #374151)',
+    bubble: '#f8fafc',
+    bubbleBorder: 'var(--border, #e5e7eb)'
+  };
+};
+
 export const HistoryEntry = ({
   log,
   type,
@@ -24,6 +56,7 @@ export const HistoryEntry = ({
   theme = 'light'
 }) => {
   const isMobile = useIsMobile();
+  const palette = getEntryPalette(theme);
 
   // Handle invalid times - display in local timezone without forcing Qatar timezone
   const getTimeDisplay = () => {
@@ -56,21 +89,38 @@ export const HistoryEntry = ({
   const timeDisplay = getTimeDisplay();
   const isStandupEntry = type === RECORD_TYPES.ATTENDANCE && (typeof log.status === 'string' && log.status?.startsWith('standup_'));
 
-    return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: isMobile ? '0.125rem' : '0.5rem',
-      padding: isMobile ? '0.125rem 0' : '0.25rem 0',
-      fontSize: isMobile ? '0.75rem' : '0.8125rem',
-      borderBottom: 'none',
-      marginBottom: isMobile ? '0.0625rem' : '0.125rem',
-      background: 'transparent'
-    }}>
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        gap: isMobile ? '0.35rem' : '0.65rem',
+        padding: isMobile ? '0.4rem 0.5rem' : '0.5rem 0.75rem',
+        fontSize: isMobile ? '0.75rem' : '0.8125rem',
+        border: `1px solid ${palette.border}`,
+        borderRadius: '0.85rem',
+        background: palette.surface,
+        boxShadow: palette.shadow,
+        marginBottom: isMobile ? '0.25rem' : '0.35rem',
+        width: '100%',
+        transition: 'border 0.2s ease, transform 0.2s ease'
+      }}
+    >
+      <span
+        style={{
+          width: '4px',
+          borderRadius: '999px',
+          alignSelf: 'stretch',
+          background: iconColor || 'var(--color-info, #3b82f6)',
+          opacity: 0.85
+        }}
+      />
       <span style={{
-        color: theme === 'dark' ? '#9ca3af' : 'var(--text-muted, #64748b)',
-        minWidth: isMobile ? '50px' : '70px',
-        fontSize: isMobile ? '0.65rem' : '0.75rem'
+        color: palette.time,
+        minWidth: isMobile ? '48px' : '70px',
+        fontSize: isMobile ? '0.65rem' : '0.72rem',
+        fontWeight: 600,
+        letterSpacing: '0.04em'
       }}>
         {timeDisplay}
       </span>
@@ -108,22 +158,22 @@ export const HistoryEntry = ({
       )}
 
       <span style={{
-        color: theme === 'dark' ? '#e5e7eb' : 'var(--text-secondary, #374151)',
-        fontWeight: 500,
-        fontSize: isMobile ? '0.7rem' : '0.8125rem',
+        color: palette.primary,
+        fontWeight: 600,
+        fontSize: isMobile ? '0.72rem' : '0.82rem',
         flex: 1
       }}>
         {log.label}
         {studentName && (
           <span style={{
-            color: theme === 'dark' ? '#9ca3af' : 'var(--text-muted, #6b7280)',
+            color: palette.muted,
             fontWeight: 400,
             fontSize: isMobile ? '0.6rem' : '0.7rem',
             marginLeft: '0.5rem'
           }}>
             {studentName.displayName || studentName.name || studentName}
             {studentName.email && studentName.displayName && (
-              <span style={{ color: theme === 'dark' ? '#e5e7eb' : 'var(--text-secondary, #374151)', fontWeight: 500 }}>
+              <span style={{ color: palette.primary, fontWeight: 500 }}>
                 ({studentName.email})
               </span>
             )}
@@ -134,7 +184,7 @@ export const HistoryEntry = ({
                 gap: '0.125rem',
                 marginLeft: '0.25rem',
                 padding: '0.125rem 0.25rem',
-                background: theme === 'dark' ? '#374151' : 'var(--panel-hover, #f3f4f6)',
+                background: palette.chipBg,
                 borderRadius: '0.25rem',
                 fontSize: '0.625rem'
               }}>
@@ -173,8 +223,15 @@ export const HistoryEntry = ({
         }
 
         return displayComment && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <span style={{ color: theme === 'dark' ? '#9ca3af' : '#64748b', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span style={{
+              color: palette.muted,
+              fontSize: isMobile ? '0.68rem' : '0.75rem',
+              background: palette.bubble,
+              border: `1px solid ${palette.bubbleBorder}`,
+              padding: '0.15rem 0.45rem',
+              borderRadius: '0.5rem'
+            }}>
               {displayComment}
             </span>
             {showTooltip && (
@@ -192,9 +249,9 @@ export const HistoryEntry = ({
                     <div style={{
                       marginTop: '0.5rem',
                       paddingTop: '0.5rem',
-                      borderTop: '1px solid var(--border, #e5e7eb)',
+                      borderTop: `1px solid ${palette.border}`,
                       fontSize: '0.625rem',
-                      color: theme === 'dark' ? '#9ca3af' : '#6b7280'
+                      color: palette.muted
                     }}>
                       <strong>Method:</strong> {getAttendanceMethodLabel(log.method, t, lang)}
                     </div>
@@ -208,15 +265,16 @@ export const HistoryEntry = ({
       
       {log.points !== undefined && type !== RECORD_TYPES.ATTENDANCE && (
         <span style={{
-          padding: isMobile ? '0.0625rem 0.25rem' : '0.125rem 0.375rem',
+          padding: isMobile ? '0.1rem 0.35rem' : '0.15rem 0.45rem',
           background: log.points > 0
-            ? (theme === 'dark' ? '#1e3a8a' : 'var(--color-info-light, #eff6ff)')
-            : (theme === 'dark' ? '#7c2d12' : 'var(--color-warning-light, #fff7ed)'),
+            ? (theme === 'dark' ? 'rgba(37,99,235,0.18)' : 'var(--color-info-light, #eff6ff)')
+            : (theme === 'dark' ? 'rgba(251,146,60,0.2)' : 'var(--color-warning-light, #fff7ed)'),
           color: log.points > 0
-            ? (theme === 'dark' ? '#60a5fa' : 'var(--color-info-dark, #1e40af)')
-            : (theme === 'dark' ? '#fb923c' : 'var(--color-warning-dark, #c2410c)'),
-          borderRadius: '0.25rem',
-          fontSize: isMobile ? '0.7rem' : '0.75rem'
+            ? (theme === 'dark' ? '#93c5fd' : 'var(--color-info-dark, #1e40af)')
+            : (theme === 'dark' ? '#fdba74' : 'var(--color-warning-dark, #c2410c)'),
+          borderRadius: '0.35rem',
+          fontSize: isMobile ? '0.68rem' : '0.75rem',
+          fontWeight: 600
         }}>
           {log.points > 0 ? '+' : ''}{log.points}
         </span>
@@ -224,11 +282,12 @@ export const HistoryEntry = ({
 
       {log.severity && (
         <span style={{
-          padding: isMobile ? '0.0625rem 0.25rem' : '0.125rem 0.375rem',
-          background: theme === 'dark' ? '#7f1d1d' : 'var(--color-danger-light, #fef2f2)',
-          color: theme === 'dark' ? '#f87171' : 'var(--color-danger-dark, #b91c1c)',
-          borderRadius: '0.25rem',
-          fontSize: isMobile ? '0.7rem' : '0.75rem'
+          padding: isMobile ? '0.1rem 0.35rem' : '0.15rem 0.45rem',
+          background: theme === 'dark' ? 'rgba(239,68,68,0.18)' : 'var(--color-danger-light, #fef2f2)',
+          color: theme === 'dark' ? '#fca5a5' : 'var(--color-danger-dark, #b91c1c)',
+          borderRadius: '0.35rem',
+          fontSize: isMobile ? '0.68rem' : '0.75rem',
+          fontWeight: 600
         }}>
           {log.severity}
         </span>
@@ -239,14 +298,14 @@ export const HistoryEntry = ({
         <div style={{
           display: isMobile ? 'none' : 'flex',
           alignItems: 'center',
-          gap: '0.25rem',
+          gap: '0.35rem',
           [isRTL ? 'marginRight' : 'marginLeft']: 'auto',
-          padding: '0.125rem 0.5rem',
-          background: theme === 'dark' ? '#1e3a8a' : 'var(--color-info-light, #f0f9ff)',
-          border: theme === 'dark' ? '1px solid #3b82f6' : '1px solid var(--color-info-border, #bae6fd)',
-          borderRadius: '1rem',
-          fontSize: '0.625rem',
-          color: theme === 'dark' ? '#60a5fa' : 'var(--color-info-dark, #0369a1)'
+          padding: '0.15rem 0.75rem',
+          background: theme === 'dark' ? 'rgba(37,99,235,0.16)' : 'var(--color-info-light, #f0f9ff)',
+          border: theme === 'dark' ? '1px solid rgba(59,130,246,0.4)' : '1px solid var(--color-info-border, #bae6fd)',
+          borderRadius: '999px',
+          fontSize: '0.65rem',
+          color: theme === 'dark' ? '#bfdbfe' : 'var(--color-info-dark, #0369a1)'
         }}>
           <PerformedBy 
             performedByName={log.performedByName}
@@ -265,7 +324,7 @@ export const HistoryEntry = ({
       )}
       
       {showDeleteButton && onDelete && (
-        <PortalTooltip content={t('delete_record').replace('{type}', type)} position="top">
+        <PortalTooltip content={(t('delete_record') || '{type}').replace('{type}', type)} position="top">
         <Button
           variant="ghost"
           size="icon"
@@ -275,8 +334,10 @@ export const HistoryEntry = ({
           }}
           style={{ 
             marginLeft: isMobile ? '0.25rem' : '0.5rem', 
-            color: 'var(--color-danger, #ef4444)',
-            padding: isMobile ? '0.125rem' : '0.25rem'
+            color: theme === 'dark' ? '#fca5a5' : 'var(--color-danger, #ef4444)',
+            padding: isMobile ? '0.125rem' : '0.25rem',
+            borderRadius: '0.5rem',
+            background: theme === 'dark' ? 'rgba(239,68,68,0.08)' : 'transparent'
           }}
         >
           {getThemedIcon('ui', 'trash2', isMobile ? 12 : 14)}

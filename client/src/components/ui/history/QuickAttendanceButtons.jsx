@@ -19,18 +19,26 @@ const QuickAttendanceButtons = ({
   isClinicButtonDisabled,
   handleQuickAttendance,
   programId,
-  t
+  t,
+  canEditAttendance = false
 }) => {
   const preventDoubleClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
+  // Check if student has any attendance for today
+  const studentAttendanceStatus = student.attendance || student.standupStatus;
+  const hasAttendance = !!studentAttendanceStatus;
+
+  // If attendance exists and user doesn't have edit permission, disable all buttons
+  const shouldDisableAll = hasAttendance && !canEditAttendance;
+
   return (
     <>
       {/* Quick Present Button */}
       <PortalTooltip
-        content={isPresentButtonDisabled ? t('already_marked_as_present') : t('mark_present')}
+        content={shouldDisableAll && !isPresentButtonDisabled ? t('no_edit_permission') : (isPresentButtonDisabled ? t('already_marked_as_present') : t('mark_present'))}
         position="top"
       >
         <Button
@@ -48,7 +56,7 @@ const QuickAttendanceButtons = ({
             });
             await handleQuickAttendance(student, statusToMark, attendanceMode, programId);
           }}
-          disabled={isSubmitting || isPresentButtonDisabled}
+          disabled={isSubmitting || isPresentButtonDisabled || shouldDisableAll}
           onDoubleClick={preventDoubleClick}
           style={{
             background: getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT'),
@@ -56,18 +64,18 @@ const QuickAttendanceButtons = ({
             color: 'white',
             borderRadius: '0.375rem',
             transition: 'all 0.2s ease',
-            boxShadow: isPresentButtonDisabled ? 'none' : `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT')}30`,
-            opacity: isPresentButtonDisabled ? 0.5 : 1,
-            cursor: isPresentButtonDisabled ? 'not-allowed' : 'pointer'
+            boxShadow: (isPresentButtonDisabled || shouldDisableAll) ? 'none' : `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT')}30`,
+            opacity: (isPresentButtonDisabled || shouldDisableAll) ? 0.5 : 1,
+            cursor: (isPresentButtonDisabled || shouldDisableAll) ? 'not-allowed' : 'pointer'
           }}
           onMouseEnter={(e) => {
-            if (!isPresentButtonDisabled) {
+            if (!isPresentButtonDisabled && !shouldDisableAll) {
               e.target.style.transform = 'translateY(-1px)';
               e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT')}40`;
             }
           }}
           onMouseLeave={(e) => {
-            if (!isPresentButtonDisabled) {
+            if (!isPresentButtonDisabled && !shouldDisableAll) {
               e.target.style.transform = 'translateY(0)';
               e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT')}30`;
             }
@@ -79,7 +87,7 @@ const QuickAttendanceButtons = ({
 
       {/* Quick Late Button */}
       <PortalTooltip
-        content={isLateButtonDisabled ? t('already_marked_as_late') : t('mark_late')}
+        content={shouldDisableAll && !isLateButtonDisabled ? t('no_edit_permission') : (isLateButtonDisabled ? t('already_marked_as_late') : t('mark_late'))}
         position="top"
       >
         <Button
@@ -97,7 +105,7 @@ const QuickAttendanceButtons = ({
             });
             await handleQuickAttendance(student, statusToMark, attendanceMode, programId);
           }}
-          disabled={isSubmitting || isLateButtonDisabled}
+          disabled={isSubmitting || isLateButtonDisabled || shouldDisableAll}
           onDoubleClick={preventDoubleClick}
           style={{
             background: getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE'),
@@ -105,18 +113,18 @@ const QuickAttendanceButtons = ({
             color: 'white',
             borderRadius: '0.375rem',
             transition: 'all 0.2s ease',
-            boxShadow: isLateButtonDisabled ? 'none' : `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE')}30`,
-            opacity: isLateButtonDisabled ? 0.5 : 1,
-            cursor: isLateButtonDisabled ? 'not-allowed' : 'pointer'
+            boxShadow: (isLateButtonDisabled || shouldDisableAll) ? 'none' : `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE')}30`,
+            opacity: (isLateButtonDisabled || shouldDisableAll) ? 0.5 : 1,
+            cursor: (isLateButtonDisabled || shouldDisableAll) ? 'not-allowed' : 'pointer'
           }}
           onMouseEnter={(e) => {
-            if (!isLateButtonDisabled) {
+            if (!isLateButtonDisabled && !shouldDisableAll) {
               e.target.style.transform = 'translateY(-1px)';
               e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE')}40`;
             }
           }}
           onMouseLeave={(e) => {
-            if (!isLateButtonDisabled) {
+            if (!isLateButtonDisabled && !shouldDisableAll) {
               e.target.style.transform = 'translateY(0)';
               e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE')}30`;
             }
@@ -129,7 +137,7 @@ const QuickAttendanceButtons = ({
       {/* Standup Absent Button - Only show in standup mode */}
       {attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (
         <PortalTooltip
-          content={isAbsentButtonDisabled ? t('already_marked_as_absent') : t('mark_absent')}
+          content={shouldDisableAll && !isAbsentButtonDisabled ? t('no_edit_permission') : (isAbsentButtonDisabled ? t('already_marked_as_absent') : t('mark_absent'))}
           position="top"
         >
           <Button
@@ -147,7 +155,7 @@ const QuickAttendanceButtons = ({
               });
               await handleQuickAttendance(student, statusToMark, attendanceMode, programId);
             }}
-            disabled={isSubmitting || isAbsentButtonDisabled}
+            disabled={isSubmitting || isAbsentButtonDisabled || shouldDisableAll}
             onDoubleClick={preventDoubleClick}
             style={{
               background: getAttendanceColor('STANDUP_ABSENT'),
@@ -155,18 +163,18 @@ const QuickAttendanceButtons = ({
               color: 'white',
               borderRadius: '0.375rem',
               transition: 'all 0.2s ease',
-              boxShadow: isAbsentButtonDisabled ? 'none' : `0 2px 4px ${getAttendanceColor('STANDUP_ABSENT')}30`,
-              opacity: isAbsentButtonDisabled ? 0.5 : 1,
-              cursor: isAbsentButtonDisabled ? 'not-allowed' : 'pointer'
+              boxShadow: (isAbsentButtonDisabled || shouldDisableAll) ? 'none' : `0 2px 4px ${getAttendanceColor('STANDUP_ABSENT')}30`,
+              opacity: (isAbsentButtonDisabled || shouldDisableAll) ? 0.5 : 1,
+              cursor: (isAbsentButtonDisabled || shouldDisableAll) ? 'not-allowed' : 'pointer'
             }}
             onMouseEnter={(e) => {
-              if (!isAbsentButtonDisabled) {
+              if (!isAbsentButtonDisabled && !shouldDisableAll) {
                 e.target.style.transform = 'translateY(-1px)';
                 e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('STANDUP_ABSENT')}40`;
               }
             }}
             onMouseLeave={(e) => {
-              if (!isAbsentButtonDisabled) {
+              if (!isAbsentButtonDisabled && !shouldDisableAll) {
                 e.target.style.transform = 'translateY(0)';
                 e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('STANDUP_ABSENT')}30`;
               }
@@ -180,7 +188,7 @@ const QuickAttendanceButtons = ({
       {/* Standup Clinic Button - Only show in standup mode */}
       {attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (
         <PortalTooltip
-          content={isClinicButtonDisabled ? t('already_marked_as_clinic') : t('mark_clinic')}
+          content={shouldDisableAll && !isClinicButtonDisabled ? t('no_edit_permission') : (isClinicButtonDisabled ? t('already_marked_as_clinic') : t('mark_clinic'))}
           position="top"
         >
           <Button
@@ -198,7 +206,7 @@ const QuickAttendanceButtons = ({
               });
               await handleQuickAttendance(student, statusToMark, attendanceMode, programId);
             }}
-            disabled={isSubmitting || isClinicButtonDisabled}
+            disabled={isSubmitting || isClinicButtonDisabled || shouldDisableAll}
             onDoubleClick={preventDoubleClick}
             style={{
               background: getAttendanceColor('STANDUP_CLINIC'),
@@ -206,18 +214,18 @@ const QuickAttendanceButtons = ({
               color: 'white',
               borderRadius: '0.375rem',
               transition: 'all 0.2s ease',
-              boxShadow: isClinicButtonDisabled ? 'none' : `0 2px 4px ${getAttendanceColor('STANDUP_CLINIC')}30`,
-              opacity: isClinicButtonDisabled ? 0.5 : 1,
-              cursor: isClinicButtonDisabled ? 'not-allowed' : 'pointer'
+              boxShadow: (isClinicButtonDisabled || shouldDisableAll) ? 'none' : `0 2px 4px ${getAttendanceColor('STANDUP_CLINIC')}30`,
+              opacity: (isClinicButtonDisabled || shouldDisableAll) ? 0.5 : 1,
+              cursor: (isClinicButtonDisabled || shouldDisableAll) ? 'not-allowed' : 'pointer'
             }}
             onMouseEnter={(e) => {
-              if (!isClinicButtonDisabled) {
+              if (!isClinicButtonDisabled && !shouldDisableAll) {
                 e.target.style.transform = 'translateY(-1px)';
                 e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('STANDUP_CLINIC')}40`;
               }
             }}
             onMouseLeave={(e) => {
-              if (!isClinicButtonDisabled) {
+              if (!isClinicButtonDisabled && !shouldDisableAll) {
                 e.target.style.transform = 'translateY(0)';
                 e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('STANDUP_CLINIC')}30`;
               }

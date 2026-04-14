@@ -9,10 +9,18 @@ const QuickActionButtons = ({
   onQuickAttendance,
   programId,
   attendanceMode,
+  canEditAttendance = false,
   t,
   isRTL
 }) => {
   const student = students.find(s => s.id === studentId);
+
+  // Check if student has any attendance for today
+  const studentAttendanceStatus = student?.attendance || student?.standupStatus;
+  const hasAttendance = !!studentAttendanceStatus;
+
+  // If attendance exists and user doesn't have edit permission, disable all buttons
+  const shouldDisableAll = hasAttendance && !canEditAttendance;
 
   if (!student) return null;
 
@@ -32,15 +40,15 @@ const QuickActionButtons = ({
   const isLate = student?.attendance === 'late';
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
       gap: '0.25rem',
       marginRight: '0.5rem'
     }}>
       {/* Quick Present Button */}
-      <PortalTooltip 
-        content={isPresent ? t('already_marked_present') : t('mark_present')} 
+      <PortalTooltip
+        content={shouldDisableAll && !isPresent ? t('no_edit_permission') : (isPresent ? t('already_marked_present') : t('mark_present'))}
         position="top"
       >
         <button
@@ -49,12 +57,12 @@ const QuickActionButtons = ({
             e.preventDefault();
             e.stopPropagation();
           }}
-          disabled={isPresent}
+          disabled={isPresent || shouldDisableAll}
           style={{
-            background: isPresent ? '#9ca3af' : getAttendanceColor(ATTENDANCE_STATUS.PRESENT),
+            background: (isPresent || shouldDisableAll) ? '#9ca3af' : getAttendanceColor(ATTENDANCE_STATUS.PRESENT),
             border: 'none',
             color: 'white',
-            cursor: isPresent ? 'not-allowed' : 'pointer',
+            cursor: (isPresent || shouldDisableAll) ? 'not-allowed' : 'pointer',
             padding: '0.25rem 0.5rem',
             display: 'flex',
             alignItems: 'center',
@@ -63,19 +71,19 @@ const QuickActionButtons = ({
             fontSize: '0.75rem',
             fontWeight: 600,
             transition: 'all 0.2s ease',
-            boxShadow: isPresent ? 'none' : `0 2px 4px ${getAttendanceColor(ATTENDANCE_STATUS.PRESENT)}30`,
-            opacity: isPresent ? 0.6 : 1,
+            boxShadow: (isPresent || shouldDisableAll) ? 'none' : `0 2px 4px ${getAttendanceColor(ATTENDANCE_STATUS.PRESENT)}30`,
+            opacity: (isPresent || shouldDisableAll) ? 0.6 : 1,
             minWidth: '24px',
             height: '24px'
           }}
           onMouseEnter={(e) => {
-            if (!isPresent) {
+            if (!isPresent && !shouldDisableAll) {
               e.target.style.transform = 'translateY(-1px)';
               e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor(ATTENDANCE_STATUS.PRESENT)}40`;
             }
           }}
           onMouseLeave={(e) => {
-            if (!isPresent) {
+            if (!isPresent && !shouldDisableAll) {
               e.target.style.transform = 'translateY(0)';
               e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor(ATTENDANCE_STATUS.PRESENT)}30`;
             }
@@ -86,8 +94,8 @@ const QuickActionButtons = ({
       </PortalTooltip>
 
       {/* Quick Late Button */}
-      <PortalTooltip 
-        content={isLate ? t('already_marked_late') : t('mark_late')} 
+      <PortalTooltip
+        content={shouldDisableAll && !isLate ? t('no_edit_permission') : (isLate ? t('already_marked_late') : t('mark_late'))}
         position="top"
       >
         <button
@@ -96,12 +104,12 @@ const QuickActionButtons = ({
             e.preventDefault();
             e.stopPropagation();
           }}
-          disabled={isLate}
+          disabled={isLate || shouldDisableAll}
           style={{
-            background: isLate ? '#9ca3af' : getAttendanceColor(ATTENDANCE_STATUS.LATE),
+            background: (isLate || shouldDisableAll) ? '#9ca3af' : getAttendanceColor(ATTENDANCE_STATUS.LATE),
             border: 'none',
             color: 'white',
-            cursor: isLate ? 'not-allowed' : 'pointer',
+            cursor: (isLate || shouldDisableAll) ? 'not-allowed' : 'pointer',
             padding: '0.25rem 0.5rem',
             display: 'flex',
             alignItems: 'center',
@@ -110,19 +118,19 @@ const QuickActionButtons = ({
             fontSize: '0.75rem',
             fontWeight: 600,
             transition: 'all 0.2s ease',
-            boxShadow: isLate ? 'none' : `0 2px 4px ${getAttendanceColor(ATTENDANCE_STATUS.LATE)}30`,
-            opacity: isLate ? 0.6 : 1,
+            boxShadow: (isLate || shouldDisableAll) ? 'none' : `0 2px 4px ${getAttendanceColor(ATTENDANCE_STATUS.LATE)}30`,
+            opacity: (isLate || shouldDisableAll) ? 0.6 : 1,
             minWidth: '24px',
             height: '24px'
           }}
           onMouseEnter={(e) => {
-            if (!isLate) {
+            if (!isLate && !shouldDisableAll) {
               e.target.style.transform = 'translateY(-1px)';
               e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor(ATTENDANCE_STATUS.LATE)}40`;
             }
           }}
           onMouseLeave={(e) => {
-            if (!isLate) {
+            if (!isLate && !shouldDisableAll) {
               e.target.style.transform = 'translateY(0)';
               e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor(ATTENDANCE_STATUS.LATE)}30`;
             }

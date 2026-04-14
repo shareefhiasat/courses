@@ -26,7 +26,8 @@ const ActivityList = ({
   isMobile,
   canDeleteAttendance = false,
   canSeeQuickButtons = false,
-  canMarkAttendance = false
+  canMarkAttendance = false,
+  canEditAttendance = false
 }) => {
   const canUseQuickActions = canSeeQuickButtons && canMarkAttendance && typeof onQuickAttendance === 'function';
   const formatActivityTime = (time) => {
@@ -123,6 +124,7 @@ const ActivityList = ({
                   onQuickAttendance={onQuickAttendance}
                   programId={programId}
                   attendanceMode={attendanceMode}
+                  canEditAttendance={canEditAttendance}
                   t={t}
                   isRTL={isRTL}
                 />

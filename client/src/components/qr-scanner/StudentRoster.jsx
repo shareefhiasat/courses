@@ -65,6 +65,7 @@ const StudentRoster = React.memo(function StudentRoster({
   const { hasPermission } = usePermissions();
   const canSeeStandupMode = hasPermission('qr-scanner.canSeeStandupMode');
   const canDeleteAttendance = hasPermission('qr-scanner.canDeleteAttendance');
+  const canEditAttendance = hasPermission('qr-scanner.canEditAttendance');
   const canUseStatsPanel = hasPermission('qr-scanner.canUseStatsPanel');
   const canUseZapPanel = hasPermission('qr-scanner.canUseZapPanel');
   const canSeeQuickButtons = hasPermission('qr-scanner.canSeeQuickButtons');
@@ -682,6 +683,21 @@ const StudentRoster = React.memo(function StudentRoster({
       return;
     }
 
+    // Check if student already has attendance for today
+    const studentAttendanceStatus = student.attendance || student.standupStatus;
+    if (studentAttendanceStatus) {
+      // Attendance exists - check if user has edit permission
+      if (!canEditAttendance) {
+        warn('🚫 User does not have edit permission. Cannot change existing attendance:', {
+          studentId: student.id,
+          currentStatus: studentAttendanceStatus,
+          requestedStatus: status
+        });
+        showSuccess('You do not have permission to edit existing attendance');
+        return;
+      }
+    }
+
     try {
       // Get user profile to get proper display name
       const userProfile = await getUserProfile(user);
@@ -762,7 +778,7 @@ const StudentRoster = React.memo(function StudentRoster({
     } catch (error) {
       error('Quick attendance error:', error);
     }
-  }, [selectedClassId, user, lang, t, onRefresh]);
+  }, [selectedClassId, user, lang, t, onRefresh, attendanceMode, canEditAttendance, selectedDate, selectedProgramId, selectedSubjectId, showSuccess]);
 
   const sendStudentSummaryEmail = async (student) => {
     setSendingEmails(prev => ({
@@ -1612,6 +1628,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     canUseZapPanel={canUseZapPanel}
                     canSeeQuickButtons={canSeeQuickButtons}
                     canMarkAttendance={canMarkAttendance}
+                    canEditAttendance={canEditAttendance}
                     getAttendanceBadge={getAttendanceBadge}
                     showTotalAttendance={showTotalAttendance}
                     selectedStudentId={selectedStudentId}

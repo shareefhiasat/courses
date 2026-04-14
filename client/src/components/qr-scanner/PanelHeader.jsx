@@ -3,7 +3,7 @@ import { CircleIcon } from "@utils/icons.jsx";
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_COLORS } from '@constants/attendanceTypes';
 
-export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL }) {
+export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL, theme = 'light' }) {
   console.log('🔍 PanelHeader - Props:', {
     student,
     attendanceStatus,
@@ -40,7 +40,7 @@ export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL 
       </div>
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '0.875rem' }}>
+          <h3 style={{ fontWeight: 600, color: theme === 'dark' ? '#ffffff' : 'var(--text, #111827)', margin: 0, fontSize: '0.875rem' }}>
             {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>

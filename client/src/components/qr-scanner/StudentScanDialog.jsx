@@ -21,6 +21,7 @@ const StudentScanDialog = ({
   onOpenParticipation,
   onOpenBehavior,
   onOpenDetails,
+  canEditAttendance = false,
   onOpenActions,
   students,
   processStudentData,
@@ -197,6 +198,7 @@ const StudentScanDialog = ({
           t={t}
           isMobile={isMobile}
           attendanceMode={attendanceMode}
+          canEditAttendance={canEditAttendance}
         />
 
         {/* Hide Penalty, Participation, Behavior, and Actions buttons in standup mode */}

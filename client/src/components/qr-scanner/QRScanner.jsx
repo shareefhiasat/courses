@@ -2368,6 +2368,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 onQuickAttendance={handleQuickAttendance}
                 programId={selectedProgramId}
                 attendanceMode={attendanceMode}
+                canEditAttendance={canEditAttendance}
                 getStatusColor={getStatusColor}
                 getStatusIcon={getStatusIcon}
                 getStatusLabel={getStatusLabel}
@@ -2412,6 +2413,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             currentAction={currentAction}
             t={t}
             onClose={() => setShowScanDialog(false)}
+            canEditAttendance={canEditAttendance}
             onMarkAttendance={handleMarkAttendance}
             attendanceMode={attendanceMode}
             onOpenPenalty={async () => {

@@ -42,6 +42,7 @@ const StudentTableRow = ({
   canUseStatsPanel = false,
   canSeeQuickButtons = false,
   canMarkAttendance = false,
+  canEditAttendance = false,
   getAttendanceBadge,
   showTotalAttendance,
   selectedStudentId,
@@ -495,6 +496,7 @@ const StudentTableRow = ({
                 isClinicButtonDisabled={isClinicButtonDisabled}
                 handleQuickAttendance={handleQuickAttendance}
                 programId={programId}
+                canEditAttendance={canEditAttendance}
                 t={t}
               />
             )}

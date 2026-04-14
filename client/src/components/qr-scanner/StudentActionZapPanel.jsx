@@ -107,6 +107,13 @@ export default function StudentActionZapPanel({
   });
   const [isReloading, setIsReloading] = useState(false);
 
+  // Check if student has any attendance for today
+  const studentAttendanceStatus = student?.attendance || student?.standupStatus;
+  const hasAttendance = !!studentAttendanceStatus;
+
+  // If attendance exists and user doesn't have edit permission, disable attendance editing
+  const shouldDisableAttendanceEdit = hasAttendance && !canEditAttendance;
+
   // Initialize attendance status from student prop to prevent initial flash of "None"
   const [currentAttendanceStatus, setCurrentAttendanceStatus] = useState(() => {
     if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
@@ -627,7 +634,7 @@ export default function StudentActionZapPanel({
                 <button
                   key={attendanceType.id}
                   onClick={() => {
-                    if (onMarkAttendance && student && !isSubmitting) {
+                    if (onMarkAttendance && student && !isSubmitting && !shouldDisableAttendanceEdit) {
                       info('🔧 [DEBUG] Opening confirmation dialog for attendance:', attendanceType.status);
                       setConfirmModal({
                         isOpen: true,
@@ -636,13 +643,13 @@ export default function StudentActionZapPanel({
                       });
                     }
                   }}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || shouldDisableAttendanceEdit}
                   style={{
                     padding: '0.375rem 0.5rem',
                     borderRadius: '0.5rem',
                     border: `2px solid ${attendanceType.color}`,
                     background: `linear-gradient(135deg, ${attendanceType.color}08 0%, ${attendanceType.color}15 100%)`,
-                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                    cursor: (isSubmitting || shouldDisableAttendanceEdit) ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s',
                     display: 'flex',
                     flexDirection: 'row',
@@ -652,7 +659,7 @@ export default function StudentActionZapPanel({
                     width: '100%',
                     position: 'relative',
                     overflow: 'hidden',
-                    opacity: isSubmitting ? 0.7 : 1
+                    opacity: (isSubmitting || shouldDisableAttendanceEdit) ? 0.7 : 1
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'scale(1.02)';

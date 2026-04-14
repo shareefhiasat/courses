@@ -65,6 +65,53 @@ const getStatusId = (status) => {
 };
 
 /**
+ * Check if attendance already exists for a student on a specific date
+ */
+export const checkAttendanceExists = async (studentId, date, classId = null, attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR, programId = null) => {
+  try {
+    info(`${serviceName}:checkAttendanceExists`, { studentId, date, classId, attendanceMode, programId });
+
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      // Check standup attendance
+      const result = await api.get(`/standup-attendance/user/${studentId}/date/${date}`)
+        .catch(err => {
+          if (err.response?.status === 404) {
+            return { success: true, data: [] };
+          }
+          throw err;
+        });
+      
+      const exists = result.success && result.data && result.data.length > 0;
+      return {
+        success: true,
+        exists,
+        attendance: exists ? result.data[0] : null,
+        message: exists ? 'Attendance already exists' : 'No attendance found'
+      };
+    } else {
+      // Check regular attendance
+      const result = await attendanceDbService.getByStudent(studentId, { date, classId });
+      
+      const exists = result.success && result.data && result.data.length > 0;
+      return {
+        success: true,
+        exists,
+        attendance: exists ? result.data[0] : null,
+        message: exists ? 'Attendance already exists' : 'No attendance found'
+      };
+    }
+  } catch (err) {
+    error(`${serviceName}:checkAttendanceExists:error`, { error: err.message, studentId, date });
+    return {
+      success: false,
+      exists: false,
+      attendance: null,
+      error: err.message || 'Failed to check attendance existence'
+    };
+  }
+};
+
+/**
  * Create attendance record - routes to appropriate table based on attendance mode
  */
 export const markAttendance = async (attendanceData, user = null, attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR) => {

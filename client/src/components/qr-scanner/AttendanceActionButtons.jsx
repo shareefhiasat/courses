@@ -9,13 +9,16 @@ const AttendanceActionButtons = ({
   currentAttendanceStatus,
   t,
   isMobile,
-  attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR
+  attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR,
+  canEditAttendance = false
 }) => {
   // Normalize status to uppercase for comparison
   const normalizedCurrentStatus = currentAttendanceStatus ? String(currentAttendanceStatus).toUpperCase() : null;
 
   const createButtonStyle = (status, hoverColor, shadowColor) => {
     const isCurrentStatus = normalizedCurrentStatus && normalizedCurrentStatus === status.toUpperCase();
+    // Disable if: current status matches, OR attendance exists AND user doesn't have edit permission
+    const shouldDisable = isCurrentStatus || (normalizedCurrentStatus && !canEditAttendance);
     return {
       padding: '0.875rem',
       border: 'none',
@@ -24,12 +27,12 @@ const AttendanceActionButtons = ({
       borderRadius: '0.5rem',
       fontSize: '0.875rem',
       fontWeight: 600,
-      cursor: actionLoading || isCurrentStatus ? 'not-allowed' : 'pointer',
+      cursor: actionLoading || shouldDisable ? 'not-allowed' : 'pointer',
       textAlign: 'left',
       display: 'flex',
       alignItems: 'center',
       gap: '0.625rem',
-      opacity: actionLoading || isCurrentStatus ? 0.7 : 1,
+      opacity: actionLoading || shouldDisable ? 0.7 : 1,
       transition: 'all 0.2s ease',
       boxShadow: `0 2px 4px ${shadowColor}20`
     };
@@ -84,15 +87,17 @@ const AttendanceActionButtons = ({
     }}>
       {attendanceButtons.map((button) => {
         const isCurrentStatus = normalizedCurrentStatus && normalizedCurrentStatus === button.status.toUpperCase();
+        // Disable if: current status matches, OR attendance exists AND user doesn't have edit permission
+        const shouldDisable = isCurrentStatus || (normalizedCurrentStatus && !canEditAttendance);
         return (
         <button
           key={button.status}
           onClick={async () => {
-            if (!actionLoading && !isCurrentStatus) {
+            if (!actionLoading && !shouldDisable) {
               await onMarkAttendance(button.status, 'Manual');
             }
           }}
-          disabled={actionLoading || isCurrentStatus}
+          disabled={actionLoading || shouldDisable}
           style={createButtonStyle(button.status, button.hover, button.shadow)}
         >
           {renderButtonContent(button.status, button.icon, button.label)}
