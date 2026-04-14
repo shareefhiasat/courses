@@ -105,15 +105,9 @@
   box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb, 16, 185, 129), 0.1);
 }
 
-/* Calendar/Time picker icon styling */
+/* Hide native calendar picker indicator since we have custom icon */
 .input::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-
-.input::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
+  display: none;
 }
 
 /* Helper Text */
@@ -131,20 +125,31 @@
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
   .label {
-    color: var(--text, #f5f5f5a3);
+    color: var(--text, #f5f5f5);
   }
-  
+
   .input {
     background: var(--input-bg, #1a1a1a);
     border-color: var(--input-border, #333);
-    color: var(--text, #f5f5f5a3);
+    color: var(--text, #f5f5f5);
   }
-  
+
   .input:disabled {
     background: var(--input-disabled-bg, #2a2a2a);
   }
-  
-  .input::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-  }
+}
+
+/* Class-based dark mode support */
+.wrapper[data-theme="dark"] .label {
+  color: var(--text, #f5f5f5);
+}
+
+.wrapper[data-theme="dark"] .input {
+  background: var(--input-bg, #1a1a1a);
+  border-color: var(--input-border, #333);
+  color: var(--text, #f5f5f5);
+}
+
+.wrapper[data-theme="dark"] .input:disabled {
+  background: var(--input-disabled-bg, #2a2a2a);
 }

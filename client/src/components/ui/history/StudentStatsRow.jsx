@@ -23,8 +23,8 @@ const StudentStatsRow = ({ participationValue, behaviorValue, penaltyValue, onSt
           height: '2.5rem',
           borderRadius: '0.5rem',
           fontWeight: 500,
-          background: participation > 0 ? '#dbeafe' : '#f3f4f6',
-          color: participation > 0 ? '#1e40af' : '#374151'
+          background: participation > 0 ? '#3b82f6' : '#f3f4f6',
+          color: participation > 0 ? '#ffffff' : '#374151'
         }}>
           {participation}
         </span>
@@ -40,8 +40,8 @@ const StudentStatsRow = ({ participationValue, behaviorValue, penaltyValue, onSt
           height: '2.5rem',
           borderRadius: '0.5rem',
           fontWeight: 500,
-          background: behavior >= 0 ? '#d1fae5' : '#fee2e2',
-          color: behavior >= 0 ? '#065f46' : '#991b1b'
+          background: behavior >= 0 ? '#f97316' : '#f3f4f6',
+          color: behavior >= 0 ? '#ffffff' : '#374151'
         }}>
           {behavior}
         </span>
@@ -57,8 +57,8 @@ const StudentStatsRow = ({ participationValue, behaviorValue, penaltyValue, onSt
           height: '2.5rem',
           borderRadius: '0.5rem',
           fontWeight: 500,
-          background: penalty < 0 ? '#fee2e2' : '#f3f4f6',
-          color: penalty < 0 ? '#991b1b' : '#374151'
+          background: penalty < 0 ? '#ef4444' : '#f3f4f6',
+          color: penalty < 0 ? '#ffffff' : '#374151'
         }}>
           {penalty}
         </span>

@@ -204,8 +204,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             height: isMobile ? '1.5rem' : '1.75rem',
             borderRadius: '0.375rem',
             fontWeight: 500,
-            background: '#dbeafe',
-            color: '#1e40af',
+            background: '#3b82f6',
+            color: '#ffffff',
             fontSize: isMobile ? '0.7rem' : '0.75rem',
             padding: '0 0.5rem'
           }}>
@@ -224,8 +224,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             height: isMobile ? '1.5rem' : '1.75rem',
             borderRadius: '0.375rem',
             fontWeight: 500,
-            background: student.behavior >= 0 ? '#d1fae5' : '#fee2e2',
-            color: student.behavior >= 0 ? '#065f46' : '#991b1b',
+            background: '#f97316',
+            color: '#ffffff',
             fontSize: isMobile ? '0.7rem' : '0.75rem',
             padding: '0 0.5rem'
           }}>
@@ -381,8 +381,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             height: isMobile ? '1.25rem' : '1.5rem',
             borderRadius: '0.25rem',
             fontWeight: 500,
-            background: student.attendanceStats?.humanitarianCase > 0 ? '#fef2f2' : '#f3f4f6',
-            color: student.attendanceStats?.humanitarianCase > 0 ? '#b91c1c' : '#374151',
+            background: student.attendanceStats?.humanitarianCase > 0 ? '#8b5cf6' : '#f3f4f6',
+            color: student.attendanceStats?.humanitarianCase > 0 ? '#ffffff' : '#374151',
             fontSize: isMobile ? '0.625rem' : '0.7rem',
             padding: '0 0.25rem'
           }}>

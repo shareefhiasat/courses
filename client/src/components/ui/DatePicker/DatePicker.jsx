@@ -43,14 +43,14 @@ const DatePicker = ({
   ].filter(Boolean).join(' ');
 
   return (
-    <div className={wrapperClasses} data-empty={!value ? 'true' : 'false'}>
+    <div className={wrapperClasses} data-theme={theme} data-empty={!value ? 'true' : 'false'}>
       {label && (
         <label className={styles.label}>
           {label}
           {required && <span className={styles.required}>*</span>}
         </label>
       )}
-      
+
       <div className={styles.inputWrapper}>
         <input
           ref={inputRef}
@@ -66,7 +66,7 @@ const DatePicker = ({
           max={max}
           className={inputClasses}
         />
-        <div 
+        <div
           className={styles.iconWrapper}
           onClick={() => inputRef.current?.showPicker?.()}
         >

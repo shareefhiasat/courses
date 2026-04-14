@@ -470,8 +470,8 @@ const StudentTableRow = ({
                 height: '2.5rem',
                 borderRadius: '0.5rem',
                 fontWeight: 500,
-                background: student.attendanceStats?.humanitarianCase > 0 ? '#fef2f2' : '#f3f4f6',
-                color: student.attendanceStats?.humanitarianCase > 0 ? '#b91c1c' : '#374151'
+                background: student.attendanceStats?.humanitarianCase > 0 ? '#8b5cf6' : '#f3f4f6',
+                color: student.attendanceStats?.humanitarianCase > 0 ? '#ffffff' : '#374151'
               }}>
                 {student.attendanceStats?.humanitarianCase || 0}
               </span>

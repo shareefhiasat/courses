@@ -3509,6 +3509,7 @@ const QRScannerPage = () => {
                     value={selectedDate}
                     onChange={(date) => setSelectedDate(date)}
                     format="yyyy-MM-dd"
+                    theme={theme}
                   />
                 )}
                 {gridLoading && (
