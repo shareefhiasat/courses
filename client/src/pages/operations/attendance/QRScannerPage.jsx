@@ -77,7 +77,6 @@ const QRScannerPage = () => {
   const showInfo = useMemo(() => toast?.showInfo || ((msg) => console.log('INFO:', msg)), [toast]);
   const { startLoading } = useGlobalLoading();
 
-  // Helper functions to save selections to localStorage
   const saveSelectedProgramId = useCallback((programId) => {
     try {
       localStorage.setItem('qrScanner_selectedProgramId', programId);

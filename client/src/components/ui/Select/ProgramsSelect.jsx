@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Select } from '@ui';
 import { useLang } from '@contexts/LangContext';
+import { useAuth } from '@contexts/AuthContext';
 import YearSelect from '../YearSelect/YearSelect';
 import TermSelect from './TermSelect';
 import { info, error, warn, debug } from '@services/utils/logger.js';
@@ -30,6 +31,62 @@ const ProgramsSelect = ({
   style = {},
 }) => {
   const { t, lang } = useLang();
+  const { user, isAdmin, isSuperAdmin, isHR, isInstructor } = useAuth();
+
+  // Determine if user can view all programs (admin roles)
+  const canViewAll = isAdmin || isSuperAdmin || isHR;
+
+  // Filter classes based on user role
+  const filteredClassesByRole = React.useMemo(() => {
+    if (canViewAll) {
+      return classes;
+    }
+    // Instructor: only show classes they supervise
+    if (isInstructor && user?.email) {
+      const userEmail = user.email.toLowerCase();
+      return classes.filter(cls => {
+        // Match by ownerEmail field
+        if (cls.ownerEmail && cls.ownerEmail.toLowerCase() === userEmail) return true;
+        // Match by instructor relation email (API returns nested instructor object)
+        if (cls.instructor?.email && cls.instructor.email.toLowerCase() === userEmail) return true;
+        // Match by instructorId (only works if instructorId is same type as user.uid)
+        if (cls.instructorId != null && String(cls.instructorId) === String(user?.uid)) return true;
+        return false;
+      });
+    }
+    return classes;
+  }, [classes, canViewAll, isInstructor, user?.email, user?.uid]);
+
+  // Derive allowed program and subject IDs from instructor's classes
+  const allowedProgramIds = React.useMemo(() => {
+    if (canViewAll) return null;
+    if (isInstructor) {
+      const ids = new Set(filteredClassesByRole.map(cls => String(cls.programId ?? cls.program)).filter(Boolean));
+      return ids.size > 0 ? ids : null;
+    }
+    return null;
+  }, [canViewAll, isInstructor, filteredClassesByRole]);
+
+  const allowedSubjectIds = React.useMemo(() => {
+    if (canViewAll) return null;
+    if (isInstructor) {
+      const ids = new Set(filteredClassesByRole.map(cls => String(cls.subjectId ?? cls.subject)).filter(Boolean));
+      return ids.size > 0 ? ids : null;
+    }
+    return null;
+  }, [canViewAll, isInstructor, filteredClassesByRole]);
+
+  // Filter programs based on allowed IDs (for instructors)
+  const filteredPrograms = React.useMemo(() => {
+    if (!allowedProgramIds) return programs;
+    return programs.filter(prog => allowedProgramIds.has(String(prog.id)));
+  }, [programs, allowedProgramIds]);
+
+  // Filter subjects based on allowed IDs (for instructors)
+  const filteredSubjectsByRole = React.useMemo(() => {
+    if (!allowedSubjectIds) return subjects;
+    return subjects.filter(sub => allowedSubjectIds.has(String(sub.id)));
+  }, [subjects, allowedSubjectIds]);
 
   // DEBUG: Log props received
   debug('[ProgramsSelect] Props:', {
@@ -69,17 +126,17 @@ const ProgramsSelect = ({
 
   // Filter subjects based on selected program
   const filteredSubjects = normalizedSelectedProgram
-    ? subjects.filter(subject => subject.programId === normalizedSelectedProgram)
-    : subjects;
+    ? filteredSubjectsByRole.filter(subject => subject.programId === normalizedSelectedProgram)
+    : filteredSubjectsByRole;
 
   // Filter classes based on selected subject AND term/year if provided
   const normalizedSelectedSubject = selectedSubject !== null && selectedSubject !== undefined && selectedSubject !== ''
     ? parseInt(selectedSubject, 10)
     : null;
-  
+
   let filteredClasses = normalizedSelectedSubject
-    ? classes.filter(cls => cls.subjectId === normalizedSelectedSubject)
-    : classes;
+    ? filteredClassesByRole.filter(cls => cls.subjectId === normalizedSelectedSubject)
+    : filteredClassesByRole;
   
   // Apply term filter if selected
   if (selectedTerm && selectedTerm !== 'all' && selectedTerm !== '') {
@@ -109,7 +166,7 @@ const ProgramsSelect = ({
   // Format options for Select components
   const programOptions = [
     { value: '', label: t('all_programs') || 'All Programs' },
-    ...programs.map(program => ({
+    ...filteredPrograms.map(program => ({
       value: String(program.id || ''),
       label: lang === 'ar' 
         ? (program.nameAr || program[`name_${lang}`] || program.name || 'Unnamed Program')

@@ -465,9 +465,9 @@ export const AuthProvider = ({ children }) => {
         realmRoles: realmRoles,
         clientRoles: clientRoles,
         mergedRoles: normalizedRoles,
-        isAdmin: normalizedRoles.includes('admin'),
-        isSuperAdmin: normalizedRoles.includes('super_admin'),
-        isInstructor: normalizedRoles.includes('instructor')
+        isAdmin: normalizedRoles.includes(ROLES.ADMIN),
+        isSuperAdmin: normalizedRoles.includes(ROLES.SUPER_ADMIN),
+        isInstructor: normalizedRoles.includes(ROLES.INSTRUCTOR)
       });
       
       // Schedule session warning
