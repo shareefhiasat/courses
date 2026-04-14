@@ -4,6 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { NotificationBell } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { getUsers, updateUser, getUserDisplayName, getUserById } from '@services/business/userService';
+import { getAllUserImages } from '@services/business/userImageService';
 import './Navbar.css';
 import { getThemedIcon, getWhiteIcon, getIconWithColor } from '@constants/iconTypes';
 import { LanguageSwitcher } from '../index';
@@ -29,6 +30,12 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [realName, setRealName] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
+  const [userImages, setUserImages] = useState({
+    profile: null,
+    qid: null,
+    military: null,
+    additional: null
+  });
   const [timeFormat, setTimeFormat] = useState(() => getTimeFormatPreference());
   const { lang, toggleLang, t } = useLang();
   const { theme, toggleTheme } = useTheme();
@@ -76,6 +83,24 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('mousedown', onDocClick); document.removeEventListener('keydown', onKey); };
   }, [showDropdown]);
+
+  // Load user images
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const loadUserImages = async () => {
+      try {
+        const result = await getAllUserImages(user.uid);
+        if (result.success && result.data?.images) {
+          setUserImages(result.data.images);
+        }
+      } catch (err) {
+        error('Failed to load user images:', err);
+      }
+    };
+
+    loadUserImages();
+  }, [user]);
 
   const handleSignOut = useCallback(async () => {
     try {
@@ -423,20 +448,34 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   aria-haspopup="menu"
                   aria-expanded={showDropdown}
                 >
-                  {(!primaryColor || primaryColor === ACCENT_FALLBACK) && (
-                    <div style={{
-                      position: 'absolute',
-                      inset: 0,
-                      background: 'rgba(255,255,255,0.5)',
-                      backdropFilter: 'blur(4px)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }} />
+                  {userImages?.profile?.url ? (
+                    <img
+                      src={userImages.profile.url}
+                      alt="Profile"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                    />
+                  ) : (
+                    <>
+                      {(!primaryColor || primaryColor === ACCENT_FALLBACK) && (
+                        <div style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: 'rgba(255,255,255,0.5)',
+                          backdropFilter: 'blur(4px)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }} />
+                      )}
+                      <span style={{ position: 'relative', zIndex: 1 }}>
+                        {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    </>
                   )}
-                  <span style={{ position: 'relative', zIndex: 1 }}>
-                    {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
-                  </span>
                 </div>
                 {/* Multiple role badges stacked on the right side */}
                 <div style={{ position:'absolute', right:-8, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '2px' }}>

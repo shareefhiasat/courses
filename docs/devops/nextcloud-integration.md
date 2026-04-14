@@ -45,6 +45,13 @@ Keycloak SSO (OIDC/SAML)
   - `backend/services/nextcloudAclSyncService.js`
   - `backend/routes/nextcloud-acl-sync.js`
   - `backend/controllers/nextcloudAclSync.js`
+- User Images (Profile, QID, Military ID):
+  - `backend/routes/user-images.js`
+  - `backend/controllers/userImages.js`
+  - `backend/services/nextcloudService.js` (updated with getFileUrl helper)
+  - `client/src/services/business/userImageService.js`
+  - `client/src/components/ui/UserImageUpload/UserImageUpload.jsx`
+  - `prisma/schema.prisma` (User model updated with image URL fields)
 
 ## 4) Deployment Steps
 
@@ -143,6 +150,10 @@ Manual process:
 - `addUserToGroup(payload)`
 - `removeUserFromGroup(payload)`
 - `listGroups()`
+- `uploadFile(filePath, fileBuffer)`
+- `listFolder(folderPath)`
+- `deleteNode(nodePath)`
+- `getFileUrl(filePath)` - Helper for generating public URLs
 
 Workflow API endpoints:
 - `POST /api/v1/document-workflows/attendance/submit`
@@ -156,6 +167,21 @@ ACL sync API endpoints:
 - `GET /api/v1/nextcloud-acl/mapping`
 - `POST /api/v1/nextcloud-acl/sync-user`
 - `POST /api/v1/nextcloud-acl/sync-all`
+
+User Images API endpoints:
+- `POST /api/v1/user-images/:userId/images/:type` - Upload image (type: profile|qid|military|additional)
+- `GET /api/v1/user-images/:userId/images/:type` - Get specific image
+- `GET /api/v1/user-images/:userId/images` - Get all images for user
+- `DELETE /api/v1/user-images/:userId/images/:type` - Delete image
+
+User Images storage structure:
+- Private user space: `Users/{userId}/images/`
+- File naming: `{type}.{extension}` (e.g., `profile.jpg`, `qid.pdf`)
+
+User Images RBAC:
+- Students: upload/view own images only
+- Instructors: view student images (read-only)
+- Admins/HR: upload/view/delete any user's images
 
 ACL sync behavior:
 - Reads Keycloak realm roles per user.

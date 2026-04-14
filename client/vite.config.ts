@@ -90,12 +90,12 @@ export default defineConfig({
       key: './localhost-key.pem',
       cert: './localhost-cert.pem'
     },
-    allowedHosts: ["novel-terrier-firmly.ngrok-free.app", "localhost", "127.0.0.1", "192.168.1.7"],
+    allowedHosts: "all",
     // Optional: if HMR has issues over LAN, set your LAN IP below:
     // hmr: { host: '192.168.1.7', protocol: 'ws', port: 5174 },
     proxy: {
       '/api': {
-        target: 'http://localhost:8001',
+        target: 'https://localhost:8001',
         changeOrigin: true,
         secure: false
       }

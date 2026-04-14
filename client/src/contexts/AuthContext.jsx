@@ -300,11 +300,13 @@ export const AuthProvider = ({ children }) => {
               console.log('✅ [AUTO-REFRESH] Token auto-refreshed successfully!');
               console.log('✅ [AUTO-REFRESH] New expiry:', new Date(newExpiry * 1000).toISOString());
               
-              // Update localStorage
+              // Update localStorage and cookie
               if (keycloak.token) {
                 localStorage.setItem('keycloak_token', keycloak.token);
+                // Update cookie for image proxy
+                document.cookie = `kc_token=${keycloak.token}; path=/api; secure; samesite=strict`;
               }
-              
+
               // Set refresh time
               const refreshTime = Date.now();
               debugSetLastRefreshTime(refreshTime);
@@ -368,7 +370,13 @@ export const AuthProvider = ({ children }) => {
               console.log('🧪 [TEST] Extended by:', extensionMinutes, 'minutes');
             }
           }
-          
+
+          // Update localStorage and cookie
+          if (keycloak.token) {
+            localStorage.setItem('keycloak_token', keycloak.token);
+            document.cookie = `kc_token=${keycloak.token}; path=/api; secure; samesite=strict`;
+          }
+
           return refreshed;
         } catch (error) {
           console.error('🧪 [TEST] Refresh failed:', error);
@@ -454,10 +462,12 @@ export const AuthProvider = ({ children }) => {
       setUser(userObj);
       setLoading(false);
       
-      // Save token to localStorage for API calls
+      // Save token to localStorage for API calls and cookie for image proxy
       if (keycloak.token) {
         localStorage.setItem('keycloak_token', keycloak.token);
-        console.log('[AuthContext] ✅ Token saved to localStorage');
+        // Set cookie for image proxy (path=/api so it goes to backend only)
+        document.cookie = `kc_token=${keycloak.token}; path=/api; secure; samesite=strict`;
+        console.log('[AuthContext] ✅ Token saved to localStorage and cookie');
       }
       
       console.log('🔐 [DEBUG] Keycloak user authenticated:', {
@@ -491,7 +501,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (keycloak.token) {
       localStorage.setItem('keycloak_token', keycloak.token);
-      console.log('[AuthContext] ✅ Token updated in localStorage');
+      // Update cookie for image proxy
+      document.cookie = `kc_token=${keycloak.token}; path=/api; secure; samesite=strict`;
+      console.log('[AuthContext] ✅ Token updated in localStorage and cookie');
     }
   }, [keycloak.token]);
 
@@ -504,6 +516,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('lastRefreshTime');
       localStorage.clear();
       sessionStorage.clear();
+      // Clear cookie
+      document.cookie = 'kc_token=; path=/api; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       console.log('[AuthContext] 🧹 Storage cleared');
       
       // Redirect to Keycloak account page for manual logout

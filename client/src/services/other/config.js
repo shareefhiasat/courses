@@ -120,7 +120,7 @@ export const getAppConfig = () => {
       
       // API endpoints
       apiBaseUrl: process.env.VITE_API_BASE_URL || '/api',
-      wsUrl: process.env.VITE_WS_URL || 'ws://localhost:8001',
+      wsUrl: process.env.VITE_WS_URL || 'wss://localhost:8001',
       
       // Feature flags
       features: {

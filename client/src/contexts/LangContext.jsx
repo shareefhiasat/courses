@@ -2794,6 +2794,23 @@ const DICT = {
     profile_save_changes: 'Save Changes',
     profile_cancel: 'Cancel',
     
+    // User Images
+    'user_images.title': 'User Images',
+    'user_images.description': 'Upload your profile photo, QID/ID card, and military ID. Maximum file size: 5MB. Allowed formats: JPEG, PNG, PDF.',
+    'user_images.profile_photo': 'Profile Photo',
+    'user_images.qid_image': 'QID/ID Card',
+    'user_images.military_id_image': 'Military ID',
+    'user_images.additional_image': 'Additional Image',
+    'user_images.upload': 'Upload',
+    'user_images.click_to_upload': 'Click to upload',
+    'user_images.replace': 'Replace',
+    'user_images.upload_success': 'Image uploaded successfully',
+    'user_images.delete_success': 'Image deleted successfully',
+    'user_images.upload_error': 'Failed to upload image',
+    'user_images.delete_error': 'Failed to delete image',
+    'user_images.file_too_large': 'File size exceeds 5MB limit',
+    'user_images.invalid_file_type': 'Invalid file type. Allowed: JPEG, PNG, PDF',
+    
     // StudentProfilePage Additional Strings
     student_profile_all_programs: 'All Programs',
     student_profile_all_subjects: 'All Subjects',
@@ -7488,6 +7505,23 @@ const DICT = {
     profile_test_notification_button: 'إرسال إشعار اختبار',
     profile_save_changes: 'حفظ التغييرات',
     profile_cancel: 'إلغاء',
+    
+    // User Images (Arabic)
+    'user_images.title': 'صور المستخدم',
+    'user_images.description': 'قم برفع صورتك الشخصية، بطاقة الهوية/الرقم القومي، وبطاقة الخدمة العسكرية. الحد الأقصى لحجم الملف: 5 ميجابايت. التنسيقات المسموح بها: JPEG، PNG، PDF.',
+    'user_images.profile_photo': 'الصورة الشخصية',
+    'user_images.qid_image': 'بطاقة الهوية/الرقم القومي',
+    'user_images.military_id_image': 'بطاقة الخدمة العسكرية',
+    'user_images.additional_image': 'صورة إضافية',
+    'user_images.upload': 'رفع',
+    'user_images.click_to_upload': 'انقر للرفع',
+    'user_images.replace': 'استبدال',
+    'user_images.upload_success': 'تم رفع الصورة بنجاح',
+    'user_images.delete_success': 'تم حذف الصورة بنجاح',
+    'user_images.upload_error': 'فشل في رفع الصورة',
+    'user_images.delete_error': 'فشل في حذف الصورة',
+    'user_images.file_too_large': 'حجم الملف يتجاوز حد 5 ميجابايت',
+    'user_images.invalid_file_type': 'نوع ملف غير صالح. المسموح: JPEG، PNG، PDF',
     
     // StudentProfilePage Additional Strings (Arabic)
     student_profile_all_programs: 'جميع البرامج',

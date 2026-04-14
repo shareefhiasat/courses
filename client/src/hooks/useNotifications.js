@@ -48,29 +48,31 @@ export const useNotifications = () => {
 
   // Initialize notification permissions
   const initializeNotifications = useCallback(async () => {
-    if (initializationRef.current || !user) return;
-    
-    setIsInitializing(true);
-    initializationRef.current = true;
-
-    try {
-      const results = await notificationManager.initializeOnUserInteraction();
-      
-      // Update settings based on results
-      const newSettings = {
-        ...settings,
-        permissionsRequested: true,
-        soundEnabled: settings.soundEnabled && results.audio,
-        vibrationEnabled: settings.vibrationEnabled && results.vibration,
-        browserNotificationsEnabled: settings.browserNotificationsEnabled && results.notification
-      };
-
-      await saveSettings(newSettings);
-    } catch (error) {
-      error('Failed to initialize notifications:', error);
-    } finally {
-      setIsInitializing(false);
-    }
+    // TODO: Re-implement notifications in the future
+    // Commented out to prevent ServiceWorkerManager errors
+    // if (initializationRef.current || !user) return;
+    // 
+    // setIsInitializing(true);
+    // initializationRef.current = true;
+    //
+    // try {
+    //   const results = await notificationManager.initializeOnUserInteraction();
+    //   
+    //   // Update settings based on results
+    //   const newSettings = {
+    //     ...settings,
+    //     permissionsRequested: true,
+    //     soundEnabled: settings.soundEnabled && results.audio,
+    //     vibrationEnabled: settings.vibrationEnabled && results.vibration,
+    //     browserNotificationsEnabled: settings.browserNotificationsEnabled && results.notification
+    //   };
+    //
+    //   await saveSettings(newSettings);
+    // } catch (err) {
+    //   console.error('Failed to initialize notifications:', err);
+    // } finally {
+    //   setIsInitializing(false);
+    // }
   }, [user, settings, saveSettings]);
 
   // Trigger notification with current settings

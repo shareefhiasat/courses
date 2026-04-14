@@ -197,11 +197,17 @@ const ensureFolder = async (folderPath) => {
       let currentPath = '';
       let finalStatus = 204;
 
+      console.log(`[nextcloudService] Creating folder path: ${normalizedFolderPath}, segments:`, segments);
+
       for (const segment of segments) {
         currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+        console.log(`[nextcloudService] Creating segment: ${currentPath}`);
         const response = await callWebDav(currentPath, 'MKCOL', '', {}, [405]);
         finalStatus = response.status;
+        console.log(`[nextcloudService] Segment ${currentPath} status: ${finalStatus}`);
       }
+
+      console.log(`[nextcloudService] Folder creation complete: ${normalizedFolderPath}, final status: ${finalStatus}`);
 
       return {
         folderPath,
@@ -211,6 +217,7 @@ const ensureFolder = async (folderPath) => {
 
     return resultOk(payload);
   } catch (error) {
+    console.error(`[nextcloudService] Folder creation failed:`, error);
     return resultErr('NEXTCLOUD_ENSURE_FOLDER_FAILED', error.message, { payload: { folderPath } });
   }
 };
@@ -319,6 +326,118 @@ const uploadFile = async (filePath, fileBuffer) => {
   }
 };
 
+/**
+ * Assign a system tag to a file in Nextcloud
+ * @param {string} filePath - The file path in Nextcloud
+ * @param {string} tag - The tag name to assign
+ */
+const assignTag = async (filePath, tag) => {
+  try {
+    const payload = await withRetry('assignTag', async () => {
+      // First, get the file ID from the path using PROPFIND
+      const normalizedPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+      const propfindUrl = `${NEXTCLOUD_CONFIG.baseUrl}/remote.php/dav/files/${NEXTCLOUD_CONFIG.username}/${normalizedPath}`;
+
+      const propfindResponse = await fetch(propfindUrl, {
+        method: 'PROPFIND',
+        headers: {
+          Authorization: buildAuthHeader(),
+          Depth: '0',
+          'Content-Type': 'application/xml'
+        },
+        body: `<?xml version="1.0"?>
+          <d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns">
+            <d:prop>
+              <oc:fileid />
+            </d:prop>
+          </d:propfind>`,
+        signal: AbortSignal.timeout(NEXTCLOUD_CONFIG.timeout)
+      });
+
+      if (!propfindResponse.ok) {
+        throw new Error(`PROPFIND failed: ${propfindResponse.status}`);
+      }
+
+      const propfindText = await propfindResponse.text();
+      const fileIdMatch = propfindText.match(/<oc:fileid>(\d+)<\/oc:fileid>/);
+      const fileId = fileIdMatch ? fileIdMatch[1] : null;
+
+      if (!fileId) {
+        console.warn('[nextcloudService] Could not extract file ID for tagging');
+        return { filePath, tag, status: 'skipped' };
+      }
+
+      // Check if tag already exists, create if not
+      const tagsUrl = `${NEXTCLOUD_CONFIG.baseUrl}/ocs/v2.php/apps/systemtags/api/v1/tags`;
+      const tagsResponse = await fetch(tagsUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: buildAuthHeader(),
+          'OCS-APIRequest': 'true',
+          Accept: 'application/json'
+        },
+        signal: AbortSignal.timeout(NEXTCLOUD_CONFIG.timeout)
+      });
+
+      if (tagsResponse.ok) {
+        const tagsData = await tagsResponse.json();
+        const existingTag = tagsData.ocs?.data?.find(t => t.name === tag);
+
+        let tagId = existingTag?.id;
+
+        if (!tagId) {
+          // Create the tag
+          const createTagUrl = `${NEXTCLOUD_CONFIG.baseUrl}/ocs/v2.php/apps/systemtags/api/v1/tags`;
+          const createResponse = await fetch(createTagUrl, {
+            method: 'POST',
+            headers: {
+              Authorization: buildAuthHeader(),
+              'OCS-APIRequest': 'true',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              name: tag,
+              userVisible: true,
+              userAssignable: true
+            }),
+            signal: AbortSignal.timeout(NEXTCLOUD_CONFIG.timeout)
+          });
+
+          if (createResponse.ok) {
+            const createData = await createResponse.json();
+            tagId = createData.ocs?.data?.id;
+          }
+        }
+
+        if (tagId) {
+          // Assign tag to file
+          const assignUrl = `${NEXTCLOUD_CONFIG.baseUrl}/ocs/v2.php/apps/systemtags/api/v1/files/${fileId}/tags/${tagId}`;
+          const assignResponse = await fetch(assignUrl, {
+            method: 'PUT',
+            headers: {
+              Authorization: buildAuthHeader(),
+              'OCS-APIRequest': 'true'
+            },
+            signal: AbortSignal.timeout(NEXTCLOUD_CONFIG.timeout)
+          });
+
+          if (assignResponse.ok) {
+            return { filePath, tag, tagId, fileId, status: 'assigned' };
+          }
+        }
+      }
+
+      return { filePath, tag, fileId, status: 'skipped' };
+    });
+
+    return resultOk(payload);
+  } catch (error) {
+    // Tagging is non-critical, log but don't fail the upload
+    console.error('[nextcloudService] Tag assignment failed:', error);
+    return resultErr('NEXTCLOUD_TAG_ASSIGNMENT_FAILED', error.message, { payload: { filePath, tag } });
+  }
+};
+
 const listFolder = async (folderPath) => {
   try {
     const payload = await withRetry('listFolder', async () => {
@@ -398,6 +517,19 @@ const deleteNode = async (nodePath) => {
   } catch (error) {
     return resultErr('NEXTCLOUD_DELETE_FAILED', error.message, { payload: { nodePath } });
   }
+};
+
+/**
+ * Generate public URL for a Nextcloud file path
+ * This is a helper function for displaying images in the UI
+ * 
+ * @param {string} filePath - Nextcloud file path
+ * @returns {string} Full URL to access the file
+ */
+const getFileUrl = (filePath) => {
+  if (!filePath) return null;
+  const normalizedPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+  return `${NEXTCLOUD_CONFIG.baseUrl}/remote.php/dav/files/${NEXTCLOUD_CONFIG.username}/${normalizedPath}`;
 };
 
 const getCalendarCollections = async () => {
@@ -501,7 +633,9 @@ export {
   listGroups,
   uploadFile,
   listFolder,
-  deleteNode
+  deleteNode,
+  getFileUrl,
+  assignTag
 };
 
 export default {

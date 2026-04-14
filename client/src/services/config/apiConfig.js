@@ -12,7 +12,7 @@ class AppConfig {
     
     // API Configuration
     this.api = {
-      BASE_URL: isBrowser ? (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001') : 'http://localhost:8001',
+      BASE_URL: isBrowser ? (import.meta.env.VITE_API_BASE_URL || '/api') : '/api',
       VERSION: isBrowser ? (import.meta.env.VITE_API_VERSION || 'v1') : 'v1',
       TIMEOUT: 30000,
       ENDPOINTS: {
@@ -42,10 +42,10 @@ class AppConfig {
     
     // Keycloak Configuration
     this.keycloak = {
-      URL: isBrowser ? (import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080') : 'http://localhost:8080',
+      URL: isBrowser ? (import.meta.env.VITE_KEYCLOAK_URL || 'https://localhost:8443') : 'https://localhost:8443',
       REALM: isBrowser ? (import.meta.env.VITE_KEYCLOAK_REALM || 'master') : 'master',
       CLIENT_ID: isBrowser ? (import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'military-lms-app') : 'military-lms-app',
-      REDIRECT_URI: isBrowser ? (import.meta.env.VITE_KEYCLOAK_REDIRECT_URI || 'http://localhost:5174') : 'http://localhost:5174'
+      REDIRECT_URI: isBrowser ? (import.meta.env.VITE_KEYCLOAK_REDIRECT_URI || 'https://localhost') : 'https://localhost'
     };
     
     // Local Storage Keys

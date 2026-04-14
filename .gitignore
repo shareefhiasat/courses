@@ -93,3 +93,13 @@ tests/e2e/test-results/
 .kilocode/
 .windsurf/
 .cursorignore
+
+# Temporary summary files
+ROOT_CLEANUP_SUMMARY.md
+*_SUMMARY.md
+*_COMPLETE.md
+*_FIX_COMPLETE.md
+*_STATUS.md
+
+# Backup SQL files
+scripts/backups/*.sql

@@ -17,7 +17,7 @@ import axios from 'axios';
 import { info, error, warn, debug } from '../utils/logger.js';
 
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 // Create axios instance
 const apiClient = axios.create({

@@ -13,6 +13,8 @@ import swaggerUi from "swagger-ui-express";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { config } from "dotenv";
+import https from "https";
+import fs from "fs";
 
 // Load environment variables
 config({ path: join(dirname(fileURLToPath(import.meta.url)), "../.env") });
@@ -31,7 +33,7 @@ app.use(
     origin: [
       process.env.CORS_ORIGIN || "http://localhost:3000",
       "http://localhost:5174",
-      "https://localhost:5174",
+      "http://localhost:8001",
     ],
     credentials: true,
   }),
@@ -304,6 +306,7 @@ import attendanceRoutes from "./routes/attendances.js";
 import lookupRoutes from "./routes/lookup.js";
 import standupAttendanceRoutes from "./routes/standupAttendances.js";
 import permissionsRoutes from "./routes/permissions.js";
+import userImagesRoutes from "./routes/user-images.js";
 
 // Mount routes with versioning
 app.use(`/api/${API_VERSION}/programs`, programRoutes);
@@ -332,6 +335,7 @@ app.use(`/api/${API_VERSION}/attendance`, attendanceRoutes);
 app.use(`/api/${API_VERSION}/standup-attendance`, standupAttendanceRoutes);
 app.use(`/api/${API_VERSION}/lookup`, lookupRoutes);
 app.use(`/api/${API_VERSION}/permissions`, permissionsRoutes);
+app.use(`/api/${API_VERSION}/user-images`, userImagesRoutes);
 
 // ==================== ERROR HANDLING ====================
 
@@ -372,8 +376,39 @@ process.on("unhandledRejection", (reason, promise) => {
   console.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`
+// SSL configuration for development
+const SSL_KEY_PATH = process.env.SSL_KEY_PATH || join(__dirname, "../scripts/docker/nginx/ssl/key.pem");
+const SSL_CERT_PATH = process.env.SSL_CERT_PATH || join(__dirname, "../scripts/docker/nginx/ssl/cert.pem");
+
+let server;
+
+try {
+  // Try HTTPS first (for development with nginx)
+  if (fs.existsSync(SSL_KEY_PATH) && fs.existsSync(SSL_CERT_PATH)) {
+    const sslOptions = {
+      key: fs.readFileSync(SSL_KEY_PATH),
+      cert: fs.readFileSync(SSL_CERT_PATH),
+    };
+
+    server = https.createServer(sslOptions, app).listen(PORT, () => {
+      console.log(`
+🚀 ${process.env.APP_NAME || "Military LMS Backend API"} running on https://localhost:${PORT}
+📡 API Base URL: https://localhost:${PORT}/api/${API_VERSION}
+📊 Swagger Documentation: https://localhost:${PORT}/api-docs
+🏥 Health Check: https://localhost:${PORT}/api/health
+🏗️ Architecture: Frontend → Backend API → Business Services → DB Services → PostgreSQL
+📝 Swagger JSON: https://localhost:${PORT}/api-docs.json
+🔖 API Version: ${API_VERSION}
+🌍 Environment: ${NODE_ENV}
+📦 App Version: ${process.env.APP_VERSION || "1.0.0"}
+🔗 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:3000"}
+🔒 HTTPS Enabled (Self-signed certificates)
+      `);
+    });
+  } else {
+    // Fall back to HTTP if SSL certs not found
+    server = app.listen(PORT, () => {
+      console.log(`
 🚀 ${process.env.APP_NAME || "Military LMS Backend API"} running on http://localhost:${PORT}
 📡 API Base URL: http://localhost:${PORT}/api/${API_VERSION}
 📊 Swagger Documentation: http://localhost:${PORT}/api-docs
@@ -384,7 +419,27 @@ const server = app.listen(PORT, () => {
 🌍 Environment: ${NODE_ENV}
 📦 App Version: ${process.env.APP_VERSION || "1.0.0"}
 🔗 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:3000"}
-  `);
-});
+⚠️  HTTPS disabled - SSL certificates not found
+      `);
+    });
+  }
+} catch (error) {
+  console.error("❌ Failed to start HTTPS server, falling back to HTTP:", error.message);
+  server = app.listen(PORT, () => {
+    console.log(`
+🚀 ${process.env.APP_NAME || "Military LMS Backend API"} running on http://localhost:${PORT}
+📡 API Base URL: http://localhost:${PORT}/api/${API_VERSION}
+📊 Swagger Documentation: http://localhost:${PORT}/api-docs
+🏥 Health Check: http://localhost:${PORT}/api/health
+🏗️ Architecture: Frontend → Backend API → Business Services → DB Services → PostgreSQL
+📝 Swagger JSON: http://localhost:${PORT}/api-docs.json
+🔖 API Version: ${API_VERSION}
+🌍 Environment: ${NODE_ENV}
+📦 App Version: ${process.env.APP_VERSION || "1.0.0"}
+🔗 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:3000"}
+⚠️  HTTPS disabled - SSL certificates not found
+    `);
+  });
+}
 
 export default app;

@@ -427,6 +427,10 @@ model User {
   createdAt                      DateTime                  @default(now())
   updatedAt                      DateTime                  @updatedAt
   keycloakId                     String?                   @unique
+  profileImageUrl                String?
+  qidImageUrl                    String?
+  militaryIdImageUrl             String?
+  additionalImageUrl             String?
   workflowDocumentsCreated       WorkflowDocument[]      @relation("WorkflowDocumentCreator")
   workflowDocumentsUpdated       WorkflowDocument[]      @relation("WorkflowDocumentUpdater")
   workflowDocumentsOwned         WorkflowDocument[]      @relation("WorkflowDocumentOwner")

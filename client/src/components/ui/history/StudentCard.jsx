@@ -118,9 +118,22 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             fontSize: isMobile ? '0.75rem' : '0.875rem',
             fontWeight: 500,
             background: avatarColor.bg,
-            color: avatarColor.color
+            color: avatarColor.color,
+            overflow: 'hidden'
           }}>
-            {getAvatarInitials(student.displayName || student.realName || student.name || '')}
+            {student.profileImageUrl ? (
+              <img
+                src={student.profileImageUrl}
+                alt={`${student.displayName || student.realName || student.name || ''} avatar`}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover'
+                }}
+              />
+            ) : (
+              getAvatarInitials(student.displayName || student.realName || student.name || '')
+            )}
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>

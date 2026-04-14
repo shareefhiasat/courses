@@ -5,6 +5,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Navigate } from 'react-router-dom';
 import { getUserProfile, updateUser } from '@services/business/userService';
+import { getAllUserImages } from '@services/business/userImageService';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Container, Card, CardBody, Button, Input, Spinner, useToast } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
@@ -15,6 +16,7 @@ import { applyAccentColorGlobally } from '@utils/theme';
 import useNotifications from '@hooks/useNotifications';
 import notificationManager from '@utils/notifications';
 import { ActivityLogger } from '@services/other/activityLogger';
+import UserImageUpload from '@components/ui/UserImageUpload/UserImageUpload';
 
 const ProfileSettingsPage = () => {
   const { user, loading: authLoading, isSuperAdmin, isAdmin, isInstructor, isHR } = useAuth();
@@ -42,6 +44,34 @@ const ProfileSettingsPage = () => {
     preferOTPLogin: false
   });
   const [customColorInput, setCustomColorInput] = useState(DEFAULT_ACCENT);
+  const [userImages, setUserImages] = useState({
+    profile: null,
+    qid: null,
+    military: null,
+    additional: null
+  });
+  const [loadingImages, setLoadingImages] = useState(false);
+
+  // Callback handlers for image operations
+  const handleImageUploadSuccess = useCallback((imageData) => {
+    setUserImages(prev => ({
+      ...prev,
+      [imageData.type]: imageData.url
+    }));
+    toast.success(t('user_images.upload_success', 'Image uploaded successfully'));
+  }, [t, toast]);
+
+  const handleImageDeleteSuccess = useCallback((imageType) => {
+    setUserImages(prev => ({
+      ...prev,
+      [imageType]: null
+    }));
+    toast.success(t('user_images.delete_success', 'Image deleted successfully'));
+  }, [t, toast]);
+
+  const handleImageError = useCallback((error) => {
+    toast.error(error || t('user_images.upload_error', 'Failed to upload image'));
+  }, [t, toast]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -94,7 +124,32 @@ const ProfileSettingsPage = () => {
     };
 
     loadProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Load user images
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const loadUserImages = async () => {
+      setLoadingImages(true);
+      try {
+        const result = await getAllUserImages(user.uid);
+        if (result.success && result.data?.images) {
+          // Extract just the URL strings from the image objects
+          const imageUrls = {};
+          Object.keys(result.data.images).forEach(type => {
+            imageUrls[type] = result.data.images[type]?.url || null;
+          });
+          setUserImages(imageUrls);
+        }
+      } catch (err) {
+        error('Failed to load user images:', err);
+      } finally {
+        setLoadingImages(false);
+      }
+    };
+
+    loadUserImages();
   }, [user]);
 
   const handleTestBrowserNotification = async () => {
@@ -182,8 +237,8 @@ const ProfileSettingsPage = () => {
         await Promise.all([
           initializeNotifications()
         ]);
-      } catch (error) {
-        error('Error loading profile data:', error);
+      } catch (err) {
+        console.error('Error loading profile data:', err);
       } finally {
         safeStop();
       }
@@ -319,6 +374,53 @@ const ProfileSettingsPage = () => {
                 placeholder={t('phone_number_placeholder') || 'Enter your phone number'}
                 maxLength={100}
               />
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardBody>
+            <div className={styles.cardHeader}>
+              {getThemedIcon('ui', 'image', 24, theme)}
+              <h2>{t('user_images.title', 'User Images')}</h2>
+            </div>
+
+            <div className={styles.formSection}>
+              <p className={styles.helpText} style={{ marginBottom: '1rem' }}>
+                {t('user_images.description', 'Upload your profile photo, QID/ID card, and military ID. Maximum file size: 5MB. Allowed formats: JPEG, PNG, PDF.')}
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                <UserImageUpload
+                  userId={user?.uid}
+                  imageType="profile"
+                  currentImageUrl={userImages.profile}
+                  editable={true}
+                  onUploadSuccess={handleImageUploadSuccess}
+                  onDeleteSuccess={handleImageDeleteSuccess}
+                  onError={handleImageError}
+                />
+
+                <UserImageUpload
+                  userId={user?.uid}
+                  imageType="qid"
+                  currentImageUrl={userImages.qid}
+                  editable={true}
+                  onUploadSuccess={handleImageUploadSuccess}
+                  onDeleteSuccess={handleImageDeleteSuccess}
+                  onError={handleImageError}
+                />
+
+                <UserImageUpload
+                  userId={user?.uid}
+                  imageType="military"
+                  currentImageUrl={userImages.military}
+                  editable={true}
+                  onUploadSuccess={handleImageUploadSuccess}
+                  onDeleteSuccess={handleImageDeleteSuccess}
+                  onError={handleImageError}
+                />
+              </div>
             </div>
           </CardBody>
         </Card>

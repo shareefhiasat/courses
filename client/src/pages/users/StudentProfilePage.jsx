@@ -12,6 +12,7 @@ import { getUsers } from '@services/business/userService';
 import { getAttendanceByStudent } from '@services/business/attendanceService';
 import { getSubmissionsByUser } from '@services/business/submissionsService';
 import { getActivityById } from '@services/business/activitiesService';
+import { getAllUserImages } from '@services/business/userImageService';
 import { useSearchParams } from 'react-router-dom';
 import { Container, Select } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
@@ -30,13 +31,43 @@ const StudentProfilePage = () => {
   
   const [loading, setLoading] = useState(true);
   const [studentData, setStudentData] = useState(null);
+  const [userImages, setUserImages] = useState({
+    profile: null,
+    qid: null,
+    military: null,
+    additional: null
+  });
+  const [loadingImages, setLoadingImages] = useState(false);
   
   // Debug studentData when it changes
   useEffect(() => {
     info('StudentProfilePage - studentData updated:', studentData);
     info('StudentProfilePage - studentData.role:', studentData?.role);
   }, [studentData]);
-  const [attendanceData, setAttendanceData] = useState([]);
+
+  // Load user images function
+  const loadUserImages = useCallback(async () => {
+    if (!targetUserId) return;
+
+    setLoadingImages(true);
+    try {
+      const result = await getAllUserImages(targetUserId);
+      console.log('[StudentProfilePage] getAllUserImages result:', result);
+      if (result.success && result.data?.images) {
+        console.log('[StudentProfilePage] Setting userImages:', result.data.images);
+        setUserImages(result.data.images);
+      }
+    } catch (err) {
+      error('Failed to load user images:', err);
+    } finally {
+      setLoadingImages(false);
+    }
+  }, [targetUserId]);
+
+  // Load user images on mount
+  useEffect(() => {
+    loadUserImages();
+  }, [loadUserImages]);
   const [performanceData, setPerformanceData] = useState({
     homework: { completed: 0, total: 0, avgScore: 0 },
     quiz: { completed: 0, total: 0, avgScore: 0 },
@@ -167,6 +198,19 @@ const StudentProfilePage = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetUserId, filters]);
+
+  // Handle image upload success
+  const handleImageUploadSuccess = useCallback((data) => {
+    console.log('[StudentProfilePage] Image upload success:', data);
+    // Reload images to get the updated URLs
+    loadUserImages();
+  }, [loadUserImages]);
+
+  const handleImageDeleteSuccess = useCallback((imageType) => {
+    console.log('[StudentProfilePage] Image delete success:', imageType);
+    // Reload images
+    loadUserImages();
+  }, [loadUserImages]);
 
   // Sync URL when target changes
   useEffect(() => {
@@ -481,8 +525,8 @@ const StudentProfilePage = () => {
                 {/* Student Info */}
                 <div className="flex items-center gap-4">
                   <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center">
-                    {studentData?.avatar ? (
-                      <img src={studentData.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                    {userImages?.profile?.url ? (
+                      <img src={userImages.profile.url} alt="Profile" className="w-full h-full rounded-full object-cover" />
                     ) : (
                       getThemedIcon('ui', 'user', 40, theme)
                     )}

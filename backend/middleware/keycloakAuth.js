@@ -45,8 +45,48 @@ const extractToken = (req) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
   }
-  
+
   return authHeader.substring(7); // Remove 'Bearer ' prefix
+};
+
+/**
+ * Extract token from cookies
+ * @param {Object} req - Express request object
+ * @returns {string|null} JWT token or null
+ */
+const extractTokenFromCookie = (req) => {
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) return null;
+
+  const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+    const [key, value] = cookie.trim().split('=');
+    acc[key] = value;
+    return acc;
+  }, {});
+
+  return cookies['kc_token'] || null;
+};
+
+/**
+ * Set token in cookie (for frontend to call after login)
+ * @param {Object} res - Express response object
+ * @param {string} token - JWT token
+ */
+export const setTokenCookie = (res, token) => {
+  res.cookie('kc_token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  });
+};
+
+/**
+ * Clear token cookie
+ * @param {Object} res - Express response object
+ */
+export const clearTokenCookie = (res) => {
+  res.clearCookie('kc_token');
 };
 
 /**
@@ -92,15 +132,19 @@ const hasRequiredRole = (token, requiredRoles) => {
 export const keycloakAuth = (requiredRoles = []) => {
   return async (req, res, next) => {
     try {
-      // Extract token
-      const token = extractToken(req);
+      // Extract token from header or cookie
+      let token = extractToken(req);
+      // Fallback to cookie for <img> tag support
+      if (!token) {
+        token = extractTokenFromCookie(req);
+      }
       if (!token) {
         return res.status(401).json({
           success: false,
           error: 'No token provided'
         });
       }
-      
+
       // Verify token
       const decoded = await verifyToken(token);
       

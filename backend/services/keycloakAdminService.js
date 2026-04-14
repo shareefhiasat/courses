@@ -410,6 +410,46 @@ export async function deleteUser({ keycloakUserId }) {
 }
 
 /**
+ * Get user by email
+ * @param {string} email - User email
+ */
+export async function getUserByEmail(email) {
+  try {
+    const token = await getAdminToken();
+    
+    const response = await fetch(
+      `${KEYCLOAK_URL}/admin/realms/${KEYCLOAK_REALM}/users?email=${encodeURIComponent(email)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    const data = await response.json();
+    
+    if (data && data.length > 0) {
+      return {
+        success: true,
+        data: data[0] // Return first matching user
+      };
+    }
+    
+    return {
+      success: false,
+      error: 'User not found'
+    };
+  } catch (error) {
+    console.error('Failed to get user by email:', error.response?.data || error.message);
+    return {
+      success: false,
+      error: error.response?.data?.errorMessage || error.message || 'Failed to get user by email'
+    };
+  }
+}
+
+/**
  * Get user by ID
  * @param {string} keycloakUserId - Keycloak user ID
  */
