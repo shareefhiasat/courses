@@ -158,9 +158,11 @@ class AppConfig {
       return this.urlCache.get(cacheKey);
     }
     
-    // Build URL
-    const baseUrl = `${this.api.BASE_URL}/api/${this.api.VERSION}`;
-    const fullUrl = endpoint.startsWith('/') 
+    // Build URL - check if base URL already includes version
+    const baseUrl = this.api.BASE_URL.includes('/v1') 
+      ? this.api.BASE_URL 
+      : `${this.api.BASE_URL}/${this.api.VERSION}`;
+    const fullUrl = endpoint.startsWith('/')
       ? `${baseUrl}${endpoint}`
       : `${baseUrl}/${endpoint}`;
     

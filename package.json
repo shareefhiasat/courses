@@ -21,8 +21,6 @@
     "dev:stop": "./scripts/dev-stop.ps1",
     "docker:up": "docker-compose -f scripts/docker/docker-compose.dev.yml up -d",
     "docker:down": "docker-compose -f scripts/docker/docker-compose.dev.yml down",
-    "docker:nextcloud:up": "docker-compose -f scripts/docker/docker-compose.nextcloud.yml up -d",
-    "docker:nextcloud:down": "docker-compose -f scripts/docker/docker-compose.nextcloud.yml down",
     "db:generate": "cd client && pnpm db:generate",
     "db:push": "cd client && pnpm db:push && pnpm db:generate",
     "db:migrate": "cd client && pnpm db:migrate",
@@ -48,10 +46,12 @@
     "express": "^4.22.1",
     "jsonwebtoken": "^9.0.2",
     "jwk-to-pem": "^2.0.7",
+    "minio": "^8.0.0",
     "multer": "^2.1.1",
     "node-fetch": "^3.3.2",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@prisma/extension-optimize": "^2.0.1",

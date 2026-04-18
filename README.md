@@ -32,7 +32,31 @@ VITE_KEYCLOAK_CLIENT_ID=military-lms-app
 
 ---
 
-## 📚 **Documentation**
+## � **Troubleshooting**
+
+### Nextcloud API Timeout Issues
+
+If Nextcloud API calls (OCS/WebDAV) hang for ~25-30 seconds, this is likely due to Nextcloud's built-in Brute Force Protection or Compromised Password Check throttling the Docker gateway IP.
+
+**Solution - Disable throttling:**
+
+```powershell
+# Disable password_policy app (does external lookups that timeout)
+docker exec --user www-data lms-nextcloud php occ app:disable password_policy
+
+# Disable brute force protection completely
+docker exec --user www-data lms-nextcloud php occ config:system:set auth.bruteforce.protection.enabled --value=false --type=boolean
+```
+
+**Expected Results:**
+- OCS API calls: ~871ms (was 26,000ms)
+- WebDAV calls: ~719ms (was 25,000ms)
+
+**Note:** These settings disable security features. For production, configure proper IP whitelisting or adjust the threshold values instead of disabling entirely.
+
+---
+
+## �📚 **Documentation**
 
 📖 **Complete documentation is available in the [docs/](./docs/) folder**
 

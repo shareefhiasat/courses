@@ -2,11 +2,11 @@
  * Document Approval Workflow Service
  *
  * PURPOSE:
- * Keep approval state machine in LMS backend while invoking Nextcloud actions.
+ * Keep approval state machine in LMS backend while invoking MinIO actions.
  * This service is intentionally persistence-agnostic and should be wired to DB services.
  */
 
-import nextcloudService from './nextcloudService.js';
+import * as fileService from './fileService.js';
 
 const WORKFLOW_STATES = {
   DRAFT: 'draft',
@@ -68,27 +68,19 @@ const transitionDocument = async ({
     }
 
     const destinationFolder = mapStateToFolder({ termId, classId, workflowState: toState });
-    const sourceFolder = mapStateToFolder({ termId, classId, workflowState: fromState });
 
-    const ensureFolderResult = await nextcloudService.ensureFolder(destinationFolder);
-    if (!ensureFolderResult.success) {
-      return ensureFolderResult;
-    }
-
-    const moveResult = await nextcloudService.moveNode(
-      `${sourceFolder}/${document.fileName}`,
-      `${destinationFolder}/${document.fileName}`
-    );
-
-    if (!moveResult.success) {
-      return moveResult;
-    }
-
-    await nextcloudService.addComment({
-      objectType: 'files',
-      objectId: document.nextcloudFileId,
-      message: `Workflow transition ${fromState} -> ${toState} by ${actor?.id || 'system'}. ${reason}`
+    // Update file metadata with new workflow status
+    const updateResult = await fileService.updateFile(document.id, {
+      folderPath: destinationFolder,
+      workflowStatus: toState.toUpperCase()
     });
+
+    if (!updateResult.success) {
+      return updateResult;
+    }
+
+    // Add comment about the transition
+    await fileService.addComment(document.id, `Workflow transition ${fromState} -> ${toState} by ${actor?.id || 'system'}. ${reason}`);
 
     return resultOk({
       documentId: document.id,
@@ -96,8 +88,7 @@ const transitionDocument = async ({
       toState,
       actorId: actor?.id || null,
       reason,
-      nextcloud: {
-        sourceFolder,
+      minio: {
         destinationFolder
       }
     });

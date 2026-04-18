@@ -1,10 +1,11 @@
 /**
  * Workflow Routes
  *
- * PURPOSE: Expose workflow inbox, detail, and transition endpoints.
+ * PURPOSE: Expose workflow document management endpoints
  */
 
 import { Router } from 'express';
+import { keycloakAuth } from '../middleware/keycloakAuth.js';
 import {
   createWorkflowDocumentController,
   getWorkflowDocumentsController,
@@ -19,6 +20,9 @@ import {
 } from '../controllers/workflow.js';
 
 const router = Router();
+
+// All routes require Keycloak authentication
+router.use(keycloakAuth([]));
 
 // ==================== DOCUMENT ROUTES ====================
 

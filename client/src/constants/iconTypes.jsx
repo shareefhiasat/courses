@@ -6,6 +6,8 @@ import PortalTooltip from '@ui/PortalTooltip';
 import {
   // User & Role Icons
   User, UserCheck, UserX, UserMinus, Users, Shield, Crown, UserPlus,
+  // Workflow Icons
+  Workflow,
   // Status Icons
   CheckCircle, XCircle, AlertTriangle, AlertCircle, Info,
   // Activity Icons
@@ -358,7 +360,6 @@ export const ICON_TYPES = {
     wrench: <Wrench size={16} />,
     // Missing icons causing warnings
     volume2: <Volume2 size={16} />,
-    volume: <Volume2 size={16} />,
     test_tube: <Monitor size={16} />,
     palette: <Sun size={16} />,
     smartphone: <Phone size={16} />,
@@ -377,11 +378,13 @@ export const ICON_TYPES = {
     user_plus: <UserPlus size={16} />,
     user_minus: <UserMinus size={16} />,
     user_x: <UserX size={16} />,
+    // UI-specific icons
+    'ui.workflow': <Workflow size={16} />,
+    
     // Aliases for hyphenated names to prevent warnings
     'help-circle': <HelpCircle size={16} />,
     'book-open': <BookOpen size={16} />,
     folder: <Folder size={16} />,
-    globe: <Globe size={16} />,
     globe2: <Globe size={16} />,
     // Missing icons that were causing errors
     gamepad2: <Gamepad2 size={16} />,
@@ -414,11 +417,7 @@ export const ICON_TYPES = {
     checkcircle: <CheckCircle size={16} />,
     xcircle: <XCircle size={16} />,
     alertcircle: <AlertCircle size={16} />,
-    helpcircle: <HelpCircle size={16} />,
-    clock: <Clock size={16} />,
-    calendar: <Calendar size={16} />,
-    heart: <Heart size={16} />,
-    star: <Star size={16} />
+    helpcircle: <HelpCircle size={16} />
   }
 };
 

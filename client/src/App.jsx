@@ -68,6 +68,8 @@ const WorkflowInboxPage = lazy(() => import('./pages/workflow/WorkflowInboxPage'
 const WorkflowDetailPage = lazy(() => import('./pages/workflow/WorkflowDetailPage'));
 const WorkflowCreatePage = lazy(() => import('./pages/workflow/WorkflowCreatePage'));
 const WorkflowWorkspacePage = lazy(() => import('./pages/workflow/WorkflowWorkspacePage'));
+const SmartDrivePage = lazy(() => import('./pages/SmartDrivePage'));
+const SmartDriveRedesign = lazy(() => import('./pages/SmartDriveRedesign'));
 
 // Handle MobX State Tree errors globally
 if (typeof window !== 'undefined') {
@@ -484,15 +486,15 @@ const AppContent = () => {
             } 
           />
 
-          <Route 
-            path="/drive/personal" 
+          <Route
+            path="/smart-drive"
             element={
-              <ProtectedRoute screenId="workflow" screenName="Personal Drive Workspace">
+              <ProtectedRoute screenId="drive" screenName="Smart Drive">
                 <Suspense fallback={<GlobalLoadingFallback />}>
-                  <WorkflowWorkspacePage />
+                  <SmartDrivePage />
                 </Suspense>
               </ProtectedRoute>
-            } 
+            }
           />
 
           <Route 
@@ -563,7 +565,19 @@ function App() {
                 <GlobalLoadingProvider>
                   <Router>
                     <ErrorBoundary>
-                      <AppContent />
+                      <Routes>
+                        {/* Isolated SmartDriveRedesign route - bypasses app layout */}
+                        <Route 
+                          path="/smart-drive-redesign" 
+                          element={
+                            <Suspense fallback={<div className="min-h-screen bg-neutral-900 flex items-center justify-center text-white">Loading...</div>}>
+                              <SmartDriveRedesign />
+                            </Suspense>
+                          }
+                        />
+                        {/* All other routes use AppContent with full app layout */}
+                        <Route path="*" element={<AppContent />} />
+                      </Routes>
                     </ErrorBoundary>
                   </Router>
                 </GlobalLoadingProvider>

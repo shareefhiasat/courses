@@ -52,13 +52,11 @@ export const usePermissions = () => {
         const token = localStorage.getItem('keycloak_token');
         console.log('[usePermissions] Fetching permissions for roles:', roleCodes);
         
-        const response = await fetch('/api/v1/permissions', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:8001/api/v1'}/permissions`, {
           headers: {
             'Authorization': token ? `Bearer ${token}` : ''
           }
         });
-
-        console.log('[usePermissions] Response status:', response.status);
 
         if (response.ok) {
           const data = await response.json();

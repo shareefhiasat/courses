@@ -67,7 +67,7 @@ const PermissionMatrixPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('keycloak_token');
-      const response = await fetch('/api/v1/permissions', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:8001/api/v1'}/permissions`, {
         headers: {
           'Accept-Language': lang,
           'Authorization': token ? `Bearer ${token}` : ''
@@ -140,7 +140,7 @@ const PermissionMatrixPage = () => {
     try {
       setSaving(true);
       const token = localStorage.getItem('keycloak_token');
-      const response = await fetch('/api/v1/permissions', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:8001/api/v1'}/permissions`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

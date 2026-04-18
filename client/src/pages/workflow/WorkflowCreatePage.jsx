@@ -356,7 +356,7 @@ const WorkflowCreatePage = () => {
 
         <Button
           variant="outline"
-          onClick={() => navigate('/drive/personal')}
+          onClick={() => navigate('/drive')}
           className="flex items-center gap-2"
         >
           {t('workflow.create.openWorkspace', 'Open Workspace')}

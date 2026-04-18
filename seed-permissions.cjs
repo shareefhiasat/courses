@@ -255,6 +255,24 @@ async function seedPermissions() {
         isActive: true
       },
       {
+        screenId: 'drive',
+        nameEn: 'Drive',
+        nameAr: 'محرك الأقراص',
+        descriptionEn: 'Personal and shared file management',
+        descriptionAr: 'إدارة الملفات الشخصية والمشتركة',
+        category: 'files',
+        isActive: true
+      },
+      {
+        screenId: 'workspace',
+        nameEn: 'Workspace',
+        nameAr: 'مساحة العمل',
+        descriptionEn: 'Personal workspace for documents',
+        descriptionAr: 'مساحة العمل الشخصية للمستندات',
+        category: 'files',
+        isActive: true
+      },
+      {
         screenId: 'profile',
         nameEn: 'Profile',
         nameAr: 'الملف الشخصي',

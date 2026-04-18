@@ -148,8 +148,8 @@ export const getAllUsers = async (params = {}) => {
     if (params.first !== undefined) queryParams.append('first', params.first);
     if (params.max !== undefined) queryParams.append('max', params.max);
     if (params.studentsOnly) queryParams.append('studentsOnly', 'true');
-    
-    const response = await fetch(`${API_BASE}/api/v1/users/admin/users?${queryParams.toString()}`, {
+
+    const response = await fetch(`${API_BASE}/v1/users?${queryParams.toString()}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -192,8 +192,8 @@ export const getAllUsers = async (params = {}) => {
 export const getUserById = async (id) => {
   try {
     info(`${serviceName}:getUserById`, { id });
-    
-    const response = await fetch(`${API_BASE}/api/v1/users/${id}`, {
+
+    const response = await fetch(`${API_BASE}/v1/users/${id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -225,8 +225,8 @@ export const getUserById = async (id) => {
 export const createUser = async (userData, user = null) => {
   try {
     info(`${serviceName}:createUser`, { data: userData });
-    
-    const response = await fetch(`${API_BASE}/api/v1/users/admin/users`, {
+
+    const response = await fetch(`${API_BASE}/v1/users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -268,7 +268,7 @@ export const updateUser = async (id, updateData, user = null) => {
       };
     }
     
-    const response = await fetch(`${API_BASE}/api/v1/users/admin/users/${id}`, {
+    const response = await fetch(`${API_BASE}/v1/users/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -310,7 +310,7 @@ export const deleteUser = async (id, user = null) => {
       };
     }
     
-    const response = await fetch(`${API_BASE}/api/v1/users/admin/users/${id}`, {
+    const response = await fetch(`${API_BASE}/v1/users/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -405,7 +405,7 @@ export const setUserPassword = async (userId, newPassword, temporary = false) =>
   try {
     info(`${serviceName}:setUserPassword`, { userId, temporary });
     
-    const response = await fetch(`${API_BASE}/api/v1/users/admin/users/${userId}/password`, {
+    const response = await fetch(`${API_BASE}/v1/users/${userId}/password`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -437,7 +437,7 @@ export const enableUser = async (userId) => {
   try {
     info(`${serviceName}:enableUser`, { userId });
     
-    const response = await fetch(`${API_BASE}/api/v1/users/admin/users/${userId}/enabled`, {
+    const response = await fetch(`${API_BASE}/v1/users/${userId}/enabled`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -469,7 +469,7 @@ export const disableUser = async (userId) => {
   try {
     info(`${serviceName}:disableUser`, { userId });
     
-    const response = await fetch(`${API_BASE}/api/v1/users/admin/users/${userId}/enabled`, {
+    const response = await fetch(`${API_BASE}/v1/users/${userId}/enabled`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

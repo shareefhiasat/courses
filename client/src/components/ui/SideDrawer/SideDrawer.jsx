@@ -187,6 +187,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
     quiz: false,
     classes: false,
     attendance: false,
+    drive: false,
     analytics: false,
     community: false,
     tools: false,
@@ -406,6 +407,15 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { path: '/hr-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: (t('hr_attendance') || 'HR Attendance').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
       ]
     },
+    drive: {
+      label: t('drive') || 'DRIVE',
+      items: [
+        { path: '/smart-drive', icon: getThemedIcon('ui', 'hard_drive', 18, theme), label: t('smart_drive') || 'Smart Drive' },
+        { path: '/workflow/inbox', icon: getThemedIcon('ui', 'workflow', 18, theme), label: t('workflow_inbox') || 'Workflow Inbox' },
+        { path: '/workflow/create', icon: getThemedIcon('ui', 'plus', 18, theme), label: t('workflow_create') || 'Create Workflow' },
+        { path: '/workflow/workspace', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: t('workflow_workspace') || 'Workflow Workspace' },
+      ]
+    },
     analytics: {
       label: t('analytics') || 'ANALYTICS',
       items: [
@@ -482,6 +492,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
         ...(adminLinks.academic ? { academic: adminLinks.academic } : {}),
         classes: { ...adminLinks.classes, items: [...adminLinks.classes.items] },
         attendance: { ...adminLinks.attendance, items: [...adminLinks.attendance.items] },
+        drive: { ...adminLinks.drive, items: [...adminLinks.drive.items] },
         analytics: { ...adminLinks.analytics, items: [...adminLinks.analytics.items] },
         ...(adminLinks.communication ? { communication: adminLinks.communication } : {}),
         community: { ...adminLinks.community, items: [...adminLinks.community.items] },
@@ -499,6 +510,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
     } else if (isHR) {
       links = {
         main: { ...hrLinks.main, items: [...hrLinks.main.items] },
+        drive: { ...adminLinks.drive, items: [...adminLinks.drive.items] },
         community: { ...hrLinks.community, items: [...hrLinks.community.items] },
         settings: { ...hrLinks.settings, items: [...hrLinks.settings.items] }
       };

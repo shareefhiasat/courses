@@ -34,7 +34,7 @@ services:
 
   nextcloud:
     image: nextcloud:29-apache
-    container_name: lms-qaf-nextcloud
+    container_name: lms-nextcloud
     restart: unless-stopped
     ports:
       - "8085:80"

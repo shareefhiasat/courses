@@ -252,6 +252,18 @@ export const ROUTE_CONFIG = {
 
   // Workflow routes
   WORKFLOW: {
+    workflow: {
+      path: '/workflow',
+      requireAuth: true,
+      screenId: 'workflow',
+      screenName: 'Workflow'
+    },
+    drive: {
+      path: '/drive',
+      requireAuth: true,
+      screenId: 'drive',
+      screenName: 'Drive'
+    },
     workflowInbox: {
       path: '/workflow/inbox',
       requireAuth: true,

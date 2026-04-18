@@ -41,7 +41,13 @@ export const AuthProvider = ({ children }) => {
   const [isStudent, setIsStudent] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [role, setRole] = useState(null);
-  
+
+  // Nextcloud authentication state
+  const [nextcloudAuth, setNextcloudAuth] = useState(null);
+
+  // Permissions state (moved from usePermissions hook)
+  const [permissions, setPermissions] = useState(null);
+
   // Session extension modal state
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -80,6 +86,7 @@ export const AuthProvider = ({ children }) => {
   const lastIdleDebugTimeRef = useRef(0);
   const lastDialogDebugRef = useRef(0);
   const lastSessionDebugRef = useRef(0);
+  const provisioningInProgressRef = useRef(false);
 
   // Debounced dialog debug to prevent spam
   const debugDialog = useCallback((message, data = {}) => {
@@ -96,6 +103,49 @@ export const AuthProvider = ({ children }) => {
     if (now - lastSessionDebugRef.current > 30000) { // Only log every 30 seconds
       console.log(`🔍 [SESSION DEBUG] ${message}`, data);
       lastSessionDebugRef.current = now;
+    }
+  }, []);
+
+  /**
+   * Nextcloud provisioning removed - using MinIO instead
+   * Smart Drive now uses MinIO buckets directly
+   */
+  const fetchNextcloudAuth = useCallback(async () => {
+    // No-op - Nextcloud has been removed
+    console.log('[AuthContext] Nextcloud provisioning disabled - using MinIO');
+    setNextcloudAuth({ provisioned: false, error: 'Nextcloud removed - using MinIO' });
+  }, []);
+
+  /**
+   * Fetch permissions with debouncing (only once per session)
+   */
+  const fetchPermissions = useCallback(async () => {
+    // Check if permissions already loaded in this session
+    const cachedPermissions = localStorage.getItem('permissions');
+    if (cachedPermissions) {
+      try {
+        setPermissions(JSON.parse(cachedPermissions));
+        return;
+      } catch (e) {
+        // Invalid cache, fetch fresh
+      }
+    }
+
+    try {
+      const token = localStorage.getItem('keycloak_token');
+      if (!token) return;
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:8001/api/v1'}/permissions`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPermissions(data.data);
+        localStorage.setItem('permissions', JSON.stringify(data.data));
+      }
+    } catch (error) {
+      console.error('[AuthContext] Failed to fetch permissions:', error);
     }
   }, []);
 
@@ -254,7 +304,7 @@ export const AuthProvider = ({ children }) => {
 
     if (timeUntilIdleWarning > 0 && !showSessionModal) {
       if (shouldLogDebug) {
-        console.log('⏰ [IDLE DEBUG] Scheduling idle warning for', Math.floor(timeUntilIdleWarning / 1000), 'seconds');
+        // console.log('⏰ [IDLE DEBUG] Scheduling idle warning for', Math.floor(timeUntilIdleWarning / 1000), 'seconds');
       }
       idleWarningTimerRef.current = setTimeout(() => {
         console.log('⚠️ [IDLE DEBUG] Idle timeout reached - Showing idle warning');
@@ -274,7 +324,7 @@ export const AuthProvider = ({ children }) => {
       
       // Only log activity every 10 seconds to reduce spam
       if (now - lastIdleDebugTimeRef.current > 10000) {
-        console.log('👆 [ACTIVITY] User activity detected, rescheduling both timers');
+        // console.log('👆 [ACTIVITY] User activity detected, rescheduling both timers');
         lastIdleDebugTimeRef.current = now;
       }
       
@@ -434,7 +484,9 @@ export const AuthProvider = ({ children }) => {
       
       // Create user object from Keycloak token
       const userObj = {
-        uid: tokenParsed.sub,
+        id: tokenParsed.sub, // Primary ID for Drive and other services
+        uid: tokenParsed.sub, // Keep for backward compatibility
+        username: tokenParsed.preferred_username,
         email: tokenParsed.email,
         displayName: tokenParsed.name || tokenParsed.preferred_username,
         firstName: tokenParsed.given_name,
@@ -470,21 +522,27 @@ export const AuthProvider = ({ children }) => {
         console.log('[AuthContext] ✅ Token saved to localStorage and cookie');
       }
       
-      console.log('🔐 [DEBUG] Keycloak user authenticated:', {
-        email: userObj.email,
-        realmRoles: realmRoles,
-        clientRoles: clientRoles,
-        mergedRoles: normalizedRoles,
-        isAdmin: normalizedRoles.includes(ROLES.ADMIN),
-        isSuperAdmin: normalizedRoles.includes(ROLES.SUPER_ADMIN),
-        isInstructor: normalizedRoles.includes(ROLES.INSTRUCTOR)
-      });
+      // console.log('🔐 [DEBUG] Keycloak user authenticated:', {
+      //   email: userObj.email,
+      //   realmRoles: realmRoles,
+      //   clientRoles: clientRoles,
+      //   mergedRoles: normalizedRoles,
+      //   isAdmin: normalizedRoles.includes(ROLES.ADMIN),
+      //   isSuperAdmin: normalizedRoles.includes(ROLES.SUPER_ADMIN),
+      //   isInstructor: normalizedRoles.includes(ROLES.INSTRUCTOR)
+      // });
       
       // Schedule session warning
       scheduleSessionWarning();
-      
+
       // Schedule idle timeout warning
       scheduleIdleWarning();
+
+      // Fetch Nextcloud authentication
+      fetchNextcloudAuth();
+
+      // Fetch permissions (debounced, only once per session)
+      fetchPermissions();
     } else if (initialized && !keycloak.authenticated) {
       setUser(null);
       setIsAdmin(false);
@@ -495,7 +553,7 @@ export const AuthProvider = ({ children }) => {
       setRole(null);
       setLoading(false);
     }
-  }, [initialized, keycloak, scheduleSessionWarning, scheduleIdleWarning]);
+  }, [initialized, keycloak, scheduleSessionWarning, scheduleIdleWarning, fetchNextcloudAuth, fetchPermissions]);
 
   // Update localStorage token when it changes
   useEffect(() => {
@@ -503,7 +561,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('keycloak_token', keycloak.token);
       // Update cookie for image proxy
       document.cookie = `kc_token=${keycloak.token}; path=/api; secure; samesite=strict`;
-      console.log('[AuthContext] ✅ Token updated in localStorage and cookie');
+      // console.log('[AuthContext] ✅ Token updated in localStorage and cookie');
     }
   }, [keycloak.token]);
 
@@ -514,6 +572,12 @@ export const AuthProvider = ({ children }) => {
       // Clear all storage
       localStorage.removeItem('keycloak_token');
       localStorage.removeItem('lastRefreshTime');
+      localStorage.removeItem('nextcloud_token');
+      localStorage.removeItem('permissions');
+
+      // Clear Nextcloud auth and permissions state
+      setNextcloudAuth(null);
+      setPermissions(null);
       localStorage.clear();
       sessionStorage.clear();
       // Clear cookie
@@ -792,7 +856,9 @@ export const AuthProvider = ({ children }) => {
     hasAllRoles,
     token: keycloak.token,
     refreshToken: keycloak.refreshToken,
-    initialized
+    initialized,
+    nextcloudAuth,
+    permissions
   };
 
   return (

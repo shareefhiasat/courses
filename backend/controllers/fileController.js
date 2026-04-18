@@ -1,0 +1,444 @@
+import * as fileService from '../services/fileService.js';
+import * as fileVersionService from '../services/fileVersionService.js';
+import * as fileShareService from '../services/fileShareService.js';
+import { addFileComment, getFileComments } from '../services/fileCommentService.js';
+import { generatePresignedGetUrl } from '../services/minioService.js';
+import { getBucketSize } from '../services/minioService.js';
+
+export const downloadFile = async (req, res) => {
+  try {
+    const { s3Key } = req.params;
+    console.log('[fileController] downloadFile called with s3Key:', s3Key);
+
+    if (!s3Key) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing s3Key parameter',
+      });
+    }
+
+    // Extract bucket from s3Key (format: bucket/userId/fileId/name)
+    const parts = s3Key.split('/');
+    const bucket = parts[0];
+    console.log('[fileController] Extracted bucket:', bucket);
+
+    // Generate presigned URL for download
+    const presignedUrl = await generatePresignedGetUrl(bucket, s3Key);
+    console.log('[fileController] Generated presigned URL');
+
+    // Redirect to the presigned URL
+    return res.redirect(presignedUrl);
+  } catch (error) {
+    console.error('[fileController] Download error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to generate download URL',
+    });
+  }
+};
+
+export const initiateUpload = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { name, mimeType, size, bucket, folderPath, workflowStatus } = req.body;
+
+    if (!name || !mimeType || !size || !bucket) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: name, mimeType, size, bucket',
+      });
+    }
+
+    const result = await fileService.initiateUpload(userId, {
+      name,
+      mimeType,
+      size,
+      bucket,
+      folderPath,
+      workflowStatus,
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Initiate upload error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to initiate upload',
+    });
+  }
+};
+
+export const completeUpload = async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    const result = await fileService.completeUpload(fileId);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Complete upload error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to complete upload',
+    });
+  }
+};
+
+export const getFile = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { fileId } = req.params;
+
+    const result = await fileService.getFileById(fileId, userId);
+
+    if (!result.success) {
+      return res.status(result.error.code === 'FILE_NOT_FOUND' ? 404 : 403).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Get file error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to retrieve file',
+    });
+  }
+};
+
+export const listFiles = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { bucket, folderPath, workflowStatus } = req.query;
+
+    const result = await fileService.listFiles(userId, {
+      bucket,
+      folderPath,
+      workflowStatus,
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] List files error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to list files',
+    });
+  }
+};
+
+export const updateFile = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { fileId } = req.params;
+    const updates = req.body;
+
+    const result = await fileService.updateFile(fileId, userId, updates);
+
+    if (!result.success) {
+      return res.status(403).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Update file error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to update file',
+    });
+  }
+};
+
+export const deleteFile = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { fileId } = req.params;
+
+    const result = await fileService.deleteFile(fileId, userId);
+
+    if (!result.success) {
+      return res.status(403).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Delete file error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to delete file',
+    });
+  }
+};
+
+export const generatePublicLink = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { fileId } = req.params;
+    const { expiryDays } = req.body;
+
+    const result = await fileService.generatePublicLink(fileId, userId, expiryDays);
+
+    if (!result.success) {
+      return res.status(403).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Generate public link error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to generate public link',
+    });
+  }
+};
+
+export const uploadNewVersion = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { fileId } = req.params;
+    const { name, mimeType, size, changeNote } = req.body;
+
+    const result = await fileVersionService.uploadNewVersion(fileId, userId, {
+      name,
+      mimeType,
+      size,
+      changeNote,
+    });
+
+    if (!result.success) {
+      return res.status(403).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Upload new version error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to upload new version',
+    });
+  }
+};
+
+export const getVersions = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { fileId } = req.params;
+
+    const result = await fileVersionService.getFileVersions(fileId, userId);
+
+    if (!result.success) {
+      return res.status(403).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Get versions error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to get file versions',
+    });
+  }
+};
+
+export const restoreVersion = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { versionId } = req.params;
+
+    const result = await fileVersionService.restoreVersion(versionId, userId);
+
+    if (!result.success) {
+      return res.status(403).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Restore version error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to restore version',
+    });
+  }
+};
+
+export const shareFile = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { fileId } = req.params;
+    const { sharedWithId, permission, expiresAt } = req.body;
+
+    const result = await fileShareService.shareFile(fileId, userId, {
+      sharedWithId,
+      permission,
+      expiresAt,
+    });
+
+    if (!result.success) {
+      return res.status(403).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Share file error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to share file',
+    });
+  }
+};
+
+export const unshareFile = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { shareId } = req.params;
+
+    const result = await fileShareService.unshareFile(shareId, userId);
+
+    if (!result.success) {
+      return res.status(403).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Unshare file error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to unshare file',
+    });
+  }
+};
+
+export const getSharedFiles = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    const result = await fileShareService.getSharedFiles(userId);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Get shared files error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to get shared files',
+    });
+  }
+};
+
+export const addComment = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { fileId } = req.params;
+    const { comment } = req.body;
+
+    const result = await addFileComment({ fileId, userId, comment });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Add comment error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to add comment',
+    });
+  }
+};
+
+export const getComments = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { fileId } = req.params;
+
+    const result = await getFileComments({ fileId, userId });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Get comments error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to get comments',
+    });
+  }
+};
+
+export const getStorageUsage = async (req, res) => {
+  try {
+    console.log('[fileController] getStorageUsage called');
+    
+    const buckets = ['lms-private', 'lms-shared', 'lms-workflow'];
+    let totalUsage = 0;
+    const bucketUsages = {};
+
+    for (const bucket of buckets) {
+      try {
+        const bucketSize = await getBucketSize(bucket);
+        bucketUsages[bucket] = bucketSize;
+        totalUsage += bucketSize;
+        console.log(`[fileController] Bucket ${bucket} size:`, bucketSize);
+      } catch (error) {
+        console.error(`[fileController] Error getting size for bucket ${bucket}:`, error);
+        bucketUsages[bucket] = 0;
+      }
+    }
+
+    const storageLimit = process.env.STORAGE_LIMIT_MB 
+      ? parseInt(process.env.STORAGE_LIMIT_MB) * 1024 * 1024 
+      : 500 * 1024 * 1024; // Default 500 MB
+
+    res.json({
+      success: true,
+      payload: {
+        totalUsage,
+        storageLimit,
+        bucketUsages,
+        usagePercentage: (totalUsage / storageLimit) * 100
+      },
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('[fileController] Get storage usage error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to get storage usage',
+    });
+  }
+};
+

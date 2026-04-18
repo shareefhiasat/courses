@@ -652,10 +652,10 @@ const QRScannerPage = () => {
         
         // Map statusId to status string (uppercase to match database)
         const statusIdMap = {
-          7: 'STANDUP_PRESENT',
-          8: 'STANDUP_LATE',
-          9: 'STANDUP_ABSENT',
-          10: 'STANDUP_CLINIC'
+          7: ATTENDANCE_STATUS.STANDUP_PRESENT,
+          8: ATTENDANCE_STATUS.STANDUP_LATE,
+          9: ATTENDANCE_STATUS.STANDUP_ABSENT,
+          10: ATTENDANCE_STATUS.STANDUP_CLINIC
         };
         
         attendance = attendanceArrays.flat().map(a => {
@@ -819,14 +819,14 @@ const QRScannerPage = () => {
 
           // Helper function to map attendance status
           const mapAttendanceStatus = (status) => {
-            if (!status) return 'absent_no_excuse';
+            if (!status) return ATTENDANCE_STATUS.ABSENT_NO_EXCUSE;
             const statusLower = status.toLowerCase();
-            if (statusLower === 'present' || statusLower === 'present') return 'present';
-            if (statusLower === 'late') return 'late';
-            if (statusLower === 'absent' || statusLower === 'absent_no_excuse') return 'absent_no_excuse';
-            if (statusLower === 'absent_with_excuse' || statusLower === 'excused') return 'absent_with_excuse';
-            if (statusLower === 'excused_leave' || statusLower === 'leave') return 'excused_leave';
-            if (statusLower === 'human_case') return 'human_case';
+            if (statusLower === ATTENDANCE_STATUS.PRESENT.toLowerCase()) return ATTENDANCE_STATUS.PRESENT.toLowerCase();
+            if (statusLower === ATTENDANCE_STATUS.LATE.toLowerCase()) return ATTENDANCE_STATUS.LATE.toLowerCase();
+            if (statusLower === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE.toLowerCase()) return ATTENDANCE_STATUS.ABSENT_NO_EXCUSE.toLowerCase();
+            if (statusLower === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE.toLowerCase()) return ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE.toLowerCase();
+            if (statusLower === ATTENDANCE_STATUS.EXCUSED_LEAVE.toLowerCase()) return ATTENDANCE_STATUS.EXCUSED_LEAVE.toLowerCase();
+            if (statusLower === ATTENDANCE_STATUS.HUMAN_CASE.toLowerCase()) return ATTENDANCE_STATUS.HUMAN_CASE.toLowerCase();
             return statusLower;
           };
 
@@ -844,10 +844,10 @@ const QRScannerPage = () => {
           
           // Map statusId to status string for standup attendance
           const statusIdMap = {
-            7: 'STANDUP_PRESENT',
-            8: 'STANDUP_LATE',
-            9: 'STANDUP_ABSENT',
-            10: 'STANDUP_CLINIC'
+            7: ATTENDANCE_STATUS.STANDUP_PRESENT,
+            8: ATTENDANCE_STATUS.STANDUP_LATE,
+            9: ATTENDANCE_STATUS.STANDUP_ABSENT,
+            10: ATTENDANCE_STATUS.STANDUP_CLINIC
           };
           const todayStandupStatus = todayStandupAttendanceRecord?.statusId 
             ? statusIdMap[todayStandupAttendanceRecord.statusId] || null
@@ -903,27 +903,27 @@ const QRScannerPage = () => {
           // Only count regular attendance for statistics
           regularAttendanceRecords.forEach(record => {
             const mappedStatus = mapAttendanceStatus(record.status);
-            if (mappedStatus === 'present' || mappedStatus === 'late') {
+            if (mappedStatus === ATTENDANCE_STATUS.PRESENT.toLowerCase() || mappedStatus === ATTENDANCE_STATUS.LATE.toLowerCase()) {
               totalAttendanceCount++;
             }
             switch (mappedStatus) {
-              case 'present':
+              case ATTENDANCE_STATUS.PRESENT.toLowerCase():
                 attendanceStats.present++;
                 break;
-              case 'late':
+              case ATTENDANCE_STATUS.LATE.toLowerCase():
                 attendanceStats.late++;
                 break;
               case 'absent':
-              case 'absent_no_excuse':
+              case ATTENDANCE_STATUS.ABSENT_NO_EXCUSE.toLowerCase():
                 attendanceStats.absent++;
                 break;
-              case 'absent_with_excuse':
+              case ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE.toLowerCase():
                 attendanceStats.absentWithExcuse++;
                 break;
-              case 'excused_leave':
+              case ATTENDANCE_STATUS.EXCUSED_LEAVE.toLowerCase():
                 attendanceStats.excusedLeave++;
                 break;
-              case 'human_case':
+              case ATTENDANCE_STATUS.HUMAN_CASE.toLowerCase():
                 attendanceStats.humanitarianCase++;
                 break;
             }
@@ -937,16 +937,16 @@ const QRScannerPage = () => {
             const statusLower = status.toLowerCase();
             
             switch (statusUpper) {
-              case 'STANDUP_PRESENT':
+              case ATTENDANCE_STATUS.STANDUP_PRESENT:
                 standupStats.present++;
                 break;
-              case 'STANDUP_LATE':
+              case ATTENDANCE_STATUS.STANDUP_LATE:
                 standupStats.late++;
                 break;
-              case 'STANDUP_ABSENT':
+              case ATTENDANCE_STATUS.STANDUP_ABSENT:
                 standupStats.absent++;
                 break;
-              case 'STANDUP_CLINIC':
+              case ATTENDANCE_STATUS.STANDUP_CLINIC:
                 standupStats.clinic++;
                 break;
             }
@@ -1641,7 +1641,7 @@ const QRScannerPage = () => {
           student.penalty || 0,
           student.totalAttendance || 0
         ].join(','))
-      ].join('\n');
+      ].join('\r\n');
       
       // Create blob and download
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1935,11 +1935,9 @@ const QRScannerPage = () => {
           t('late') || 'متأخر',
           t('absent') || 'غائب',
           t('clinic') || 'عيادة',
-          t('date') || 'التاريخ',
-          t('time') || 'الوقت',
+          t('date_time') || 'التاريخ والوقت',
           t('method') || 'الطريقة',
-          t('notes') || 'ملاحظات',
-          t('marked_by') || 'تم بواسطة'
+          t('notes') || 'ملاحظات'
         ] : [
           '#',
           t('student_id') || 'Student ID',
@@ -1949,11 +1947,9 @@ const QRScannerPage = () => {
           t('late') || 'Late',
           t('absent') || 'Absent',
           t('clinic') || 'Clinic',
-          t('date') || 'Date',
-          t('time') || 'Time',
+          t('date_time') || 'Date Time',
           t('method') || 'Method',
-          t('notes') || 'Notes',
-          t('marked_by') || 'Marked By'
+          t('notes') || 'Notes'
         ];
       } else {
         // Regular mode: use all attendance type columns (excluding standup types)
@@ -1969,23 +1965,17 @@ const QRScannerPage = () => {
           t('student_number'),
           t('student_name'),
           ...attendanceTypesArray.map(type => type.label_ar),
-          t('date'),
-          t('time'),
+          t('date_time') || 'التاريخ والوقت',
           t('method'),
-          t('notes'),
-          t('marked_by'),
-          t('timestamp')
+          t('notes')
         ] : [
           '#',
           t('student_number'),
           t('student_name'),
           ...attendanceTypesArray.map(type => type.label_en),
-          t('date'),
-          t('time'),
+          t('date_time') || 'Date Time',
           t('method'),
-          t('notes'),
-          t('marked_by'),
-          t('timestamp')
+          t('notes')
         ];
       }
 
@@ -1997,22 +1987,38 @@ const QRScannerPage = () => {
           if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
             // Standup mode: use standup-specific status columns (no timestamp)
             const status = (typeof row.status === 'string' ? row.status : row.status?.code || 'present').toUpperCase();
-            // Format date without time suffix
-            const formattedDate = row.date ? row.date.split('T')[0] : '';
+            // Combine date and time into single datetime field for Qatar timezone
+            const dateStr = row.date ? row.date.split('T')[0] : '';
+            let timeStr = row.time || '';
+            // Fallback: extract time from timestamp if time field is empty
+            if (!timeStr && row.timestamp) {
+              try {
+                const timestampDate = new Date(row.timestamp);
+                if (!isNaN(timestampDate.getTime())) {
+                  timeStr = timestampDate.toLocaleTimeString(lang === 'ar' ? 'ar-QA' : 'en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true,
+                    timeZone: 'Asia/Qatar'
+                  });
+                }
+              } catch (e) {
+                console.warn('Failed to parse timestamp for time:', e);
+              }
+            }
+            const dateTimeStr = dateStr && timeStr ? `${dateStr} ${timeStr}` : (dateStr || timeStr || '');
             rowData = [
               `"${index + 1}"`,
               `"${row.studentId}"`,
               `"${row.studentNumber}"`,
               `"${row.studentName}"`,
-              `"${status === 'STANDUP_PRESENT' ? 'X' : ''}"`,
-              `"${status === 'STANDUP_LATE' ? 'X' : ''}"`,
-              `"${status === 'STANDUP_ABSENT' ? 'X' : ''}"`,
-              `"${status === 'STANDUP_CLINIC' ? 'X' : ''}"`,
-              `"${formattedDate}"`,
-              `"${row.time}"`,
+              `"${status === ATTENDANCE_STATUS.STANDUP_PRESENT ? 'X' : ''}"`,
+              `"${status === ATTENDANCE_STATUS.STANDUP_LATE ? 'X' : ''}"`,
+              `"${status === ATTENDANCE_STATUS.STANDUP_ABSENT ? 'X' : ''}"`,
+              `"${status === ATTENDANCE_STATUS.STANDUP_CLINIC ? 'X' : ''}"`,
+              `"${dateTimeStr}"`,
               `"${getAttendanceMethodLabel(row.method, t, lang)}"`,
-              `"${row.notes}"`,
-              `"${row.markedBy}"`
+              `"${row.notes}"`
             ];
           } else {
             // Regular mode: use all attendance type columns (excluding standup types)
@@ -2023,23 +2029,40 @@ const QRScannerPage = () => {
               label_en: ATTENDANCE_STATUS_LABELS[value] || value,
               label_ar: ATTENDANCE_STATUS_LABELS[value] || value // TODO: Add Arabic translations
             }));
+            // Combine date and time into single datetime field for Qatar timezone
+            const dateStr = row.date ? row.date.split('T')[0] : '';
+            let timeStr = row.time || '';
+            // Fallback: extract time from timestamp if time field is empty
+            if (!timeStr && row.timestamp) {
+              try {
+                const timestampDate = new Date(row.timestamp);
+                if (!isNaN(timestampDate.getTime())) {
+                  timeStr = timestampDate.toLocaleTimeString(lang === 'ar' ? 'ar-QA' : 'en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true,
+                    timeZone: 'Asia/Qatar'
+                  });
+                }
+              } catch (e) {
+                console.warn('Failed to parse timestamp for time:', e);
+              }
+            }
+            const dateTimeStr = dateStr && timeStr ? `${dateStr} ${timeStr}` : (dateStr || timeStr || '');
             rowData = [
               `"${index + 1}"`,
               `"${row.studentNumber}"`,
               `"${row.studentName}"`,
               ...attendanceTypesArray.map(type => `"${row.status === type.id ? 'X' : ''}"`),
-              `"${row.date}"`,
-              `"${row.time}"`,
+              `"${dateTimeStr}"`,
               `"${getAttendanceMethodLabel(row.method, t, lang)}"`,
-              `"${row.notes}"`,
-              `"${row.markedBy}"`,
-              `"${row.timestamp}"`
+              `"${row.notes}"`
             ];
           }
 
           return rowData.join(',');
         })
-      ].join('\n');
+      ].join('\r\n');
 
       console.log('🔍 Export Debug - Final CSV Content:', {
         csvContentLength: csvContent.length,
@@ -2237,7 +2260,7 @@ const QRScannerPage = () => {
         // CSV export (default)
         console.log('📊 Generating CSV export...');
         
-        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob(['\ufeff' + csvString], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -2436,7 +2459,7 @@ const QRScannerPage = () => {
       const usersResponse = await getUsers();
       const allUsers = usersResponse.success ? usersResponse.data : [];
 
-      // Aggregate attendance data by student
+      // Aggregate attendance data by student and subject
       const studentAttendanceMap = {};
       
       attendanceData.forEach(record => {
@@ -2450,42 +2473,87 @@ const QRScannerPage = () => {
             absentWithExcuse: 0,
             excusedLeave: 0,
             humanCase: 0,
+            total: 0,
+            subjects: {} // Track attendance per subject
+          };
+        }
+
+        // Get subject ID from the class, fallback to selected subject if not available
+        const recordClassId = record.classId;
+        let subjectId = 'unknown';
+        
+        if (recordClassId) {
+          const recordClass = classes.find(c => c.id == recordClassId);
+          subjectId = recordClass?.subjectId || recordClass?.subject || selectedSubjectId || 'unknown';
+        } else {
+          // If no classId, use the selected subject
+          subjectId = selectedSubjectId || 'unknown';
+        }
+
+        if (!studentAttendanceMap[studentId].subjects[subjectId]) {
+          studentAttendanceMap[studentId].subjects[subjectId] = {
+            present: 0,
+            late: 0,
+            absentNoExcuse: 0,
+            absentWithExcuse: 0,
+            excusedLeave: 0,
+            humanCase: 0,
             total: 0
           };
         }
         
         const status = (typeof record.status === 'string' ? record.status : record.status?.code || 'present').toLowerCase();
         studentAttendanceMap[studentId].total++;
+        studentAttendanceMap[studentId].subjects[subjectId].total++;
         
         // Map status to counters - handle all 6 attendance types
-        if (status === 'present' || status === 'standup_present') {
+        if (status === ATTENDANCE_STATUS.PRESENT || status === ATTENDANCE_STATUS.STANDUP_PRESENT) {
           studentAttendanceMap[studentId].present++;
-        } else if (status === 'late' || status === 'standup_late') {
+          studentAttendanceMap[studentId].subjects[subjectId].present++;
+        } else if (status === ATTENDANCE_STATUS.LATE || status === ATTENDANCE_STATUS.STANDUP_LATE) {
           studentAttendanceMap[studentId].late++;
-        } else if (status === 'absent_no_excuse' || status === 'absent' || status === 'standup_absent') {
+          studentAttendanceMap[studentId].subjects[subjectId].late++;
+        } else if (status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE || status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE.toLowerCase() || status === ATTENDANCE_STATUS.STANDUP_ABSENT) {
           studentAttendanceMap[studentId].absentNoExcuse++;
-        } else if (status === 'absent_with_excuse' || status === 'absence_excused' || status === 'absenceexcused' || status === 'standup_excused' || status === 'standup_clinic') {
+          studentAttendanceMap[studentId].subjects[subjectId].absentNoExcuse++;
+        } else if (status === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE || status === 'absence_excused' || status === 'absenceexcused' || status === ATTENDANCE_STATUS.STANDUP_ABSENT || status === ATTENDANCE_STATUS.STANDUP_CLINIC) {
           studentAttendanceMap[studentId].absentWithExcuse++;
-        } else if (status === 'excused_leave' || status === 'leave') {
+          studentAttendanceMap[studentId].subjects[subjectId].absentWithExcuse++;
+        } else if (status === ATTENDANCE_STATUS.EXCUSED_LEAVE || status === ATTENDANCE_STATUS.EXCUSED_LEAVE.toLowerCase()) {
           studentAttendanceMap[studentId].excusedLeave++;
-        } else if (status === 'human_case' || status === 'humancase') {
+          studentAttendanceMap[studentId].subjects[subjectId].excusedLeave++;
+        } else if (status === ATTENDANCE_STATUS.HUMAN_CASE || status === ATTENDANCE_STATUS.HUMAN_CASE.toLowerCase()) {
           studentAttendanceMap[studentId].humanCase++;
+          studentAttendanceMap[studentId].subjects[subjectId].humanCase++;
         }
       });
 
-      console.log('📊 Semester Report - Aggregated Data:', {
-        totalStudents: Object.keys(studentAttendanceMap).length,
-        sampleStudent: Object.entries(studentAttendanceMap)[0]
-      });
 
       // Create enriched data with calculations
       const enrichedData = Object.entries(studentAttendanceMap).map(([studentId, stats]) => {
         const student = allUsers.find(u => String(u.id) === String(studentId));
 
-        // Calculate attendance percentage
+        // Calculate attendance percentage (present + late count as present)
         const attendancePercentage = stats.total > 0
-          ? ((stats.present / stats.total) * 100).toFixed(2)
+          ? (((stats.present + stats.late) / stats.total) * 100).toFixed(2)
           : '0.00';
+
+        // Calculate total absences (excused + unexcused)
+        const totalAbsences = stats.absentNoExcuse + stats.absentWithExcuse + stats.excusedLeave + stats.humanCase;
+        const absencePercentage = stats.total > 0
+          ? ((totalAbsences / stats.total) * 100).toFixed(2)
+          : '0.00';
+
+        // Calculate attendance failure based on rules:
+        // 1. Automatic Failure (20% Threshold): Total absences exceed 20% of total lectures
+        // 2. Unexcused Absence Limit (10% Threshold): Unexcused absences exceed 10% of total lectures
+        const absenceThreshold20Percent = stats.total * 0.20; // 20% threshold
+        const unexcusedThreshold10Percent = stats.total * 0.10; // 10% threshold
+        const attendanceFailure = (totalAbsences > absenceThreshold20Percent || stats.absentNoExcuse > unexcusedThreshold10Percent) ? 'FB' : '';
+
+        // Get grade from enrollment data
+        const enrollment = enrollments.find(e => e.userId == studentId);
+        const grade = enrollment?.grade || '';
 
         const baseData = {
           studentId: studentId,
@@ -2498,20 +2566,24 @@ const QRScannerPage = () => {
           excusedLeave: stats.excusedLeave,
           humanCase: stats.humanCase,
           totalSessions: stats.total,
-          attendancePercentage: attendancePercentage + '%'
+          attendancePercentage: attendancePercentage + '%',
+          grade: grade,
+          attendanceFailure: attendanceFailure
         };
         
         // Only add mark deductions for regular mode (not standup)
         if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-          const absentNoExcuseDeduction = stats.absentNoExcuse * 1.0;
-          const absentWithExcuseDeduction = stats.absentWithExcuse * 0.5;
-          const excusedLeaveDeduction = stats.excusedLeave * 0.5;
+          const absentNoExcuseDeduction = stats.absentNoExcuse * 0.5;
+          const lateDeduction = stats.late * 0.5;
+          const absentWithExcuseDeduction = stats.absentWithExcuse * 0.25;
+          const excusedLeaveDeduction = stats.excusedLeave * 0.25;
           const humanCaseDeduction = stats.humanCase * 0.25;
-          const totalDeduction = absentNoExcuseDeduction + absentWithExcuseDeduction + excusedLeaveDeduction + humanCaseDeduction;
+          const totalDeduction = absentNoExcuseDeduction + lateDeduction + absentWithExcuseDeduction + excusedLeaveDeduction + humanCaseDeduction;
           
           return {
             ...baseData,
             absentNoExcuseDeduction: absentNoExcuseDeduction.toFixed(2),
+            lateDeduction: lateDeduction.toFixed(2),
             absentWithExcuseDeduction: absentWithExcuseDeduction.toFixed(2),
             excusedLeaveDeduction: excusedLeaveDeduction.toFixed(2),
             humanCaseDeduction: humanCaseDeduction.toFixed(2),
@@ -2600,44 +2672,103 @@ const QRScannerPage = () => {
       if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP) {
         if (lang === 'ar') {
           headers.push(
-            t('absent_no_excuse_deduction') || 'خصم الغياب بدون عذر (×1.0)',
-            t('absent_with_excuse_deduction') || 'خصم الغياب مع عذر (×0.5)',
-            t('excused_leave_deduction') || 'خصم الاستئذان (×0.5)',
+            t('absent_no_excuse_deduction') || 'خصم الغياب بدون عذر (×0.5)',
+            t('late_deduction') || 'خصم التأخر (×0.5)',
+            t('absent_with_excuse_deduction') || 'خصم الغياب مع عذر (×0.25)',
+            t('excused_leave_deduction') || 'خصم الاستئذان (×0.25)',
             t('human_case_deduction') || 'خصم الحالة (×0.25)',
-            t('total_mark_deduction') || 'إجمالي الخصم'
+            t('total_mark_deduction') || 'إجمالي الخصم',
+            t('grade') || 'الدرجة',
+            t('attendance_failure') || 'فشل الحضور'
           );
         } else {
           headers.push(
-            t('absent_no_excuse_deduction') || 'Absent Deduction (×1.0)',
-            t('absent_with_excuse_deduction') || 'Absent Excused Deduction (×0.5)',
-            t('excused_leave_deduction') || 'Excused Leave Deduction (×0.5)',
+            t('absent_no_excuse_deduction') || 'Absent No Excuse Deduction (×0.5)',
+            t('late_deduction') || 'Late Deduction (×0.5)',
+            t('absent_with_excuse_deduction') || 'Absent With Excuse Deduction (×0.25)',
+            t('excused_leave_deduction') || 'Excused Leave Deduction (×0.25)',
             t('human_case_deduction') || 'Human Case Deduction (×0.25)',
-            t('total_mark_deduction') || 'Total Mark Deduction'
+            t('total_mark_deduction') || 'Total Mark Deduction',
+            t('grade') || 'Grade',
+            t('attendance_failure') || 'Attendance Failure'
           );
         }
       }
 
-      // Add per-subject columns if subjects are selected (only for regular mode)
-      if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && selectedSubjectsForReport.length > 0) {
-        console.log('📊 Adding per-subject details for selected subjects...');
+      // Add per-subject columns for regular mode
+      if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        // Get all subjects in the program
+        const programSubjects = subjects.filter(s => !selectedProgramId || selectedProgramId === 'all' || s.programId == selectedProgramId);
         
-        // Get selected subjects
-        const selectedSubjects = subjects.filter(s => 
-          selectedSubjectsForReport.includes(s.id)
-        );
-        
-        console.log('📊 Selected Subjects:', selectedSubjects);
-        
-        // Add columns for each selected subject
-        selectedSubjects.forEach(subject => {
+        programSubjects.forEach(subject => {
           const subjectName = subject.nameEn || subject.name || 'Unknown Subject';
-          headers.push(`${subjectName} - ${t('total_absents') || 'Total Absents'}`);
+          headers.push(`${subjectName} - ${t('present') || 'Present'}`);
+          headers.push(`${subjectName} - ${t('absent') || 'Absent'}`);
+          headers.push(`${subjectName} - ${t('percentage') || 'Percentage'}`);
           headers.push(`${subjectName} - ${t('deduction') || 'Deduction'}`);
+          headers.push(`${subjectName} - ${t('attendance_failure') || 'FB'}`);
+          headers.push(`${subjectName} - ${t('grade') || 'Grade'}`);
         });
+      }
+
+      // Calculate per-subject attendance data using studentAttendanceMap directly
+      const perSubjectAttendance = {};
+      if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        const programSubjects = subjects.filter(s => !selectedProgramId || selectedProgramId === 'all' || s.programId == selectedProgramId);
         
-        // Add enhanced totals
-        headers.push(t('total_all_absents') || 'Total All Absents');
-        headers.push(t('total_deduction_per_subject') || 'Total Deduction Per Subject');
+        Object.keys(studentAttendanceMap).forEach(studentId => {
+          if (!perSubjectAttendance[studentId]) {
+            perSubjectAttendance[studentId] = {};
+          }
+          
+          // Get the student's subject data directly from studentAttendanceMap
+          const studentSubjectData = studentAttendanceMap[studentId]?.subjects || {};
+          
+          programSubjects.forEach(subject => {
+            // Use type coercion to match subject IDs (string vs number)
+            const subjectData = studentSubjectData[String(subject.id)] || studentSubjectData[subject.id] || {
+              present: 0,
+              late: 0,
+              absentNoExcuse: 0,
+              absentWithExcuse: 0,
+              excusedLeave: 0,
+              humanCase: 0,
+              total: 0
+            };
+            
+            const absent = subjectData.absentNoExcuse + subjectData.absentWithExcuse + subjectData.humanCase;
+            const deduction = (
+              (subjectData.absentNoExcuse * 0.5) +
+              (subjectData.late * 0.5) +
+              (subjectData.absentWithExcuse * 0.25) +
+              (subjectData.humanCase * 0.25) +
+              (subjectData.excusedLeave * 0.25)
+            ).toFixed(2);
+
+            // Calculate per-subject attendance percentage (present + late count as present)
+            const subjectAttendancePercentage = subjectData.total > 0
+              ? (((subjectData.present + subjectData.late) / subjectData.total) * 100).toFixed(2)
+              : '0.00';
+
+            // Calculate per-subject FB status
+            const subjectAbsenceThreshold20Percent = subjectData.total * 0.20;
+            const subjectUnexcusedThreshold10Percent = subjectData.total * 0.10;
+            const subjectAttendanceFailure = (absent > subjectAbsenceThreshold20Percent || subjectData.absentNoExcuse > subjectUnexcusedThreshold10Percent) ? 'FB' : '';
+
+            // Get per-subject grade (for now, use overall grade - could be enhanced to have subject-specific grades)
+            const enrollment = enrollments.find(e => e.userId == studentId);
+            const subjectGrade = enrollment?.grade || '';
+
+            perSubjectAttendance[studentId][subject.id] = {
+              present: subjectData.present,
+              absent: absent,
+              percentage: subjectAttendancePercentage + '%',
+              deduction: deduction,
+              attendanceFailure: subjectAttendanceFailure,
+              grade: subjectGrade
+            };
+          });
+        });
       }
 
       // Create CSV content with per-subject data if detailed
@@ -2681,42 +2812,139 @@ const QRScannerPage = () => {
             // Add mark deduction columns only for regular mode
             rowData.push(
               `"${row.absentNoExcuseDeduction}"`,
+              `"${row.lateDeduction}"`,
               `"${row.absentWithExcuseDeduction}"`,
               `"${row.excusedLeaveDeduction}"`,
               `"${row.humanCaseDeduction}"`,
               `"${row.totalMarkDeduction}"`
             );
-          }
-          
-          // Add per-subject data if subjects are selected
-          if (selectedSubjectsForReport.length > 0) {
-            const selectedSubjects = subjects.filter(s => 
-              selectedSubjectsForReport.includes(s.id)
+
+            // Add grade and attendance failure columns
+            rowData.push(
+              `"${row.grade}"`,
+              `"${row.attendanceFailure}"`
             );
-            
-            // For now, add placeholder data for per-subject columns
-            // TODO: Implement actual per-subject attendance tracking
-            selectedSubjects.forEach(subject => {
-              // Placeholder: distribute absents across selected subjects
-              const totalAbsents = parseInt(row.absentNoExcuse) + parseInt(row.absentWithExcuse) + parseInt(row.excusedLeave);
-              const subjectAbsents = Math.floor(totalAbsents / selectedSubjects.length) || 0;
-              const subjectDeduction = (subjectAbsents * 0.5).toFixed(2);
-              
-              rowData.push(`"${subjectAbsents}"`);
-              rowData.push(`"${subjectDeduction}"`);
+
+            // Add per-subject columns
+            const programSubjects = subjects.filter(s => !selectedProgramId || selectedProgramId === 'all' || s.programId == selectedProgramId);
+            programSubjects.forEach(subject => {
+              const subjectData = perSubjectAttendance[row.studentId]?.[subject.id];
+              if (subjectData) {
+                rowData.push(`"${subjectData.present}"`);
+                rowData.push(`"${subjectData.absent}"`);
+                rowData.push(`"${subjectData.percentage}"`);
+                rowData.push(`"${subjectData.deduction}"`);
+                rowData.push(`"${subjectData.attendanceFailure}"`);
+                rowData.push(`"${subjectData.grade}"`);
+              } else {
+                rowData.push('""');
+                rowData.push('""');
+                rowData.push('""');
+                rowData.push('""');
+                rowData.push('""');
+                rowData.push('""');
+              }
             });
-            
-            // Add enhanced totals
-            const totalAllAbsents = parseInt(row.absentNoExcuse) + parseInt(row.absentWithExcuse) + parseInt(row.excusedLeave);
-            const totalDeductionPerSubject = (totalAllAbsents * 0.5).toFixed(2);
-            
-            rowData.push(`"${totalAllAbsents}"`);
-            rowData.push(`"${totalDeductionPerSubject}"`);
           }
-          
+
           return rowData.join(',');
         })
-      ].join('\n');
+      ];
+
+      // Calculate grand totals row
+      const totalsRow = ['TOTALS'];
+      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        totalsRow.push(''); // student_id
+        totalsRow.push(''); // student_number
+        totalsRow.push(''); // student_name
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + (row.status === ATTENDANCE_STATUS.STANDUP_PRESENT ? 1 : 0), 0)); // present
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + (row.status === ATTENDANCE_STATUS.STANDUP_LATE ? 1 : 0), 0)); // late
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + (row.status === ATTENDANCE_STATUS.STANDUP_ABSENT ? 1 : 0), 0)); // absent
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + (row.status === ATTENDANCE_STATUS.STANDUP_CLINIC ? 1 : 0), 0)); // clinic
+        totalsRow.push(''); // total_sessions
+        totalsRow.push(''); // attendance_percentage
+      } else {
+        totalsRow.push(''); // student_number
+        totalsRow.push(''); // student_name
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + parseInt(row.present || 0), 0)); // present
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + parseInt(row.late || 0), 0)); // late
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + parseInt(row.absentNoExcuse || 0), 0)); // absent_no_excuse
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + parseInt(row.absentWithExcuse || 0), 0)); // absent_with_excuse
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + parseInt(row.excusedLeave || 0), 0)); // excused_leave
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + parseInt(row.humanCase || 0), 0)); // human_case
+        totalsRow.push(''); // total_sessions
+        totalsRow.push(''); // attendance_percentage
+
+        // Deduction totals
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + parseFloat(row.absentNoExcuseDeduction || 0), 0).toFixed(2)); // absent_no_excuse_deduction
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + parseFloat(row.lateDeduction || 0), 0).toFixed(2)); // late_deduction
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + parseFloat(row.absentWithExcuseDeduction || 0), 0).toFixed(2)); // absent_with_excuse_deduction
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + parseFloat(row.excusedLeaveDeduction || 0), 0).toFixed(2)); // excused_leave_deduction
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + parseFloat(row.humanCaseDeduction || 0), 0).toFixed(2)); // human_case_deduction
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + parseFloat(row.totalMarkDeduction || 0), 0).toFixed(2)); // total_mark_deduction
+
+        // Grade and attendance failure totals
+        totalsRow.push(''); // grade (no total)
+        const fbCount = enrichedData.filter(row => row.attendanceFailure === 'FB').length;
+        totalsRow.push(fbCount > 0 ? fbCount : ''); // attendance_failure (count of FB students)
+
+        // Per-subject totals
+        const programSubjects = subjects.filter(s => !selectedProgramId || selectedProgramId === 'all' || s.programId == selectedProgramId);
+        programSubjects.forEach(subject => {
+          let subjectPresent = 0;
+          let subjectAbsent = 0;
+          let subjectDeduction = 0;
+          let subjectTotalSessions = 0;
+          let subjectFbCount = 0;
+          
+          Object.keys(studentAttendanceMap).forEach(studentId => {
+            const studentSubjectData = studentAttendanceMap[studentId]?.subjects || {};
+            const subjectData = studentSubjectData[String(subject.id)] || studentSubjectData[subject.id];
+            if (subjectData && subjectData.present > 0) {
+              subjectPresent += subjectData.present;
+              subjectAbsent += (subjectData.absentNoExcuse + subjectData.absentWithExcuse + subjectData.humanCase);
+              subjectDeduction += (
+                (subjectData.absentNoExcuse * 0.5) +
+                (subjectData.late * 0.5) +
+                (subjectData.absentWithExcuse * 0.25) +
+                (subjectData.humanCase * 0.25) +
+                (subjectData.excusedLeave * 0.25)
+              );
+              subjectTotalSessions += subjectData.total;
+
+              // Calculate FB for this subject
+              const subjectAbsenceThreshold20Percent = subjectData.total * 0.20;
+              const subjectUnexcusedThreshold10Percent = subjectData.total * 0.10;
+              const subjectTotalAbsences = subjectData.absentNoExcuse + subjectData.absentWithExcuse + subjectData.excusedLeave + subjectData.humanCase;
+              if (subjectTotalAbsences > subjectAbsenceThreshold20Percent || subjectData.absentNoExcuse > subjectUnexcusedThreshold10Percent) {
+                subjectFbCount++;
+              }
+            }
+          });
+          
+          // Calculate overall subject attendance percentage
+          const subjectOverallPercentage = subjectTotalSessions > 0
+            ? (((subjectPresent + Object.keys(studentAttendanceMap).reduce((sum, studentId) => {
+                const studentSubjectData = studentAttendanceMap[studentId]?.subjects || {};
+                const subjectData = studentSubjectData[String(subject.id)] || studentSubjectData[subject.id];
+                return sum + (subjectData?.late || 0);
+              }, 0)) / subjectTotalSessions) * 100).toFixed(2)
+            : '0.00';
+
+          totalsRow.push(subjectPresent > 0 ? subjectPresent : '');
+          totalsRow.push(subjectAbsent > 0 ? subjectAbsent : '');
+          totalsRow.push(subjectTotalSessions > 0 ? subjectOverallPercentage + '%' : '');
+          totalsRow.push(subjectDeduction > 0 ? subjectDeduction.toFixed(2) : '');
+          totalsRow.push(subjectFbCount > 0 ? subjectFbCount : '');
+          totalsRow.push(''); // grade (no total)
+        });
+      }
+
+      // Add totals row to csvContent before joining
+      csvContent.push(totalsRow.map(val => `"${val}"`).join(','));
+
+      // Join all rows with line breaks
+      const csvString = csvContent.join('\r\n');
 
       const currentProgram = programs.find(p => p.id == selectedProgramId);
       const currentSubject = subjects.find(s => s.id == selectedSubjectId);
@@ -2756,19 +2984,29 @@ const QRScannerPage = () => {
           ? `تقرير_الوقوف_${programName}_${formattedDate}${fileExtension}`
           : `standup_${programName}_${formattedDate}${fileExtension}`;
       } else if (selectedSubjectsForReport.length > 0) {
-        // For multi-subject export, use program name only
+        // For subject export
         const subjectCount = selectedSubjectsForReport.length;
-        filename = lang === 'ar' 
-          ? `تقرير_ملخص_${programName}_${subjectCount}_مواد_${formattedDate}${fileExtension}`
-          : `summary_report_${programName}_${subjectCount}_subjects_${formattedDate}${fileExtension}`;
+        if (subjectCount === 1) {
+          // Single subject: use the subject name
+          const selectedSubject = subjects.find(s => s.id === selectedSubjectsForReport[0]);
+          const singleSubjectName = sanitize(selectedSubject?.nameEn || selectedSubject?.name || 'UnknownSubject');
+          filename = lang === 'ar'
+            ? `تقرير_ملخص_${programName}_${singleSubjectName}_${formattedDate}${fileExtension}`
+            : `summary_report_${programName}_${singleSubjectName}_${formattedDate}${fileExtension}`;
+        } else {
+          // Multiple subjects: use count
+          filename = lang === 'ar'
+            ? `تقرير_ملخص_${programName}_${subjectCount}_مواد_${formattedDate}${fileExtension}`
+            : `summary_report_${programName}_${subjectCount}_subjects_${formattedDate}${fileExtension}`;
+        }
       } else if (selectedClassId) {
         // For class export, include class, program, subject
-        filename = lang === 'ar' 
+        filename = lang === 'ar'
           ? `تقرير_ملخص_${className}_${programName}_${subjectName}_${formattedDate}${fileExtension}`
           : `summary_report_${className}_${programName}_${subjectName}_${formattedDate}${fileExtension}`;
       } else {
         // For program export, use program name only
-        filename = lang === 'ar' 
+        filename = lang === 'ar'
           ? `تقرير_ملخص_${programName}_البرنامج_${formattedDate}${fileExtension}`
           : `summary_report_${programName}_program_${formattedDate}${fileExtension}`;
       }
@@ -2994,7 +3232,7 @@ const QRScannerPage = () => {
         // CSV export (default and only option)
         console.log('📊 Generating CSV export...');
         
-        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob(['\ufeff' + csvString], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -3199,9 +3437,9 @@ const QRScannerPage = () => {
         const attendanceStatus = student.attendance || student.status || 'absent_no_excuse';
         const matches = attendanceStatus === attendanceFilter;
         
-        if (!matches && attendanceFilter === 'absent_no_excuse') {
+        if (!matches && attendanceFilter === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE.toLowerCase()) {
           // Also check for null/undefined attendance as absent no excuse
-          return !student.attendance || student.attendance === 'absent_no_excuse';
+          return !student.attendance || student.attendance === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE.toLowerCase();
         }
         
         return matches;

@@ -1,25 +1,18 @@
 /**
  * Personal Drive Controllers
- * 
+ *
  * PURPOSE: HTTP request handlers for personal file management operations
- * ARCHITECTURE: HTTP Routes → Controllers → Nextcloud Service → Nextcloud WebDAV API
+ * ARCHITECTURE: HTTP Routes → Controllers → MinIO Service → MinIO API
  */
 
-import {
-  ensureFolder,
-  uploadFile,
-  listFolder,
-  deleteNode,
-  createShare,
-  addComment
-} from '../services/nextcloudService.js';
+import * as fileService from '../services/fileService.js';
 
 /**
- * Upload file to user's personal drive
+ * Upload file to user's personal drive or shared space
  */
 export const uploadFileController = async (req, res) => {
   try {
-    const { folder = 'Uploads' } = req.body;
+    const { folder = 'Uploads', spaceType = 'private' } = req.body;
     const file = req.file;
 
     if (!file) {
@@ -29,44 +22,56 @@ export const uploadFileController = async (req, res) => {
         timestamp: Date.now()
       });
     }
-    
-    // Get user's personal folder path
-    const userFolder = `users/${req.user.id}/personal/${folder}`;
-    
-    // Ensure folder exists
-    const folderResult = await ensureFolder(userFolder);
-    if (!folderResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: folderResult.error?.message || folderResult.error || 'Failed to prepare upload folder',
-        details: folderResult.error?.code || 'NEXTCLOUD_ENSURE_FOLDER_FAILED',
-        timestamp: Date.now()
-      });
-    }
-    
-    // Upload file
-    const filePath = `${userFolder}/${file.originalname}`;
-    const uploadResult = await uploadFile(filePath, file.buffer);
 
-    if (uploadResult.success) {
+    // Check permissions for shared space
+    if (spaceType === 'shared') {
+      if (!req.user.roles.includes('admin') && !req.user.roles.includes('hr') && !req.user.roles.includes('instructor')) {
+        return res.status(403).json({
+          success: false,
+          error: 'Insufficient permissions for shared space',
+          timestamp: Date.now()
+        });
+      }
+    }
+
+    let bucket;
+    let folderPath;
+
+    if (spaceType === 'shared') {
+      bucket = 'lms-shared';
+      folderPath = folder;
+    } else {
+      bucket = 'lms-private';
+      folderPath = `users/${req.user.id}/personal/${folder}`;
+    }
+
+    // Initiate upload
+    const initiateResult = await fileService.initiateUpload({
+      name: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+      bucket,
+      folderPath
+    });
+
+    if (initiateResult.success) {
       return res.status(200).json({
         success: true,
         data: {
-          fileId: uploadResult.payload?.fileId,
-          filePath: filePath,
+          fileId: initiateResult.payload.fileId,
+          presignedUrl: initiateResult.payload.presignedUrl,
           fileName: file.originalname,
           fileSize: file.size,
           mimeType: file.mimetype,
-          url: uploadResult.payload?.url
+          spaceType
         },
-        message: 'File uploaded successfully',
+        message: 'Upload initiated successfully',
         timestamp: Date.now()
       });
     } else {
       return res.status(400).json({
         success: false,
-        error: uploadResult.error?.message || uploadResult.error || 'Failed to upload file',
-        details: uploadResult.error?.code || 'NEXTCLOUD_UPLOAD_FAILED',
+        error: initiateResult.error || 'Failed to initiate upload',
         timestamp: Date.now()
       });
     }
@@ -82,23 +87,32 @@ export const uploadFileController = async (req, res) => {
 };
 
 /**
- * List files in user's personal drive
+ * List files in user's personal drive or shared space
  */
 export const listFilesController = async (req, res) => {
   try {
-    const { folder = '' } = req.query;
-    
-    // Get user's personal folder path
-    const userFolder = `users/${req.user.id}/personal/${folder}`;
-    
-    const result = await listFolder(userFolder);
+    const { folder = '', spaceType = 'private' } = req.query;
+
+    let bucket;
+    let folderPath;
+
+    if (spaceType === 'shared') {
+      bucket = 'lms-shared';
+      folderPath = folder;
+    } else {
+      bucket = 'lms-private';
+      folderPath = `users/${req.user.id}/personal/${folder}`;
+    }
+
+    const result = await fileService.listFiles({ bucket, folderPath });
 
     if (result.success) {
       return res.status(200).json({
         success: true,
         data: {
-          files: result.data?.files || [],
-          path: userFolder
+          files: result.payload || [],
+          folderPath,
+          spaceType
         },
         timestamp: Date.now()
       });
@@ -125,27 +139,17 @@ export const listFilesController = async (req, res) => {
  */
 export const deleteFileController = async (req, res) => {
   try {
-    const { filePath } = req.body;
+    const { fileId } = req.body;
 
-    if (!filePath) {
+    if (!fileId) {
       return res.status(400).json({
         success: false,
-        error: 'File path is required',
+        error: 'File ID is required',
         timestamp: Date.now()
       });
     }
 
-    // Ensure user can only delete their own files
-    const userFolder = `users/${req.user.id}/personal/`;
-    if (!filePath.startsWith(userFolder)) {
-      return res.status(403).json({
-        success: false,
-        error: 'Access denied',
-        timestamp: Date.now()
-      });
-    }
-
-    const result = await deleteNode(filePath);
+    const result = await fileService.deleteFile(fileId);
 
     if (result.success) {
       return res.status(200).json({
@@ -176,47 +180,32 @@ export const deleteFileController = async (req, res) => {
  */
 export const shareFileController = async (req, res) => {
   try {
-    const { filePath, userIds, permissions = 'read', expiration } = req.body;
+    const { fileId, sharedWithId, permission = 'VIEW', expiresAt } = req.body;
 
-    if (!filePath || !userIds || !Array.isArray(userIds)) {
+    if (!fileId || !sharedWithId) {
       return res.status(400).json({
         success: false,
-        error: 'File path and user IDs are required',
+        error: 'File ID and user ID are required',
         timestamp: Date.now()
       });
     }
 
-    // Ensure user can only share their own files
-    const userFolder = `users/${req.user.id}/personal/`;
-    if (!filePath.startsWith(userFolder)) {
-      return res.status(403).json({
+    const result = await fileService.shareFile(fileId, sharedWithId, permission, expiresAt);
+
+    if (result.success) {
+      return res.status(200).json({
+        success: true,
+        data: result.payload,
+        message: 'File shared successfully',
+        timestamp: Date.now()
+      });
+    } else {
+      return res.status(400).json({
         success: false,
-        error: 'Access denied',
+        error: result.error || 'Failed to share file',
         timestamp: Date.now()
       });
     }
-
-    const shares = [];
-    for (const userId of userIds) {
-      const shareResult = await createShare({
-        path: filePath,
-        shareType: 0, // User share
-        shareWith: userId,
-        permissions: permissions === 'write' ? 15 : 1,
-        expireDate: expiration
-      });
-      
-      if (shareResult.success) {
-        shares.push(shareResult.data);
-      }
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: { shares },
-      message: 'File shared successfully',
-      timestamp: Date.now()
-    });
 
   } catch (err) {
     console.error('[personalDrive] Share error:', err);
@@ -233,28 +222,22 @@ export const shareFileController = async (req, res) => {
  */
 export const addCommentController = async (req, res) => {
   try {
-    const { filePath, comment } = req.body;
+    const { fileId, comment } = req.body;
 
-    if (!filePath || !comment) {
+    if (!fileId || !comment) {
       return res.status(400).json({
         success: false,
-        error: 'File path and comment are required',
+        error: 'File ID and comment are required',
         timestamp: Date.now()
       });
     }
 
-    const result = await addComment({
-      objectType: 'files',
-      objectId: filePath,
-      message: comment,
-      actorId: req.user.id,
-      actorDisplayName: req.user.displayName || req.user.email
-    });
+    const result = await fileService.addComment(fileId, comment, req.user.id);
 
     if (result.success) {
       return res.status(200).json({
         success: true,
-        data: result.data,
+        data: result.payload,
         message: 'Comment added successfully',
         timestamp: Date.now()
       });
@@ -281,33 +264,38 @@ export const addCommentController = async (req, res) => {
  */
 export const downloadFileController = async (req, res) => {
   try {
-    const { filePath } = req.query;
+    const { fileId } = req.query;
 
-    if (!filePath) {
+    if (!fileId) {
       return res.status(400).json({
         success: false,
-        error: 'File path is required',
+        error: 'File ID is required',
         timestamp: Date.now()
       });
     }
 
-    // Ensure user can only download their own files or shared files
-    const userFolder = `users/${req.user.id}/personal/`;
-    if (!filePath.startsWith(userFolder)) {
-      return res.status(403).json({
+    const result = await fileService.getFile(fileId);
+
+    if (result.success) {
+      // Return presigned URL for download
+      return res.status(200).json({
+        success: true,
+        data: {
+          fileId: result.payload.id,
+          fileName: result.payload.name,
+          downloadUrl: result.payload.downloadUrl,
+          mimeType: result.payload.mimeType,
+          size: result.payload.size
+        },
+        timestamp: Date.now()
+      });
+    } else {
+      return res.status(400).json({
         success: false,
-        error: 'Access denied',
+        error: result.error || 'Failed to get file',
         timestamp: Date.now()
       });
     }
-
-    // In a real implementation, you would stream the file from Nextcloud
-    // For now, return a placeholder response
-    return res.status(501).json({
-      success: false,
-      error: 'Download functionality requires Nextcloud WebDAV streaming implementation',
-      timestamp: Date.now()
-    });
 
   } catch (err) {
     console.error('[personalDrive] Download error:', err);

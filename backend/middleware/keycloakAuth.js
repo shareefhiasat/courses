@@ -131,6 +131,7 @@ const hasRequiredRole = (token, requiredRoles) => {
  */
 export const keycloakAuth = (requiredRoles = []) => {
   return async (req, res, next) => {
+    console.log(`[keycloakAuth] ${req.method} ${req.originalUrl}`);
     try {
       // Extract token from header or cookie
       let token = extractToken(req);
@@ -139,6 +140,7 @@ export const keycloakAuth = (requiredRoles = []) => {
         token = extractTokenFromCookie(req);
       }
       if (!token) {
+        console.log(`[keycloakAuth] No token found for ${req.originalUrl}`);
         return res.status(401).json({
           success: false,
           error: 'No token provided'
@@ -182,9 +184,11 @@ export const keycloakAuth = (requiredRoles = []) => {
       // Add user info to request
       req.user = {
         id: decoded.sub,
+        username: decoded.preferred_username,
         email: decoded.email,
         firstName: decoded.given_name,
         lastName: decoded.family_name,
+        displayName: decoded.name,
         roles: normalizedRoles,
         isAdmin: hasRequiredRole(decoded, [ROLES.SUPER_ADMIN, ROLES.ADMIN])
       };

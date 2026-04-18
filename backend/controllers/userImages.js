@@ -2,10 +2,10 @@
  * User Images Controllers
  *
  * PURPOSE: HTTP request handlers for user image operations with RBAC enforcement
- * ARCHITECTURE: HTTP Routes → Controllers → Nextcloud Service → Nextcloud WebDAV API
+ * ARCHITECTURE: HTTP Routes → Controllers → MinIO Service → MinIO API
  */
 
-import { ensureFolder, uploadFile, deleteNode, NEXTCLOUD_CONFIG, assignTag } from '../services/nextcloudService.js';
+import * as fileService from '../services/fileService.js';
 import { PrismaClient } from '@prisma/client';
 import { LMS_ROLES } from '../services/keycloakAdminService.js';
 import { VALID_IMAGE_TYPES, VALID_FILE_MIME_TYPES, MAX_FILE_SIZE, getLocalizedMessage, IMAGE_TYPE_TO_TAG } from '../constants/fileConstants.js';
@@ -278,10 +278,13 @@ export const uploadUserImageController = async (req, res) => {
     }
 
     // Return proxy URL instead of raw Nextcloud URL to avoid auth dialog
-    // Use x-forwarded-proto header for reverse proxy support
+    // Use relative path for local development to avoid host.docker.internal issues
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost';
-    const proxyUrl = `${protocol}://${host}/api/v1/user-images/proxy/${userId}/${type}`;
+    const isDocker = host.includes('docker.internal');
+    const proxyUrl = isDocker
+      ? `/api/v1/user-images/proxy/${userId}/${type}`
+      : `${protocol}://${host}/api/v1/user-images/proxy/${userId}/${type}`;
 
     return res.status(200).json({
       success: true,
@@ -291,7 +294,7 @@ export const uploadUserImageController = async (req, res) => {
         url: proxyUrl,
         fileName: file.originalname,
         fileSize: file.size,
-        mimeType: file.mimetype
+        mimeType: file.mimeType
       },
       message: getLocalizedMessage('IMAGE_UPLOADED_SUCCESS', lang),
       timestamp: Date.now()
@@ -378,10 +381,13 @@ export const getUserImageController = async (req, res) => {
     }
 
     // Return proxy URL instead of raw Nextcloud URL to avoid auth dialog
-    // Use x-forwarded-proto header for reverse proxy support
+    // Use relative path for local development to avoid host.docker.internal issues
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost';
-    const proxyUrl = `${protocol}://${host}/api/v1/user-images/proxy/${userId}/${type}`;
+    const isDocker = host.includes('docker.internal');
+    const proxyUrl = isDocker
+      ? `/api/v1/user-images/proxy/${userId}/${type}`
+      : `${protocol}://${host}/api/v1/user-images/proxy/${userId}/${type}`;
 
     return res.status(200).json({
       success: true,
@@ -454,15 +460,20 @@ export const getAllUserImagesController = async (req, res) => {
     // Generate proxy URLs for all images to avoid auth dialog
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost';
+    const isDocker = host.includes('docker.internal');
     const images = {};
     VALID_IMAGE_TYPES.forEach(type => {
       const fieldName = getImageTypeField(type);
       const imagePath = user[fieldName];
       if (imagePath) {
         images[type] = {
-          filePath: imagePath,
-          url: `${protocol}://${host}/api/v1/user-images/proxy/${userId}/${type}`
+          url: isDocker
+            ? `/api/v1/user-images/proxy/${userId}/${type}`
+            : `${protocol}://${host}/api/v1/user-images/proxy/${userId}/${type}`,
+          path: imagePath
         };
+      } else {
+        images[type] = null;
       }
     });
 
@@ -596,6 +607,10 @@ export const deleteUserImageController = async (req, res) => {
   }
 };
 
+// In-memory cache for proxied images (5 minute TTL)
+const imageCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Proxy image from Nextcloud
  * Fetches image from Nextcloud using admin credentials and streams to frontend
@@ -639,6 +654,16 @@ export const proxyImageController = async (req, res) => {
     }
 
     const imagePath = user[fieldName];
+    const cacheKey = `${userId}-${type}`;
+
+    // Check cache first
+    const cached = imageCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+      res.setHeader('Content-Type', cached.contentType);
+      res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minute browser cache
+      res.setHeader('X-Cache', 'HIT');
+      return res.send(cached.buffer);
+    }
 
     // Fetch from Nextcloud using admin credentials
     const normalizedPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
@@ -662,14 +687,31 @@ export const proxyImageController = async (req, res) => {
       });
     }
 
-    // Stream the image to the frontend
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); // Disable caching
-
     // Convert Web ReadableStream to buffer and send (Node.js fetch doesn't have pipe)
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+
+    // Cache the image
+    imageCache.set(cacheKey, {
+      buffer,
+      contentType,
+      timestamp: Date.now()
+    });
+
+    // Clean up old cache entries periodically
+    if (imageCache.size > 100) {
+      const now = Date.now();
+      for (const [key, value] of imageCache.entries()) {
+        if (now - value.timestamp > CACHE_TTL) {
+          imageCache.delete(key);
+        }
+      }
+    }
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minute browser cache
+    res.setHeader('X-Cache', 'MISS');
     res.send(buffer);
 
   } catch (err) {

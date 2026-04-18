@@ -267,7 +267,8 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
             </button>
             </PortalTooltip>
           )}
-          
+
+
           <div style={{ flex: 1 }} />
 
           {/* Right side: Notifications + Profile */}

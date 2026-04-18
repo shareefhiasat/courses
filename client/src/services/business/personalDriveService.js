@@ -12,19 +12,20 @@ const serviceName = 'personalDriveService';
 // ==================== FILE OPERATIONS ====================
 
 /**
- * Upload file to user's personal drive
+ * Upload file to user's personal drive or shared space
  * 
  * @param {File} file - File to upload
- * @param {Object} options - Upload options (folder, onProgress)
+ * @param {Object} options - Upload options (folder, spaceType, onProgress)
  * @returns {Promise<Object>} - Result object
  */
 export const uploadFileToPersonalDrive = async (file, options = {}) => {
   try {
-    console.log(`[${serviceName}] Uploading file to personal drive:`, file.name);
+    console.log(`[${serviceName}] Uploading file to personal drive:`, file.name, 'spaceType:', options.spaceType);
     
     const formData = new FormData();
     formData.append('file', file);
     formData.append('folder', options.folder || 'Uploads');
+    formData.append('spaceType', options.spaceType || 'private');
     
     const response = await apiService.post('/workflow/workspace/upload', formData, {
       // Don't set Content-Type - axios will set it automatically with the correct boundary
@@ -55,17 +56,18 @@ export const uploadFileToPersonalDrive = async (file, options = {}) => {
 };
 
 /**
- * List files in user's personal drive
+ * List files in user's personal drive or shared space
  * 
  * @param {string} folder - Folder path (optional)
+ * @param {string} spaceType - 'private' or 'shared' (optional)
  * @returns {Promise<Object>} - Result object
  */
-export const listPersonalDriveFiles = async (folder = '') => {
+export const listPersonalDriveFiles = async (folder = '', spaceType = 'private') => {
   try {
-    console.log(`[${serviceName}] Listing files in folder:`, folder);
+    console.log(`[${serviceName}] Listing files in folder:`, folder, 'spaceType:', spaceType);
     
     const response = await apiService.get('/workflow/workspace/files', {
-      params: { folder }
+      params: { folder, spaceType }
     });
     
     if (response.success) {

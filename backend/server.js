@@ -27,6 +27,9 @@ const PORT = process.env.PORT || 8001;
 const API_VERSION = process.env.API_VERSION || "v1";
 const NODE_ENV = process.env.NODE_ENV || "development";
 
+// Public routes (no middleware) - mount first
+app.use(express.static(join(__dirname, "public")));
+
 // Middleware
 app.use(
   cors({
@@ -34,6 +37,9 @@ app.use(
       process.env.CORS_ORIGIN || "http://localhost:3000",
       "http://localhost:5174",
       "http://localhost:8001",
+      "https://localhost",
+      "https://localhost:5174",
+      "https://localhost:8001",
     ],
     credentials: true,
   }),
@@ -53,6 +59,19 @@ app.use(express.urlencoded({ extended: true }));
 
 // Import Keycloak authentication middleware
 import { keycloakAuth } from "./middleware/keycloakAuth.js";
+
+// MinIO initialization
+import { ensureBuckets } from './services/minioService.js';
+
+// Initialize MinIO buckets on startup
+(async () => {
+  try {
+    await ensureBuckets();
+    console.log('[minio] Buckets initialized successfully');
+  } catch (error) {
+    console.error('[minio] Failed to initialize buckets:', error);
+  }
+})();
 
 // Apply Keycloak authentication to all API routes
 // This will verify JWT tokens and extract user information
@@ -298,15 +317,14 @@ import participationTypeRoutes from "./routes/participation-types.js";
 import resourceTypeRoutes from "./routes/resourceTypes.js";
 import priorityTypeRoutes from "./routes/priority-types.js";
 import documentWorkflowRoutes from "./routes/document-workflows.js";
-import nextcloudAclSyncRoutes from "./routes/nextcloud-acl-sync.js";
-import workflowRoutes from "./routes/workflow.js";
-import personalDriveRoutes from "./routes/personal-drive.js";
 import marksRoutes from "./routes/marks.js";
 import attendanceRoutes from "./routes/attendances.js";
 import lookupRoutes from "./routes/lookup.js";
 import standupAttendanceRoutes from "./routes/standupAttendances.js";
 import permissionsRoutes from "./routes/permissions.js";
 import userImagesRoutes from "./routes/user-images.js";
+import driveRoutes from "./routes/driveNew.js";
+import publicDriveRoutes from "./routes/publicDriveNew.js";
 
 // Mount routes with versioning
 app.use(`/api/${API_VERSION}/programs`, programRoutes);
@@ -327,15 +345,15 @@ app.use(`/api/${API_VERSION}/penalties`, penaltyRoutes);
 app.use(`/api/${API_VERSION}/participations`, participationRoutes);
 // app.use(`/api/${API_VERSION}/participation-types`, participationTypeRoutes); // Now handled by unified lookup: GET /api/v1/lookup/participation-types
 app.use(`/api/${API_VERSION}/document-workflows`, documentWorkflowRoutes);
-app.use(`/api/${API_VERSION}/nextcloud-acl`, nextcloudAclSyncRoutes);
-app.use(`/api/${API_VERSION}/workflow`, workflowRoutes);
-app.use(`/api/${API_VERSION}/workflow/workspace`, personalDriveRoutes);
 app.use(`/api/${API_VERSION}/marks`, marksRoutes);
 app.use(`/api/${API_VERSION}/attendance`, attendanceRoutes);
 app.use(`/api/${API_VERSION}/standup-attendance`, standupAttendanceRoutes);
 app.use(`/api/${API_VERSION}/lookup`, lookupRoutes);
 app.use(`/api/${API_VERSION}/permissions`, permissionsRoutes);
 app.use(`/api/${API_VERSION}/user-images`, userImagesRoutes);
+
+app.use(`/api/${API_VERSION}/drive`, driveRoutes);
+app.use(`/api/${API_VERSION}/p`, publicDriveRoutes);
 
 // ==================== ERROR HANDLING ====================
 

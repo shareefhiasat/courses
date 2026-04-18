@@ -384,7 +384,7 @@ const WorkflowInboxPage = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate('/drive/personal')}
+                onClick={() => navigate('/drive')}
                 className="p-2"
                 title={t('workflow.inbox.workspace', 'Workspace')}
               >

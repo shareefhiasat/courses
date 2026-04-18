@@ -11,15 +11,45 @@ import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constant
 const prisma = new PrismaClient();
 
 /**
- * Get database user ID from Keycloak user object
+ * Get database user ID from Keycloak user object or string ID
  * 
- * @param {object} user - User object from request
+ * @param {object|string} user - User object from request or Keycloak ID string
  * @returns {Promise<number|null>} - Database user ID or null
  */
 export const getDatabaseUserId = async (user) => {
   if (!user) return null;
   
   try {
+    // If user is a string, treat it as keycloakId
+    if (typeof user === 'string') {
+      const kcUser = await prisma.user.findUnique({
+        where: { keycloakId: user },
+        select: { id: true }
+      });
+      
+      if (kcUser) return kcUser.id;
+      
+      // Fallback: try as email
+      const emailUser = await prisma.user.findUnique({
+        where: { email: user },
+        select: { id: true }
+      });
+      
+      if (emailUser) return emailUser.id;
+      
+      return null;
+    }
+    
+    // If user is an object, try keycloakId first
+    if (user.id) {
+      const kcUser = await prisma.user.findUnique({
+        where: { keycloakId: user.id },
+        select: { id: true }
+      });
+      
+      if (kcUser) return kcUser.id;
+    }
+    
     // Try to find user by email (primary method)
     if (user.email) {
       const emailUser = await prisma.user.findUnique({

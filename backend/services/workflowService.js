@@ -19,7 +19,7 @@ import {
 
 // Re-export database utility functions
 import { getDatabaseUserId } from '../db/workflow-postgres.js';
-import { ensureUser, ensureFolder, moveNode, createShare, addComment } from './nextcloudService.js';
+import * as fileService from './fileService.js';
 
 // Export utility functions
 export { getDatabaseUserId };

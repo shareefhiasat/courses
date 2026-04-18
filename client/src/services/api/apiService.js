@@ -15,14 +15,12 @@
 
 import axios from 'axios';
 import { info, error, warn, debug } from '../utils/logger.js';
+import { appConfig } from '../config/apiConfig.js';
 
-// API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
-
-// Create axios instance
+// Create axios instance with versioned base URL
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
+  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+  timeout: 30000, // 30 seconds to handle Nextcloud operations
   headers: {
     'Content-Type': 'application/json',
   },
