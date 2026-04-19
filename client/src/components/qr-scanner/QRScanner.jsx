@@ -92,7 +92,7 @@ import { FeatureFlagWrapper } from '@ui/FeatureFlagWrapper';
 import { useFeatureFlags } from '@hooks/useFeatureFlags';
 import { ROLE_STRINGS } from '@utils/userUtils';
 
-export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, loading = false, students = [], onMinimizeChange, forceMinimized = false, attendanceMode: propAttendanceMode }) {
+export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, selectedProgramNameAr, selectedSubjectNameAr, selectedClassNameAr, loading = false, students = [], onMinimizeChange, forceMinimized = false, attendanceMode: propAttendanceMode }) {
   const auth = useAuth();
   const { user, role, isSuperAdmin } = auth;
   const { t, lang, isRTL } = useLang();
@@ -1242,8 +1242,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           performedByEmail: record.creator?.email || record.performedByEmail || user?.email || '',
           scanMethod: record.scanMethod || (record.method === ATTENDANCE_METHODS.QR_SCAN ? 'auto' : ATTENDANCE_METHODS.MANUAL_INSTRUCTOR),
           subject: selectedSubjectName,
+          subjectAr: selectedSubjectNameAr,
           program: selectedProgramName,
+          programAr: selectedProgramNameAr,
           class: selectedClassName,
+          classAr: selectedClassNameAr,
           comment: (() => {
             const noteContent = record.notes || record.note || record.reason || record.description || '';
             // Check if it's a note constant (uppercase with underscores)

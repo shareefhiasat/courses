@@ -9,6 +9,7 @@ import { useKeycloak } from '@react-keycloak/web';
 import { info, error, warn, debug } from '@logger';
 import { ConfirmModal } from '@ui';
 import { ROLES } from '@constants/permissionConfig';
+import { useLang } from '@contexts/LangContext';
 
 // Session configuration from environment variables
 const SESSION_CONFIG = {
@@ -33,6 +34,7 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const { keycloak, initialized } = useKeycloak();
+  const { t } = useLang();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -639,7 +641,8 @@ export const AuthProvider = ({ children }) => {
     const expiryTime = getTokenExpiryLocalTime();
     const baseMessage = `Your session will expire soon. Token expires at ${expiryTime}. Would you like to extend your session or logout?`;
     if (countdownTime !== null) {
-      return `${baseMessage}\n\n⏰ Auto-logout in: ${formatCountdown(countdownTime)}`;
+      const countdownText = formatCountdown(countdownTime);
+      return `${baseMessage}\n\n⏰\n${countdownText}`;
     }
     return baseMessage;
   };

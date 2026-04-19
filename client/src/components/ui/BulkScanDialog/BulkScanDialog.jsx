@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
-import { X, Upload, Trash2, Calendar, RefreshCw, Download, RotateCcw, Users, CheckCircle, AlertCircle, Info, ChevronLeft, ChevronRight } from 'lucide-react';
-import { ATTENDANCE_TYPES, STANDUP_ATTENDANCE_TYPES, ATTENDANCE_TYPE_CATEGORY, getAttendanceColor, ATTENDANCE_DISPLAY_NAMES } from '@constants/attendanceTypes';
+import { X, Upload, Trash2, Calendar, RefreshCw, Download, RotateCcw, Users, CheckCircle, AlertCircle, Info, Plus, Minus } from 'lucide-react';
+import { ATTENDANCE_TYPES, STANDUP_ATTENDANCE_TYPES, ATTENDANCE_TYPE_CATEGORY, getAttendanceColor, ATTENDANCE_DISPLAY_NAMES, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useBulkScan } from '@/contexts/BulkScanContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -41,8 +41,11 @@ const BulkScanDialog = ({
 
   // State for context info names
   const [programName, setProgramName] = useState('');
+  const [programNameAr, setProgramNameAr] = useState('');
   const [className, setClassName] = useState('');
+  const [classNameAr, setClassNameAr] = useState('');
   const [subjectName, setSubjectName] = useState('');
+  const [subjectNameAr, setSubjectNameAr] = useState('');
 
   // Fetch names for context info
   useEffect(() => {
@@ -53,6 +56,7 @@ const BulkScanDialog = ({
           const programResult = await getProgram(programId);
           if (programResult.success) {
             setProgramName(programResult.data.nameEn || programResult.data.name || programId);
+            setProgramNameAr(programResult.data.nameAr || programResult.data.nameEn || programResult.data.name || programId);
           }
         } catch (err) {
           console.error('[BulkScanDialog] Error fetching program name:', err);
@@ -65,6 +69,7 @@ const BulkScanDialog = ({
           const classResult = await getClassById(classId);
           if (classResult.success) {
             setClassName(classResult.data.nameEn || classResult.data.name || classId);
+            setClassNameAr(classResult.data.nameAr || classResult.data.nameEn || classResult.data.name || classId);
           }
         } catch (err) {
           console.error('[BulkScanDialog] Error fetching class name:', err);
@@ -77,6 +82,7 @@ const BulkScanDialog = ({
           const subjectResult = await getSubject(subjectId);
           if (subjectResult.success) {
             setSubjectName(subjectResult.data.nameEn || subjectResult.data.name || subjectId);
+            setSubjectNameAr(subjectResult.data.nameAr || subjectResult.data.nameEn || subjectResult.data.name || subjectId);
           }
         } catch (err) {
           console.error('[BulkScanDialog] Error fetching subject name:', err);
@@ -185,7 +191,15 @@ const BulkScanDialog = ({
   }, [isOpen, clearAll]);
 
   useEffect(() => {
+    debug("[BulkScanDialog] Validation trigger check:", {
+      parsedNumbersLength: parsedNumbers.length,
+      validatedStudentsFoundLength: validatedStudents.found.length,
+      validating,
+      shouldTrigger: parsedNumbers.length > 0 && validatedStudents.found.length === 0 && !validating
+    });
+
     if (parsedNumbers.length > 0 && validatedStudents.found.length === 0 && !validating) {
+      debug("[BulkScanDialog] Triggering validateStudents automatically");
       validateStudents();
     }
   }, [parsedNumbers, validatedStudents.found.length, validating, validateStudents]);
@@ -402,7 +416,7 @@ const BulkScanDialog = ({
                 {t('program') || 'Program'}:
               </span>
               <span className={styles.contextValue}>
-                {programName || programId || '-'}
+                {lang === 'ar' ? (programNameAr || programName || programId) : (programName || programId)}
               </span>
             </div>
           ) : (
@@ -412,7 +426,7 @@ const BulkScanDialog = ({
                   {t('program') || 'Program'}:
                 </span>
                 <span className={styles.contextValue}>
-                  {programName || programId || '-'}
+                  {lang === 'ar' ? (programNameAr || programName || programId) : (programName || programId)}
                 </span>
               </div>
               <div className={styles.contextItem}>
@@ -420,7 +434,7 @@ const BulkScanDialog = ({
                   {t('class') || 'Class'}:
                 </span>
                 <span className={styles.contextValue}>
-                  {className || classId || '-'}
+                  {lang === 'ar' ? (classNameAr || className || classId) : (className || classId)}
                 </span>
               </div>
               <div className={styles.contextItem}>
@@ -428,7 +442,7 @@ const BulkScanDialog = ({
                   {t('subject') || 'Subject'}:
                 </span>
                 <span className={styles.contextValue}>
-                  {subjectName || subjectId || '-'}
+                  {lang === 'ar' ? (subjectNameAr || subjectName || subjectId) : (subjectName || subjectId)}
                 </span>
               </div>
             </>
@@ -555,7 +569,7 @@ const BulkScanDialog = ({
                     className={styles.textarea}
                     rows={10}
                     disabled={loading}
-                    style={{ width: '100%', minHeight: '300px' }}
+                    style={{ width: '100%', minHeight: '150px' }}
                   />
                 ) : (
                   <div className={styles.chipsContainer} role="list" style={{ minHeight: '300px', maxHeight: '400px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.5rem' }}>
@@ -590,8 +604,7 @@ const BulkScanDialog = ({
                       title={t('move_all_left') || 'Move all to excluded'}
                       style={{ padding: '0.5rem' }}
                     >
-                      <ChevronLeft size={16} />
-                      <ChevronLeft size={16} />
+                      <Minus size={16} />
                     </button>
                     <button
                       onClick={moveAllToSelected}
@@ -600,8 +613,7 @@ const BulkScanDialog = ({
                       title={t('move_all_right') || 'Move all to selected'}
                       style={{ padding: '0.5rem' }}
                     >
-                      <ChevronRight size={16} />
-                      <ChevronRight size={16} />
+                      <Plus size={16} />
                     </button>
                   </>
                 )}
@@ -680,8 +692,8 @@ const BulkScanDialog = ({
                     const type = {
                       id: value,
                       color: getAttendanceColor?.(value) || '#6b7280',
-                      labelEn: ATTENDANCE_DISPLAY_NAMES[value] || value,
-                      labelAr: ATTENDANCE_DISPLAY_NAMES[value] || value
+                      labelEn: getLocalizedAttendanceLabel(value, 'en'),
+                      labelAr: getLocalizedAttendanceLabel(value, 'ar')
                     };
 
                     return (
@@ -745,7 +757,7 @@ const BulkScanDialog = ({
             ) : (
               <>
                 <CheckCircle size={16} />
-                {t('apply_to_n_students', { n: selectedStudents.length }) || `Apply to ${selectedStudents.length} students`}
+                <span style={{ marginLeft: '0.5rem' }}>{selectedStudents.length}</span>
               </>
             )}
           </button>

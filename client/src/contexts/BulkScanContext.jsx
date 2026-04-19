@@ -200,6 +200,14 @@ export const BulkScanProvider = ({
   }, [inputText]);
 
   const validateStudents = useCallback(async ({ programId: overrideProgramId, classId: overrideClassId, attendanceMode: overrideAttendanceMode } = {}) => {
+    debug("[BulkScanContext] validateStudents called:", {
+      parsedNumbersLength: parsedNumbers.length,
+      parsedNumbers,
+      programId: overrideProgramId || programIdRef.current,
+      classId: overrideClassId || classIdRef.current,
+      attendanceMode: overrideAttendanceMode || attendanceModeRef.current
+    });
+
     if (parsedNumbers.length === 0) {
       setError(
         tRef.current("no_valid_student_numbers_to_validate") ||
@@ -220,6 +228,13 @@ export const BulkScanProvider = ({
         studentNumbers: parsedNumbers,
       });
 
+      debug("[BulkScanContext] Validation result:", {
+        success: validationResult.success,
+        found: validationResult.found?.length || 0,
+        notFound: validationResult.notFound?.length || 0,
+        error: validationResult.error
+      });
+
       if (!validationResult.success) {
         setError(validationResult.error);
         setValidatedStudents({ found: [], notFound: parsedNumbers });
@@ -233,7 +248,8 @@ export const BulkScanProvider = ({
         setSelectedStudents(validationResult.found);
         setExcludedStudents([]);
 
-        debug("[BulkScanContext] Validation complete:", {
+        debug("[BulkScanContext] Validation complete - selectedStudents set to:", {
+          selectedStudentsLength: validationResult.found.length,
           found: validationResult.found.length,
           notFound: validationResult.notFound.length,
         });
@@ -246,6 +262,7 @@ export const BulkScanProvider = ({
       setExcludedStudents([]);
     } finally {
       setValidating(false);
+      debug("[BulkScanContext] Validation finished, validating set to false");
     }
   }, [parsedNumbers]);
 
@@ -437,13 +454,21 @@ export const BulkScanProvider = ({
   }, [validatedStudents.found, selectedStatus, selectedDate, clearState]);
 
   const canSubmit = useMemo(() => {
-    return (
-      validatedStudents.found.length > 0 &&
+    const result = (
+      selectedStudents.length > 0 &&
       selectedStatus !== null &&
       !loading &&
       !validating
     );
-  }, [validatedStudents.found.length, selectedStatus, loading, validating]);
+    debug("[BulkScanContext] canSubmit check:", {
+      selectedStudentsLength: selectedStudents.length,
+      selectedStatus,
+      loading,
+      validating,
+      canSubmit: result
+    });
+    return result;
+  }, [selectedStudents.length, selectedStatus, loading, validating]);
 
   const stats = useMemo(() => {
     return {

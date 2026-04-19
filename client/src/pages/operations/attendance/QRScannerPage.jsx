@@ -2757,7 +2757,7 @@ const QRScannerPage = () => {
         // Only add mark deductions for regular mode (not standup)
         if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP) {
           const absentNoExcuseDeduction = stats.absentNoExcuse * 0.5;
-          const lateDeduction = stats.late * 0.5;
+          const lateDeduction = stats.late * 0.25;
           const absentWithExcuseDeduction = stats.absentWithExcuse * 0.25;
           const excusedLeaveDeduction = stats.excusedLeave * 0.25;
           const humanCaseDeduction = stats.humanCase * 0.25;
@@ -2918,7 +2918,7 @@ const QRScannerPage = () => {
             const absent = subjectData.absentNoExcuse + subjectData.absentWithExcuse + subjectData.humanCase;
             const deduction = (
               (subjectData.absentNoExcuse * 0.5) +
-              (subjectData.late * 0.5) +
+              (subjectData.late * 0.25) +
               (subjectData.absentWithExcuse * 0.25) +
               (subjectData.humanCase * 0.25) +
               (subjectData.excusedLeave * 0.25)
@@ -3074,7 +3074,7 @@ const QRScannerPage = () => {
               subjectAbsent += (subjectData.absentNoExcuse + subjectData.absentWithExcuse + subjectData.humanCase);
               subjectDeduction += (
                 (subjectData.absentNoExcuse * 0.5) +
-                (subjectData.late * 0.5) +
+                (subjectData.late * 0.25) +
                 (subjectData.absentWithExcuse * 0.25) +
                 (subjectData.humanCase * 0.25) +
                 (subjectData.excusedLeave * 0.25)
@@ -4152,6 +4152,10 @@ const QRScannerPage = () => {
                 // });
                 return program?.nameEn || program?.name || program?.code || '';
               })()}
+              selectedProgramNameAr={(() => {
+                const program = programs.find(p => p.id == selectedProgramId);
+                return program?.nameAr || program?.nameEn || program?.name || program?.code || '';
+              })()}
               selectedSubjectName={(() => {
                 const subject = subjects.find(s => s.id == selectedSubjectId);
                 // debug('Subject lookup:', {
@@ -4162,6 +4166,10 @@ const QRScannerPage = () => {
                 // });
                 return subject?.nameEn || subject?.name || subject?.code || '';
               })()}
+              selectedSubjectNameAr={(() => {
+                const subject = subjects.find(s => s.id == selectedSubjectId);
+                return subject?.nameAr || subject?.nameEn || subject?.name || subject?.code || '';
+              })()}
               selectedClassName={(() => {
                 const cls = classes.find(c => c.id == selectedClassId);
                 // debug('Class lookup:', {
@@ -4171,6 +4179,10 @@ const QRScannerPage = () => {
                 //   className: cls?.nameEn || cls?.name || cls?.code || 'NOT_FOUND'
                 // });
                 return cls?.nameEn || cls?.name || cls?.code || '';
+              })()}
+              selectedClassNameAr={(() => {
+                const cls = classes.find(c => c.id == selectedClassId);
+                return cls?.nameAr || cls?.nameEn || cls?.name || cls?.code || '';
               })()}
               loading={false}
               students={students}

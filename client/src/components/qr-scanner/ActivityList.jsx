@@ -184,17 +184,17 @@ const ActivityList = ({
                 </div>
                 {activity.subject && (
                   <div style={{ marginBottom: '0.25rem' }}>
-                    {activity.subject}
+                    {lang === 'ar' ? (activity.subjectAr || activity.subject) : activity.subject}
                   </div>
                 )}
                 {activity.program && (
                   <div style={{ marginBottom: '0.25rem' }}>
-                    {activity.program}
+                    {lang === 'ar' ? (activity.programAr || activity.program) : activity.program}
                   </div>
                 )}
                 {activity.class && (
                   <div style={{ marginBottom: '0.25rem' }}>
-                    {activity.class}
+                    {lang === 'ar' ? (activity.classAr || activity.class) : activity.class}
                   </div>
                 )}
                 <PerformedBy 

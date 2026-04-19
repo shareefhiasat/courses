@@ -98,18 +98,19 @@
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0.75rem;
 }
 
 .contextInfo {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
   background: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
   margin-bottom: 0.5rem;
+  min-height: fit-content;
 }
 
 .dark .contextInfo {
@@ -122,6 +123,8 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .contextLabel {
@@ -588,6 +591,10 @@
   padding: 0.75rem;
 }
 
+.rtl .notFoundSection {
+  text-align: right;
+}
+
 .notFoundHeader {
   display: flex;
   align-items: center;
@@ -596,6 +603,10 @@
   font-weight: 600;
   color: #991b1b;
   margin-bottom: 0.5rem;
+}
+
+.rtl .notFoundHeader {
+  flex-direction: row-reverse;
 }
 
 .notFoundList {
