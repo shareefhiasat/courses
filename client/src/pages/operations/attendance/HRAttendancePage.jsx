@@ -14,6 +14,7 @@ import { getAttendanceStats, getAttendanceMarksForExport, getAllAttendanceSessio
 import { getUsers, getUserById } from '@services/business/userService';
 import { getAttendanceIcon, createAttendanceBadge } from '@constants/iconTypes';
 import { getQatarNow, formatQatarDateOnly, formatQatarStandard } from '@utils/qatarDate';
+import { exportGeneric } from '@services/export/excelExportService.js';
 
 const HRAttendancePage = () => {
   const { user, isHR, isAdmin, loading: authLoading } = useAuth();
@@ -676,7 +677,7 @@ const HRAttendancePage = () => {
         'الطابع الزمني'
       ];
       
-      const csvRows = enriched.map((r, index) => {
+      const dataRows = enriched.map((r, index) => {
         const status = r.status || 'present';
         let attendanceStatus = '';
         
@@ -727,12 +728,14 @@ const HRAttendancePage = () => {
           timestamp // الطابع الزمني
         ];
       });
-      const csv = [headers.join(','), ...csvRows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
+      const excelBlob = await exportGeneric(dataRows, headers, {
+        fileName: `hr_attendance_${sessionId}_${formatQatarDateOnly(getQatarNow())}.xlsx`,
+        rtl: true // HR attendance uses Arabic headers, so enable RTL
+      });
+      const url = URL.createObjectURL(excelBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `hr_attendance_${sessionId}_${formatQatarDateOnly(getQatarNow())}.csv`;
+      a.download = `hr_attendance_${sessionId}_${formatQatarDateOnly(getQatarNow())}.xlsx`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (e) {

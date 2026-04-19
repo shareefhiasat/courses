@@ -304,12 +304,12 @@ const StudentTableRow = ({
         />
         {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
           <td style={{ padding: '0.5rem 0.75rem' }} onClick={() => onStudentSelect(student)}>
-            <AttendanceStatusCell status={todayStatus} type="regular" />
+            <AttendanceStatusCell status={todayStatus} type="regular" t={t} lang={lang} />
           </td>
         )}
         {attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (
           <td style={{ padding: '0.5rem 0.75rem' }} onClick={() => onStudentSelect(student)}>
-            <AttendanceStatusCell status={student.standupStatus} type="standup" />
+            <AttendanceStatusCell status={student.standupStatus} type="standup" t={t} lang={lang} />
           </td>
         )}
         {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (

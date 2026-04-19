@@ -8,6 +8,7 @@ import Tabs from '@components/ui/Tabs/Tabs';
 import StatusCard from './StatusCard';
 import StudentChip from './StudentChip';
 import styles from './BulkScanDialog.module.css';
+import { exportGeneric } from '@services/export/excelExportService.js';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';
@@ -24,6 +25,8 @@ const BulkScanDialog = ({
   attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR,
   onModeChange,
   onSuccess,
+  canEditAttendance = false,
+  isSuperAdmin = false,
   t,
   lang,
   showSuccess,
@@ -44,7 +47,7 @@ const BulkScanDialog = ({
   // Fetch names for context info
   useEffect(() => {
     const fetchNames = async () => {
-      if (programId) {
+      if (programId && programId !== 'all' && programId !== '') {
         try {
           const { getProgram } = await import('@services/business/programService');
           const programResult = await getProgram(programId);
@@ -56,7 +59,7 @@ const BulkScanDialog = ({
         }
       }
 
-      if (classId && attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR) {
+      if (classId && classId !== 'all' && classId !== '' && attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR) {
         try {
           const { getClassById } = await import('@services/business/classService');
           const classResult = await getClassById(classId);
@@ -68,7 +71,7 @@ const BulkScanDialog = ({
         }
       }
 
-      if (subjectId && attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR) {
+      if (subjectId && subjectId !== 'all' && subjectId !== '' && attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR) {
         try {
           const { getSubject } = await import('@services/business/programService');
           const subjectResult = await getSubject(subjectId);
@@ -94,11 +97,20 @@ const BulkScanDialog = ({
     setActiveTab(tab);
 
     // Auto-fetch all students when clicking Add All tab
-    // (addAllStudents already handles parsing and validation internally)
+    // Only auto-add if user has edit permission or is super admin
     if (tab === 'addAll') {
-      addAllStudents({ programId, classId, attendanceMode });
+      if (canEditAttendance || isSuperAdmin) {
+        addAllStudents({ programId, classId, attendanceMode });
+      } else {
+        // If no edit permission, just switch to the tab without auto-adding
+        // Students will need to be manually added via input
+        showError(t('no_edit_permission_bulk_scan') || 'You do not have permission to edit attendance. Please use manual input.');
+      }
     }
   };
+
+  // Determine if user has edit permission (for visual marking)
+  const hasEditPermission = canEditAttendance || isSuperAdmin;
 
   // Execute bulk operations
   const executeBulkOperation = () => {
@@ -193,7 +205,7 @@ const BulkScanDialog = ({
   ];
 
   // Export functionality
-  const exportResults = useCallback(() => {
+  const exportResults = useCallback(async () => {
     if (!result?.results?.detailed) return;
     
     // Helper function to get Arabic day name
@@ -252,25 +264,24 @@ const BulkScanDialog = ({
       }
     };
     
-    const csvContent = [
-      [
-        'الرقم',
-        'الاسم',
-        'الحالة',
-        'المشاركة',
-        'السلوك',
-        'الجزاء',
-        'الحاضر',
-        'متأخر',
-        'غايب',
-        'غايب بعذر',
-        'إجازة',
-        'حالة إنسانية',
-        'وقت الحضور',
-        'التاريخ',
-        'اليوم'
-      ],
-      ...result.results.detailed.map(student => [
+    const headers = [
+      'الرقم',
+      'الاسم',
+      'الحالة',
+      'المشاركة',
+      'السلوك',
+      'الجزاء',
+      'الحاضر',
+      'متأخر',
+      'غايب',
+      'غايب بعذر',
+      'إجازة',
+      'حالة إنسانية',
+      'وقت الحضور',
+      'التاريخ',
+      'اليوم'
+    ];
+    const dataRows = result.results.detailed.map(student => [
         student.studentNumber || '',
         student.studentName || '',
         getArabicStatus(student.status),
@@ -286,14 +297,16 @@ const BulkScanDialog = ({
         formatTime(student.timestamp),
         formatDate(student.timestamp),
         getArabicDay(student.timestamp)
-      ])
-    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+      ]);
     
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
+    const excelBlob = await exportGeneric(dataRows, headers, {
+      fileName: `نتائج_الحضور_الجماعي_${new Date().toISOString().split('T')[0]}.xlsx`,
+      rtl: true // Bulk scan uses Arabic headers, so enable RTL
+    });
+    const url = URL.createObjectURL(excelBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `نتائج_الحضور_الجماعي_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `نتائج_الحضور_الجماعي_${new Date().toISOString().split('T')[0]}.xlsx`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -558,6 +571,7 @@ const BulkScanDialog = ({
                           direction="toSelected"
                           onMove={moveToSelected}
                           disabled={loading}
+                          hasEditPermission={hasEditPermission}
                         />
                       ))
                     )}
@@ -617,6 +631,7 @@ const BulkScanDialog = ({
                           direction="toExcluded"
                           onMove={moveToExcluded}
                           disabled={loading}
+                          hasEditPermission={hasEditPermission}
                         />
                       ) : (
                         <div

@@ -12,7 +12,8 @@ const StudentChip = ({
   student,
   direction, // 'toSelected' or 'toExcluded'
   onMove,
-  disabled
+  disabled,
+  hasEditPermission = true
 }) => {
   const handleMove = () => {
     onMove(student.studentId || student.id);
@@ -22,18 +23,31 @@ const StudentChip = ({
   const buttonColor = isToSelected ? '#10b981' : '#ef4444';
   const Icon = isToSelected ? ChevronRight : ChevronLeft;
 
+  // Apply special color styling when user lacks edit permission
+  const chipStyle = {
+    marginBottom: '0.25rem',
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: hasEditPermission ? 'transparent' : '#fef3c7', // Light yellow for read-only
+    border: hasEditPermission ? '1px solid #e2e8f0' : '1px solid #f59e0b', // Orange border for read-only
+    padding: '0.5rem',
+    borderRadius: '0.375rem'
+  };
+
   return (
     <div
       className={styles.chip}
-      style={{ marginBottom: '0.25rem', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+      style={chipStyle}
       role="listitem"
     >
       <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
-        <span className={styles.chipText} style={{ fontWeight: '600' }}>
+        <span className={styles.chipText} style={{ fontWeight: '600', color: hasEditPermission ? 'inherit' : '#b45309' }}>
           {student.studentNumber}
         </span>
         {student.displayName && (
-          <span className={styles.chipName} style={{ fontSize: '0.875rem', color: '#64748b' }}>
+          <span className={styles.chipName} style={{ fontSize: '0.875rem', color: hasEditPermission ? '#64748b' : '#b45309' }}>
             {student.displayName}
           </span>
         )}

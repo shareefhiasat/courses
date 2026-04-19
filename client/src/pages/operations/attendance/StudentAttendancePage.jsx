@@ -11,6 +11,7 @@ import { Button, Select, DatePicker, useToast } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { Download } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
+import { exportGeneric } from '@services/export/excelExportService.js';
 
 const StudentAttendancePage = () => {
   const { user, loading: authLoading } = useAuth();
@@ -563,23 +564,27 @@ const StudentAttendancePage = () => {
               variant="secondary" 
               size="sm"
               icon={<Download size={16} />}
-              onClick={()=>{
+              onClick={async ()=>{
                 const headers = ['Date','Status','Class','Reason','Note'];
-                const csvRows = history.map(h => [
+                const dataRows = history.map(h => [
                   (h.at || h.createdAt || h.updatedAt) ? new Date(h.at || h.createdAt || h.updatedAt).toLocaleString('en-GB') : '',
                   h.status||'present', 
                   h.className||h.classId||'',
                   h.reason||'',
                   h.feedback||h.note||''
                 ]);
-                const csv = [headers.join(','), ...csvRows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n');
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob); const a = document.createElement('a');
-                a.href = url; a.download = `attendance_history_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+                const excelBlob = await exportGeneric(dataRows, headers, {
+                  fileName: `attendance_history_${new Date().toISOString().split('T')[0]}.xlsx`
+                });
+                const url = URL.createObjectURL(excelBlob); 
+                const a = document.createElement('a');
+                a.href = url; 
+                a.download = `attendance_history_${new Date().toISOString().split('T')[0]}.xlsx`; 
+                a.click();
                 setTimeout(()=>URL.revokeObjectURL(url), 1000);
               }}
             >
-              {t('export_csv') || 'Export CSV'}
+              {t('export_excel') || 'Export Excel'}
             </Button>
           </div>
           {history.map((h, i) => (

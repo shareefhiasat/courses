@@ -19,6 +19,7 @@ import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import styles from './AttendancePage.module.css';
 import PortalTooltip from '@ui/PortalTooltip';
+import { exportGeneric } from '@services/export/excelExportService.js';
 
 const AttendancePageEnhanced = () => {
   const { user, isAdmin, isInstructor, isHR, loading: authLoading } = useAuth();
@@ -811,16 +812,17 @@ const AttendancePageEnhanced = () => {
                         const result = await getAttendanceMarksForExport(sessionId);
                         const rows = result.success ? result.data : [];
                         const headers = ['uid','status','deviceHash','scannedAt'];
-                        const csvRows = rows.map(r => [r.uid, r.status||'present', r.deviceHash||'', (r.at && r.at.toDate ? r.at.toDate() : new Date()).toLocaleString('en-GB')]);
-                        const csv = [headers.join(','), ...csvRows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n');
-                        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                        const url = URL.createObjectURL(blob); const a = document.createElement('a');
-                        a.href = url; a.download = `attendance_${sessionId}_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+                        const dataRows = rows.map(r => [r.uid, r.status||'present', r.deviceHash||'', (r.at && r.at.toDate ? r.at.toDate() : new Date()).toLocaleString('en-GB')]);
+                        const excelBlob = await exportGeneric(dataRows, headers, {
+                          fileName: `attendance_${sessionId}_${new Date().toISOString().split('T')[0]}.xlsx`
+                        });
+                        const url = URL.createObjectURL(excelBlob); const a = document.createElement('a');
+                        a.href = url; a.download = `attendance_${sessionId}_${new Date().toISOString().split('T')[0]}.xlsx`; a.click();
                         setTimeout(()=>URL.revokeObjectURL(url), 1000);
                       } catch(e) { setErr(e?.message || 'Export failed'); }
                     }}
                   >
-                    {t('export_csv') || 'Export CSV'}
+                    {t('export_excel') || 'Export Excel'}
                   </Button>
                 </div>
               </>

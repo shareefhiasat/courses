@@ -343,7 +343,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
     tools: {
       label: t('tools') || 'TOOLS',
       items: [
-        { key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: t('timer') || 'Timer' }
+        { path: '/timer', icon: getThemedIcon('ui', 'timer', 18, theme), label: t('timer') || 'Timer' }
       ]
     },
     settings: {
@@ -440,7 +440,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
     tools: {
       label: t('tools') || 'TOOLS',
       items: [
-        { key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: t('timer') || 'Timer' }
+        { path: '/timer', icon: getThemedIcon('ui', 'timer', 18, theme), label: t('timer') || 'Timer' }
       ]
     },
     settings: {
@@ -473,7 +473,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { path: '/notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: t('notifications') || 'Notifications' },
         { path: '/student-profile', icon: getThemedIcon('ui', 'user', 18, theme), label: t('student_profile') || 'Student Profile' },
         { path: '/profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: t('settings') || 'Settings' },
-        { key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: t('timer') || 'Timer' }
+        { path: '/timer', icon: getThemedIcon('ui', 'timer', 18, theme), label: t('timer') || 'Timer' }
       ]
     }
   };
@@ -523,6 +523,10 @@ const SideDrawer = ({ isOpen, onClose }) => {
       // Super admin sees all items
       if (roleCode === 'super_admin') return true;
       
+      // Items with 'key' instead of 'path' are not checked against permissions
+      // (should be avoided - use path instead for dynamic permission support)
+      if (item.key && !item.path) return true;
+      
       // Check if user can access this screen
       return checkScreenAccess(item.path);
     });
@@ -551,6 +555,30 @@ const SideDrawer = ({ isOpen, onClose }) => {
   if (roleCode !== 'super_admin') {
     links = filterMenuSections(links);
   }
+
+  // Auto-navigate to single menu item if only one is available
+  useEffect(() => {
+    if (!user || !roleCode || roleCode === 'super_admin') return;
+
+    // Count total menu items across all sections
+    let totalItems = 0;
+    let singleItemPath = null;
+
+    Object.keys(links).forEach(sectionKey => {
+      const section = links[sectionKey];
+      if (section.items && section.items.length > 0) {
+        totalItems += section.items.length;
+        if (totalItems === 1) {
+          singleItemPath = section.items[0].path;
+        }
+      }
+    });
+
+    // If only one menu item exists and current path is not already that item, navigate to it
+    if (totalItems === 1 && singleItemPath && location.pathname !== singleItemPath) {
+      navigate(singleItemPath);
+    }
+  }, [links, user, roleCode, location.pathname, navigate]);
   
   return (
     <AnimatePresence>

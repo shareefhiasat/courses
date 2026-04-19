@@ -128,7 +128,19 @@ export const usePermissions = () => {
       }
       
       // Strip leading slash and query params from screenId
-      const normalizedScreenId = screenId.replace(/^\/+/, '').split('?')[0].split('/')[0];
+      let normalizedScreenId = screenId.replace(/^\/+/, '').split('?')[0].split('/')[0];
+      
+      // Map paths to screenIds
+      const pathToScreenIdMap = {
+        '': 'home',
+        'home': 'home',
+        'smart-drive': 'drive',
+        'timer': 'timer'
+      };
+      
+      if (pathToScreenIdMap[normalizedScreenId]) {
+        normalizedScreenId = pathToScreenIdMap[normalizedScreenId];
+      }
       
       // Use permissions data structure directly - no need to parse operation keys
       // Check if user has ANY permission on this screen

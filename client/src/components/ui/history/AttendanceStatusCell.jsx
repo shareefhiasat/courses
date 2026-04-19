@@ -7,7 +7,7 @@ import { getThemedIcon } from '@constants/iconTypes';
  * AttendanceStatusCell - Displays attendance status with proper icon and color
  * Logic-free component following workspace constitution
  */
-const AttendanceStatusCell = ({ status, type = 'regular' }) => {
+const AttendanceStatusCell = ({ status, type = 'regular', t, lang }) => {
   const getAttendanceDisplay = (status) => {
     // Convert to uppercase for label lookup
     const statusUpper = status?.toUpperCase();
@@ -15,7 +15,7 @@ const AttendanceStatusCell = ({ status, type = 'regular' }) => {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           <CircleIcon style={{ width: type === 'regular' ? '12px' : '16px', height: type === 'regular' ? '12px' : '16px', stroke: '#9ca3af' }} />
-          <span style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: 500 }}>None</span>
+          <span style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: 500 }}>{t('none') || 'None'}</span>
         </div>
       );
     }
@@ -67,7 +67,7 @@ const AttendanceStatusCell = ({ status, type = 'regular' }) => {
       <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
       </svg>
-      <span style={{ fontSize: fontSize, color: '#9ca3af', fontWeight: 500 }}>None</span>
+      <span style={{ fontSize: fontSize, color: '#9ca3af', fontWeight: 500 }}>{t('none') || 'None'}</span>
     </div>
   );
 };

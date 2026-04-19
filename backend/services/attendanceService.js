@@ -50,11 +50,12 @@ const getDatabaseUserId = async (user) => {
 // Get all attendance records with filtering
 export const getAllAttendance = async (params = {}) => {
   try {
-    const { userId, classId, date, page = 1, limit = 100 } = params;
+    const { userId, classId, date, subjectId, page = 1, limit = 100 } = params;
     
     const where = {};
     if (userId) where.userId = parseInt(userId);
     if (classId) where.classId = parseInt(classId);
+    if (subjectId) where.subjectId = parseInt(subjectId);
     if (date) {
       // Handle date filtering - consider the whole day
       const startDate = new Date(date);
@@ -78,7 +79,8 @@ export const getAllAttendance = async (params = {}) => {
               email: true,
               displayName: true,
               firstName: true,
-              lastName: true
+              lastName: true,
+              studentNumber: true
             }
           },
           class: {
@@ -254,7 +256,8 @@ export const createAttendance = async (attendanceData, user = null) => {
               email: true,
               displayName: true,
               firstName: true,
-              lastName: true
+              lastName: true,
+              studentNumber: true
             }
           },
           class: {
