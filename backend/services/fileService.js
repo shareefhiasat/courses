@@ -293,8 +293,20 @@ async function deleteFile(fileId, userId) {
   }
 }
 
-async function generatePublicLink(fileId, userId, expiryDays = 7) {
+async function generatePublicLink(fileId, keycloakId, expiryDays = 7) {
   try {
+    let userId;
+    try {
+      userId = await getUserIdFromKeycloakId(keycloakId);
+    } catch (error) {
+      console.error('[fileService] Error converting keycloakId to userId:', error);
+      return {
+        success: false,
+        error: { code: 'ACCESS_DENIED', message: 'User not found' },
+        timestamp: Date.now(),
+      };
+    }
+
     const file = await prisma.file.findUnique({ where: { id: fileId } });
 
     if (!file || file.ownerId !== userId) {
@@ -377,6 +389,230 @@ async function getFileByPublicToken(token) {
   }
 }
 
+async function toggleStarFile(fileId, userId) {
+  try {
+    const file = await prisma.file.findUnique({ where: { id: fileId } });
+
+    if (!file || file.ownerId !== userId) {
+      return {
+        success: false,
+        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
+        timestamp: Date.now(),
+      };
+    }
+
+    const updated = await prisma.file.update({
+      where: { id: fileId },
+      data: { isStarred: !file.isStarred },
+    });
+
+    await prisma.fileActivity.create({
+      data: {
+        fileId,
+        userId,
+        action: updated.isStarred ? 'starred' : 'unstarred',
+      },
+    });
+
+    return {
+      success: true,
+      payload: updated,
+      timestamp: Date.now(),
+    };
+  } catch (error) {
+    console.error('[fileService] Error toggling star:', error);
+    return {
+      success: false,
+      error: { code: 'TOGGLE_STAR_FAILED', message: error.message },
+      timestamp: Date.now(),
+    };
+  }
+}
+
+async function softDeleteFile(fileId, userId) {
+  try {
+    const file = await prisma.file.findUnique({ where: { id: fileId } });
+
+    if (!file || file.ownerId !== userId) {
+      return {
+        success: false,
+        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
+        timestamp: Date.now(),
+      };
+    }
+
+    const updated = await prisma.file.update({
+      where: { id: fileId },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+        deletedById: userId,
+      },
+    });
+
+    await prisma.fileActivity.create({
+      data: {
+        fileId,
+        userId,
+        action: 'soft_delete',
+      },
+    });
+
+    return {
+      success: true,
+      payload: updated,
+      timestamp: Date.now(),
+    };
+  } catch (error) {
+    console.error('[fileService] Error soft deleting file:', error);
+    return {
+      success: false,
+      error: { code: 'SOFT_DELETE_FAILED', message: error.message },
+      timestamp: Date.now(),
+    };
+  }
+}
+
+async function restoreFile(fileId, userId) {
+  try {
+    const file = await prisma.file.findUnique({ where: { id: fileId } });
+
+    if (!file || file.ownerId !== userId) {
+      return {
+        success: false,
+        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
+        timestamp: Date.now(),
+      };
+    }
+
+    const updated = await prisma.file.update({
+      where: { id: fileId },
+      data: {
+        isDeleted: false,
+        deletedAt: null,
+        deletedById: null,
+      },
+    });
+
+    await prisma.fileActivity.create({
+      data: {
+        fileId,
+        userId,
+        action: 'restored',
+      },
+    });
+
+    return {
+      success: true,
+      payload: updated,
+      timestamp: Date.now(),
+    };
+  } catch (error) {
+    console.error('[fileService] Error restoring file:', error);
+    return {
+      success: false,
+      error: { code: 'RESTORE_FAILED', message: error.message },
+      timestamp: Date.now(),
+    };
+  }
+}
+
+async function permanentDeleteFile(fileId, userId) {
+  try {
+    const file = await prisma.file.findUnique({ where: { id: fileId } });
+
+    if (!file || file.ownerId !== userId) {
+      return {
+        success: false,
+        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
+        timestamp: Date.now(),
+      };
+    }
+
+    // Delete from MinIO
+    await deleteObject(file.bucket, file.s3Key);
+
+    // Delete from database
+    await prisma.file.delete({
+      where: { id: fileId },
+    });
+
+    await prisma.fileActivity.create({
+      data: {
+        fileId,
+        userId,
+        action: 'permanent_delete',
+      },
+    });
+
+    return {
+      success: true,
+      payload: { message: 'File permanently deleted' },
+      timestamp: Date.now(),
+    };
+  } catch (error) {
+    console.error('[fileService] Error permanently deleting file:', error);
+    return {
+      success: false,
+      error: { code: 'PERMANENT_DELETE_FAILED', message: error.message },
+      timestamp: Date.now(),
+    };
+  }
+}
+
+async function createFolder(keycloakId, { name, bucket, folderPath }) {
+  try {
+    let userId;
+    try {
+      userId = await getUserIdFromKeycloakId(keycloakId);
+    } catch (error) {
+      console.error('[fileService] Error converting keycloakId to userId:', error);
+      throw new Error('User not found');
+    }
+
+    const fileId = uuidv4();
+    const currentPath = folderPath || '';
+    const s3Key = `${bucket}/${userId}/${fileId}/.keep`;
+
+    const file = await prisma.file.create({
+      data: {
+        id: fileId,
+        s3Key,
+        bucket: mapBucketName(bucket),
+        name,
+        mimeType: 'application/x-directory',
+        size: 0,
+        ownerId: userId,
+        folderPath: currentPath, // folderPath is the parent path, not the folder name
+      },
+    });
+
+    const newPath = currentPath ? `${currentPath}/${name}` : name;
+
+    await prisma.fileActivity.create({
+      data: {
+        fileId: file.id,
+        userId,
+        action: 'create_folder',
+        metadata: { folderPath: newPath },
+      },
+    });
+
+    return {
+      success: true,
+      payload: file,
+      timestamp: Date.now(),
+    };
+  } catch (error) {
+    console.error('[fileService] Error creating folder:', error);
+    return {
+      success: false,
+      error: { code: 'CREATE_FOLDER_FAILED', message: error.message },
+      timestamp: Date.now(),
+    };
+  }
+}
+
 export {
   initiateUpload,
   completeUpload,
@@ -386,4 +622,9 @@ export {
   deleteFile,
   generatePublicLink,
   getFileByPublicToken,
+  toggleStarFile,
+  softDeleteFile,
+  restoreFile,
+  permanentDeleteFile,
+  createFolder,
 };

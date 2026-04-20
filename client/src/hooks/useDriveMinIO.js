@@ -397,6 +397,52 @@ export function useDriveMinIO() {
   }, []);
 
   /**
+   * Create folder
+   */
+  const createFolder = useCallback(async ({ name, bucket, folderPath }) => {
+    try {
+      const response = await driveDbService.createFolder({ name, bucket, folderPath });
+      if (response.success) {
+        // Reload files to show the new folder
+        if (bucket === 'lms-private') {
+          await loadPrivateFiles();
+        } else if (bucket === 'lms-shared') {
+          await loadSharedFiles();
+        } else if (bucket === 'lms-workflow') {
+          await loadWorkflowFiles();
+        }
+        return response.payload;
+      } else {
+        setError(response.error || 'Failed to create folder');
+        return null;
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to create folder');
+      return null;
+    }
+  }, [loadPrivateFiles, loadSharedFiles, loadWorkflowFiles]);
+
+  /**
+   * Toggle star on file
+   */
+  const toggleStar = useCallback(async (fileId) => {
+    try {
+      const response = await driveDbService.toggleStar(fileId);
+      if (response.success) {
+        // Reload files to show updated star status
+        await Promise.all([loadPrivateFiles(), loadSharedFiles(), loadWorkflowFiles()]);
+        return response.payload;
+      } else {
+        setError(response.error || 'Failed to toggle star');
+        return null;
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to toggle star');
+      return null;
+    }
+  }, [loadPrivateFiles, loadSharedFiles, loadWorkflowFiles]);
+
+  /**
    * Load all files on mount
    */
   useEffect(() => {
@@ -438,6 +484,8 @@ export function useDriveMinIO() {
     uploadFile,
     deleteFile,
     updateFile,
+    createFolder,
+    toggleStar,
     
     // Sharing
     shareFile,

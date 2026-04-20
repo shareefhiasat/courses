@@ -275,6 +275,32 @@ class DriveDbService extends BaseDbService {
       return { success: false, error: error.message };
     }
   }
+
+  /**
+   * Create folder
+   */
+  async createFolder({ name, bucket, folderPath }) {
+    try {
+      const result = await api.post('/drive/folders', { name, bucket, folderPath });
+      return result;
+    } catch (error) {
+      this.logError('createFolder', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Toggle star on file
+   */
+  async toggleStar(fileId) {
+    try {
+      const result = await api.patch(`/drive/files/${fileId}/star`);
+      return result;
+    } catch (error) {
+      this.logError('toggleStar', error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 export default new DriveDbService();

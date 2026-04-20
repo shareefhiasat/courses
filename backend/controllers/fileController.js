@@ -190,11 +190,13 @@ export const deleteFile = async (req, res) => {
 
 export const generatePublicLink = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const keycloakId = req.user?.id; // This is the Keycloak UUID (sub)
     const { fileId } = req.params;
     const { expiryDays } = req.body;
 
-    const result = await fileService.generatePublicLink(fileId, userId, expiryDays);
+    console.log('[fileController] generatePublicLink called with:', { keycloakId, fileId, expiryDays });
+
+    const result = await fileService.generatePublicLink(fileId, keycloakId, expiryDays);
 
     if (!result.success) {
       return res.status(403).json(result);
@@ -438,6 +440,125 @@ export const getStorageUsage = async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to get storage usage',
+    });
+  }
+};
+
+export const toggleStarFile = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { fileId } = req.params;
+
+    const result = await fileService.toggleStarFile(fileId, userId);
+
+    if (!result.success) {
+      return res.status(403).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Toggle star file error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to toggle star status',
+    });
+  }
+};
+
+export const softDeleteFile = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { fileId } = req.params;
+
+    const result = await fileService.softDeleteFile(fileId, userId);
+
+    if (!result.success) {
+      return res.status(403).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Soft delete file error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to delete file',
+    });
+  }
+};
+
+export const restoreFile = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { fileId } = req.params;
+
+    const result = await fileService.restoreFile(fileId, userId);
+
+    if (!result.success) {
+      return res.status(403).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Restore file error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to restore file',
+    });
+  }
+};
+
+export const permanentDeleteFile = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { fileId } = req.params;
+
+    const result = await fileService.permanentDeleteFile(fileId, userId);
+
+    if (!result.success) {
+      return res.status(403).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Permanent delete file error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to permanently delete file',
+    });
+  }
+};
+
+export const createFolder = async (req, res) => {
+  try {
+    const keycloakId = req.user?.id; // This is the Keycloak UUID (sub)
+    const { name, bucket, folderPath } = req.body;
+
+    console.log('[fileController] createFolder called with:', { keycloakId, name, bucket, folderPath });
+
+    if (!name || !bucket) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: name, bucket',
+      });
+    }
+
+    const result = await fileService.createFolder(keycloakId, { name, bucket, folderPath });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Create folder error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to create folder',
     });
   }
 };

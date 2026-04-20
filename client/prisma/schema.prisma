@@ -553,6 +553,7 @@ model User {
   createdUserStatusTypes         UserStatusTypes[]         @relation("UserStatusTypesCreator")
   updatedUserStatusTypes         UserStatusTypes[]         @relation("UserStatusTypesUpdater")
   filesOwned                     File[]                    @relation("FileOwner")
+  filesDeleted                   File[]                    @relation("FileDeleter")
   fileVersionsUploaded           FileVersion[]             @relation("FileVersionUploader")
   fileComments                   FileComment[]             @relation("FileCommentAuthor")
   fileActivities                 FileActivity[]            @relation("FileActivityActor")
@@ -1264,10 +1265,15 @@ model File {
   publicLinkToken   String?         @unique
   publicLinkExpiry  DateTime?
   isActive          Boolean         @default(true)
+  isStarred         Boolean         @default(false)
+  isDeleted         Boolean         @default(false)
+  deletedAt         DateTime?
+  deletedById       Int?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
   owner             User            @relation("FileOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  deletedBy         User?           @relation("FileDeleter", fields: [deletedById], references: [id])
   versions          FileVersion[]
   shares            FileShare[]
   comments          FileComment[]

@@ -17,6 +17,11 @@ import {
   getComments,
   downloadFile,
   getStorageUsage,
+  toggleStarFile,
+  softDeleteFile,
+  restoreFile,
+  permanentDeleteFile,
+  createFolder,
 } from '../controllers/fileController.js';
 
 const router = Router();
@@ -28,6 +33,15 @@ router.get('/files', listFiles);
 router.get('/files/:fileId', getFile);
 router.put('/files/:fileId', updateFile);
 router.delete('/files/:fileId', deleteFile);
+
+// Star, Trash, Restore
+router.patch('/files/:fileId/star', toggleStarFile);
+router.delete('/files/:fileId/trash', softDeleteFile);
+router.post('/files/:fileId/restore', restoreFile);
+router.delete('/files/:fileId/permanent', permanentDeleteFile);
+
+// Folders
+router.post('/folders', createFolder);
 
 // Download endpoint
 router.get('/files/:s3Key/download', downloadFile);
