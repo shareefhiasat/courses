@@ -1,4 +1,11 @@
+/**
+ * SmartDrive DMS — authenticated drive routes.
+ * Mounted at `/api/v1/drive`.
+ */
+
 import { Router } from 'express';
+import { keycloakAuth } from '../middleware/keycloakAuth.js';
+
 import {
   initiateUpload,
   completeUpload,
@@ -22,14 +29,47 @@ import {
   restoreFile,
   permanentDeleteFile,
   createFolder,
+  getPreview,
+  proxyDownload,
 } from '../controllers/fileController.js';
+
+import {
+  listChildren as listFolderChildren,
+  getFolder,
+  createFolder as createFolderV2,
+  updateFolder,
+  softDeleteFolder,
+  restoreFolder,
+} from '../controllers/folderController.js';
+
+import { search as searchFiles } from '../controllers/fileSearchController.js';
+
+import {
+  createFileShare,
+  listFileShares,
+  revokeFileShare,
+  listSharedWithMe,
+  listSharedFiles,
+} from '../controllers/fileShareController.js';
+
+import {
+  createPublicLink,
+  listPublicLinks,
+  revokePublicLink,
+  inspectPublicLink,
+  downloadViaPublicLink,
+} from '../controllers/publicLinkController.js';
 
 const router = Router();
 
-// File operations
+// All drive routes require auth.
+router.use(keycloakAuth([]));
+
+// ---------------- Files ----------------
 router.post('/upload/initiate', initiateUpload);
 router.post('/upload/:fileId/complete', completeUpload);
 router.get('/files', listFiles);
+router.get('/files/search', searchFiles);
 router.get('/files/:fileId', getFile);
 router.put('/files/:fileId', updateFile);
 router.delete('/files/:fileId', deleteFile);
@@ -40,30 +80,52 @@ router.delete('/files/:fileId/trash', softDeleteFile);
 router.post('/files/:fileId/restore', restoreFile);
 router.delete('/files/:fileId/permanent', permanentDeleteFile);
 
-// Folders
-router.post('/folders', createFolder);
+// Preview & secure download
+router.get('/files/:fileId/preview', getPreview);
+router.get('/files/:fileId/download', proxyDownload);
+// Legacy redirect-based download (s3Key based) — keep temporarily.
+router.get('/files-by-key/:s3Key/download', downloadFile);
 
-// Download endpoint
-router.get('/files/:s3Key/download', downloadFile);
+// ---------------- Folders (v2) ----------------
+router.get('/folders', listFolderChildren);
+router.get('/folders/:folderId', getFolder);
+router.post('/folders', createFolderV2);
+// Legacy path used by existing front-end code — points at same handler.
+router.post('/folders/legacy', createFolder);
+router.patch('/folders/:folderId', updateFolder);
+router.delete('/folders/:folderId/trash', softDeleteFolder);
+router.post('/folders/:folderId/restore', restoreFolder);
 
-// Storage
-router.get('/storage', getStorageUsage);
-
-// Public links
-router.post('/files/:fileId/public-link', generatePublicLink);
-
-// Versioning
+// ---------------- Versions ----------------
 router.post('/files/:fileId/versions', uploadNewVersion);
 router.get('/files/:fileId/versions', getVersions);
 router.post('/versions/:versionId/restore', restoreVersion);
 
-// Sharing
+// ---------------- Sharing (v2 unified ACL) ----------------
+router.post('/shares', createFileShare);
+router.get('/files/:fileId/shares', listFileShares);
+router.delete('/shares/:shareId', revokeFileShare);
+router.get('/shared-with-me', listSharedWithMe);
+router.get('/shared', listSharedFiles);
+
+// Legacy endpoints (keep for backward compatibility, delegate to v2).
 router.post('/files/:fileId/share', shareFile);
 router.delete('/shares/:shareId', unshareFile);
-router.get('/shared', getSharedFiles);
+router.get('/shared-legacy', getSharedFiles);
 
-// Comments
+// ---------------- Public links (v2 token-based) ----------------
+router.post('/public-links', createPublicLink);
+router.get('/files/:fileId/public-links', listPublicLinks);
+router.delete('/public-links/:linkId', revokePublicLink);
+
+// Legacy endpoint (keep for backward compatibility).
+router.post('/files/:fileId/public-link', generatePublicLink);
+
+// ---------------- Comments ----------------
 router.post('/files/:fileId/comments', addComment);
 router.get('/files/:fileId/comments', getComments);
+
+// ---------------- Misc ----------------
+router.get('/storage', getStorageUsage);
 
 export default router;

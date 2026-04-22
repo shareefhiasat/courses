@@ -1,152 +1,269 @@
-import { PrismaClient } from '@prisma/client';
+/**
+ * File Share Service
+ *
+ * Manages the unified `file_shares` ACL table which supports:
+ *   - files AND folders
+ *   - USER and ROLE subjects
+ *   - optional expiry
+ *
+ * Legacy `fileShare` rows (file_shares) are still read by getSharedFiles for
+ * backwards compatibility. New writes go exclusively through v2.
+ */
+
+import { PrismaClient, Prisma } from '@prisma/client';
+import { getDatabaseUserId } from '../utils/userResolver.js';
+
 const prisma = new PrismaClient();
 
+const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
+const err = (code, message) => ({
+  success: false,
+  error: { code, message },
+  timestamp: Date.now(),
+});
+
+const VALID_PERMISSIONS = new Set(['VIEW', 'DOWNLOAD', 'COMMENT', 'EDIT']);
+
 /**
- * Convert Keycloak UUID to database User ID
- * @param {string} keycloakId - The Keycloak user UUID
- * @returns {Promise<number>} - The database user ID (integer)
+ * Create or update a share.
+ *
+ * @param {object} input
+ * @param {string} [input.fileId]          - file to share (or folderId)
+ * @param {string} [input.folderId]        - folder to share (or fileId)
+ * @param {'USER'|'ROLE'} input.subjectType
+ * @param {number} [input.subjectUserId]   - when subjectType=USER
+ * @param {string} [input.subjectRole]     - when subjectType=ROLE (Keycloak role code)
+ * @param {string} [input.permission='VIEW']
+ * @param {string|null} [input.expiresAt]
+ * @param {object} actor                   - { userId, roles[] }
  */
-async function getUserIdFromKeycloakId(keycloakId) {
+export async function createShare(input, actor) {
   try {
-    const user = await prisma.user.findUnique({
-      where: { keycloakId },
-      select: { id: true }
-    });
-    
-    if (!user) {
-      throw new Error(`User not found for keycloakId: ${keycloakId}`);
+    const {
+      fileId,
+      folderId,
+      subjectType,
+      subjectUserId,
+      subjectRole,
+      permission = 'VIEW',
+      expiresAt,
+    } = input || {};
+    if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
+    if (!fileId && !folderId) return err('INVALID_INPUT', 'fileId or folderId required');
+    if (fileId && folderId) return err('INVALID_INPUT', 'Provide fileId OR folderId, not both');
+    if (!['USER', 'ROLE'].includes(subjectType)) return err('INVALID_INPUT', 'subjectType must be USER or ROLE');
+    if (subjectType === 'USER' && !subjectUserId) return err('INVALID_INPUT', 'subjectUserId required for USER share');
+    if (subjectType === 'ROLE' && !subjectRole) return err('INVALID_INPUT', 'subjectRole required for ROLE share');
+    if (!VALID_PERMISSIONS.has(permission)) return err('INVALID_INPUT', `permission must be one of ${[...VALID_PERMISSIONS].join(', ')}`);
+
+    // Only the owner (or super-admin) can grant shares.
+    if (fileId) {
+      const file = await prisma.file.findUnique({ where: { id: fileId }, select: { ownerId: true, isDeleted: true } });
+      if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');
+      if (file.ownerId !== actor.userId && !(actor.roles || []).includes('super_admin')) {
+        return err('ACCESS_DENIED', 'Only owner can grant shares');
+      }
+    } else {
+      const folder = await prisma.folder.findUnique({ where: { id: folderId }, select: { ownerId: true, isDeleted: true } });
+      if (!folder || folder.isDeleted) return err('FOLDER_NOT_FOUND', 'Folder not found');
+      if (folder.ownerId !== actor.userId && !(actor.roles || []).includes('super_admin')) {
+        return err('ACCESS_DENIED', 'Only owner can grant shares');
+      }
     }
-    
-    return user.id;
+
+    // Upsert: if an identical subject share already exists, update it.
+    const dedupeWhere = {
+      fileId: fileId ?? null,
+      folderId: folderId ?? null,
+      subjectType,
+      subjectUserId: subjectType === 'USER' ? subjectUserId : null,
+      subjectRole: subjectType === 'ROLE' ? subjectRole : null,
+    };
+    const existing = await prisma.fileShareV2.findFirst({ where: dedupeWhere });
+
+    const data = {
+      fileId: fileId ?? null,
+      folderId: folderId ?? null,
+      subjectType,
+      subjectUserId: subjectType === 'USER' ? subjectUserId : null,
+      subjectRole: subjectType === 'ROLE' ? subjectRole : null,
+      permission,
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+      grantedById: actor.userId,
+    };
+
+    const share = existing
+      ? await prisma.fileShareV2.update({ where: { id: existing.id }, data })
+      : await prisma.fileShareV2.create({ data });
+
+    if (fileId) {
+      await prisma.fileActivity.create({
+        data: {
+          fileId,
+          userId: actor.userId,
+          action: existing ? 'share_updated' : 'share_created',
+          metadata: { subjectType, subjectUserId, subjectRole, permission, expiresAt },
+        },
+      });
+    }
+
+    return ok(share);
   } catch (error) {
-    console.error('[fileShareService] Error converting keycloakId to userId:', error);
-    throw error;
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return err('SHARE_EXISTS', 'Share already exists for this subject');
+    }
+    console.error('[fileShareService.createShare]', error);
+    return err('SHARE_CREATE_FAILED', error.message);
   }
 }
 
-async function shareFile(fileId, userId, { sharedWithId, permission, expiresAt }) {
+export async function revokeShare(shareId, actor) {
   try {
-    const file = await prisma.file.findUnique({ where: { id: fileId } });
-
-    if (!file || file.ownerId !== userId) {
-      return {
-        success: false,
-        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
-        timestamp: Date.now(),
-      };
-    }
-
-    const share = await prisma.fileShare.create({
-      data: {
-        fileId,
-        sharedById: userId,
-        sharedWithId,
-        permission: permission || 'VIEW',
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
-      },
-      include: {
-        sharedWith: { select: { id: true, email: true, displayName: true } },
-      },
-    });
-
-    await prisma.fileActivity.create({
-      data: {
-        fileId,
-        userId,
-        action: 'share',
-        metadata: { sharedWithId, permission },
-      },
-    });
-
-    return {
-      success: true,
-      payload: share,
-      timestamp: Date.now(),
-    };
-  } catch (error) {
-    console.error('[fileShareService] Error sharing file:', error);
-    return {
-      success: false,
-      error: { code: 'SHARE_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
-  }
-}
-
-async function unshareFile(shareId, userId) {
-  try {
-    const share = await prisma.fileShare.findUnique({
+    const share = await prisma.fileShareV2.findUnique({
       where: { id: shareId },
-      include: { file: true },
-    });
-
-    if (!share || share.file.ownerId !== userId) {
-      return {
-        success: false,
-        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
-        timestamp: Date.now(),
-      };
-    }
-
-    await prisma.fileShare.delete({ where: { id: shareId } });
-
-    await prisma.fileActivity.create({
-      data: {
-        fileId: share.fileId,
-        userId,
-        action: 'unshare',
-        metadata: { sharedWithId: share.sharedWithId },
+      include: {
+        file: { select: { ownerId: true } },
+        folder: { select: { ownerId: true } },
       },
     });
+    if (!share) return err('SHARE_NOT_FOUND', 'Share not found');
+    const ownerId = share.file?.ownerId ?? share.folder?.ownerId;
+    const isOwner = ownerId === actor.userId;
+    const isAdmin = (actor.roles || []).includes('super_admin');
+    if (!isOwner && !isAdmin) return err('ACCESS_DENIED', 'Only owner can revoke');
 
-    return {
-      success: true,
-      payload: { shareId },
-      timestamp: Date.now(),
-    };
+    await prisma.fileShareV2.delete({ where: { id: shareId } });
+    if (share.fileId) {
+      await prisma.fileActivity.create({
+        data: {
+          fileId: share.fileId,
+          userId: actor.userId,
+          action: 'share_revoked',
+          metadata: { shareId, subjectType: share.subjectType },
+        },
+      });
+    }
+    return ok({ shareId });
   } catch (error) {
-    console.error('[fileShareService] Error unsharing file:', error);
-    return {
-      success: false,
-      error: { code: 'UNSHARE_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
+    console.error('[fileShareService.revokeShare]', error);
+    return err('SHARE_REVOKE_FAILED', error.message);
   }
 }
 
-async function getSharedFiles(keycloakId) {
+export async function listFileShares(fileId) {
   try {
-    // Convert keycloakId (UUID) to userId (integer)
-    const userId = await getUserIdFromKeycloakId(keycloakId);
-    
-    const shares = await prisma.fileShare.findMany({
-      where: { sharedWithId: userId },
+    const shares = await prisma.fileShareV2.findMany({
+      where: { fileId },
+      include: {
+        subjectUser: { select: { id: true, email: true, displayName: true } },
+        grantedBy: { select: { id: true, email: true, displayName: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return ok(shares);
+  } catch (error) {
+    console.error('[fileShareService.listFileShares]', error);
+    return err('LIST_SHARES_FAILED', error.message);
+  }
+}
+
+/**
+ * Everything shared with the actor: direct user shares + role shares + any
+ * legacy v1 rows. Returns files and folders in a single unified list.
+ */
+export async function listSharedWithMe(actor) {
+  try {
+    if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
+
+    const now = new Date();
+    const v2FileShares = await prisma.fileShareV2.findMany({
+      where: {
+        fileId: { not: null },
+        OR: [
+          { subjectType: 'USER', subjectUserId: actor.userId },
+          { subjectType: 'ROLE', subjectRole: { in: actor.roles || [] } },
+        ],
+        AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
+      },
       include: {
         file: {
           include: {
             owner: { select: { id: true, email: true, displayName: true } },
           },
         },
+      },
+    });
+
+    const v2FolderShares = await prisma.fileShareV2.findMany({
+      where: {
+        folderId: { not: null },
+        OR: [
+          { subjectType: 'USER', subjectUserId: actor.userId },
+          { subjectType: 'ROLE', subjectRole: { in: actor.roles || [] } },
+        ],
+        AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
+      },
+      include: {
+        folder: {
+          include: {
+            owner: { select: { id: true, email: true, displayName: true } },
+          },
+        },
+      },
+    });
+
+    const legacyShares = await prisma.fileShare.findMany({
+      where: { sharedWithId: actor.userId },
+      include: {
+        file: { include: { owner: { select: { id: true, email: true, displayName: true } } } },
         sharedBy: { select: { id: true, email: true, displayName: true } },
       },
     });
 
-    return {
-      success: true,
-      payload: shares,
-      timestamp: Date.now(),
-    };
+    return ok({
+      files: [...v2FileShares, ...legacyShares.map((s) => ({ ...s, subjectType: 'USER' }))],
+      folders: v2FolderShares,
+    });
   } catch (error) {
-    console.error('[fileShareService] Error getting shared files:', error);
-    return {
-      success: false,
-      error: { code: 'GET_SHARED_FILES_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
+    console.error('[fileShareService.listSharedWithMe]', error);
+    return err('LIST_SHARED_FAILED', error.message);
   }
 }
 
-export {
+// -------- Legacy aliases for existing controller (driveNew.js still calls) --
+// These delegate to v2 under the hood, accepting the old shape.
+
+export async function shareFile(fileId, userId, { sharedWithId, permission, expiresAt }) {
+  // actor is already resolved userId on the legacy path
+  return createShare(
+    {
+      fileId,
+      subjectType: 'USER',
+      subjectUserId: sharedWithId,
+      permission,
+      expiresAt,
+    },
+    { userId, roles: [] }
+  );
+}
+
+export async function unshareFile(shareId, userId) {
+  return revokeShare(shareId, { userId, roles: [] });
+}
+
+export async function getSharedFiles(keycloakUser) {
+  const userId = await getDatabaseUserId(keycloakUser);
+  if (!userId) return err('USER_NOT_FOUND', 'User not found');
+  const result = await listSharedWithMe({ userId, roles: keycloakUser?.roles || [] });
+  if (!result.success) return result;
+  return ok(result.payload.files);
+}
+
+export default {
+  createShare,
+  revokeShare,
+  listFileShares,
+  listSharedWithMe,
   shareFile,
   unshareFile,
   getSharedFiles,

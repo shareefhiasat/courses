@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLang } from '@contexts/LangContext';
 import styles from './LanguageSwitcher.module.css';
-import PortalTooltip from '@ui/PortalTooltip';
+import PortalTooltip from '../PortalTooltip/PortalTooltip';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';export default function LanguageSwitcher({ compact = true }) {

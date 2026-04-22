@@ -3,7 +3,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { formatLocalizedDateTime } from '@utils/date';
-import PortalTooltip from '@ui/PortalTooltip';
+import PortalTooltip from '../PortalTooltip/PortalTooltip';
 
 import { info, error, warn, debug } from '@services/utils/logger.js';import './DraggableClock.css';
 

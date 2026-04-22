@@ -316,7 +316,6 @@ import participationRoutes from "./routes/participations.js";
 import participationTypeRoutes from "./routes/participation-types.js";
 import resourceTypeRoutes from "./routes/resourceTypes.js";
 import priorityTypeRoutes from "./routes/priority-types.js";
-import documentWorkflowRoutes from "./routes/document-workflows.js";
 import marksRoutes from "./routes/marks.js";
 import attendanceRoutes from "./routes/attendances.js";
 import lookupRoutes from "./routes/lookup.js";
@@ -325,6 +324,9 @@ import permissionsRoutes from "./routes/permissions.js";
 import userImagesRoutes from "./routes/user-images.js";
 import driveRoutes from "./routes/driveNew.js";
 import publicDriveRoutes from "./routes/publicDriveNew.js";
+import publicLinksRoutes from "./routes/publicLinks.js";
+import workflowRoutes from "./routes/workflows.js";
+import notificationRoutes from "./routes/notifications.js";
 
 // Mount routes with versioning
 app.use(`/api/${API_VERSION}/programs`, programRoutes);
@@ -344,7 +346,6 @@ app.use(`/api/${API_VERSION}/behaviors`, behaviorRoutes);
 app.use(`/api/${API_VERSION}/penalties`, penaltyRoutes);
 app.use(`/api/${API_VERSION}/participations`, participationRoutes);
 // app.use(`/api/${API_VERSION}/participation-types`, participationTypeRoutes); // Now handled by unified lookup: GET /api/v1/lookup/participation-types
-app.use(`/api/${API_VERSION}/document-workflows`, documentWorkflowRoutes);
 app.use(`/api/${API_VERSION}/marks`, marksRoutes);
 app.use(`/api/${API_VERSION}/attendance`, attendanceRoutes);
 app.use(`/api/${API_VERSION}/standup-attendance`, standupAttendanceRoutes);
@@ -354,6 +355,9 @@ app.use(`/api/${API_VERSION}/user-images`, userImagesRoutes);
 
 app.use(`/api/${API_VERSION}/drive`, driveRoutes);
 app.use(`/api/${API_VERSION}/p`, publicDriveRoutes);
+app.use(`/api/${API_VERSION}/public`, publicLinksRoutes);
+app.use(`/api/${API_VERSION}/workflows`, workflowRoutes);
+app.use(`/api/${API_VERSION}/notifications`, notificationRoutes);
 
 // ==================== ERROR HANDLING ====================
 

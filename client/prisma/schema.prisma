@@ -110,7 +110,27 @@ enum WorkflowStatus {
 enum SharePermission {
   VIEW
   DOWNLOAD
+  COMMENT
   EDIT
+}
+
+enum ShareSubjectType {
+  USER
+  ROLE
+}
+
+enum WorkflowInstanceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVISED
+  CANCELLED
+}
+
+enum WorkflowStepStatus {
+  PENDING
+  COMPLETED
+  SKIPPED
 }
 
 model AttendanceStatusTypes {
@@ -557,8 +577,16 @@ model User {
   fileVersionsUploaded           FileVersion[]             @relation("FileVersionUploader")
   fileComments                   FileComment[]             @relation("FileCommentAuthor")
   fileActivities                 FileActivity[]            @relation("FileActivityActor")
-  fileSharesShared               FileShare[]               @relation("FileShareSharer")
-  fileSharesReceived             FileShare[]               @relation("FileShareReceiver")
+  foldersOwned                   Folder[]                  @relation("FolderOwner")
+  foldersDeleted                 Folder[]                  @relation("FolderDeleter")
+  fileSharesGranted              FileShare[]               @relation("FileShareGrantedBy")
+  fileSharesUserTarget           FileShare[]               @relation("FileShareUserTarget")
+  publicLinksCreated             PublicLink[]              @relation("PublicLinkCreator")
+  workflowInstancesInitiated     WorkflowInstance[]        @relation("WorkflowInstanceInitiator")
+  workflowStepsAssigned          WorkflowStep[]            @relation("WorkflowStepAssignee")
+  workflowStepsActed             WorkflowStep[]            @relation("WorkflowStepActor")
+  workflowHistoryActed           WorkflowHistory[]         @relation("WorkflowHistoryActor")
+  fileFavorites                  UserFilePreference[]
 
   @@map("users")
 }
@@ -1260,42 +1288,59 @@ model File {
   mimeType          String
   size              Int
   ownerId           Int
+  folderId          String?
   folderPath        String?
-  workflowStatus    WorkflowStatus? @default(DRAFT)
-  publicLinkToken   String?         @unique
-  publicLinkExpiry  DateTime?
+  currentVersionId  String?         @unique
+  checksumSha256    String?
+  workflowStatus    String?         @default("DRAFT") // denormalised workflow instance status code
+  publicLinkToken   String?         @unique            // DEPRECATED: migrated to public_links
+  publicLinkExpiry  DateTime?                          // DEPRECATED: migrated to public_links
   isActive          Boolean         @default(true)
   isStarred         Boolean         @default(false)
   isDeleted         Boolean         @default(false)
   deletedAt         DateTime?
   deletedById       Int?
+  searchVector      Unsupported("tsvector")?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
   owner             User            @relation("FileOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   deletedBy         User?           @relation("FileDeleter", fields: [deletedById], references: [id])
-  versions          FileVersion[]
+  folder            Folder?         @relation("FolderFiles", fields: [folderId], references: [id], onDelete: SetNull)
+  currentVersion    FileVersion?    @relation("FileCurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  versions          FileVersion[]   @relation("FileVersions")
   shares            FileShare[]
+  publicLinks       PublicLink[]
   comments          FileComment[]
   activities        FileActivity[]
+  workflowInstances WorkflowInstance[]
+  preferences       UserFilePreference[]
 
+  @@index([folderId])
+  @@index([ownerId, isDeleted])
+  @@index([isDeleted, deletedAt])
   @@map("files")
 }
 
 model FileVersion {
-  id            String   @id @default(uuid())
-  fileId        String
-  versionNumber Int
-  s3Key         String   @unique
-  size          Int
-  uploadedById  Int
-  changeNote    String?
-  createdAt     DateTime @default(now())
+  id             String   @id @default(uuid())
+  fileId         String
+  versionNumber  Int
+  s3Key          String   @unique
+  size           Int
+  uploadedById   Int
+  changeNote     String?
+  minioVersionId String?
+  checksumSha256 String?
+  isCurrent      Boolean  @default(false)
+  createdAt      DateTime @default(now())
 
-  file          File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
-  uploadedBy    User     @relation("FileVersionUploader", fields: [uploadedById], references: [id])
+  file           File     @relation("FileVersions", fields: [fileId], references: [id], onDelete: Cascade)
+  currentOf      File?    @relation("FileCurrentVersion")
+  uploadedBy     User     @relation("FileVersionUploader", fields: [uploadedById], references: [id])
 
   @@unique([fileId, versionNumber])
+  @@index([fileId, isCurrent])
   @@map("file_versions")
 }
 
@@ -1326,19 +1371,208 @@ model FileActivity {
   @@map("file_activities")
 }
 
+// ============================================================================
+// SmartDrive DMS: folders, ACL, public links, workflow engine
+// ============================================================================
+
+model Folder {
+  id          String    @id @default(uuid())
+  name        String
+  parentId    String?
+  ownerId     Int
+  path        String    // materialised '/a/b/c' for fast prefix lookups
+  isPrivate   Boolean   @default(false)
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+  deletedById Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  parent      Folder?   @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Folder[]  @relation("FolderTree")
+  owner       User      @relation("FolderOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  deletedBy   User?     @relation("FolderDeleter", fields: [deletedById], references: [id])
+  files       File[]    @relation("FolderFiles")
+  shares      FileShare[]
+  publicLinks PublicLink[]
+
+  @@unique([parentId, name, ownerId])
+  @@index([parentId])
+  @@index([ownerId, isDeleted])
+  @@map("folders")
+}
+
+/// Unified ACL for files AND folders, supporting USER and ROLE subjects.
 model FileShare {
-  id             String          @id @default(uuid())
-  fileId         String
-  sharedById     Int
-  sharedWithId   Int
-  permission     SharePermission @default(VIEW)
-  expiresAt      DateTime?
-  createdAt      DateTime        @default(now())
+  id              String           @id @default(uuid())
+  fileId          String?
+  folderId        String?
+  subjectType     ShareSubjectType
+  subjectUserId   Int?
+  subjectRole     String?          // Keycloak role code: 'hr','admin', etc.
+  permission      SharePermission  @default(VIEW)
+  grantedById     Int
+  expiresAt       DateTime?
+  createdAt       DateTime         @default(now())
 
-  file           File            @relation(fields: [fileId], references: [id], onDelete: Cascade)
-  sharedBy       User            @relation("FileShareSharer", fields: [sharedById], references: [id], onDelete: Cascade)
-  sharedWith     User            @relation("FileShareReceiver", fields: [sharedWithId], references: [id], onDelete: Cascade)
+  file            File?            @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  folder          Folder?          @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  subjectUser     User?            @relation("FileShareUserTarget", fields: [subjectUserId], references: [id], onDelete: Cascade)
+  grantedBy       User             @relation("FileShareGrantedBy", fields: [grantedById], references: [id])
 
-  @@unique([fileId, sharedWithId])
+  @@index([fileId])
+  @@index([folderId])
+  @@index([subjectUserId])
+  @@index([subjectRole])
   @@map("file_shares")
+}
+
+/// Revocable, optionally password-protected tokenised sharing links.
+model PublicLink {
+  id             String    @id @default(uuid())
+  fileId         String?
+  folderId       String?
+  token          String    @unique
+  passwordHash   String?
+  maxDownloads   Int?
+  downloadCount  Int       @default(0)
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  createdById    Int
+  createdAt      DateTime  @default(now())
+
+  file           File?     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  folder         Folder?   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  createdBy      User      @relation("PublicLinkCreator", fields: [createdById], references: [id])
+
+  @@index([fileId])
+  @@index([folderId])
+  @@map("public_links")
+}
+
+/// Per-user UI preferences for files (stars & pins across owners).
+model UserFilePreference {
+  userId   Int
+  fileId   String
+  starred  Boolean  @default(false)
+  pinned   Boolean  @default(false)
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  file     File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@id([userId, fileId])
+  @@map("user_file_preferences")
+}
+
+// ---------- Generic Workflow Engine ----------
+
+/// A kind of workflow (Attendance Report, Leave Request, HR Audit, ...).
+model WorkflowDefinition {
+  id          String   @id @default(uuid())
+  code        String   @unique      // 'ATTENDANCE_REPORT'
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stages      WorkflowStage[]
+  instances   WorkflowInstance[]
+
+  @@map("workflow_definitions")
+}
+
+/// Ordered stages of a workflow definition.
+model WorkflowStage {
+  id                   String   @id @default(uuid())
+  definitionId         String
+  stageOrder           Int
+  code                 String              // 'HR_REVIEW'
+  name                 String
+  assignedRole         String              // Keycloak role code
+  allowedActions       String[]            // {'APPROVE','REJECT','REQUEST_CHANGES','SUBMIT'}
+  onApproveGoto        Int?                // stage_order to jump to on approve (null = advance)
+  onRejectGoto         Int?                // stage_order to jump to on reject (null = terminate)
+  isTerminalApproved   Boolean  @default(false)
+  slaHours             Int?
+
+  definition           WorkflowDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  instancesAtStage     WorkflowInstance[] @relation("CurrentStage")
+  steps                WorkflowStep[]
+
+  @@unique([definitionId, stageOrder])
+  @@unique([definitionId, code])
+  @@map("workflow_stages")
+}
+
+/// A running workflow attached (optionally) to a File.
+model WorkflowInstance {
+  id             String                  @id @default(uuid())
+  definitionId   String
+  fileId         String?
+  context        Json                    @default("{}")  // {termId, classId, ...} free-form
+  status         WorkflowInstanceStatus  @default(PENDING)
+  currentStageId String?
+  initiatedById  Int
+  completedAt    DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  definition     WorkflowDefinition @relation(fields: [definitionId], references: [id])
+  file           File?              @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  currentStage   WorkflowStage?     @relation("CurrentStage", fields: [currentStageId], references: [id])
+  initiatedBy    User               @relation("WorkflowInstanceInitiator", fields: [initiatedById], references: [id])
+  steps          WorkflowStep[]
+  history        WorkflowHistory[]
+
+  @@index([status])
+  @@index([fileId])
+  @@index([currentStageId])
+  @@index([initiatedById])
+  @@map("workflow_instances")
+}
+
+/// One row per time a stage is entered (including re-entries on rejection).
+model WorkflowStep {
+  id              String             @id @default(uuid())
+  instanceId      String
+  stageId         String
+  assignedUserId  Int?               // specific user override (nullable)
+  assignedRole    String
+  status          WorkflowStepStatus @default(PENDING)
+  actionTaken     String?            // APPROVE | REJECT | ...
+  comments        String?
+  actedById       Int?
+  enteredAt       DateTime           @default(now())
+  completedAt     DateTime?
+  dueAt           DateTime?
+
+  instance        WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  stage           WorkflowStage    @relation(fields: [stageId], references: [id])
+  assignedUser    User?            @relation("WorkflowStepAssignee", fields: [assignedUserId], references: [id])
+  actedBy         User?            @relation("WorkflowStepActor", fields: [actedById], references: [id])
+  history         WorkflowHistory[]
+
+  @@index([instanceId])
+  @@index([assignedUserId, status])
+  @@index([assignedRole, status])
+  @@map("workflow_steps")
+}
+
+/// Immutable audit trail of every workflow event.
+model WorkflowHistory {
+  id          BigInt   @id @default(autoincrement())
+  instanceId  String
+  stepId      String?
+  eventType   String   // INITIATED | STAGE_ENTERED | APPROVED | REJECTED | REVISED | FILE_VERSIONED | CANCELLED
+  payload     Json     @default("{}")
+  actorId     Int?
+  createdAt   DateTime @default(now())
+
+  instance    WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  step        WorkflowStep?    @relation(fields: [stepId], references: [id])
+  actor       User?            @relation("WorkflowHistoryActor", fields: [actorId], references: [id])
+
+  @@index([instanceId, createdAt])
+  @@map("workflow_history")
 }

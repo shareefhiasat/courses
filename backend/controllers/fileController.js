@@ -77,8 +77,16 @@ export const initiateUpload = async (req, res) => {
 export const completeUpload = async (req, res) => {
   try {
     const { fileId } = req.params;
+    const { versionId, checksum } = req.body || {};
 
-    const result = await fileService.completeUpload(fileId);
+    if (!versionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing versionId in body (returned by /upload/initiate)',
+      });
+    }
+
+    const result = await fileService.completeUpload(fileId, versionId, { checksum });
 
     if (!result.success) {
       return res.status(400).json(result);
@@ -532,21 +540,57 @@ export const permanentDeleteFile = async (req, res) => {
   }
 };
 
+/**
+ * Inline preview URL (images/pdf) or a flag telling the client to use /download.
+ */
+export const getPreview = async (req, res) => {
+  try {
+    const actorUserId = req.user?.dbId;
+    const { fileId } = req.params;
+    const result = await fileService.getPreviewUrl(fileId, actorUserId);
+    if (!result.success) {
+      const status = result.error?.code === 'FILE_NOT_FOUND' ? 404 : 403;
+      return res.status(status).json(result);
+    }
+    return res.json(result);
+  } catch (error) {
+    console.error('[fileController.getPreview]', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Secure proxy download — streams the object from MinIO through the API so
+ * presigned URLs are never exposed for sensitive files.
+ */
+export const proxyDownload = async (req, res) => {
+  try {
+    const actorUserId = req.user?.dbId;
+    const { fileId } = req.params;
+    // Permission check happens inside a later PR via permissionService; for
+    // now we rely on the service's ownership/share check.
+    await fileService.streamFile({ fileId, req, res, actorUserId });
+  } catch (error) {
+    console.error('[fileController.proxyDownload]', error);
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+};
+
 export const createFolder = async (req, res) => {
   try {
-    const keycloakId = req.user?.id; // This is the Keycloak UUID (sub)
-    const { name, bucket, folderPath } = req.body;
+    const keycloakId = req.user?.id;
+    const { name, parentId, isPrivate } = req.body || {};
 
-    console.log('[fileController] createFolder called with:', { keycloakId, name, bucket, folderPath });
-
-    if (!name || !bucket) {
+    if (!name) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: name, bucket',
+        error: 'Missing required field: name',
       });
     }
 
-    const result = await fileService.createFolder(keycloakId, { name, bucket, folderPath });
+    const result = await fileService.createFolder(keycloakId, { name, parentId, isPrivate });
 
     if (!result.success) {
       return res.status(400).json(result);

@@ -7,6 +7,7 @@
 
 import jwt from 'jsonwebtoken';
 import { LMS_ROLES as ROLES } from '../services/keycloakAdminService.js';
+import { getDatabaseUserId } from '../utils/userResolver.js';
 
 /**
  * Verify Keycloak JWT token
@@ -183,7 +184,8 @@ export const keycloakAuth = (requiredRoles = []) => {
       
       // Add user info to request
       req.user = {
-        id: decoded.sub,
+        id: decoded.sub,                 // Keycloak UUID (legacy alias)
+        keycloakId: decoded.sub,
         username: decoded.preferred_username,
         email: decoded.email,
         firstName: decoded.given_name,
@@ -192,7 +194,26 @@ export const keycloakAuth = (requiredRoles = []) => {
         roles: normalizedRoles,
         isAdmin: hasRequiredRole(decoded, [ROLES.SUPER_ADMIN, ROLES.ADMIN])
       };
-      
+
+      // Resolve local DB user id once per request. Failures don't block the
+      // request (some endpoints like presence/status may be fine without it)
+      // but `dbId` will be null and downstream code can decide how to react.
+      try {
+        req.user.dbId = await getDatabaseUserId(req.user);
+      } catch (resolveErr) {
+        console.warn('[keycloakAuth] could not resolve dbId for user', req.user.email, resolveErr?.message);
+        req.user.dbId = null;
+      }
+
+      // Typed actor envelope for services that prefer it (new DMS code).
+      req.actor = {
+        userId: req.user.dbId,
+        keycloakId: req.user.keycloakId,
+        email: req.user.email,
+        roles: req.user.roles,
+        isAdmin: req.user.isAdmin,
+      };
+
       next();
     } catch (error) {
       console.error('Authentication error:', error.message);

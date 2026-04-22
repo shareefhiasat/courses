@@ -1,6 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getDocs, collection, query, orderBy } from 'firebase/firestore';
-import { db } from '@services/other/config';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
@@ -150,39 +148,38 @@ const useAnalyticsData = () => {
     };
 
     await Promise.all([
-      safeLoad('activities', () => getDocs(collection(db, 'activities'))),
-      safeLoad('submissions', () => getDocs(collection(db, 'submissions'))),
-      safeLoad('users', () => getDocs(collection(db, 'users'))),
-      // students collection removed - use users collection instead to avoid permission errors
-      safeLoad('classes', () => getDocs(collection(db, 'classes'))),
-      safeLoad('attendance', () => getDocs(collection(db, 'attendance'))),
-      safeLoad('activityLogs', () => getDocs(query(collection(db, 'activityLogs'), orderBy('when', 'desc')))),
-      safeLoad('enrollments', () => getDocs(collection(db, 'enrollments'))),
-      safeLoad('quizzes', () => getDocs(collection(db, 'quizzes'))),
-      safeLoad('quizSubmissions', () => getDocs(collection(db, 'quizSubmissions'))),
-      safeLoad('notifications', () => getDocs(query(collection(db, 'notifications'), orderBy('createdAt', 'desc')))),
-      safeLoad('emailLogs', () => getDocs(query(collection(db, 'emailLogs'), orderBy('timestamp', 'desc')))),
-      safeLoad('announcements', () => getDocs(collection(db, 'announcements'))),
-      safeLoad('resources', () => getDocs(collection(db, 'resources'))),
+      safeLoad('activities', () => []),
+      safeLoad('submissions', () => []),
+      safeLoad('users', () => []),
+      safeLoad('classes', () => []),
+      safeLoad('attendance', () => []),
+      safeLoad('activityLogs', () => []),
+      safeLoad('enrollments', () => []),
+      safeLoad('quizzes', () => []),
+      safeLoad('quizSubmissions', () => []),
+      safeLoad('notifications', () => []),
+      safeLoad('emailLogs', () => []),
+      safeLoad('announcements', () => []),
+      safeLoad('resources', () => []),
       safeLoad('programs', async () => {
         const res = await getPrograms();
-        return { docs: (res.data || []).map(p => ({ id: p.docId, data: () => p })) };
+        return { docs: (res.data || []).map(s => ({ id: s.docId, data: () => s })) };
       }),
       safeLoad('subjects', async () => {
         const res = await getSubjects();
         return { docs: (res.data || []).map(s => ({ id: s.docId, data: () => s })) };
       }),
-      safeLoad('penalties', () => getDocs(collection(db, 'penalties'))),
-      safeLoad('absences', () => getDocs(collection(db, 'absences'))),
-      safeLoad('studentMarks', () => getDocs(collection(db, 'studentMarks'))),
-      safeLoad('behaviors', () => getDocs(collection(db, 'behaviors'))),
-      safeLoad('participations', () => getDocs(collection(db, 'participations'))),
-      safeLoad('courses', () => getDocs(collection(db, 'courses'))),
-      safeLoad('scheduledReports', () => getDocs(collection(db, 'scheduledReports'))),
-      safeLoad('studentProgress', () => getDocs(collection(db, 'studentProgress'))),
-      safeLoad('subjectMarksDistribution', () => getDocs(collection(db, 'subjectMarksDistribution'))),
-      safeLoad('notificationLogs', () => getDocs(collection(db, 'notificationLogs'))),
-      safeLoad('attendanceSessions', () => getDocs(collection(db, 'attendanceSessions')))
+      safeLoad('penalties', () => []),
+      safeLoad('absences', () => []),
+      safeLoad('studentMarks', () => []),
+      safeLoad('behaviors', () => []),
+      safeLoad('participations', () => []),
+      safeLoad('courses', () => []),
+      safeLoad('scheduledReports', () => []),
+      safeLoad('studentProgress', () => []),
+      safeLoad('subjectMarksDistribution', () => []),
+      safeLoad('notificationLogs', () => []),
+      safeLoad('attendanceSessions', () => [])
     ]);
 
     console.log('[REFRESH DEBUG] 🎉 Refresh completed!');
@@ -262,83 +259,88 @@ const useAnalyticsData = () => {
         let loadFn;
         switch (collectionName) {
           case 'activities':
-            loadFn = () => getDocs(collection(db, 'activities'));
+            loadFn = () => [];
             break;
           case 'submissions':
-            loadFn = () => getDocs(collection(db, 'submissions'));
+            loadFn = () => [];
             break;
           case 'users':
-            loadFn = () => getDocs(collection(db, 'users'));
+            loadFn = () => [];
             break;
-          // students case removed - use users collection instead
           case 'classes':
-            loadFn = () => getDocs(collection(db, 'classes'));
+            loadFn = () => [];
             break;
           case 'attendance':
-            loadFn = () => getDocs(collection(db, 'attendance'));
+            loadFn = () => [];
             break;
           case 'activityLogs':
-            loadFn = () => getDocs(collection(db, 'activityLogs'));
+            loadFn = () => [];
             break;
           case 'enrollments':
-            loadFn = () => getDocs(collection(db, 'enrollments'));
+            loadFn = () => [];
             break;
           case 'quizzes':
-            loadFn = () => getDocs(collection(db, 'quizzes'));
+            loadFn = () => [];
             break;
           case 'quizSubmissions':
-            loadFn = () => getDocs(collection(db, 'quizSubmissions'));
+            loadFn = () => [];
             break;
           case 'notifications':
-            loadFn = () => getDocs(collection(db, 'notifications'));
+            loadFn = () => [];
             break;
           case 'emailLogs':
-            loadFn = () => getDocs(collection(db, 'emailLogs'));
+            loadFn = () => [];
             break;
           case 'announcements':
-            loadFn = () => getDocs(collection(db, 'announcements'));
+            loadFn = () => [];
             break;
           case 'resources':
-            loadFn = () => getDocs(collection(db, 'resources'));
+            loadFn = () => [];
             break;
           case 'programs':
-            loadFn = () => getProgramsSorted();
+            loadFn = async () => {
+              const res = await getPrograms();
+              return { docs: (res.data || []).map(s => ({ id: s.docId, data: () => s })) };
+            };
             break;
           case 'subjects':
-            loadFn = () => getSubjectsSorted();
+            loadFn = async () => {
+              const res = await getSubjects();
+              return { docs: (res.data || []).map(s => ({ id: s.docId, data: () => s })) };
+            };
             break;
           case 'penalties':
-            loadFn = () => getDocs(collection(db, 'penalties'));
+            loadFn = () => [];
             break;
           case 'absences':
-            loadFn = () => getDocs(collection(db, 'attendance')); // absences use attendance collection
+            loadFn = () => [];
             break;
           case 'studentMarks':
-            loadFn = () => getDocs(collection(db, 'studentMarks'));
+            loadFn = () => [];
             break;
           case 'behaviors':
-            loadFn = () => getDocs(collection(db, 'behaviors'));
+            loadFn = () => [];
             break;
           case 'participations':
-            loadFn = () => getDocs(collection(db, 'participations'));
+            loadFn = () => [];
             break;
           case 'courses':
-            loadFn = () => getDocs(collection(db, 'courses'));
+            loadFn = () => [];
             break;
           case 'scheduledReports':
-            loadFn = () => getDocs(collection(db, 'scheduledReports'));
+            loadFn = () => [];
             break;
           case 'studentProgress':
-            loadFn = () => getDocs(collection(db, 'studentProgress'));
+            loadFn = () => [];
             break;
           case 'subjectMarksDistribution':
-            loadFn = () => getDocs(collection(db, 'subjectMarksDistribution'));
+            loadFn = () => [];
             break;
           case 'notificationLogs':
-            loadFn = () => getDocs(collection(db, 'notificationLogs'));
+            loadFn = () => [];
             break;
           case 'attendanceSessions':
-            loadFn = () => getDocs(collection(db, 'attendanceSessions'));
+            loadFn = () => [];
             break;
           default:
             warn(`[SMART REFRESH DEBUG] ⚠️ Unknown collection: ${collectionName}`);

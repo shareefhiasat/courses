@@ -1,108 +1,60 @@
+/**
+ * File Version Service
+ *
+ * Version management that treats versions as first-class, immutable records:
+ *   - listing    — read-only
+ *   - rollback   — metadata flip (no MinIO copy); previous current stays on disk
+ *   - download   — stream a specific historical version through the proxy
+ *   - initiate   — prefer fileService.initiateUpload which auto-increments
+ *
+ * Works alongside MinIO bucket versioning. Each version has its own unique
+ * s3Key AND records the native MinIO versionId for belt-and-suspenders safety.
+ */
+
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import {
   generatePresignedPutUrl,
   generatePresignedGetUrl,
-  copyObject,
-  deleteObject,
+  streamObject,
+  BUCKETS,
 } from './minioService.js';
+import { getDatabaseUserId } from '../utils/userResolver.js';
 
 const prisma = new PrismaClient();
 
-async function uploadNewVersion(fileId, userId, { name, mimeType, size, changeNote }) {
-  try {
-    const file = await prisma.file.findUnique({
-      where: { id: fileId },
-      include: { versions: { orderBy: { versionNumber: 'desc' }, take: 1 } },
-    });
+const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
+const err = (code, message) => ({
+  success: false,
+  error: { code, message },
+  timestamp: Date.now(),
+});
 
-    if (!file || file.ownerId !== userId) {
-      return {
-        success: false,
-        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
-        timestamp: Date.now(),
-      };
-    }
-
-    const currentVersion = file.versions[0]?.versionNumber || 0;
-    const newVersionNumber = currentVersion + 1;
-    const versionId = uuidv4();
-    const versionS3Key = `${file.bucket}/${userId}/${fileId}/v${newVersionNumber}/${name}`;
-
-    await copyObject(file.bucket, file.s3Key, file.bucket, versionS3Key);
-
-    await prisma.fileVersion.create({
-      data: {
-        id: versionId,
-        fileId,
-        versionNumber: currentVersion,
-        s3Key: file.s3Key,
-        size: file.size,
-        uploadedById: userId,
-        changeNote,
-      },
-    });
-
-    const newS3Key = `${file.bucket}/${userId}/${fileId}/${name}`;
-    const presignedUrl = await generatePresignedPutUrl(file.bucket, newS3Key);
-
-    await prisma.file.update({
-      where: { id: fileId },
-      data: {
-        s3Key: newS3Key,
-        name,
-        mimeType,
-        size,
-      },
-    });
-
-    await prisma.fileActivity.create({
-      data: {
-        fileId,
-        userId,
-        action: 'new_version',
-        metadata: { versionNumber: newVersionNumber, changeNote },
-      },
-    });
-
-    return {
-      success: true,
-      payload: { presignedUrl, versionNumber: newVersionNumber },
-      timestamp: Date.now(),
-    };
-  } catch (error) {
-    console.error('[fileVersionService] Error uploading new version:', error);
-    return {
-      success: false,
-      error: { code: 'VERSION_UPLOAD_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
-  }
+function resolveBucket(input) {
+  if (!input) return BUCKETS.PRIVATE;
+  return BUCKETS[String(input).toUpperCase()] || BUCKETS.PRIVATE;
 }
 
-async function getFileVersions(fileId, userId) {
+/**
+ * List every version of a file (newest first).
+ */
+export async function listVersions(fileId, actorUserId) {
   try {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
+    if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');
 
-    if (!file) {
-      return {
-        success: false,
-        error: { code: 'FILE_NOT_FOUND', message: 'File not found' },
-        timestamp: Date.now(),
-      };
-    }
-
-    const hasAccess = file.ownerId === userId || 
-      await prisma.fileShare.findFirst({
-        where: { fileId, sharedWithId: userId },
+    // Owner or someone with a share sees versions.
+    const owns = file.ownerId === actorUserId;
+    if (!owns) {
+      const share = await prisma.fileShareV2.findFirst({
+        where: {
+          fileId,
+          OR: [
+            { subjectType: 'USER', subjectUserId: actorUserId },
+          ],
+        },
       });
-
-    if (!hasAccess) {
-      return {
-        success: false,
-        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
-        timestamp: Date.now(),
-      };
+      if (!share) return err('ACCESS_DENIED', 'Access denied');
     }
 
     const versions = await prisma.fileVersion.findMany({
@@ -112,134 +64,209 @@ async function getFileVersions(fileId, userId) {
       },
       orderBy: { versionNumber: 'desc' },
     });
-
-    return {
-      success: true,
-      payload: versions,
-      timestamp: Date.now(),
-    };
+    return ok(versions);
   } catch (error) {
-    console.error('[fileVersionService] Error getting versions:', error);
-    return {
-      success: false,
-      error: { code: 'GET_VERSIONS_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
+    console.error('[fileVersionService.listVersions]', error);
+    return err('LIST_VERSIONS_FAILED', error.message);
   }
 }
 
-async function restoreVersion(versionId, userId) {
+/**
+ * Make an older version the current one by flipping `isCurrent`
+ * (no S3 copy). The previous current version is retained as history.
+ */
+export async function rollbackToVersion(versionId, actorUserId) {
   try {
-    const version = await prisma.fileVersion.findUnique({
+    const target = await prisma.fileVersion.findUnique({
       where: { id: versionId },
       include: { file: true },
     });
-
-    if (!version || version.file.ownerId !== userId) {
-      return {
-        success: false,
-        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
-        timestamp: Date.now(),
-      };
+    if (!target) return err('VERSION_NOT_FOUND', 'Version not found');
+    if (target.file.ownerId !== actorUserId) {
+      return err('ACCESS_DENIED', 'Only owner can rollback');
     }
+    if (target.isCurrent) return ok({ message: 'Already current', versionId });
 
-    const currentVersionNumber = await prisma.fileVersion.count({
-      where: { fileId: version.fileId },
-    });
-
-    await prisma.fileVersion.create({
-      data: {
-        fileId: version.fileId,
-        versionNumber: currentVersionNumber,
-        s3Key: version.file.s3Key,
-        size: version.file.size,
-        uploadedById: userId,
-        changeNote: `Restored from version ${version.versionNumber}`,
-      },
-    });
-
-    await copyObject(version.file.bucket, version.s3Key, version.file.bucket, version.file.s3Key);
-
-    await prisma.file.update({
-      where: { id: version.fileId },
-      data: {
-        s3Key: version.s3Key,
-        size: version.size,
-      },
-    });
-
-    await prisma.fileActivity.create({
-      data: {
-        fileId: version.fileId,
-        userId,
-        action: 'restore_version',
-        metadata: { restoredVersionNumber: version.versionNumber },
-      },
-    });
-
-    return {
-      success: true,
-      payload: { versionNumber: version.versionNumber },
-      timestamp: Date.now(),
-    };
-  } catch (error) {
-    console.error('[fileVersionService] Error restoring version:', error);
-    return {
-      success: false,
-      error: { code: 'RESTORE_VERSION_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
-  }
-}
-
-async function downloadVersion(versionId, userId) {
-  try {
-    const version = await prisma.fileVersion.findUnique({
-      where: { id: versionId },
-      include: { file: true },
-    });
-
-    if (!version) {
-      return {
-        success: false,
-        error: { code: 'VERSION_NOT_FOUND', message: 'Version not found' },
-        timestamp: Date.now(),
-      };
-    }
-
-    const hasAccess = version.file.ownerId === userId ||
-      await prisma.fileShare.findFirst({
-        where: { fileId: version.fileId, sharedWithId: userId },
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.fileVersion.updateMany({
+        where: { fileId: target.fileId, isCurrent: true },
+        data: { isCurrent: false },
       });
+      const current = await tx.fileVersion.update({
+        where: { id: versionId },
+        data: { isCurrent: true },
+      });
+      const updatedFile = await tx.file.update({
+        where: { id: target.fileId },
+        data: {
+          currentVersionId: current.id,
+          s3Key: current.s3Key,
+          size: current.size,
+          checksumSha256: current.checksumSha256,
+        },
+      });
+      await tx.fileActivity.create({
+        data: {
+          fileId: target.fileId,
+          userId: actorUserId,
+          action: 'rollback_version',
+          metadata: { versionId, versionNumber: target.versionNumber },
+        },
+      });
+      return { file: updatedFile, version: current };
+    });
 
-    if (!hasAccess) {
-      return {
-        success: false,
-        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
-        timestamp: Date.now(),
-      };
-    }
-
-    const presignedUrl = await generatePresignedGetUrl(version.file.bucket, version.s3Key);
-
-    return {
-      success: true,
-      payload: { presignedUrl, version },
-      timestamp: Date.now(),
-    };
+    return ok(result);
   } catch (error) {
-    console.error('[fileVersionService] Error downloading version:', error);
-    return {
-      success: false,
-      error: { code: 'DOWNLOAD_VERSION_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
+    console.error('[fileVersionService.rollbackToVersion]', error);
+    return err('ROLLBACK_FAILED', error.message);
   }
 }
 
-export {
-  uploadNewVersion,
+/**
+ * Presigned GET URL for a specific version (preview only — NEVER for sensitive
+ * workflow documents; use `streamVersion` for those).
+ */
+export async function getVersionPreviewUrl(versionId, actorUserId) {
+  try {
+    const version = await prisma.fileVersion.findUnique({
+      where: { id: versionId },
+      include: { file: true },
+    });
+    if (!version) return err('VERSION_NOT_FOUND', 'Version not found');
+
+    if (version.file.ownerId !== actorUserId) {
+      const share = await prisma.fileShareV2.findFirst({
+        where: {
+          fileId: version.fileId,
+          OR: [{ subjectType: 'USER', subjectUserId: actorUserId }],
+        },
+      });
+      if (!share) return err('ACCESS_DENIED', 'Access denied');
+    }
+
+    const bucketReal = resolveBucket(version.file.bucket);
+    const url = await generatePresignedGetUrl(bucketReal, version.s3Key);
+    return ok({ url, version });
+  } catch (error) {
+    console.error('[fileVersionService.getVersionPreviewUrl]', error);
+    return err('PREVIEW_VERSION_FAILED', error.message);
+  }
+}
+
+/**
+ * Stream a specific version through Express (proxied download).
+ */
+export async function streamVersion({ versionId, req, res, actorUserId }) {
+  const version = await prisma.fileVersion.findUnique({
+    where: { id: versionId },
+    include: { file: true },
+  });
+  if (!version) {
+    return res.status(404).json(err('VERSION_NOT_FOUND', 'Version not found'));
+  }
+
+  const bucketReal = resolveBucket(version.file.bucket);
+  await prisma.fileActivity.create({
+    data: {
+      fileId: version.fileId,
+      userId: actorUserId,
+      action: 'download_version',
+      metadata: { versionId, versionNumber: version.versionNumber },
+    },
+  });
+
+  return streamObject({
+    bucket: bucketReal,
+    objectKey: version.s3Key,
+    req,
+    res,
+    filename: `v${version.versionNumber}-${version.file.name}`,
+    mimeType: version.file.mimeType,
+  });
+}
+
+/**
+ * Initiate an explicit new-version upload for a specific existing file.
+ * Returns a presigned PUT URL + new versionId. Client then calls
+ * fileService.completeUpload(fileId, versionId) to finalise.
+ */
+export async function initiateVersionUpload(fileId, keycloakUser, input = {}) {
+  try {
+    const userId = await getDatabaseUserId(keycloakUser);
+    if (!userId) return err('USER_NOT_FOUND', 'User not found');
+
+    const file = await prisma.file.findUnique({
+      where: { id: fileId },
+      include: { versions: { orderBy: { versionNumber: 'desc' }, take: 1 } },
+    });
+    if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');
+    if (file.ownerId !== userId) return err('ACCESS_DENIED', 'Only owner can add versions');
+
+    const {
+      name = file.name,
+      mimeType = file.mimeType,
+      size,
+      changeNote = null,
+    } = input;
+    if (typeof size !== 'number' || size < 0) {
+      return err('INVALID_INPUT', 'Size is required and must be a non-negative number');
+    }
+
+    const nextVersionNumber = (file.versions[0]?.versionNumber || 0) + 1;
+    const bucketLogical = String(file.bucket).toUpperCase();
+    const bucketReal = resolveBucket(bucketLogical);
+    const shortUuid = uuidv4().slice(0, 8);
+    const safeName = String(name).replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 120);
+    const s3Key = `${bucketLogical}/${userId}/${fileId}/v${nextVersionNumber}-${shortUuid}-${safeName}`;
+
+    const version = await prisma.fileVersion.create({
+      data: {
+        fileId,
+        versionNumber: nextVersionNumber,
+        s3Key,
+        size,
+        uploadedById: userId,
+        changeNote,
+        isCurrent: false,
+      },
+    });
+
+    // If name/mime are changing, update when finalising.
+    if (name !== file.name || mimeType !== file.mimeType) {
+      await prisma.file.update({
+        where: { id: fileId },
+        data: { name, mimeType },
+      });
+    }
+
+    const presignedUrl = await generatePresignedPutUrl(bucketReal, s3Key);
+
+    return ok({
+      fileId,
+      versionId: version.id,
+      versionNumber: nextVersionNumber,
+      s3Key,
+      presignedUrl,
+    });
+  } catch (error) {
+    console.error('[fileVersionService.initiateVersionUpload]', error);
+    return err('VERSION_INIT_FAILED', error.message);
+  }
+}
+
+// Back-compat aliases used by existing controller.
+export const getFileVersions = listVersions;
+export const restoreVersion = rollbackToVersion;
+export const uploadNewVersion = initiateVersionUpload;
+
+export default {
+  listVersions,
+  rollbackToVersion,
+  getVersionPreviewUrl,
+  streamVersion,
+  initiateVersionUpload,
   getFileVersions,
   restoreVersion,
-  downloadVersion,
+  uploadNewVersion,
 };

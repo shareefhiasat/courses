@@ -3,6 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Input, Button } from '@ui';
+import WorkflowBadge from './WorkflowBadge';
 
 /**
  * FileRoster - Files grid with search, filters, multi-select & row actions.
@@ -282,8 +283,15 @@ export default function FileRoster({
                     >
                       {file.name}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {formatDate(file.createdAt || file.modifiedAt)}
+                      {file.workflowStatus && file.workflowStatus !== 'none' && (
+                        <WorkflowBadge
+                          status={file.workflowStatus}
+                          currentStage={file.workflowStageName}
+                          compact
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -468,6 +476,15 @@ export default function FileRoster({
                   <span>{formatSize(file.size)}</span>
                   <span>{formatDate(file.createdAt || file.modifiedAt)}</span>
                 </div>
+                {file.workflowStatus && file.workflowStatus !== 'none' && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <WorkflowBadge
+                      status={file.workflowStatus}
+                      currentStage={file.workflowStageName}
+                      compact
+                    />
+                  </div>
+                )}
               </div>
             );
           })}

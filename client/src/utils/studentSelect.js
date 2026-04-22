@@ -1,6 +1,4 @@
-﻿import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
-import { db } from '@services/other/config';
-import { getUserStatusSummary } from './userStatus';
+﻿import { getUserStatusSummary } from './userStatus';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';/**

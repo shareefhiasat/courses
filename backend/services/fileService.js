@@ -1,630 +1,643 @@
+/**
+ * File Service — orchestrates file lifecycle (upload, list, update, trash,
+ * restore, preview, download) while keeping MinIO as the storage backend and
+ * Postgres as the metadata source of truth.
+ *
+ * Upload pipeline (DUAL-VERSIONING):
+ *   1. initiateUpload():
+ *        - If (folderId, name, owner) already exists -> it's a re-upload:
+ *          we create a NEW FileVersion row for the existing File, with a
+ *          unique s3Key and is_current=false.
+ *        - Else -> create File + first FileVersion (is_current=false).
+ *        - Return a presigned PUT URL.
+ *   2. Client PUTs the object directly to MinIO.
+ *   3. completeUpload():
+ *        - Verify the object exists (statObject) and capture MinIO's native
+ *          versionId + etag as a double-record safety net.
+ *        - Inside a transaction:
+ *            a. Flip previous version's is_current=false (if any).
+ *            b. Flip the new version's is_current=true.
+ *            c. Update files.currentVersionId, size, mimeType, checksum.
+ *        - Append a file_activity entry.
+ */
+
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import {
   generatePresignedPutUrl,
   generatePresignedGetUrl,
-  deleteObject,
+  getObjectMetadata,
+  streamObject,
+  isInlinePreviewable,
   BUCKETS,
 } from './minioService.js';
 import { mapBucketName } from '../constants/driveConstants.js';
+import { getDatabaseUserId } from '../utils/userResolver.js';
 
 const prisma = new PrismaClient();
 
+const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
+const err = (code, message, extra = {}) => ({
+  success: false,
+  error: { code, message, ...extra },
+  timestamp: Date.now(),
+});
+
 /**
- * Convert Keycloak UUID to database User ID
- * @param {string} keycloakId - The Keycloak user UUID
- * @returns {Promise<number>} - The database user ID (integer)
+ * Build the S3 key for a specific version of a file.
+ * Pattern: {bucketLogical}/{ownerId}/{fileId}/v{versionNumber}-{shortUuid}-{safeName}
  */
-async function getUserIdFromKeycloakId(keycloakId) {
+function buildVersionKey({ bucketLogical, ownerId, fileId, versionNumber, name }) {
+  const shortUuid = uuidv4().slice(0, 8);
+  const safeName = String(name).replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 120);
+  return `${bucketLogical}/${ownerId}/${fileId}/v${versionNumber}-${shortUuid}-${safeName}`;
+}
+
+function resolveBucket(input) {
+  if (!input) return BUCKETS.PRIVATE;
+  const logical = String(input).toUpperCase();
+  return BUCKETS[logical] || BUCKETS.PRIVATE;
+}
+
+// ============================================================================
+// Upload pipeline
+// ============================================================================
+
+/**
+ * Initiate an upload. Transparently handles new-file AND re-upload-of-same-name
+ * (which becomes a new version).
+ *
+ * @param {string|object} keycloakUser - Keycloak id or user object
+ * @param {object} input
+ * @param {string} input.name
+ * @param {string} input.mimeType
+ * @param {number} input.size
+ * @param {string} input.bucket           - logical bucket name (PRIVATE|SHARED|WORKFLOW)
+ * @param {string|null} [input.folderId]
+ * @param {string|null} [input.folderPath] - for legacy compat
+ * @param {string|null} [input.changeNote]
+ */
+export async function initiateUpload(keycloakUser, input) {
   try {
-    const user = await prisma.user.findUnique({
-      where: { keycloakId },
-      select: { id: true }
-    });
-    
-    if (!user) {
-      throw new Error(`User not found for keycloakId: ${keycloakId}`);
+    const userId = await getDatabaseUserId(keycloakUser);
+    if (!userId) return err('USER_NOT_FOUND', 'User not found for the provided identity');
+
+    const { name, mimeType, size, bucket, folderId = null, folderPath = null, changeNote = null } = input;
+    if (!name || !mimeType || typeof size !== 'number' || size < 0) {
+      return err('INVALID_INPUT', 'Missing/invalid name, mimeType, or size');
     }
-    
-    return user.id;
-  } catch (error) {
-    console.error('[fileService] Error converting keycloakId to userId:', error);
-    throw error;
-  }
-}
 
-async function initiateUpload(keycloakId, { name, mimeType, size, bucket, folderPath, workflowStatus }) {
-  try {
-    // Convert keycloakId (UUID) to userId (integer)
-    const userId = await getUserIdFromKeycloakId(keycloakId);
-    
-    const fileId = uuidv4();
-    const s3Key = `${bucket}/${userId}/${fileId}/${name}`;
+    const bucketLogical = (bucket || 'PRIVATE').toUpperCase();
+    const bucketReal = resolveBucket(bucketLogical);
 
-    const file = await prisma.file.create({
-      data: {
-        id: fileId,
-        s3Key,
-        bucket: mapBucketName(bucket),
-        name,
-        mimeType,
-        size,
+    // Detect re-upload: same folder + same name for this owner.
+    const existing = await prisma.file.findFirst({
+      where: {
         ownerId: userId,
-        folderPath: folderPath || null,
-        workflowStatus: workflowStatus || 'DRAFT',
+        name,
+        folderId,
+        isDeleted: false,
       },
+      include: { versions: { orderBy: { versionNumber: 'desc' }, take: 1 } },
     });
 
-    const presignedUrl = await generatePresignedPutUrl(bucket, s3Key);
+    let file;
+    let nextVersionNumber;
 
-    await prisma.fileActivity.create({
+    if (existing) {
+      file = existing;
+      nextVersionNumber = (existing.versions[0]?.versionNumber || 0) + 1;
+    } else {
+      nextVersionNumber = 1;
+      const fileId = uuidv4();
+      const tempKey = `${bucketLogical}/${userId}/${fileId}/placeholder`;
+      file = await prisma.file.create({
+        data: {
+          id: fileId,
+          s3Key: tempKey, // overwritten when the first version becomes current
+          bucket: mapBucketName(bucketLogical),
+          name,
+          mimeType,
+          size,
+          ownerId: userId,
+          folderId,
+          folderPath,
+        },
+      });
+    }
+
+    const s3Key = buildVersionKey({
+      bucketLogical,
+      ownerId: userId,
+      fileId: file.id,
+      versionNumber: nextVersionNumber,
+      name,
+    });
+
+    const version = await prisma.fileVersion.create({
       data: {
         fileId: file.id,
-        userId,
-        action: 'upload',
-        metadata: { size, mimeType },
-      },
-    });
-
-    return {
-      success: true,
-      payload: {
-        fileId: file.id,
-        presignedUrl,
+        versionNumber: nextVersionNumber,
         s3Key,
+        size,
+        uploadedById: userId,
+        changeNote,
+        isCurrent: false,
       },
-      timestamp: Date.now(),
-    };
-  } catch (error) {
-    console.error('[fileService] Error initiating upload:', error);
-    return {
-      success: false,
-      error: { code: 'UPLOAD_INIT_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
-  }
-}
-
-async function completeUpload(fileId) {
-  try {
-    const file = await prisma.file.update({
-      where: { id: fileId },
-      data: { updatedAt: new Date() },
     });
 
-    return {
-      success: true,
-      payload: file,
-      timestamp: Date.now(),
-    };
+    const presignedUrl = await generatePresignedPutUrl(bucketReal, s3Key);
+
+    return ok({
+      fileId: file.id,
+      versionId: version.id,
+      versionNumber: nextVersionNumber,
+      s3Key,
+      presignedUrl,
+      isNewFile: !existing,
+    });
   } catch (error) {
-    console.error('[fileService] Error completing upload:', error);
-    return {
-      success: false,
-      error: { code: 'UPLOAD_COMPLETE_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
+    console.error('[fileService.initiateUpload]', error);
+    return err('UPLOAD_INIT_FAILED', error.message);
   }
 }
 
-async function getFileById(fileId, userId) {
+/**
+ * Finalise an upload: verify the object, record MinIO's native versionId,
+ * atomically flip is_current, and update the parent File row.
+ *
+ * @param {string} fileId
+ * @param {string} versionId
+ * @param {object} [meta] - optional `{ checksum }` supplied by the client
+ */
+export async function completeUpload(fileId, versionId, meta = {}) {
+  try {
+    const version = await prisma.fileVersion.findUnique({
+      where: { id: versionId },
+      include: { file: true },
+    });
+    if (!version || version.fileId !== fileId) {
+      return err('VERSION_NOT_FOUND', 'Version not found or does not belong to file');
+    }
+    if (version.isCurrent) {
+      return err('ALREADY_FINALISED', 'Version is already marked current');
+    }
+
+    const file = version.file;
+    const bucketReal = resolveBucket(file.bucket);
+
+    // Verify with MinIO. This confirms the PUT actually happened.
+    let stat;
+    try {
+      stat = await getObjectMetadata(bucketReal, version.s3Key);
+    } catch (minioErr) {
+      return err('UPLOAD_NOT_FOUND_IN_STORAGE', `Object missing in MinIO: ${minioErr.message}`);
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Clear previous current version (if any).
+      await tx.fileVersion.updateMany({
+        where: { fileId, isCurrent: true },
+        data: { isCurrent: false },
+      });
+
+      // Mark this version current + record MinIO's native versionId.
+      const currentVersion = await tx.fileVersion.update({
+        where: { id: versionId },
+        data: {
+          isCurrent: true,
+          minioVersionId: stat.versionId,
+          checksumSha256: meta.checksum || null,
+          size: stat.size, // trust storage over client-declared size
+        },
+      });
+
+      // Update the File to point at the new current version + cached metadata.
+      const updatedFile = await tx.file.update({
+        where: { id: fileId },
+        data: {
+          currentVersionId: currentVersion.id,
+          s3Key: currentVersion.s3Key,
+          size: currentVersion.size,
+          checksumSha256: currentVersion.checksumSha256,
+        },
+      });
+
+      await tx.fileActivity.create({
+        data: {
+          fileId,
+          userId: version.uploadedById,
+          action: currentVersion.versionNumber === 1 ? 'upload' : 'version_upload',
+          metadata: {
+            versionId: currentVersion.id,
+            versionNumber: currentVersion.versionNumber,
+            size: currentVersion.size,
+            minioVersionId: stat.versionId,
+          },
+        },
+      });
+
+      return { file: updatedFile, version: currentVersion };
+    });
+
+    return ok(result);
+  } catch (error) {
+    console.error('[fileService.completeUpload]', error);
+    return err('UPLOAD_COMPLETE_FAILED', error.message);
+  }
+}
+
+// ============================================================================
+// Read / list
+// ============================================================================
+
+export async function getFileById(fileId, actorUserId) {
   try {
     const file = await prisma.file.findUnique({
       where: { id: fileId },
       include: {
         owner: { select: { id: true, email: true, displayName: true } },
-        versions: { orderBy: { versionNumber: 'desc' }, take: 5 },
-        shares: {
-          include: {
-            sharedWith: { select: { id: true, email: true, displayName: true } },
-          },
-        },
-        comments: {
-          include: {
-            user: { select: { id: true, email: true, displayName: true } },
-          },
-          orderBy: { createdAt: 'desc' },
-        },
-        activities: {
-          include: {
-            user: { select: { id: true, email: true, displayName: true } },
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        },
+        folder: { select: { id: true, name: true, path: true } },
+        currentVersion: true,
+        versions: { orderBy: { versionNumber: 'desc' }, take: 10 },
       },
     });
+    if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');
 
-    if (!file) {
-      return {
-        success: false,
-        error: { code: 'FILE_NOT_FOUND', message: 'File not found' },
-        timestamp: Date.now(),
-      };
-    }
+    // NOTE: permission service will take over this check in PR #5. For now,
+    // require owner or a legacy v1 share row.
+    const owns = file.ownerId === actorUserId;
+    const hasLegacyShare = !owns
+      ? await prisma.fileShare.findFirst({ where: { fileId, sharedWithId: actorUserId } })
+      : null;
+    const hasV2Share = !owns
+      ? await prisma.fileShareV2.findFirst({
+          where: {
+            fileId,
+            OR: [
+              { subjectType: 'USER', subjectUserId: actorUserId },
+            ],
+          },
+        })
+      : null;
+    if (!owns && !hasLegacyShare && !hasV2Share) return err('ACCESS_DENIED', 'Access denied');
 
-    const hasAccess = file.ownerId === userId || file.shares.some(s => s.sharedWithId === userId);
-    if (!hasAccess) {
-      return {
-        success: false,
-        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
-        timestamp: Date.now(),
-      };
-    }
-
-    const presignedUrl = await generatePresignedGetUrl(file.bucket, file.s3Key);
-
-    return {
-      success: true,
-      payload: { ...file, presignedUrl },
-      timestamp: Date.now(),
-    };
+    return ok(file);
   } catch (error) {
-    console.error('[fileService] Error getting file:', error);
-    return {
-      success: false,
-      error: { code: 'GET_FILE_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
+    console.error('[fileService.getFileById]', error);
+    return err('GET_FILE_FAILED', error.message);
   }
 }
 
-async function listFiles(keycloakId, { bucket, folderPath, workflowStatus } = {}) {
+/**
+ * List files for the current user (owned + shared + public-role) with
+ * filter/search/sort/paginate support.
+ */
+export async function listFiles(keycloakUser, {
+  folderId,
+  folderPath,
+  bucket,
+  search,
+  mimeTypePrefix,
+  modifiedAfter,
+  sortField = 'updatedAt',
+  sortOrder = 'desc',
+  page = 1,
+  pageSize = 50,
+  includeDeleted = false,
+} = {}) {
   try {
-    // Convert keycloakId (UUID) to userId (integer)
-    const userId = await getUserIdFromKeycloakId(keycloakId);
-    
+    const userId = await getDatabaseUserId(keycloakUser);
+    if (!userId) return err('USER_NOT_FOUND', 'User not found');
+
     const where = {
+      isDeleted: includeDeleted ? undefined : false,
       OR: [
         { ownerId: userId },
         { shares: { some: { sharedWithId: userId } } },
+        { sharesV2: { some: { subjectType: 'USER', subjectUserId: userId } } },
       ],
-      isActive: true,
     };
-
-    if (bucket) where.bucket = mapBucketName(bucket);
+    if (folderId !== undefined) where.folderId = folderId;
     if (folderPath !== undefined) where.folderPath = folderPath;
-    if (workflowStatus) where.workflowStatus = workflowStatus;
+    if (bucket) where.bucket = mapBucketName(bucket);
+    if (mimeTypePrefix) where.mimeType = { startsWith: mimeTypePrefix };
+    if (modifiedAfter) where.updatedAt = { gte: new Date(modifiedAfter) };
+    if (search) where.name = { contains: search, mode: 'insensitive' };
 
-    const files = await prisma.file.findMany({
-      where,
-      include: {
-        owner: { select: { id: true, email: true, displayName: true } },
-        shares: { select: { sharedWithId: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [files, total] = await Promise.all([
+      prisma.file.findMany({
+        where,
+        include: {
+          owner: { select: { id: true, email: true, displayName: true } },
+          currentVersion: { select: { versionNumber: true, size: true, createdAt: true } },
+        },
+        orderBy: { [sortField]: sortOrder },
+        skip: Math.max(0, (page - 1) * pageSize),
+        take: Math.min(200, pageSize),
+      }),
+      prisma.file.count({ where }),
+    ]);
 
-    return {
-      success: true,
-      payload: files,
-      timestamp: Date.now(),
-    };
+    return ok({ files, total, page, pageSize });
   } catch (error) {
-    console.error('[fileService] Error listing files:', error);
-    return {
-      success: false,
-      error: { code: 'LIST_FILES_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
+    console.error('[fileService.listFiles]', error);
+    return err('LIST_FILES_FAILED', error.message);
   }
 }
 
-async function updateFile(fileId, userId, updates) {
+// ============================================================================
+// Update / trash / restore / permanent delete
+// ============================================================================
+
+export async function updateFile(fileId, actorUserId, updates) {
   try {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
+    if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');
+    if (file.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Only owner can update');
 
-    if (!file || file.ownerId !== userId) {
-      return {
-        success: false,
-        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
-        timestamp: Date.now(),
-      };
-    }
+    // Allow only a whitelist of mutable fields.
+    const safe = {};
+    ['name', 'folderId', 'folderPath', 'isStarred'].forEach((k) => {
+      if (updates[k] !== undefined) safe[k] = updates[k];
+    });
+
+    const updated = await prisma.file.update({ where: { id: fileId }, data: safe });
+    await prisma.fileActivity.create({
+      data: { fileId, userId: actorUserId, action: 'update', metadata: safe },
+    });
+    return ok(updated);
+  } catch (error) {
+    console.error('[fileService.updateFile]', error);
+    return err('UPDATE_FAILED', error.message);
+  }
+}
+
+export async function softDeleteFile(fileId, actorUserId) {
+  try {
+    const file = await prisma.file.findUnique({ where: { id: fileId } });
+    if (!file) return err('FILE_NOT_FOUND', 'File not found');
+    if (file.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Only owner can trash');
 
     const updated = await prisma.file.update({
       where: { id: fileId },
-      data: updates,
+      data: { isDeleted: true, deletedAt: new Date(), deletedById: actorUserId },
     });
-
     await prisma.fileActivity.create({
-      data: {
-        fileId,
-        userId,
-        action: 'update',
-        metadata: updates,
-      },
+      data: { fileId, userId: actorUserId, action: 'soft_delete' },
     });
-
-    return {
-      success: true,
-      payload: updated,
-      timestamp: Date.now(),
-    };
+    return ok(updated);
   } catch (error) {
-    console.error('[fileService] Error updating file:', error);
-    return {
-      success: false,
-      error: { code: 'UPDATE_FILE_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
+    console.error('[fileService.softDeleteFile]', error);
+    return err('SOFT_DELETE_FAILED', error.message);
   }
 }
 
-async function deleteFile(fileId, userId) {
+export async function restoreFile(fileId, actorUserId) {
   try {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
-
-    if (!file || file.ownerId !== userId) {
-      return {
-        success: false,
-        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
-        timestamp: Date.now(),
-      };
-    }
-
-    await deleteObject(file.bucket, file.s3Key);
-
-    await prisma.file.update({
-      where: { id: fileId },
-      data: { isActive: false },
-    });
-
-    await prisma.fileActivity.create({
-      data: {
-        fileId,
-        userId,
-        action: 'delete',
-      },
-    });
-
-    return {
-      success: true,
-      payload: { fileId },
-      timestamp: Date.now(),
-    };
-  } catch (error) {
-    console.error('[fileService] Error deleting file:', error);
-    return {
-      success: false,
-      error: { code: 'DELETE_FILE_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
-  }
-}
-
-async function generatePublicLink(fileId, keycloakId, expiryDays = 7) {
-  try {
-    let userId;
-    try {
-      userId = await getUserIdFromKeycloakId(keycloakId);
-    } catch (error) {
-      console.error('[fileService] Error converting keycloakId to userId:', error);
-      return {
-        success: false,
-        error: { code: 'ACCESS_DENIED', message: 'User not found' },
-        timestamp: Date.now(),
-      };
-    }
-
-    const file = await prisma.file.findUnique({ where: { id: fileId } });
-
-    if (!file || file.ownerId !== userId) {
-      return {
-        success: false,
-        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
-        timestamp: Date.now(),
-      };
-    }
-
-    const token = uuidv4();
-    const expiry = new Date();
-    expiry.setDate(expiry.getDate() + expiryDays);
+    if (!file) return err('FILE_NOT_FOUND', 'File not found');
+    if (file.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Only owner can restore');
 
     const updated = await prisma.file.update({
       where: { id: fileId },
-      data: {
-        publicLinkToken: token,
-        publicLinkExpiry: expiry,
-      },
+      data: { isDeleted: false, deletedAt: null, deletedById: null },
     });
-
     await prisma.fileActivity.create({
-      data: {
-        fileId,
-        userId,
-        action: 'public_link_created',
-        metadata: { expiryDays },
-      },
+      data: { fileId, userId: actorUserId, action: 'restore' },
     });
-
-    const publicUrl = `${process.env.PUBLIC_LINK_BASE_URL}/${token}`;
-
-    return {
-      success: true,
-      payload: { publicUrl, token, expiry },
-      timestamp: Date.now(),
-    };
+    return ok(updated);
   } catch (error) {
-    console.error('[fileService] Error generating public link:', error);
-    return {
-      success: false,
-      error: { code: 'PUBLIC_LINK_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
+    console.error('[fileService.restoreFile]', error);
+    return err('RESTORE_FAILED', error.message);
   }
 }
 
-async function getFileByPublicToken(token) {
+/**
+ * Hard-delete: removes ALL MinIO versions then removes the DB row.
+ * Normally called by the purge cron, but also exposed as an admin escape hatch.
+ */
+export async function permanentDeleteFile(fileId, actorUserId) {
   try {
     const file = await prisma.file.findUnique({
-      where: { publicLinkToken: token },
-      include: {
-        owner: { select: { id: true, displayName: true } },
-      },
+      where: { id: fileId },
+      include: { versions: true },
     });
+    if (!file) return err('FILE_NOT_FOUND', 'File not found');
+    if (file.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Only owner can hard-delete');
 
-    if (!file || !file.publicLinkExpiry || file.publicLinkExpiry < new Date()) {
-      return {
-        success: false,
-        error: { code: 'INVALID_TOKEN', message: 'Invalid or expired link' },
-        timestamp: Date.now(),
-      };
+    const bucketReal = resolveBucket(file.bucket);
+    const { deleteObject, deleteObjectVersion } = await import('./minioService.js');
+
+    for (const v of file.versions) {
+      if (v.minioVersionId) {
+        await deleteObjectVersion(bucketReal, v.s3Key, v.minioVersionId).catch(() => {});
+      } else {
+        await deleteObject(bucketReal, v.s3Key).catch(() => {});
+      }
     }
 
-    const presignedUrl = await generatePresignedGetUrl(file.bucket, file.s3Key);
-
-    return {
-      success: true,
-      payload: { ...file, presignedUrl },
-      timestamp: Date.now(),
-    };
+    await prisma.file.delete({ where: { id: fileId } });
+    return ok({ message: 'File permanently deleted', fileId });
   } catch (error) {
-    console.error('[fileService] Error getting file by token:', error);
-    return {
-      success: false,
-      error: { code: 'GET_PUBLIC_FILE_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
+    console.error('[fileService.permanentDeleteFile]', error);
+    return err('PERMANENT_DELETE_FAILED', error.message);
   }
 }
 
-async function toggleStarFile(fileId, userId) {
+// ============================================================================
+// Preview & download
+// ============================================================================
+
+/**
+ * Return a short-lived presigned GET URL for inline preview of safe types,
+ * or a signal to use the proxy download for everything else.
+ */
+export async function getPreviewUrl(fileId, actorUserId) {
   try {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
+    if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');
 
-    if (!file || file.ownerId !== userId) {
-      return {
-        success: false,
-        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
-        timestamp: Date.now(),
-      };
+    const bucketReal = resolveBucket(file.bucket);
+    if (!isInlinePreviewable(file.mimeType)) {
+      return ok({ mode: 'download' });
     }
+    const url = await generatePresignedGetUrl(bucketReal, file.s3Key);
+
+    await prisma.fileActivity.create({
+      data: { fileId, userId: actorUserId, action: 'preview' },
+    });
+    return ok({ mode: 'inline', url, mimeType: file.mimeType });
+  } catch (error) {
+    console.error('[fileService.getPreviewUrl]', error);
+    return err('PREVIEW_FAILED', error.message);
+  }
+}
+
+/**
+ * Stream a file through Express (no presigned URL exposure).
+ * Caller is responsible for auth + permission check BEFORE invoking this.
+ */
+export async function streamFile({ fileId, req, res, actorUserId }) {
+  const file = await prisma.file.findUnique({ where: { id: fileId } });
+  if (!file || file.isDeleted) {
+    return res.status(404).json(err('FILE_NOT_FOUND', 'File not found'));
+  }
+  const bucketReal = resolveBucket(file.bucket);
+
+  await prisma.fileActivity.create({
+    data: { fileId, userId: actorUserId, action: 'download' },
+  });
+
+  return streamObject({
+    bucket: bucketReal,
+    objectKey: file.s3Key,
+    req,
+    res,
+    filename: file.name,
+    mimeType: file.mimeType,
+  });
+}
+
+// ============================================================================
+// Legacy helpers (kept temporarily so existing controllers keep compiling)
+// Will be removed once PR #5 (new sharing endpoints) lands.
+// ============================================================================
+
+export async function addComment(fileId, userId, content) {
+  try {
+    const row = await prisma.fileComment.create({
+      data: { fileId, userId, content },
+    });
+    return ok(row);
+  } catch (error) {
+    return err('ADD_COMMENT_FAILED', error.message);
+  }
+}
+
+export async function generatePublicLink(fileId, keycloakUser, expiryDays = 7) {
+  try {
+    const userId = await getDatabaseUserId(keycloakUser);
+    if (!userId) return err('USER_NOT_FOUND', 'User not found');
+    const file = await prisma.file.findUnique({ where: { id: fileId } });
+    if (!file || file.ownerId !== userId) return err('ACCESS_DENIED', 'Access denied');
+
+    const token = uuidv4().replace(/-/g, '');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + expiryDays);
+
+    const link = await prisma.publicLink.create({
+      data: { fileId, token, expiresAt, createdById: userId },
+    });
+    await prisma.fileActivity.create({
+      data: { fileId, userId, action: 'public_link_created', metadata: { expiryDays } },
+    });
+
+    const base = process.env.PUBLIC_LINK_BASE_URL || '';
+    return ok({ publicUrl: `${base}/${token}`, token: link.token, expiresAt: link.expiresAt });
+  } catch (error) {
+    console.error('[fileService.generatePublicLink]', error);
+    return err('PUBLIC_LINK_FAILED', error.message);
+  }
+}
+
+export async function getFileByPublicToken(token) {
+  try {
+    const link = await prisma.publicLink.findUnique({
+      where: { token },
+      include: { file: { include: { owner: { select: { id: true, displayName: true } } } } },
+    });
+    if (!link || link.revokedAt) return err('INVALID_TOKEN', 'Invalid or revoked link');
+    if (link.expiresAt && link.expiresAt < new Date()) return err('INVALID_TOKEN', 'Link expired');
+    if (!link.file || link.file.isDeleted) return err('FILE_NOT_FOUND', 'File no longer available');
+
+    const bucketReal = resolveBucket(link.file.bucket);
+    const presignedUrl = await generatePresignedGetUrl(bucketReal, link.file.s3Key);
+    return ok({ ...link.file, presignedUrl });
+  } catch (error) {
+    console.error('[fileService.getFileByPublicToken]', error);
+    return err('GET_PUBLIC_FILE_FAILED', error.message);
+  }
+}
+
+export async function toggleStarFile(fileId, actorUserId) {
+  try {
+    const file = await prisma.file.findUnique({ where: { id: fileId } });
+    if (!file) return err('FILE_NOT_FOUND', 'File not found');
+    if (file.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Access denied');
 
     const updated = await prisma.file.update({
       where: { id: fileId },
       data: { isStarred: !file.isStarred },
     });
-
     await prisma.fileActivity.create({
-      data: {
-        fileId,
-        userId,
-        action: updated.isStarred ? 'starred' : 'unstarred',
-      },
+      data: { fileId, userId: actorUserId, action: updated.isStarred ? 'starred' : 'unstarred' },
     });
-
-    return {
-      success: true,
-      payload: updated,
-      timestamp: Date.now(),
-    };
+    return ok(updated);
   } catch (error) {
-    console.error('[fileService] Error toggling star:', error);
-    return {
-      success: false,
-      error: { code: 'TOGGLE_STAR_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
+    return err('TOGGLE_STAR_FAILED', error.message);
   }
 }
 
-async function softDeleteFile(fileId, userId) {
+/**
+ * Back-compat shim: old controllers still call deleteFile expecting a soft delete.
+ */
+export const deleteFile = softDeleteFile;
+
+/**
+ * Minimal createFolder using the new Folder model. A dedicated folderService
+ * (PR #4) will expand this with move/rename/tree listing.
+ *
+ * @param {string|object} keycloakUser
+ * @param {object} input
+ * @param {string} input.name
+ * @param {string|null} [input.parentId]
+ * @param {boolean} [input.isPrivate]
+ */
+export async function createFolder(keycloakUser, input) {
   try {
-    const file = await prisma.file.findUnique({ where: { id: fileId } });
+    const userId = await getDatabaseUserId(keycloakUser);
+    if (!userId) return err('USER_NOT_FOUND', 'User not found');
 
-    if (!file || file.ownerId !== userId) {
-      return {
-        success: false,
-        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
-        timestamp: Date.now(),
-      };
+    const { name, parentId = null, isPrivate = false } = input || {};
+    if (!name) return err('INVALID_INPUT', 'Folder name required');
+
+    let parentPath = '';
+    if (parentId) {
+      const parent = await prisma.folder.findUnique({ where: { id: parentId } });
+      if (!parent || parent.isDeleted) return err('PARENT_NOT_FOUND', 'Parent folder not found');
+      parentPath = parent.path;
     }
+    const path = parentPath ? `${parentPath}/${name}` : `/${name}`;
 
-    const updated = await prisma.file.update({
-      where: { id: fileId },
-      data: {
-        isDeleted: true,
-        deletedAt: new Date(),
-        deletedById: userId,
-      },
+    const folder = await prisma.folder.create({
+      data: { name, parentId, ownerId: userId, path, isPrivate },
     });
-
-    await prisma.fileActivity.create({
-      data: {
-        fileId,
-        userId,
-        action: 'soft_delete',
-      },
-    });
-
-    return {
-      success: true,
-      payload: updated,
-      timestamp: Date.now(),
-    };
+    return ok(folder);
   } catch (error) {
-    console.error('[fileService] Error soft deleting file:', error);
-    return {
-      success: false,
-      error: { code: 'SOFT_DELETE_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
+    if (error?.code === 'P2002') {
+      return err('FOLDER_EXISTS', 'A folder with this name already exists at this location');
+    }
+    console.error('[fileService.createFolder]', error);
+    return err('CREATE_FOLDER_FAILED', error.message);
   }
 }
 
-async function restoreFile(fileId, userId) {
-  try {
-    const file = await prisma.file.findUnique({ where: { id: fileId } });
-
-    if (!file || file.ownerId !== userId) {
-      return {
-        success: false,
-        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
-        timestamp: Date.now(),
-      };
-    }
-
-    const updated = await prisma.file.update({
-      where: { id: fileId },
-      data: {
-        isDeleted: false,
-        deletedAt: null,
-        deletedById: null,
-      },
-    });
-
-    await prisma.fileActivity.create({
-      data: {
-        fileId,
-        userId,
-        action: 'restored',
-      },
-    });
-
-    return {
-      success: true,
-      payload: updated,
-      timestamp: Date.now(),
-    };
-  } catch (error) {
-    console.error('[fileService] Error restoring file:', error);
-    return {
-      success: false,
-      error: { code: 'RESTORE_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
-  }
-}
-
-async function permanentDeleteFile(fileId, userId) {
-  try {
-    const file = await prisma.file.findUnique({ where: { id: fileId } });
-
-    if (!file || file.ownerId !== userId) {
-      return {
-        success: false,
-        error: { code: 'ACCESS_DENIED', message: 'Access denied' },
-        timestamp: Date.now(),
-      };
-    }
-
-    // Delete from MinIO
-    await deleteObject(file.bucket, file.s3Key);
-
-    // Delete from database
-    await prisma.file.delete({
-      where: { id: fileId },
-    });
-
-    await prisma.fileActivity.create({
-      data: {
-        fileId,
-        userId,
-        action: 'permanent_delete',
-      },
-    });
-
-    return {
-      success: true,
-      payload: { message: 'File permanently deleted' },
-      timestamp: Date.now(),
-    };
-  } catch (error) {
-    console.error('[fileService] Error permanently deleting file:', error);
-    return {
-      success: false,
-      error: { code: 'PERMANENT_DELETE_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
-  }
-}
-
-async function createFolder(keycloakId, { name, bucket, folderPath }) {
-  try {
-    let userId;
-    try {
-      userId = await getUserIdFromKeycloakId(keycloakId);
-    } catch (error) {
-      console.error('[fileService] Error converting keycloakId to userId:', error);
-      throw new Error('User not found');
-    }
-
-    const fileId = uuidv4();
-    const currentPath = folderPath || '';
-    const s3Key = `${bucket}/${userId}/${fileId}/.keep`;
-
-    const file = await prisma.file.create({
-      data: {
-        id: fileId,
-        s3Key,
-        bucket: mapBucketName(bucket),
-        name,
-        mimeType: 'application/x-directory',
-        size: 0,
-        ownerId: userId,
-        folderPath: currentPath, // folderPath is the parent path, not the folder name
-      },
-    });
-
-    const newPath = currentPath ? `${currentPath}/${name}` : name;
-
-    await prisma.fileActivity.create({
-      data: {
-        fileId: file.id,
-        userId,
-        action: 'create_folder',
-        metadata: { folderPath: newPath },
-      },
-    });
-
-    return {
-      success: true,
-      payload: file,
-      timestamp: Date.now(),
-    };
-  } catch (error) {
-    console.error('[fileService] Error creating folder:', error);
-    return {
-      success: false,
-      error: { code: 'CREATE_FOLDER_FAILED', message: error.message },
-      timestamp: Date.now(),
-    };
-  }
-}
-
-export {
+export default {
   initiateUpload,
   completeUpload,
   getFileById,
   listFiles,
   updateFile,
+  softDeleteFile,
   deleteFile,
+  restoreFile,
+  permanentDeleteFile,
+  getPreviewUrl,
+  streamFile,
+  addComment,
   generatePublicLink,
   getFileByPublicToken,
   toggleStarFile,
-  softDeleteFile,
-  restoreFile,
-  permanentDeleteFile,
   createFolder,
 };

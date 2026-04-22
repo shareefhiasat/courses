@@ -5,6 +5,9 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { Input, Button } from '@ui';
 import DriveSpacesSidebar from '@components/smart-drive/DriveSpacesSidebar';
 import FileRoster from '@components/smart-drive/FileRoster';
+import InboxDrawer from '@components/smart-drive/InboxDrawer';
+import useDriveFiles from '@hooks/useDriveFiles';
+import useWorkflowTasks from '@hooks/useWorkflowTasks';
 
 export default function SmartDrivePage() {
   const { t, isRTL } = useLang();
@@ -15,9 +18,33 @@ export default function SmartDrivePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('list');
   const [sidebarMinimized, setSidebarMinimized] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth <= 768 : false
   );
+
+  // Real data hooks
+  const {
+    files: allFiles,
+    folders,
+    loading: filesLoading,
+    error: filesError,
+    refreshFiles,
+    starFile,
+    trashFile,
+    restoreFile,
+    permanentDeleteFile,
+    downloadFile,
+    shareFile,
+    createPublicLink,
+  } = useDriveFiles(activeSpace);
+
+  const {
+    tasks: workflowTasks,
+    unreadCount,
+    approveTask,
+    rejectTask,
+  } = useWorkflowTasks();
 
   useEffect(() => {
     let timeoutId;
@@ -32,39 +59,16 @@ export default function SmartDrivePage() {
     };
   }, []);
 
-  // Mock data – replace with hook-backed data later
-  const allFiles = useMemo(
-    () => [
-      { id: 1, name: 'Q1 Financial Report.pdf', owner: 'John Doe', location: 'Work Projects', mimeType: 'application/pdf', size: 2_400_000, createdAt: '2026-04-17', space: 'my-drive' },
-      { id: 2, name: 'Project Timeline.xlsx', owner: 'Jane Smith', location: 'Work Projects', mimeType: 'application/vnd.ms-excel', size: 156_000, createdAt: '2026-04-12', space: 'my-drive' },
-      { id: 3, name: 'Team Photo.jpg', owner: 'Mike Johnson', location: 'Photos 2024', mimeType: 'image/jpeg', size: 4_200_000, createdAt: '2026-04-18', space: 'shared' },
-      { id: 4, name: 'Meeting Notes.docx', owner: 'Sarah Wilson', location: 'Personal', mimeType: 'application/msword', size: 45_000, createdAt: '2026-04-16', space: 'my-drive' },
-      { id: 5, name: 'Presentation.pptx', owner: 'John Doe', location: 'Work Projects', mimeType: 'application/vnd.ms-powerpoint', size: 8_100_000, createdAt: '2026-04-14', space: 'shared' },
-      { id: 6, name: 'Budget 2024.xlsx', owner: 'Jane Smith', location: 'Work Projects', mimeType: 'application/vnd.ms-excel', size: 1_200_000, createdAt: '2026-04-18', space: 'starred' },
-      { id: 7, name: 'Intro Video.mp4', owner: 'me', location: 'Personal', mimeType: 'video/mp4', size: 32_000_000, createdAt: '2026-04-15', space: 'my-drive' },
-    ],
-    []
-  );
-
-  const folders = useMemo(
-    () => [
-      { id: 'f1', name: 'Work Projects', path: '/work' },
-      { id: 'f2', name: 'Personal', path: '/personal' },
-      { id: 'f3', name: 'Photos 2024', path: '/photos' },
-    ],
-    []
-  );
-
-  const visibleFiles = useMemo(() => {
-    if (activeSpace === 'my-drive' || activeSpace === 'recent') return allFiles;
-    return allFiles.filter((f) => f.space === activeSpace);
-  }, [allFiles, activeSpace]);
-
+  // Compute storage usage from real files
   const storageUsage = useMemo(
-    () => allFiles.reduce((sum, f) => sum + (f.size || 0), 0),
+    () => (allFiles || []).reduce((sum, f) => sum + (f.size || 0), 0),
     [allFiles]
   );
-  const storageLimit = 10 * 1024 * 1024 * 1024; // 10 GB mock
+  const storageLimit = 10 * 1024 * 1024 * 1024; // 10 GB
+
+  const visibleFiles = useMemo(() => {
+    return allFiles || [];
+  }, [allFiles]);
 
   const handleToggleSelect = (id) => {
     setSelectedIds((prev) => {
@@ -81,16 +85,30 @@ export default function SmartDrivePage() {
 
   const handleClearSelection = () => setSelectedIds(new Set());
 
-  const handleFileAction = (action, ids) => {
-    // Wire up to real services later
-    // eslint-disable-next-line no-console
-    console.log('[SmartDrive] action', action, ids);
-    if (action === 'delete') handleClearSelection();
+  const handleFileAction = async (action, ids) => {
+    const idArray = Array.from(ids);
+    if (action === 'star') {
+      await Promise.all(idArray.map((id) => starFile(id)));
+    } else if (action === 'delete' || action === 'trash') {
+      await Promise.all(idArray.map((id) => trashFile(id)));
+      handleClearSelection();
+    } else if (action === 'restore') {
+      await Promise.all(idArray.map((id) => restoreFile(id)));
+      handleClearSelection();
+    } else if (action === 'permanent-delete') {
+      await Promise.all(idArray.map((id) => permanentDeleteFile(id)));
+      handleClearSelection();
+    } else if (action === 'download' && idArray.length === 1) {
+      await downloadFile(idArray[0]);
+    } else if (action === 'new-folder') {
+      // eslint-disable-next-line no-console
+      console.log('[SmartDrive] new folder - implement modal');
+    }
   };
 
   const handleFileOpen = (file) => {
-    // eslint-disable-next-line no-console
-    console.log('[SmartDrive] open', file);
+    // Open file preview or download
+    downloadFile(file.id);
   };
 
   const handleUpload = () => {
@@ -212,6 +230,48 @@ export default function SmartDrivePage() {
               {getThemedIcon('ui', sidebarMinimized ? 'chevron_right' : 'chevron_left', 16, theme)}
             </button>
           )}
+
+          {/* Inbox/Notifications */}
+          <button
+            onClick={() => setInboxOpen(true)}
+            style={{
+              position: 'relative',
+              padding: '0.65rem',
+              background: 'var(--background-secondary, #f3f4f6)',
+              border: '1px solid var(--border, #e5e7eb)',
+              borderRadius: '0.5rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            title={t('Pending Approvals')}
+          >
+            {getThemedIcon('ui', 'bell', 20, theme)}
+            {unreadCount > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  color: 'white',
+                  fontSize: '0.625rem',
+                  fontWeight: 700,
+                  borderRadius: '999px',
+                  minWidth: '18px',
+                  height: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 4px',
+                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.4)',
+                }}
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
 
           {/* Action buttons */}
           <button
@@ -369,6 +429,15 @@ export default function SmartDrivePage() {
           />
         </main>
       </div>
+
+      {/* Inbox Drawer */}
+      <InboxDrawer
+        isOpen={inboxOpen}
+        onClose={() => setInboxOpen(false)}
+        tasks={workflowTasks}
+        onApprove={approveTask}
+        onReject={rejectTask}
+      />
     </div>
   );
 }

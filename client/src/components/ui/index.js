@@ -110,7 +110,7 @@ export { default as Stack } from './Stack';
 export { default as ErrorBoundary } from './ErrorBoundary';
 export { default as HelpDrawer } from './HelpDrawer';
 export { default as SideDrawer } from './SideDrawer';
-export { default as Navbar } from './Navbar';
+// Navbar removed to avoid circular dependency - import directly from './Navbar/Navbar'
 export { default as RankDisplay } from './RankDisplay';
 export { default as VariableHelper } from './VariableHelper';
 export { default as StudentQRCodeDisplay } from './StudentQRCodeDisplay';

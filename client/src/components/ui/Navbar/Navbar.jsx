@@ -1,21 +1,22 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
-import { NotificationBell } from '@ui';
+import NotificationBell from '../NotificationBell/NotificationBell';
 import { useLang } from '@contexts/LangContext';
 import { getUsers, updateUser, getUserDisplayName, getUserById } from '@services/business/userService';
 import { getAllUserImages } from '@services/business/userImageService';
 import './Navbar.css';
 import { getThemedIcon, getWhiteIcon, getIconWithColor } from '@constants/iconTypes';
-import { LanguageSwitcher } from '../index';
+import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
 import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
+import { useGlobalLoading } from '@contexts/GlobalLoadingContext';
+import { useHelp } from '@contexts/HelpContext';
 import { getTimeFormatPreference, setTimeFormatPreference } from '@utils/date';
 import { adjustColor, hexToRgbString, normalizeHexColor, DEFAULT_ACCENT } from '@utils/color';
-import { Select } from '@ui';
+import Select from '../Select/Select';
 import DraggableClock from '../DraggableClock/DraggableClock';
-import PortalTooltip from '@ui/PortalTooltip';
-
+import PortalTooltip from '../PortalTooltip/PortalTooltip';
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const ACCENT_FALLBACK = DEFAULT_ACCENT;
 
@@ -160,13 +161,8 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
         email: user.email,
         notifLang: notifLang || 'auto',
       };
-      await setDoc(doc(db, 'users', user.uid), dataToSave, { merge: true });
-      try {
-        const auth = getAuth();
-        if (auth.currentUser) {
-          await updateProfile(auth.currentUser, { displayName });
-        }
-      } catch {}
+      // Save via API - Firebase removed
+      await updateUser(user.uid, dataToSave);
       setTimeFormatPreference(timeFormat);
       setShowProfile(false);
     } catch (err) {

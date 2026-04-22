@@ -11,6 +11,7 @@ import {
 } from '@services/business/notificationService';
 import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 import { 
   NOTIFICATION_TYPES, 
   NOTIFICATION_STATUS,
@@ -23,19 +24,23 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { formatDateTime } from '@utils/date';
-import { Button, Input, Select, Badge, ToggleSwitch } from '@ui';
+import Button from './Button';
+import Input from './Input';
+import Select from './Select';
+import Badge from './Badge';
+import ToggleSwitch from './ToggleSwitch';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
 // OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
 // NOW: Using useLookupTypes hook for all lookup data
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
-import PortalTooltip from '@ui/PortalTooltip';
+import PortalTooltip from './PortalTooltip/PortalTooltip';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { ActivityLogger } from '@services/other/activityLogger';
 import useNotifications from '@hooks/useNotifications';
 
 
-import { info, error, warn, debug } from '@services/utils/logger.js';const NotificationDrawer = ({ isOpen, onClose }) => {
+const NotificationDrawer = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();

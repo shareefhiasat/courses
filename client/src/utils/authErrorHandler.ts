@@ -1,9 +1,9 @@
 // Auth error handling utility
-import { signOut } from 'firebase/auth';
-import { auth } from '@services/other/config';
+// Firebase auth replaced with Keycloak
 
+import { info, warn } from '@services/utils/logger.js';
 
-import { info, error, warn, debug } from '@services/utils/logger.js';export class AuthErrorHandler {
+export class AuthErrorHandler {
   private static retryCount = 0;
   private static maxRetries = 3;
   private static retryDelay = 1000; // 1 second
@@ -20,25 +20,17 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export clas
         // Wait before retry
         await new Promise(resolve => setTimeout(resolve, this.retryDelay));
         
-        // Try to refresh the token
-        try {
-          const currentUser = auth.currentUser;
-          if (currentUser) {
-            await currentUser.getIdTokenResult(true);
-            info('[AuthErrorHandler] Token refreshed successfully');
-            this.retryCount = 0; // Reset on success
-            return true; // Retry should succeed
-          }
-        } catch (refreshError) {
-          error('[AuthErrorHandler] Failed to refresh token:', refreshError);
-        }
+        // Token refresh handled by Keycloak adapter
+        info('[AuthErrorHandler] Keycloak will handle token refresh automatically');
+        this.retryCount = 0; // Reset on success
+        return true; // Retry should succeed
       } else {
-        error('[AuthErrorHandler] Max retries reached, signing out');
+        error('[AuthErrorHandler] Max retries reached');
         this.retryCount = 0;
         
-        // Only sign out if this is a critical auth failure
+        // Redirect to login handled by Keycloak
         if (context === 'auth-state-change') {
-          await signOut(auth);
+          window.location.href = '/';
           return false;
         }
       }
