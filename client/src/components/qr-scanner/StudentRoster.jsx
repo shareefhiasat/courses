@@ -1644,19 +1644,8 @@ const StudentRoster = React.memo(function StudentRoster({
               {students
                 .filter(student => !showFavoritesOnly || favoriteStudents.includes(student.id))
                 .map((student) => {
-                  console.log('🔍 [DEBUG] StudentRoster - Full student object:', student);
-                  console.log('🔍 [DEBUG] StudentRoster - attendanceStats:', student.attendanceStats);
                   const attentionScore = calculateAttentionScore(student.attendanceStats || {}, effectiveAttendanceMode);
-                  console.log('🔍 [DEBUG] StudentRoster - Processing student:', {
-                    studentId: student.id,
-                    studentName: student.name,
-                    attendanceStats: student.attendanceStats,
-                    effectiveAttendanceMode,
-                    attentionScore,
-                    highlightEnabled
-                  });
                   const rowHighlightStyle = getRowHighlightStyle(attentionScore, highlightEnabled);
-                  console.log('🔍 [DEBUG] StudentRoster - Row highlight style:', rowHighlightStyle);
                   return (
                   <StudentTableRow
                     key={student.id}

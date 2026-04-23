@@ -22,26 +22,11 @@ import {
  * @returns {number} Attention score
  */
 export const calculateAttentionScore = (student, attendanceMode) => {
-  console.log('🔍 [DEBUG] calculateAttentionScore called:', {
-    student,
-    attendanceMode,
-    hasStudent: !!student
-  });
-
-  if (!student) {
-    console.log('🔍 [DEBUG] calculateAttentionScore: student is null/undefined');
-    return 0;
-  }
+  if (!student) return 0;
 
   if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
     // Standup mode: count only STANDUP_ABSENT
-    const score = student.absentNoExcuse || student.absent || 0;
-    console.log('🔍 [DEBUG] calculateAttentionScore (standup mode):', {
-      absentNoExcuse: student.absentNoExcuse,
-      absent: student.absent,
-      score
-    });
-    return score;
+    return student.absentNoExcuse || student.absent || 0;
   }
 
   // Regular mode: count absent + absent excused + human case (exclude late and excused leave)
@@ -50,15 +35,6 @@ export const calculateAttentionScore = (student, attendanceMode) => {
     (student.absentNoExcuse || student.absent || 0) +
     (student.absentWithExcuse || student.absentExcused || 0) +
     (student.humanCase || 0);
-
-  console.log('🔍 [DEBUG] calculateAttentionScore (regular mode):', {
-    absentNoExcuse: student.absentNoExcuse,
-    absent: student.absent,
-    absentWithExcuse: student.absentWithExcuse,
-    absentExcused: student.absentExcused,
-    humanCase: student.humanCase,
-    score
-  });
 
   return score;
 };
@@ -70,24 +46,15 @@ export const calculateAttentionScore = (student, attendanceMode) => {
  * @returns {string|null} Color hex code or null if no highlight needed
  */
 export const getHighlightColor = (count) => {
-  console.log('🔍 [DEBUG] getHighlightColor called:', {
-    count,
-    thresholds: ATTENDANCE_HIGHLIGHT_THRESHOLDS
-  });
-
   if (count >= ATTENDANCE_HIGHLIGHT_THRESHOLDS.RED_MIN) {
-    console.log('🔍 [DEBUG] getHighlightColor: returning RED');
     return ATTENDANCE_HIGHLIGHT_COLORS.RED;
   }
   if (count >= ATTENDANCE_HIGHLIGHT_THRESHOLDS.ORANGE_MIN && count <= ATTENDANCE_HIGHLIGHT_THRESHOLDS.ORANGE_MAX) {
-    console.log('🔍 [DEBUG] getHighlightColor: returning ORANGE');
     return ATTENDANCE_HIGHLIGHT_COLORS.ORANGE;
   }
   if (count >= ATTENDANCE_HIGHLIGHT_THRESHOLDS.YELLOW_MIN && count <= ATTENDANCE_HIGHLIGHT_THRESHOLDS.YELLOW_MAX) {
-    console.log('🔍 [DEBUG] getHighlightColor: returning YELLOW');
     return ATTENDANCE_HIGHLIGHT_COLORS.YELLOW;
   }
-  console.log('🔍 [DEBUG] getHighlightColor: returning null (no highlight)');
   return null;
 };
 
@@ -118,22 +85,12 @@ export const getHighlightClass = (count) => {
  * @returns {Object} Style object with backgroundColor or empty object
  */
 export const getRowHighlightStyle = (count, isEnabled) => {
-  console.log('🔍 [DEBUG] getRowHighlightStyle called:', {
-    count,
-    isEnabled
-  });
-
-  if (!isEnabled) {
-    console.log('🔍 [DEBUG] getRowHighlightStyle: highlighting disabled, returning empty style');
-    return {};
-  }
+  if (!isEnabled) return {};
 
   const color = getHighlightColor(count);
   if (color) {
-    console.log('🔍 [DEBUG] getRowHighlightStyle: returning style with backgroundColor:', color);
     return { backgroundColor: color };
   }
-  console.log('🔍 [DEBUG] getRowHighlightStyle: no color returned, returning empty style');
   return {};
 };
 

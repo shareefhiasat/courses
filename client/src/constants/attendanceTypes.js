@@ -86,15 +86,6 @@ export const ATTENDANCE_ICONS = {
   [ATTENDANCE_STATUS.STANDUP_CLINIC]: 'Heart'
 };
 
-// Attendance Rules
-export const ATTENDANCE_RULES = {
-  LATE_THRESHOLD_MINUTES: 15, // Minutes after which arrival is considered late
-  ABSENCE_THRESHOLD_PERCENTAGE: 20, // Percentage threshold for failure
-  MINIMUM_ATTENDANCE_PERCENTAGE: 80, // Minimum required attendance
-  MAX_LATE_COUNT: 3, // Maximum number of lates before converting to absence
-  EXCUSED_ABSENCE_LIMIT: 5 // Maximum number of excused absences per term
-};
-
 // Attendance Type Categories (for components that expect it)
 export const ATTENDANCE_TYPE_CATEGORY = {
   REGULAR: 'regular',
@@ -151,52 +142,6 @@ export const getAttendanceIcon = (status) => {
 // Add missing getAttendanceLabel function (alias for getAttendanceDisplayName)
 export const getAttendanceLabel = getAttendanceDisplayName;
 
-export const isLate = (checkInTime, scheduledTime) => {
-  const threshold = ATTENDANCE_RULES.LATE_THRESHOLD_MINUTES * 60 * 1000; // Convert to milliseconds
-  return (checkInTime - scheduledTime) > threshold;
-};
-
-export const calculateAttendancePercentage = (presentDays, totalDays) => {
-  if (totalDays === 0) return 0;
-  return Math.round((presentDays / totalDays) * 100);
-};
-
-export const isAttendanceSufficient = (percentage) => {
-  return percentage >= ATTENDANCE_RULES.MINIMUM_ATTENDANCE_PERCENTAGE;
-};
-
-export const shouldFailDueToAttendance = (absentDays, totalDays) => {
-  const absencePercentage = calculateAttendancePercentage(totalDays - absentDays, totalDays);
-  return absencePercentage < (100 - ATTENDANCE_RULES.ABSENCE_THRESHOLD_PERCENTAGE);
-};
-
-export const getAttendanceSummary = (records) => {
-  const summary = {
-    total: records.length,
-    present: 0,
-    absent: 0,
-    late: 0,
-    excused: 0,
-    sick: 0,
-    holiday: 0,
-    cancelled: 0,
-    percentage: 0,
-    isSufficient: false,
-    shouldFail: false
-  };
-  
-  records.forEach(record => {
-    summary[record.status] = (summary[record.status] || 0) + 1;
-  });
-  
-  summary.present = summary.present || 0;
-  summary.percentage = calculateAttendancePercentage(summary.present, summary.total);
-  summary.isSufficient = isAttendanceSufficient(summary.percentage);
-  summary.shouldFail = shouldFailDueToAttendance(summary.absent, summary.total);
-  
-  return summary;
-};
-
 export const isValidAttendanceStatus = (status) => {
   return Object.values(ATTENDANCE_STATUS).includes(status);
 };
@@ -246,7 +191,6 @@ export default {
   ATTENDANCE_STATUS_LABELS,
   ATTENDANCE_COLORS,
   ATTENDANCE_ICONS,
-  ATTENDANCE_RULES,
   ATTENDANCE_TYPE_CATEGORY,
   ATTENDANCE_TYPES,
   STANDUP_ATTENDANCE_TYPES,
@@ -255,11 +199,6 @@ export default {
   getAttendanceIcon,
   getAttendanceLabel,
   getLocalizedAttendanceLabel,
-  isLate,
-  calculateAttendancePercentage,
-  isAttendanceSufficient,
-  shouldFailDueToAttendance,
-  getAttendanceSummary,
   isValidAttendanceStatus,
   isValidAttendanceMethod
 };
