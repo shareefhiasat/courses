@@ -101,6 +101,22 @@ export const ATTENDANCE_TYPE_CATEGORY = {
   STANDUP: 'standup'
 };
 
+// Row Highlighting Thresholds
+export const ATTENDANCE_HIGHLIGHT_THRESHOLDS = {
+  YELLOW_MIN: 4,
+  YELLOW_MAX: 5,
+  ORANGE_MIN: 6,
+  ORANGE_MAX: 7,
+  RED_MIN: 8,
+};
+
+// Row Highlighting Colors
+export const ATTENDANCE_HIGHLIGHT_COLORS = {
+  YELLOW: '#fef08a', // Light yellow background
+  ORANGE: '#fed7aa', // Light orange background
+  RED: '#fecaca',    // Light red background
+};
+
 // Attendance Types (for components that expect it) - Updated to match new status constants
 export const ATTENDANCE_TYPES = {
   PRESENT: 'PRESENT',

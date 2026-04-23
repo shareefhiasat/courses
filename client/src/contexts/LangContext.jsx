@@ -893,6 +893,10 @@ const DICT = {
     'human_case_deduction': 'Human Case Deduction (×0.25)',
     'total_mark_deduction': 'Total Mark Deduction',
     
+    // Row highlighting feature
+    'highlight_attention_rows': 'Highlight Attention',
+    'highlight_disabled': 'Highlighting disabled',
+    
     // Enhanced Semester Report translations
     'please_select_class_or_program': 'Please select a class or program first',
     'class_level_report': 'Class Level Report',
@@ -4836,6 +4840,10 @@ const DICT = {
     'excused_leave_deduction': 'خصم الاستئذان (×0.25)',
     'human_case_deduction': 'خصم الحالة (×0.25)',
     'total_mark_deduction': 'إجمالي الخصم',
+    
+    // Row highlighting feature
+    'highlight_attention_rows': 'تمييز الانتباه',
+    'highlight_disabled': 'التمييز معطل',
     
     // Enhanced Semester Report translations (Arabic)
     'please_select_class_or_program': 'يرجى اختيار فصل أو برنامج أولاً',

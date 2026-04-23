@@ -9,6 +9,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 import PortalTooltip from '@ui/PortalTooltip';
 import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
+import { calculateAttentionScore, getRowHighlightStyle } from '@utils/attendanceHighlight.js';
 import { getNoteTypeFromStatus } from '@constants/noteTypes';
 import { getAttendanceByStudent, rosterQuickAction, deleteAttendance, getStudentAttendanceByDate, markAttendance } from '@services/business/attendanceServiceUnified.js';
 import { getPenalties, getPenaltiesByStudent, deletePenalty } from '@services/business/penaltyService';
@@ -54,6 +55,8 @@ const StudentRoster = React.memo(function StudentRoster({
   selectedClassId,
   selectedDate,
   attendanceMode = 'regular',
+  highlightEnabled = true,
+  onHighlightToggle = null,
   showSuccess = (msg) => console.log('SUCCESS:', msg)
 }) {
   const {user} = useAuth();
@@ -1196,6 +1199,27 @@ const StudentRoster = React.memo(function StudentRoster({
               style={{ [isRTL ? 'paddingRight' : 'paddingLeft']: '2.5rem', width: '100%' }}
             />
           </div>
+          {/* Compact highlight toggle */}
+          <PortalTooltip content={highlightEnabled ? t('highlight_attention_rows') : (t('highlight_disabled') || 'Highlighting disabled')} position="top">
+            <button
+              onClick={() => onHighlightToggle?.(!highlightEnabled)}
+              style={{
+                padding: '0.5rem',
+                background: highlightEnabled ? 'var(--color-primary, #8b5cf6)' : 'transparent',
+                color: highlightEnabled ? 'white' : 'var(--text-muted, #6b7280)',
+                border: '1px solid var(--border, #e5e7eb)',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s'
+              }}
+              title={highlightEnabled ? t('highlight_attention_rows') : (t('highlight_disabled') || 'Highlighting disabled')}
+            >
+              {getThemedIcon('ui', 'alert', 16, highlightEnabled ? 'white' : theme)}
+            </button>
+          </PortalTooltip>
           {!isMobile && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               {/* <Button variant="ghost" size="icon" onClick={onFilter}>
@@ -1619,7 +1643,21 @@ const StudentRoster = React.memo(function StudentRoster({
             <tbody>
               {students
                 .filter(student => !showFavoritesOnly || favoriteStudents.includes(student.id))
-                .map((student) => (
+                .map((student) => {
+                  console.log('🔍 [DEBUG] StudentRoster - Full student object:', student);
+                  console.log('🔍 [DEBUG] StudentRoster - attendanceStats:', student.attendanceStats);
+                  const attentionScore = calculateAttentionScore(student.attendanceStats || {}, effectiveAttendanceMode);
+                  console.log('🔍 [DEBUG] StudentRoster - Processing student:', {
+                    studentId: student.id,
+                    studentName: student.name,
+                    attendanceStats: student.attendanceStats,
+                    effectiveAttendanceMode,
+                    attentionScore,
+                    highlightEnabled
+                  });
+                  const rowHighlightStyle = getRowHighlightStyle(attentionScore, highlightEnabled);
+                  console.log('🔍 [DEBUG] StudentRoster - Row highlight style:', rowHighlightStyle);
+                  return (
                   <StudentTableRow
                     key={student.id}
                     student={student}
@@ -1661,8 +1699,9 @@ const StudentRoster = React.memo(function StudentRoster({
                     lang={lang}
                     historyLoading={historyLoading}
                     theme={theme}
+                    rowHighlightStyle={rowHighlightStyle}
                   />
-                ))}
+                )})}
             </tbody>
             {/* Footer Row with Sums */}
             <tfoot>

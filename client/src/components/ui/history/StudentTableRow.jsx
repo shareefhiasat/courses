@@ -55,7 +55,8 @@ const StudentTableRow = ({
   historyLoading = {},
   todayAttendanceOverrides = {},
   attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR,
-  theme = 'light'
+  theme = 'light',
+  rowHighlightStyle = {}
 }) => {
   const navigate = useNavigate();
   const { t, lang } = useLang();
@@ -240,7 +241,8 @@ const StudentTableRow = ({
           borderBottom: '1px solid var(--border, #e5e7eb)',
           background: selectedStudentId === student.id ? 'var(--panel-hover, #eff6ff)' : 'transparent',
           cursor: 'pointer',
-          transition: 'background-color 0.15s'
+          transition: 'background-color 0.15s',
+          ...rowHighlightStyle
         }}
         onMouseEnter={(e) => {
           if (selectedStudentId !== student.id) {
@@ -249,7 +251,12 @@ const StudentTableRow = ({
         }}
         onMouseLeave={(e) => {
           if (selectedStudentId !== student.id) {
-            e.currentTarget.style.background = 'transparent';
+            // Revert to highlight style if applicable, otherwise transparent
+            if (rowHighlightStyle.backgroundColor) {
+              e.currentTarget.style.background = rowHighlightStyle.backgroundColor;
+            } else {
+              e.currentTarget.style.background = 'transparent';
+            }
           }
         }}
       >

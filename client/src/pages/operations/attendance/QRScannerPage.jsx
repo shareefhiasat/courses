@@ -30,6 +30,7 @@ import { getPerformedByFields } from '@services/business/userService';
 // OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ATTENDANCE_METHODS, getAttendanceMethodLabel } from '@constants/attendanceMethods';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
+import { calculateAttentionScore, getRowHighlightStyle } from '@utils/attendanceHighlight.js';
 import { ABSENCE_THRESHOLDS } from '@/constants/absenceTypes';
 import { getNoteTypeFromStatus, getLocalizedNoteText } from '@constants/noteTypes';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
@@ -159,6 +160,23 @@ const QRScannerPage = () => {
     return qatarNow.toISOString().split('T')[0]; // Format as yyyy-MM-dd
   });
   const [attendanceMode, setAttendanceMode] = useState(ATTENDANCE_TYPE_CATEGORY.REGULAR); // 'regular' or 'standup'
+  const [highlightEnabled, setHighlightEnabled] = useState(() => {
+    try {
+      const saved = localStorage.getItem('qrScanner_highlightEnabled');
+      return saved !== null ? JSON.parse(saved) : true; // Default on
+    } catch {
+      return true;
+    }
+  });
+
+  // Persist highlight preference to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('qrScanner_highlightEnabled', JSON.stringify(highlightEnabled));
+    } catch (error) {
+      console.error('Failed to save highlight preference:', error);
+    }
+  }, [highlightEnabled]);
 
   // DEBUG: Track attendanceMode changes
   useEffect(() => {
@@ -4266,6 +4284,8 @@ const QRScannerPage = () => {
               selectedClassId={selectedClassId}
               selectedDate={selectedDate}
               attendanceMode={attendanceMode}
+              highlightEnabled={highlightEnabled}
+              onHighlightToggle={setHighlightEnabled}
               autoExpand={isScannerMinimized}
               showSuccess={showSuccess}
             />
