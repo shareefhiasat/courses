@@ -2763,10 +2763,10 @@ const QRScannerPage = () => {
         // Only add mark deductions for regular mode (not standup)
         if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP) {
           const absentNoExcuseDeduction = stats.absentNoExcuse * 0.5;
-          const lateDeduction = stats.late * 0.25;
-          const absentWithExcuseDeduction = stats.absentWithExcuse * 0.25;
-          const excusedLeaveDeduction = stats.excusedLeave * 0.25;
-          const humanCaseDeduction = stats.humanCase * 0.25;
+          const lateDeduction = stats.late * 0.5;
+          const absentWithExcuseDeduction = stats.absentWithExcuse * 0.5;
+          const excusedLeaveDeduction = stats.excusedLeave * 0.5;
+          const humanCaseDeduction = stats.humanCase * 0.5;
           const totalDeduction = absentNoExcuseDeduction + lateDeduction + absentWithExcuseDeduction + excusedLeaveDeduction + humanCaseDeduction;
           
           return {
@@ -2859,9 +2859,9 @@ const QRScannerPage = () => {
           headers.push(
             t('absent_no_excuse_deduction') || 'خصم الغياب بدون عذر (×0.5)',
             t('late_deduction') || 'خصم التأخر (×0.5)',
-            t('absent_with_excuse_deduction') || 'خصم الغياب مع عذر (×0.25)',
-            t('excused_leave_deduction') || 'خصم الاستئذان (×0.25)',
-            t('human_case_deduction') || 'خصم الحالة (×0.25)',
+            t('absent_with_excuse_deduction') || 'خصم الغياب مع عذر (×0.5)',
+            t('excused_leave_deduction') || 'خصم الاستئذان (×0.5)',
+            t('human_case_deduction') || 'خصم الحالة (×0.5)',
             t('total_mark_deduction') || 'إجمالي الخصم',
             t('grade') || 'الدرجة',
             t('attendance_failure') || 'فشل الحضور'
@@ -2870,9 +2870,9 @@ const QRScannerPage = () => {
           headers.push(
             t('absent_no_excuse_deduction') || 'Absent No Excuse Deduction (×0.5)',
             t('late_deduction') || 'Late Deduction (×0.5)',
-            t('absent_with_excuse_deduction') || 'Absent With Excuse Deduction (×0.25)',
-            t('excused_leave_deduction') || 'Excused Leave Deduction (×0.25)',
-            t('human_case_deduction') || 'Human Case Deduction (×0.25)',
+            t('absent_with_excuse_deduction') || 'Absent With Excuse Deduction (×0.5)',
+            t('excused_leave_deduction') || 'Excused Leave Deduction (×0.5)',
+            t('human_case_deduction') || 'Human Case Deduction (×0.5)',
             t('total_mark_deduction') || 'Total Mark Deduction',
             t('grade') || 'Grade',
             t('attendance_failure') || 'Attendance Failure'
@@ -2924,10 +2924,10 @@ const QRScannerPage = () => {
             const absent = subjectData.absentNoExcuse + subjectData.absentWithExcuse + subjectData.humanCase;
             const deduction = (
               (subjectData.absentNoExcuse * 0.5) +
-              (subjectData.late * 0.25) +
-              (subjectData.absentWithExcuse * 0.25) +
-              (subjectData.humanCase * 0.25) +
-              (subjectData.excusedLeave * 0.25)
+              (subjectData.late * 0.5) +
+              (subjectData.absentWithExcuse * 0.5) +
+              (subjectData.humanCase * 0.5) +
+              (subjectData.excusedLeave * 0.5)
             ).toFixed(2);
 
             // Calculate per-subject attendance percentage (present + late count as present)

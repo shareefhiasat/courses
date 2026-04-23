@@ -91,9 +91,9 @@ const exportSemesterReport = useCallback(async () => {
         : '0.00';
       
       // Calculate mark deductions
-      const absentDeduction = stats.absent * 1.0;
+      const absentDeduction = stats.absent * 0.5;
       const excusedDeduction = stats.absenceExcused * 0.5;
-      const humanCaseDeduction = stats.humanCase * 0.25;
+      const humanCaseDeduction = stats.humanCase * 0.5;
       const totalDeduction = absentDeduction + excusedDeduction + humanCaseDeduction;
       
       return {
@@ -142,9 +142,9 @@ const exportSemesterReport = useCallback(async () => {
       t('absence_excused') || 'غياب معذور',
       t('total_sessions') || 'إجمالي الجلسات',
       t('attendance_percentage') || 'نسبة الحضور',
-      t('absent_deduction') || 'خصم الغياب (1.0)',
-      t('excused_deduction') || 'خصم المعذور (0.5)',
-      t('human_case_deduction') || 'خصم الحالة (0.25)',
+      t('absent_deduction') || 'خصم الغياب (×0.5)',
+      t('excused_deduction') || 'خصم المعذور (×0.5)',
+      t('human_case_deduction') || 'خصم الحالة (×0.5)',
       t('total_mark_deduction') || 'إجمالي الخصم'
     ] : [
       '#',
@@ -157,9 +157,9 @@ const exportSemesterReport = useCallback(async () => {
       t('absence_excused') || 'Absence Excused',
       t('total_sessions') || 'Total Sessions',
       t('attendance_percentage') || 'Attendance %',
-      t('absent_deduction') || 'Absent Deduction (×1.0)',
+      t('absent_deduction') || 'Absent Deduction (×0.5)',
       t('excused_deduction') || 'Excused Deduction (×0.5)',
-      t('human_case_deduction') || 'Human Case Deduction (×0.25)',
+      t('human_case_deduction') || 'Human Case Deduction (×0.5)',
       t('total_mark_deduction') || 'Total Mark Deduction'
     ];
 
