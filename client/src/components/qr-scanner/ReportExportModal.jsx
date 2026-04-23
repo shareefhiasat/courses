@@ -87,9 +87,12 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
             </h2>
           </div>
 
-          <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem', fontWeight: 600 }}>
-            {t('export_preferences') || 'Export Preferences'}
-          </h3>
+          
+          {isSummaryReport && (
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem', fontWeight: 600 }}>
+              {t('export_preferences') || 'Export Preferences'}
+            </h3>
+          )}
           
           {isSummaryReport && (
             <SubjectSelection

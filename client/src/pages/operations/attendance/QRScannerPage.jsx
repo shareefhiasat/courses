@@ -35,6 +35,7 @@ import { getNoteTypeFromStatus, getLocalizedNoteText } from '@constants/noteType
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { exportDailyReport as exportDailyReportExcel, exportSummaryReport as exportSummaryReportExcel, exportAttendanceViolationsReport } from '@services/export/excelExportService.js';
 import { useToast } from '@ui/ToastProvider.jsx';
+import ConfirmModal from '@ui/Modal/ConfirmModal.jsx';
 import { addNotification } from '@services/business/notificationService';
 import { sendStudentNotification } from '@services/business/notificationService';
 // OLD: import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
@@ -75,9 +76,9 @@ const QRScannerPage = () => {
   const canSeeQuickButtons = hasPermission('qr-scanner.canSeeQuickButtons');
   const canUseStatsPanel = hasPermission('qr-scanner.canUseStatsPanel');
   const canUseZapPanel = hasPermission('qr-scanner.canUseZapPanel');
-  const showSuccess = useMemo(() => toast?.showSuccess || ((msg) => console.log('SUCCESS:', msg)), [toast]);
-  const showError = useMemo(() => toast?.showError || ((msg) => console.log('ERROR:', msg)), [toast]);
-  const showInfo = useMemo(() => toast?.showInfo || ((msg) => console.log('INFO:', msg)), [toast]);
+  const showSuccess = useMemo(() => (msg) => toast?.showSuccess?.(msg), [toast]);
+  const showError = useMemo(() => (msg) => toast?.showError?.(msg), [toast]);
+  const showInfo = useMemo(() => (msg) => toast?.showInfo?.(msg), [toast]);
   const { startLoading } = useGlobalLoading();
 
   const saveSelectedProgramId = useCallback((programId) => {
@@ -225,6 +226,7 @@ const QRScannerPage = () => {
   // Report export modal state (unified for both daily and summary)
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
   const [showSemesterReportConfirm, setShowSemesterReportConfirm] = useState(false);
+  const [showNoAttendanceModal, setShowNoAttendanceModal] = useState(false);
   const [exportFormat, setExportFormat] = useState('csv'); // 'csv', 'email'
   const [dailyExportFormat, setDailyExportFormat] = useState('csv'); // For daily report
   const [isExporting, setIsExporting] = useState(false);
@@ -1844,7 +1846,11 @@ const QRScannerPage = () => {
       
       // If no data found, try alternative methods
       if (attendanceData.length === 0) {
-        console.log('🔍 Export Debug - No attendance data found, trying alternative methods...');
+        const message = t('no_attendance_records_found') || 
+          (lang === 'ar' 
+            ? 'لا توجد سجلات حضور لهذا التاريخ. يرجى تسجيل الحضور أولاً.'
+            : 'No attendance records found for this date. Please mark attendance first.');
+        showError(message);
         
         // Skip alternative method for now since getAttendanceByDate is not available
         console.log('🔍 Export Debug - Skipping alternative method (getAttendanceByDate not available)');
@@ -3951,6 +3957,14 @@ const QRScannerPage = () => {
                           return;
                         }
                       }
+                      
+                      // Check if there's any attendance for today's date before opening dialog
+                      const hasAttendanceToday = students.some(student => student.attendance !== null && student.attendance !== undefined);
+                      if (!hasAttendanceToday) {
+                        setShowNoAttendanceModal(true);
+                        return;
+                      }
+                      
                       setShowDailyReportModal(true);
                     }}
                     style={{
@@ -3982,6 +3996,14 @@ const QRScannerPage = () => {
                   <button
                     onClick={() => {
                       console.log('🔍 Summary Report button clicked');
+                      
+                      // Check if there's any attendance for today's date before opening dialog
+                      const hasAttendanceToday = students.some(student => student.attendance !== null && student.attendance !== undefined);
+                      if (!hasAttendanceToday) {
+                        setShowNoAttendanceModal(true);
+                        return;
+                      }
+                      
                       setShowSemesterReportConfirm(true);
                     }}
                     style={{
@@ -4014,6 +4036,14 @@ const QRScannerPage = () => {
                   <button
                     onClick={() => {
                       console.log('🔍 Attendance Violations button clicked');
+                      
+                      // Check if there's any attendance for today's date before opening dialog
+                      const hasAttendanceToday = students.some(student => student.attendance !== null && student.attendance !== undefined);
+                      if (!hasAttendanceToday) {
+                        setShowNoAttendanceModal(true);
+                        return;
+                      }
+                      
                       setShowAttendanceViolationsModal(true);
                     }}
                     style={{
@@ -4612,6 +4642,19 @@ const QRScannerPage = () => {
           t={t}
           theme={theme}
           lang={lang}
+        />
+
+        {/* No Attendance Warning Modal */}
+        <ConfirmModal
+          isOpen={showNoAttendanceModal}
+          onClose={() => setShowNoAttendanceModal(false)}
+          onConfirm={() => setShowNoAttendanceModal(false)}
+          title={t('note') || 'Note'}
+          message={lang === 'ar' 
+            ? 'لا توجد سجلات حضور لهذا التاريخ. يرجى تسجيل الحضور أولاً.'
+            : 'No attendance records found for this date. Please mark attendance first.'}
+          confirmText={t('ok') || 'OK'}
+          variant="primary"
         />
 
         {/* Success Confirmation Modal */}

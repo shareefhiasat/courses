@@ -366,10 +366,14 @@ const StudentRoster = React.memo(function StudentRoster({
           students.forEach(student => {
             fetchStudentHistory(student.id);
           });
-          eventBus.emit(EVENTS.ATTENDANCE_MARKED,
-              {studentId: deleteLogId.split('_')[1]});
-          eventBus.emit(EVENTS.ATTENDANCE_DELETED,
-              {studentId: deleteLogId.split('_')[1]});
+          // Extract studentId from logId if it's in string format (e.g., "attendance_91")
+          const studentId = typeof deleteLogId === 'string' ? deleteLogId.split('_')[1] : null;
+          eventBus.emit(EVENTS.ATTENDANCE_MARKED, {studentId});
+          eventBus.emit(EVENTS.ATTENDANCE_DELETED, {studentId});
+          // Refresh students list to update totals
+          if (onRefresh) {
+            onRefresh();
+          }
         }
       } else if (deleteType === RECORD_TYPES.PENALTY) {
         result = await deletePenalty(deleteLogId);
@@ -378,8 +382,13 @@ const StudentRoster = React.memo(function StudentRoster({
           students.forEach(student => {
             fetchStudentHistory(student.id);
           });
-          eventBus.emit(EVENTS.PENALTY_ASSIGNED,
-              {studentId: deleteLogId.split('_')[1]});
+          // Extract studentId from logId if it's in string format (e.g., "penalty_91")
+          const studentId = typeof deleteLogId === 'string' ? deleteLogId.split('_')[1] : null;
+          eventBus.emit(EVENTS.PENALTY_ASSIGNED, {studentId});
+          // Refresh students list to update totals
+          if (onRefresh) {
+            onRefresh();
+          }
         }
       } else if (deleteType === RECORD_TYPES.PARTICIPATION) {
         result = await deleteParticipation(deleteLogId);
@@ -388,8 +397,13 @@ const StudentRoster = React.memo(function StudentRoster({
           students.forEach(student => {
             fetchStudentHistory(student.id);
           });
-          eventBus.emit(EVENTS.PARTICIPATION_ADDED,
-              {studentId: deleteLogId.split('_')[1], status: 'deleted'});
+          // Extract studentId from logId if it's in string format (e.g., "participation_91")
+          const studentId = typeof deleteLogId === 'string' ? deleteLogId.split('_')[1] : null;
+          eventBus.emit(EVENTS.PARTICIPATION_ADDED, {studentId, status: 'deleted'});
+          // Refresh students list to update totals
+          if (onRefresh) {
+            onRefresh();
+          }
         }
       } else if (deleteType === RECORD_TYPES.BEHAVIOR) {
         result = await deleteBehavior(deleteLogId);
@@ -397,12 +411,17 @@ const StudentRoster = React.memo(function StudentRoster({
           students.forEach(student => {
             fetchStudentHistory(student.id);
           });
-          eventBus.emit(EVENTS.BEHAVIOR_LOGGED,
-              {studentId: deleteLogId.split('_')[1], status: 'deleted'});
+          // Extract studentId from logId if it's in string format (e.g., "behavior_91")
+          const studentId = typeof deleteLogId === 'string' ? deleteLogId.split('_')[1] : null;
+          eventBus.emit(EVENTS.BEHAVIOR_LOGGED, {studentId, status: 'deleted'});
+          // Refresh students list to update totals
+          if (onRefresh) {
+            onRefresh();
+          }
         }
       }
-    } catch (error) {
-      error(`Error deleting ${deleteType}:`, error);
+    } catch (err) {
+      error(`Error deleting ${deleteType}:`, err);
     } finally {
       setDeleteLoading(false);
       setDeleteModalOpen(false);
