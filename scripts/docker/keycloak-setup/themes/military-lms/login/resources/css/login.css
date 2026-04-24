@@ -1,0 +1,252 @@
+/*
+ * Military LMS Professional Login Theme
+ * Maroon Color Scheme with Bilingual Support
+ */
+
+/* ===== PAGE BACKGROUND - White ===== */
+body,
+.login-pf-page {
+    background: #ffffff !important;
+    min-height: 100vh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    margin: 0 !important;
+    padding: 20px !important;
+}
+
+/* ===== HIDE DEFAULT KEYCLOAK BRANDING ===== */
+#kc-header-wrapper {
+    display: none !important;
+}
+
+#kc-page-title {
+    display: none !important;
+}
+
+.kc-logo-text {
+    display: none !important;
+}
+
+/* ===== CUSTOM LOGO ABOVE FORM ===== */
+.card-pf::before {
+    content: "";
+    display: block;
+    background: url('../img/qaf_logo.png') center/contain no-repeat;
+    height: 120px;
+    width: 100%;
+    margin: -30px auto 20px;
+}
+
+/* ===== CUSTOM SUBTITLE ONLY ===== */
+.login-pf-header {
+    text-align: center;
+    margin-bottom: 35px;
+}
+
+.login-pf-header h1 {
+    display: none !important;
+}
+
+.login-pf-header::after {
+    content: "Secure Access Portal | بوابة الدخول الآمن";
+    display: block;
+    font-size: 16px;
+    color: #8A1538;
+    margin-bottom: 0;
+    font-weight: 400;
+    letter-spacing: 0.8px;
+}
+
+/* ===== CARD STYLING - White Card with Maroon Border ===== */
+.card-pf {
+    background: #ffffff !important;
+    border: 2px solid #8A1538 !important;
+    border-radius: 20px !important;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.15) !important;
+    max-width: 480px !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    padding: 50px 45px !important;
+    position: relative !important;
+}
+
+/* ===== FORM LABELS - Maroon Labels ===== */
+.pf-c-form__label,
+label,
+.control-label {
+    color: #8A1538 !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    margin-bottom: 8px !important;
+    display: block !important;
+}
+
+/* ===== INPUT FIELDS - With Maroon Border ===== */
+.pf-c-form-control,
+input[type="text"],
+input[type="password"],
+.form-control {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    border: 2px solid #8A1538 !important;
+    border-radius: 8px !important;
+    padding: 12px 16px !important;
+    font-size: 15px !important;
+    color: #1f2937 !important;
+    transition: all 0.2s ease !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.pf-c-form-control:focus,
+input[type="text"]:focus,
+input[type="password"]:focus,
+.form-control:focus {
+    border-color: #8A1538 !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(138, 21, 56, 0.15) !important;
+    outline: none !important;
+}
+
+/* ===== HIDE PASSWORD TOGGLE BUTTON ===== */
+button[type="button"][data-password-toggle],
+button[type="button"][aria-label="Show password"],
+button[type="button"][aria-label="Hide password"] {
+    display: none !important;
+}
+
+/* ===== LOGIN BUTTON - Gold Theme with Maroon Border ===== */
+.pf-c-button.pf-m-primary,
+#kc-login,
+input[type="submit"] {
+    background: linear-gradient(135deg, #D4AF37 0%, #FFD700 50%, #D4AF37 100%) !important;
+    border: 2px solid #8A1538 !important;
+    color: #8A1538 !important;
+    font-weight: 700 !important;
+    font-size: 16px !important;
+    padding: 16px 24px !important;
+    border-radius: 10px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.5px !important;
+    width: 100% !important;
+    transition: all 0.3s ease !important;
+    margin-top: 24px !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4) !important;
+}
+
+.pf-c-button.pf-m-primary:hover,
+#kc-login:hover,
+input[type="submit"]:hover {
+    background: linear-gradient(135deg, #FFD700 0%, #D4AF37 50%, #FFD700 100%) !important;
+    border-color: #8A1538 !important;
+    color: #8A1538 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5) !important;
+}
+
+/* ===== LANGUAGE SWITCHER - Horizontal Compact Design ===== */
+#kc-locale {
+    text-align: center !important;
+    margin-bottom: 20px !important;
+}
+
+#kc-locale-wrapper {
+    display: inline-flex !important;
+    gap: 8px !important;
+    background: rgba(138, 21, 56, 0.1) !important;
+    padding: 4px !important;
+    border: 2px solid #8A1538 !important;
+    border-radius: 8px !important;
+}
+
+#kc-current-locale-link {
+    display: none !important;
+}
+
+#kc-locale ul {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 4px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+}
+
+#kc-locale ul li {
+    list-style: none !important;
+    margin: 0 !important;
+}
+
+#kc-locale ul li a {
+    color: #8A1538 !important;
+    padding: 6px 16px !important;
+    transition: all 0.2s ease !important;
+    display: inline-block !important;
+    text-decoration: none !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    background: transparent !important;
+}
+
+#kc-locale ul li a:hover {
+    background: #8A1538 !important;
+    color: #ffffff !important;
+}
+
+/* ===== FORM GROUPS ===== */
+.form-group {
+    margin-bottom: 20px !important;
+}
+
+/* ===== WARNING/ERROR MESSAGES - Red Color ===== */
+.kc-feedback-text,
+.alert-danger,
+.alert-error,
+.pf-c-alert.pf-m-danger,
+.pf-c-alert__title,
+#kc-error-message {
+    color: #dc2626 !important;
+    background-color: #fef2f2 !important;
+    border: 1px solid #dc2626 !important;
+    border-radius: 8px !important;
+    padding: 12px 16px !important;
+    font-weight: 500 !important;
+}
+
+.pf-c-alert.pf-m-danger .pf-c-alert__title {
+    color: #dc2626 !important;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 640px) {
+    .card-pf {
+        margin: 20px !important;
+        padding: 30px 24px !important;
+        border-radius: 12px !important;
+    }
+
+    .card-pf::before {
+        height: 80px;
+        margin: -10px auto 20px;
+    }
+
+    .login-pf-header::after {
+        font-size: 20px;
+    }
+
+    .login-pf-header::before {
+        font-size: 12px;
+    }
+
+    #kc-locale {
+        position: static !important;
+        margin-bottom: 20px !important;
+        text-align: center !important;
+    }
+}

@@ -102,7 +102,7 @@ services:
       - KC_HOSTNAME_STRICT=false
       - KC_HOSTNAME_STRICT_HTTPS=false
       - KC_SPI_X509_ENABLED=false
-      - KEYCLOAK_EXTRA_ARGS="--http-enabled=true --hostname-strict=false"
+      - KEYCLOAK_EXTRA_ARGS="--http-enabled=true --hostname-strict=false --spi-theme--cache-themes=false --spi-theme--cache-templates=false --spi-theme--static-max-age=-1"
       # Auto-configure client with redirect URIs
       - KC_BOOTSTRAP_ADMIN_USERNAME=admin
       - KC_BOOTSTRAP_ADMIN_PASSWORD=admin123
@@ -113,6 +113,7 @@ services:
       - lms-qaf
     volumes:
       - ./keycloak-setup:/opt/keycloak/data/import
+      - ./keycloak-setup/themes/military-lms:/opt/keycloak/themes/military-lms
     command: ["start-dev"]
     healthcheck:
       test: ["CMD-SHELL", "exec", "keycloak", "health", "--server"]
