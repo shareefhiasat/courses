@@ -4,16 +4,52 @@
  */
 
 /* ===== PAGE BACKGROUND - White ===== */
+html,
 body,
 .login-pf-page {
     background: #ffffff !important;
-    min-height: 100vh !important;
+    height: 100vh !important; /* Force exact viewport height */
+    width: 100vw !important;
+    overflow: hidden !important; /* Disable all scrolling */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
     margin: 0 !important;
-    padding: 20px !important;
+    padding: 0 !important;
+}
+
+/* ===== RTL SUPPORT FOR ARABIC - Higher Priority ===== */
+html[dir="rtl"] body,
+html[dir="rtl"] .login-pf-page {
+    direction: rtl !important;
+}
+
+html[dir="rtl"] .card-pf {
+    direction: rtl !important;
+}
+
+html[dir="rtl"] .form-group {
+    direction: rtl !important;
+}
+
+html[dir="rtl"] input[type="text"],
+html[dir="rtl"] input[type="password"] {
+    direction: ltr !important;
+    text-align: right !important;
+}
+
+html[dir="rtl"] label,
+html[dir="rtl"] .control-label,
+html[dir="rtl"] .pf-c-form__label {
+    text-align: right !important;
+}
+
+html[dir="rtl"] .kc-feedback-text,
+html[dir="rtl"] .alert-danger,
+html[dir="rtl"] .alert-error {
+    direction: rtl !important;
+    text-align: right !important;
 }
 
 /* ===== HIDE DEFAULT KEYCLOAK BRANDING ===== */
@@ -34,9 +70,56 @@ body,
     content: "";
     display: block;
     background: url('../img/qaf_logo.png') center/contain no-repeat;
-    height: 120px;
+    height: 8vh !important; /* Dynamic logo height */
     width: 100%;
-    margin: -30px auto 20px;
+    margin: 0 auto 1vh !important;
+}
+
+/* Position language switcher at top right corner of screen */
+#kc-locale {
+    position: fixed !important;
+    top: 20px !important;
+    right: 30px !important;
+    z-index: 1000 !important;
+}
+
+html[dir="rtl"] #kc-locale {
+    right: auto !important;
+    left: 30px !important;
+}
+
+/* Hide dropdown button */
+#kc-current-locale-link {
+    display: none !important;
+}
+
+/* Show language links directly */
+#kc-locale-dropdown ul {
+    display: flex !important;
+    position: static !important;
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+#kc-locale-dropdown ul li {
+    margin: 0 10px !important;
+}
+
+#kc-locale-dropdown ul li a {
+    color: #8A1538 !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    padding: 5px 10px !important;
+}
+
+#kc-locale-dropdown ul li a:hover {
+    text-decoration: underline !important;
+}
+
+html[dir="rtl"] #kc-locale-dropdown {
+    right: auto !important;
+    left: 30px !important;
 }
 
 /* ===== CUSTOM SUBTITLE ONLY ===== */
@@ -50,13 +133,7 @@ body,
 }
 
 .login-pf-header::after {
-    content: "Secure Access Portal | بوابة الدخول الآمن";
-    display: block;
-    font-size: 16px;
-    color: #8A1538;
-    margin-bottom: 0;
-    font-weight: 400;
-    letter-spacing: 0.8px;
+    display: none !important;
 }
 
 /* ===== CARD STYLING - White Card with Maroon Border ===== */
@@ -65,11 +142,35 @@ body,
     border: 2px solid #8A1538 !important;
     border-radius: 20px !important;
     box-shadow: 0 25px 70px rgba(0, 0, 0, 0.15) !important;
+    
+    /* Dynamic Sizing */
+    width: 70% !important;
     max-width: 480px !important;
-    width: 100% !important;
-    margin: 0 auto !important;
-    padding: 50px 45px !important;
-    position: relative !important;
+    max-height: 95vh !important; /* Ensure it never leaves the screen */
+    
+    /* Internal Layout */
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 2vh 30px !important; /* Use viewport height for padding */
+    overflow: hidden !important;
+}
+
+/* ===== REMEMBER ME ===== */
+.checkbox label {
+    color: #8A1538 !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    margin-left: 8px !important;
+}
+
+.checkbox input[type="checkbox"] {
+    accent-color: #8A1538 !important;
+    border: 2px solid #8A1538 !important;
+}
+
+html[dir="rtl"] .checkbox label {
+    margin-left: 0 !important;
+    margin-right: 8px !important;
 }
 
 /* ===== FORM LABELS - Maroon Labels ===== */
@@ -204,23 +305,152 @@ input[type="submit"]:hover {
     margin-bottom: 20px !important;
 }
 
-/* ===== WARNING/ERROR MESSAGES - Red Color ===== */
+/* ===== WARNING/ERROR MESSAGES - Clear UX Styling ===== */
 .kc-feedback-text,
 .alert-danger,
 .alert-error,
 .pf-c-alert.pf-m-danger,
 .pf-c-alert__title,
-#kc-error-message {
+#kc-error-message,
+#kc-feedback-area {
     color: #dc2626 !important;
     background-color: #fef2f2 !important;
-    border: 1px solid #dc2626 !important;
-    border-radius: 8px !important;
-    padding: 12px 16px !important;
-    font-weight: 500 !important;
+    border: 2px solid #dc2626 !important;
+    border-radius: 10px !important;
+    padding: 16px 20px !important;
+    font-weight: 600 !important;
+    font-size: 15px !important;
+    margin-top: 12px !important;
+    margin-bottom: 12px !important;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15) !important;
 }
 
 .pf-c-alert.pf-m-danger .pf-c-alert__title {
     color: #dc2626 !important;
+}
+
+/* Error messages under input fields */
+.form-group .kc-feedback-text,
+.form-group .alert-danger,
+.form-group .alert-error {
+    display: block !important;
+    width: 100% !important;
+    text-align: left !important;
+}
+
+html[dir="rtl"] .form-group .kc-feedback-text,
+html[dir="rtl"] .form-group .alert-danger,
+html[dir="rtl"] .form-group .alert-error {
+    text-align: right !important;
+    direction: rtl !important;
+}
+
+/* ===== TOTP SETUP PAGE STYLING ===== */
+/* Increase container width for TOTP page */
+.card-pf {
+    max-width: 100% !important;
+}
+
+/* Make QR code smaller and centered on separate line */
+#kc-totp-secret-qr-code img {
+    max-height: 10vh !important; /* Caps the QR code size based on screen height */
+    width: auto !important;
+    margin: 1vh auto !important;
+    display: block !important;
+}
+
+#kc-totp-secret-qr-code {
+    display: block !important;
+    text-align: center !important;
+    margin: 0 !important;
+}
+
+/* Container for instructions */
+#kc-totp-settings {
+    font-size: 1.8vh !important; /* Scale text with viewport */
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+#kc-totp-settings li {
+    margin-bottom: 0.5vh !important;
+}
+
+/* RTL text alignment - right align in Arabic */
+html[dir="rtl"] .card-pf,
+html[dir="rtl"] .pf-c-form,
+html[dir="rtl"] .pf-c-form__group,
+html[dir="rtl"] .form-group {
+    text-align: right !important;
+}
+
+html[dir="rtl"] .pf-c-form__label,
+html[dir="rtl"] label,
+html[dir="rtl"] .control-label,
+html[dir="rtl"] .pf-c-form__helper-text,
+html[dir="rtl"] .pf-c-form__description {
+    text-align: right !important;
+    direction: rtl !important;
+}
+
+/* Hide required field star */
+.required,
+.required::before,
+.required::after {
+    display: none !important;
+}
+
+/* Hide br tag after QR code */
+#kc-totp-secret-qr-code + br {
+    display: none !important;
+}
+
+/* Hide manual entry link */
+#mode-manual,
+#kc-totp-secret-qr-code ~ p a {
+    display: none !important;
+}
+
+/* Authenticator apps on same line with commas */
+#kc-totp-supported-apps,
+#kc-totp-supported-apps li {
+    display: inline !important;
+}
+
+#kc-totp-supported-apps li:not(:last-child)::after {
+    content: ", " !important;
+    color: #8A1538 !important;
+    margin-right: 5px !important;
+}
+
+html[dir="rtl"] #kc-totp-supported-apps li:not(:last-child)::after {
+    margin-right: 0 !important;
+    margin-left: 5px !important;
+}
+
+.form-group {
+    margin-bottom: 1vh !important;
+}
+
+.pf-c-form-control,
+input[type="text"],
+.form-control {
+    padding: 8px 12px !important; /* Slimmer inputs */
+    font-size: 1.8vh !important;
+}
+
+#kc-login,
+input[type="submit"] {
+    padding: 1vh 20px !important;
+    margin-top: 1vh !important;
+    font-size: 1.8vh !important;
+}
+
+/* RTL for instructions */
+html[dir="rtl"] .pf-c-form__helper-text,
+html[dir="rtl"] .pf-c-form__description {
+    direction: rtl !important;
+    text-align: right !important;
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
