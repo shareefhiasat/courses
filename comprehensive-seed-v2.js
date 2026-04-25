@@ -3,9 +3,55 @@
  * Ready for fresh start with 5 users of each role
  */
 
-const { PrismaClient } = require('@prisma/client');
+import { PrismaClient } from '@prisma/client';
+import { execSync } from 'child_process';
 
 const prisma = new PrismaClient();
+
+// Keycloak configuration
+const KEYCLOAK_URL = 'http://localhost:8080';
+const KEYCLOAK_REALM = 'military-lms';
+const KEYCLOAK_ADMIN_USER = 'admin';
+const KEYCLOAK_ADMIN_PASSWORD = 'admin123';
+
+// Function to create a user in Keycloak
+async function createKeycloakUser(userData, role) {
+  const { email, firstName, lastName } = userData;
+  const username = email;
+  
+  try {
+    // Check if user already exists
+    const checkCmd = `docker exec lms-qaf-keycloak /opt/keycloak/bin/kcadm.sh get users -r ${KEYCLOAK_REALM} --fields username | grep -c "${username}" || echo "0"`;
+    const exists = execSync(checkCmd, { encoding: 'utf8', stdio: 'pipe' }).trim();
+    
+    if (parseInt(exists) > 0) {
+      console.log(`  ⏭️  Keycloak user already exists: ${email}`);
+      return;
+    }
+    
+    // Create user in Keycloak
+    const createCmd = `docker exec lms-qaf-keycloak /opt/keycloak/bin/kcadm.sh create users -r ${KEYCLOAK_REALM} -s username=${username} -s email=${email} -s firstName=${firstName} -s lastName=${lastName} -s enabled=true -s emailVerified=true`;
+    execSync(createCmd, { stdio: 'pipe' });
+    
+    // Get the user ID
+    const userCmd = `docker exec lms-qaf-keycloak /opt/keycloak/bin/kcadm.sh get users -r ${KEYCLOAK_REALM} --fields id,username | grep "${username}" | cut -d' ' -f2`;
+    const userId = execSync(userCmd, { encoding: 'utf8', stdio: 'pipe' }).trim().replace(/"/g, '').replace(/,/g, '');
+    
+    // Set password using reset-password endpoint
+    const passwordCmd = `docker exec lms-qaf-keycloak /opt/keycloak/bin/kcadm.sh update users/${userId}/reset-password -r ${KEYCLOAK_REALM} -s type=password -s value=Password123! -s temporary=false`;
+    execSync(passwordCmd, { stdio: 'pipe' });
+    
+    // Assign role
+    const roleCmd = `docker exec lms-qaf-keycloak /opt/keycloak/bin/kcadm.sh add-roles --rolename ${role} --uid ${userId} -r ${KEYCLOAK_REALM}`;
+    execSync(roleCmd, { stdio: 'pipe' });
+    
+    console.log(`  ✅ Keycloak user created: ${email} (${role})`);
+    return userId;
+  } catch (error) {
+    console.log(`  ⚠️  Failed to create Keycloak user ${email}: ${error.message}`);
+    return null;
+  }
+}
 
 async function seedComprehensiveDatabase() {
   try {
@@ -89,7 +135,7 @@ async function createAdminUser() {
       lastName: 'Hiasat',
       displayName: 'Shareef Hiasat',
       isActive: true,
-      keycloakId: 'admin-keycloak-id'
+      keycloakId: '9ce4e52c-4d26-4eb7-a5b7-81c37374c187' // Keycloak ID in military-lms realm
     }
   });
   console.log(`✅ Super Admin user: ${adminUser.email}`);
@@ -269,12 +315,24 @@ async function createUsers() {
 
   const allUsers = [...hrUsers, ...adminUsers, ...instructorUsers, ...studentUsers];
   
+  console.log('🔐 Creating Keycloak users in military-lms realm...');
+  
   const users = [];
   for (const userData of allUsers) {
+    // Determine role for Keycloak
+    let keycloakRole = 'student';
+    if (userData.email.startsWith('hr')) keycloakRole = 'admin'; // HR uses admin role
+    else if (userData.email.startsWith('admin')) keycloakRole = 'admin';
+    else if (userData.email.startsWith('instructor')) keycloakRole = 'instructor';
+    
+    // Create Keycloak user
+    const keycloakId = await createKeycloakUser(userData, keycloakRole);
+    
+    // Create database user
     const user = await prisma.user.upsert({
       where: { email: userData.email },
-      update: userData,
-      create: { ...userData, isActive: true }
+      update: { ...userData, keycloakId: keycloakId || `temp-${userData.email}` },
+      create: { ...userData, isActive: true, keycloakId: keycloakId || `temp-${userData.email}` }
     });
     users.push(user);
     

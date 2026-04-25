@@ -586,26 +586,20 @@ export const AuthProvider = ({ children }) => {
       document.cookie = 'kc_token=; path=/api; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       console.log('[AuthContext] 🧹 Storage cleared');
       
-      // Redirect to Keycloak account page for manual logout
-      // Use dynamic URL from environment variables
-      const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080';
-      const keycloakRealm = import.meta.env.VITE_KEYCLOAK_REALM || 'master';
-      const accountUrl = `${keycloakUrl}/realms/${keycloakRealm}/account`;
-      
-      console.log('[AuthContext] 🔄 Redirecting to Keycloak account page:', accountUrl);
-      window.location.href = accountUrl;
+      // Use Keycloak's logout method with redirect to app login page
+      // This properly clears the Keycloak session and redirects back to the app
+      await keycloak.logout({
+        redirectUri: window.location.origin + '/login'
+      });
     } catch (error) {
       error('Logout error:', error);
-      // As a fallback, just clear everything and redirect to Keycloak account page
-      console.log('[AuthContext] 🔄 Fallback: clearing session and redirecting');
+      // As a fallback, just clear everything and redirect to app login page
+      console.log('[AuthContext] 🔄 Fallback: clearing session and redirecting to app');
       localStorage.clear();
       sessionStorage.clear();
-      const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080';
-      const keycloakRealm = import.meta.env.VITE_KEYCLOAK_REALM || 'master';
-      const accountUrl = `${keycloakUrl}/realms/${keycloakRealm}/account`;
-      window.location.href = accountUrl;
+      window.location.href = window.location.origin + '/login';
     }
-  }, []);
+  }, [keycloak]);
 
   const hasRole = (role) => {
     return user?.roles?.includes(role) || false;

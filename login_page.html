@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html class="login-pf" lang="en" dir="ltr">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="robots" content="noindex, nofollow">
+
+            <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Sign in to Military LMS</title>
+    <link rel="icon" href="/resources/m2dmf/login/military-lms/img/favicon.ico" />
+            <link href="/resources/m2dmf/common/keycloak/vendor/patternfly-v4/patternfly.min.css" rel="stylesheet" />
+            <link href="/resources/m2dmf/common/keycloak/vendor/patternfly-v3/css/patternfly.min.css" rel="stylesheet" />
+            <link href="/resources/m2dmf/common/keycloak/vendor/patternfly-v3/css/patternfly-additions.min.css" rel="stylesheet" />
+            <link href="/resources/m2dmf/common/keycloak/lib/pficon/pficon.css" rel="stylesheet" />
+            <link href="/resources/m2dmf/login/military-lms/css/login.css" rel="stylesheet" />
+    <script type="importmap">
+        {
+            "imports": {
+                "rfc4648": "/resources/m2dmf/common/keycloak/vendor/rfc4648/rfc4648.js"
+            }
+        }
+    </script>
+    <script src="/resources/m2dmf/login/military-lms/js/menu-button-links.js" type="module"></script>
+    <script type="module">
+        import { startSessionPolling } from "/resources/m2dmf/login/military-lms/js/authChecker.js";
+
+        startSessionPolling(
+          "/realms/military-lms/login-actions/restart?client_id=military-lms-app&skip_logout=true"
+        );
+    </script>
+</head>
+
+<body class="">
+<div class="login-pf-page">
+    <div id="kc-header" class="login-pf-page-header">
+        <div id="kc-header-wrapper"
+             class=""><div class="kc-logo-text"><span>Military LMS</span></div></div>
+    </div>
+    <div class="card-pf">
+        <header class="login-pf-header">
+                <h1 id="kc-page-title">        We are sorry...
+</h1>
+      </header>
+      <div id="kc-content">
+        <div id="kc-content-wrapper">
+
+
+        <div id="kc-error-message">
+            <p class="instruction">Invalid parameter: redirect_uri</p>
+                    <p><a id="backToApplication" href="https://localhost:5174">┬½ Back to Application</a></p>
+        </div>
+
+
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

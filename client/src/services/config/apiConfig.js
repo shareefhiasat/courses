@@ -42,10 +42,10 @@ class AppConfig {
     
     // Keycloak Configuration
     this.keycloak = {
-      URL: isBrowser ? (import.meta.env.VITE_KEYCLOAK_URL || 'https://localhost:8443') : 'https://localhost:8443',
-      REALM: isBrowser ? (import.meta.env.VITE_KEYCLOAK_REALM || 'master') : 'master',
+      URL: isBrowser ? (import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080') : 'http://localhost:8080',
+      REALM: isBrowser ? (import.meta.env.VITE_KEYCLOAK_REALM || 'military-lms') : 'military-lms',
       CLIENT_ID: isBrowser ? (import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'military-lms-app') : 'military-lms-app',
-      REDIRECT_URI: isBrowser ? (import.meta.env.VITE_KEYCLOAK_REDIRECT_URI || 'https://localhost') : 'https://localhost'
+      REDIRECT_URI: isBrowser ? (import.meta.env.VITE_KEYCLOAK_REDIRECT_URI || 'https://localhost:5174') : 'https://localhost:5174'
     };
     
     // Local Storage Keys

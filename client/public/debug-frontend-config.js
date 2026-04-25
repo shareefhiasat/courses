@@ -17,7 +17,7 @@ console.log('\n🔧 Keycloak Configuration:');
 try {
   const config = {
     url: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080',
-    realm: import.meta.env.VITE_KEYCLOAK_REALM || 'master', // Fixed default!
+    realm: import.meta.env.VITE_KEYCLOAK_REALM || 'military-lms',
     clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'military-lms-app'
   };
   
