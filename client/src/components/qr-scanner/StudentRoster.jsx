@@ -24,8 +24,8 @@ import { useLookupTypes } from '@hooks/useLookupTypes.js';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '@services/business/userPreferenceService';
 import { getUserProfile } from '@services/business/userService';
-import { notificationGateway } from '@services/business/notificationGateway';
-import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
+// import { notificationGateway } from '@services/business/notificationGateway'; // Removed - notifications now handled by backend
+// import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes'; // Removed - notifications now handled by backend
 import { StudentHistory, StudentRosterHistory } from '@ui/history';
 import { DeleteModal } from '@ui';
 import { StudentCard, StudentTableRow } from '@ui/history';
@@ -831,49 +831,49 @@ const StudentRoster = React.memo(function StudentRoster({
         className: selectedClassId // This will be resolved in the notification
       };
 
-      // Send the summary email using notificationGateway (same as export function)
-      const result = await notificationGateway.send(
-        NOTIFICATION_TRIGGERS.SUMMARY_REPORT,
-        {
-          userId: student.id,
-          role: 'student',
-          email: student.email,
-          title: `📊 ${t('student_summary_report') || 'Student Summary Report'} - ${student.name}`,
-          message: t('student_summary_email_message', {
-            studentName: student.name,
-            participation: student.participation || 0,
-            behavior: student.behavior || 0,
-            penalty: student.penalty || 0,
-            attendanceStatus: getLocalizedAttendanceLabel(student.attendance || 'absent_no_excuse', t, lang)
-          }) || `Hello ${student.name}, here is your summary report: Participation: ${student.participation || 0}, Behavior: ${student.behavior || 0}, Penalties: ${student.penalty || 0}, Attendance: ${getLocalizedAttendanceLabel(student.attendance || 'absent_no_excuse', t, lang)}`,
-          variables: {
-            userName: student.name,
-            userEmail: student.email,
-            studentName: student.name,
-            studentEmail: student.email,
-            studentId: student.studentId || student.id,
-            participation: student.participation || 0,
-            behavior: student.behavior || 0,
-            penalty: student.penalty || 0,
-            attendanceStatus: getLocalizedAttendanceLabel(student.attendance || 'absent_no_excuse', t, lang),
-            presentCount: attendanceStats.present || 0,
-            lateCount: attendanceStats.late || 0,
-            absentCount: attendanceStats.absent || 0,
-            absentExcusedCount: attendanceStats.absentWithExcuse || 0,
-            excusedLeaveCount: attendanceStats.excusedLeave || 0,
-            humanCaseCount: attendanceStats.humanitarianCase || 0,
-            totalAttendance: student.totalAttendance || 0,
-            selectedDate: selectedDate,
-            reportDate: new Date().toLocaleDateString(),
-            totalStudents: 1, // Single student report
-            recipientCount: 1,
-            downloadURL: null, // No file download for individual summary
-            fileId: null,
-            filename: null,
-            storageFailed: false
-          }
-        }
-      );
+      // Send the summary email - notifications now handled by backend
+      // const result = await notificationGateway.send(
+      //   NOTIFICATION_TRIGGERS.SUMMARY_REPORT,
+      //   {
+      //     userId: student.id,
+      //     role: 'student',
+      //     email: student.email,
+      //     title: `📊 ${t('student_summary_report') || 'Student Summary Report'} - ${student.name}`,
+      //     message: t('student_summary_email_message', {
+      //       studentName: student.name,
+      //       participation: student.participation || 0,
+      //       behavior: student.behavior || 0,
+      //       penalty: student.penalty || 0,
+      //       attendanceStatus: getLocalizedAttendanceLabel(student.attendance || 'absent_no_excuse', t, lang)
+      //     }) || `Hello ${student.name}, here is your summary report: Participation: ${student.participation || 0}, Behavior: ${student.behavior || 0}, Penalties: ${student.penalty || 0}, Attendance: ${getLocalizedAttendanceLabel(student.attendance || 'absent_no_excuse', t, lang)}`,
+      //     variables: {
+      //       userName: student.name,
+      //       userEmail: student.email,
+      //       studentName: student.name,
+      //       studentEmail: student.email,
+      //       studentId: student.studentId || student.id,
+      //       participation: student.participation || 0,
+      //       behavior: student.behavior || 0,
+      //       penalty: student.penalty || 0,
+      //       attendanceStatus: getLocalizedAttendanceLabel(student.attendance || 'absent_no_excuse', t, lang),
+      //       presentCount: attendanceStats.present || 0,
+      //       lateCount: attendanceStats.late || 0,
+      //       absentCount: attendanceStats.absent || 0,
+      //       absentExcusedCount: attendanceStats.absentWithExcuse || 0,
+      //       excusedLeaveCount: attendanceStats.excusedLeave || 0,
+      //       humanCaseCount: attendanceStats.humanitarianCase || 0,
+      //       totalAttendance: student.totalAttendance || 0,
+      //       selectedDate: selectedDate,
+      //       reportDate: new Date().toLocaleDateString(),
+      //       totalStudents: 1, // Single student report
+      //       recipientCount: 1,
+      //       downloadURL: null, // No file download for individual summary
+      //       fileId: null,
+      //       filename: null,
+      //       storageFailed: false
+      //     }
+      //   }
+      // );
       
       showSuccess(t('summary_email_sent_successfully') || 'Summary email sent successfully!');
       debug('✅ Summary email sent successfully to:', student.email);

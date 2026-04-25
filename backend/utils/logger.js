@@ -12,7 +12,7 @@
  * - NODE_ENV: development|production
  */
 
-const winston = require('winston');
+import winston from 'winston';
 
 // Configuration
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -54,7 +54,7 @@ if (elkEnabled && elkUrl) {
   // Note: You'll need to install winston-elasticsearch
   // npm install winston-elasticsearch
   try {
-    const { ElasticsearchTransport } = require('winston-elasticsearch');
+    const { ElasticsearchTransport } = await import('winston-elasticsearch');
     
     transports.push(
       new ElasticsearchTransport({
@@ -72,36 +72,33 @@ if (elkEnabled && elkUrl) {
 }
 
 // Create logger
-const logger = winston.createLogger({
+const winstonLogger = winston.createLogger({
   level: logLevel,
   transports,
   exitOnError: false
 });
 
 // Service-specific loggers
-const createServiceLogger = (serviceName) => {
+export const createServiceLogger = (serviceName) => {
   return {
-    debug: (message, meta = {}) => logger.debug(message, { service: serviceName, ...meta }),
-    info: (message, meta = {}) => logger.info(message, { service: serviceName, ...meta }),
-    warn: (message, meta = {}) => logger.warn(message, { service: serviceName, ...meta }),
-    error: (message, meta = {}) => logger.error(message, { service: serviceName, ...meta })
+    debug: (message, meta = {}) => winstonLogger.debug(message, { service: serviceName, ...meta }),
+    info: (message, meta = {}) => winstonLogger.info(message, { service: serviceName, ...meta }),
+    warn: (message, meta = {}) => winstonLogger.warn(message, { service: serviceName, ...meta }),
+    error: (message, meta = {}) => winstonLogger.error(message, { service: serviceName, ...meta })
   };
 };
 
 // Default logger with no service tag
 const defaultLogger = {
-  debug: (message, meta = {}) => logger.debug(message, meta),
-  info: (message, meta = {}) => logger.info(message, meta),
-  warn: (message, meta = {}) => logger.warn(message, meta),
-  error: (message, meta = {}) => logger.error(message, meta)
+  debug: (message, meta = {}) => winstonLogger.debug(message, meta),
+  info: (message, meta = {}) => winstonLogger.info(message, meta),
+  warn: (message, meta = {}) => winstonLogger.warn(message, meta),
+  error: (message, meta = {}) => winstonLogger.error(message, meta)
 };
 
-// Export both
-module.exports = {
-  createServiceLogger,
-  logger: defaultLogger,
-  debug: defaultLogger.debug,
-  info: defaultLogger.info,
-  warn: defaultLogger.warn,
-  error: defaultLogger.error
-};
+// Export default logger functions
+export const logger = defaultLogger;
+export const debug = defaultLogger.debug;
+export const info = defaultLogger.info;
+export const warn = defaultLogger.warn;
+export const error = defaultLogger.error;

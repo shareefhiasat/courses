@@ -30,6 +30,7 @@ export default defineConfig({
       '@components': path.resolve(__dirname, './src/components'),
       '@api': path.resolve(__dirname, './src/services/api/index.js'),
       '@logger': path.resolve(__dirname, './src/services/utils/logger.js'),
+      '@config': path.resolve(__dirname, './src/config'),
     },
   },
   build: {

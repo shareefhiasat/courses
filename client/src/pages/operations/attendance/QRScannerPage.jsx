@@ -15,7 +15,7 @@ import { getUsers } from '@services/business/userService';
 import { getEnrollments, getEnrollmentsByProgram } from '@services/business/enrollmentService';
 import { getClasses } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
-import { notificationGateway } from '@services/business/notificationGateway';
+// import { notificationGateway } from '@services/business/notificationGateway'; // Removed - notifications now handled by backend
 import { uploadReport } from '@services/business/fileStorageService';
 import { REPORT_TYPES, STORAGE_CONSTANTS, REPORT_TYPE_IDS } from '@constants/reportConstants';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -33,7 +33,7 @@ import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPE_CATEGORY, 
 import { calculateAttentionScore, getRowHighlightStyle } from '@utils/attendanceHighlight.js';
 import { ABSENCE_THRESHOLDS } from '@/constants/absenceTypes';
 import { getNoteTypeFromStatus, getLocalizedNoteText } from '@constants/noteTypes';
-import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
+// import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes'; // Removed - notifications now handled by backend
 import { exportDailyReport as exportDailyReportExcel, exportSummaryReport as exportSummaryReportExcel, exportAttendanceViolationsReport } from '@services/export/excelExportService.js';
 import { useToast } from '@ui/ToastProvider.jsx';
 import ConfirmModal from '@ui/Modal/ConfirmModal.jsx';
@@ -2225,40 +2225,40 @@ const QRScannerPage = () => {
 
           console.log('📧 Sending to recipients:', recipientEmails);
 
-          // Send emails
-          const emailPromises = recipientEmails.map(async (recipientEmail) => {
-            try {
-              const result = await notificationGateway.send(
-                NOTIFICATION_TRIGGERS.SUMMARY_REPORT,
-                {
-                  userId: user?.uid,
-                  role: 'admin',
-                  email: recipientEmail,
-                  title: `📊 Daily Attendance Report - ${className}`,
-                  message: `Daily attendance report for ${className} on ${dateFormatted}`,
-                  variables: {
-                    reportType: 'Daily Attendance Report',
-                    programName: programName,
-                    subjectName: subjectName,
-                    className: className,
-                    date: dateFormatted,
-                    totalRecords: enrichedData.length,
-                    downloadURL: uploadResult.downloadURL,
-                    filename: uploadResult.filename,
-                    fileId: uploadResult.fileId
-                  }
-                }
-              );
-              return result;
-            } catch (error) {
-              console.error('📧 Email error for', recipientEmail, ':', error);
-              return { success: false, error: error.message };
-            }
-          });
+          // Send emails - notifications now handled by backend
+          // const emailPromises = recipientEmails.map(async (recipientEmail) => {
+          //   try {
+          //     const result = await notificationGateway.send(
+          //       NOTIFICATION_TRIGGERS.SUMMARY_REPORT,
+          //       {
+          //         userId: user?.uid,
+          //         role: 'admin',
+          //         email: recipientEmail,
+          //         title: `📊 Daily Attendance Report - ${className}`,
+          //         message: `Daily attendance report for ${className} on ${dateFormatted}`,
+          //         variables: {
+          //           reportType: 'Daily Attendance Report',
+          //           programName: programName,
+          //           subjectName: subjectName,
+          //           className: className,
+          //           date: dateFormatted,
+          //           totalRecords: enrichedData.length,
+          //           downloadURL: uploadResult.downloadURL,
+          //           filename: uploadResult.filename,
+          //           fileId: uploadResult.fileId
+          //         }
+          //       }
+          //     );
+          //     return result;
+          //   } catch (error) {
+          //     console.error('📧 Email error for', recipientEmail, ':', error);
+          //     return { success: false, error: error.message };
+          //   }
+          // });
 
-          const results = await Promise.allSettled(emailPromises);
-          const successful = results.filter(r => r.status === 'fulfilled' && r.value?.success).length;
-          const failed = results.length - successful;
+          const results = await Promise.allSettled([]); // No email promises
+          const successful = 0;
+          const failed = 0;
 
           if (successful > 0) {
             console.log('✅ Email sent successfully to', successful, 'recipients');
@@ -3307,52 +3307,52 @@ const QRScannerPage = () => {
               };
             }
             
-            // Step 2: Send email with download link
-            const emailPromises = recipientEmails.map(async (recipientEmail) => {
-              console.log('📧 Sending to recipient:', recipientEmail);
-              
-              try {
-                const result = await notificationGateway.send(
-                  NOTIFICATION_TRIGGERS.SUMMARY_REPORT,
-                  {
-                    userId: user?.uid,
-                    role: 'admin',
-                    email: recipientEmail,
-                    title: `📊 Summary Report - ${currentProgram?.nameEn || currentProgram?.name || 'N/A'}`,
-                    message: `A summary report has been generated for ${currentProgram?.nameEn || currentProgram?.name || 'N/A'} with ${enrichedData.length} students. Download the Excel report using the link below.`,
-                    variables: {
-                      userName: user?.displayName || 'Admin',
-                      userEmail: user?.email,
-                      programName: currentProgram?.nameEn || currentProgram?.name || 'N/A',
-                      className: currentClass?.nameEn || currentClass?.name || 'N/A',
-                      subjectName: currentSubject?.nameEn || currentSubject?.name || 'N/A',
-                      reportDate: new Date().toLocaleDateString(),
-                      totalStudents: enrichedData.length,
-                      selectedSubjects: selectedSubjectsForReport.length,
-                      recipientCount: recipientEmails.length,
-                      downloadURL: uploadResult.downloadURL,
-                      fileId: uploadResult.fileId,
-                      filename: uploadResult.filename,
-                      storageFailed: uploadResult.storageFailed || false
-                    }
-                  }
-                );
-                
-                console.log('📧 Notification gateway result for', recipientEmail, ':', result);
-                return result;
-              } catch (error) {
-                console.error('📧 Notification gateway error for', recipientEmail, ':', error);
-                return { success: false, error: error.message };
-              }
-            });
+            // Step 2: Send email with download link - notifications now handled by backend
+            // const emailPromises = recipientEmails.map(async (recipientEmail) => {
+            //   console.log('📧 Sending to recipient:', recipientEmail);
+            //   
+            //   try {
+            //     const result = await notificationGateway.send(
+            //       NOTIFICATION_TRIGGERS.SUMMARY_REPORT,
+            //       {
+            //         userId: user?.uid,
+            //         role: 'admin',
+            //         email: recipientEmail,
+            //         title: `📊 Summary Report - ${currentProgram?.nameEn || currentProgram?.name || 'N/A'}`,
+            //         message: `A summary report has been generated for ${currentProgram?.nameEn || currentProgram?.name || 'N/A'} with ${enrichedData.length} students. Download the Excel report using the link below.`,
+            //         variables: {
+            //           userName: user?.displayName || 'Admin',
+            //           userEmail: user?.email,
+            //           programName: currentProgram?.nameEn || currentProgram?.name || 'N/A',
+            //           className: currentClass?.nameEn || currentClass?.name || 'N/A',
+            //           subjectName: currentSubject?.nameEn || currentSubject?.name || 'N/A',
+            //           reportDate: new Date().toLocaleDateString(),
+            //           totalStudents: enrichedData.length,
+            //           selectedSubjects: selectedSubjectsForReport.length,
+            //           recipientCount: recipientEmails.length,
+            //           downloadURL: uploadResult.downloadURL,
+            //           fileId: uploadResult.fileId,
+            //           filename: uploadResult.filename,
+            //           storageFailed: uploadResult.storageFailed || false
+            //         }
+            //       }
+            //     );
+            //     
+            //     console.log('📧 Notification gateway result for', recipientEmail, ':', result);
+            //     return result;
+            //   } catch (error) {
+            //     console.error('📧 Notification gateway error for', recipientEmail, ':', error);
+            //     return { success: false, error: error.message };
+            //   }
+            // });
             
-            const results = await Promise.allSettled(emailPromises);
+            const results = await Promise.allSettled([]); // No email promises
             
             console.log('📧 Raw results from Promise.allSettled:', results);
             
             // Check results
-            const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
-            const failed = results.length - successful;
+            const successful = 0;
+            const failed = 0;
             
             console.log('📧 Email results:', { successful, failed, total: results.length });
             

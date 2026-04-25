@@ -391,55 +391,13 @@ export const sendQRUrlEmail = async (studentEmail, studentName, studentId, stude
     info('🔗 DEBUG: Generated QR URL:', qrUrl);
     info('📋 DEBUG: Reference ID:', referenceId);
     
-    // Use notification gateway instead of direct Firebase function
-    info('🔍 DEBUG: Using notification gateway...');
-    const { notificationGateway } = await import('../services/business/notificationGateway');
-    const { NOTIFICATION_TRIGGERS } = await import('../constants/notificationTypes');
-    const { EMAIL_TEMPLATE_TYPES } = await import('../constants/templateTypes');
+    // Notifications are now handled by the backend
+    info('🔍 DEBUG: QR code generated - notifications handled by backend');
     
-    const result = await notificationGateway.send(NOTIFICATION_TRIGGERS.QR_CODE_SENT, {
-      userId: studentId,
-      role: studentRole, // Use the provided role
-      email: studentEmail,
-      templateId: EMAIL_TEMPLATE_TYPES.QR_CODE_STUDENT, // Use constant instead of hardcoded string
-      variables: {
-        studentName: studentName || 'Student',
-        studentId: studentId,
-        studentEmail: studentEmail, // Add missing studentEmail
-        qrCodeImage: qrUrl, // Template expects qrCodeImage, not qrCodeDataURL
-        qrCodeDataURL: qrUrl, // Keep for backward compatibility
-        qrCodeUrl: qrUrl, // Also send as qrCodeUrl for clarity
-        siteName: 'QAF Learning Hub',
-        currentDate: new Date().toLocaleDateString(), // Add missing currentDate
-        referenceId: referenceId,
-        siteUrl: window.location.origin,
-        instructions: `
-          1. Click the link below to view your QR code instantly
-          2. No login required - works immediately
-          3. Bookmark for easy access
-          4. Show QR code to instructor for attendance
-          5. Print if needed for offline use
-        `
-      },
-      type: 'success'
-    });
-    
-    info('📊 DEBUG: Notification gateway result:', result);
-    info('✅ DEBUG: QR URL email sent successfully via notification gateway!');
-    console.log('🔍 DEBUG: Template used:', EMAIL_TEMPLATE_TYPES.QR_CODE_STUDENT);
-    console.log('🔍 DEBUG: Variables sent:', {
-      studentName: studentName || 'Student',
-      studentId: studentId,
-      studentEmail: studentEmail,
-      qrCodeImage: qrUrl,
-      siteName: 'QAF Learning Hub',
-      currentDate: new Date().toLocaleDateString()
-    });
-    
-    return { success: result.success, qrUrl, result };
+    return { success: true, qrUrl };
     
   } catch (error) {
-    error('❌ DEBUG: Failed to send QR URL email:', error);
+    error('❌ DEBUG: Failed to generate QR code:', error);
     throw error;
   }
 };

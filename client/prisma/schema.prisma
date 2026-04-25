@@ -100,6 +100,26 @@ enum BucketType {
   SHARED
 }
 
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum NotificationCategory {
+  SYSTEM
+  ACADEMIC
+  ATTENDANCE
+  ASSESSMENT
+  COMMUNICATION
+  ANNOUNCEMENT
+  WORKFLOW
+  FILE
+  QR
+  BEHAVIOR
+}
+
 enum WorkflowStatus {
   DRAFT
   REVIEW
@@ -587,6 +607,9 @@ model User {
   workflowStepsActed             WorkflowStep[]            @relation("WorkflowStepActor")
   workflowHistoryActed           WorkflowHistory[]         @relation("WorkflowHistoryActor")
   fileFavorites                  UserFilePreference[]
+  notifications                  Notification[]             @relation("UserNotifications")
+  notificationsCreated           Notification[]             @relation("NotificationCreator")
+  notificationPreference          NotificationPreference?   @relation("UserNotificationPreferences")
 
   @@map("users")
 }
@@ -1575,4 +1598,77 @@ model WorkflowHistory {
 
   @@index([instanceId, createdAt])
   @@map("workflow_history")
+}
+
+// ============================================================================
+// Notification System
+// ============================================================================
+
+model Notification {
+  id         String               @id @default(uuid())
+  userId     Int
+  category   NotificationCategory
+  event      String               // e.g. 'workflow.assigned', 'announcement.posted'
+  priority   NotificationPriority @default(NORMAL)
+  titleEn    String
+  titleAr    String?
+  bodyEn     String
+  bodyAr     String?
+  link       String?              // deep-link path
+  metadata   Json                 @default("{}")  // {classId, subjectId, ...}
+  isRead     Boolean              @default(false)
+  readAt     DateTime?
+  isArchived Boolean              @default(false)
+  archivedAt DateTime?
+  groupKey   String?              // dedupe key within short window
+  createdById Int?
+  createdAt  DateTime             @default(now())
+
+  user       User                 @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  creator    User?                @relation("NotificationCreator", fields: [createdById], references: [id])
+  deliveries NotificationDelivery[]
+
+  @@index([userId, isRead, isArchived, createdAt])
+  @@index([userId, category, createdAt])
+  @@index([event, createdAt])
+  @@map("notifications")
+}
+
+model NotificationDelivery {
+  id             String   @id @default(uuid())
+  notificationId String
+  channel        String   // 'in_app' | 'email' | 'sms' | 'push'
+  status         String   // 'queued' | 'sent' | 'delivered' | 'failed' | 'skipped'
+  providerMsgId  String?
+  error          String?
+  attempts       Int      @default(0)
+  sentAt         DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId, channel])
+  @@map("notification_deliveries")
+}
+
+model NotificationPreference {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique
+  // master toggles
+  inAppEnabled Boolean @default(true)
+  emailEnabled Boolean @default(true)
+  smsEnabled   Boolean @default(false)
+  pushEnabled  Boolean @default(false)
+  // matrix: { [category]: { in_app, email, sms, push } }
+  matrix       Json    @default("{}")
+  // browser-side UX prefs (migrated from localStorage/useNotifications)
+  soundEnabled       Boolean @default(true)
+  vibrationEnabled   Boolean @default(true)
+  browserNotifEnabled Boolean @default(true)
+  updatedAt    DateTime @updatedAt
+
+  user         User @relation("UserNotificationPreferences", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
 }

@@ -16,9 +16,9 @@ import { getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnounceme
 import { getAllPriorityTypes } from '@services/business/priorityTypesService.js';
 // import { getAllTargetAudienceTypes } from '@services/business/targetAudienceService.js'; // Using constants instead
 import { getUsers, getUserById } from '@services/business/userService';
-import { notificationGateway } from '@services/business/notificationGateway';
+// import { notificationGateway } from '@services/business/notificationGateway'; // Removed - notifications now handled by backend
 import { getEnrollments } from '@services/business/enrollmentService';
-import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
+// import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes'; // Removed - notifications now handled by backend
 import { Button, ToggleSwitch, Select, Input, SimpleLoading, RichTextEditor } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
@@ -329,37 +329,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
           };
           setAnnouncements(prev => [newAnnouncement, ...prev]);
           
-          // Send notifications using notification gateway (only for new announcements)
-          const { programId, subjectId, classId } = announcementData;
-          
-          try {
-            if (classId) {
-              const enrollmentsResult = await getEnrollments({ classId });
-              const studentIds = (enrollmentsResult.data || []).map(e => e.userId);
-              
-              for (const studentId of studentIds) {
-                const { data: student } = await getUserById(studentId);
-                if (student && student.email) {
-                  await notificationGateway.send(NOTIFICATION_TRIGGERS.ANNOUNCEMENT_NEW, {
-                    userId: studentId,
-                    role: 'student',
-                    classId,
-                    email: student.email,
-                    lang: student.preferredLanguage || 'en',
-                    variables: {
-                      studentName: student.displayName || student.name || t('announcements_student_name'),
-                      announcementTitle: announcementData.title,
-                      announcementContent: announcementData.content
-                    }
-                  });
-                }
-              }
-            }
-          } catch (notifyError) {
-            warn('Failed to send notifications:', notifyError);
-          }
-
-          // Optional email blast removed - handled by notification gateway
+          // Notifications are now handled by the backend announcement service
         } else {
           throw new Error(result.error || t('announcements_failed_to_create'));
         }

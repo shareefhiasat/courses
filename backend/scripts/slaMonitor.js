@@ -10,7 +10,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import notificationService from '../services/notificationGateway.js';
+import notificationGateway from '../services/notifications/index.js';
+import { EVENTS } from '../services/notifications/constants.js';
 
 const prisma = new PrismaClient();
 
@@ -78,12 +79,12 @@ async function main() {
               select: { id: true, email: true, name: true },
             });
             for (const user of approvers) {
-              await notificationService.notifyWorkflowSLAOverdue(user, {
+              await notificationGateway.emit(EVENTS.WORKFLOW_SLA_OVERDUE, {
                 instanceId: step.instance.id,
                 workflowName: step.instance.definition.name,
                 stageName: step.stage.name,
                 overdueSince: new Date(),
-              });
+              }, { userId: user.id, email: user.email, name: user.name });
             }
             
             // Mark as notified
@@ -122,12 +123,12 @@ async function main() {
               select: { id: true, email: true, name: true },
             });
             for (const user of approvers) {
-              await notificationService.notifyWorkflowSLAWarning(user, {
+              await notificationGateway.emit(EVENTS.WORKFLOW_SLA_WARNING, {
                 instanceId: step.instance.id,
                 workflowName: step.instance.definition.name,
                 stageName: step.stage.name,
                 hoursRemaining: Math.round(timeRemainingHours),
-              });
+              }, { userId: user.id, email: user.email, name: user.name });
             }
             
             // Mark as warned

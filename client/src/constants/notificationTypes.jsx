@@ -1,6 +1,9 @@
 /**
  * Notification Types Constants - ES6 Version
- * Centralized notification types and triggers used throughout the application
+ * Centralized notification types used throughout the application
+ * 
+ * NOTE: NOTIFICATION_TRIGGERS removed - events are now defined in backend
+ * services/notifications/constants.js and should be retrieved from the API
  */
 
 import { info, error, warn, debug } from '../services/utils/logger.js';
@@ -14,49 +17,11 @@ export const NOTIFICATION_TYPES = {
   ATTENDANCE: 'attendance',
   ASSESSMENT: 'assessment',
   COMMUNICATION: 'communication',
-  ANNOUNCEMENT: 'announcement'
-};
-
-export const NOTIFICATION_TRIGGERS = {
-  // User Notifications
-  USER_WELCOME: 'user_welcome',
-  USER_LOGIN: 'user_login',
-  USER_LOGOUT: 'user_logout',
-  USER_PROFILE_UPDATE: 'user_profile_update',
-  USER_PASSWORD_CHANGE: 'user_password_change',
-  USER_ROLE_CHANGE: 'user_role_change',
-  
-  // Academic Notifications
-  ENROLLMENT_CONFIRMED: 'enrollment_confirmed',
-  ENROLLMENT_CANCELLED: 'enrollment_cancelled',
-  CLASS_ENROLLED: 'class_enrolled',
-  CLASS_UNENROLLED: 'class_unenrolled',
-  ASSIGNMENT_DUE: 'assignment_due',
-  ASSIGNMENT_SUBMITTED: 'assignment_submitted',
-  GRADE_POSTED: 'grade_posted',
-  
-  // Attendance Notifications
-  ATTENDANCE_MARKED: 'attendance_marked',
-  ATTENDANCE_ABSENT: 'attendance_absent',
-  ATTENDANCE_LATE: 'attendance_late',
-  ATTENDANCE_THRESHOLD_WARNING: 'attendance_threshold_warning',
-  
-  // Assessment Notifications
-  QUIZ_AVAILABLE: 'quiz_available',
-  QUIZ_SUBMITTED: 'quiz_submitted',
-  QUIZ_GRADED: 'quiz_graded',
-  EXAM_SCHEDULED: 'exam_scheduled',
-  EXAM_RESULTS: 'exam_results',
-  
-  // Communication Notifications
-  MESSAGE_RECEIVED: 'message_received',
-  ANNOUNCEMENT_POSTED: 'announcement_posted',
-  CHAT_MESSAGE: 'chat_message',
-  
-  // System Notifications
-  SYSTEM_MAINTENANCE: 'system_maintenance',
-  SYSTEM_UPDATE: 'system_update',
-  SECURITY_ALERT: 'security_alert'
+  ANNOUNCEMENT: 'announcement',
+  WORKFLOW: 'workflow',
+  BEHAVIOR: 'behavior',
+  FILE: 'file',
+  QR: 'qr'
 };
 
 export const NOTIFICATION_CHANNELS = {
@@ -92,7 +57,11 @@ export const getNotificationIcon = (type) => {
     [NOTIFICATION_TYPES.ATTENDANCE]: 'Calendar',
     [NOTIFICATION_TYPES.ASSESSMENT]: 'Clipboard',
     [NOTIFICATION_TYPES.COMMUNICATION]: 'MessageSquare',
-    [NOTIFICATION_TYPES.ANNOUNCEMENT]: 'Megaphone'
+    [NOTIFICATION_TYPES.ANNOUNCEMENT]: 'Megaphone',
+    [NOTIFICATION_TYPES.WORKFLOW]: 'Workflow',
+    [NOTIFICATION_TYPES.BEHAVIOR]: 'Activity',
+    [NOTIFICATION_TYPES.FILE]: 'File',
+    [NOTIFICATION_TYPES.QR]: 'QRCode'
   };
   
   return iconMap[type] || 'Bell';
@@ -119,13 +88,6 @@ export const getNotificationChannelOptions = () => {
   }));
 };
 
-export const getNotificationTriggerOptions = () => {
-  return Object.entries(NOTIFICATION_TRIGGERS).map(([key, value]) => ({
-    value: value,
-    label: key.charAt(0) + key.slice(1).toLowerCase().replace(/_/g, ' ')
-  }));
-};
-
 export const getNotificationTypeOptions = () => {
   return Object.entries(NOTIFICATION_TYPES).map(([key, value]) => ({
     value: value,
@@ -141,7 +103,11 @@ export const getNotificationLabel = (type) => {
     [NOTIFICATION_TYPES.ATTENDANCE]: 'Attendance',
     [NOTIFICATION_TYPES.ASSESSMENT]: 'Assessment',
     [NOTIFICATION_TYPES.COMMUNICATION]: 'Communication',
-    [NOTIFICATION_TYPES.ANNOUNCEMENT]: 'Announcement'
+    [NOTIFICATION_TYPES.ANNOUNCEMENT]: 'Announcement',
+    [NOTIFICATION_TYPES.WORKFLOW]: 'Workflow',
+    [NOTIFICATION_TYPES.BEHAVIOR]: 'Behavior',
+    [NOTIFICATION_TYPES.FILE]: 'File',
+    [NOTIFICATION_TYPES.QR]: 'QR Code'
   };
   
   return labels[type] || type;
@@ -173,7 +139,6 @@ export const getNotificationStatusLabel = (status) => {
 // Default export
 export default {
   NOTIFICATION_TYPES,
-  NOTIFICATION_TRIGGERS,
   NOTIFICATION_CHANNELS,
   NOTIFICATION_PRIORITIES,
   NOTIFICATION_STATUSES,
@@ -182,7 +147,6 @@ export default {
   getNotificationStatusOptions,
   getNotificationPriorityOptions,
   getNotificationChannelOptions,
-  getNotificationTriggerOptions,
   getNotificationTypeOptions,
   getNotificationLabel,
   getNotificationPriorityLabel,

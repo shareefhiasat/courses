@@ -14,7 +14,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import notificationService from './notificationGateway.js';
+import notificationGateway from './notifications/index.js';
+import { EVENTS } from './notifications/constants.js';
 
 const prisma = new PrismaClient();
 
@@ -197,12 +198,12 @@ export async function startWorkflow(input, actor) {
       select: { id: true, email: true, name: true },
     });
     for (const user of approverUsers) {
-      await notificationService.notifyWorkflowAssigned(user, {
+      await notificationGateway.emit(EVENTS.WORKFLOW_ASSIGNED, {
         instanceId: instance.id,
         workflowName: definition.name,
         stageName: firstStage.name,
         userName: user.name,
-      });
+      }, { userId: user.id, email: user.email, name: user.name }, actor);
     }
 
     return ok(instance);
@@ -321,12 +322,12 @@ export async function approveStage(instanceId, input, actor) {
           prisma.user.findUnique({ where: { id: instance.initiatedById }, select: { id: true, email: true, name: true } }),
         ]);
         if (initiator) {
-          await notificationService.notifyWorkflowApproved(initiator, {
+          await notificationGateway.emit(EVENTS.WORKFLOW_APPROVED, {
             instanceId: instance.id,
             workflowName: instance.definition?.name,
             stageName: instance.currentStage.name,
             approverName: approver?.name || 'Unknown',
-          });
+          }, { userId: initiator.id, email: initiator.email, name: initiator.name }, actor);
         }
 
         // Notify next stage approvers
@@ -335,12 +336,12 @@ export async function approveStage(instanceId, input, actor) {
           select: { id: true, email: true, name: true },
         });
         for (const user of nextApprovers) {
-          await notificationService.notifyWorkflowAssigned(user, {
+          await notificationGateway.emit(EVENTS.WORKFLOW_ASSIGNED, {
             instanceId: instance.id,
             workflowName: instance.definition?.name,
             stageName: nextStage.name,
             userName: user.name,
-          });
+          }, { userId: user.id, email: user.email, name: user.name }, actor);
         }
       } else {
         // Workflow complete.
@@ -364,16 +365,16 @@ export async function approveStage(instanceId, input, actor) {
           prisma.user.findUnique({ where: { id: instance.initiatedById }, select: { id: true, email: true, name: true } }),
         ]);
         if (initiator) {
-          await notificationService.notifyWorkflowApproved(initiator, {
+          await notificationGateway.emit(EVENTS.WORKFLOW_APPROVED, {
             instanceId: instance.id,
             workflowName: instance.definition?.name,
             stageName: instance.currentStage.name,
             approverName: approver?.name || 'Unknown',
-          });
-          await notificationService.notifyWorkflowCompleted(initiator, {
+          }, { userId: initiator.id, email: initiator.email, name: initiator.name }, actor);
+          await notificationGateway.emit(EVENTS.WORKFLOW_COMPLETED, {
             instanceId: instance.id,
             workflowName: instance.definition?.name,
-          });
+          }, { userId: initiator.id, email: initiator.email, name: initiator.name }, actor);
         }
       }
     } else {
@@ -465,13 +466,13 @@ export async function rejectStage(instanceId, input, actor) {
       prisma.user.findUnique({ where: { id: instance.initiatedById }, select: { id: true, email: true, name: true } }),
     ]);
     if (initiator) {
-      await notificationService.notifyWorkflowRejected(initiator, {
+      await notificationGateway.emit(EVENTS.WORKFLOW_REJECTED, {
         instanceId: instance.id,
         workflowName: instance.definition?.name,
         stageName: instance.currentStage.name,
         rejecterName: rejecter?.name || 'Unknown',
         reason: input?.reason,
-      });
+      }, { userId: initiator.id, email: initiator.email, name: initiator.name }, actor);
     }
 
     const updated = await prisma.workflowInstance.findUnique({

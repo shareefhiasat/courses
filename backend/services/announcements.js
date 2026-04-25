@@ -14,6 +14,8 @@ import {
   getAnnouncementsByProgram as getAnnouncementsByProgramFromDb,
   getAnnouncementsByClass as getAnnouncementsByClassFromDb
 } from '../db/announcements-postgres.js';
+import notificationGateway from './notifications/index.js';
+import { EVENTS } from './notifications/constants.js';
 
 /**
  * Get all announcements with business logic
@@ -234,6 +236,52 @@ export const createAnnouncement = async (announcementData, user = null) => {
     };
     
     const result = await createAnnouncementInDb(dbData, user);
+    
+    // Send notifications for the new announcement
+    if (result.success && result.data) {
+      try {
+        const announcement = result.data;
+        
+        // Determine recipients based on target audience
+        let recipients = [];
+        
+        if (announcement.targetAudience === 'all' || announcement.targetAudience === 'students') {
+          // Send to all students
+          recipients.push({ role: 'student' });
+        }
+        
+        if (announcement.targetAudience === 'all' || announcement.targetAudience === 'instructors') {
+          // Send to all instructors
+          recipients.push({ role: 'instructor' });
+        }
+        
+        if (announcement.targetAudience === 'all' || announcement.targetAudience === 'hr') {
+          // Send to all HR
+          recipients.push({ role: 'hr' });
+        }
+        
+        if (announcement.targetAudience === 'all' || announcement.targetAudience === 'admin') {
+          // Send to all admins
+          recipients.push({ role: 'admin' });
+        }
+        
+        // Send notifications
+        for (const recipient of recipients) {
+          await notificationGateway.emit(EVENTS.ANNOUNCEMENT_POSTED, {
+            announcementId: announcement.id,
+            titleEn: announcement.titleEn,
+            titleAr: announcement.titleAr,
+            descriptionEn: announcement.descriptionEn,
+            descriptionAr: announcement.descriptionAr,
+            targetAudience: announcement.targetAudience,
+          }, recipient, user);
+        }
+      } catch (notifError) {
+        console.error('Failed to send announcement notifications:', notifError);
+        // Don't fail the announcement creation if notification fails
+      }
+    }
+    
     return result;
   } catch (error) {
     console.error('Error in createAnnouncement:', error);

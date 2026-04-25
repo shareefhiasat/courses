@@ -17,6 +17,7 @@ import useNotifications from '@hooks/useNotifications';
 import notificationManager from '@utils/notifications';
 import { ActivityLogger } from '@services/other/activityLogger';
 import UserImageUpload from '@components/ui/UserImageUpload/UserImageUpload';
+import NotificationPreferencesSection from '@components/ui/NotificationPreferencesSection/NotificationPreferencesSection';
 
 const ProfileSettingsPage = () => {
   const { user, loading: authLoading, isSuperAdmin, isAdmin, isInstructor, isHR } = useAuth();
@@ -855,6 +856,9 @@ const ProfileSettingsPage = () => {
             </div>
           </CardBody>
         </Card>
+
+        {/* Notification Preferences Section */}
+        <NotificationPreferencesSection />
 
         <div className={styles.actions}>
           <Button

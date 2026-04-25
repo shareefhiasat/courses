@@ -8,10 +8,10 @@ import { AdvancedDataGrid } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatQatarStandard, formatQatarForInput, parseQatarFromInput, getQatarNow } from '@utils/qatarDate';
 import { addResource, updateResource, deleteResource, getResources } from '@services/business/resourceService';
-import { notificationGateway } from '@services/business/notificationGateway';
+// import { notificationGateway } from '@services/business/notificationGateway'; // Removed - notifications now handled by backend
 import { getEnrollments } from '@services/business/enrollmentService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger.jsx';
-import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
+// import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes'; // Removed - notifications now handled by backend
 import { getUserById } from '@services/business/userService';
 import { formatDateTime } from '@utils/dateUtils.js';
 import { Button, Input, Textarea, Select, ToggleSwitch, DatePicker, RichTextEditor } from '@ui';
@@ -323,31 +323,7 @@ const ResourcesPage = () => {
 
         // Send notifications using notification gateway (only for new resources)
         if (!editingResource && resourceData.classId) {
-          try {
-            const enrollmentsResult = await getEnrollments({ classId: resourceData.classId });
-            const studentIds = (enrollmentsResult.data || []).map(e => e.userId);
-            
-            for (const studentId of studentIds) {
-              const { data: student } = await getUserById(studentId);
-              if (student && student.email) {
-                await notificationGateway.send(NOTIFICATION_TRIGGERS.RESOURCE_NEW, {
-                  userId: studentId,
-                  role: 'student',
-                  classId: resourceData.classId,
-                  email: student.email,
-                  lang: student.preferredLanguage || 'en',
-                  variables: {
-                    studentName: student.displayName || student.name || t('resources_student_name'),
-                    resourceTitle: resourceForm.title,
-                    resourceType: resourceTypes.find(rt => rt.id === resourceForm.typeId)?.nameEn || t('resources_default_type'),
-                    resourceUrl: resourceForm.url
-                  }
-                });
-              }
-            }
-          } catch (notifyError) {
-            console.warn('Failed to send resource notifications:', notifyError);
-          }
+          // Notifications are now handled by the backend
         }
 
         await loadData();

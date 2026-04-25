@@ -1,9 +1,9 @@
-import { notificationGateway } from './notificationGateway';
-import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { info, error, warn, debug } from '../utils/logger.js';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
+// import { notificationGateway } from './notificationGateway'; // Removed - notifications now handled by backend
+// import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes'; // Removed - notifications now handled by backend
 import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import behaviorDbService from '../db/behaviorDbService-postgres.js';
 
@@ -91,32 +91,7 @@ export async function createBehavior({
     }
 
     if (sendNotification && studentId) {
-      try {
-        const actionLabel = points < 0 ? 'recorded' : 'added';
-        const formattedDate = new Date(todayStr).toLocaleDateString('en-GB');
-        
-        // Use smart notification gateway
-        await notificationGateway.send(NOTIFICATION_TRIGGERS.BEHAVIOR_RECORDED, {
-          userId: studentId,
-          role: ROLE_STRINGS.STUDENT,
-          classId: classId,
-          title: `📋 Behavior ${actionLabel}`,
-          message: `Behavior ${actionLabel} for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
-          type: RECORD_TYPES.BEHAVIOR,
-          email: studentInfo?.email,
-          templateId: 'behaviorNotification',
-          variables: {
-            studentName: studentInfo?.displayName || studentInfo?.email || 'Student',
-            className: className || 'Class',
-            date: formattedDate,
-            category: 'Behavior',
-            delta: points,
-            notes: description || ''
-          }
-        });
-      } catch (notifyError) {
-        console.warn('Failed to send behavior notification via gateway:', notifyError);
-      }
+      // Notifications are now handled by the backend
     }
 
     // Log activity
@@ -180,31 +155,7 @@ export async function updateBehavior(behaviorId, updateData, user) {
     
     // Send update notification if student exists
     if (existingData.studentId) {
-      try {
-        const formattedDate = new Date().toLocaleDateString('en-GB');
-        
-        // Get behavior type label
-        const behaviorTypeLabel = existingData.type || 'behavior';
-        
-        await notificationGateway.send(NOTIFICATION_TRIGGERS.BEHAVIOR_UPDATED, {
-          userId: existingData.studentId,
-          role: ROLE_STRINGS.STUDENT,
-          classId: existingData.classId,
-          title: '✏️ Behavior Record Updated',
-          message: `Your behavior record has been updated on ${formattedDate}`,
-          type: RECORD_TYPES.BEHAVIOR,
-          templateId: 'behaviorUpdateNotification',
-          variables: {
-            studentName: existingData.studentInfo?.displayName || existingData.studentInfo?.email || 'Student',
-            date: formattedDate,
-            behaviorType: behaviorTypeLabel,
-            updatedFields: Object.keys(updateData).join(', '),
-            className: existingData.className || 'Class'
-          }
-        });
-      } catch (notifyError) {
-        console.warn('Failed to send behavior update notification via gateway:', notifyError);
-      }
+      // Notifications are now handled by the backend
     }
 
     return { success: true };
@@ -253,30 +204,7 @@ export async function deleteBehavior(behaviorId, behaviorData = null) {
     
     // Send deletion notification if student exists
     if (dataToDelete?.studentId) {
-      try {
-        const formattedDate = new Date().toLocaleDateString('en-GB');
-        
-        // Get behavior type label
-        const behaviorTypeLabel = dataToDelete.type || 'behavior';
-        
-        await notificationGateway.send(NOTIFICATION_TRIGGERS.BEHAVIOR_DELETED, {
-          userId: dataToDelete.studentId,
-          role: ROLE_STRINGS.STUDENT,
-          classId: dataToDelete.classId,
-          title: '🗑️ Behavior Record Removed',
-          message: `Your behavior record has been removed on ${formattedDate}`,
-          type: RECORD_TYPES.BEHAVIOR,
-          templateId: 'behaviorDeleteNotification',
-          variables: {
-            studentName: dataToDelete.studentInfo?.displayName || dataToDelete.studentInfo?.email || 'Student',
-            date: formattedDate,
-            behaviorType: behaviorTypeLabel,
-            className: dataToDelete.className || 'Class'
-          }
-        });
-      } catch (notifyError) {
-        console.warn('Failed to send behavior deletion notification via gateway:', notifyError);
-      }
+      // Notifications are now handled by the backend
     }
     
     return { success: true };

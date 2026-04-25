@@ -1,58 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { subscribeToNotifications } from '@services/business/notificationService';
 import { NotificationDrawer } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
-// import useNotifications from '@hooks/useNotifications';
+import useNotificationsFeed from '@hooks/useNotificationsFeed';
 
-
-import { info, error, warn, debug } from '@services/utils/logger.js';const NotificationBell = () => {
+const NotificationBell = () => {
   const { user } = useAuth();
   const { t } = useLang();
   const { theme } = useTheme();
-  // const { triggerNotification } = useNotifications();
-  const [notifications, setNotifications] = useState([]);
+  const { unreadCount } = useNotificationsFeed({ limit: 10 });
   const [showDrawer, setShowDrawer] = useState(false);
   const [focused, setFocused] = useState(false);
   const rootRef = useRef(null);
-  const previousUnreadCount = useRef(0);
-
-  useEffect(() => {
-    if (!user) return;
-    const unsubscribe = subscribeToNotifications(user.uid, (newNotifications) => {
-      setNotifications(newNotifications);
-      
-      // Check for new notifications and trigger sound/vibration
-      const currentUnreadCount = newNotifications.filter(n => !n.read && !n.archived).length;
-      const previousCount = previousUnreadCount.current;
-      
-      // If unread count increased, play notification
-      if (currentUnreadCount > previousCount) {
-        const latestNotification = newNotifications
-          .filter(n => !n.read && !n.archived)
-          .sort((a, b) => {
-            const aTime = a.createdAt?.seconds || 0;
-            const bTime = b.createdAt?.seconds || 0;
-            return bTime - aTime;
-          })[0];
-        
-        if (latestNotification) {
-          // triggerNotification(
-          //   latestNotification.type || 'default',
-          //   latestNotification.title || 'New Notification',
-          //   latestNotification.message || 'You have a new notification'
-          // );
-        }
-      }
-      
-      previousUnreadCount.current = currentUnreadCount;
-    });
-    return unsubscribe;
-  }, [user]);
-
-  const unreadCount = notifications.filter(n => !n.read && !n.archived).length;
 
   if (!user) return null;
 

@@ -63,6 +63,10 @@ import { keycloakAuth } from "./middleware/keycloakAuth.js";
 // MinIO initialization
 import { ensureBuckets } from './services/minioService.js';
 
+// WebSocket server initialization
+import { createNotificationWebSocketServer } from './services/websocketServer.js';
+import { setWSEmitter } from './services/notifications/index.js';
+
 // Initialize MinIO buckets on startup
 (async () => {
   try {
@@ -401,12 +405,35 @@ process.on("unhandledRejection", (reason, promise) => {
 // SSL configuration for development
 const SSL_KEY_PATH = process.env.SSL_KEY_PATH || join(__dirname, "../scripts/docker/nginx/ssl/key.pem");
 const SSL_CERT_PATH = process.env.SSL_CERT_PATH || join(__dirname, "../scripts/docker/nginx/ssl/cert.pem");
+const DISABLE_HTTPS = process.env.DISABLE_HTTPS === "true";
 
 let server;
 
 try {
-  // Try HTTPS first (for development with nginx)
-  if (fs.existsSync(SSL_KEY_PATH) && fs.existsSync(SSL_CERT_PATH)) {
+  // Use HTTP if explicitly disabled or in development without HTTPS requirement
+  if (DISABLE_HTTPS || NODE_ENV === "development" || !fs.existsSync(SSL_KEY_PATH) || !fs.existsSync(SSL_CERT_PATH)) {
+    server = app.listen(PORT, () => {
+      console.log(`
+🚀 ${process.env.APP_NAME || "Military LMS Backend API"} running on http://localhost:${PORT}
+📡 API Base URL: http://localhost:${PORT}/api/${API_VERSION}
+📊 Swagger Documentation: http://localhost:${PORT}/api-docs
+🏥 Health Check: http://localhost:${PORT}/api/health
+🏗️ Architecture: Frontend → Backend API → Business Services → DB Services → PostgreSQL
+📝 Swagger JSON: http://localhost:${PORT}/api-docs.json
+🔖 API Version: ${API_VERSION}
+🌍 Environment: ${NODE_ENV}
+📦 App Version: ${process.env.APP_VERSION || "1.0.0"}
+🔗 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:3000"}
+⚠️  HTTP mode (HTTPS disabled for development)
+      `);
+      
+      // Initialize WebSocket server after HTTP server is ready
+      const wsServer = createNotificationWebSocketServer(server);
+      setWSEmitter(wsServer.emit);
+      console.log(`[WebSocket] Server initialized on path: ${process.env.NOTIFICATIONS_WS_PATH || '/ws/notifications'}`);
+    });
+  } else {
+    // Try HTTPS (for production or nginx setup)
     const sslOptions = {
       key: fs.readFileSync(SSL_KEY_PATH),
       cert: fs.readFileSync(SSL_CERT_PATH),
@@ -426,23 +453,11 @@ try {
 🔗 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:3000"}
 🔒 HTTPS Enabled (Self-signed certificates)
       `);
-    });
-  } else {
-    // Fall back to HTTP if SSL certs not found
-    server = app.listen(PORT, () => {
-      console.log(`
-🚀 ${process.env.APP_NAME || "Military LMS Backend API"} running on http://localhost:${PORT}
-📡 API Base URL: http://localhost:${PORT}/api/${API_VERSION}
-📊 Swagger Documentation: http://localhost:${PORT}/api-docs
-🏥 Health Check: http://localhost:${PORT}/api/health
-🏗️ Architecture: Frontend → Backend API → Business Services → DB Services → PostgreSQL
-📝 Swagger JSON: http://localhost:${PORT}/api-docs.json
-🔖 API Version: ${API_VERSION}
-🌍 Environment: ${NODE_ENV}
-📦 App Version: ${process.env.APP_VERSION || "1.0.0"}
-🔗 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:3000"}
-⚠️  HTTPS disabled - SSL certificates not found
-      `);
+      
+      // Initialize WebSocket server after HTTP server is ready
+      const wsServer = createNotificationWebSocketServer(server);
+      setWSEmitter(wsServer.emit);
+      console.log(`[WebSocket] Server initialized on path: ${process.env.NOTIFICATIONS_WS_PATH || '/ws/notifications'}`);
     });
   }
 } catch (error) {
@@ -461,6 +476,11 @@ try {
 🔗 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:3000"}
 ⚠️  HTTPS disabled - SSL certificates not found
     `);
+    
+    // Initialize WebSocket server after HTTP server is ready
+    const wsServer = createNotificationWebSocketServer(server);
+    setWSEmitter(wsServer.emit);
+    console.log(`[WebSocket] Server initialized on path: ${process.env.NOTIFICATIONS_WS_PATH || '/ws/notifications'}`);
   });
 }
 

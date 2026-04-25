@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { 
-  getNotifications, 
   markNotificationRead, 
   markAllNotificationsRead,
-  subscribeToNotifications,
   archiveNotification,
   markNotificationUnread,
   deleteNotification
@@ -38,6 +36,7 @@ import PortalTooltip from './PortalTooltip/PortalTooltip';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { ActivityLogger } from '@services/other/activityLogger';
 import useNotifications from '@hooks/useNotifications';
+import useNotificationsFeed from '@hooks/useNotificationsFeed';
 
 
 const NotificationDrawer = ({ isOpen, onClose }) => {
@@ -55,8 +54,20 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     checkSupport,
     isMobile: isMobileFunc
   } = useNotifications();
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(false);
+  
+  // Use new notifications feed hook
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    refresh,
+    markAsRead,
+    markAllAsRead,
+    archive,
+    archiveAllRead,
+    remove
+  } = useNotificationsFeed({ limit: 100, archived: false });
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all'); // all, unread, read, archived
   const [filterCategory, setFilterCategory] = useState('all'); // all, activity, message, announcement, grade, etc.
@@ -78,35 +89,10 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
   const isDark = theme === 'dark';
 
   useEffect(() => {
-    if (!user || !isOpen) return () => {}; // Return empty cleanup function
-    const unsubscribe = subscribeToNotifications(user.uid, (newNotifications) => {
-      setNotifications(newNotifications);
-      
-      // Check for new notifications and trigger sound/vibration
-      const currentUnreadCount = newNotifications.filter(n => !n.read && !n.archived).length;
-      const previousUnreadCount = notifications.filter(n => !n.read && !n.archived).length;
-      
-      // If unread count increased, play notification
-      if (currentUnreadCount > previousUnreadCount) {
-        const latestNotification = newNotifications
-          .filter(n => !n.read && !n.archived)
-          .sort((a, b) => {
-            const aTime = a.createdAt?.seconds || 0;
-            const bTime = b.createdAt?.seconds || 0;
-            return bTime - aTime;
-          })[0];
-        
-        if (latestNotification) {
-          triggerNotification(
-            latestNotification.type || 'default',
-            latestNotification.title || t('notifications.new_notification'),
-            latestNotification.message || t('notifications.new_notification_message')
-          );
-        }
-      }
-    }, true); // Always include archived, we'll filter in the component
-    return unsubscribe || (() => {}); // Ensure we always return a function
-  }, [user, isOpen, notifications, triggerNotification]);
+    if (!user || !isOpen) return () => {};
+    refresh();
+    return () => {};
+  }, [user, isOpen, refresh]);
 
   // Load programs, subjects, classes for filters
   useEffect(() => {
@@ -238,7 +224,6 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     return filtered;
   }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, filterProgram, filterSubject, filterClass, filterYear, filterSemester, searchTerm, showArchived, subjects, classes]);
 
-  const unreadCount = notifications.filter(n => !n.read && !n.archived).length;
   const archivedCount = notifications.filter(n => n.archived).length;
 
   const formatTime = useCallback((timestamp) => {
