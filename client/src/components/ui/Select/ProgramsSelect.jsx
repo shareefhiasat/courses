@@ -109,33 +109,29 @@ const ProgramsSelect = ({
   let normalizedSelectedProgram = null;
   if (selectedProgram !== null && selectedProgram !== undefined && selectedProgram !== '') {
     if (typeof selectedProgram === 'object') {
-      normalizedSelectedProgram = parseInt(
-        selectedProgram.value || selectedProgram.id || selectedProgram.target?.value,
-        10
-      );
+      normalizedSelectedProgram = String(selectedProgram.value || selectedProgram.id || selectedProgram.target?.value);
     } else {
-      normalizedSelectedProgram = parseInt(selectedProgram, 10);
+      normalizedSelectedProgram = String(selectedProgram);
     }
-    
+
     debug('[ProgramsSelect] Program normalization:', {
       originalValue: selectedProgram,
-      normalizedValue: normalizedSelectedProgram,
-      isNaN: isNaN(normalizedSelectedProgram)
+      normalizedValue: normalizedSelectedProgram
     });
   }
 
   // Filter subjects based on selected program
   const filteredSubjects = normalizedSelectedProgram
-    ? filteredSubjectsByRole.filter(subject => subject.programId === normalizedSelectedProgram)
+    ? filteredSubjectsByRole.filter(subject => String(subject.programId) === normalizedSelectedProgram)
     : filteredSubjectsByRole;
 
   // Filter classes based on selected subject AND term/year if provided
   const normalizedSelectedSubject = selectedSubject !== null && selectedSubject !== undefined && selectedSubject !== ''
-    ? parseInt(selectedSubject, 10)
+    ? String(selectedSubject)
     : null;
 
   let filteredClasses = normalizedSelectedSubject
-    ? filteredClassesByRole.filter(cls => cls.subjectId === normalizedSelectedSubject)
+    ? filteredClassesByRole.filter(cls => String(cls.subjectId) === normalizedSelectedSubject)
     : filteredClassesByRole;
   
   // Apply term filter if selected

@@ -3835,9 +3835,9 @@ const QRScannerPage = () => {
           {/* Program/Subject/Class Selection */}
           <div style={{ flex: '0 0 auto', minWidth: '250px', maxWidth: '350px' }}>
             <ProgramsSelect
-              programs={programs}
-              subjects={subjects}
-              classes={classes}
+              programs={programs.map(p => ({ ...p, id: String(p.id) }))}
+              subjects={subjects.map(s => ({ ...s, id: String(s.id), programId: s.programId ? String(s.programId) : null }))}
+              classes={classes.map(c => ({ ...c, id: String(c.id), subjectId: c.subjectId ? String(c.subjectId) : null }))}
               selectedProgram={String(selectedProgramId || '')}
               selectedSubject={String(selectedSubjectId || '')}
               selectedClass={String(selectedClassId || '')}

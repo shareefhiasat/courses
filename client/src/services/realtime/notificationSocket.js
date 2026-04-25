@@ -107,7 +107,7 @@ class NotificationSocket {
   getWebSocketUrl(token) {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    const wsPath = process.env.NOTIFICATIONS_WS_PATH || '/ws/notifications';
+    const wsPath = import.meta.env.VITE_NOTIFICATIONS_WS_PATH || '/ws/notifications';
     return `${protocol}//${host}${wsPath}?token=${encodeURIComponent(token)}`;
   }
 

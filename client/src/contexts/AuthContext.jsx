@@ -226,18 +226,20 @@ export const AuthProvider = ({ children }) => {
         }
       }, adjustedTimeUntilWarning);
     } else if (timeUntilExpiry > 0 && (!lastRefreshTime || bufferExpired)) { // Removed 1-minute requirement
-      console.log('⚠️ [SESSION DEBUG] Token expiring soon, checking if user is idle');
-      
+      const timeRemainingSec = Math.floor(timeUntilExpiry / 1000);
+      const timeRemainingMin = (timeRemainingSec / 60).toFixed(1);
+      console.log(`⚠️ [SESSION DEBUG] Token expiring in ${timeRemainingSec}s (${timeRemainingMin}min), checking if user is idle`);
+
       // Only show modal if user is idle
       const idleThreshold = 5 * 60 * 1000; // 5 minutes
       const timeSinceLastActivity = Date.now() - lastActivityTimeRef.current;
-      
+
       if (timeSinceLastActivity > idleThreshold) {
-        console.log('⚠️ [SESSION DEBUG] User is idle, showing warning immediately');
-        warn('⚠️ [DIALOG DEBUG] Token expiring soon, showing warning immediately');
+        console.log(`⚠️ [SESSION DEBUG] User is idle (inactive for ${Math.floor(timeSinceLastActivity / 1000)}s), showing warning immediately`);
+        warn(`⚠️ [DIALOG DEBUG] Token expiring in ${timeRemainingSec}s, showing warning immediately`);
         setShowSessionModal(true);
       } else {
-        console.log('⚠️ [SESSION DEBUG] User is active, skipping warning (will auto-refresh)');
+        console.log(`⚠️ [SESSION DEBUG] User is active (last activity ${Math.floor(timeSinceLastActivity / 1000)}s ago), skipping warning (will auto-refresh)`);
       }
       
       if (bufferExpired) {
@@ -340,9 +342,10 @@ export const AuthProvider = ({ children }) => {
         // Check if we recently refreshed (within buffer time)
         const bufferTime = SESSION_CONFIG.REFRESH_BUFFER_MINUTES * 60;
         const recentlyRefreshed = lastRefreshTime && (now - lastRefreshTime) < bufferTime * 1000;
-        
+
         if (!recentlyRefreshed) {
-          console.log('🔄 [AUTO-REFRESH] User active and token expiring soon, auto-refreshing...');
+          const timeRemainingSec = Math.floor(timeUntilExpiry / 1000);
+          console.log(`🔄 [AUTO-REFRESH] User active and token expiring in ${timeRemainingSec}s, auto-refreshing...`);
           try {
             const oldExpiry = keycloak.tokenParsed?.exp;
             const refreshed = await keycloak.updateToken(60); // Refresh if valid for less than 60s
