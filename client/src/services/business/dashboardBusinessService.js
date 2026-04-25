@@ -1,35 +1,65 @@
 ﻿/**
- * dashboardBusinessService - Stub
+ * Dashboard Business Service
+ * 
+ * PURPOSE: Business logic layer for dashboard-related operations
+ * ARCHITECTURE: Frontend → Business Services → API Client → API Server → PostgreSQL
  */
 
-const { info, error, warn, debug } = require('../utils/logger.js');
+import dashboardDbService from '../db/dashboardDbService-postgres.js';
+import { info, error, warn, debug } from '../utils/logger.js';
 
 const serviceName = 'dashboardBusinessService';
 
-const getAll = async (params = {}) => {
-  return { success: true, data: [], total: 0 };
+const getDashboardSummary = async (params = {}) => {
+  try {
+    info(`${serviceName}:getDashboardSummary`, { params });
+    const result = await dashboardDbService.getDashboardSummary(params);
+    
+    return {
+      success: result.success,
+      data: result.data,
+      error: result.success ? undefined : result.error
+    };
+  } catch (error) {
+    error(`${serviceName}:getDashboardSummary:error`, { error: error.message, params });
+    return {
+      success: false,
+      error: error.message || 'Failed to load dashboard summary',
+      data: null
+    };
+  }
 };
 
-const getById = async (id) => {
-  return { success: true, data: null };
+const getTeacherDashboard = async (teacherUserId) => {
+  try {
+    info(`${serviceName}:getTeacherDashboard`, { teacherUserId });
+    
+    if (!teacherUserId) {
+      return {
+        success: false,
+        error: 'Teacher user ID is required',
+        data: null
+      };
+    }
+    
+    const result = await dashboardDbService.getTeacherDashboard(teacherUserId);
+    
+    return {
+      success: result.success,
+      data: result.data,
+      error: result.success ? undefined : result.error
+    };
+  } catch (error) {
+    error(`${serviceName}:getTeacherDashboard:error`, { error: error.message, teacherUserId });
+    return {
+      success: false,
+      error: error.message || 'Failed to load teacher dashboard',
+      data: null
+    };
+  }
 };
 
-const create = async (data, user = null) => {
-  return { success: true, data: { id: Date.now(), ...data } };
-};
-
-const update = async (id, data, user = null) => {
-  return { success: true, data: { id, ...data } };
-};
-
-const delete = async (id, user = null) => {
-  return { success: true, message: 'Deleted successfully' };
-};
-
-module.exports = {
-  getAll,
-  getById,
-  create,
-  update,
-  delete
+export default {
+  getDashboardSummary,
+  getTeacherDashboard
 };

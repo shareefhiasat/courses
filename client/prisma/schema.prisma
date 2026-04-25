@@ -610,6 +610,10 @@ model User {
   notifications                  Notification[]             @relation("UserNotifications")
   notificationsCreated           Notification[]             @relation("NotificationCreator")
   notificationPreference          NotificationPreference?   @relation("UserNotificationPreferences")
+  teacherAvailability            TeacherAvailability?      @relation("TeacherAvailability")
+  scheduleSessions               ScheduleSession[]          @relation("InstructorScheduleSessions")
+  adminScopes                    AdminScope[]               @relation("AdminScopeUser")
+  scopedInstructorFor            AdminScope[]               @relation("InstructorAdminScope")
 
   @@map("users")
 }
@@ -637,6 +641,10 @@ model Program {
   resources          Resource[]
   standupAttendances StandupAttendance[]
   subjects           Subject[]
+  schedulingClassrooms Classroom[]          @relation("SchedulingClassrooms")
+  schedulingTimeSlots  TimeSlot[]           @relation("SchedulingTimeSlots")
+  schedulingHolidays   Holiday[]            @relation("SchedulingHolidays")
+  adminScopes         AdminScope[]          @relation("ProgramAdminScope")
 
   @@map("programs")
 }
@@ -663,6 +671,7 @@ model Subject {
   marksDistributions MarksDistribution?
   resources          Resource[]
   studentMarks       StudentMarks[]
+  scheduleSessions   ScheduleSession[]  @relation("SubjectScheduleSessions")
   creator            User               @relation("SubjectCreator", fields: [createdBy], references: [id])
   program            Program            @relation(fields: [programId], references: [id])
   requirementType    RequirementTypes   @relation(fields: [requirementTypeId], references: [id])
@@ -678,6 +687,7 @@ model Class {
   nameEn         String
   nameAr         String?
   maxCapacity    Int?
+  capacity       Int?            // Additional capacity field for scheduling
   isActive       Boolean         @default(true)
   programId      Int
   subjectId      Int
@@ -693,6 +703,7 @@ model Class {
   ownerEmail     String?
   term           String?
   year           String?
+  schedule       Json?           // Kept for audit (read-only after migration)
   activities     Activity[]
   announcements  Announcement[]
   attendances    Attendance[]
@@ -707,6 +718,7 @@ model Class {
   penalties      Penalty[]
   resources      Resource[]
   studentMarks   StudentMarks[]
+  scheduleSessions ScheduleSession[] @relation("ClassScheduleSessions")
 
   @@map("classes")
 }
@@ -1671,4 +1683,152 @@ model NotificationPreference {
   user         User @relation("UserNotificationPreferences", fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notification_preferences")
+}
+
+// ============================================================================
+// SCHEDULING MODULE MODELS
+// ============================================================================
+
+model Classroom {
+  id            Int      @id @default(autoincrement())
+  programId     Int
+  code          String
+  nameEn        String
+  nameAr        String?
+  locationEn    String?
+  locationAr    String?
+  capacity      Int
+  equipment     String[] // ["Projector", "Whiteboard", "Computers", etc.]
+  availableDays String[] // ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  status        String   @default("Available") // Available, UnderMaintenance, Closed
+  isActive      Boolean  @default(true)
+  createdBy     Int?
+  updatedBy     Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  program              Program          @relation("SchedulingClassrooms", fields: [programId], references: [id])
+  scheduleSessions     ScheduleSession[] @relation("ClassroomScheduleSessions")
+  adminScopes          AdminScope[]     @relation("ClassroomAdminScope")
+
+  @@unique([programId, code])
+  @@map("classrooms")
+}
+
+model TimeSlot {
+  id              Int      @id @default(autoincrement())
+  programId       Int
+  labelEn         String
+  labelAr         String?
+  startTime       String   // "09:00"
+  endTime         String   // "09:50"
+  durationMinutes Int
+  isBreak         Boolean  @default(false)
+  breakType       String?  // "TeaBreak", "PrayerBreak", "LunchBreak"
+  sortOrder       Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdBy       Int?
+  updatedBy       Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  program         Program          @relation("SchedulingTimeSlots", fields: [programId], references: [id])
+  scheduleSessions ScheduleSession[]
+
+  @@unique([programId, sortOrder])
+  @@map("time_slots")
+}
+
+model Holiday {
+  id                Int      @id @default(autoincrement())
+  programId         Int?     // null = global default
+  descriptionEn     String
+  descriptionAr     String?
+  type              String   // Public, National, SemesterBreak, Summer, Winter, Other
+  startDate         DateTime
+  endDate           DateTime
+  isRecurring       Boolean  @default(false)
+  recurrencePattern String?  // "yearly", "monthly", etc.
+  isActive          Boolean  @default(true)
+  createdBy         Int?
+  updatedBy         Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  program           Program?  @relation("SchedulingHolidays", fields: [programId], references: [id])
+
+  @@index([startDate, endDate])
+  @@map("holidays")
+}
+
+model TeacherAvailability {
+  id                Int      @id @default(autoincrement())
+  userId            Int      @unique
+  availableDays     String[] // ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  maxSessionsPerDay Int      @default(3)
+  status            String   @default("Active") // Active, OnLeave, Inactive
+  contactPhone      String?
+  contactEmail      String?
+  notes             String?
+  isActive          Boolean  @default(true)
+  createdBy         Int?
+  updatedBy         Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User             @relation("TeacherAvailability", fields: [userId], references: [id], onDelete: Cascade)
+  scheduleSessions  ScheduleSession[]
+
+  @@map("teacher_availability")
+}
+
+model ScheduleSession {
+  id                Int      @id @default(autoincrement())
+  classId           Int
+  subjectId         Int
+  instructorUserId  Int
+  classroomId       Int?
+  timeSlotId        Int
+  date              DateTime
+  notes             String?
+  isCancelled       Boolean  @default(false)
+  cancelledAt       DateTime?
+  cancelReason      String?
+  isActive          Boolean  @default(true)
+  createdBy         Int?
+  updatedBy         Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  class             Class             @relation("ClassScheduleSessions", fields: [classId], references: [id])
+  subject           Subject           @relation("SubjectScheduleSessions", fields: [subjectId], references: [id])
+  instructor        User              @relation("InstructorScheduleSessions", fields: [instructorUserId], references: [id])
+  classroom         Classroom?        @relation("ClassroomScheduleSessions", fields: [classroomId], references: [id])
+  timeSlot          TimeSlot          @relation("TimeSlotScheduleSessions", fields: [timeSlotId], references: [id])
+
+  @@index([date])
+  @@index([instructorUserId, date])
+  @@index([classroomId, date])
+  @@unique([classId, timeSlotId, date])
+  @@map("schedule_sessions")
+}
+
+model AdminScope {
+  id               Int      @id @default(autoincrement())
+  userId           Int
+  scopeType        String   // PROGRAM, CLASSROOM, INSTRUCTOR
+  programId        Int?
+  classroomId      Int?
+  instructorUserId Int?
+  isActive         Boolean  @default(true)
+  createdBy        Int
+  createdAt        DateTime @default(now())
+
+  user             User             @relation("AdminScopeUser", fields: [userId], references: [id], onDelete: Cascade)
+  program          Program?         @relation("ProgramAdminScope", fields: [programId], references: [id])
+  classroom        Classroom?       @relation("ClassroomAdminScope", fields: [classroomId], references: [id])
+  instructor       User?            @relation("InstructorAdminScope", fields: [instructorUserId], references: [id])
+
+  @@index([userId, scopeType])
+  @@map("admin_scopes")
 }

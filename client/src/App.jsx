@@ -62,6 +62,7 @@ const SubjectsManagementPage = lazy(() => import('./pages/academic/subjects/Subj
 const ScheduledReportsPage = lazy(() => import('./pages/feedback/reports/ScheduledReportsPage'));
 const AdvancedAnalytics = lazy(() => import('./components/AdvancedAnalytics'));
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage.jsx'));
+const SummaryDashboardPage = lazy(() => import('./pages/SummaryDashboardPage'));
 const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
 const MarksPage = lazy(() => import('./pages/academic/enrollments/grading/MarksPage'));
 const WorkflowInboxPage = lazy(() => import('./pages/workflow/WorkflowInboxPage'));
@@ -194,6 +195,17 @@ const AppContent = () => {
               <ProtectedRoute screenId="dashboard" screenName="Dashboard">
                 <Suspense fallback={<GlobalLoadingFallback />}>
                   <DashboardPage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/summary-dashboard" 
+            element={
+              <ProtectedRoute screenId="summaryDashboard" screenName="Summary Dashboard">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <SummaryDashboardPage />
                 </Suspense>
               </ProtectedRoute>
             } 

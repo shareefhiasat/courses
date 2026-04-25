@@ -14,7 +14,7 @@ import styles from './LoginPage.module.css';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const LoginPage = () => {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, isAdmin, isHR, isSuperAdmin } = useAuth();
   const { theme } = useTheme();
   const { t } = useLang();
   const [logoutReason, setLogoutReason] = useState(null);
@@ -42,9 +42,14 @@ const LoginPage = () => {
       }
     }
     
+    // Role-based redirect: admin/HR/super-admin go to SummaryDashboard
+    if (isAdmin || isHR || isSuperAdmin) {
+      return <Navigate to="/summary-dashboard" replace />;
+    }
+    
     // Fallback to default redirect
     return <Navigate to="/" replace />;
-  }, [location]);
+  }, [location, isAdmin, isHR, isSuperAdmin]);
 
   // Check for logout reason on component mount
   useEffect(() => {

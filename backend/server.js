@@ -331,6 +331,13 @@ import publicDriveRoutes from "./routes/publicDriveNew.js";
 import publicLinksRoutes from "./routes/publicLinks.js";
 import workflowRoutes from "./routes/workflows.js";
 import notificationRoutes from "./routes/notifications.js";
+import classroomRoutes from "./routes/classrooms.js";
+import timeSlotRoutes from "./routes/time-slots.js";
+import holidayRoutes from "./routes/holidays.js";
+import teacherAvailabilityRoutes from "./routes/teacher-availability.js";
+import scheduleSessionRoutes from "./routes/schedule-sessions.js";
+import adminScopeRoutes from "./routes/admin-scopes.js";
+import dashboardRoutes from "./routes/dashboard.js";
 
 // Mount routes with versioning
 app.use(`/api/${API_VERSION}/programs`, programRoutes);
@@ -362,6 +369,17 @@ app.use(`/api/${API_VERSION}/p`, publicDriveRoutes);
 app.use(`/api/${API_VERSION}/public`, publicLinksRoutes);
 app.use(`/api/${API_VERSION}/workflows`, workflowRoutes);
 app.use(`/api/${API_VERSION}/notifications`, notificationRoutes);
+
+// Scheduling routes
+app.use(`/api/${API_VERSION}/classrooms`, classroomRoutes);
+app.use(`/api/${API_VERSION}/time-slots`, timeSlotRoutes);
+app.use(`/api/${API_VERSION}/holidays`, holidayRoutes);
+app.use(`/api/${API_VERSION}/teacher-availability`, teacherAvailabilityRoutes);
+app.use(`/api/${API_VERSION}/schedule-sessions`, scheduleSessionRoutes);
+app.use(`/api/${API_VERSION}/admin-scopes`, adminScopeRoutes);
+
+// Dashboard routes
+app.use(`/api/${API_VERSION}/dashboard`, dashboardRoutes);
 
 // ==================== ERROR HANDLING ====================
 
