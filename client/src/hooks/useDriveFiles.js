@@ -16,33 +16,28 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchFiles = useCallback(async () => {
+  const fetchFiles = useCallback(async (filterParams = {}) => {
     setLoading(true);
     setError(null);
     try {
       let endpoint = `${API_BASE}/files`;
-      const params = new URLSearchParams();
+      const params = { ...filterParams };
 
       if (folderId) {
-        params.append('folderId', folderId);
+        params.folderId = folderId;
       }
 
       if (activeSpace === 'starred') {
-        params.append('starred', 'true');
+        params.isStarred = true;
       } else if (activeSpace === 'shared') {
         endpoint = `${API_BASE}/shared`;
       } else if (activeSpace === 'trash') {
-        params.append('deleted', 'true');
+        params.isDeleted = true;
       } else if (activeSpace === 'recent') {
-        params.append('limit', '20');
-        params.append('sortBy', 'updatedAt');
-        params.append('sortOrder', 'desc');
+        params.sortBy = 'recent';
       }
 
-      const queryString = params.toString();
-      const url = queryString ? `${endpoint}?${queryString}` : endpoint;
-
-      const response = await axios.get(url);
+      const response = await axios.get(endpoint, { params });
       if (response.data.success) {
         setFiles(response.data.payload || []);
       } else {
@@ -50,7 +45,7 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
       }
     } catch (err) {
       console.error('[useDriveFiles] fetch failed:', err);
-      setError(err.response?.data?.error?.message || err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -154,17 +149,24 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
 
   const shareFile = useCallback(async (fileId, shareData) => {
     try {
-      const response = await axios.post(`${API_BASE}/shares`, {
-        fileId,
-        ...shareData,
-      });
+      // Transform shareData to match backend API contract
+      const payload = {
+        fileId: shareData.fileId || fileId,
+        folderId: shareData.folderId || null,
+        subjectType: shareData.subjectType, // 'USER' or 'ROLE'
+        subjectId: shareData.subjectId, // userId (int) or role (string)
+        permission: shareData.permission || 'VIEW',
+        expiresAt: shareData.expiresAt || null,
+      };
+
+      const response = await axios.post(`${API_BASE}/shares`, payload);
       if (response.data.success) {
         return { success: true, payload: response.data.payload };
       }
       return { success: false, error: response.data.error };
     } catch (err) {
       console.error('[useDriveFiles] share failed:', err);
-      return { success: false, error: err.message };
+      return { success: false, error: err.response?.data?.error || err.message };
     }
   }, []);
 
@@ -184,6 +186,23 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
     }
   }, []);
 
+  const createFolder = useCallback(async (name, parentId = null) => {
+    try {
+      const response = await axios.post(`${API_BASE}/folders`, {
+        name,
+        parentId,
+      });
+      if (response.data.success) {
+        fetchFolders();
+        return { success: true, payload: response.data.payload };
+      }
+      return { success: false, error: response.data.error };
+    } catch (err) {
+      console.error('[useDriveFiles] create folder failed:', err);
+      return { success: false, error: err.response?.data?.error || err.message };
+    }
+  }, [fetchFolders]);
+
   return {
     files,
     folders,
@@ -197,6 +216,7 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
     downloadFile,
     shareFile,
     createPublicLink,
+    createFolder,
   };
 }
 

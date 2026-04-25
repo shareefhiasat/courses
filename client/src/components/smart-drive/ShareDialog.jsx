@@ -1,36 +1,77 @@
-import { useState, useEffect } from 'react';
-import { X, Users, Link as LinkIcon, Calendar } from 'lucide-react';
+import { useState } from 'react';
+import { X, Users, Link as LinkIcon, Shield } from 'lucide-react';
 import { usePermissions } from '@hooks/usePermissions';
 import { useLang } from '@contexts/LangContext';
 import { ROLE_STRINGS } from '@utils/userUtils';
+import UserSearchDropdown from './UserSearchDropdown';
+import RoleSelect from './RoleSelect';
+import SharePermissionSelect from './SharePermissionSelect';
+import SharesList from './SharesList';
 
 /**
  * ShareDialog Component
- * Share files with users or generate public links
+ * Share files with users/roles or generate public links
+ * Supports FileShare table (USER + ROLE subjects) and PublicLink
  */
-export default function ShareDialog({ file, onShare, onGenerateLink, onClose, users = [] }) {
+export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) {
   const { t } = useLang();
   const { hasPermission, roleCode } = usePermissions();
-  const [shareType, setShareType] = useState('user'); // 'user' or 'public'
-  const [selectedUser, setSelectedUser] = useState('');
+  const [shareType, setShareType] = useState('people'); // 'people', 'roles', or 'public'
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [selectedRole, setSelectedRole] = useState('');
   const [permission, setPermission] = useState('VIEW');
-  const [expiryDays, setExpiryDays] = useState(7);
+  const [expiryDays, setExpiryDays] = useState(null);
   const [publicLink, setPublicLink] = useState('');
   const [loading, setLoading] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   const isSuperAdmin = roleCode === ROLE_STRINGS.SUPER_ADMIN;
   const canShare = isSuperAdmin || hasPermission('drive.share');
   const canPublicLink = isSuperAdmin || hasPermission('drive.public-link');
 
   const handleShareWithUser = async () => {
-    if (!selectedUser || !canShare) return;
+    if (!selectedUserId || !canShare) return;
 
     setLoading(true);
+    setShareSuccess(false);
     try {
-      await onShare?.(file.id, parseInt(selectedUser), permission);
-      onClose?.();
+      const expiresAt = expiryDays ? new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString() : null;
+      await onShare?.({
+        fileId: file.id,
+        subjectType: 'USER',
+        subjectId: selectedUserId,
+        permission,
+        expiresAt,
+      });
+      setShareSuccess(true);
+      setSelectedUserId(null);
+      setExpiryDays(null);
     } catch (error) {
       console.error('Share error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleShareWithRole = async () => {
+    if (!selectedRole || !canShare) return;
+
+    setLoading(true);
+    setShareSuccess(false);
+    try {
+      const expiresAt = expiryDays ? new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString() : null;
+      await onShare?.({
+        fileId: file.id,
+        subjectType: 'ROLE',
+        subjectId: selectedRole,
+        permission,
+        expiresAt,
+      });
+      setShareSuccess(true);
+      setSelectedRole('');
+      setExpiryDays(null);
+    } catch (error) {
+      console.error('Share role error:', error);
     } finally {
       setLoading(false);
     }
@@ -104,17 +145,30 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose, us
         {/* Share Type Tabs */}
         <div className="flex border-b border-[#434655]/10">
           {canShare && (
-            <button
-              onClick={() => setShareType('user')}
-              className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                shareType === 'user'
-                  ? 'border-[#2563eb] text-[#b4c5ff]'
-                  : 'border-transparent text-[#8d90a0] hover:text-white'
-              }`}
-            >
-              <Users className="w-4 h-4 inline me-2" />
-              {t('drive.shareWithUser')}
-            </button>
+            <>
+              <button
+                onClick={() => setShareType('people')}
+                className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  shareType === 'people'
+                    ? 'border-[#2563eb] text-[#b4c5ff]'
+                    : 'border-transparent text-[#8d90a0] hover:text-white'
+                }`}
+              >
+                <Users className="w-4 h-4 inline me-2" />
+                {t('drive.people')}
+              </button>
+              <button
+                onClick={() => setShareType('roles')}
+                className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  shareType === 'roles'
+                    ? 'border-[#2563eb] text-[#b4c5ff]'
+                    : 'border-transparent text-[#8d90a0] hover:text-white'
+                }`}
+              >
+                <Shield className="w-4 h-4 inline me-2" />
+                {t('drive.roles')}
+              </button>
+            </>
           )}
           {canPublicLink && (
             <button
@@ -133,51 +187,109 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose, us
 
         {/* Share Content */}
         <div className="p-6">
-          {shareType === 'user' && canShare && (
+          {shareType === 'people' && canShare && (
             <div className="space-y-4">
-              {/* User Selection */}
+              {shareSuccess && (
+                <div className="p-3 bg-[#1d4e1d] border border-[#2d6a2d] rounded-lg text-sm text-[#a5d6a7]">
+                  {t('drive.shareSuccess')}
+                </div>
+              )}
+              
+              <UserSearchDropdown
+                value={selectedUserId}
+                onChange={setSelectedUserId}
+                disabled={loading}
+              />
+
+              <SharePermissionSelect
+                value={permission}
+                onChange={setPermission}
+                disabled={loading}
+              />
+
+              {/* Optional Expiry */}
               <div>
                 <label className="block text-sm font-medium text-[#e1e2ed] mb-2">
-                  {t('drive.selectUser')}
+                  {t('drive.expiry')} ({t('common.optional')})
                 </label>
                 <select
-                  value={selectedUser}
-                  onChange={(e) => setSelectedUser(e.target.value)}
+                  value={expiryDays || ''}
+                  onChange={(e) => setExpiryDays(e.target.value ? parseInt(e.target.value) : null)}
                   className="w-full px-3 py-2 border border-[#434655]/30 rounded-lg bg-[#1d1f27] text-white focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] outline-none transition-all"
                 >
-                  <option value="">{t('drive.chooseUser')}</option>
-                  {users.map(user => (
-                    <option key={user.id} value={user.id}>
-                      {user.displayName || user.email}
-                    </option>
-                  ))}
+                  <option value="">{t('drive.noExpiry')}</option>
+                  <option value={1}>1 {t('common.day')}</option>
+                  <option value={7}>7 {t('common.days')}</option>
+                  <option value={30}>30 {t('common.days')}</option>
+                  <option value={90}>90 {t('common.days')}</option>
                 </select>
               </div>
 
-              {/* Permission Level */}
-              <div>
-                <label className="block text-sm font-medium text-[#e1e2ed] mb-2">
-                  {t('drive.permission')}
-                </label>
-                <select
-                  value={permission}
-                  onChange={(e) => setPermission(e.target.value)}
-                  className="w-full px-3 py-2 border border-[#434655]/30 rounded-lg bg-[#1d1f27] text-white focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] outline-none transition-all"
-                >
-                  <option value="VIEW">{t('drive.canView')}</option>
-                  <option value="DOWNLOAD">{t('drive.canDownload')}</option>
-                  <option value="EDIT">{t('drive.canEdit')}</option>
-                </select>
-              </div>
-
-              {/* Share Button */}
               <button
                 onClick={handleShareWithUser}
-                disabled={!selectedUser || loading}
+                disabled={!selectedUserId || loading}
                 className="w-full px-4 py-2 bg-[#2563eb] text-white rounded-lg hover:bg-[#2563eb]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? t('common.sharing') : t('drive.share')}
               </button>
+              
+              {/* Existing Shares */}
+              <div className="pt-4 border-t border-[#434655]/10">
+                <SharesList fileId={file.id} />
+              </div>
+            </div>
+          )}
+
+          {shareType === 'roles' && canShare && (
+            <div className="space-y-4">
+              {shareSuccess && (
+                <div className="p-3 bg-[#1d4e1d] border border-[#2d6a2d] rounded-lg text-sm text-[#a5d6a7]">
+                  {t('drive.shareSuccess')}
+                </div>
+              )}
+              
+              <RoleSelect
+                value={selectedRole}
+                onChange={setSelectedRole}
+                disabled={loading}
+              />
+
+              <SharePermissionSelect
+                value={permission}
+                onChange={setPermission}
+                disabled={loading}
+              />
+
+              {/* Optional Expiry */}
+              <div>
+                <label className="block text-sm font-medium text-[#e1e2ed] mb-2">
+                  {t('drive.expiry')} ({t('common.optional')})
+                </label>
+                <select
+                  value={expiryDays || ''}
+                  onChange={(e) => setExpiryDays(e.target.value ? parseInt(e.target.value) : null)}
+                  className="w-full px-3 py-2 border border-[#434655]/30 rounded-lg bg-[#1d1f27] text-white focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] outline-none transition-all"
+                >
+                  <option value="">{t('drive.noExpiry')}</option>
+                  <option value={1}>1 {t('common.day')}</option>
+                  <option value={7}>7 {t('common.days')}</option>
+                  <option value={30}>30 {t('common.days')}</option>
+                  <option value={90}>90 {t('common.days')}</option>
+                </select>
+              </div>
+
+              <button
+                onClick={handleShareWithRole}
+                disabled={!selectedRole || loading}
+                className="w-full px-4 py-2 bg-[#2563eb] text-white rounded-lg hover:bg-[#2563eb]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? t('common.sharing') : t('drive.shareWithRole')}
+              </button>
+              
+              {/* Existing Shares */}
+              <div className="pt-4 border-t border-[#434655]/10">
+                <SharesList fileId={file.id} />
+              </div>
             </div>
           )}
 
@@ -186,11 +298,10 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose, us
               {/* Expiry Days */}
               <div>
                 <label className="block text-sm font-medium text-[#e1e2ed] mb-2">
-                  <Calendar className="w-4 h-4 inline me-1" />
                   {t('drive.linkExpiry')}
                 </label>
                 <select
-                  value={expiryDays}
+                  value={expiryDays || 7}
                   onChange={(e) => setExpiryDays(parseInt(e.target.value))}
                   className="w-full px-3 py-2 border border-[#434655]/30 rounded-lg bg-[#1d1f27] text-white focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] outline-none transition-all"
                 >

@@ -6,8 +6,21 @@ import { Input, Button } from '@ui';
 import DriveSpacesSidebar from '@components/smart-drive/DriveSpacesSidebar';
 import FileRoster from '@components/smart-drive/FileRoster';
 import InboxDrawer from '@components/smart-drive/InboxDrawer';
+import ShareDialog from '@components/smart-drive/ShareDialog';
+import FileDetailsModal from '@components/smart-drive/FileDetailsModal';
+import UploadModal from '@components/smart-drive/UploadModal';
+import CreateFolderModal from '@components/smart-drive/CreateFolderModal';
+import FilterChips from '@components/smart-drive/FilterChips';
+import FilterMenu from '@components/smart-drive/FilterMenu';
+import FileRosterSkeleton from '@components/smart-drive/FileRosterSkeleton';
+import EmptyState from '@components/smart-drive/EmptyState';
+import ToastContainer from '@components/smart-drive/ToastContainer';
 import useDriveFiles from '@hooks/useDriveFiles';
 import useWorkflowTasks from '@hooks/useWorkflowTasks';
+import useUpload from '@hooks/useUpload';
+import useFilters from '@hooks/useFilters';
+import useToast from '@hooks/useToast';
+import useKeyboardShortcuts from '@hooks/useKeyboardShortcuts';
 
 export default function SmartDrivePage() {
   const { t, isRTL } = useLang();
@@ -19,6 +32,10 @@ export default function SmartDrivePage() {
   const [viewMode, setViewMode] = useState('list');
   const [sidebarMinimized, setSidebarMinimized] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
+  const [shareDialogFile, setShareDialogFile] = useState(null);
+  const [detailsModalFile, setDetailsModalFile] = useState(null);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [createFolderModalOpen, setCreateFolderModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth <= 768 : false
   );
@@ -37,7 +54,27 @@ export default function SmartDrivePage() {
     downloadFile,
     shareFile,
     createPublicLink,
+    createFolder,
   } = useDriveFiles(activeSpace);
+
+  const {
+    uploads,
+    uploading,
+    addToQueue,
+    startUpload,
+    removeUpload,
+    clearCompleted,
+  } = useUpload();
+
+  const {
+    filters,
+    addFilter,
+    removeFilter,
+    clearAllFilters,
+    toAPIParams,
+  } = useFilters();
+
+  const { toasts, success, error, hideToast } = useToast();
 
   const {
     tasks: workflowTasks,
@@ -45,6 +82,12 @@ export default function SmartDrivePage() {
     approveTask,
     rejectTask,
   } = useWorkflowTasks();
+
+  useEffect(() => {
+    const filterParams = toAPIParams();
+    fetchFiles(filterParams);
+    fetchFolders();
+  }, [fetchFiles, fetchFolders, toAPIParams]);
 
   useEffect(() => {
     let timeoutId;
@@ -100,21 +143,77 @@ export default function SmartDrivePage() {
       handleClearSelection();
     } else if (action === 'download' && idArray.length === 1) {
       await downloadFile(idArray[0]);
+    } else if (action === 'share' && idArray.length === 1) {
+      const file = visibleFiles.find(f => f.id === idArray[0]);
+      if (file) setShareDialogFile(file);
     } else if (action === 'new-folder') {
-      // eslint-disable-next-line no-console
-      console.log('[SmartDrive] new folder - implement modal');
+      setCreateFolderModalOpen(true);
     }
   };
 
+  const handleShare = async (shareData) => {
+    const result = await shareFile(shareData.fileId, shareData);
+    if (result.success) {
+      refreshFiles();
+      success(t('drive.shareSuccess'));
+    } else {
+      error(t('drive.shareFailed'));
+    }
+    return result;
+  };
+
+  const handleGeneratePublicLink = async (fileId, expiryDays) => {
+    const result = await createPublicLink(fileId, { expiryDays });
+    return result.payload;
+  };
+
   const handleFileOpen = (file) => {
-    // Open file preview or download
-    downloadFile(file.id);
+    // Open details modal instead of direct download
+    setDetailsModalFile(file);
   };
 
   const handleUpload = () => {
-    // eslint-disable-next-line no-console
-    console.log('[SmartDrive] upload clicked');
+    setUploadModalOpen(true);
   };
+
+  const handleAddFilesToQueue = (files) => {
+    addToQueue(files, null); // TODO: pass current folderId
+  };
+
+  const handleStartUpload = async () => {
+    await startUpload();
+    refreshFiles();
+    success(t('drive.uploadComplete'));
+  };
+
+  const handleCreateFolder = async (name, parentId) => {
+    const result = await createFolder(name, parentId);
+    if (result.success) {
+      refreshFiles();
+      success(t('drive.folderCreated'));
+    } else {
+      error(t('drive.createFolderFailed'));
+    }
+    return result;
+  };
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onSearch: () => document.querySelector('input[type="text"]')?.focus(),
+    onUpload: handleUpload,
+    onNewFolder: () => setCreateFolderModalOpen(true),
+    onSelectAll: () => handleSelectAll(true),
+    onDelete: () => {
+      if (selectedIds.size > 0) {
+        handleFileAction('trash', selectedIds);
+      }
+    },
+    onEscape: () => {
+      if (selectedIds.size > 0) handleClearSelection();
+      if (shareDialogFile) setShareDialogFile(null);
+      if (detailsModalFile) setDetailsModalFile(null);
+    },
+  });
 
   const gradientBtn = {
     padding: '0.65rem 1rem',
@@ -413,31 +512,114 @@ export default function SmartDrivePage() {
             ))}
           </div>
 
-          {/* Files Roster */}
-          <FileRoster
-            files={visibleFiles}
-            selectedIds={selectedIds}
-            onToggleSelect={handleToggleSelect}
-            onSelectAll={handleSelectAll}
-            onClearSelection={handleClearSelection}
-            onFileOpen={handleFileOpen}
-            onFileAction={handleFileAction}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-          />
+          {/* Filter Controls */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              marginBottom: '1rem',
+              flexWrap: 'wrap',
+            }}
+          >
+            <FilterMenu onAddFilter={addFilter} />
+            <FilterChips
+              activeFilters={filters}
+              onRemoveFilter={removeFilter}
+              onClearAll={clearAllFilters}
+            />
+          </div>
+
+          {/* Files Roster / Loading / Empty */}
+          {filesLoading ? (
+            <FileRosterSkeleton rows={8} />
+          ) : visibleFiles.length === 0 ? (
+            <EmptyState
+              type={searchQuery || filters.length > 0 ? 'no-results' : activeSpace === 'trash' ? 'trash-empty' : activeSpace === 'shared' ? 'shared-empty' : 'no-files'}
+              onUpload={handleUpload}
+              onCreateFolder={() => setCreateFolderModalOpen(true)}
+            />
+          ) : (
+            <FileRoster
+              files={visibleFiles}
+              selectedIds={selectedIds}
+              onToggleSelect={handleToggleSelect}
+              onSelectAll={handleSelectAll}
+              onClearSelection={handleClearSelection}
+              onFileOpen={handleFileOpen}
+              onFileAction={handleFileAction}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+          )}
         </main>
       </div>
 
       {/* Inbox Drawer */}
-      <InboxDrawer
-        isOpen={inboxOpen}
-        onClose={() => setInboxOpen(false)}
-        tasks={workflowTasks}
-        onApprove={approveTask}
-        onReject={rejectTask}
-      />
+      {inboxOpen && (
+        <InboxDrawer
+          tasks={workflowTasks}
+          onApprove={approveTask}
+          onReject={rejectTask}
+          onClose={() => setInboxOpen(false)}
+        />
+      )}
+
+      {/* Share Dialog */}
+      {shareDialogFile && (
+        <ShareDialog
+          file={shareDialogFile}
+          onShare={handleShare}
+          onGenerateLink={handleGeneratePublicLink}
+          onClose={() => setShareDialogFile(null)}
+        />
+      )}
+
+      {/* File Details Modal */}
+      {detailsModalFile && (
+        <FileDetailsModal
+          file={detailsModalFile}
+          onClose={() => setDetailsModalFile(null)}
+          onDownload={downloadFile}
+          onShare={(file) => {
+            setDetailsModalFile(null);
+            setShareDialogFile(file);
+          }}
+          onStar={starFile}
+          onTrash={trashFile}
+        />
+      )}
+
+      {/* Upload Modal */}
+      {uploadModalOpen && (
+        <UploadModal
+          uploads={uploads}
+          uploading={uploading}
+          onAddFiles={handleAddFilesToQueue}
+          onRemove={removeUpload}
+          onStart={handleStartUpload}
+          onClose={() => {
+            if (!uploading) {
+              clearCompleted();
+              setUploadModalOpen(false);
+            }
+          }}
+        />
+      )}
+
+      {/* Create Folder Modal */}
+      {createFolderModalOpen && (
+        <CreateFolderModal
+          parentFolderId={null}
+          onCreate={handleCreateFolder}
+          onClose={() => setCreateFolderModalOpen(false)}
+        />
+      )}
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onDismiss={hideToast} />
     </div>
   );
 }

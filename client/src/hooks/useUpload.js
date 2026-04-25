@@ -1,0 +1,137 @@
+/**
+ * useUpload Hook
+ * Manages upload queue and progress via protected proxy API
+ * Flow: initiate → MinIO presigned PUT → complete
+ */
+
+import { useState, useCallback } from 'react';
+import axios from 'axios';
+
+const API_BASE = '/api/v1/drive';
+
+export function useUpload() {
+  const [uploads, setUploads] = useState([]);
+  const [uploading, setUploading] = useState(false);
+
+  const addToQueue = useCallback((files, folderId = null) => {
+    const newUploads = Array.from(files).map(file => ({
+      id: `${Date.now()}-${Math.random()}`,
+      file,
+      folderId,
+      status: 'queued', // queued, uploading, completed, failed
+      progress: 0,
+      error: null,
+      fileId: null,
+    }));
+
+    setUploads(prev => [...prev, ...newUploads]);
+    return newUploads;
+  }, []);
+
+  const uploadFile = useCallback(async (uploadItem) => {
+    const { id, file, folderId } = uploadItem;
+
+    try {
+      // Update status to uploading
+      setUploads(prev => prev.map(u => 
+        u.id === id ? { ...u, status: 'uploading', progress: 0 } : u
+      ));
+
+      // Step 1: Initiate upload
+      const initiateResponse = await axios.post(`${API_BASE}/upload/initiate`, {
+        name: file.name,
+        size: file.size,
+        mimeType: file.type,
+        folderId: folderId || null,
+      });
+
+      if (!initiateResponse.data.success) {
+        throw new Error(initiateResponse.data.error?.message || 'Failed to initiate upload');
+      }
+
+      const { fileId, uploadUrl } = initiateResponse.data.payload;
+
+      // Update with fileId
+      setUploads(prev => prev.map(u => 
+        u.id === id ? { ...u, fileId, progress: 10 } : u
+      ));
+
+      // Step 2: Upload to MinIO presigned URL
+      await axios.put(uploadUrl, file, {
+        headers: {
+          'Content-Type': file.type,
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 80) / progressEvent.total + 10
+          );
+          setUploads(prev => prev.map(u => 
+            u.id === id ? { ...u, progress: percentCompleted } : u
+          ));
+        },
+      });
+
+      // Step 3: Complete upload
+      const completeResponse = await axios.post(`${API_BASE}/upload/${fileId}/complete`);
+
+      if (!completeResponse.data.success) {
+        throw new Error(completeResponse.data.error?.message || 'Failed to complete upload');
+      }
+
+      // Mark as completed
+      setUploads(prev => prev.map(u => 
+        u.id === id ? { ...u, status: 'completed', progress: 100 } : u
+      ));
+
+      return { success: true, fileId };
+    } catch (error) {
+      console.error('[useUpload] upload failed:', error);
+      
+      setUploads(prev => prev.map(u => 
+        u.id === id ? { 
+          ...u, 
+          status: 'failed', 
+          error: error.response?.data?.error?.message || error.message 
+        } : u
+      ));
+
+      return { success: false, error: error.message };
+    }
+  }, []);
+
+  const startUpload = useCallback(async () => {
+    setUploading(true);
+
+    const queuedUploads = uploads.filter(u => u.status === 'queued');
+    
+    for (const upload of queuedUploads) {
+      await uploadFile(upload);
+    }
+
+    setUploading(false);
+  }, [uploads, uploadFile]);
+
+  const removeUpload = useCallback((id) => {
+    setUploads(prev => prev.filter(u => u.id !== id));
+  }, []);
+
+  const clearCompleted = useCallback(() => {
+    setUploads(prev => prev.filter(u => u.status !== 'completed'));
+  }, []);
+
+  const clearAll = useCallback(() => {
+    setUploads([]);
+  }, []);
+
+  return {
+    uploads,
+    uploading,
+    addToQueue,
+    startUpload,
+    removeUpload,
+    clearCompleted,
+    clearAll,
+  };
+}
+
+export default useUpload;
