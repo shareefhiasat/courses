@@ -5,9 +5,15 @@
  * ARCHITECTURE: API → Routes → Controller → DB Service → PostgreSQL
  */
 
-const express = require('express');
+import express from 'express';
+import { getDashboardSummary, getTeacherDashboard } from '../controllers/dashboard.js';
+
 const router = express.Router();
-const dashboardController = require('../controllers/dashboard.js');
+
+const dashboardController = {
+  getDashboardSummary,
+  getTeacherDashboard
+};
 
 /**
  * @swagger
@@ -65,4 +71,4 @@ router.get('/summary', dashboardController.getDashboardSummary);
  */
 router.get('/teacher/:teacherUserId', dashboardController.getTeacherDashboard);
 
-module.exports = router;
+export default router;

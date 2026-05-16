@@ -94,6 +94,12 @@ export default defineConfig({
     allowedHosts: "all",
     // Optional: if HMR has issues over LAN, set your LAN IP below:
     // hmr: { host: '192.168.1.7', protocol: 'ws', port: 5174 },
-    // Proxy disabled - using nginx for API routing
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 });

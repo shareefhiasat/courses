@@ -34,10 +34,14 @@ export async function listChildren(keycloakUser, { parentId = null, includeDelet
     if (!userId) return err('USER_NOT_FOUND', 'User not found');
 
     const where = {
-      parentId: parentId || null,
       ownerId: userId,
       ...(includeDeleted ? {} : { isDeleted: false }),
     };
+    if (parentId !== undefined && parentId !== null && parentId !== '') {
+      where.parentId = parentId;
+    } else {
+      where.parentId = null;
+    }
     const folders = await prisma.folder.findMany({
       where,
       orderBy: { name: 'asc' },
@@ -59,7 +63,7 @@ export async function getFolderWithBreadcrumb(folderId, actorUserId) {
 
     const chainRows = await prisma.$queryRaw`
       WITH RECURSIVE chain AS (
-        SELECT id, name, "parentId", path, 0 AS depth FROM folders WHERE id = ${folderId}::uuid
+        SELECT id, name, "parentId", path, 0 AS depth FROM folders WHERE id = ${folderId}
         UNION ALL
         SELECT f.id, f.name, f."parentId", f.path, c.depth + 1
         FROM folders f
@@ -82,7 +86,7 @@ export async function getAncestorIds(folderId) {
   if (!folderId) return [];
   const rows = await prisma.$queryRaw`
     WITH RECURSIVE chain AS (
-      SELECT id, "parentId" FROM folders WHERE id = ${folderId}::uuid
+      SELECT id, "parentId" FROM folders WHERE id = ${folderId}
       UNION ALL
       SELECT f.id, f."parentId"
       FROM folders f
@@ -148,7 +152,7 @@ export async function updateFolder(folderId, actorUserId, updates = {}) {
       if (patch.parentId === folderId) return err('CYCLE', 'Cannot move folder into itself');
       const descendants = await prisma.$queryRaw`
         WITH RECURSIVE sub AS (
-          SELECT id FROM folders WHERE "parentId" = ${folderId}::uuid
+          SELECT id FROM folders WHERE "parentId" = ${folderId}
           UNION ALL
           SELECT f.id FROM folders f JOIN sub s ON f."parentId" = s.id
         )
@@ -275,6 +279,23 @@ export async function restoreFolder(folderId, actorUserId) {
   }
 }
 
+export async function toggleStarFolder(folderId, actorUserId) {
+  try {
+    const folder = await prisma.folder.findUnique({ where: { id: folderId } });
+    if (!folder) return err('FOLDER_NOT_FOUND', 'Folder not found');
+    if (folder.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Only owner can star folder');
+
+    const updated = await prisma.folder.update({
+      where: { id: folderId },
+      data: { isStarred: !folder.isStarred },
+    });
+    return ok(updated);
+  } catch (error) {
+    console.error('[folderService.toggleStarFolder]', error);
+    return err('TOGGLE_STAR_FOLDER_FAILED', error.message);
+  }
+}
+
 export default {
   listChildren,
   getFolderWithBreadcrumb,
@@ -283,4 +304,5 @@ export default {
   updateFolder,
   softDeleteFolder,
   restoreFolder,
+  toggleStarFolder,
 };

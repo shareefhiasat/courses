@@ -5,7 +5,7 @@
  * ARCHITECTURE: Routes → Controller → DB Service → PostgreSQL
  */
 
-const dashboardDbService = require('../db/dashboard-postgres.js');
+import dashboardDbService from '../db/dashboard-postgres.js';
 
 /**
  * Get dashboard summary
@@ -85,7 +85,7 @@ const getTeacherDashboard = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   getDashboardSummary,
   getTeacherDashboard
 };

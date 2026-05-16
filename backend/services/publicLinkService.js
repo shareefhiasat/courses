@@ -65,9 +65,20 @@ export async function createLink(input, actor) {
       expiresAt,
     } = input || {};
 
-    if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
-    if (!fileId && !folderId) return err('INVALID_INPUT', 'fileId or folderId required');
-    if (fileId && folderId) return err('INVALID_INPUT', 'Provide fileId OR folderId, not both');
+    console.log('🔗 [CREATE PUBLIC LINK]', { fileId, folderId, actor: actor?.userId, expiryDays });
+
+    if (!actor?.userId) {
+      console.error('❌ [CREATE PUBLIC LINK] No actor');
+      return err('NO_ACTOR', 'Authenticated actor required');
+    }
+    if (!fileId && !folderId) {
+      console.error('❌ [CREATE PUBLIC LINK] No fileId or folderId');
+      return err('INVALID_INPUT', 'fileId or folderId required');
+    }
+    if (fileId && folderId) {
+      console.error('❌ [CREATE PUBLIC LINK] Both fileId and folderId provided');
+      return err('INVALID_INPUT', 'Provide fileId OR folderId, not both');
+    }
 
     // Ownership check.
     if (fileId) {

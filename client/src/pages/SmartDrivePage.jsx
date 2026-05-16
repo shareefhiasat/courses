@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Input, Button } from '@ui';
 import DriveSpacesSidebar from '@components/smart-drive/DriveSpacesSidebar';
@@ -25,8 +26,19 @@ import useKeyboardShortcuts from '@hooks/useKeyboardShortcuts';
 export default function SmartDrivePage() {
   const { t, isRTL } = useLang();
   const { theme } = useTheme();
+  const { user } = useAuth();
+
+  // Debug current user
+  console.log('[SmartDrivePage] Current user:', {
+    id: user?.id,
+    email: user?.email,
+    displayName: user?.displayName,
+    username: user?.username
+  });
 
   const [activeSpace, setActiveSpace] = useState('my-drive');
+  const [currentFolderId, setCurrentFolderId] = useState(null);
+  const [breadcrumbs, setBreadcrumbs] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('list');
@@ -46,8 +58,12 @@ export default function SmartDrivePage() {
     folders,
     loading: filesLoading,
     error: filesError,
+    fetchFiles,
+    fetchFolders,
+    getFolderDetails,
     refreshFiles,
     starFile,
+    starFolder,
     trashFile,
     restoreFile,
     permanentDeleteFile,
@@ -55,7 +71,7 @@ export default function SmartDrivePage() {
     shareFile,
     createPublicLink,
     createFolder,
-  } = useDriveFiles(activeSpace);
+  } = useDriveFiles(activeSpace, currentFolderId);
 
   const {
     uploads,
@@ -90,6 +106,28 @@ export default function SmartDrivePage() {
   }, [fetchFiles, fetchFolders, toAPIParams]);
 
   useEffect(() => {
+    let mounted = true;
+
+    const loadBreadcrumbs = async () => {
+      if (!currentFolderId) {
+        setBreadcrumbs([]);
+        return;
+      }
+
+      const result = await getFolderDetails(currentFolderId);
+      if (mounted && result.success) {
+        setBreadcrumbs(result.payload?.breadcrumb || []);
+      }
+    };
+
+    loadBreadcrumbs();
+
+    return () => {
+      mounted = false;
+    };
+  }, [currentFolderId, getFolderDetails]);
+
+  useEffect(() => {
     let timeoutId;
     const onResize = () => {
       clearTimeout(timeoutId);
@@ -113,6 +151,10 @@ export default function SmartDrivePage() {
     return allFiles || [];
   }, [allFiles]);
 
+  const visibleFolders = useMemo(() => {
+    return activeSpace === 'my-drive' ? folders || [] : [];
+  }, [activeSpace, folders]);
+
   const handleToggleSelect = (id) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -128,6 +170,34 @@ export default function SmartDrivePage() {
 
   const handleClearSelection = () => setSelectedIds(new Set());
 
+  const handleSpaceChange = (space) => {
+    setActiveSpace(space);
+    setCurrentFolderId(null);
+    setBreadcrumbs([]);
+    setSelectedIds(new Set());
+    setSearchQuery('');
+  };
+
+  const handleFolderOpen = (folder) => {
+    if (!folder?.id) return;
+    setActiveSpace('my-drive');
+    setCurrentFolderId(folder.id);
+    setSelectedIds(new Set());
+  };
+
+  const handleBreadcrumbOpen = (folderId) => {
+    setCurrentFolderId(folderId);
+    setSelectedIds(new Set());
+  };
+
+  const handleGoUp = () => {
+    if (breadcrumbs.length <= 1) {
+      handleBreadcrumbOpen(null);
+      return;
+    }
+    handleBreadcrumbOpen(breadcrumbs[breadcrumbs.length - 2]?.id || null);
+  };
+
   const handleFileAction = async (action, ids) => {
     const idArray = Array.from(ids);
     if (action === 'star') {
@@ -142,12 +212,38 @@ export default function SmartDrivePage() {
       await Promise.all(idArray.map((id) => permanentDeleteFile(id)));
       handleClearSelection();
     } else if (action === 'download' && idArray.length === 1) {
-      await downloadFile(idArray[0]);
+      const file = allFiles.find((f) => f.id === idArray[0]);
+      if (file) await downloadFile(file.id);
     } else if (action === 'share' && idArray.length === 1) {
-      const file = visibleFiles.find(f => f.id === idArray[0]);
-      if (file) setShareDialogFile(file);
-    } else if (action === 'new-folder') {
-      setCreateFolderModalOpen(true);
+      const file = allFiles.find((f) => f.id === idArray[0]);
+      if (file) {
+        // Open share dialog with file data
+        setShareDialogOpen(true);
+      }
+    }
+  };
+
+  const handleFolderAction = async (folder, action) => {
+    if (action === 'delete') {
+      // TODO: Implement folder delete
+      console.log('Delete folder:', folder.id);
+    } else if (action === 'rename') {
+      // TODO: Implement folder rename
+      console.log('Rename folder:', folder.id);
+    } else if (action === 'download') {
+      // TODO: Implement folder download (zip)
+      console.log('Download folder:', folder.id);
+    } else if (action === 'share') {
+      // TODO: Implement folder share
+      console.log('Share folder:', folder.id);
+    }
+  };
+
+  const handleStar = async (id, type) => {
+    if (type === 'folder') {
+      return await starFolder(id);
+    } else {
+      return await starFile(id);
     }
   };
 
@@ -177,7 +273,7 @@ export default function SmartDrivePage() {
   };
 
   const handleAddFilesToQueue = (files) => {
-    addToQueue(files, null); // TODO: pass current folderId
+    addToQueue(files, activeSpace === 'my-drive' ? currentFolderId : null);
   };
 
   const handleStartUpload = async () => {
@@ -436,11 +532,11 @@ export default function SmartDrivePage() {
         >
           <DriveSpacesSidebar
             activeSpace={activeSpace}
-            onSpaceChange={setActiveSpace}
+            onSpaceChange={handleSpaceChange}
             storageUsage={storageUsage}
             storageLimit={storageLimit}
             folders={folders}
-            onFolderSelect={(folder) => console.log('[SmartDrive] folder', folder)}
+            onFolderSelect={handleFolderOpen}
             onUploadClick={handleUpload}
             isMinimized={!isMobile && sidebarMinimized}
           />
@@ -457,9 +553,102 @@ export default function SmartDrivePage() {
             transition: 'width 0.3s ease',
             display: 'flex',
             flexDirection: 'column',
-            gap: '1.5rem',
+            gap: isMobile ? '1rem' : '1.5rem',
           }}
         >
+          {/* Google-like breadcrumb */}
+          {activeSpace === 'my-drive' && (
+            <div
+              style={{
+                background: 'var(--panel, white)',
+                border: '1px solid var(--border, #e5e7eb)',
+                borderRadius: '0.75rem',
+                padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                flexWrap: 'wrap',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => handleBreadcrumbOpen(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: currentFolderId ? 'var(--color-primary, #2563eb)' : 'var(--text, #111827)',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '0.25rem',
+                }}
+                onMouseEnter={(e) => {
+                  if (!currentFolderId) e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!currentFolderId) e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                {getThemedIcon('ui', 'folder', 14, currentFolderId ? 'primary' : theme)}
+                <span style={{ marginInlineStart: '0.375rem' }}>{t('drive.myDrive') || 'My Drive'}</span>
+              </button>
+              {breadcrumbs.map((crumb, idx) => (
+                <React.Fragment key={crumb.id}>
+                  <span style={{ color: 'var(--text-muted, #9ca3af)', fontSize: '0.75rem' }}>
+                    {getThemedIcon('ui', 'chevron_right', 12, 'muted')}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleBreadcrumbOpen(crumb.id)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: crumb.id === currentFolderId ? 'var(--text, #111827)' : 'var(--color-primary, #2563eb)',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      fontWeight: crumb.id === currentFolderId ? 600 : 500,
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '0.25rem',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (crumb.id !== currentFolderId) e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (crumb.id !== currentFolderId) e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    {getThemedIcon('ui', 'folder', 14, crumb.id === currentFolderId ? theme : 'primary')}
+                    <span style={{ marginInlineStart: '0.375rem' }}>{crumb.name}</span>
+                  </button>
+                </React.Fragment>
+              ))}
+              {currentFolderId && (
+                <button
+                  type="button"
+                  onClick={handleGoUp}
+                  style={{
+                    marginInlineStart: 'auto',
+                    padding: '0.375rem 0.75rem',
+                    background: 'var(--background-secondary, #f3f4f6)',
+                    border: '1px solid var(--border, #e5e7eb)',
+                    borderRadius: '0.5rem',
+                    color: 'var(--text-secondary, #374151)',
+                    cursor: 'pointer',
+                    fontSize: '0.8125rem',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                  }}
+                >
+                  {getThemedIcon('ui', 'chevron_up', 14, theme)}
+                  {t('drive.goUp') || 'Go up'}
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Filter chips bar */}
           <div
             style={{
@@ -517,23 +706,29 @@ export default function SmartDrivePage() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '1rem',
-              marginBottom: '1rem',
-              flexWrap: 'wrap',
+              gap: isMobile ? '0.5rem' : '1rem',
+              marginBottom: '1.5rem',
+              flexWrap: isMobile ? 'wrap' : 'nowrap',
+              padding: isMobile ? '0.5rem' : '0.75rem',
+              background: 'var(--background-secondary, #f9fafb)',
+              borderRadius: '0.75rem',
+              border: '1px solid var(--border, #e5e7eb)',
             }}
           >
             <FilterMenu onAddFilter={addFilter} />
-            <FilterChips
-              activeFilters={filters}
-              onRemoveFilter={removeFilter}
-              onClearAll={clearAllFilters}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 0 }}>
+              <FilterChips
+                activeFilters={filters}
+                onRemoveFilter={removeFilter}
+                onClearAll={clearAllFilters}
+              />
+            </div>
           </div>
 
           {/* Files Roster / Loading / Empty */}
           {filesLoading ? (
             <FileRosterSkeleton rows={8} />
-          ) : visibleFiles.length === 0 ? (
+          ) : visibleFiles.length === 0 && visibleFolders.length === 0 ? (
             <EmptyState
               type={searchQuery || filters.length > 0 ? 'no-results' : activeSpace === 'trash' ? 'trash-empty' : activeSpace === 'shared' ? 'shared-empty' : 'no-files'}
               onUpload={handleUpload}
@@ -542,16 +737,22 @@ export default function SmartDrivePage() {
           ) : (
             <FileRoster
               files={visibleFiles}
+              folders={visibleFolders}
               selectedIds={selectedIds}
               onToggleSelect={handleToggleSelect}
               onSelectAll={handleSelectAll}
               onClearSelection={handleClearSelection}
               onFileOpen={handleFileOpen}
+              onFolderOpen={handleFolderOpen}
               onFileAction={handleFileAction}
+              onFolderAction={handleFolderAction}
+              onStarFile={handleStar}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
+              isTrashView={activeSpace === 'trash'}
+              currentUserEmail={user?.email}
             />
           )}
         </main>
@@ -612,7 +813,7 @@ export default function SmartDrivePage() {
       {/* Create Folder Modal */}
       {createFolderModalOpen && (
         <CreateFolderModal
-          parentFolderId={null}
+          parentFolderId={activeSpace === 'my-drive' ? currentFolderId : null}
           onCreate={handleCreateFolder}
           onClose={() => setCreateFolderModalOpen(false)}
         />

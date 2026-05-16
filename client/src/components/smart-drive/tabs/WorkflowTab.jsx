@@ -18,8 +18,8 @@ export default function WorkflowTab({ fileId }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`/api/v1/workflows`, {
-        params: { fileId }
+      const response = await axios.get(`/api/v1/workflows/instances`, {
+        params: { entityId: fileId }
       });
       if (response.data.success) {
         const workflows = response.data.payload || [];

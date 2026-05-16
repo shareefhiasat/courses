@@ -9,6 +9,16 @@ export const ROLES = {
   STUDENT: 'STUDENT'
 };
 
+// Screen IDs for scheduling system
+export const SCREEN_IDS = {
+  SCHEDULE_OVERVIEW: 'scheduleOverview',
+  SCHEDULING_MASTERS: 'schedulingMasters',
+  SCHEDULE_SESSION_EDITOR: 'scheduleSessionEditor',
+  BULK_SCHEDULING: 'bulkScheduling',
+  ADMIN_SCOPE_ASSIGNMENT: 'adminScopeAssignment',
+  SUMMARY_DASHBOARD: 'summaryDashboard'
+};
+
 export const PERMISSION_CONFIG = {
   // Role definitions
   roles: {
@@ -122,7 +132,8 @@ export const PERMISSION_CONFIG = {
   // Screen access mapping for side menu
   screenAccess: {
     [ROLES.SUPER_ADMIN]: ['all'], // Special key for all screens
-    [ROLES.HR]: ['/', '/qr-scanner', '/hr-attendance', '/analytics', '/student-profile', '/profile'],
+    [ROLES.HR]: ['/', '/qr-scanner', '/hr-attendance', '/analytics', '/student-profile', '/profile', 
+                  '/schedule-overview', '/scheduling-masters', '/schedule-session-editor', '/bulk-scheduling', '/admin-scope-assignment', '/summary-dashboard'],
     [ROLES.ADMIN]: ['all'], // Admin can access all screens except role-access-pro
     [ROLES.INSTRUCTOR]: ['all'], // Instructor can access all screens except role-access-pro
     [ROLES.STUDENT]: ['/', '/student-dashboard', '/my-enrollments', '/class-schedules', '/my-attendance', '/profile']

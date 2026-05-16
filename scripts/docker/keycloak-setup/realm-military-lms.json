@@ -17,6 +17,16 @@
   "adminTheme": "keycloak",
   "emailTheme": "keycloak",
   "sslRequired": "none",
+  "accessTokenLifespan": 1800,
+  "accessTokenLifespanForImplicitFlow": 1800,
+  "ssoSessionIdleTimeout": 3600,
+  "ssoSessionMaxLifespan": 28800,
+  "clientSessionIdleTimeout": 3600,
+  "clientSessionMaxLifespan": 28800,
+  "offlineSessionIdleTimeout": 2592000,
+  "offlineSessionMaxLifespan": 5184000,
+  "refreshTokenMaxReuse": 0,
+  "revokeRefreshToken": false,
   "browserSecurityHeaders": {
     "contentSecurityPolicy": "frame-src 'self' http://localhost:5174 https://localhost:5174; frame-ancestors 'self' http://localhost:5174 https://localhost:5174; default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' http://localhost:5174 https://localhost:5174;",
     "xFrameOptions": "ALLOW",
@@ -78,7 +88,8 @@
         "display.on.consent.screen": "false",
         "saml.onetimeuse.condition": "false",
         "backchannel.logout.url": "https://localhost:5174/*",
-        "backchannel.logout.session.required": "true"
+        "backchannel.logout.session.required": "true",
+        "access.token.lifespan": "1800"
       },
       "fullScopeAllowed": true,
       "defaultClientScopes": [
@@ -87,12 +98,12 @@
         "profile",
         "email",
         "roles",
-        "acr"
+        "acr",
+        "offline_access"
       ],
       "optionalClientScopes": [
         "address",
         "phone",
-        "offline_access",
         "microprofile-jwt"
       ]
     }

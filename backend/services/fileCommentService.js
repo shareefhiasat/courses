@@ -83,7 +83,7 @@ export const getFileComments = async ({ fileId, userId }) => {
 
     return {
       success: true,
-      data: comments,
+      payload: comments,
       timestamp: Date.now()
     };
   } catch (error) {
@@ -98,24 +98,38 @@ export const getFileComments = async ({ fileId, userId }) => {
 
 /**
  * Delete file comment
- * @param {number} commentId - Database comment ID
+ * @param {string} commentId - Database comment ID (UUID)
  * @param {number} userId - Database user ID requesting deletion
  * @returns {Promise<Object>} - Result object with success status and data
  */
 export const deleteFileComment = async ({ commentId, userId }) => {
   try {
+    console.log('[fileCommentService] deleteFileComment called with:', { commentId, userId, commentIdType: typeof commentId });
+
+    if (!commentId) {
+      console.log('[fileCommentService] Missing commentId');
+      return {
+        success: false,
+        error: 'Comment ID is required',
+        timestamp: Date.now()
+      };
+    }
+
     const comment = await prisma.fileComment.findUnique({
       where: { id: commentId },
       include: { user: true }
     });
 
     if (!comment) {
+      console.log('[fileCommentService] Comment not found with ID:', commentId);
       return {
         success: false,
         error: 'Comment not found',
         timestamp: Date.now()
       };
     }
+
+    console.log('[fileCommentService] Comment found:', { commentId: comment.id, userId: comment.userId });
 
     // Check if user is the comment owner or admin
     const user = await prisma.user.findUnique({
@@ -124,6 +138,7 @@ export const deleteFileComment = async ({ commentId, userId }) => {
     });
 
     if (!user) {
+      console.log('[fileCommentService] User not found with ID:', userId);
       return {
         success: false,
         error: 'User not found',
@@ -134,7 +149,10 @@ export const deleteFileComment = async ({ commentId, userId }) => {
     const roles = user.roleAssignments.map(ra => ra.role.code);
     const isAdmin = roles.includes('SUPER_ADMIN') || roles.includes('ADMIN');
 
+    console.log('[fileCommentService] User roles:', roles, 'isAdmin:', isAdmin);
+
     if (comment.userId !== userId && !isAdmin) {
+      console.log('[fileCommentService] Insufficient permissions');
       return {
         success: false,
         error: 'Insufficient permissions to delete comment',
@@ -146,16 +164,24 @@ export const deleteFileComment = async ({ commentId, userId }) => {
       where: { id: commentId }
     });
 
+    console.log('[fileCommentService] Comment deleted successfully');
+
     return {
       success: true,
       message: 'Comment deleted successfully',
       timestamp: Date.now()
     };
   } catch (error) {
-    console.error('[fileCommentService] Delete file comment error:', error);
+    console.error('[fileCommentService] Delete error:', error);
+    console.error('[fileCommentService] Error details:', {
+      message: error.message,
+      code: error.code,
+      meta: error.meta
+    });
+    console.error('[fileCommentService] Error stack:', error.stack);
     return {
       success: false,
-      error: error.message || 'Failed to delete file comment',
+      error: error.message || 'Failed to delete comment',
       timestamp: Date.now()
     };
   }

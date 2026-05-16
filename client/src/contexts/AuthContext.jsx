@@ -228,18 +228,18 @@ export const AuthProvider = ({ children }) => {
     } else if (timeUntilExpiry > 0 && (!lastRefreshTime || bufferExpired)) { // Removed 1-minute requirement
       const timeRemainingSec = Math.floor(timeUntilExpiry / 1000);
       const timeRemainingMin = (timeRemainingSec / 60).toFixed(1);
-      console.log(`⚠️ [SESSION DEBUG] Token expiring in ${timeRemainingSec}s (${timeRemainingMin}min), checking if user is idle`);
+      // console.log(`⚠️ [SESSION DEBUG] Token expiring in ${timeRemainingSec}s (${timeRemainingMin}min), checking if user is idle`);
 
       // Only show modal if user is idle
       const idleThreshold = 5 * 60 * 1000; // 5 minutes
       const timeSinceLastActivity = Date.now() - lastActivityTimeRef.current;
 
       if (timeSinceLastActivity > idleThreshold) {
-        console.log(`⚠️ [SESSION DEBUG] User is idle (inactive for ${Math.floor(timeSinceLastActivity / 1000)}s), showing warning immediately`);
+        // console.log(`⚠️ [SESSION DEBUG] User is idle (inactive for ${Math.floor(timeSinceLastActivity / 1000)}s), showing warning immediately`);
         warn(`⚠️ [DIALOG DEBUG] Token expiring in ${timeRemainingSec}s, showing warning immediately`);
         setShowSessionModal(true);
       } else {
-        console.log(`⚠️ [SESSION DEBUG] User is active (last activity ${Math.floor(timeSinceLastActivity / 1000)}s ago), skipping warning (will auto-refresh)`);
+        // console.log(`⚠️ [SESSION DEBUG] User is active (last activity ${Math.floor(timeSinceLastActivity / 1000)}s ago), skipping warning (will auto-refresh)`);
       }
       
       if (bufferExpired) {
@@ -345,15 +345,15 @@ export const AuthProvider = ({ children }) => {
 
         if (!recentlyRefreshed) {
           const timeRemainingSec = Math.floor(timeUntilExpiry / 1000);
-          console.log(`🔄 [AUTO-REFRESH] User active and token expiring in ${timeRemainingSec}s, auto-refreshing...`);
+          // console.log(`🔄 [AUTO-REFRESH] User active and token expiring in ${timeRemainingSec}s, auto-refreshing...`);
           try {
             const oldExpiry = keycloak.tokenParsed?.exp;
             const refreshed = await keycloak.updateToken(60); // Refresh if valid for less than 60s
             const newExpiry = keycloak.tokenParsed?.exp;
-            
+
             if (refreshed && newExpiry > oldExpiry) {
-              console.log('✅ [AUTO-REFRESH] Token auto-refreshed successfully!');
-              console.log('✅ [AUTO-REFRESH] New expiry:', new Date(newExpiry * 1000).toISOString());
+              // console.log('✅ [AUTO-REFRESH] Token auto-refreshed successfully!');
+              // console.log('✅ [AUTO-REFRESH] New expiry:', new Date(newExpiry * 1000).toISOString());
               
               // Update localStorage and cookie
               if (keycloak.token) {
@@ -573,12 +573,13 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(async () => {
     try {
       console.log('[AuthContext] 🔄 Initiating logout');
-      
+
       // Clear all storage
       localStorage.removeItem('keycloak_token');
       localStorage.removeItem('lastRefreshTime');
       localStorage.removeItem('nextcloud_token');
       localStorage.removeItem('permissions');
+      localStorage.removeItem('keycloak_refresh_token');
 
       // Clear Nextcloud auth and permissions state
       setNextcloudAuth(null);
@@ -588,7 +589,7 @@ export const AuthProvider = ({ children }) => {
       // Clear cookie
       document.cookie = 'kc_token=; path=/api; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       console.log('[AuthContext] 🧹 Storage cleared');
-      
+
       // Use Keycloak's logout method with redirect to app login page
       // This properly clears the Keycloak session and redirects back to the app
       await keycloak.logout({

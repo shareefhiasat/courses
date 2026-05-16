@@ -22,6 +22,7 @@ import {
   getSharedFiles,
   addComment,
   getComments,
+  deleteComment,
   downloadFile,
   getStorageUsage,
   toggleStarFile,
@@ -40,6 +41,7 @@ import {
   updateFolder,
   softDeleteFolder,
   restoreFolder,
+  toggleStarFolder,
 } from '../controllers/folderController.js';
 
 import { search as searchFiles } from '../controllers/fileSearchController.js';
@@ -59,6 +61,8 @@ import {
   inspectPublicLink,
   downloadViaPublicLink,
 } from '../controllers/publicLinkController.js';
+
+import { getFileActivities } from '../controllers/fileActivityController.js';
 
 const router = Router();
 
@@ -82,7 +86,10 @@ router.delete('/files/:fileId/permanent', permanentDeleteFile);
 
 // Preview & secure download
 router.get('/files/:fileId/preview', getPreview);
-router.get('/files/:fileId/download', proxyDownload);
+router.get('/files/:fileId/download', (req, res, next) => {
+  console.log('[driveNew.js] Download route hit for fileId:', req.params.fileId);
+  next();
+}, proxyDownload);
 // Legacy redirect-based download (s3Key based) — keep temporarily.
 router.get('/files-by-key/:s3Key/download', downloadFile);
 
@@ -95,6 +102,7 @@ router.post('/folders/legacy', createFolder);
 router.patch('/folders/:folderId', updateFolder);
 router.delete('/folders/:folderId/trash', softDeleteFolder);
 router.post('/folders/:folderId/restore', restoreFolder);
+router.patch('/folders/:folderId/star', toggleStarFolder);
 
 // ---------------- Versions ----------------
 router.post('/files/:fileId/versions', uploadNewVersion);
@@ -124,6 +132,10 @@ router.post('/files/:fileId/public-link', generatePublicLink);
 // ---------------- Comments ----------------
 router.post('/files/:fileId/comments', addComment);
 router.get('/files/:fileId/comments', getComments);
+router.delete('/files/:fileId/comments/:commentId', deleteComment);
+
+// ---------------- Activities ----------------
+router.get('/files/:fileId/activities', getFileActivities);
 
 // ---------------- Misc ----------------
 router.get('/storage', getStorageUsage);

@@ -63,6 +63,10 @@ const ScheduledReportsPage = lazy(() => import('./pages/feedback/reports/Schedul
 const AdvancedAnalytics = lazy(() => import('./components/AdvancedAnalytics'));
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage.jsx'));
 const SummaryDashboardPage = lazy(() => import('./pages/SummaryDashboardPage'));
+const SchedulingMastersPage = lazy(() => import('./pages/SchedulingMastersPage'));
+const ScheduleSessionEditorPage = lazy(() => import('./pages/ScheduleSessionEditorPage'));
+const BulkSchedulingPage = lazy(() => import('./pages/BulkSchedulingPage'));
+const AdminScopeAssignmentPage = lazy(() => import('./pages/AdminScopeAssignmentPage'));
 const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
 const MarksPage = lazy(() => import('./pages/academic/enrollments/grading/MarksPage'));
 const WorkflowInboxPage = lazy(() => import('./pages/workflow/WorkflowInboxPage'));
@@ -396,6 +400,50 @@ const AppContent = () => {
             element={
               <ProtectedRoute screenId="classSchedules" screenName="Schedule Overview">
                 <ScheduleOverviewPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/scheduling-masters" 
+            element={
+              <ProtectedRoute screenId="schedulingMasters" screenName="Scheduling Masters">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <SchedulingMastersPage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/schedule-session-editor" 
+            element={
+              <ProtectedRoute screenId="scheduleSessionEditor" screenName="Schedule Session Editor">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <ScheduleSessionEditorPage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/bulk-scheduling" 
+            element={
+              <ProtectedRoute screenId="bulkScheduling" screenName="Bulk Scheduling">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <BulkSchedulingPage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/admin-scope-assignment" 
+            element={
+              <ProtectedRoute screenId="adminScopeAssignment" screenName="Admin Scope Assignment">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <AdminScopeAssignmentPage />
+                </Suspense>
               </ProtectedRoute>
             } 
           />

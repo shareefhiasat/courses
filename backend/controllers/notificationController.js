@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
 export async function getNotifications(req, res) {
   try {
     const { limit, unreadOnly, category, archived } = req.query;
-    const userId = req.dbId;
+    const userId = req.user?.dbId;
     
     const where = { userId };
     if (unreadOnly === 'true') where.isRead = false;
@@ -39,7 +39,7 @@ export async function getNotifications(req, res) {
 export async function markNotificationRead(req, res) {
   try {
     const { notificationId } = req.params;
-    const userId = req.dbId;
+    const userId = req.user?.dbId;
     
     await prisma.notification.updateMany({
       where: { id: notificationId, userId },
@@ -55,7 +55,7 @@ export async function markNotificationRead(req, res) {
 
 export async function markAllRead(req, res) {
   try {
-    const userId = req.dbId;
+    const userId = req.user?.dbId;
     
     const result = await prisma.notification.updateMany({
       where: { userId, isRead: false },
@@ -72,7 +72,7 @@ export async function markAllRead(req, res) {
 export async function archiveNotification(req, res) {
   try {
     const { notificationId } = req.params;
-    const userId = req.dbId;
+    const userId = req.user?.dbId;
     
     await prisma.notification.updateMany({
       where: { id: notificationId, userId },
@@ -88,7 +88,7 @@ export async function archiveNotification(req, res) {
 
 export async function archiveAllRead(req, res) {
   try {
-    const userId = req.dbId;
+    const userId = req.user?.dbId;
     
     const result = await prisma.notification.updateMany({
       where: { userId, isRead: true, isArchived: false },
@@ -105,7 +105,7 @@ export async function archiveAllRead(req, res) {
 export async function deleteNotification(req, res) {
   try {
     const { notificationId } = req.params;
-    const userId = req.dbId;
+    const userId = req.user?.dbId;
     
     await prisma.notification.deleteMany({
       where: { id: notificationId, userId },
@@ -120,7 +120,7 @@ export async function deleteNotification(req, res) {
 
 export async function getPreferences(req, res) {
   try {
-    const userId = req.dbId;
+    const userId = req.user?.dbId;
     
     let prefs = await prisma.notificationPreference.findUnique({
       where: { userId },
@@ -142,7 +142,7 @@ export async function getPreferences(req, res) {
 
 export async function updatePreferences(req, res) {
   try {
-    const userId = req.dbId;
+    const userId = req.user?.dbId;
     const { inAppEnabled, emailEnabled, smsEnabled, pushEnabled, matrix, soundEnabled, vibrationEnabled, browserNotifEnabled } = req.body;
     
     const prefs = await prisma.notificationPreference.upsert({
@@ -181,7 +181,7 @@ export async function testNotification(req, res) {
   try {
     // Admin-only endpoint for testing notifications
     const { event, payload, recipientCriteria } = req.body;
-    const userId = req.dbId;
+    const userId = req.user?.dbId;
     
     // Import notification gateway dynamically to avoid circular dependency
     const notificationGateway = await import('../services/notifications/index.js');

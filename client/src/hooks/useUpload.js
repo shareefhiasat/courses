@@ -42,6 +42,7 @@ export function useUpload() {
         name: file.name,
         size: file.size,
         mimeType: file.type,
+        bucket: 'PRIVATE',
         folderId: folderId || null,
       });
 
@@ -49,7 +50,12 @@ export function useUpload() {
         throw new Error(initiateResponse.data.error?.message || 'Failed to initiate upload');
       }
 
-      const { fileId, uploadUrl } = initiateResponse.data.payload;
+      const { fileId, versionId, uploadUrl, presignedUrl } = initiateResponse.data.payload;
+      const targetUploadUrl = uploadUrl || presignedUrl;
+
+      if (!targetUploadUrl || !versionId) {
+        throw new Error('Upload initiation response is missing upload URL or version ID');
+      }
 
       // Update with fileId
       setUploads(prev => prev.map(u => 
@@ -57,7 +63,7 @@ export function useUpload() {
       ));
 
       // Step 2: Upload to MinIO presigned URL
-      await axios.put(uploadUrl, file, {
+      await axios.put(targetUploadUrl, file, {
         headers: {
           'Content-Type': file.type,
         },
@@ -72,7 +78,9 @@ export function useUpload() {
       });
 
       // Step 3: Complete upload
-      const completeResponse = await axios.post(`${API_BASE}/upload/${fileId}/complete`);
+      const completeResponse = await axios.post(`${API_BASE}/upload/${fileId}/complete`, {
+        versionId,
+      });
 
       if (!completeResponse.data.success) {
         throw new Error(completeResponse.data.error?.message || 'Failed to complete upload');

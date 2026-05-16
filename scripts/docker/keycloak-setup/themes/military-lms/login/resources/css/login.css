@@ -226,13 +226,16 @@ input[type="submit"] {
     color: #8A1538 !important;
     font-weight: 700 !important;
     font-size: 16px !important;
-    padding: 16px 24px !important;
-    border-radius: 10px !important;
+    padding: 14px 40px !important;
+    border-radius: 8px !important;
     text-transform: uppercase !important;
     letter-spacing: 1.5px !important;
-    width: 100% !important;
+    width: auto !important;
+    min-width: 200px !important;
+    max-width: 300px !important;
+    display: block !important;
+    margin: 24px auto 0 !important;
     transition: all 0.3s ease !important;
-    margin-top: 24px !important;
     cursor: pointer !important;
     box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4) !important;
 }

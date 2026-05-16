@@ -1733,7 +1733,7 @@ model TimeSlot {
   updatedAt       DateTime @updatedAt
 
   program         Program          @relation("SchedulingTimeSlots", fields: [programId], references: [id])
-  scheduleSessions ScheduleSession[]
+  scheduleSessions ScheduleSession[] @relation("TimeSlotScheduleSessions")
 
   @@unique([programId, sortOrder])
   @@map("time_slots")
@@ -1777,7 +1777,6 @@ model TeacherAvailability {
   updatedAt         DateTime @updatedAt
 
   user              User             @relation("TeacherAvailability", fields: [userId], references: [id], onDelete: Cascade)
-  scheduleSessions  ScheduleSession[]
 
   @@map("teacher_availability")
 }

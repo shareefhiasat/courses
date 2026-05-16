@@ -1050,6 +1050,17 @@ const DICT = {
     'common.image': 'Image',
     'common.csv': 'CSV',
     'common.retry': 'Retry',
+    'common.copyLink': 'Copy Link',
+    'common.day': 'day',
+    'common.days': 'days',
+    'common.optional': 'Optional',
+
+    // Drive share dialog
+    'drive.chooseRole': 'Choose Role',
+    'roles.hr': 'HR',
+    'roles.admin': 'Admin',
+    'roles.instructor': 'Instructor',
+    'roles.student': 'Student',
 
     // Schedule Overview localizations
     schedule_overview: 'Schedule Overview',
@@ -4545,6 +4556,19 @@ const DICT = {
     'drive.details.size': 'Size',
     'drive.details.type': 'Type',
     'drive.details.modified': 'Last Modified',
+
+    // Smart Drive Details Tab (FileDetailsModal)
+    'drive.details': 'Details',
+    'drive.comments': 'Comments',
+    'drive.activity': 'Activity',
+    'drive.workflow': 'Workflow',
+    'drive.fileDetails': 'File Details',
+    'drive.fileName': 'File Name',
+    'drive.fileSize': 'File Size',
+    'drive.mimeType': 'MIME Type',
+    'drive.owner': 'Owner',
+    'drive.created': 'Created',
+    'drive.checksum': 'Checksum',
     
     // Drive Activity Tab
     'drive.activity.empty': 'No activity yet',
@@ -4554,6 +4578,83 @@ const DICT = {
     'drive.activity.commentError': 'Failed to add comment',
     'drive.activity.commentDeleted': 'Comment deleted',
     'drive.activity.deleteError': 'Failed to delete comment',
+
+    // Comments Tab
+    'drive.addComment': 'Add a comment...',
+    'drive.addCommentOptional': 'Add comment (optional)',
+    'drive.approve': 'Approve',
+    'drive.reject': 'Reject',
+    'drive.send': 'Send',
+    'drive.noComments': 'No comments yet',
+    'drive.noMatchingComments': 'No matching comments',
+    'drive.restore': 'Restore',
+    'drive.permanentDelete': 'Delete permanently',
+    'drive.unknown': 'Unknown',
+    'drive.created': 'Created',
+    'drive.status': 'Status',
+    'drive.ready': 'Ready',
+    'drive.actions': 'Actions',
+    'drive.deleteComment': 'Delete comment',
+    'drive.filterComments': 'Search comments...',
+    'drive.sort.newest': 'Newest first',
+    'drive.sort.oldest': 'Oldest first',
+    'drive.more_actions': 'More actions',
+    'drive.sortComments': 'Sort comments',
+
+    // Activity Tab
+    'drive.activityLog': 'Activity Log',
+    'drive.noActivity': 'No activity yet',
+
+    // Smart Drive Page
+    'drive.subtitle': 'Secure file storage & sharing',
+    'drive.searchInDrive': 'Search in Drive',
+    'drive.newFolder': 'New Folder',
+    'drive.storage': 'Storage',
+    'drive.storageUsed': '{used} of {limit} used',
+
+    // Create Folder Modal
+    'drive.createFolder': 'Create Folder',
+    'drive.folderName': 'Folder Name',
+    'drive.enterFolderName': 'Enter folder name',
+    'drive.create': 'Create',
+    'drive.creating': 'Creating...',
+    'drive.folderNameRequired': 'Folder name is required',
+    'drive.createFolderFailed': 'Failed to create folder',
+    'drive.folderWillBeCreatedIn': 'Folder will be created in',
+    'drive.currentFolder': 'Current folder',
+
+    // Upload Modal
+    'drive.uploadFiles': 'Upload Files',
+    'drive.filesInQueue': 'files in queue',
+    'drive.completed': 'completed',
+    'drive.failed': 'failed',
+    'drive.dragDropOrClick': 'Drag and drop files here or click to select',
+    'drive.dragDropFiles': 'Drag and drop files here',
+    'drive.orClickToSelect': 'or click to select files',
+    'drive.addMore': 'Add More',
+    'drive.uploading': 'Uploading...',
+    'drive.upload': 'Upload',
+
+    // Share Dialog
+    'drive.shareFile': 'Share File',
+    'drive.sharing': 'Sharing',
+    'drive.people': 'People',
+    'drive.roles': 'Roles',
+    'drive.publicLink': 'Public Link',
+    'drive.shareSuccess': 'Shared successfully',
+    'drive.expiry': 'Expiry',
+    'drive.noExpiry': 'No expiry',
+    'drive.share': 'Share',
+    'drive.shareWithRole': 'Share with Role',
+    'drive.linkExpiry': 'Link Expiry',
+    'drive.generateLink': 'Generate Link',
+    'drive.publicLinkGenerated': 'Public link generated',
+    'drive.noSharePermission': 'You do not have permission to share files',
+
+    // User Search
+    'drive.selectUser': 'Select User',
+    'drive.searchUsers': 'Search users...',
+    'drive.noUsersFound': 'No users found',
     
     // Drive Versions Tab
     'drive.versions.empty': 'No previous versions',
@@ -4562,7 +4663,51 @@ const DICT = {
     'drive.versions.restoreMessage': 'This will restore the file to the selected version',
     'drive.versions.restored': 'Version restored successfully',
     'drive.versions.restoreError': 'Failed to restore version',
-    
+
+    // Common
+    'common.cancel': 'Cancel',
+
+    // Smart Drive additional labels
+    'drive.addMore': 'Add More',
+    'drive.addFilter': 'Add Filter',
+    'drive.type': 'Type',
+    'drive.people': 'People',
+    'drive.roles': 'Roles',
+    'drive.modified': 'Modified',
+    'drive.location': 'Location',
+    'drive.uploadFiles': 'Upload Files',
+    'drive.dragDropOrClick': 'Drag and drop files here',
+    'drive.orClickToSelect': 'or click to select',
+
+    // Share Dialog
+    'drive.shareFile': 'Share File',
+    'drive.sharing': 'Sharing',
+    'drive.expiry': 'Expiry',
+    'drive.noExpiry': 'No Expiry',
+    'drive.linkExpiry': 'Link Expiry',
+    'drive.publicLink': 'Public Link',
+    'drive.generateLink': 'Generate Link',
+    'drive.publicLinkGenerated': 'Public link generated successfully',
+    'drive.shareSuccess': 'Shared successfully',
+    'drive.shareWithRole': 'Share with Role',
+    'drive.noSharePermission': 'You do not have permission to share files',
+    'drive.existingShares': 'Existing Shares',
+    'drive.noShares': 'No shares yet',
+    'drive.revokeShare': 'Revoke Share',
+    'drive.user': 'User',
+    'drive.role': 'Role',
+    'drive.unknownUser': 'Unknown User',
+    'drive.expired': 'Expired',
+    'drive.expirestoday': 'Expires today',
+    'drive.expirestomorrow': 'Expires tomorrow',
+    'drive.expiresindays': 'Expires in {{days}} days',
+
+    // Permission types
+    'drive.permission.view': 'View',
+    'drive.permission.edit': 'Edit',
+    'drive.permission.download': 'Download',
+    'drive.permission.comment': 'Comment',
+
     // Drive Sharing Tab
     'drive.sharing.empty': 'Not shared with anyone',
     'drive.sharing.addPeople': 'Share with people',
@@ -4609,12 +4754,26 @@ const DICT = {
     'drive.private': 'Private',
     'drive.shared': 'Shared',
     'drive.workflow': 'Workflow',
+    'drive.name': 'Name',
+    'drive.size': 'Size',
+    'drive.searchFiles': 'Search files...',
     'drive.uploadFiles': 'Upload Files',
+    'drive.spaces': 'Spaces',
+    'drive.folder': 'Folder',
+    'drive.goUp': 'Go up',
     'drive.download': 'Download',
     'drive.share': 'Share',
     'drive.versions': 'Versions',
     'drive.noFiles': 'No files yet',
     'drive.uploadFirstFile': 'Upload your first file to get started',
+    'drive.empty.noFiles': 'No files yet',
+    'drive.empty.noFilesDesc': 'Upload your first file to get started',
+    'drive.empty.noResults': 'No results found',
+    'drive.empty.noResultsDesc': 'Try adjusting your search or filters',
+    'drive.empty.trashEmpty': 'Trash is empty',
+    'drive.empty.trashEmptyDesc': 'Files you delete will appear here',
+    'drive.empty.sharedEmpty': 'No shared files',
+    'drive.empty.sharedEmptyDesc': 'Files shared with you will appear here',
     'drive.dragDropFiles': 'Drag and drop files here',
     'drive.or': 'or',
     'drive.browseFiles': 'Browse Files',
@@ -4658,6 +4817,12 @@ const DICT = {
     'drive.activeSpace': 'Active space',
     'drive.totalFiles': 'Total files',
     'drive.showingCount': 'Showing {count} of {total} assets',
+    'drive.type': 'Type',
+    'drive.people': 'People',
+    'drive.modified': 'Modified',
+    'drive.location': 'Location',
+    'drive.star': 'Star',
+    'drive.unstar': 'Unstar',
     
     // Drive Actions Menu
     'drive.actions.view': 'View',
@@ -5128,6 +5293,17 @@ const DICT = {
     'common.image': 'صورة',
     'common.csv': 'CSV',
     'common.retry': 'إعادة المحاولة',
+    'common.copyLink': 'نسخ الرابط',
+    'common.day': 'يوم',
+    'common.days': 'أيام',
+    'common.optional': 'اختياري',
+
+    // Drive share dialog
+    'drive.chooseRole': 'اختر دور',
+    'roles.hr': 'الموارد البشرية',
+    'roles.admin': 'مدير',
+    'roles.instructor': 'مدرب',
+    'roles.student': 'طالب',
 
     // Additional Side Drawer localizations (Arabic)
     dashboards: 'لوحات التحكم',
@@ -8998,12 +9174,26 @@ const DICT = {
     'drive.private': 'خاص',
     'drive.shared': 'مشترك',
     'drive.workflow': 'سير العمل',
+    'drive.name': 'الاسم',
+    'drive.size': 'الحجم',
+    'drive.searchFiles': 'البحث في الملفات...',
     'drive.uploadFiles': 'رفع الملفات',
+    'drive.spaces': 'المساحات',
+    'drive.folder': 'مجلد',
+    'drive.goUp': 'الانتقال للأعلى',
     'drive.download': 'تنزيل',
     'drive.share': 'مشاركة',
     'drive.versions': 'الإصدارات',
     'drive.noFiles': 'لا توجد ملفات بعد',
     'drive.uploadFirstFile': 'قم برفع ملفك الأول للبدء',
+    'drive.empty.noFiles': 'لا توجد ملفات بعد',
+    'drive.empty.noFilesDesc': 'قم برفع ملفك الأول للبدء',
+    'drive.empty.noResults': 'لم يتم العثور على نتائج',
+    'drive.empty.noResultsDesc': 'جرب تعديل البحث أو الفلاتر',
+    'drive.empty.trashEmpty': 'سلة المحذوفات فارغة',
+    'drive.empty.trashEmptyDesc': 'الملفات التي تحذفها ستظهر هنا',
+    'drive.empty.sharedEmpty': 'لا توجد ملفات مشتركة',
+    'drive.empty.sharedEmptyDesc': 'الملفات المشتركة معك ستظهر هنا',
     'drive.dragDropFiles': 'اسحب وأفلت الملفات هنا',
     'drive.or': 'أو',
     'drive.browseFiles': 'تصفح الملفات',
@@ -9047,6 +9237,12 @@ const DICT = {
     'drive.activeSpace': 'المساحة الحالية',
     'drive.totalFiles': 'إجمالي الملفات',
     'drive.showingCount': 'يتم عرض {count} من {total} عنصراً',
+    'drive.type': 'النوع',
+    'drive.people': 'الأشخاص',
+    'drive.modified': 'تم التعديل',
+    'drive.location': 'الموقع',
+    'drive.star': 'تمييز بنجمة',
+    'drive.unstar': 'إلغاء التمييز',
     'workflow.detail.reactFlowPlaceholder': 'سيظهر تتبع سير العمل هنا',
     'workflow.detail.documentPreview': 'معاينة المستند',
     'workflow.detail.nextcloudPreview': 'مسار مرفق المستند',
@@ -9154,6 +9350,19 @@ const DICT = {
     'drive.details.size': 'الحجم',
     'drive.details.type': 'النوع',
     'drive.details.modified': 'آخر تعديل',
+
+    // Smart Drive Details Tab (FileDetailsModal)
+    'drive.details': 'التفاصيل',
+    'drive.comments': 'التعليقات',
+    'drive.activity': 'النشاط',
+    'drive.workflow': 'سير العمل',
+    'drive.fileDetails': 'تفاصيل الملف',
+    'drive.fileName': 'اسم الملف',
+    'drive.fileSize': 'حجم الملف',
+    'drive.mimeType': 'نوع MIME',
+    'drive.owner': 'المالك',
+    'drive.created': 'تم الإنشاء',
+    'drive.checksum': 'مجموع الاختيار',
     
     // Drive Activity Tab
     'drive.activity.empty': 'لا يوجد نشاط بعد',
@@ -9163,6 +9372,83 @@ const DICT = {
     'drive.activity.commentError': 'فشل في إضافة التعليق',
     'drive.activity.commentDeleted': 'تم حذف التعليق',
     'drive.activity.deleteError': 'فشل في حذف التعليق',
+
+    // Comments Tab
+    'drive.addComment': 'أضف تعليقاً...',
+    'drive.addCommentOptional': 'أضف تعليقاً (اختياري)',
+    'drive.approve': 'موافقة',
+    'drive.reject': 'رفض',
+    'drive.send': 'إرسال',
+    'drive.noComments': 'لا توجد تعليقات بعد',
+    'drive.noMatchingComments': 'لا توجد تعليقات مطابقة',
+    'drive.restore': 'استعادة',
+    'drive.permanentDelete': 'حذف نهائي',
+    'drive.unknown': 'غير معروف',
+    'drive.created': 'تم الإنشاء',
+    'drive.status': 'الحالة',
+    'drive.ready': 'جاهز',
+    'drive.actions': 'الإجراءات',
+    'drive.deleteComment': 'حذف التعليق',
+    'drive.filterComments': 'البحث في التعليقات...',
+    'drive.sort.newest': 'الأحدث أولاً',
+    'drive.sort.oldest': 'الأقدم أولاً',
+    'drive.more_actions': 'المزيد من الإجراءات',
+    'drive.sortComments': 'فرز التعليقات',
+
+    // Activity Tab
+    'drive.activityLog': 'سجل النشاط',
+    'drive.noActivity': 'لا يوجد نشاط بعد',
+
+    // Smart Drive Page
+    'drive.subtitle': 'تخزين ومشاركة الملفات الآمنة',
+    'drive.searchInDrive': 'البحث في المحرك',
+    'drive.newFolder': 'مجلد جديد',
+    'drive.storage': 'التخزين',
+    'drive.storageUsed': '{used} من {limit} مستخدم',
+
+    // Create Folder Modal
+    'drive.createFolder': 'إنشاء مجلد',
+    'drive.folderName': 'اسم المجلد',
+    'drive.enterFolderName': 'أدخل اسم المجلد',
+    'drive.create': 'إنشاء',
+    'drive.creating': 'جاري الإنشاء...',
+    'drive.folderNameRequired': 'اسم المجلد مطلوب',
+    'drive.createFolderFailed': 'فشل في إنشاء المجلد',
+    'drive.folderWillBeCreatedIn': 'سيتم إنشاء المجلد في',
+    'drive.currentFolder': 'المجلد الحالي',
+
+    // Upload Modal
+    'drive.uploadFiles': 'رفع الملفات',
+    'drive.filesInQueue': 'ملفات في الانتظار',
+    'drive.completed': 'مكتمل',
+    'drive.failed': 'فشل',
+    'drive.dragDropOrClick': 'اسحب وأفلت الملفات هنا أو انقر للاختيار',
+    'drive.dragDropFiles': 'اسحب وأفلت الملفات هنا',
+    'drive.orClickToSelect': 'أو انقر لاختيار الملفات',
+    'drive.addMore': 'إضافة المزيد',
+    'drive.uploading': 'جاري الرفع...',
+    'drive.upload': 'رفع',
+
+    // Share Dialog
+    'drive.shareFile': 'مشاركة الملف',
+    'drive.sharing': 'مشاركة',
+    'drive.people': 'الأشخاص',
+    'drive.roles': 'الأدوار',
+    'drive.publicLink': 'رابط عام',
+    'drive.shareSuccess': 'تمت المشاركة بنجاح',
+    'drive.expiry': 'انتهاء الصلاحية',
+    'drive.noExpiry': 'بدون انتهاء صلاحية',
+    'drive.share': 'مشاركة',
+    'drive.shareWithRole': 'مشاركة مع الدور',
+    'drive.linkExpiry': 'انتهاء صلاحية الرابط',
+    'drive.generateLink': 'إنشاء رابط',
+    'drive.publicLinkGenerated': 'تم إنشاء الرابط العام',
+    'drive.noSharePermission': 'ليس لديك إذن لمشاركة الملفات',
+
+    // User Search
+    'drive.selectUser': 'اختر مستخدم',
+    'drive.searchUsers': 'البحث عن المستخدمين...',
+    'drive.noUsersFound': 'لم يتم العثور على مستخدمين',
     
     // Drive Versions Tab
     'drive.versions.empty': 'لا توجد إصدارات سابقة',
@@ -9171,6 +9457,20 @@ const DICT = {
     'drive.versions.restoreMessage': 'سيتم استعادة الملف إلى الإصدار المحدد',
     'drive.versions.restored': 'تمت استعادة الإصدار بنجاح',
     'drive.versions.restoreError': 'فشل في استعادة الإصدار',
+
+    // Common
+    'common.cancel': 'إلغاء',
+
+    // Smart Drive additional labels
+    'drive.addMore': 'إضافة المزيد',
+    'drive.addFilter': 'إضافة فلتر',
+    'drive.type': 'النوع',
+    'drive.people': 'الأشخاص',
+    'drive.modified': 'تعديل',
+    'drive.location': 'الموقع',
+    'drive.uploadFiles': 'رفع الملفات',
+    'drive.dragDropOrClick': 'اسحب وأفلت الملفات هنا',
+    'drive.orClickToSelect': 'أو انقر للاختيار',
     
     // Drive Sharing Tab
     'drive.sharing.empty': 'غير مشارك مع أي شخص',

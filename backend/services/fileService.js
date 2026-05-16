@@ -305,31 +305,43 @@ export async function listFiles(keycloakUser, {
   page = 1,
   pageSize = 50,
   includeDeleted = false,
+  deletedOnly = false,
+  starredOnly = false,
+  rootOnly = false,
+  ownedOnly = false,
 } = {}) {
   try {
     const userId = await getDatabaseUserId(keycloakUser);
     if (!userId) return err('USER_NOT_FOUND', 'User not found');
 
     const where = {
-      isDeleted: includeDeleted ? undefined : false,
-      OR: [
-        { ownerId: userId },
-        { shares: { some: { sharedWithId: userId } } },
-        { sharesV2: { some: { subjectType: 'USER', subjectUserId: userId } } },
-      ],
+      isDeleted: deletedOnly ? true : includeDeleted ? undefined : false,
+      ...(ownedOnly
+        ? { ownerId: userId }
+        : {
+            OR: [
+              { ownerId: userId },
+              { shares: { some: { subjectType: 'USER', subjectUserId: userId } } },
+            ],
+          }),
     };
-    if (folderId !== undefined) where.folderId = folderId;
+    if (folderId !== undefined && folderId !== null && folderId !== '') {
+      where.folderId = folderId;
+    } else if (rootOnly) {
+      where.folderId = null;
+    }
     if (folderPath !== undefined) where.folderPath = folderPath;
     if (bucket) where.bucket = mapBucketName(bucket);
     if (mimeTypePrefix) where.mimeType = { startsWith: mimeTypePrefix };
     if (modifiedAfter) where.updatedAt = { gte: new Date(modifiedAfter) };
     if (search) where.name = { contains: search, mode: 'insensitive' };
+    if (starredOnly) where.isStarred = true;
 
     const [files, total] = await Promise.all([
       prisma.file.findMany({
         where,
         include: {
-          owner: { select: { id: true, email: true, displayName: true } },
+          owner: { select: { id: true, email: true, displayName: true, firstName: true, lastName: true } },
           currentVersion: { select: { versionNumber: true, size: true, createdAt: true } },
         },
         orderBy: { [sortField]: sortOrder },
@@ -479,24 +491,104 @@ export async function getPreviewUrl(fileId, actorUserId) {
  * Caller is responsible for auth + permission check BEFORE invoking this.
  */
 export async function streamFile({ fileId, req, res, actorUserId }) {
+  console.log('[streamFile] Starting download for fileId:', fileId, 'actorUserId:', actorUserId);
   const file = await prisma.file.findUnique({ where: { id: fileId } });
+  console.log('[streamFile] File found:', file ? { id: file.id, name: file.name, bucket: file.bucket, s3Key: file.s3Key } : null);
   if (!file || file.isDeleted) {
+    console.log('[streamFile] File not found or deleted');
     return res.status(404).json(err('FILE_NOT_FOUND', 'File not found'));
   }
-  const bucketReal = resolveBucket(file.bucket);
+
+  // Check ownership or share access
+  const owns = file.ownerId === actorUserId;
+  console.log('[streamFile] Ownership check:', { owns, ownerId: file.ownerId, actorUserId });
+  if (!owns) {
+    const share = await prisma.fileShareV2.findFirst({
+      where: {
+        fileId,
+        OR: [
+          { subjectType: 'USER', subjectUserId: actorUserId },
+        ],
+      },
+    });
+    console.log('[streamFile] Share check:', share ? { id: share.id, subjectType: share.subjectType } : null);
+    if (!share) return res.status(403).json(err('ACCESS_DENIED', 'Access denied'));
+  }
+
+  // Get latest version's s3Key if available
+  const latestVersion = await prisma.fileVersion.findFirst({
+    where: { fileId, isCurrent: true },
+    orderBy: { versionNumber: 'desc' },
+  });
+  console.log('[streamFile] Latest version:', latestVersion ? { id: latestVersion.id, versionNumber: latestVersion.versionNumber, s3Key: latestVersion.s3Key } : null);
+
+  let s3Key;
+  let bucketName;
+  if (latestVersion && latestVersion.s3Key) {
+    s3Key = latestVersion.s3Key;
+    bucketName = file.bucket;
+    console.log('[streamFile] Using version s3Key:', s3Key);
+  } else if (file.s3Key) {
+    s3Key = file.s3Key;
+    bucketName = file.bucket;
+    console.log('[streamFile] Using file s3Key:', s3Key);
+  } else {
+    console.log('[streamFile] No s3Key found in version or file');
+    return res.status(404).json(err('FILE_NOT_FOUND', 'No file content available'));
+  }
+
+  const bucketReal = resolveBucket(bucketName);
+  console.log('[streamFile] Bucket mapping:', { bucketName, bucketReal });
 
   await prisma.fileActivity.create({
     data: { fileId, userId: actorUserId, action: 'download' },
   });
 
-  return streamObject({
-    bucket: bucketReal,
-    objectKey: file.s3Key,
-    req,
-    res,
-    filename: file.name,
-    mimeType: file.mimeType,
-  });
+  console.log('[streamFile] Streaming object with:', { bucket: bucketReal, objectKey: s3Key, filename: file.name });
+
+  try {
+    return await streamObject({
+      bucket: bucketReal,
+      objectKey: s3Key,
+      req,
+      res,
+      filename: file.name,
+      mimeType: file.mimeType,
+    });
+  } catch (error) {
+    console.log('[streamFile] Stream failed with error:', error.message);
+    // If the s3Key doesn't exist (legacy file), try to find the object by listing objects in the bucket
+    if (error.code === 'NotFound' || error.message.includes('Not Found')) {
+      console.log('[streamFile] Object not found, attempting to find by listing bucket');
+      const { minioClient } = await import('./minioService.js');
+      try {
+        const prefix = `${file.bucket}/${file.ownerId}/${file.id}/`;
+        console.log('[streamFile] Listing objects with prefix:', prefix);
+        const objectsStream = minioClient.listObjects(bucketReal, prefix, true);
+        const objects = [];
+        for await (const obj of objectsStream) {
+          objects.push(obj);
+        }
+        console.log('[streamFile] Found objects:', objects.length);
+        if (objects.length > 0) {
+          // Use the first object found
+          const fallbackKey = objects[0].name;
+          console.log('[streamFile] Using fallback key:', fallbackKey);
+          return await streamObject({
+            bucket: bucketReal,
+            objectKey: fallbackKey,
+            req,
+            res,
+            filename: file.name,
+            mimeType: file.mimeType,
+          });
+        }
+      } catch (listError) {
+        console.error('[streamFile] Failed to list objects:', listError);
+      }
+    }
+    throw error;
+  }
 }
 
 // ============================================================================
@@ -564,7 +656,20 @@ export async function toggleStarFile(fileId, actorUserId) {
   try {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
     if (!file) return err('FILE_NOT_FOUND', 'File not found');
-    if (file.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Access denied');
+
+    // Allow starring if user is owner or has access via shares
+    const hasAccess = file.ownerId === actorUserId || await prisma.fileShare.findFirst({
+      where: {
+        fileId,
+        subjectType: 'USER',
+        subjectUserId: actorUserId,
+      },
+    });
+
+    if (!hasAccess) {
+      console.error('[toggleStarFile] Access denied for user', actorUserId, 'on file', fileId, 'owner', file.ownerId);
+      return err('ACCESS_DENIED', 'Access denied');
+    }
 
     const updated = await prisma.file.update({
       where: { id: fileId },
@@ -575,6 +680,7 @@ export async function toggleStarFile(fileId, actorUserId) {
     });
     return ok(updated);
   } catch (error) {
+    console.error('[toggleStarFile] Error:', error);
     return err('TOGGLE_STAR_FAILED', error.message);
   }
 }

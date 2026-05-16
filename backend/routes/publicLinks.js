@@ -14,7 +14,7 @@ const router = Router();
 // Inspect link metadata (no auth required).
 router.get('/links/:token', inspectPublicLink);
 
-// Download file via token (password in body if required).
-router.post('/links/:token/download', downloadViaPublicLink);
+// Download file via token (password in query param if required).
+router.get('/links/:token/download', downloadViaPublicLink);
 
 export default router;

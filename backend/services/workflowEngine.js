@@ -146,7 +146,7 @@ export async function startWorkflow(input, actor) {
       where: {
         definitionId,
         entityId,
-        status: { in: ['pending', 'in_progress'] },
+        status: { in: ['PENDING'] },
       },
     });
     if (existing) {
@@ -162,7 +162,7 @@ export async function startWorkflow(input, actor) {
       data: {
         definitionId,
         entityId,
-        status: 'in_progress',
+        status: 'PENDING',
         currentStageId: firstStage.id,
         metadata: metadata || {},
         initiatedById: actor.userId,
@@ -234,7 +234,7 @@ export async function approveStage(instanceId, input, actor) {
       },
     });
     if (!instance) return err('NOT_FOUND', 'Workflow instance not found');
-    if (instance.status !== 'in_progress') {
+    if (instance.status !== 'PENDING') {
       return err('INVALID_STATE', `Workflow is ${instance.status}, cannot approve`);
     }
 
@@ -421,7 +421,7 @@ export async function rejectStage(instanceId, input, actor) {
       },
     });
     if (!instance) return err('NOT_FOUND', 'Workflow instance not found');
-    if (instance.status !== 'in_progress') {
+    if (instance.status !== 'PENDING') {
       return err('INVALID_STATE', `Workflow is ${instance.status}, cannot reject`);
     }
 
@@ -518,7 +518,7 @@ export async function listWorkflowInstances(filters = {}, actor) {
   try {
     const { entityId, definitionId, status } = filters;
     const where = {};
-    if (entityId) where.entityId = entityId;
+    if (entityId) where.fileId = entityId; // entityId maps to fileId in schema
     if (definitionId) where.definitionId = definitionId;
     if (status) where.status = status;
 
@@ -527,7 +527,7 @@ export async function listWorkflowInstances(filters = {}, actor) {
       include: {
         definition: true,
         currentStage: true,
-        initiatedBy: { select: { id: true, name: true } },
+        initiatedBy: { select: { id: true, displayName: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -562,12 +562,12 @@ export async function getMyPendingTasks(actor) {
     }
 
     const instances = await prisma.workflowInstance.findMany({
-      where: { status: 'in_progress' },
+      where: { status: 'PENDING' },
       include: {
         definition: true,
         currentStage: true,
-        steps: { where: { status: 'pending' }, orderBy: { createdAt: 'asc' } },
-        initiatedBy: { select: { id: true, name: true } },
+        steps: { where: { status: 'PENDING' }, orderBy: { enteredAt: 'asc' } },
+        initiatedBy: { select: { id: true, displayName: true } },
       },
     });
 

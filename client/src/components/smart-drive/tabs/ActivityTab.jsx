@@ -120,16 +120,24 @@ export default function ActivityTab({ fileId }) {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-white mb-1">
-                        {t(`drive.action.${activity.action.toLowerCase()}`) || activity.action}
+                        {activity.action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </p>
                       <p className="text-xs text-[#8d90a0]">
-                        {activity.user?.displayName || activity.user?.email || t('drive.unknownUser')}
+                        {activity.user?.displayName || activity.user?.email || 'Unknown User'}
                         {' · '}
                         {formatDate(activity.createdAt)}
                       </p>
                       {activity.metadata && Object.keys(activity.metadata).length > 0 && (
-                        <div className="mt-2 p-2 bg-[#32343d] rounded text-xs text-[#8d90a0] font-mono">
-                          {JSON.stringify(activity.metadata, null, 2)}
+                        <div className="mt-2 text-xs text-[#8d90a0]">
+                          {activity.metadata.linkId && <span className="text-[#b4c5ff]">Link created</span>}
+                          {activity.metadata.expiresAt && (
+                            <span className="ms-2">
+                              Expires: {new Date(activity.metadata.expiresAt).toLocaleDateString()}
+                            </span>
+                          )}
+                          {activity.metadata.passwordProtected && (
+                            <span className="ms-2 text-[#ffd699]">🔒 Password protected</span>
+                          )}
                         </div>
                       )}
                     </div>

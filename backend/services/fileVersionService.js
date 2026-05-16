@@ -43,18 +43,21 @@ export async function listVersions(fileId, actorUserId) {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
     if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');
 
-    // Owner or someone with a share sees versions.
-    const owns = file.ownerId === actorUserId;
-    if (!owns) {
-      const share = await prisma.fileShareV2.findFirst({
-        where: {
-          fileId,
-          OR: [
-            { subjectType: 'USER', subjectUserId: actorUserId },
-          ],
-        },
-      });
-      if (!share) return err('ACCESS_DENIED', 'Access denied');
+    // Skip auth check for public links (actorUserId is null)
+    if (actorUserId !== null) {
+      // Owner or someone with a share sees versions.
+      const owns = file.ownerId === actorUserId;
+      if (!owns) {
+        const share = await prisma.fileShareV2.findFirst({
+          where: {
+            fileId,
+            OR: [
+              { subjectType: 'USER', subjectUserId: actorUserId },
+            ],
+          },
+        });
+        if (!share) return err('ACCESS_DENIED', 'Access denied');
+      }
     }
 
     const versions = await prisma.fileVersion.findMany({

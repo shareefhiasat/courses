@@ -118,7 +118,7 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
                     <Input
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
-                      placeholder={t('Add comment (optional)')}
+                      placeholder={t('drive.addCommentOptional')}
                       className="text-sm"
                     />
                     <div className="flex gap-2">
@@ -128,7 +128,7 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm py-2"
                       >
                         <CheckIcon className="w-4 h-4 me-1" />
-                        {t('Approve')}
+                        {t('drive.approve')}
                       </Button>
                       <Button
                         onClick={() => handleReject(task)}
@@ -136,7 +136,7 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
                         className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm py-2"
                       >
                         <XIcon className="w-4 h-4 me-1" />
-                        {t('Reject')}
+                        {t('drive.reject')}
                       </Button>
                       <Button
                         onClick={() => setSelectedTask(null)}

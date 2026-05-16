@@ -399,6 +399,16 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { path: '/manage-enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: t('manage_enrollments') || 'Manage Enrollments' },
       ]
     },
+    scheduling: {
+      label: t('scheduling') || 'SCHEDULING',
+      items: [
+        { path: '/schedule-overview', icon: getThemedIcon('ui', 'calendar', 18, theme), label: t('schedule_overview') || 'Schedule Overview' },
+        { path: '/scheduling-masters', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: t('scheduling_masters') || 'Scheduling Masters' },
+        { path: '/schedule-session-editor', icon: getThemedIcon('ui', 'edit', 18, theme), label: t('schedule_session_editor') || 'Schedule Session Editor' },
+        { path: '/bulk-scheduling', icon: getThemedIcon('ui', 'layers', 18, theme), label: t('bulk_scheduling') || 'Bulk Scheduling' },
+        { path: '/admin-scope-assignment', icon: getThemedIcon('ui', 'shield', 18, theme), label: t('admin_scope_assignment') || 'Admin Scope Assignment' },
+      ]
+    },
     attendance: {
       label: t('attendance') || 'ATTENDANCE',
       items: [
@@ -411,7 +421,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: t('drive') || 'DRIVE',
       items: [
         { path: '/smart-drive', icon: getThemedIcon('ui', 'hard_drive', 18, theme), label: t('smart_drive') || 'Smart Drive' },
-        { path: '/workflow/inbox', icon: getThemedIcon('ui', 'workflow', 18, theme), label: t('workflow_inbox') || 'Workflow Inbox' },
+        { path: '/workflow/inbox', icon: getThemedIcon('ui', 'list', 18, theme), label: t('workflow_inbox') || 'Workflow Inbox' },
         { path: '/workflow/create', icon: getThemedIcon('ui', 'plus', 18, theme), label: t('workflow_create') || 'Create Workflow' },
         { path: '/workflow/workspace', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: t('workflow_workspace') || 'Workflow Workspace' },
       ]
@@ -461,6 +471,16 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { path: '/qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: t('daily_scan') || 'Daily Scan' },
       ]
     },
+    scheduling: {
+      label: t('scheduling') || 'SCHEDULING',
+      items: [
+        { path: '/schedule-overview', icon: getThemedIcon('ui', 'calendar', 18, theme), label: t('schedule_overview') || 'Schedule Overview' },
+        { path: '/scheduling-masters', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: t('scheduling_masters') || 'Scheduling Masters' },
+        { path: '/schedule-session-editor', icon: getThemedIcon('ui', 'edit', 18, theme), label: t('schedule_session_editor') || 'Schedule Session Editor' },
+        { path: '/bulk-scheduling', icon: getThemedIcon('ui', 'layers', 18, theme), label: t('bulk_scheduling') || 'Bulk Scheduling' },
+        { path: '/admin-scope-assignment', icon: getThemedIcon('ui', 'shield', 18, theme), label: t('admin_scope_assignment') || 'Admin Scope Assignment' },
+      ]
+    },
     community: {
       label: t('community') || 'COMMUNITY',
       items: [
@@ -491,6 +511,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
         quiz: { ...adminLinks.quiz, items: [...adminLinks.quiz.items] },
         ...(adminLinks.academic ? { academic: adminLinks.academic } : {}),
         classes: { ...adminLinks.classes, items: [...adminLinks.classes.items] },
+        scheduling: { ...adminLinks.scheduling, items: [...adminLinks.scheduling.items] },
         attendance: { ...adminLinks.attendance, items: [...adminLinks.attendance.items] },
         drive: { ...adminLinks.drive, items: [...adminLinks.drive.items] },
         analytics: { ...adminLinks.analytics, items: [...adminLinks.analytics.items] },
@@ -510,6 +531,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
     } else if (isHR) {
       links = {
         main: { ...hrLinks.main, items: [...hrLinks.main.items] },
+        scheduling: { ...hrLinks.scheduling, items: [...hrLinks.scheduling.items] },
         drive: { ...adminLinks.drive, items: [...adminLinks.drive.items] },
         community: { ...hrLinks.community, items: [...hrLinks.community.items] },
         settings: { ...hrLinks.settings, items: [...hrLinks.settings.items] }

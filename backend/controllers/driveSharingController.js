@@ -133,7 +133,7 @@ async function deleteShare(req, res) {
 
     const result = await driveSharingService.deleteShare({
       shareId: parseInt(shareId),
-      userId: currentUser.id
+      userId: currentUser.dbId
     });
 
     if (!result.success) {

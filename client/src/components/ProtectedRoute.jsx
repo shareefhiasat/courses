@@ -49,11 +49,11 @@ const ProtectedRoute = ({
   const { keycloak, initialized } = useKeycloak();
 
   // Add logging for debugging
-  console.log('🛡️ ProtectedRoute - Keycloak State:', {
-    initialized,
-    authenticated: keycloak?.authenticated,
-    hasToken: !!keycloak?.token
-  });
+  // console.log('🛡️ ProtectedRoute - Keycloak State:', {
+  //   initialized,
+  //   authenticated: keycloak?.authenticated,
+  //   hasToken: !!keycloak?.token
+  // });
 
   // Show loading while Keycloak is initializing
   if (!initialized) {

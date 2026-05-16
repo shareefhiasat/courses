@@ -9,9 +9,17 @@ import fileShareService from '../services/fileShareService.js';
 
 export async function createFileShare(req, res) {
   const { fileId, folderId, subjectType, subjectId, permission, expiresAt } = req.body;
-  const actor = { userId: req.dbId, roles: req.userRoles };
+  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
   const result = await fileShareService.createShare(
-    { fileId, folderId, subjectType, subjectId, permission, expiresAt },
+    {
+      fileId,
+      folderId,
+      subjectType,
+      subjectUserId: subjectType === 'USER' ? Number(subjectId) : undefined,
+      subjectRole: subjectType === 'ROLE' ? subjectId : undefined,
+      permission,
+      expiresAt,
+    },
     actor
   );
   if (!result.success) return res.status(400).json(result);
@@ -20,7 +28,7 @@ export async function createFileShare(req, res) {
 
 export async function listFileShares(req, res) {
   const { fileId } = req.params;
-  const actor = { userId: req.dbId, roles: req.userRoles };
+  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
   const result = await fileShareService.listFileShares(fileId, actor);
   if (!result.success) return res.status(400).json(result);
   return res.json(result);
@@ -28,21 +36,21 @@ export async function listFileShares(req, res) {
 
 export async function revokeFileShare(req, res) {
   const { shareId } = req.params;
-  const actor = { userId: req.dbId, roles: req.userRoles };
+  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
   const result = await fileShareService.revokeShare(shareId, actor);
   if (!result.success) return res.status(400).json(result);
   return res.json(result);
 }
 
 export async function listSharedWithMe(req, res) {
-  const actor = { userId: req.dbId, roles: req.userRoles };
+  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
   const result = await fileShareService.listSharedWithMe(actor);
   if (!result.success) return res.status(400).json(result);
   return res.json(result);
 }
 
 export async function listSharedFiles(req, res) {
-  const actor = { userId: req.dbId, roles: req.userRoles };
+  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
   const result = await fileShareService.getSharedFiles(actor);
   if (!result.success) return res.status(400).json(result);
   return res.json(result);

@@ -49,3 +49,8 @@ export const restoreFolder = async (req, res) => {
   const result = await folderService.restoreFolder(req.params.folderId, req.user?.dbId);
   return jsonOrStatus(res, result);
 };
+
+export const toggleStarFolder = async (req, res) => {
+  const result = await folderService.toggleStarFolder(req.params.folderId, req.user?.dbId);
+  return jsonOrStatus(res, result);
+};

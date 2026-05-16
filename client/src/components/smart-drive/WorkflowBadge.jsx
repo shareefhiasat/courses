@@ -12,28 +12,28 @@ import { getThemedIcon } from '@constants/iconTypes';
 const statusConfig = {
   pending: {
     label: 'Pending Approval',
-    icon: 'clock',
-    bgClass: 'bg-yellow-100 dark:bg-yellow-900/30',
-    textClass: 'text-yellow-700 dark:text-yellow-400',
-    borderClass: 'border-yellow-300 dark:border-yellow-700',
+    icon: null, // Remove icon for cleaner look
+    bgClass: 'bg-yellow-50',
+    textClass: 'text-yellow-800',
+    borderClass: 'border-0', // Remove border
   },
   in_progress: {
     label: 'In Review',
-    icon: 'refresh',
+    icon: 'refresh_cw',
     bgClass: 'bg-blue-100 dark:bg-blue-900/30',
     textClass: 'text-blue-700 dark:text-blue-400',
     borderClass: 'border-blue-300 dark:border-blue-700',
   },
   completed: {
     label: 'Approved',
-    icon: 'checkCircle',
+    icon: 'check_circle',
     bgClass: 'bg-green-100 dark:bg-green-900/30',
     textClass: 'text-green-700 dark:text-green-400',
     borderClass: 'border-green-300 dark:border-green-700',
   },
   rejected: {
     label: 'Rejected',
-    icon: 'xCircle',
+    icon: 'x_circle',
     bgClass: 'bg-red-100 dark:bg-red-900/30',
     textClass: 'text-red-700 dark:text-red-400',
     borderClass: 'border-red-300 dark:border-red-700',
@@ -46,16 +46,23 @@ export default function WorkflowBadge({ status, currentStage, compact = false })
   if (!status || status === 'none') return null;
 
   const config = statusConfig[status] || statusConfig.pending;
-  const Icon = getThemedIcon(config.icon);
+  const icon = getThemedIcon('ui', config.icon, compact ? 12 : 16, 'light');
 
   if (compact) {
     return (
       <div
-        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border ${config.bgClass} ${config.textClass} ${config.borderClass}`}
+        className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ${config.bgClass} ${config.textClass}`}
         title={currentStage ? `${config.label}: ${currentStage}` : config.label}
+        style={{ 
+          fontSize: '0.8125rem', // Slightly larger for better readability
+          fontWeight: 600,
+          letterSpacing: '0.025em',
+          minWidth: '100px', // Ensure consistent width
+          justifyContent: 'center'
+        }}
       >
-        <Icon className="w-3 h-3" />
-        <span className="text-xs font-medium">{t(config.label)}</span>
+        {config.icon ? icon : null}
+        <span>{t(config.label)}</span>
       </div>
     );
   }
@@ -64,7 +71,7 @@ export default function WorkflowBadge({ status, currentStage, compact = false })
     <div
       className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${config.bgClass} ${config.textClass} ${config.borderClass}`}
     >
-      <Icon className="w-4 h-4" />
+      {icon}
       <div className="flex flex-col">
         <span className="text-sm font-semibold">{t(config.label)}</span>
         {currentStage && (

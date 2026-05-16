@@ -25,7 +25,7 @@ export const useNotifications = () => {
         setSettings(prev => ({ ...prev, ...result.data }));
       }
     } catch (error) {
-      error('Failed to load notification settings:', error);
+      console.error('Failed to load notification settings:', error);
     }
   }, [user]);
 
@@ -41,7 +41,7 @@ export const useNotifications = () => {
       }
       return false;
     } catch (error) {
-      error('Failed to save notification settings:', error);
+      console.error('Failed to save notification settings:', error);
       return false;
     }
   }, [user]);

@@ -10,18 +10,34 @@ import publicLinkService from '../services/publicLinkService.js';
 
 export async function createPublicLink(req, res) {
   const { fileId, folderId, password, maxDownloads, expiryDays, expiresAt } = req.body;
-  const actor = { userId: req.dbId, roles: req.userRoles };
+  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
   const result = await publicLinkService.createLink(
     { fileId, folderId, password, maxDownloads, expiryDays, expiresAt },
     actor
   );
-  if (!result.success) return res.status(400).json(result);
+  if (!result.success) {
+    console.error('[publicLinkController.createPublicLink] Failed:', result.error);
+    return res.status(400).json(result);
+  }
+  
+  // Log the generated public link
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const publicUrl = `${baseUrl}/public/${result.payload.token}`;
+  console.log('🔗 [PUBLIC LINK CREATED]', {
+    fileId,
+    folderId,
+    token: result.payload.token,
+    publicUrl,
+    expiresAt: result.payload.expiresAt,
+    createdBy: actor.userId
+  });
+  
   return res.status(201).json(result);
 }
 
 export async function listPublicLinks(req, res) {
   const { fileId } = req.params;
-  const actor = { userId: req.dbId, roles: req.userRoles };
+  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
   const result = await publicLinkService.listLinksForFile(fileId, actor);
   if (!result.success) return res.status(400).json(result);
   return res.json(result);
@@ -29,7 +45,7 @@ export async function listPublicLinks(req, res) {
 
 export async function revokePublicLink(req, res) {
   const { linkId } = req.params;
-  const actor = { userId: req.dbId, roles: req.userRoles };
+  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
   const result = await publicLinkService.revokeLink(linkId, actor);
   if (!result.success) return res.status(400).json(result);
   return res.json(result);
@@ -48,7 +64,7 @@ export async function inspectPublicLink(req, res) {
 
 export async function downloadViaPublicLink(req, res) {
   const { token } = req.params;
-  const { password } = req.body;
+  const { password } = req.query; // Changed from req.body to req.query for GET
   const result = await publicLinkService.resolveTokenForDownload(token, { password });
   if (!result.success) return res.status(400).json(result);
 
@@ -57,27 +73,36 @@ export async function downloadViaPublicLink(req, res) {
   const minioService = (await import('../services/minioService.js')).default;
   const fileVersionService = (await import('../services/fileVersionService.js')).default;
 
-  // Get latest version for streaming.
-  const versionRes = await fileVersionService.listVersions(file.id);
+  // Get latest version for streaming (skip auth check for public links)
+  const versionRes = await fileVersionService.listVersions(file.id, null);
+
+  // If no versions exist, try to use the file's direct s3Key if available
+  let s3Key;
+  let bucketName;
   if (!versionRes.success || !versionRes.payload.length) {
-    return res.status(404).json({ success: false, error: { code: 'NO_VERSIONS', message: 'No versions available' } });
+    console.log('[downloadViaPublicLink] No versions found, checking file.s3Key');
+    if (file.s3Key) {
+      s3Key = file.s3Key;
+      bucketName = file.bucket;
+    } else {
+      return res.status(404).json({ success: false, error: { code: 'NO_VERSIONS', message: 'No versions available and file has no s3Key' } });
+    }
+  } else {
+    const latestVersion = versionRes.payload[0];
+    s3Key = latestVersion.s3Key;
+    bucketName = file.bucket;
   }
-  const latestVersion = versionRes.payload[0];
 
-  const range = req.headers.range;
-  const streamRes = await minioService.streamObject(latestVersion.s3Key, range);
+  // Map bucket name to actual MinIO bucket name
+  const BUCKETS = {
+    PRIVATE: process.env.MINIO_BUCKET_PRIVATE || 'lms-private',
+    WORKFLOW: process.env.MINIO_BUCKET_WORKFLOW || 'lms-workflow',
+    SHARED: process.env.MINIO_BUCKET_SHARED || 'lms-shared',
+  };
+  const bucket = BUCKETS[bucketName] || bucketName;
+
+  const streamRes = await minioService.streamObject({ bucket, objectKey: s3Key, req, res, filename: file.name, mimeType: file.mimeType });
   if (!streamRes.success) return res.status(500).json(streamRes);
-
-  const { stream, contentLength, contentRange, statusCode } = streamRes.payload;
-  res.status(statusCode);
-  res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
-  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.name)}"`);
-  if (contentRange) {
-    res.setHeader('Content-Range', contentRange);
-    res.setHeader('Accept-Ranges', 'bytes');
-  }
-  res.setHeader('Content-Length', contentLength);
-  stream.pipe(res);
 }
 
 export default {

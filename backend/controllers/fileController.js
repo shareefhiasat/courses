@@ -1,7 +1,7 @@
 import * as fileService from '../services/fileService.js';
 import * as fileVersionService from '../services/fileVersionService.js';
 import * as fileShareService from '../services/fileShareService.js';
-import { addFileComment, getFileComments } from '../services/fileCommentService.js';
+import { addFileComment, getFileComments, deleteFileComment } from '../services/fileCommentService.js';
 import { generatePresignedGetUrl } from '../services/minioService.js';
 import { getBucketSize } from '../services/minioService.js';
 
@@ -40,29 +40,34 @@ export const downloadFile = async (req, res) => {
 
 export const initiateUpload = async (req, res) => {
   try {
-    const userId = req.user?.id;
-    const { name, mimeType, size, bucket, folderPath, workflowStatus } = req.body;
+    const { name, mimeType, size, bucket, folderId, folderPath, workflowStatus } = req.body;
 
-    if (!name || !mimeType || !size || !bucket) {
+    console.log('📤 [UPLOAD INITIATE]', { userId: req.user?.dbId, name, mimeType, size, bucket, folderId, folderPath });
+
+    if (!name || !mimeType || !size) {
+      console.error('❌ [UPLOAD INITIATE] Missing required fields:', { name, mimeType, size, bucket });
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: name, mimeType, size, bucket',
+        error: 'Missing required fields: name, mimeType, size',
       });
     }
 
-    const result = await fileService.initiateUpload(userId, {
+    const result = await fileService.initiateUpload(req.user, {
       name,
       mimeType,
       size,
-      bucket,
+      bucket: bucket || 'PRIVATE',
+      folderId: folderId || null,
       folderPath,
       workflowStatus,
     });
 
     if (!result.success) {
+      console.error('❌ [UPLOAD INITIATE] Service failed:', result.error);
       return res.status(400).json(result);
     }
 
+    console.log('✅ [UPLOAD INITIATE] Success:', result.payload?.fileId);
     res.json(result);
   } catch (error) {
     console.error('[fileController] Initiate upload error:', error);
@@ -105,7 +110,7 @@ export const completeUpload = async (req, res) => {
 
 export const getFile = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.dbId;
     const { fileId } = req.params;
 
     const result = await fileService.getFileById(fileId, userId);
@@ -127,13 +132,40 @@ export const getFile = async (req, res) => {
 
 export const listFiles = async (req, res) => {
   try {
-    const userId = req.user?.id;
-    const { bucket, folderPath, workflowStatus } = req.query;
-
-    const result = await fileService.listFiles(userId, {
+    const {
       bucket,
       folderPath,
-      workflowStatus,
+      folderId,
+      search,
+      mimeTypePrefix,
+      modifiedAfter,
+      sortField = 'updatedAt',
+      sortOrder = 'desc',
+      page = 1,
+      pageSize = 50,
+      includeDeleted = false,
+      deletedOnly = false,
+      starredOnly = false,
+      rootOnly = false,
+      ownedOnly = false,
+    } = req.query;
+
+    const result = await fileService.listFiles(req.user, {
+      bucket,
+      folderPath,
+      folderId: folderId || undefined,
+      search,
+      mimeTypePrefix,
+      modifiedAfter: modifiedAfter ? new Date(modifiedAfter) : undefined,
+      sortField,
+      sortOrder,
+      page: parseInt(page),
+      pageSize: parseInt(pageSize),
+      includeDeleted: includeDeleted === 'true',
+      deletedOnly: deletedOnly === 'true',
+      starredOnly: starredOnly === 'true',
+      rootOnly: rootOnly === 'true',
+      ownedOnly: ownedOnly === 'true',
     });
 
     if (!result.success) {
@@ -153,7 +185,7 @@ export const listFiles = async (req, res) => {
 
 export const updateFile = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.dbId;
     const { fileId } = req.params;
     const updates = req.body;
 
@@ -176,7 +208,7 @@ export const updateFile = async (req, res) => {
 
 export const deleteFile = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.dbId;
     const { fileId } = req.params;
 
     const result = await fileService.deleteFile(fileId, userId);
@@ -223,7 +255,7 @@ export const generatePublicLink = async (req, res) => {
 
 export const uploadNewVersion = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.dbId;
     const { fileId } = req.params;
     const { name, mimeType, size, changeNote } = req.body;
 
@@ -251,7 +283,7 @@ export const uploadNewVersion = async (req, res) => {
 
 export const getVersions = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.dbId;
     const { fileId } = req.params;
 
     const result = await fileVersionService.getFileVersions(fileId, userId);
@@ -273,7 +305,7 @@ export const getVersions = async (req, res) => {
 
 export const restoreVersion = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.dbId;
     const { versionId } = req.params;
 
     const result = await fileVersionService.restoreVersion(versionId, userId);
@@ -295,7 +327,7 @@ export const restoreVersion = async (req, res) => {
 
 export const shareFile = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.dbId;
     const { fileId } = req.params;
     const { sharedWithId, permission, expiresAt } = req.body;
 
@@ -322,7 +354,7 @@ export const shareFile = async (req, res) => {
 
 export const unshareFile = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.dbId;
     const { shareId } = req.params;
 
     const result = await fileShareService.unshareFile(shareId, userId);
@@ -344,7 +376,7 @@ export const unshareFile = async (req, res) => {
 
 export const getSharedFiles = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.dbId;
 
     const result = await fileShareService.getSharedFiles(userId);
 
@@ -365,16 +397,20 @@ export const getSharedFiles = async (req, res) => {
 
 export const addComment = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.dbId;
     const { fileId } = req.params;
-    const { comment } = req.body;
+    const { comment, content } = req.body;
 
-    const result = await addFileComment({ fileId, userId, comment });
+    console.log('💬 [ADD COMMENT]', { userId, fileId, comment: comment || content });
+
+    const result = await addFileComment({ fileId, userId, comment: comment || content });
 
     if (!result.success) {
+      console.error('❌ [ADD COMMENT] Failed:', result.error);
       return res.status(400).json(result);
     }
 
+    console.log('✅ [ADD COMMENT] Success:', result.payload?.id);
     res.json(result);
   } catch (error) {
     console.error('[fileController] Add comment error:', error);
@@ -388,7 +424,7 @@ export const addComment = async (req, res) => {
 
 export const getComments = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.dbId;
     const { fileId } = req.params;
 
     const result = await getFileComments({ fileId, userId });
@@ -404,6 +440,34 @@ export const getComments = async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to get comments',
+    });
+  }
+};
+
+export const deleteComment = async (req, res) => {
+  try {
+    const userId = req.user?.dbId;
+    const { fileId, commentId } = req.params;
+
+    console.log('🗑️ [DELETE COMMENT]', { userId, fileId, commentId, commentIdType: typeof commentId });
+
+    // commentId is a UUID string, not a number
+    const result = await deleteFileComment({ commentId, userId });
+
+    if (!result.success) {
+      console.error('❌ [DELETE COMMENT] Failed:', result.error);
+      return res.status(400).json(result);
+    }
+
+    console.log('✅ [DELETE COMMENT] Success:', commentId);
+    res.json(result);
+  } catch (error) {
+    console.error('[fileController] Delete comment error:', error);
+    console.error('[fileController] Error stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to delete comment',
     });
   }
 };
@@ -454,7 +518,7 @@ export const getStorageUsage = async (req, res) => {
 
 export const toggleStarFile = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.dbId;
     const { fileId } = req.params;
 
     const result = await fileService.toggleStarFile(fileId, userId);
@@ -476,7 +540,7 @@ export const toggleStarFile = async (req, res) => {
 
 export const softDeleteFile = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.dbId;
     const { fileId } = req.params;
 
     const result = await fileService.softDeleteFile(fileId, userId);
@@ -498,7 +562,7 @@ export const softDeleteFile = async (req, res) => {
 
 export const restoreFile = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.dbId;
     const { fileId } = req.params;
 
     const result = await fileService.restoreFile(fileId, userId);
@@ -520,7 +584,7 @@ export const restoreFile = async (req, res) => {
 
 export const permanentDeleteFile = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.dbId;
     const { fileId } = req.params;
 
     const result = await fileService.permanentDeleteFile(fileId, userId);
@@ -567,6 +631,7 @@ export const proxyDownload = async (req, res) => {
   try {
     const actorUserId = req.user?.dbId;
     const { fileId } = req.params;
+    console.log('[fileController.proxyDownload] Request received:', { fileId, actorUserId });
     // Permission check happens inside a later PR via permissionService; for
     // now we rely on the service's ownership/share check.
     await fileService.streamFile({ fileId, req, res, actorUserId });

@@ -41,7 +41,17 @@ MINIMAL_REALM='{
   "resetPasswordAllowed": true,
   "rememberMe": true,
   "loginWithEmailAllowed": true,
-  "sslRequired": "none"
+  "sslRequired": "none",
+  "accessTokenLifespan": 1800,
+  "accessTokenLifespanForImplicitFlow": 1800,
+  "ssoSessionIdleTimeout": 3600,
+  "ssoSessionMaxLifespan": 28800,
+  "clientSessionIdleTimeout": 3600,
+  "clientSessionMaxLifespan": 28800,
+  "offlineSessionIdleTimeout": 2592000,
+  "offlineSessionMaxLifespan": 5184000,
+  "refreshTokenMaxReuse": 0,
+  "revokeRefreshToken": false
 }'
 
 curl -s -X POST "http://localhost:8080/admin/realms" \
@@ -82,7 +92,10 @@ CLIENT_CONFIG='{
   "implicitFlowEnabled": false,
   "directAccessGrantsEnabled": true,
   "serviceAccountsEnabled": false,
-  "authorizationServicesEnabled": false
+  "authorizationServicesEnabled": false,
+  "attributes": {
+    "access.token.lifespan": "1800"
+  }
 }'
 
 curl -s -X POST "http://localhost:8080/admin/realms/military-lms/clients" \
@@ -91,6 +104,26 @@ curl -s -X POST "http://localhost:8080/admin/realms/military-lms/clients" \
   -d "$CLIENT_CONFIG"
 
 echo "Client created"
+
+# Get client ID
+echo "Getting client ID..."
+CLIENT_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/military-lms/clients?clientId=military-lms-app" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.[0].id')
+
+echo "Adding offline_access to default client scopes..."
+# Get the offline_access scope ID
+OFFLINE_SCOPE_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/military-lms/client-scopes?search=offline_access" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.[0].id')
+
+if [ "$OFFLINE_SCOPE_ID" != "null" ] && [ -n "$OFFLINE_SCOPE_ID" ]; then
+  # Add offline_access to default client scopes using the correct endpoint
+  curl -s -X POST "http://localhost:8080/admin/realms/military-lms/clients/$CLIENT_ID/default-client-scopes/$OFFLINE_SCOPE_ID" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json"
+  echo "Offline access scope added to default client scopes"
+else
+  echo "Warning: offline_access scope not found, skipping..."
+fi
 
 # Create super admin user
 echo "Creating super admin user..."
