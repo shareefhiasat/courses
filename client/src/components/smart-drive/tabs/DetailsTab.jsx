@@ -1,14 +1,11 @@
 import { useLang } from '@contexts/LangContext';
 import { File, Calendar, User, HardDrive, Folder } from 'lucide-react';
 
-/**
- * DetailsTab - File metadata display
- */
 export default function DetailsTab({ file }) {
   const { t } = useLang();
 
   const formatSize = (bytes) => {
-    if (!bytes && bytes !== 0) return '—';
+    if (!bytes && bytes !== 0) return '\u2014';
     if (bytes === 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -17,9 +14,9 @@ export default function DetailsTab({ file }) {
   };
 
   const formatDate = (date) => {
-    if (!date) return '—';
+    if (!date) return '\u2014';
     const d = new Date(date);
-    if (Number.isNaN(d.getTime())) return '—';
+    if (Number.isNaN(d.getTime())) return '\u2014';
     return d.toLocaleString();
   };
 
@@ -37,12 +34,12 @@ export default function DetailsTab({ file }) {
     {
       icon: File,
       label: t('drive.mimeType'),
-      value: file.mimeType || '—',
+      value: file.mimeType || '\u2014',
     },
     {
       icon: User,
       label: t('drive.owner'),
-      value: file.owner?.displayName || file.owner?.email || '—',
+      value: file.owner?.displayName || file.owner?.email || '\u2014',
     },
     {
       icon: Folder,
@@ -62,25 +59,25 @@ export default function DetailsTab({ file }) {
   ];
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-white mb-4">
+    <div className="space-y-3">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
         {t('drive.fileDetails')}
       </h3>
 
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-3">
         {details.map(({ icon: Icon, label, value }, idx) => (
           <div
             key={idx}
-            className="flex items-start gap-3 p-3 bg-[#1d1f27] rounded-lg border border-[#434655]/30"
+            className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-200 shadow-sm"
           >
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#32343d] flex items-center justify-center">
-              <Icon className="w-5 h-5 text-[#b4c5ff]" />
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+              <Icon className="w-5 h-5 text-blue-600" aria-hidden="true" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-[#8d90a0] mb-1">
+              <p className="text-sm text-gray-900 mb-0.5">
                 {label}
               </p>
-              <p className="text-sm font-medium text-white break-all">
+              <p className="text-sm font-medium text-gray-900 break-all">
                 {value}
               </p>
             </div>
@@ -88,13 +85,12 @@ export default function DetailsTab({ file }) {
         ))}
       </div>
 
-      {/* Checksum if available */}
       {file.checksumSha256 && (
-        <div className="mt-4 p-3 bg-[#1d1f27] rounded-lg border border-[#434655]/30">
-          <p className="text-sm text-[#8d90a0] mb-1">
+        <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm mt-3">
+          <p className="text-sm text-gray-900 mb-1">
             {t('drive.checksum')} (SHA-256)
           </p>
-          <p className="text-xs font-mono text-white break-all">
+          <p className="text-xs font-mono text-gray-900 break-all">
             {file.checksumSha256}
           </p>
         </div>

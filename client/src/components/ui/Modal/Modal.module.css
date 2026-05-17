@@ -13,11 +13,22 @@
   z-index: 9999;
   padding: 1rem;
   animation: fadeIn 0.2s ease-out;
+  overscroll-behavior: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    animation: none;
+  }
+  .modal {
+    animation: none;
+  }
 }
 
 /* Modal */
 .modal {
   background: white;
+  border: 1px solid var(--border, #e0e0e0);
   border-radius: var(--radius-lg, 12px);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   display: flex;
@@ -26,6 +37,10 @@
   animation: slideUp 0.3s ease-out;
   position: relative;
   z-index: 10000;
+}
+
+[data-theme="dark"] .modal {
+  border-color: var(--border, #2a2f3a);
 }
 
 /* Sizes */
@@ -55,13 +70,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem;
+  padding: 1.25rem 1.25rem;
   border-bottom: 1px solid var(--border, #e0e0e0);
 }
 
 .title {
   margin: 0;
-  font-size: var(--font-size-base, 1rem);
+  font-size: var(--font-size-base, 1.125rem);
   font-weight: 600;
   color: #212529;
 }
@@ -76,7 +91,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm, 4px);
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .closeButton:hover {
@@ -86,7 +101,7 @@
 
 /* Body */
 .body {
-  padding: 1rem;
+  padding: 1.25rem;
   overflow-y: auto;
   flex: 1;
   color: #212529;
@@ -98,7 +113,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
-  padding: 1rem;
+  padding: 1.25rem;
   border-top: 1px solid var(--border, #e0e0e0);
 }
 
@@ -139,21 +154,21 @@
   .header,
   .body,
   .footer {
-    padding: 0.75rem;
+    padding: 1rem;
   }
 }
 
 /* Compact Modal Styling for Confirm/Delete Modals */
 .compact-modal .header {
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 1.25rem;
 }
 
 .compact-modal .body {
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 1.25rem;
 }
 
 .compact-modal .footer {
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 1.25rem;
 }
 
 .compact-modal .title {

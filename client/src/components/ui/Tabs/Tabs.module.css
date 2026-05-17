@@ -62,7 +62,11 @@
 .underline .tab.active {
   background: transparent;
   border-bottom-color: var(--color-primary, #800020);
-  color: var(--color-primary, #800020);
+  color: var(--text, #111827);
+}
+
+[data-theme="dark"] .underline .tab.active {
+  color: var(--text, #f3f4f6);
 }
 
 .underline .activeIndicator {

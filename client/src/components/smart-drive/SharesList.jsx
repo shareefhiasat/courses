@@ -3,10 +3,6 @@ import { useLang } from '@contexts/LangContext';
 import { X, User, Shield, Calendar, Eye, Download, MessageSquare, Edit } from 'lucide-react';
 import axios from 'axios';
 
-/**
- * SharesList - Display and manage existing FileShare rows
- * Shows user shares and role shares with revoke option
- */
 export default function SharesList({ fileId, onRevoke }) {
   const { t } = useLang();
   const [shares, setShares] = useState([]);
@@ -15,7 +11,7 @@ export default function SharesList({ fileId, onRevoke }) {
 
   const fetchShares = useCallback(async () => {
     if (!fileId) return;
-    
+
     setLoading(true);
     setError(null);
     try {
@@ -64,7 +60,7 @@ export default function SharesList({ fileId, onRevoke }) {
     const date = new Date(expiresAt);
     const now = new Date();
     const diffDays = Math.ceil((date - now) / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) return t('drive.expired');
     if (diffDays === 0) return t('drive.expirestoday');
     if (diffDays === 1) return t('drive.expirestomorrow');
@@ -73,15 +69,15 @@ export default function SharesList({ fileId, onRevoke }) {
 
   if (loading) {
     return (
-      <div className="p-4 text-center text-sm text-[#8d90a0]">
-        {t('common.loading')}...
+      <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+        {t('common.loading')}&hellip;
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 text-center text-sm text-[#ffb4ab]">
+      <div className="p-4 text-center text-sm text-red-600 dark:text-red-400">
         {error}
       </div>
     );
@@ -89,77 +85,73 @@ export default function SharesList({ fileId, onRevoke }) {
 
   if (shares.length === 0) {
     return (
-      <div className="p-4 text-center text-sm text-[#8d90a0]">
+      <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
         {t('drive.noShares')}
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      <h3 className="text-sm font-medium text-[#e1e2ed] mb-3">
+    <div className="space-y-2 max-h-48 overflow-y-auto">
+      <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
         {t('drive.existingShares')} ({shares.length})
-      </h3>
-      
+      </h4>
+
       {shares.map(share => {
         const PermIcon = getPermissionIcon(share.permission);
         const isUser = share.subjectType === 'USER';
-        const displayName = isUser 
+        const displayName = isUser
           ? (share.subjectUser?.displayName || share.subjectUser?.email || t('drive.unknownUser'))
           : share.subjectRole;
         const expiryText = formatExpiry(share.expiresAt);
-        
+
         return (
           <div
             key={share.id}
-            className="flex items-center justify-between p-3 bg-[#1d1f27] rounded-lg border border-[#434655]/30 hover:border-[#434655]/50 transition-colors"
+            className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
           >
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              {/* Subject Icon */}
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#32343d] flex items-center justify-center">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
                 {isUser ? (
-                  <User className="w-4 h-4 text-[#b4c5ff]" />
+                  <User className="w-4 h-4 text-blue-500 dark:text-blue-400" aria-hidden="true" />
                 ) : (
-                  <Shield className="w-4 h-4 text-[#ffd699]" />
+                  <Shield className="w-4 h-4 text-amber-500 dark:text-amber-400" aria-hidden="true" />
                 )}
               </div>
-              
-              {/* Subject Info */}
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-white truncate">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                     {displayName}
                   </p>
-                  <span className="flex-shrink-0 px-2 py-0.5 text-xs rounded-full bg-[#32343d] text-[#8d90a0]">
+                  <span className="flex-shrink-0 px-2 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
                     {isUser ? t('drive.user') : t('drive.role')}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center gap-3 mt-1">
-                  {/* Permission */}
-                  <div className="flex items-center gap-1 text-xs text-[#8d90a0]">
-                    <PermIcon className="w-3 h-3" />
+                  <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                    <PermIcon className="w-3 h-3" aria-hidden="true" />
                     {t(`drive.permission.${share.permission.toLowerCase()}`)}
                   </div>
-                  
-                  {/* Expiry */}
+
                   {expiryText && (
-                    <div className="flex items-center gap-1 text-xs text-[#8d90a0]">
-                      <Calendar className="w-3 h-3" />
+                    <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                      <Calendar className="w-3 h-3" aria-hidden="true" />
                       {expiryText}
                     </div>
                   )}
                 </div>
               </div>
             </div>
-            
-            {/* Revoke Button */}
+
             <button
               onClick={() => handleRevoke(share.id)}
-              className="flex-shrink-0 p-1.5 text-[#8d90a0] hover:text-[#ffb4ab] hover:bg-[#32343d] rounded transition-colors"
+              className="flex-shrink-0 p-1.5 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
               title={t('drive.revokeShare')}
+              aria-label={t('drive.revokeShare')}
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         );

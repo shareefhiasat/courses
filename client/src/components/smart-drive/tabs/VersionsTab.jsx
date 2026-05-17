@@ -3,9 +3,6 @@ import { useLang } from '@contexts/LangContext';
 import { Clock, RotateCcw, Download, User } from 'lucide-react';
 import axios from 'axios';
 
-/**
- * VersionsTab - FileVersion list with restore functionality
- */
 export default function VersionsTab({ fileId }) {
   const { t } = useLang();
   const [versions, setVersions] = useState([]);
@@ -14,7 +11,6 @@ export default function VersionsTab({ fileId }) {
 
   const fetchVersions = useCallback(async () => {
     if (!fileId) return;
-
     setLoading(true);
     setError(null);
     try {
@@ -48,7 +44,7 @@ export default function VersionsTab({ fileId }) {
   };
 
   const formatSize = (bytes) => {
-    if (!bytes && bytes !== 0) return '—';
+    if (!bytes && bytes !== 0) return '\u2014';
     if (bytes === 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -57,23 +53,23 @@ export default function VersionsTab({ fileId }) {
   };
 
   const formatDate = (date) => {
-    if (!date) return '—';
+    if (!date) return '\u2014';
     const d = new Date(date);
-    if (Number.isNaN(d.getTime())) return '—';
+    if (Number.isNaN(d.getTime())) return '\u2014';
     return d.toLocaleString();
   };
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-sm text-[#8d90a0]">
-        {t('common.loading')}...
+      <div className="flex items-center justify-center h-48 text-sm text-gray-500 dark:text-gray-400" role="status">
+        {t('common.loading')}&hellip;
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-8 text-center text-sm text-[#ffb4ab]">
+      <div className="flex items-center justify-center h-48 text-sm text-red-600 dark:text-red-400" role="alert">
         {error}
       </div>
     );
@@ -81,7 +77,8 @@ export default function VersionsTab({ fileId }) {
 
   if (versions.length === 0) {
     return (
-      <div className="p-8 text-center text-sm text-[#8d90a0]">
+      <div className="flex flex-col items-center justify-center h-48 text-sm text-gray-500 dark:text-gray-400">
+        <Clock className="w-10 h-10 mb-3 opacity-50" aria-hidden="true" />
         {t('drive.noVersions')}
       </div>
     );
@@ -89,47 +86,45 @@ export default function VersionsTab({ fileId }) {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-lg font-semibold text-white mb-4">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
         {t('drive.versionHistory')} ({versions.length})
       </h3>
 
       {versions.map((version) => (
         <div
           key={version.id}
-          className={`p-4 rounded-lg border transition-colors ${
+          className={`p-4 rounded-xl border transition-colors ${
             version.isCurrent
-              ? 'bg-[#1d4e1d] border-[#2d6a2d]'
-              : 'bg-[#1d1f27] border-[#434655]/30 hover:border-[#434655]/50'
+              ? 'bg-green-50 border-green-200'
+              : 'bg-white border-gray-200 hover:border-gray-300 shadow-sm'
           }`}
         >
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-[#b4c5ff]" />
-                <span className="text-sm font-medium text-white">
+                <Clock className="w-4 h-4 text-blue-600" aria-hidden="true" />
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
                   {t('drive.version')} {version.versionNumber}
                 </span>
                 {version.isCurrent && (
-                  <span className="px-2 py-0.5 text-xs rounded-full bg-[#2d6a2d] text-[#a5d6a7]">
+                  <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">
                     {t('drive.current')}
                   </span>
                 )}
               </div>
 
-              <div className="space-y-1 text-sm text-[#8d90a0]">
+              <div className="space-y-1 text-sm text-gray-500 dark:text-gray-400">
                 <div className="flex items-center gap-2">
-                  <User className="w-3 h-3" />
-                  {version.uploadedBy?.displayName || version.uploadedBy?.email || '—'}
+                  <User className="w-3.5 h-3.5" aria-hidden="true" />
+                  {version.uploadedBy?.displayName || version.uploadedBy?.email || '\u2014'}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Download className="w-3 h-3" />
+                  <Download className="w-3.5 h-3.5" aria-hidden="true" />
                   {formatSize(version.size)}
                 </div>
-                <div>
-                  {formatDate(version.createdAt)}
-                </div>
+                <div>{formatDate(version.createdAt)}</div>
                 {version.changeNote && (
-                  <div className="mt-2 p-2 bg-[#32343d] rounded text-xs">
+                  <div className="mt-2 p-2 bg-gray-100 rounded text-xs text-gray-700">
                     {version.changeNote}
                   </div>
                 )}
@@ -139,10 +134,10 @@ export default function VersionsTab({ fileId }) {
             {!version.isCurrent && (
               <button
                 onClick={() => handleRestore(version.id)}
-                className="flex-shrink-0 px-3 py-1.5 bg-[#32343d] text-white rounded-lg hover:bg-[#434655] transition-colors text-sm flex items-center gap-2"
+                className="flex-shrink-0 px-3 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors text-sm flex items-center gap-2 border border-gray-200 shadow-sm"
                 title={t('drive.restoreVersion')}
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-4 h-4" aria-hidden="true" />
                 {t('drive.restore')}
               </button>
             )}

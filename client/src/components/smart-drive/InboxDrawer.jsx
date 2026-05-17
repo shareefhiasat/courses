@@ -1,10 +1,3 @@
-/**
- * InboxDrawer Component
- *
- * Side drawer displaying pending workflow approvals.
- * Allows users to approve/reject tasks directly from the inbox.
- */
-
 import React, { useState } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -48,17 +41,14 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/30 z-40 transition-opacity"
         onClick={onClose}
       />
 
-      {/* Drawer */}
       <div
-        className={`fixed top-0 ${isRTL ? 'left-0' : 'right-0'} h-full w-96 bg-white dark:bg-gray-800 shadow-2xl z-50 flex flex-col transition-transform`}
+        className={`fixed top-0 ${isRTL ? 'left-0' : 'right-0'} h-full w-96 bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col transition-transform`}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">
             {t('Pending Approvals')} ({tasks.length})
@@ -66,30 +56,30 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
           <button
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            aria-label={t('common.close')}
           >
-            <CloseIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <CloseIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
           </button>
         </div>
 
-        {/* Task List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 overscroll-behavior-contain">
           {tasks.length === 0 ? (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <FileIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <FileIcon className="w-12 h-12 mx-auto mb-3 opacity-30" aria-hidden="true" />
               <p className="text-sm">{t('No pending approvals')}</p>
             </div>
           ) : (
             tasks.map((task) => (
               <div
                 key={task.id}
-                className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 hover:shadow-md transition-shadow"
+                className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
                       {task.definition?.name || 'Workflow Approval'}
                     </h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {t('Initiated by')}: {task.initiatedBy?.name || 'Unknown'}
                     </p>
                   </div>
@@ -119,29 +109,32 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
                       placeholder={t('drive.addCommentOptional')}
-                      className="text-sm"
+                      size="small"
+                      fullWidth
                     />
                     <div className="flex gap-2">
                       <Button
                         onClick={() => handleApprove(task)}
                         disabled={actionLoading}
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm py-2"
+                        className="flex-1"
+                        variant="primary"
                       >
-                        <CheckIcon className="w-4 h-4 me-1" />
+                        <CheckIcon className="w-4 h-4 me-1" aria-hidden="true" />
                         {t('drive.approve')}
                       </Button>
                       <Button
                         onClick={() => handleReject(task)}
                         disabled={actionLoading}
-                        className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm py-2"
+                        className="flex-1"
+                        variant="danger"
                       >
-                        <XIcon className="w-4 h-4 me-1" />
+                        <XIcon className="w-4 h-4 me-1" aria-hidden="true" />
                         {t('drive.reject')}
                       </Button>
                       <Button
                         onClick={() => setSelectedTask(null)}
                         disabled={actionLoading}
-                        className="px-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm py-2"
+                        variant="outline"
                       >
                         {t('Cancel')}
                       </Button>
@@ -150,7 +143,8 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
                 ) : (
                   <Button
                     onClick={() => setSelectedTask(task)}
-                    className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white text-sm py-2"
+                    className="w-full mt-3"
+                    variant="primary"
                   >
                     {t('Review & Approve')}
                   </Button>
