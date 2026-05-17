@@ -274,6 +274,67 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
     }
   }, [fetchFolders]);
 
+  const renameFolder = useCallback(async (folderId, newName) => {
+    try {
+      const response = await axios.patch(`${API_BASE}/folders/${folderId}`, {
+        name: newName,
+      });
+      if (response.data.success) {
+        fetchFolders();
+        return { success: true };
+      }
+      return { success: false, error: response.data.error };
+    } catch (err) {
+      console.error('[useDriveFiles] rename folder failed:', err);
+      return { success: false, error: err.response?.data?.error || err.message };
+    }
+  }, [fetchFolders]);
+
+  const deleteFolder = useCallback(async (folderId) => {
+    try {
+      const response = await axios.delete(`${API_BASE}/folders/${folderId}/trash`);
+      if (response.data.success) {
+        fetchFolders();
+        refreshFiles();
+        return { success: true };
+      }
+      return { success: false, error: response.data.error };
+    } catch (err) {
+      console.error('[useDriveFiles] delete folder failed:', err);
+      return { success: false, error: err.response?.data?.error || err.message };
+    }
+  }, [fetchFolders, refreshFiles]);
+
+  const downloadFolder = useCallback(async (folderId) => {
+    try {
+      window.open(`${API_BASE}/folders/${folderId}/download`, '_blank');
+      return { success: true };
+    } catch (err) {
+      console.error('[useDriveFiles] download folder failed:', err);
+      return { success: false, error: err.message };
+    }
+  }, []);
+
+  const shareFolder = useCallback(async (folderId, shareData) => {
+    try {
+      const payload = {
+        folderId,
+        subjectType: shareData.subjectType,
+        subjectId: shareData.subjectId,
+        permission: shareData.permission || 'VIEW',
+        expiresAt: shareData.expiresAt || null,
+      };
+      const response = await axios.post(`${API_BASE}/shares`, payload);
+      if (response.data.success) {
+        return { success: true, payload: response.data.payload };
+      }
+      return { success: false, error: response.data.error };
+    } catch (err) {
+      console.error('[useDriveFiles] share folder failed:', err);
+      return { success: false, error: err.response?.data?.error || err.message };
+    }
+  }, []);
+
   return {
     files,
     folders,
@@ -292,6 +353,10 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
     shareFile,
     createPublicLink,
     createFolder,
+    renameFolder,
+    deleteFolder,
+    downloadFolder,
+    shareFolder,
   };
 }
 

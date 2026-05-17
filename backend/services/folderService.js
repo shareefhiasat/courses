@@ -45,6 +45,17 @@ export async function listChildren(keycloakUser, { parentId = null, includeDelet
     const folders = await prisma.folder.findMany({
       where,
       orderBy: { name: 'asc' },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
     });
     return ok(folders);
   } catch (error) {
@@ -296,6 +307,99 @@ export async function toggleStarFolder(folderId, actorUserId) {
   }
 }
 
+/**
+ * Download a folder as a zip file. Streams all files in the folder and subfolders
+ * into a zip archive and sends it to the client.
+ */
+export async function downloadFolder(folderId, actorUserId, req, res) {
+  try {
+    const folder = await prisma.folder.findUnique({ where: { id: folderId } });
+    if (!folder || folder.isDeleted) return err('FOLDER_NOT_FOUND', 'Folder not found');
+    if (folder.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Only owner can download');
+
+    // Get all descendant folder IDs (this folder and all subfolders)
+    const descendantFolders = await prisma.$queryRaw`
+      WITH RECURSIVE descendants AS (
+        SELECT id FROM folders WHERE id = ${folderId}
+        UNION ALL
+        SELECT f.id FROM folders f
+        JOIN descendants d ON f."parentId" = d.id
+      )
+      SELECT id FROM descendants
+    `;
+    const folderIds = descendantFolders.map(f => f.id);
+
+    // Get all files in this folder and subfolders
+    const files = await prisma.file.findMany({
+      where: {
+        folderId: { in: folderIds },
+        isDeleted: false,
+      },
+      include: {
+        owner: { select: { id: true, email: true, displayName: true } },
+      },
+    });
+
+    if (files.length === 0) {
+      return err('NO_FILES', 'Folder is empty');
+    }
+
+    // Import archiver for zip creation
+    const archiver = (await import('archiver')).default;
+
+    // Set up zip archive
+    const archive = archiver('zip', {
+      zlib: { level: 9 },
+    });
+
+    // Set response headers
+    res.attachment(`${folder.name}.zip`);
+    archive.pipe(res);
+
+    // Add each file to the zip
+    for (const file of files) {
+      try {
+        const BUCKETS = {
+          PRIVATE: process.env.MINIO_BUCKET_PRIVATE || 'lms-private',
+          WORKFLOW: process.env.MINIO_BUCKET_WORKFLOW || 'lms-workflow',
+          SHARED: process.env.MINIO_BUCKET_SHARED || 'lms-shared',
+        };
+        const bucket = BUCKETS[file.bucket] || file.bucket;
+
+        // Get the s3Key from the latest version or fall back to file.s3Key
+        let s3Key = file.s3Key;
+        const fileVersionService = (await import('./fileVersionService.js')).default;
+        const versionRes = await fileVersionService.listVersions(file.id, null);
+        if (versionRes.success && versionRes.payload.length > 0) {
+          s3Key = versionRes.payload[0].s3Key;
+        }
+
+        if (!s3Key) {
+          console.error('[downloadFolder] No s3Key for file:', file.id);
+          continue;
+        }
+
+        // Stream the file from MinIO
+        const { minioClient } = await import('./minioService.js');
+        const stream = await minioClient.getObject(bucket, s3Key);
+
+        // Create relative path for the file in the zip
+        const relativePath = file.name;
+        archive.append(stream, { name: relativePath });
+      } catch (error) {
+        console.error('[downloadFolder] Failed to add file to zip:', file.id, error);
+        // Continue with other files even if one fails
+      }
+    }
+
+    await archive.finalize();
+    return { success: true };
+  } catch (error) {
+    console.error('[folderService.downloadFolder]', error);
+    return err('DOWNLOAD_FOLDER_FAILED', error.message);
+  }
+}
+
 export default {
   listChildren,
   getFolderWithBreadcrumb,
@@ -305,4 +409,5 @@ export default {
   softDeleteFolder,
   restoreFolder,
   toggleStarFolder,
+  downloadFolder,
 };

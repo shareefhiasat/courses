@@ -658,7 +658,7 @@ export async function toggleStarFile(fileId, actorUserId) {
     if (!file) return err('FILE_NOT_FOUND', 'File not found');
 
     // Allow starring if user is owner or has access via shares
-    const hasAccess = file.ownerId === actorUserId || await prisma.fileShare.findFirst({
+    const hasAccess = file.ownerId === actorUserId || await prisma.fileShareV2.findFirst({
       where: {
         fileId,
         subjectType: 'USER',

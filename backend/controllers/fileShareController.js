@@ -10,12 +10,27 @@ import fileShareService from '../services/fileShareService.js';
 export async function createFileShare(req, res) {
   const { fileId, folderId, subjectType, subjectId, permission, expiresAt } = req.body;
   const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
+  
+  // Validate subjectId conversion for USER shares
+  let subjectUserId = undefined;
+  if (subjectType === 'USER') {
+    const parsedId = parseInt(subjectId, 10);
+    if (isNaN(parsedId) || parsedId <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_SUBJECT_ID', message: 'subjectId must be a valid positive integer for USER shares' },
+        timestamp: Date.now(),
+      });
+    }
+    subjectUserId = parsedId;
+  }
+  
   const result = await fileShareService.createShare(
     {
       fileId,
       folderId,
       subjectType,
-      subjectUserId: subjectType === 'USER' ? Number(subjectId) : undefined,
+      subjectUserId,
       subjectRole: subjectType === 'ROLE' ? subjectId : undefined,
       permission,
       expiresAt,

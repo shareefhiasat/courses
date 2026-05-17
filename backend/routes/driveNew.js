@@ -42,6 +42,7 @@ import {
   softDeleteFolder,
   restoreFolder,
   toggleStarFolder,
+  downloadFolder,
 } from '../controllers/folderController.js';
 
 import { search as searchFiles } from '../controllers/fileSearchController.js';
@@ -103,6 +104,7 @@ router.patch('/folders/:folderId', updateFolder);
 router.delete('/folders/:folderId/trash', softDeleteFolder);
 router.post('/folders/:folderId/restore', restoreFolder);
 router.patch('/folders/:folderId/star', toggleStarFolder);
+router.get('/folders/:folderId/download', downloadFolder);
 
 // ---------------- Versions ----------------
 router.post('/files/:fileId/versions', uploadNewVersion);

@@ -38,21 +38,21 @@ export default function CreateFolderModal({ parentFolderId, onCreate, onClose })
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#191b23] rounded-2xl w-full max-w-md border border-[#434655]/10 shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-[var(--panel,white)] rounded-2xl w-full max-w-md border border-[var(--border,#e5e7eb)] shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#434655]/10">
+        <div className="flex items-center justify-between p-6 border-b border-[var(--border,#e5e7eb)]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#2563eb]/10 flex items-center justify-center">
-              <Folder className="w-5 h-5 text-[#b4c5ff]" />
+            <div className="w-10 h-10 rounded-lg bg-[var(--color-primary-tint,#eff6ff)] flex items-center justify-center">
+              <Folder className="w-5 h-5 text-[var(--color-primary,#3b82f6)]" />
             </div>
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-xl font-semibold text-[var(--text,#111827)]">
               {t('drive.createFolder')}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-[#8d90a0] hover:text-white hover:bg-[#32343d] rounded-lg transition-colors"
+            className="p-2 text-[var(--text-muted,#6b7280)] hover:text-[var(--text,#111827)] hover:bg-[var(--background-secondary,#f3f4f6)] rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -61,7 +61,7 @@ export default function CreateFolderModal({ parentFolderId, onCreate, onClose })
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#e1e2ed] mb-2">
+            <label className="block text-sm font-medium text-[var(--text,#111827)] mb-2">
               {t('drive.folderName')}
             </label>
             <input
@@ -70,18 +70,18 @@ export default function CreateFolderModal({ parentFolderId, onCreate, onClose })
               onChange={(e) => setFolderName(e.target.value)}
               placeholder={t('drive.enterFolderName')}
               autoFocus
-              className="w-full px-4 py-2 border border-[#434655]/30 rounded-lg bg-[#1d1f27] text-white placeholder-[#8d90a0] focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] outline-none transition-all"
+              className="w-full px-4 py-2 border border-[var(--border,#e5e7eb)] rounded-lg bg-[var(--background,white)] text-[var(--text,#111827)] placeholder-[var(--text-muted,#6b7280)] focus:ring-2 focus:ring-[var(--color-primary,#3b82f6)]/20 focus:border-[var(--color-primary,#3b82f6)] outline-none transition-all"
             />
           </div>
 
           {parentFolderId && (
-            <p className="text-xs text-[#8d90a0]">
+            <p className="text-xs text-[var(--text-muted,#6b7280)]">
               {t('drive.folderWillBeCreatedIn')}: {t('drive.currentFolder')}
             </p>
           )}
 
           {error && (
-            <div className="p-3 bg-[#4e1d1d] border border-[#6a2d2d] rounded-lg text-sm text-[#ffb4ab]">
+            <div className="p-3 bg-[var(--color-error-tint,#fef2f2)] border border-[var(--color-error,#dc2626)] rounded-lg text-sm text-[var(--color-error,#dc2626)]">
               {error}
             </div>
           )}
@@ -90,14 +90,14 @@ export default function CreateFolderModal({ parentFolderId, onCreate, onClose })
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-[#32343d] text-white rounded-lg hover:bg-[#434655] transition-colors text-sm font-medium"
+              className="px-4 py-2 bg-[var(--background-secondary,#f3f4f6)] text-[var(--text,#111827)] rounded-lg hover:bg-[var(--border,#e5e7eb)] transition-colors text-sm font-medium"
             >
               {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={!folderName.trim() || creating}
-              className="px-4 py-2 bg-[#2563eb] text-white rounded-lg hover:bg-[#2563eb]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              className="px-4 py-2 bg-[var(--color-primary,#3b82f6)] text-white rounded-lg hover:bg-[var(--color-primary,#3b82f6)]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
             >
               {creating ? t('drive.creating') : t('drive.create')}
             </button>

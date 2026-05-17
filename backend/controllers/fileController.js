@@ -645,7 +645,7 @@ export const proxyDownload = async (req, res) => {
 
 export const createFolder = async (req, res) => {
   try {
-    const keycloakId = req.user?.id;
+    const userId = req.user?.dbId;
     const { name, parentId, isPrivate } = req.body || {};
 
     if (!name) {
@@ -655,7 +655,7 @@ export const createFolder = async (req, res) => {
       });
     }
 
-    const result = await fileService.createFolder(keycloakId, { name, parentId, isPrivate });
+    const result = await fileService.createFolder(userId, { name, parentId, isPrivate });
 
     if (!result.success) {
       return res.status(400).json(result);

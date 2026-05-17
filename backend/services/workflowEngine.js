@@ -169,7 +169,7 @@ export async function startWorkflow(input, actor) {
         steps: {
           create: {
             stageId: firstStage.id,
-            status: 'pending',
+            status: 'PENDING',
             assignedRoles: firstStage.approverRoles,
             requiredApprovals: firstStage.requiredApprovals,
             slaDeadline,
@@ -230,7 +230,7 @@ export async function approveStage(instanceId, input, actor) {
       include: {
         definition: { include: { stages: { orderBy: { order: 'asc' } } } },
         currentStage: true,
-        steps: { where: { status: 'pending' }, orderBy: { createdAt: 'asc' } },
+        steps: { where: { status: 'PENDING' }, orderBy: { createdAt: 'asc' } },
       },
     });
     if (!instance) return err('NOT_FOUND', 'Workflow instance not found');
@@ -300,7 +300,7 @@ export async function approveStage(instanceId, input, actor) {
           data: {
             instanceId,
             stageId: nextStage.id,
-            status: 'pending',
+            status: 'PENDING',
             assignedRoles: nextStage.approverRoles,
             requiredApprovals: nextStage.requiredApprovals,
             slaDeadline: nextSlaDeadline,
@@ -347,7 +347,7 @@ export async function approveStage(instanceId, input, actor) {
         // Workflow complete.
         await prisma.workflowInstance.update({
           where: { id: instanceId },
-          data: { status: 'completed', completedAt: new Date() },
+          data: { status: 'COMPLETED', completedAt: new Date() },
         });
 
         await prisma.workflowHistory.create({
@@ -437,7 +437,7 @@ export async function rejectStage(instanceId, input, actor) {
     await prisma.workflowStep.update({
       where: { id: currentStep.id },
       data: {
-        status: 'rejected',
+        status: 'REJECTED',
         completedAt: new Date(),
         rejectionReason: input?.reason,
       },
@@ -445,7 +445,7 @@ export async function rejectStage(instanceId, input, actor) {
 
     await prisma.workflowInstance.update({
       where: { id: instanceId },
-      data: { status: 'rejected', completedAt: new Date() },
+      data: { status: 'REJECTED', completedAt: new Date() },
     });
 
     await prisma.workflowHistory.create({
@@ -566,7 +566,7 @@ export async function getMyPendingTasks(actor) {
       include: {
         definition: true,
         currentStage: true,
-        steps: { where: { status: 'PENDING' }, orderBy: { enteredAt: 'asc' } },
+        steps: { where: { status: 'PENDING' }, orderBy: { createdAt: 'asc' } },
         initiatedBy: { select: { id: true, displayName: true } },
       },
     });

@@ -54,3 +54,15 @@ export const toggleStarFolder = async (req, res) => {
   const result = await folderService.toggleStarFolder(req.params.folderId, req.user?.dbId);
   return jsonOrStatus(res, result);
 };
+
+export const downloadFolder = async (req, res) => {
+  const result = await folderService.downloadFolder(req.params.folderId, req.user?.dbId, req, res);
+  if (!result.success) {
+    const code = result.error?.code;
+    const status = code === 'FOLDER_NOT_FOUND' ? 404
+      : code === 'ACCESS_DENIED' ? 403
+      : 500;
+    return res.status(status).json(result);
+  }
+  // Result is handled by streaming response in service
+};

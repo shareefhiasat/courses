@@ -45,8 +45,8 @@ export default function FileRoster({
     });
     
     if (!owner) {
-      console.log('[FileRoster] No owner data, returning "me"');
-      return t('me') || 'me';
+      console.log('[FileRoster] No owner data, returning "Unknown"');
+      return t('drive.unknown') || 'Unknown';
     }
     
     // Always show displayName if available
@@ -75,8 +75,9 @@ export default function FileRoster({
     return t('drive.unknown') || 'Unknown';
   };
 
-  const allSelected = files.length > 0 && selectedIds.size === files.length;
-  const someSelected = selectedIds.size > 0 && selectedIds.size < files.length;
+  const allItems = [...folders, ...files];
+  const allSelected = allItems.length > 0 && selectedIds.size === allItems.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < allItems.length;
 
   const filteredFiles = useMemo(() => {
     if (!searchQuery) return files;
@@ -175,7 +176,14 @@ export default function FileRoster({
             <Button
               variant="outline"
               size="small"
-              onClick={() => onFileAction?.('share', Array.from(selectedIds))}
+              onClick={() => {
+                const selectedItems = Array.from(selectedIds).map(id => {
+                  const folder = folders.find(f => f.id === id);
+                  const file = files.find(f => f.id === id);
+                  return folder || file;
+                }).filter(Boolean);
+                onFileAction?.('share', selectedItems);
+              }}
               leftIcon={getThemedIcon('ui', 'send', 14, theme)}
             >
               {t('share') || 'Share'}
@@ -183,7 +191,14 @@ export default function FileRoster({
             <Button
               variant="outline"
               size="small"
-              onClick={() => onFileAction?.('download', Array.from(selectedIds))}
+              onClick={() => {
+                const selectedItems = Array.from(selectedIds).map(id => {
+                  const folder = folders.find(f => f.id === id);
+                  const file = files.find(f => f.id === id);
+                  return folder || file;
+                }).filter(Boolean);
+                onFileAction?.('download', selectedItems);
+              }}
               leftIcon={getThemedIcon('ui', 'download', 14, theme)}
             >
               {t('download') || 'Download'}
@@ -191,7 +206,14 @@ export default function FileRoster({
             <Button
               variant="outline"
               size="small"
-              onClick={() => onFileAction?.('delete', Array.from(selectedIds))}
+              onClick={() => {
+                const selectedItems = Array.from(selectedIds).map(id => {
+                  const folder = folders.find(f => f.id === id);
+                  const file = files.find(f => f.id === id);
+                  return folder || file;
+                }).filter(Boolean);
+                onFileAction?.('delete', selectedItems);
+              }}
               leftIcon={getThemedIcon('ui', 'trash', 14, theme)}
               style={{ color: '#dc2626', borderColor: '#fecaca' }}
             >
@@ -285,9 +307,9 @@ export default function FileRoster({
             <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
               {getThemedIcon('ui', 'star', 14, 'muted')}
             </div>
-            <div style={{ flex: 2 }}>{t('drive.name') || 'Name'}</div>
-            <div style={{ flex: 1 }}>{t('drive.owner') || 'Owner'}</div>
-            <div style={{ flex: 1 }}>{t('drive.location') || 'Location'}</div>
+            <div style={{ flex: 2, textAlign: isRTL ? 'right' : 'left' }}>{t('drive.name') || 'Name'}</div>
+            <div style={{ flex: 1, textAlign: isRTL ? 'right' : 'left' }}>{t('drive.owner') || 'Owner'}</div>
+            <div style={{ flex: 1, textAlign: isRTL ? 'right' : 'left' }}>{t('drive.location') || 'Location'}</div>
             <div style={{ width: 140, textAlign: 'center' }}>
               {t('drive.status') || 'Status'}
             </div>
@@ -316,7 +338,13 @@ export default function FileRoster({
                   position: 'relative',
                 }}
               >
-              <div style={{ width: 16, height: 16 }} />
+              <input
+                type="checkbox"
+                checked={selectedIds.has(folder.id)}
+                onClick={(e) => e.stopPropagation()}
+                onChange={() => onToggleSelect?.(folder.id)}
+                style={{ width: 16, height: 16, cursor: 'pointer' }}
+              />
               <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
                 <button
                   onClick={(e) => {
@@ -429,7 +457,7 @@ export default function FileRoster({
                   }}
                   title={t('drive.more') || 'More'}
                 >
-                  {getThemedIcon('ui', 'more-vertical', 16, 'muted')}
+                  {getThemedIcon('ui', 'more_vertical', 16, 'muted')}
                 </button>
               </div>
             </div>

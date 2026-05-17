@@ -71,6 +71,10 @@ export default function SmartDrivePage() {
     shareFile,
     createPublicLink,
     createFolder,
+    renameFolder,
+    deleteFolder,
+    downloadFolder,
+    shareFolder,
   } = useDriveFiles(activeSpace, currentFolderId);
 
   const {
@@ -198,44 +202,114 @@ export default function SmartDrivePage() {
     handleBreadcrumbOpen(breadcrumbs[breadcrumbs.length - 2]?.id || null);
   };
 
-  const handleFileAction = async (action, ids) => {
-    const idArray = Array.from(ids);
+  const handleFileAction = async (action, items) => {
+    if (action === 'new-folder') {
+      setCreateFolderModalOpen(true);
+      return;
+    }
     if (action === 'star') {
-      await Promise.all(idArray.map((id) => starFile(id)));
+      await Promise.all(items.map((item) => {
+        if (item.path !== undefined) {
+          // It's a folder
+          return starFolder(item.id);
+        } else {
+          // It's a file
+          return starFile(item.id);
+        }
+      }));
     } else if (action === 'delete' || action === 'trash') {
-      await Promise.all(idArray.map((id) => trashFile(id)));
+      await Promise.all(items.map((item) => {
+        if (item.path !== undefined) {
+          // It's a folder
+          return deleteFolder(item.id);
+        } else {
+          // It's a file
+          return trashFile(item.id);
+        }
+      }));
       handleClearSelection();
     } else if (action === 'restore') {
-      await Promise.all(idArray.map((id) => restoreFile(id)));
+      await Promise.all(items.map((item) => {
+        if (item.path !== undefined) {
+          // It's a folder
+          return restoreFolder(item.id);
+        } else {
+          // It's a file
+          return restoreFile(item.id);
+        }
+      }));
       handleClearSelection();
     } else if (action === 'permanent-delete') {
-      await Promise.all(idArray.map((id) => permanentDeleteFile(id)));
+      await Promise.all(items.map((item) => {
+        if (item.path !== undefined) {
+          // Folders don't have permanent delete yet, skip
+          return Promise.resolve();
+        } else {
+          // It's a file
+          return permanentDeleteFile(item.id);
+        }
+      }));
       handleClearSelection();
-    } else if (action === 'download' && idArray.length === 1) {
-      const file = allFiles.find((f) => f.id === idArray[0]);
-      if (file) await downloadFile(file.id);
-    } else if (action === 'share' && idArray.length === 1) {
-      const file = allFiles.find((f) => f.id === idArray[0]);
-      if (file) {
-        // Open share dialog with file data
-        setShareDialogOpen(true);
+    } else if (action === 'download') {
+      if (items.length === 1) {
+        const item = items[0];
+        if (item.path !== undefined) {
+          // It's a folder
+          await downloadFolder(item.id);
+        } else {
+          // It's a file
+          await downloadFile(item.id);
+        }
+      } else {
+        // Multiple items download - handle separately
+        await Promise.all(items.map((item) => {
+          if (item.path !== undefined) {
+            return downloadFolder(item.id);
+          } else {
+            return downloadFile(item.id);
+          }
+        }));
+      }
+    } else if (action === 'share') {
+      if (items.length === 1) {
+        const item = items[0];
+        if (item.path !== undefined) {
+          // It's a folder
+          setShareDialogFile(item);
+        } else {
+          // It's a file
+          setShareDialogFile(item);
+        }
       }
     }
   };
 
   const handleFolderAction = async (folder, action) => {
     if (action === 'delete') {
-      // TODO: Implement folder delete
-      console.log('Delete folder:', folder.id);
+      const result = await deleteFolder(folder.id);
+      if (result.success) {
+        success(t('drive.folderDeleted'));
+      } else {
+        error(t('drive.deleteFolderFailed'));
+      }
     } else if (action === 'rename') {
-      // TODO: Implement folder rename
-      console.log('Rename folder:', folder.id);
+      const newName = prompt(t('drive.enterNewName') || 'Enter new name:', folder.name);
+      if (newName && newName !== folder.name) {
+        const result = await renameFolder(folder.id, newName);
+        if (result.success) {
+          success(t('drive.folderRenamed'));
+        } else {
+          error(t('drive.renameFolderFailed'));
+        }
+      }
     } else if (action === 'download') {
-      // TODO: Implement folder download (zip)
-      console.log('Download folder:', folder.id);
+      const result = await downloadFolder(folder.id);
+      if (!result.success) {
+        error(t('drive.downloadFolderFailed'));
+      }
     } else if (action === 'share') {
-      // TODO: Implement folder share
-      console.log('Share folder:', folder.id);
+      // Open share dialog with folder data
+      setShareDialogFile(folder);
     }
   };
 
@@ -248,7 +322,14 @@ export default function SmartDrivePage() {
   };
 
   const handleShare = async (shareData) => {
-    const result = await shareFile(shareData.fileId, shareData);
+    let result;
+    if (shareData.path !== undefined) {
+      // It's a folder
+      result = await shareFolder(shareData.id, shareData);
+    } else {
+      // It's a file
+      result = await shareFile(shareData.id, shareData);
+    }
     if (result.success) {
       refreshFiles();
       success(t('drive.shareSuccess'));
