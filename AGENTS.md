@@ -91,6 +91,18 @@ cd client && node node_modules/vite/bin/vite.js --host
 docker restart lms-qaf-keycloak lms-qaf-app-db
 ```
 
+## Agent Team
+The project has a team of specialized agents in `.opencode/agents/`:
+- **cto** — Strategic oversight, architecture decisions, technology roadmap
+- **team-lead** — Full-stack guidance, code review, implementation planning
+- **devops** — Docker, Nginx, MinIO, monitoring infrastructure
+- **db-admin** — PostgreSQL, Prisma, backup/restore, query optimization
+- **keycloak-admin** — Identity management, users, realms, clients
+- **qa** — Testing, Allure reports, bug analysis
+- **design** — UI/UX guidance, component design, accessibility
+
+Skills available in `.opencode/skills/`: docker, postgres, keycloak, minio, monitoring, testing
+
 ## Issues Workflow
 1. Create issue on GitHub with label `bug` or `feature`
 2. Create branch from issue
