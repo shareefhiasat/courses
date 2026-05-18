@@ -33,7 +33,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.NVIDIA_API_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{
-              "model":"meta/llama-3.1-8b-instruct",
+              "model":"meta/llama-3.1-70b-instruct",
               "messages":[{"role":"user","content":"hello"}],
               "max_tokens":10
             }'
@@ -43,4 +43,4 @@ jobs:
         env:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
         with:
-          model: nvidia/meta/llama-3.1-8b-instruct
+          model: nvidia/meta/llama-3.1-70b-instruct
