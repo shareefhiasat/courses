@@ -98,6 +98,7 @@ The project has a team of specialized agents in `.opencode/agents/`:
 - **devops** — Docker, Nginx, MinIO, monitoring infrastructure
 - **db-admin** — PostgreSQL, Prisma, backup/restore, query optimization
 - **keycloak-admin** — Identity management, users, realms, clients
+- **reviewer** — PR code review, quality checks, improvement suggestions
 - **qa** — Testing, Allure reports, bug analysis
 - **design** — UI/UX guidance, component design, accessibility
 
