@@ -2,12 +2,15 @@
   "$schema": "https://opencode.ai/config.json",
   "model": "nvidia/meta/llama-3.1-8b-instruct",
   "small_model": "nvidia/meta/llama-3.1-8b-instruct",
+  "steps": 20,
   "provider": {
     "nvidia": {
       "provider": "openai",
       "options": {
         "baseURL": "https://integrate.api.nvidia.com/v1",
-        "apiKey": "{env:NVIDIA_API_KEY}"
+        "apiKey": "{env:NVIDIA_API_KEY}",
+        "timeout": 120000,
+        "chunkTimeout": 30000
       },
       "models": {
         "meta/llama-3.1-8b-instruct": {
