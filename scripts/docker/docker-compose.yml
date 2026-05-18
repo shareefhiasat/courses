@@ -1,3 +1,4 @@
+name: qaf-lms
 version: '3.8'
 
 # Unified Docker Compose for Military LMS Development
@@ -8,7 +9,7 @@ services:
   # Nginx reverse proxy with SSL
   nginx:
     image: nginx:alpine
-    container_name: lms-nginx
+    container_name: lms-qaf-nginx
     ports:
       - "80:80"
       - "443:443"
@@ -26,7 +27,7 @@ services:
   # PostgreSQL Database (App - Prisma schema)
   app-db:
     image: postgres:15-alpine
-    container_name: lms-app-db
+    container_name: lms-qaf-app-db
     restart: unless-stopped
     environment:
       - POSTGRES_DB=military_lms
@@ -48,7 +49,7 @@ services:
   # PostgreSQL Database (Keycloak)
   keycloak-db:
     image: postgres:15-alpine
-    container_name: lms-keycloak-db
+    container_name: lms-qaf-keycloak-db
     restart: unless-stopped
     environment:
       - POSTGRES_DB=keycloak
@@ -67,7 +68,7 @@ services:
   # Redis Cache and Session Storage
   redis:
     image: redis:7-alpine
-    container_name: lms-redis
+    container_name: lms-qaf-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -85,7 +86,7 @@ services:
   # MinIO Object Storage (File Storage)
   minio:
     image: minio/minio:latest
-    container_name: lms-minio
+    container_name: lms-qaf-minio
     restart: unless-stopped
     ports:
       - "9000:9000"
@@ -107,7 +108,7 @@ services:
   # Keycloak Authentication Service
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
-    container_name: lms-keycloak
+    container_name: lms-qaf-keycloak
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -144,7 +145,7 @@ services:
   # Elasticsearch - Search and Analytics Engine
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: lms-elasticsearch
+    container_name: lms-qaf-elasticsearch
     restart: unless-stopped
     environment:
       - discovery.type=single-node
@@ -171,7 +172,7 @@ services:
   # Logstash - Log Processing Pipeline
   logstash:
     image: docker.elastic.co/logstash/logstash:8.11.0
-    container_name: lms-logstash
+    container_name: lms-qaf-logstash
     restart: unless-stopped
     ports:
       - "5000:5000/tcp"
@@ -198,7 +199,7 @@ services:
   # Kibana - Data Visualization
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.0
-    container_name: lms-kibana
+    container_name: lms-qaf-kibana
     restart: unless-stopped
     ports:
       - "5601:5601"
@@ -220,7 +221,7 @@ services:
   # Grafana - Metrics Visualization
   grafana:
     image: grafana/grafana:10.2.0
-    container_name: lms-grafana
+    container_name: lms-qaf-grafana
     restart: unless-stopped
     ports:
       - "3002:3000"
@@ -243,7 +244,7 @@ services:
   # Prometheus - Metrics Collection
   prometheus:
     image: prom/prometheus:v2.48.0
-    container_name: lms-prometheus
+    container_name: lms-qaf-prometheus
     restart: unless-stopped
     ports:
       - "9091:9090"
@@ -266,7 +267,7 @@ services:
   # MailDev - Email Development Server
   maildev:
     image: maildev/maildev:latest
-    container_name: lms-maildev
+    container_name: lms-qaf-maildev
     restart: unless-stopped
     ports:
       - "1080:1080"
@@ -282,7 +283,7 @@ services:
   # Allure Test Reporting Dashboard
   allure:
     image: frankescobar/allure-docker-service:latest
-    container_name: lms-allure
+    container_name: lms-qaf-allure
     restart: unless-stopped
     ports:
       - "5050:5050"

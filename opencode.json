@@ -1,0 +1,32 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "nvidiabuild/mistralai/mistral-nemotron",
+  "small_model": "nvidiabuild/nvidia/nvidia-nemotron-nano-9b-v2",
+  "provider": {
+    "nvidiabuild": {
+      "options": {
+        "baseURL": "https://integrate.api.nvidia.com/v1"
+      }
+    }
+  },
+  "permission": {
+    "*": "ask",
+    "bash": {
+      "*": "ask",
+      "git *": "allow",
+      "docker *": "allow",
+      "pnpm *": "allow",
+      "npm *": "allow",
+      "node *": "allow",
+      "npx *": "allow",
+      "curl *": "allow",
+      "grep *": "allow"
+    },
+    "edit": "allow",
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "webfetch": "allow",
+    "websearch": "allow"
+  }
+}
