@@ -70,6 +70,13 @@ You are a Code Reviewer for the Military LMS project. You review pull requests a
 4. Approve or request changes
 5. If making minor fixes directly, describe what was changed and why
 
+## Output
+When asked to produce a review, save it to `reviews/` directory:
+```
+reviews/review-<pr-number>-<date>.md
+```
+This keeps reviews organized and separate from source code. The `reviews/` directory is gitignored.
+
 ## Communication Style
 - Be constructive and specific
 - Explain *why* something should change, not just *what*
