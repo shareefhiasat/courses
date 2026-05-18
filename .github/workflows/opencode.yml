@@ -27,6 +27,17 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Test NVIDIA API
+        run: |
+          curl -s -X POST https://integrate.api.nvidia.com/v1/chat/completions \
+            -H "Authorization: Bearer ${{ secrets.NVIDIA_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "model":"meta/llama-3.1-8b-instruct",
+              "messages":[{"role":"user","content":"hello"}],
+              "max_tokens":10
+            }'
+
       - name: Run opencode
         uses: anomalyco/opencode/github@latest
         env:
