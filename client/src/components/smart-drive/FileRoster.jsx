@@ -313,10 +313,10 @@ export default function FileRoster({
             <div style={{ width: 140, textAlign: 'center' }}>
               {t('drive.status') || 'Status'}
             </div>
-            <div style={{ width: 140, textAlign: isRTL ? 'left' : 'right' }}>
+            <div style={{ width: 140, textAlign: 'center' }}>
               {t('drive.created') || 'Created'}
             </div>
-            <div style={{ width: 100, textAlign: isRTL ? 'left' : 'right' }}>
+            <div style={{ width: 100, textAlign: 'center' }}>
               {t('drive.size') || 'Size'}
             </div>
           </div>
@@ -411,10 +411,13 @@ export default function FileRoster({
               </div>
               <div
                 style={{
-                  width: 120,
-                  textAlign: isRTL ? 'left' : 'right',
+                  width: 140,
+                  textAlign: 'center',
                   fontSize: '0.875rem',
                   color: 'var(--text-muted, #6b7280)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
                 —
@@ -422,9 +425,12 @@ export default function FileRoster({
               <div
                 style={{
                   width: 140,
-                  textAlign: isRTL ? 'left' : 'right',
+                  textAlign: 'center',
                   fontSize: '0.875rem',
                   color: 'var(--text-muted, #6b7280)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
                 {formatDateTime(folder.createdAt)}
@@ -432,9 +438,12 @@ export default function FileRoster({
               <div
                 style={{
                   width: 100,
-                  textAlign: isRTL ? 'left' : 'right',
+                  textAlign: 'center',
                   fontSize: '0.875rem',
                   color: 'var(--text-muted, #6b7280)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
                 —
@@ -715,9 +724,12 @@ export default function FileRoster({
                 <div
                   style={{
                     width: 140,
-                    textAlign: isRTL ? 'left' : 'right',
+                    textAlign: 'center',
                     fontSize: '0.875rem',
                     color: 'var(--text-muted, #6b7280)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
                   {formatDateTime(file.createdAt)}
@@ -725,9 +737,12 @@ export default function FileRoster({
                 <div
                   style={{
                     width: 100,
-                    textAlign: isRTL ? 'left' : 'right',
+                    textAlign: 'center',
                     fontSize: '0.875rem',
                     color: 'var(--text-muted, #6b7280)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
                   {formatSize(file.size)}

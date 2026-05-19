@@ -93,12 +93,8 @@ docker restart lms-qaf-keycloak lms-qaf-app-db
 
 ## Agent Team
 The project has a team of specialized agents in `.opencode/agents/`:
-- **cto** — Strategic oversight, architecture decisions, technology roadmap
-- **team-lead** — Full-stack guidance, code review, implementation planning
-- **devops** — Docker, Nginx, MinIO, monitoring infrastructure
-- **db-admin** — PostgreSQL, Prisma, backup/restore, query optimization
-- **keycloak-admin** — Identity management, users, realms, clients
-- **reviewer** — PR code review, quality checks, improvement suggestions
+- **reviewer** — Code review, architecture decisions, implementation guidance, strategic oversight
+- **devops** — Docker, Nginx, MinIO, PostgreSQL, Keycloak, Redis, monitoring infrastructure
 - **qa** — Testing, Allure reports, bug analysis
 - **design** — UI/UX guidance, component design, accessibility
 
