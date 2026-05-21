@@ -99,6 +99,97 @@ class ClassDbService {
       return { success: false, error: error.message, data: null };
     }
   }
+
+  /**
+   * Create a new class
+   */
+  async create(classData) {
+    const startTime = Date.now();
+    try {
+      console.log(`[${this.serviceName}] Creating class:`, { data: classData });
+      
+      const result = await api.post('/classes', classData);
+
+      const duration = Date.now() - startTime;
+      console.log(`[${this.serviceName}] ✅ Created class in ${duration}ms`, { classId: result.data?.id });
+
+      return {
+        success: result.success,
+        data: result.data,
+        error: result.error,
+        duration: `${duration}ms`
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`[${this.serviceName}] ❌ Error creating class:`, error);
+      return { 
+        success: false, 
+        error: error.message,
+        data: null,
+        duration: `${duration}ms`
+      };
+    }
+  }
+
+  /**
+   * Update an existing class
+   */
+  async update(id, updateData) {
+    const startTime = Date.now();
+    try {
+      console.log(`[${this.serviceName}] Updating class:`, { id, data: updateData });
+      
+      const result = await api.put(`/classes/${id}`, updateData);
+
+      const duration = Date.now() - startTime;
+      console.log(`[${this.serviceName}] ✅ Updated class in ${duration}ms`, { classId: id });
+
+      return {
+        success: result.success,
+        data: result.data,
+        error: result.error,
+        duration: `${duration}ms`
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`[${this.serviceName}] ❌ Error updating class:`, error);
+      return { 
+        success: false, 
+        error: error.message,
+        data: null,
+        duration: `${duration}ms`
+      };
+    }
+  }
+
+  /**
+   * Delete a class (soft delete)
+   */
+  async delete(id) {
+    const startTime = Date.now();
+    try {
+      console.log(`[${this.serviceName}] Deleting class:`, { id });
+      
+      const result = await api.delete(`/classes/${id}`);
+
+      const duration = Date.now() - startTime;
+      console.log(`[${this.serviceName}] ✅ Deleted class in ${duration}ms`, { classId: id });
+
+      return {
+        success: result.success,
+        error: result.error,
+        duration: `${duration}ms`
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`[${this.serviceName}] ❌ Error deleting class:`, error);
+      return { 
+        success: false, 
+        error: error.message,
+        duration: `${duration}ms`
+      };
+    }
+  }
 }
 
 // Create singleton instance

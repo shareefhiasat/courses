@@ -31,6 +31,21 @@ export const NOTIFICATION_CHANNELS = {
   PUSH: 'push'
 };
 
+// Stub for backward compatibility - triggers are now defined in backend
+export const NOTIFICATION_TRIGGERS = {
+  ANNOUNCEMENTS: 'announcements',
+  ACTIVITIES: 'activities',
+  ACTIVITY_COMPLETE: 'activity_complete',
+  ACTIVITY_GRADED: 'activity_graded',
+  ENROLLMENTS: 'enrollments',
+  RESOURCES: 'resources',
+  CHAT_DIGEST: 'chat_digest',
+  PASSWORD_RESET: 'password_reset',
+  WELCOME_SIGNUP: 'welcome_signup',
+  QR_CODE: 'qr_code',
+  STUDENT_SUMMARY: 'student_summary'
+};
+
 export const NOTIFICATION_PRIORITIES = {
   LOW: 'low',
   NORMAL: 'normal',
@@ -85,6 +100,13 @@ export const getNotificationChannelOptions = () => {
   return Object.entries(NOTIFICATION_CHANNELS).map(([key, value]) => ({
     value: value,
     label: key.charAt(0) + key.slice(1).toLowerCase()
+  }));
+};
+
+export const getNotificationTriggerOptions = () => {
+  return Object.entries(NOTIFICATION_TRIGGERS).map(([key, value]) => ({
+    value: value,
+    label: key.charAt(0) + key.slice(1).toLowerCase().replace(/_/g, ' ')
   }));
 };
 
@@ -147,6 +169,7 @@ export default {
   getNotificationStatusOptions,
   getNotificationPriorityOptions,
   getNotificationChannelOptions,
+  getNotificationTriggerOptions,
   getNotificationTypeOptions,
   getNotificationLabel,
   getNotificationPriorityLabel,

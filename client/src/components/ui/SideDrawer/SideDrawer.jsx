@@ -343,7 +343,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
     tools: {
       label: t('tools') || 'TOOLS',
       items: [
-        { path: '/timer', icon: getThemedIcon('ui', 'timer', 18, theme), label: t('timer') || 'Timer' }
+        { key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: t('timer') || 'Timer' }
       ]
     },
     settings: {
@@ -450,7 +450,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
     tools: {
       label: t('tools') || 'TOOLS',
       items: [
-        { path: '/timer', icon: getThemedIcon('ui', 'timer', 18, theme), label: t('timer') || 'Timer' }
+        { key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: t('timer') || 'Timer' }
       ]
     },
     settings: {
@@ -493,7 +493,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { path: '/notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: t('notifications') || 'Notifications' },
         { path: '/student-profile', icon: getThemedIcon('ui', 'user', 18, theme), label: t('student_profile') || 'Student Profile' },
         { path: '/profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: t('settings') || 'Settings' },
-        { path: '/timer', icon: getThemedIcon('ui', 'timer', 18, theme), label: t('timer') || 'Timer' }
+        { key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: t('timer') || 'Timer' }
       ]
     }
   };
@@ -1096,7 +1096,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                       {!collapsed && density === 'compact' && (
                       <button
                         title={t('open_in_new_tab') || 'Open in new tab'}
-                        onClick={() => link.key==='timerControl' ? setShowTimerPanel(v=>!v) : window.open(link.path, '_blank', 'noopener,noreferrer')}
+                        onClick={() => link.key==='timerControl' ? setShowTimerPanel(v=>!v) : window.open(`${window.location.origin}${link.path}`, '_blank', 'noopener,noreferrer')}
                         style={{
                           background: theme==='light' ? '#ffffff' : 'rgba(255,255,255,0.06)',
                           border: `1px solid ${theme==='light' ? 'rgba(17,24,39,0.15)' : 'rgba(255,255,255,0.2)'}`,

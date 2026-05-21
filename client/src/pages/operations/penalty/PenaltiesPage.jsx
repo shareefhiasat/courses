@@ -34,11 +34,27 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     types: ['penalty-types']
   });
 
-  // Create penalty type icons from lookup data
-  const PENALTY_TYPE_ICONS = (lookupData['penalty-types'] || []).reduce((acc, type) => {
-    acc[type.id] = type.icon || 'AlertTriangle';
-    return acc;
-  }, {});
+  // Create penalty type icons from lookup data - using unified icon mapping like attendance
+  const PENALTY_TYPE_ICONS = useMemo(() => {
+    const iconMap = {
+      AlertTriangle: getThemedIcon('ui', 'alert_triangle', 16, theme),
+      MessageSquare: getThemedIcon('ui', 'message_square', 16, theme),
+      AlertCircle: getThemedIcon('ui', 'alert_circle', 16, theme),
+      XCircle: getThemedIcon('ui', 'x_circle', 16, theme),
+      HelpCircle: getThemedIcon('ui', 'help_circle', 16, theme),
+      Clock: getThemedIcon('ui', 'clock', 16, theme),
+      Users: getThemedIcon('ui', 'users', 16, theme),
+      Bed: getThemedIcon('ui', 'bed', 16, theme),
+      Shield: getThemedIcon('ui', 'shield', 16, theme),
+      MoreHorizontal: getThemedIcon('ui', 'more_horizontal', 16, theme),
+    };
+    
+    return (lookupData['penalty-types'] || []).reduce((acc, type) => {
+      const iconName = type.icon || 'AlertTriangle';
+      acc[type.id] = iconMap[iconName] || iconMap.AlertTriangle;
+      return acc;
+    }, {});
+  }, [lookupData, theme]);
 
   const [pageState, setPageState] = useState(PAGE_STATES.LOADING);
   const [formState, setFormState] = useState(FORM_STATES.IDLE);

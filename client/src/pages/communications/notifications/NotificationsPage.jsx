@@ -108,13 +108,13 @@ const NotificationsPage = () => {
 
     // Filter by read status
     if (filterType === 'unread') {
-      filtered = filtered.filter(n => !n.read && !n.archived);
+      filtered = filtered.filter(n => !n.isRead && !n.isArchived);
     } else if (filterType === 'read') {
-      filtered = filtered.filter(n => n.read && !n.archived);
+      filtered = filtered.filter(n => n.isRead && !n.isArchived);
     } else if (filterType === 'archived') {
-      filtered = filtered.filter(n => n.archived);
+      filtered = filtered.filter(n => n.isArchived);
     } else if (!showArchived) {
-      filtered = filtered.filter(n => !n.archived);
+      filtered = filtered.filter(n => !n.isArchived);
     }
 
     // Filter by category
@@ -214,8 +214,8 @@ const NotificationsPage = () => {
     return filtered;
   }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, filterProgram, filterSubject, filterClass, filterYear, filterSemester, searchTerm, showArchived, subjects, classes]);
 
-  const unreadCount = notifications.filter(n => !n.read && !n.archived).length;
-  const archivedCount = notifications.filter(n => n.archived).length;
+  const unreadCount = notifications.filter(n => !n.isRead && !n.isArchived).length;
+  const archivedCount = notifications.filter(n => n.isArchived).length;
 
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
@@ -288,7 +288,7 @@ const NotificationsPage = () => {
   };
 
   const gotoFromNotification = async (n) => {
-    if (!n.read) await handleMarkAsRead(n.id);
+    if (!n.isRead) await handleMarkAsRead(n.id);
     
     // Activity, quiz, homework, resource notifications
     if (n.type === 'activity' || n.type === 'submission') {
@@ -659,10 +659,10 @@ const NotificationsPage = () => {
               style={{
                 padding: '1rem',
                 borderRadius: '12px',
-                background: notification.read 
+                background: notification.isRead 
                   ? (isDark ? 'rgba(255,255,255,0.02)' : '#ffffff')
                   : (isDark ? 'rgba(128,0,32,0.15)' : '#f0f4ff'),
-                border: `1px solid ${notification.read 
+                border: `1px solid ${notification.isRead 
                   ? (isDark ? 'rgba(255,255,255,0.05)' : '#e5e7eb')
                   : (isDark ? 'rgba(128,0,32,0.3)' : '#c7d2fe')}`,
                 cursor: 'pointer',
@@ -679,7 +679,7 @@ const NotificationsPage = () => {
                 e.currentTarget.style.transform = 'translateX(4px)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = notification.read 
+                e.currentTarget.style.background = notification.isRead 
                   ? (isDark ? 'rgba(255,255,255,0.02)' : '#ffffff')
                   : (isDark ? 'rgba(128,0,32,0.15)' : '#f0f4ff');
                 e.currentTarget.style.transform = 'translateX(0)';
@@ -697,14 +697,14 @@ const NotificationsPage = () => {
                   marginBottom: '0.5rem'
                 }}>
                   <div style={{
-                    fontWeight: notification.read ? 500 : 600,
+                    fontWeight: notification.isRead ? 500 : 600,
                     fontSize: '1rem',
                     color: isDark ? '#fff' : '#111',
                     lineHeight: 1.4
                   }}>
                     {notification.title}
                   </div>
-                  {!notification.read && (
+                  {!notification.isRead && (
                     <div style={{
                       width: '10px',
                       height: '10px',
@@ -733,7 +733,7 @@ const NotificationsPage = () => {
                 }}>
                   <span>{formatTime(notification.createdAt)}</span>
                   <div style={{ display: 'flex', gap: '0.5rem' }} onClick={(e) => e.stopPropagation()}>
-                    {!notification.read ? (
+                    {!notification.isRead ? (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -788,7 +788,7 @@ const NotificationsPage = () => {
                         {getThemedIcon('ui', 'eye_off', 16, theme)}
                       </button>
                     )}
-                    {!notification.archived ? (
+                    {!notification.isArchived ? (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

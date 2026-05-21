@@ -38,12 +38,12 @@ const PRESIGNED_EXPIRY = {
  * Everything else is forced through the proxy download endpoint.
  */
 const INLINE_PREVIEWABLE_MIME = new Set([
-  'application/pdf',
-  'image/png',
   'image/jpeg',
+  'image/png',
   'image/gif',
   'image/webp',
   'image/svg+xml',
+  'application/pdf',
 ]);
 
 export const isInlinePreviewable = (mimeType) => INLINE_PREVIEWABLE_MIME.has(mimeType);

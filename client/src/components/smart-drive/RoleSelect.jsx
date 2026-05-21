@@ -13,7 +13,17 @@ export default function RoleSelect({ value, onChange, disabled = false }) {
 
   return (
     <div>
-      <label className="flex items-center gap-1.5 text-sm font-medium text-gray-900 dark:text-white mb-2">
+      <label
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.375rem',
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          color: 'var(--text, #111827)',
+          marginBottom: '0.5rem',
+        }}
+      >
         <Shield className="w-4 h-4" aria-hidden="true" />
         {t('drive.selectRole')}
       </label>
@@ -21,7 +31,28 @@ export default function RoleSelect({ value, onChange, disabled = false }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{
+          width: '100%',
+          padding: '0.75rem 0.875rem',
+          border: '1px solid var(--border, #d1d5db)',
+          borderRadius: '0.5rem',
+          background: 'var(--panel, white)',
+          color: 'var(--text, #111827)',
+          fontSize: '0.875rem',
+          outline: 'none',
+          transition: 'border-color 0.15s, box-shadow 0.15s',
+          opacity: disabled ? 0.5 : 1,
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          minHeight: '2.75rem',
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.borderColor = 'var(--color-primary, #2563eb)';
+          e.currentTarget.style.boxShadow = '0 0 0 2px var(--color-primary-alpha, rgba(37, 99, 235, 0.2))';
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.borderColor = 'var(--border, #d1d5db)';
+          e.currentTarget.style.boxShadow = 'none';
+        }}
       >
         <option value="">{t('drive.chooseRole')}</option>
         {roles.map(({ value: val, label }) => (
@@ -32,7 +63,7 @@ export default function RoleSelect({ value, onChange, disabled = false }) {
       </select>
 
       {value && (
-        <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <p style={{ marginTop: '0.375rem', fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
           {roles.find(r => r.value === value)?.desc}
         </p>
       )}

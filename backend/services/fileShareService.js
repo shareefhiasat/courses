@@ -79,7 +79,7 @@ export async function createShare(input, actor) {
       subjectUserId: subjectType === 'USER' ? subjectUserId : null,
       subjectRole: subjectType === 'ROLE' ? subjectRole : null,
     };
-    const existing = await prisma.fileShareV2.findFirst({ where: dedupeWhere });
+    const existing = await prisma.fileShare.findFirst({ where: dedupeWhere });
 
     const data = {
       fileId: fileId ?? null,
@@ -93,8 +93,8 @@ export async function createShare(input, actor) {
     };
 
     const share = existing
-      ? await prisma.fileShareV2.update({ where: { id: existing.id }, data })
-      : await prisma.fileShareV2.create({ data });
+      ? await prisma.fileShare.update({ where: { id: existing.id }, data })
+      : await prisma.fileShare.create({ data });
 
     if (fileId) {
       await prisma.fileActivity.create({
@@ -132,7 +132,7 @@ export async function revokeShare(shareId, actor) {
     const isAdmin = (actor.roles || []).includes('super_admin');
     if (!isOwner && !isAdmin) return err('ACCESS_DENIED', 'Only owner can revoke');
 
-    await prisma.fileShareV2.delete({ where: { id: shareId } });
+    await prisma.fileShare.delete({ where: { id: shareId } });
     if (share.fileId) {
       await prisma.fileActivity.create({
         data: {
@@ -152,7 +152,7 @@ export async function revokeShare(shareId, actor) {
 
 export async function listFileShares(fileId) {
   try {
-    const shares = await prisma.fileShareV2.findMany({
+    const shares = await prisma.fileShare.findMany({
       where: { fileId },
       include: {
         subjectUser: { select: { id: true, email: true, displayName: true } },
@@ -176,7 +176,7 @@ export async function listSharedWithMe(actor) {
     if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
 
     const now = new Date();
-    const v2FileShares = await prisma.fileShareV2.findMany({
+    const v2FileShares = await prisma.fileShare.findMany({
       where: {
         fileId: { not: null },
         OR: [
@@ -194,7 +194,7 @@ export async function listSharedWithMe(actor) {
       },
     });
 
-    const v2FolderShares = await prisma.fileShareV2.findMany({
+    const v2FolderShares = await prisma.fileShare.findMany({
       where: {
         folderId: { not: null },
         OR: [

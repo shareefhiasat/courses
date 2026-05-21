@@ -1,7 +1,10 @@
 import React from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import { Infinity } from 'lucide-react';
+import { DEFAULT_STORAGE_LIMIT } from '@constants/driveConstants';
 
 /**
  * DriveSpacesSidebar - Left-rail navigation for SmartDrive.
@@ -12,7 +15,7 @@ export default function DriveSpacesSidebar({
   activeSpace = 'my-drive',
   onSpaceChange,
   storageUsage = 0,
-  storageLimit = 10 * 1024 * 1024 * 1024, // 10 GB default
+  storageLimit = DEFAULT_STORAGE_LIMIT,
   folders = [],
   onFolderSelect,
   onUploadClick,
@@ -20,8 +23,10 @@ export default function DriveSpacesSidebar({
 }) {
   const { t, isRTL } = useLang();
   const { theme } = useTheme();
+  const { user } = useAuth();
 
-  const storagePercentage = Math.min((storageUsage / storageLimit) * 100, 100);
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const storagePercentage = isSuperAdmin ? 0 : Math.min((storageUsage / storageLimit) * 100, 100);
   const fmt = (bytes) => {
     if (!bytes) return '0 B';
     const k = 1024;
@@ -225,7 +230,7 @@ export default function DriveSpacesSidebar({
               {t('drive.storage') || 'Storage'}
             </span>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-              {storagePercentage.toFixed(0)}%
+              {isSuperAdmin ? <Infinity size={14} /> : `${storagePercentage.toFixed(0)}%`}
             </span>
           </div>
           <div
@@ -247,8 +252,12 @@ export default function DriveSpacesSidebar({
             />
           </div>
           <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>
-            {t('drive.storageUsed', { used: fmt(storageUsage), limit: fmt(storageLimit) }) ||
-              `${fmt(storageUsage)} of ${fmt(storageLimit)} used`}
+            {isSuperAdmin ? (
+              `${fmt(storageUsage)} used`
+            ) : (
+              (t('drive.storageUsed', { used: fmt(storageUsage), limit: fmt(storageLimit) }) ||
+                `${fmt(storageUsage)} of ${fmt(storageLimit)} used`)
+            )}
           </p>
         </div>
       )}

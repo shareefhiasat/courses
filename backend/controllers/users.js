@@ -15,29 +15,50 @@ const prisma = new PrismaClient();
  */
 export const listUsersController = async (req, res) => {
   try {
-    const { studentsOnly } = req.query;
-    
-    let where = {};
-    
-    // If studentsOnly is true, filter by student role
+    const { studentsOnly, excludeStudents, search, limit: limitStr } = req.query;
+    const limit = parseInt(limitStr) || 20;
+
+    let where = { isActive: true };
+
     if (studentsOnly === 'true') {
-      // Find the student role
       const studentRole = await prisma.userRoles.findFirst({
         where: { code: 'student' }
       });
-      
+
       if (studentRole) {
         where = {
+          ...where,
           roleAssignments: {
-            some: {
-              roleId: studentRole.id
-            }
+            some: { roleId: studentRole.id }
           },
-          isActive: true
         };
       }
     }
-    
+
+    if (excludeStudents === 'true') {
+      const studentRole = await prisma.userRoles.findFirst({
+        where: { code: 'student' }
+      });
+
+      if (studentRole) {
+        where = {
+          ...where,
+          roleAssignments: {
+            none: { roleId: studentRole.id }
+          },
+        };
+      }
+    }
+
+    if (search) {
+      where.OR = [
+        { displayName: { contains: search, mode: 'insensitive' } },
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
     const users = await prisma.user.findMany({
       where,
       select: {
@@ -46,13 +67,7 @@ export const listUsersController = async (req, res) => {
         firstName: true,
         lastName: true,
         email: true,
-        studentNumber: true,
-        sequence: true,
         isActive: true,
-        createdAt: true,
-        updatedAt: true,
-        createdBy: true,
-        updatedBy: true,
         roleAssignments: {
           select: {
             role: {
@@ -66,12 +81,13 @@ export const listUsersController = async (req, res) => {
           }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      take: limit,
+      orderBy: { displayName: 'asc' },
     });
-    
+
     res.status(200).json({
       success: true,
-      data: users
+      payload: users
     });
   } catch (error) {
     console.error('Error in listUsersController:', error);
@@ -511,7 +527,7 @@ export const getInstructorsController = async (req, res) => {
   try {
     // Find the INSTRUCTOR role
     const instructorRole = await prisma.userRoles.findFirst({
-      where: { code: 'INSTRUCTOR' }
+      where: { code: 'instructor' }
     });
     
     if (!instructorRole) {
@@ -524,7 +540,9 @@ export const getInstructorsController = async (req, res) => {
     // Get all users with instructor role
     const instructors = await prisma.user.findMany({
       where: {
-        roleId: instructorRole.id,
+        roleAssignments: {
+          some: { roleId: instructorRole.id }
+        },
         isActive: true
       },
       select: {
@@ -533,12 +551,16 @@ export const getInstructorsController = async (req, res) => {
         firstName: true,
         lastName: true,
         email: true,
-        primaryRole: {
+        roleAssignments: {
           select: {
-            id: true,
-            code: true,
-            nameEn: true,
-            nameAr: true
+            role: {
+              select: {
+                id: true,
+                code: true,
+                nameEn: true,
+                nameAr: true
+              }
+            }
           }
         }
       },

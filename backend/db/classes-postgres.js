@@ -123,7 +123,29 @@ export const getClasses = async (params = {}) => {
       orderBy: orderByClause,
       skip,
       take: limitNum,
-      include: {
+      select: {
+        id: true,
+        code: true,
+        nameEn: true,
+        nameAr: true,
+        maxCapacity: true,
+        capacity: true,
+        isActive: true,
+        programId: true,
+        subjectId: true,
+        instructorId: true,
+        createdBy: true,
+        updatedBy: true,
+        createdAt: true,
+        updatedAt: true,
+        descriptionAr: true,
+        descriptionEn: true,
+        locationAr: true,
+        locationEn: true,
+        ownerEmail: true,
+        term: true,
+        year: true,
+        schedule: true, // Include schedule field
         creator: {
           select: {
             id: true,
@@ -214,7 +236,29 @@ export const getClassById = async (classId) => {
     
     const classData = await prisma.class.findUnique({
       where: { id: parseInt(classId) },
-      include: {
+      select: {
+        id: true,
+        code: true,
+        nameEn: true,
+        nameAr: true,
+        maxCapacity: true,
+        capacity: true,
+        isActive: true,
+        programId: true,
+        subjectId: true,
+        instructorId: true,
+        createdBy: true,
+        updatedBy: true,
+        createdAt: true,
+        updatedAt: true,
+        descriptionAr: true,
+        descriptionEn: true,
+        locationAr: true,
+        locationEn: true,
+        ownerEmail: true,
+        term: true,
+        year: true,
+        schedule: true, // Include schedule field
         creator: {
           select: {
             id: true,
@@ -470,6 +514,9 @@ export const updateClass = async (classId, updateData, user = null) => {
     if (updateData.locationEn !== undefined) data.locationEn = updateData.locationEn;
     if (updateData.locationAr !== undefined) data.locationAr = updateData.locationAr;
     if (updateData.ownerEmail !== undefined) data.ownerEmail = updateData.ownerEmail;
+    
+    // Add schedule field (for ClassSchedulePage)
+    if (updateData.schedule !== undefined) data.schedule = updateData.schedule;
     
     // Add audit trail
     const dbUserId = await getDatabaseUserId(user);

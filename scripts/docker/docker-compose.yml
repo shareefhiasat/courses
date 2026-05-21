@@ -305,6 +305,33 @@ services:
       timeout: 10s
       retries: 5
 
+  # Collabora Online Development Edition (CODE) - Free & Open Source Office Suite
+  collabora:
+    image: collabora/code:latest
+    container_name: lms-qaf-collabora
+    restart: unless-stopped
+    ports:
+      - "9980:9980"
+    environment:
+      - SERVER_NAME=localhost
+      - dictionaries=en_US,ar_SA
+      - aliasgroup1=http://localhost:8001,http://host.docker.internal:8001
+      - extra_params=--o:ssl.enable=true --o:ssl.termination=false --o:net.proto=all --o:security.enable_ssl_cert_check=true --o:security.enable_ssl_revocation=true --o:security.update_check_enable=false --o:logo=QAF --o:logo_text=QAF LMS --o:branding=QAF
+      - DONT_GEN_SSL_CERT=1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - lms-network
+    cap_add:
+      - MKNOD
+    healthcheck:
+      test: ["CMD-SHELL", "curl -k -f https://localhost:9980/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - ./collabora/branding:/etc/coolwsd/branding:ro
+
   # Backend API (Development - not dockerized, run with npm)
   # Uncomment to dockerize backend:
   # backend:

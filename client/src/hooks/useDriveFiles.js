@@ -55,7 +55,7 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
       }
 
       if (activeSpace === 'my-drive') {
-        params.ownedOnly = true;
+        if (!params.sharedOnly) params.ownedOnly = true;
         if (!folderId) params.rootOnly = true;
       } else if (activeSpace === 'starred') {
         params.starredOnly = true;
@@ -290,6 +290,22 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
     }
   }, [fetchFolders]);
 
+  const renameFile = useCallback(async (fileId, newName) => {
+    try {
+      const response = await axios.put(`${API_BASE}/files/${fileId}`, {
+        name: newName,
+      });
+      if (response.data.success) {
+        refreshFiles();
+        return { success: true };
+      }
+      return { success: false, error: response.data.error };
+    } catch (err) {
+      console.error('[useDriveFiles] rename file failed:', err);
+      return { success: false, error: err.response?.data?.error || err.message };
+    }
+  }, [refreshFiles]);
+
   const deleteFolder = useCallback(async (folderId) => {
     try {
       const response = await axios.delete(`${API_BASE}/folders/${folderId}/trash`);
@@ -354,6 +370,7 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
     createPublicLink,
     createFolder,
     renameFolder,
+    renameFile,
     deleteFolder,
     downloadFolder,
     shareFolder,

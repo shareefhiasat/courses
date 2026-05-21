@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { MessageSquare, Send, Trash2, User, Search, ArrowUpDown } from 'lucide-react';
+import { MessageSquare, Send, Trash2, User, Search, Clock } from 'lucide-react';
 import axios from 'axios';
 
 export default function CommentsTab({ fileId }) {
@@ -10,8 +10,8 @@ export default function CommentsTab({ fileId }) {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [sortBy, setSortBy] = useState('newest');
   const [filterText, setFilterText] = useState('');
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const fetchComments = useCallback(async () => {
     if (!fileId) return;
@@ -66,15 +66,42 @@ export default function CommentsTab({ fileId }) {
     }
   };
 
-  const formatDate = (date) => {
+  const formatDateTime = (date) => {
     if (!date) return '\u2014';
     const d = new Date(date);
     if (Number.isNaN(d.getTime())) return '\u2014';
-    return d.toLocaleString();
+    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
+  const formatDateHeader = (dateStr) => {
+    const date = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return t('drive.today') || 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return t('drive.yesterday') || 'Yesterday';
+    } else {
+      return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+  };
+
+  // Group comments by date
+  const groupedComments = comments.reduce((acc, comment) => {
+    const date = new Date(comment.createdAt).toDateString();
+    if (!acc[date]) {
+      acc[date] = [];
+    }
+    acc[date].push(comment);
+    return acc;
+  }, {});
+
+  const sortedDates = Object.keys(groupedComments).sort((a, b) => new Date(b) - new Date(a));
+
   const filteredAndSortedComments = useMemo(() => {
-    let filtered = comments;
+    let filtered = selectedDate ? groupedComments[selectedDate] || [] : comments;
     if (filterText.trim()) {
       const searchLower = filterText.toLowerCase();
       filtered = filtered.filter(comment =>
@@ -83,17 +110,18 @@ export default function CommentsTab({ fileId }) {
         comment.user?.email?.toLowerCase().includes(searchLower)
       );
     }
+    // Always sort by newest first
     const sorted = [...filtered].sort((a, b) => {
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
-      return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
+      return dateB - dateA;
     });
     return sorted;
-  }, [comments, filterText, sortBy]);
+  }, [comments, filterText, selectedDate, groupedComments]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-gray-500 dark:text-gray-400" role="status">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }} role="status">
         {t('common.loading')}&hellip;
       </div>
     );
@@ -101,68 +129,60 @@ export default function CommentsTab({ fileId }) {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-red-600 dark:text-red-400" role="alert">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: '#dc2626' }} role="alert">
         {error}
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          {t('drive.comments')} ({filteredAndSortedComments.length})
-        </h3>
-
-        <div className="flex items-center gap-2">
-          <ArrowUpDown className="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            aria-label={t('drive.sortComments')}
-          >
-            <option value="newest">{t('drive.sort.newest')}</option>
-            <option value="oldest">{t('drive.sort.oldest')}</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" />
-        <input
-          type="text"
-          value={filterText}
-          onChange={(e) => setFilterText(e.target.value)}
-          placeholder={t('drive.filterComments')}
-          className="w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
-          aria-label={t('drive.filterComments')}
-        />
-        {filterText && (
-          <button
-            onClick={() => setFilterText('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-            aria-label={t('common.clear')}
-          >
-            ✕
-          </button>
-        )}
-      </div>
-
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
+      {/* Add comment form */}
       <form onSubmit={handleAddComment}>
-        <div className="flex gap-2">
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
           <input
             type="text"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder={t('drive.addComment')}
-            className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+            style={{
+              flex: 1,
+              padding: '0.625rem 1rem',
+              border: '1px solid var(--border, #d1d5db)',
+              borderRadius: '0.5rem',
+              background: 'var(--panel, white)',
+              color: 'var(--text, #111827)',
+              fontSize: '0.875rem',
+              outline: 'none',
+            }}
             aria-label={t('drive.addComment')}
           />
           <button
             type="submit"
             disabled={!newComment.trim() || submitting}
-            className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm font-medium min-h-[44px]"
+            style={{
+              padding: '0.625rem 1.25rem',
+              background: 'var(--color-primary, #2563eb)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.5rem',
+              cursor: submitting || !newComment.trim() ? 'not-allowed' : 'pointer',
+              opacity: submitting || !newComment.trim() ? 0.5 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              minHeight: '2.75rem',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              if (!submitting && newComment.trim())
+                e.currentTarget.style.background = 'var(--color-primary-dark, #1d4ed8)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--color-primary, #2563eb)';
+            }}
             aria-label={submitting ? t('common.sending') : t('drive.send')}
           >
             <Send className="w-4 h-4" aria-hidden="true" />
@@ -171,48 +191,198 @@ export default function CommentsTab({ fileId }) {
         </div>
       </form>
 
-      {filteredAndSortedComments.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-48 text-sm text-gray-500 dark:text-gray-400">
+      {/* Timeline and comments */}
+      {filteredAndSortedComments.length === 0 && !filterText ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
           <MessageSquare className="w-10 h-10 mb-3 opacity-50" aria-hidden="true" />
-          {filterText ? t('drive.noMatchingComments') : t('drive.noComments')}
+          {t('drive.noComments')}
         </div>
       ) : (
-        <div className="space-y-3">
-          {filteredAndSortedComments.map((comment) => (
-            <article
-              key={comment.id}
-              className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm transition-colors"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                    <User className="w-4 h-4 text-blue-600" aria-hidden="true" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        {comment.user?.displayName || comment.user?.email || t('drive.unknownUser')}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatDate(comment.createdAt)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 break-words">
-                      {comment.content}
-                    </p>
-                  </div>
-                </div>
+        <div style={{ display: 'flex', gap: '1rem', height: '100%' }}>
+          {/* Left sidebar - Date timeline */}
+          <div style={{ 
+            width: '200px', 
+            flexShrink: 0, 
+            borderRight: '1px solid var(--border, #e5e7eb)', 
+            paddingInlineEnd: '1rem',
+            overflowY: 'auto',
+            maxHeight: '500px'
+          }}>
+            <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Clock className="w-4 h-4" />
+              {t('drive.timeline') || 'Timeline'}
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <button
+                onClick={() => setSelectedDate(null)}
+                style={{
+                  padding: '0.5rem',
+                  textAlign: 'start',
+                  background: !selectedDate ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  color: !selectedDate ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
+                  cursor: 'pointer',
+                  fontWeight: !selectedDate ? 600 : 400,
+                }}
+              >
+                {t('drive.allComments') || 'All Comments'} ({comments.length})
+              </button>
+              {sortedDates.map((date) => (
                 <button
-                  onClick={() => handleDeleteComment(comment.id)}
-                  className="flex-shrink-0 p-1.5 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
-                  title={t('drive.deleteComment')}
-                  aria-label={t('drive.deleteComment')}
+                  key={date}
+                  onClick={() => setSelectedDate(date)}
+                  style={{
+                    padding: '0.5rem',
+                    textAlign: 'start',
+                    background: selectedDate === date ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.875rem',
+                    color: selectedDate === date ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
+                    cursor: 'pointer',
+                    fontWeight: selectedDate === date ? 600 : 400,
+                  }}
                 >
-                  <Trash2 className="w-4 h-4" aria-hidden="true" />
+                  {formatDateHeader(date)} ({groupedComments[date].length})
                 </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Right content - Comments */}
+          <div style={{ flex: 1, overflowY: 'auto', maxHeight: '500px' }}>
+            {/* Search filter */}
+            <div style={{ position: 'relative', marginBottom: '1rem' }}>
+              <Search style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)' }} aria-hidden="true" />
+              <input
+                type="text"
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+                placeholder={t('drive.filterComments')}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem 2.5rem',
+                  border: '1px solid var(--border, #d1d5db)',
+                  borderRadius: '0.5rem',
+                  background: 'var(--panel, white)',
+                  color: 'var(--text, #111827)',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                }}
+                aria-label={t('drive.filterComments')}
+              />
+              {filterText && (
+                <button
+                  onClick={() => setFilterText('')}
+                  style={{
+                    position: 'absolute',
+                    right: '0.75rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--text-muted, #6b7280)',
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    padding: '0.25rem',
+                    borderRadius: '0.25rem',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text, #111827)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted, #6b7280)'}
+                  aria-label={t('common.clear')}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
+              {selectedDate ? formatDateHeader(selectedDate) : t('drive.comments')} ({filteredAndSortedComments.length})
+            </h3>
+
+            {filteredAndSortedComments.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+                <MessageSquare className="w-10 h-10 mb-3 opacity-50" aria-hidden="true" />
+                {t('drive.noMatchingComments')}
               </div>
-            </article>
-          ))}
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {filteredAndSortedComments.map((comment) => (
+                  <article
+                    key={comment.id}
+                    style={{
+                      padding: '1rem',
+                      background: 'var(--panel, white)',
+                      borderRadius: '0.75rem',
+                      border: '1px solid var(--border, #e5e7eb)',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          flexShrink: 0,
+                          width: '2rem',
+                          height: '2rem',
+                          borderRadius: '9999px',
+                          background: 'var(--color-primary-alpha, rgba(37, 99, 235, 0.1))',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <User className="w-4 h-4" style={{ color: 'var(--color-primary, #2563eb)' }} aria-hidden="true" />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
+                              {comment.user?.displayName || comment.user?.email || t('drive.unknownUser')}
+                            </span>
+                          </div>
+                          <p style={{ fontSize: '0.875rem', color: 'var(--text, #374151)', margin: 0, wordBreak: 'break-word' }}>
+                            {comment.content}
+                          </p>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                          {formatDateTime(comment.createdAt)}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteComment(comment.id)}
+                          style={{
+                            padding: '0.375rem',
+                            border: 'none',
+                            background: 'transparent',
+                            color: 'var(--text-muted, #6b7280)',
+                            cursor: 'pointer',
+                            borderRadius: '0.5rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: '2.25rem',
+                            minHeight: '2.25rem',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = '#dc2626';
+                            e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = 'var(--text-muted, #6b7280)';
+                            e.currentTarget.style.background = 'transparent';
+                          }}
+                          title={t('drive.deleteComment')}
+                          aria-label={t('drive.deleteComment')}
+                        >
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

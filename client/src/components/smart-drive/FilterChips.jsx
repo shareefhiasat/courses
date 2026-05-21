@@ -1,10 +1,6 @@
 import { useLang } from '@contexts/LangContext';
 import { X, FileImage, FileText, Video, Music, Archive, Calendar, User, Star, Clock, Trash2 } from 'lucide-react';
 
-/**
- * FilterChips - Interactive filter chips with remove buttons
- * Synced with URL query params for shareable filtered views
- */
 export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll }) {
   const { t } = useLang();
 
@@ -20,7 +16,7 @@ export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll 
 
   const getFilterLabel = (filter) => {
     const { type, value } = filter;
-    
+
     switch (type) {
       case 'type':
         return t(`drive.filter.type.${value}`);
@@ -40,19 +36,33 @@ export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll 
   }
 
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-sm text-[#8d90a0]">
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+      <span style={{ fontSize: '0.875rem', color: 'var(--text-muted, #8d90a0)' }}>
         {t('drive.filters')}:
       </span>
-      
+
       {activeFilters.map((filter, idx) => {
         const Icon = getFilterIcon(filter.type);
-        
+
         return (
           <button
             key={`${filter.type}-${filter.value}-${idx}`}
             onClick={() => onRemoveFilter(filter)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563eb]/10 border border-[#2563eb]/30 rounded-full text-sm text-[#b4c5ff] hover:bg-[#2563eb]/20 transition-colors"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.375rem 0.75rem',
+              background: 'rgba(128, 0, 32, 0.1)',
+              border: '1px solid var(--color-primary, #800020)',
+              borderRadius: '9999px',
+              fontSize: '0.875rem',
+              color: 'var(--color-primary, #800020)',
+              cursor: 'pointer',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(128, 0, 32, 0.2)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(128, 0, 32, 0.1)'}
           >
             <Icon className="w-3.5 h-3.5" />
             {getFilterLabel(filter)}
@@ -64,7 +74,16 @@ export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll 
       {activeFilters.length > 1 && (
         <button
           onClick={onClearAll}
-          className="text-sm text-[#8d90a0] hover:text-white underline"
+          style={{
+            fontSize: '0.875rem',
+            color: 'var(--text-muted, #8d90a0)',
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            textDecoration: 'underline',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text, #111827)'}
+          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted, #8d90a0)'}
         >
           {t('drive.clearAllFilters')}
         </button>

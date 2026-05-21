@@ -1417,6 +1417,7 @@ model Folder {
   ownerId     Int
   path        String    // materialised '/a/b/c' for fast prefix lookups
   isPrivate   Boolean   @default(false)
+  isStarred   Boolean   @default(false)
   isDeleted   Boolean   @default(false)
   deletedAt   DateTime?
   deletedById Int?

@@ -5,6 +5,8 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Input } from '@ui';
 import WorkflowBadge from './WorkflowBadge';
 
+const DEFAULT_TASK_NAME = 'Workflow Approval';
+
 export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onReject }) {
   const { t, isRTL } = useLang();
   const { theme } = useTheme();
@@ -51,7 +53,7 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-            {t('Pending Approvals')} ({tasks.length})
+            {t('drive.pendingApprovals', { count: tasks.length })}
           </h2>
           <button
             onClick={onClose}
@@ -66,7 +68,7 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
           {tasks.length === 0 ? (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
               <FileIcon className="w-12 h-12 mx-auto mb-3 opacity-30" aria-hidden="true" />
-              <p className="text-sm">{t('No pending approvals')}</p>
+              <p className="text-sm">{t('workflow.inbox.empty')}</p>
             </div>
           ) : (
             tasks.map((task) => (
@@ -77,10 +79,10 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
-                      {task.definition?.name || 'Workflow Approval'}
+                      {task.definition?.name || t('workflow.detail.title') || DEFAULT_TASK_NAME}
                     </h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {t('Initiated by')}: {task.initiatedBy?.name || 'Unknown'}
+                      {t('workflow.detail.creator')}: {task.initiatedBy?.name || t('drive.unknown')}
                     </p>
                   </div>
                   <WorkflowBadge
@@ -93,11 +95,11 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
                 {task.currentStage && (
                   <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border-l-4 border-blue-400">
                     <p className="text-xs font-medium text-blue-900 dark:text-blue-300">
-                      {t('Current Stage')}: {task.currentStage.name}
+                      {t('workflow.detail.currentAssignee')}: {task.currentStage.name}
                     </p>
                     {task.steps?.[0]?.slaDeadline && (
                       <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
-                        {t('Due')}: {new Date(task.steps[0].slaDeadline).toLocaleString()}
+                        {t('workflow.inbox.due')}: {new Date(task.steps[0].slaDeadline).toLocaleString()}
                       </p>
                     )}
                   </div>
@@ -136,7 +138,7 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
                         disabled={actionLoading}
                         variant="outline"
                       >
-                        {t('Cancel')}
+                        {t('common.cancel')}
                       </Button>
                     </div>
                   </div>
@@ -146,7 +148,7 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
                     className="w-full mt-3"
                     variant="primary"
                   >
-                    {t('Review & Approve')}
+                    {t('workflow.actions.review')}
                   </Button>
                 )}
               </div>

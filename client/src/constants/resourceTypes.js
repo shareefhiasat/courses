@@ -38,15 +38,21 @@ export const getResourceTypeColor = (type) => {
   return RESOURCE_TYPE_COLORS[type] || '#6b7280';
 };
 
-export const getResourceTypeIcon = (type) => {
-  return getThemedIcon('resource', type);
+export const getResourceTypeIcon = (type, theme = 'light', lang = 'en') => {
+  const iconMap = {
+    all: getThemedIcon('ui', 'folder', 16, theme),
+    video: getThemedIcon('ui', 'video', 16, theme),
+    link: getThemedIcon('ui', 'link', 16, theme),
+    document: getThemedIcon('ui', 'file_text', 16, theme)
+  };
+  return iconMap[type] || getThemedIcon('ui', 'file', 16, theme);
 };
 
-export const getResourceTypeConfig = (type) => {
+export const getResourceTypeConfig = (type, theme = 'light', lang = 'en') => {
   return {
-    label: getResourceTypeLabel(type),
+    label: getResourceTypeLabel(type, lang),
     color: getResourceTypeColor(type),
-    icon: getResourceTypeIcon(type)
+    icon: getResourceTypeIcon(type, theme, lang)
   };
 };
 

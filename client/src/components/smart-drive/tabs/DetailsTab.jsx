@@ -59,25 +59,41 @@ export default function DetailsTab({ file }) {
   ];
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-        {t('drive.fileDetails')}
-      </h3>
-
-      <div className="grid grid-cols-1 gap-3">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
         {details.map(({ icon: Icon, label, value }, idx) => (
           <div
             key={idx}
-            className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-200 shadow-sm"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              padding: '1rem',
+              background: 'var(--panel, white)',
+              borderRadius: '0.75rem',
+              border: '1px solid var(--border, #e5e7eb)',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            }}
           >
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-              <Icon className="w-5 h-5 text-blue-600" aria-hidden="true" />
+            <div
+              style={{
+                flexShrink: 0,
+                width: '2.5rem',
+                height: '2.5rem',
+                borderRadius: '0.5rem',
+                background: 'var(--color-primary-alpha, rgba(37, 99, 235, 0.1))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Icon className="w-5 h-5" style={{ color: 'var(--color-primary, #2563eb)' }} aria-hidden="true" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-900 mb-0.5">
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text, #111827)', margin: 0, marginBottom: '0.125rem' }}>
                 {label}
               </p>
-              <p className="text-sm font-medium text-gray-900 break-all">
+              <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, wordBreak: 'break-all' }}>
                 {value}
               </p>
             </div>
@@ -86,11 +102,20 @@ export default function DetailsTab({ file }) {
       </div>
 
       {file.checksumSha256 && (
-        <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm mt-3">
-          <p className="text-sm text-gray-900 mb-1">
-            {t('drive.checksum')} (SHA-256)
+        <div
+          style={{
+            padding: '1rem',
+            background: 'var(--panel, white)',
+            borderRadius: '0.75rem',
+            border: '1px solid var(--border, #e5e7eb)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            marginTop: '0.75rem',
+          }}
+        >
+          <p style={{ fontSize: '0.875rem', color: 'var(--text, #111827)', margin: 0, marginBottom: '0.25rem' }}>
+            {t('drive.checksum')} ({t('drive.checksumSha256') || 'SHA-256'})
           </p>
-          <p className="text-xs font-mono text-gray-900 break-all">
+          <p style={{ fontSize: '0.75rem', fontFamily: 'ui-monospace, monospace', color: 'var(--text, #111827)', margin: 0, wordBreak: 'break-all' }}>
             {file.checksumSha256}
           </p>
         </div>

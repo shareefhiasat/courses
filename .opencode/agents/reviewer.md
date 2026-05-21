@@ -16,6 +16,7 @@ permission:
     "node *": allow
     "npx *": allow
     "npm *": allow
+    "pnpm *": allow
     "curl *": allow
     "*": ask
 ---
@@ -80,10 +81,11 @@ You are a Senior Reviewer for the Military LMS. You own code quality, architectu
 
 ## Review Process
 1. Read the PR description and linked issue
-2. Review changed files (`git diff`)
-3. Leave specific, actionable feedback
-4. Approve or request changes
-5. If making minor fixes directly, describe what was changed and why
+2. Run automated linting: `npx eslint client/src/` (if frontend changes) and `node backend/server.js --check` (if applicable)
+3. Review changed files (`git diff`)
+4. Leave specific, actionable feedback
+5. Approve or request changes
+6. If making minor fixes directly, describe what was changed and why
 
 ## Output
 When asked to produce a review, save it to `reviews/`:

@@ -129,7 +129,7 @@ export default function UploadZone({ bucket, onUpload, onClose }) {
         onDrop={handleDrop}
         className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${
           isDragging
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 scale-[1.02]'
+            ? 'border-blue-500 scale-[1.02]'
             : 'border-gray-300 dark:border-gray-600 hover:border-blue-400'
         }`}
       >

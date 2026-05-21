@@ -52,7 +52,10 @@ export const ACTIVITY_LOG_TYPES = {
   ASSIGNMENT_CREATED: { icon: FileText, color: '#8b5cf6', label: 'Assignment Created' },
   SYSTEM_CONFIG: { icon: Settings, color: '#6b7280', label: 'System Configuration' },
   SECURITY_EVENT: { icon: Shield, color: '#ef4444', label: 'Security Event' },
-  PERFORMANCE: { icon: Zap, color: '#f59e0b', label: 'Performance' }
+  PERFORMANCE: { icon: Zap, color: '#f59e0b', label: 'Performance' },
+  RESOURCE_VIEWED: { icon: FileText, color: '#3b82f6', label: 'Resource Viewed' },
+  ANNOUNCEMENT_READ: { icon: FileText, color: '#3b82f6', label: 'Announcement Read' },
+  ACTIVITY_VIEWED: { icon: BookOpen, color: '#3b82f6', label: 'Activity Viewed' }
 };
 
 /**
@@ -166,12 +169,23 @@ export async function logPenalty(user, studentName, penaltyType, points, metadat
  * Log participation award
  */
 export async function logParticipation(user, studentName, delta, metadata = {}) {
-  return logActivity(
-    ACTIVITY_LOG_TYPES.PARTICIPATION_AWARDED,
-    `Awarded ${delta > 0 ? '+' : ''}${delta} participation points to ${studentName}`,
-    { ...metadata, studentName, delta },
-    user
-  );
+  const description = `${studentName} awarded ${delta > 0 ? '+' : ''}${delta} participation points`;
+  return logActivity('PARTICIPATION_AWARDED', description, { studentName, delta, ...metadata }, user);
+}
+
+export async function logResourceViewed(resourceId, resourceTitle, metadata = {}) {
+  const description = `Viewed resource: ${resourceTitle}`;
+  return logActivity('RESOURCE_VIEWED', description, { resourceId, resourceTitle, ...metadata });
+}
+
+export async function logAnnouncementRead(announcementId, announcementTitle, metadata = {}) {
+  const description = `Read announcement: ${announcementTitle}`;
+  return logActivity('ANNOUNCEMENT_READ', description, { announcementId, announcementTitle, ...metadata });
+}
+
+export async function logActivityViewed(activityId, activityTitle, metadata = {}) {
+  const description = `Viewed activity: ${activityTitle}`;
+  return logActivity('ACTIVITY_VIEWED', description, { activityId, activityTitle, ...metadata });
 }
 
 /**
@@ -205,9 +219,15 @@ export const ActivityLogger = {
   logBehavior,
   logPenalty,
   logParticipation,
+  logResourceViewed,
+  logAnnouncementRead,
+  logActivityViewed,
   getActivityIcon,
   getActivityLabel,
-  ACTIVITY_LOG_TYPES
+  ACTIVITY_LOG_TYPES,
+  resourceViewed: logResourceViewed,
+  announcementRead: logAnnouncementRead,
+  activityViewed: logActivityViewed
 };
 
 export default ActivityLogger;

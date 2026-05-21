@@ -1,13 +1,39 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { Activity, Upload, Download, Share2, Trash2, Edit, Star, RotateCcw } from 'lucide-react';
+import { Activity, Upload, Download, Share2, Trash2, Edit, Star, RotateCcw, Clock, Search } from 'lucide-react';
 import axios from 'axios';
+
+const ACTION_COLORS = {
+  UPLOAD: { light: '#16a34a', dark: '#4ade80' },
+  DOWNLOAD: { light: '#2563eb', dark: '#60a5fa' },
+  SHARE: { light: '#d97706', dark: '#fbbf24' },
+  DELETE: { light: '#dc2626', dark: '#f87171' },
+  EDIT: { light: '#2563eb', dark: '#60a5fa' },
+  STAR: { light: '#d97706', dark: '#fbbf24' },
+  RESTORE: { light: '#16a34a', dark: '#4ade80' },
+  PREVIEW: { light: '#8b5cf6', dark: '#a78bfa' },
+  OPEN_IN_NEW_TAB: { light: '#8b5cf6', dark: '#a78bfa' },
+};
+
+function getActionStyle(action) {
+  const colors = ACTION_COLORS[action?.toUpperCase()] || { light: '#6b7280', dark: '#9ca3af' };
+  return {
+    color: `var(--action-color, ${colors.light})`,
+  };
+}
+
+function getActionBg(action) {
+  const colors = ACTION_COLORS[action?.toUpperCase()] || { light: '#6b7280', dark: '#9ca3af' };
+  return `var(--action-bg, ${colors.light}1A)`;
+}
 
 export default function ActivityTab({ fileId }) {
   const { t } = useLang();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [filterText, setFilterText] = useState('');
 
   const fetchActivities = useCallback(async () => {
     if (!fileId) return;
@@ -32,42 +58,73 @@ export default function ActivityTab({ fileId }) {
     fetchActivities();
   }, [fetchActivities]);
 
+  // Group activities by date
+  const groupedActivities = activities.reduce((acc, activity) => {
+    const date = new Date(activity.createdAt).toDateString();
+    if (!acc[date]) {
+      acc[date] = [];
+    }
+    acc[date].push(activity);
+    return acc;
+  }, {});
+
+  const sortedDates = Object.keys(groupedActivities).sort((a, b) => new Date(b) - new Date(a));
+  
+  // Filter activities based on search text
+  const filteredActivities = useMemo(() => {
+    let filtered = selectedDate ? groupedActivities[selectedDate] || [] : activities;
+    if (filterText.trim()) {
+      const searchLower = filterText.toLowerCase();
+      filtered = filtered.filter(activity =>
+        activity.action?.toLowerCase().includes(searchLower) ||
+        activity.user?.displayName?.toLowerCase().includes(searchLower) ||
+        activity.user?.email?.toLowerCase().includes(searchLower)
+      );
+    }
+    return filtered;
+  }, [activities, filterText, selectedDate, groupedActivities]);
+
   const getActionIcon = (action) => {
     switch (action?.toUpperCase()) {
       case 'UPLOAD': return Upload;
       case 'DOWNLOAD': return Download;
       case 'SHARE': return Share2;
       case 'DELETE': return Trash2;
+      case 'RENAME': return Edit;
       case 'EDIT': return Edit;
       case 'STAR': return Star;
       case 'RESTORE': return RotateCcw;
+      case 'PREVIEW': return Activity;
+      case 'OPEN_IN_NEW_TAB': return Activity;
       default: return Activity;
     }
   };
 
-  const getActionColor = (action) => {
-    switch (action?.toUpperCase()) {
-      case 'UPLOAD': return 'text-green-600 dark:text-green-400';
-      case 'DOWNLOAD': return 'text-blue-600 dark:text-blue-400';
-      case 'SHARE': return 'text-amber-600 dark:text-amber-400';
-      case 'DELETE': return 'text-red-600 dark:text-red-400';
-      case 'EDIT': return 'text-blue-600 dark:text-blue-400';
-      case 'STAR': return 'text-amber-600 dark:text-amber-400';
-      case 'RESTORE': return 'text-green-600 dark:text-green-400';
-      default: return 'text-gray-500 dark:text-gray-400';
-    }
-  };
-
-  const formatDate = (date) => {
+  const formatDateTime = (date) => {
     if (!date) return '\u2014';
     const d = new Date(date);
     if (Number.isNaN(d.getTime())) return '\u2014';
-    return d.toLocaleString();
+    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatDateHeader = (dateStr) => {
+    const date = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return t('drive.today') || 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return t('drive.yesterday') || 'Yesterday';
+    } else {
+      return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-gray-500 dark:text-gray-400" role="status">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }} role="status">
         {t('common.loading')}&hellip;
       </div>
     );
@@ -75,7 +132,7 @@ export default function ActivityTab({ fileId }) {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-red-600 dark:text-red-400" role="alert">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: '#dc2626' }} role="alert">
         {error}
       </div>
     );
@@ -83,7 +140,7 @@ export default function ActivityTab({ fileId }) {
 
   if (activities.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-48 text-sm text-gray-500 dark:text-gray-400">
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
         <Activity className="w-10 h-10 mb-3 opacity-50" aria-hidden="true" />
         {t('drive.noActivity')}
       </div>
@@ -91,54 +148,180 @@ export default function ActivityTab({ fileId }) {
   }
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-        {t('drive.activityLog')} ({activities.length})
-      </h3>
+    <div style={{ display: 'flex', height: '100%', gap: '1rem' }}>
+      {/* Left sidebar - Date timeline */}
+      <div style={{ 
+        width: '200px', 
+        flexShrink: 0, 
+        borderRight: '1px solid var(--border, #e5e7eb)', 
+        paddingInlineEnd: '1rem',
+        overflowY: 'auto',
+        maxHeight: '600px'
+      }}>
+        <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Clock className="w-4 h-4" />
+          {t('drive.timeline') || 'Timeline'}
+        </h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <button
+            onClick={() => setSelectedDate(null)}
+            style={{
+              padding: '0.5rem',
+              textAlign: 'start',
+              background: !selectedDate ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
+              border: 'none',
+              borderRadius: '0.375rem',
+              fontSize: '0.875rem',
+              color: !selectedDate ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
+              cursor: 'pointer',
+              fontWeight: !selectedDate ? 600 : 400,
+            }}
+          >
+            {t('drive.allActivities') || 'All Activities'} ({activities.length})
+          </button>
+          {sortedDates.map((date) => (
+            <button
+              key={date}
+              onClick={() => setSelectedDate(date)}
+              style={{
+                padding: '0.5rem',
+                textAlign: 'start',
+                background: selectedDate === date ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
+                border: 'none',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                color: selectedDate === date ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
+                cursor: 'pointer',
+                fontWeight: selectedDate === date ? 600 : 400,
+              }}
+            >
+              {formatDateHeader(date)} ({groupedActivities[date].length})
+            </button>
+          ))}
+        </div>
+      </div>
 
-      <div className="relative">
-        <div className="absolute start-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
+      {/* Right content - Activities */}
+      <div style={{ flex: 1, overflowY: 'auto', maxHeight: '600px' }}>
+        {/* Search filter */}
+        <div style={{ position: 'relative', marginBottom: '1rem' }}>
+          <Search style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)' }} aria-hidden="true" />
+          <input
+            type="text"
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            placeholder={t('drive.filterActivities') || 'Filter activities...'}
+            style={{
+              width: '100%',
+              padding: '0.625rem 2.5rem',
+              border: '1px solid var(--border, #d1d5db)',
+              borderRadius: '0.5rem',
+              background: 'var(--panel, white)',
+              color: 'var(--text, #111827)',
+              fontSize: '0.875rem',
+              outline: 'none',
+            }}
+            aria-label={t('drive.filterActivities') || 'Filter activities'}
+          />
+          {filterText && (
+            <button
+              onClick={() => setFilterText('')}
+              style={{
+                position: 'absolute',
+                right: '0.75rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--text-muted, #6b7280)',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                padding: '0.25rem',
+                borderRadius: '0.25rem',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text, #111827)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted, #6b7280)'}
+              aria-label={t('common.clear')}
+            >
+              ✕
+            </button>
+          )}
+        </div>
 
-        <div className="space-y-4">
-          {activities.map((activity) => {
-            const ActionIcon = getActionIcon(activity.action);
-            const colorClass = getActionColor(activity.action);
+        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
+          {selectedDate ? formatDateHeader(selectedDate) : t('drive.activityLog')} ({filteredActivities.length})
+        </h3>
 
-            return (
-              <div key={activity.id} className="relative ps-12">
-                <div className={`absolute start-0 w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center border-2 border-white ${colorClass}`}>
-                  <ActionIcon className="w-4 h-4" aria-hidden="true" />
-                </div>
+        {filteredActivities.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+            <Activity className="w-10 h-10 mb-3 opacity-50" aria-hidden="true" />
+            {filterText ? t('drive.noMatchingActivities') || 'No matching activities' : t('drive.noActivity')}
+          </div>
+        ) : (
+          <div style={{ position: 'relative' }}>
+            <div style={{ position: 'absolute', insetInlineStart: '1rem', top: 0, bottom: 0, width: '0.125rem', background: 'var(--border, #e5e7eb)' }} />
 
-                <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
-                        {activity.action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {activity.user?.displayName || activity.user?.email || 'Unknown User'}
-                        {' \u00B7 '}
-                        {formatDate(activity.createdAt)}
-                      </p>
-                      {activity.metadata && Object.keys(activity.metadata).length > 0 && (
-                        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 space-x-2">
-                          {activity.metadata.linkId && <span className="text-blue-600 dark:text-blue-400">Link created</span>}
-                          {activity.metadata.expiresAt && (
-                            <span>Expires: {new Date(activity.metadata.expiresAt).toLocaleDateString()}</span>
-                          )}
-                          {activity.metadata.passwordProtected && (
-                            <span className="text-amber-600 dark:text-amber-400">Password protected</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {filteredActivities.map((activity) => {
+                const ActionIcon = getActionIcon(activity.action);
+
+                return (
+                  <div key={activity.id} style={{ position: 'relative', paddingInlineStart: '3rem' }}>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        insetInlineStart: 0,
+                        width: '2rem',
+                        height: '2rem',
+                        borderRadius: '9999px',
+                        background: getActionBg(activity.action),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '2px solid var(--panel, white)',
+                      }}
+                    >
+                      <ActionIcon className="w-4 h-4" style={getActionStyle(activity.action)} aria-hidden="true" />
+                    </div>
+
+                    <div style={{
+                      padding: '1rem',
+                      background: 'var(--panel, white)',
+                      borderRadius: '0.75rem',
+                      border: '1px solid var(--border, #e5e7eb)',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, marginBottom: '0.25rem' }}>
+                            {t('drive.activity.' + activity.action?.toLowerCase()) || activity.action}
+                            {' \u00B7 '}
+                            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)', fontWeight: 400 }}>
+                              {activity.user?.displayName || activity.user?.email || t('drive.unknownUser')}
+                            </span>
+                          </p>
+                          {activity.metadata && Object.keys(activity.metadata).length > 0 && (
+                            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              {activity.metadata.linkId && <span style={{ color: 'var(--color-primary, #2563eb)' }}>{t('drive.linkCreated')}</span>}
+                              {activity.metadata.expiresAt && (
+                                <span>{t('drive.expires')}: {new Date(activity.metadata.expiresAt).toLocaleDateString()}</span>
+                              )}
+                              {activity.metadata.passwordProtected && (
+                                <span style={{ color: '#d97706' }}>{t('drive.passwordProtected')}</span>
+                              )}
+                            </div>
                           )}
                         </div>
-                      )}
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                          {formatDateTime(activity.createdAt)}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

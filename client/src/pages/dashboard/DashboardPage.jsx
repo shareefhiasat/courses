@@ -277,13 +277,13 @@ const DashboardPage = () => {
       id: 'settings',
       label: t('settings'),
       items: [
-        { key: 'categories', label: t('categories') },
-        { key: 'logging', label: t('logs') }
+        { key: 'categories', label: t('categories') }
+        // { key: 'logging', label: t('logs') } // Hidden for now
       ]
     },
     {
-      id: 'lookups',
-      label: 'Lookups',
+      id: 'system-lookups',
+      label: 'System Lookups (Read-Only)',
       items: [
         { key: 'resource-types', label: 'Resource Types' },
         { key: 'priority-types', label: 'Priority Types' },
@@ -292,7 +292,13 @@ const DashboardPage = () => {
         { key: 'assessment-types', label: 'Assessment Types' },
         { key: 'question-types', label: 'Question Types' },
         { key: 'attendance-status-types', label: 'Attendance Status' },
-        { key: 'enrollment-status-types', label: 'Enrollment Status' },
+        { key: 'enrollment-status-types', label: 'Enrollment Status' }
+      ]
+    },
+    {
+      id: 'user-lookups',
+      label: 'User Lookups (Editable)',
+      items: [
         { key: 'activity-types', label: 'Activity Types' },
         { key: 'behavior-types', label: 'Behavior Types' },
         { key: 'participation-types', label: 'Participation Types' },

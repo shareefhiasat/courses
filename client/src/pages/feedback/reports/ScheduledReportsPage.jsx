@@ -9,8 +9,8 @@ import {
   addScheduledReport, 
   updateScheduledReport, 
   deleteScheduledReport 
-} from '@services/business/configService';
-import { getEmailTemplates } from '@services/business/emailService';
+} from '@services/db/configService';
+import { getEmailTemplates } from '@services/business/emailDbService';
 import { Button, Input, Select, Textarea, useToast, Card, CardBody } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { Container } from '@ui';

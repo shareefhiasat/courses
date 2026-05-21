@@ -3,6 +3,52 @@ import { useLang } from '@contexts/LangContext';
 import { GitBranch, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 
+const STATUS_STYLES = {
+  APPROVED: {
+    color: 'var(--status-approved, #16a34a)',
+    bg: 'var(--status-approved-bg, rgba(22, 163, 74, 0.1))',
+    borderColor: 'var(--status-approved-border, #86efac)',
+  },
+  REJECTED: {
+    color: 'var(--status-rejected, #dc2626)',
+    bg: 'var(--status-rejected-bg, rgba(220, 38, 38, 0.1))',
+    borderColor: 'var(--status-rejected-border, #fca5a5)',
+  },
+  PENDING: {
+    color: 'var(--status-pending, #d97706)',
+    bg: 'var(--status-pending-bg, rgba(217, 119, 6, 0.1))',
+    borderColor: 'var(--status-pending-border, #fcd34d)',
+  },
+  REVISED: {
+    color: 'var(--status-revised, #2563eb)',
+    bg: 'var(--status-revised-bg, rgba(37, 99, 235, 0.1))',
+    borderColor: 'var(--status-revised-border, #93c5fd)',
+  },
+};
+
+const DEFAULT_STATUS = {
+  color: 'var(--text-muted, #6b7280)',
+  bg: 'var(--background-secondary, #f3f4f6)',
+  borderColor: 'var(--border, #e5e7eb)',
+};
+
+function getStatusStyle(status) {
+  return STATUS_STYLES[status?.toUpperCase()] || DEFAULT_STATUS;
+}
+
+function getStepBadgeStyle(completed) {
+  if (completed) {
+    return {
+      color: 'var(--status-approved, #16a34a)',
+      bg: 'var(--status-approved-bg, rgba(22, 163, 74, 0.1))',
+    };
+  }
+  return {
+    color: 'var(--text-muted, #6b7280)',
+    bg: 'var(--background-secondary, #f3f4f6)',
+  };
+}
+
 export default function WorkflowTab({ fileId }) {
   const { t } = useLang();
   const [workflow, setWorkflow] = useState(null);
@@ -45,16 +91,6 @@ export default function WorkflowTab({ fileId }) {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status?.toUpperCase()) {
-      case 'APPROVED': return 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
-      case 'REJECTED': return 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800';
-      case 'PENDING': return 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800';
-      case 'REVISED': return 'text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800';
-      default: return 'text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800/80 border-gray-200 dark:border-gray-700';
-    }
-  };
-
   const formatDate = (date) => {
     if (!date) return '\u2014';
     const d = new Date(date);
@@ -64,7 +100,7 @@ export default function WorkflowTab({ fileId }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-gray-500 dark:text-gray-400" role="status">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }} role="status">
         {t('common.loading')}&hellip;
       </div>
     );
@@ -72,7 +108,7 @@ export default function WorkflowTab({ fileId }) {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-red-600 dark:text-red-400" role="alert">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: '#dc2626' }} role="alert">
         {error}
       </div>
     );
@@ -80,7 +116,7 @@ export default function WorkflowTab({ fileId }) {
 
   if (!workflow) {
     return (
-      <div className="flex flex-col items-center justify-center h-48 text-sm text-gray-500 dark:text-gray-400">
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
         <GitBranch className="w-10 h-10 mb-3 opacity-50" aria-hidden="true" />
         {t('drive.noWorkflow')}
       </div>
@@ -88,90 +124,129 @@ export default function WorkflowTab({ fileId }) {
   }
 
   const StatusIcon = getStatusIcon(workflow.status);
-  const statusColorClass = getStatusColor(workflow.status);
+  const statusStyle = getStatusStyle(workflow.status);
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem', margin: 0 }}>
         {t('drive.workflowStatus')}
       </h3>
 
-      <div className={`p-4 rounded-xl border ${statusColorClass}`}>
-        <div className="flex items-center gap-3 mb-3">
+      <div
+        style={{
+          padding: '1rem',
+          borderRadius: '0.75rem',
+          border: '1px solid',
+          borderColor: statusStyle.borderColor,
+          background: statusStyle.bg,
+          color: statusStyle.color,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
           <StatusIcon className="w-6 h-6" aria-hidden="true" />
-          <div className="flex-1">
-            <h4 className="font-semibold text-current">
+          <div style={{ flex: 1 }}>
+            <h4 style={{ margin: 0, fontWeight: 600, color: 'inherit' }}>
               {workflow.definition?.name || t('drive.workflow')}
             </h4>
-            <p className="text-xs opacity-80 mt-0.5 text-current">
+            <p style={{ margin: '0.125rem 0 0', fontSize: '0.75rem', opacity: 0.8, color: 'inherit' }}>
               {workflow.definition?.description}
             </p>
           </div>
-          <span className="px-3 py-1 rounded-full text-xs font-medium bg-black/10 dark:bg-white/10 text-current">
+          <span
+            style={{
+              padding: '0.25rem 0.75rem',
+              borderRadius: '9999px',
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              background: 'rgba(0,0,0,0.1)',
+              color: 'inherit',
+            }}
+          >
             {t(`workflow.status.${workflow.status.toLowerCase()}`) || workflow.status}
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 text-sm text-current">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.875rem', color: 'inherit' }}>
           <div>
-            <p className="opacity-70 text-xs mb-1">{t('drive.initiatedBy')}</p>
-            <p className="font-medium">{workflow.initiatedBy?.displayName || workflow.initiatedBy?.email || '\u2014'}</p>
+            <p style={{ opacity: 0.7, fontSize: '0.75rem', marginBottom: '0.25rem', margin: 0 }}>{t('drive.initiatedBy')}</p>
+            <p style={{ fontWeight: 500, margin: 0 }}>{workflow.initiatedBy?.displayName || workflow.initiatedBy?.email || '\u2014'}</p>
           </div>
           <div>
-            <p className="opacity-70 text-xs mb-1">{t('drive.initiatedAt')}</p>
-            <p className="font-medium">{formatDate(workflow.createdAt)}</p>
+            <p style={{ opacity: 0.7, fontSize: '0.75rem', marginBottom: '0.25rem', margin: 0 }}>{t('drive.initiatedAt')}</p>
+            <p style={{ fontWeight: 500, margin: 0 }}>{formatDate(workflow.createdAt)}</p>
           </div>
         </div>
 
         {workflow.completedAt && (
-          <div className="mt-3 pt-3 border-t border-current/10">
-            <p className="opacity-70 text-xs mb-1">{t('drive.completedAt')}</p>
-            <p className="font-medium text-sm">{formatDate(workflow.completedAt)}</p>
+          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid', borderColor: 'currentColor', opacity: 0.1 }}>
+            <p style={{ opacity: 0.7, fontSize: '0.75rem', marginBottom: '0.25rem', margin: 0 }}>{t('drive.completedAt')}</p>
+            <p style={{ fontWeight: 500, fontSize: '0.875rem', margin: 0 }}>{formatDate(workflow.completedAt)}</p>
           </div>
         )}
       </div>
 
       {workflow.currentStage && (
-        <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
-          <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+        <div style={{
+          padding: '1rem',
+          background: 'var(--panel, white)',
+          borderRadius: '0.75rem',
+          border: '1px solid var(--border, #e5e7eb)',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+        }}>
+          <h5 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0, marginBottom: '0.5rem' }}>
             {t('drive.currentStage')}
           </h5>
-          <p className="text-sm text-gray-700 dark:text-gray-300">
+          <p style={{ fontSize: '0.875rem', color: 'var(--text, #374151)', margin: 0 }}>
             {workflow.currentStage.name}
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', margin: '0.25rem 0 0' }}>
             {t('drive.assignedTo')}: {workflow.currentStage.assignedRole}
           </p>
         </div>
       )}
 
       {workflow.steps && workflow.steps.length > 0 && (
-        <div className="space-y-2">
-          <h5 className="text-sm font-semibold text-gray-900 dark:text-white">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <h5 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0 }}>
             {t('drive.workflowSteps')} ({workflow.steps.length})
           </h5>
-          {workflow.steps.map((step, idx) => (
-            <div
-              key={step.id}
-              className="p-3 bg-white rounded-xl border border-gray-200 shadow-sm text-sm"
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-medium text-gray-900 dark:text-white">
-                  {step.stage?.name || `${t('drive.step')} ${idx + 1}`}
-                </span>
-                <span className={`px-2 py-0.5 rounded-full text-xs ${
-                  step.status === 'COMPLETED'
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                }`}>
-                  {t(`workflow.stepStatus.${step.status.toLowerCase()}`) || step.status}
-                </span>
+          {workflow.steps.map((step, idx) => {
+            const badgeStyle = getStepBadgeStyle(step.status === 'COMPLETED');
+
+            return (
+              <div
+                key={step.id}
+                style={{
+                  padding: '0.75rem',
+                  background: 'var(--panel, white)',
+                  borderRadius: '0.75rem',
+                  border: '1px solid var(--border, #e5e7eb)',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                  fontSize: '0.875rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                  <span style={{ fontWeight: 500, color: 'var(--text, #111827)' }}>
+                    {step.stage?.name || `${t('drive.step')} ${idx + 1}`}
+                  </span>
+                  <span
+                    style={{
+                      padding: '0.125rem 0.5rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.75rem',
+                      color: badgeStyle.color,
+                      background: badgeStyle.bg,
+                    }}
+                  >
+                    {t(`workflow.stepStatus.${step.status.toLowerCase()}`) || step.status}
+                  </span>
+                </div>
+                {step.comments && (
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', margin: '0.5rem 0 0' }}>{step.comments}</p>
+                )}
               </div>
-              {step.comments && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{step.comments}</p>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { Search, User } from 'lucide-react';
+import { Search, User, X } from 'lucide-react';
 import axios from 'axios';
 
 export default function UserSearchDropdown({ value, onChange, disabled = false, excludeUserIds = [] }) {
@@ -9,6 +9,19 @@ export default function UserSearchDropdown({ value, onChange, disabled = false, 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  const handleClickOutside = useCallback((e) => {
+    if (containerRef.current && !containerRef.current.contains(e.target)) {
+      setIsOpen(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [handleClickOutside]);
 
   const searchUsers = useCallback(async (searchQuery) => {
     if (!searchQuery || searchQuery.length < 2) {
@@ -22,14 +35,14 @@ export default function UserSearchDropdown({ value, onChange, disabled = false, 
       const response = await axios.get('/api/v1/users', {
         params: { search: searchQuery, limit: 20 }
       });
-
       if (response.data.success) {
         const filtered = (response.data.payload || []).filter(
           u => !excludeUserIds.includes(u.id)
         );
         setUsers(filtered);
+        setIsOpen(true);
       } else {
-        setError(response.data.error?.message || 'Search failed');
+        setError(response.data.error?.message || t('common.unknown_error'));
       }
     } catch (err) {
       console.error('[UserSearchDropdown] search failed:', err);
@@ -37,74 +50,200 @@ export default function UserSearchDropdown({ value, onChange, disabled = false, 
     } finally {
       setLoading(false);
     }
-  }, [excludeUserIds]);
+  }, [excludeUserIds, t]);
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      searchUsers(query);
-    }, 300);
-
+    const timeoutId = setTimeout(() => searchUsers(query), 300);
     return () => clearTimeout(timeoutId);
   }, [query, searchUsers]);
 
+  const handleSelectUser = (user) => {
+    setQuery(user.displayName || user.email);
+    onChange(user.id);
+    setIsOpen(false);
+  };
+
   return (
-    <div>
-      <label className="flex items-center gap-1.5 text-sm font-medium text-gray-900 dark:text-white mb-2">
+    <div ref={containerRef}>
+      <label
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.375rem',
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          color: 'var(--text, #111827)',
+          marginBottom: '0.5rem',
+        }}
+      >
         <User className="w-4 h-4" aria-hidden="true" />
         {t('drive.selectUser')}
       </label>
 
-      <div className="relative">
-        <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={t('drive.searchUsers')}
-          disabled={disabled}
-          className="w-full ps-10 pe-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        />
+      <div style={{ position: 'relative' }}>
+        {value && query ? (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.625rem 0.75rem',
+              border: '1px solid var(--border, #d1d5db)',
+              borderRadius: '0.5rem',
+              background: 'var(--panel, white)',
+              cursor: 'pointer',
+            }}
+            onClick={() => { setQuery(''); onChange(null); }}
+          >
+            <div
+              style={{
+                width: '2rem',
+                height: '2rem',
+                borderRadius: '9999px',
+                background: 'var(--color-primary-alpha, rgba(37, 99, 235, 0.1))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <User className="w-4 h-4" style={{ color: 'var(--color-primary, #2563eb)' }} aria-hidden="true" />
+            </div>
+            <span style={{ flex: 1, fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
+              {query}
+            </span>
+            <X className="w-4 h-4" style={{ color: 'var(--text-muted, #6b7280)', flexShrink: 0 }} />
+          </div>
+        ) : (
+          <>
+            <Search
+              style={{
+                position: 'absolute',
+                insetInlineStart: '0.75rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '1rem',
+                height: '1rem',
+                color: 'var(--text-muted, #6b7280)',
+                pointerEvents: 'none',
+              }}
+              aria-hidden="true"
+            />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => { if (users.length > 0) setIsOpen(true); }}
+              placeholder={t('drive.searchUsers')}
+              disabled={disabled}
+              style={{
+                width: '100%',
+                padding: '0.75rem 0.75rem 0.75rem 2.5rem',
+                border: '1px solid var(--border, #d1d5db)',
+                borderRadius: '0.5rem',
+                background: 'var(--panel, white)',
+                color: 'var(--text, #111827)',
+                fontSize: '0.9375rem',
+                outline: 'none',
+                transition: 'border-color 0.15s, box-shadow 0.15s',
+                opacity: disabled ? 0.5 : 1,
+                cursor: disabled ? 'not-allowed' : 'auto',
+              }}
+              onFocusCapture={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-primary, #2563eb)';
+                e.currentTarget.style.boxShadow = '0 0 0 2px var(--color-primary-alpha, rgba(37, 99, 235, 0.2))';
+              }}
+              onBlurCapture={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border, #d1d5db)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            />
+          </>
+        )}
       </div>
 
-      {query.length >= 2 && (
-        <div className="mt-2 max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-lg">
+      {isOpen && (
+        <div
+          style={{
+            marginTop: '0.375rem',
+            border: '1px solid var(--border, #e5e7eb)',
+            borderRadius: '0.75rem',
+            background: 'var(--panel, white)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            overflow: 'hidden',
+            zIndex: 50,
+          }}
+        >
           {loading && (
-            <div className="px-3 py-2.5 text-sm text-gray-500 dark:text-gray-400">
+            <div style={{ padding: '1rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+              <div style={{ width: '1rem', height: '1rem', border: '2px solid var(--border, #e5e7eb)', borderTopColor: 'var(--color-primary, #2563eb)', borderRadius: '9999px', animation: 'spin 0.6s linear infinite' }} />
               {t('common.searching')}&hellip;
             </div>
           )}
 
           {error && (
-            <div className="px-3 py-2.5 text-sm text-red-600 dark:text-red-400">
+            <div style={{ padding: '1rem 0.75rem', fontSize: '0.875rem', color: '#dc2626' }}>
               {error}
             </div>
           )}
 
-          {!loading && !error && users.length === 0 && (
-            <div className="px-3 py-2.5 text-sm text-gray-500 dark:text-gray-400">
+          {!loading && !error && users.length === 0 && query.length >= 2 && (
+            <div style={{ padding: '1.5rem 0.75rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+              <User className="w-8 h-8 mx-auto mb-2 opacity-30" aria-hidden="true" />
               {t('drive.noUsersFound')}
             </div>
           )}
 
-          {!loading && !error && users.length > 0 && users.map(user => (
-            <button
-              key={user.id}
-              onClick={() => {
-                onChange(user.id);
-                setQuery(user.displayName || user.email);
-              }}
-              className="w-full px-3 py-2.5 text-start hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-b-0"
-            >
-              <div className="text-sm font-medium text-gray-900 dark:text-white">
-                {user.displayName || user.email}
-              </div>
-              {user.displayName && user.email && (
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {user.email}
-                </div>
-              )}
-            </button>
-          ))}
+          {!loading && !error && users.length > 0 && (
+            <div>
+              {users.map(user => (
+                <button
+                  key={user.id}
+                  onClick={() => handleSelectUser(user)}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.75rem',
+                    textAlign: 'start',
+                    border: 'none',
+                    borderBottom: '1px solid var(--border, #e5e7eb)',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    transition: 'background 0.1s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <div
+                    style={{
+                      width: '2.25rem',
+                      height: '2.25rem',
+                      borderRadius: '9999px',
+                      background: 'var(--color-primary-alpha, rgba(37, 99, 235, 0.1))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <User className="w-4 h-4" style={{ color: 'var(--color-primary, #2563eb)' }} aria-hidden="true" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
+                      {user.displayName || user.email}
+                    </div>
+                    {user.displayName && user.email && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', marginTop: '0.125rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {user.email}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Users, Link as LinkIcon, Shield } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
+import { Users, Link as LinkIcon, Shield, User } from 'lucide-react';
 import { usePermissions } from '@hooks/usePermissions';
 import { useLang } from '@contexts/LangContext';
 import { ROLE_STRINGS } from '@utils/userUtils';
@@ -7,40 +7,73 @@ import Modal from '@ui/Modal/Modal';
 import Tabs from '@ui/Tabs/Tabs';
 import Select from '@ui/Select/Select';
 import Button from '@ui/Button/Button';
-import UserSearchDropdown from './UserSearchDropdown';
-import RoleSelect from './RoleSelect';
-import SharePermissionSelect from './SharePermissionSelect';
 import SharesList from './SharesList';
 
 export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) {
   const { t } = useLang();
   const { hasPermission, roleCode } = usePermissions();
   const [shareType, setShareType] = useState('people');
-  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [selectedRole, setSelectedRole] = useState('');
   const [permission, setPermission] = useState('VIEW');
   const [expiryDays, setExpiryDays] = useState(null);
   const [publicLink, setPublicLink] = useState('');
   const [loading, setLoading] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [userOptions, setUserOptions] = useState([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const [sharesListKey, setSharesListKey] = useState(0);
+  const searchTimeoutRef = useRef(null);
+
+  const searchUsers = useCallback(async (query) => {
+    if (!query || query.length < 2) {
+      setUserOptions([]);
+      return;
+    }
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSearchingUsers(true);
+      try {
+        const { default: axios } = await import('axios');
+        const response = await axios.get('/api/v1/users', { params: { search: query, limit: 20, excludeStudents: 'true' } });
+        if (response.data.success) {
+          setUserOptions(
+            (response.data.payload || []).map(u => ({
+              value: u.id,
+              label: u.displayName || u.email,
+              subtext: u.displayName && u.email && u.email !== u.displayName ? u.email : null,
+              icon: <div style={{ width: '2rem', height: '2rem', borderRadius: '9999px', background: 'var(--color-primary-alpha, rgba(37,99,235,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User className="w-4 h-4" style={{ color: 'var(--color-primary, #2563eb)' }} /></div>,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error('[ShareDialog] user search failed:', err);
+      } finally {
+        setSearchingUsers(false);
+      }
+    }, 300);
+  }, []);
 
   const isSuperAdmin = roleCode === ROLE_STRINGS.SUPER_ADMIN;
   const canShare = isSuperAdmin || hasPermission('drive.share');
   const canPublicLink = isSuperAdmin || hasPermission('drive.public-link');
 
   const handleShareWithUser = async () => {
-    if (!selectedUserId || !canShare) return;
+    if (selectedUserIds.length === 0 || !canShare) return;
     setLoading(true);
     setShareSuccess(false);
     try {
       const expiresAt = expiryDays ? new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString() : null;
-      await onShare?.({
-        fileId: file.id, subjectType: 'USER', subjectId: selectedUserId,
-        permission, expiresAt,
-      });
+      for (const userId of selectedUserIds) {
+        await onShare?.({
+          fileId: file.id, subjectType: 'USER', subjectId: userId,
+          permission, expiresAt,
+        });
+      }
       setShareSuccess(true);
-      setSelectedUserId(null);
+      setSelectedUserIds([]);
       setExpiryDays(null);
+      setSharesListKey(prev => prev + 1); // Force refresh shares list
     } catch (error) {
       console.error('Share error:', error);
     } finally {
@@ -61,6 +94,7 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
       setShareSuccess(true);
       setSelectedRole('');
       setExpiryDays(null);
+      setSharesListKey(prev => prev + 1); // Force refresh shares list
     } catch (error) {
       console.error('Share role error:', error);
     } finally {
@@ -75,7 +109,8 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
       const result = await onGenerateLink?.(file.id, expiryDays);
       if (result?.token || result?.publicToken) {
         const token = result.token || result.publicToken;
-        setPublicLink(`${window.location.origin}/api/v1/public/links/${token}/download`);
+        const apiUrl = window.location.origin;
+        setPublicLink(`${apiUrl}/api/v1/public/links/${token}/download`);
       }
     } catch (error) {
       console.error('Generate link error:', error);
@@ -90,7 +125,7 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
 
   if (!canShare && !canPublicLink) {
     return (
-      <Modal isOpen={true} onClose={onClose} title={t('drive.noSharePermission')} size="small">
+      <Modal isOpen={true} onClose={onClose} title={t('drive.shareFile')} size="large" zIndex={10001}>
         <Button variant="primary" fullWidth onClick={onClose}>
           {t('common.close')}
         </Button>
@@ -104,101 +139,169 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
       onClose={onClose}
       title={t('drive.shareFile')}
       size="large"
+      zIndex={10001}
       draggable={false}
       aria-describedby="share-dialog-description"
     >
       <div className="space-y-6">
-        <div className="px-5 py-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-          <p id="share-dialog-description" className="text-sm text-gray-500 dark:text-gray-400 mb-1.5">
-            {t('drive.sharing')}:
-          </p>
-          <p className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+        <div
+          style={{
+            padding: '1rem 1.25rem',
+            background: 'var(--background-secondary, #f9fafb)',
+            borderRadius: '0.75rem',
+            border: '1px solid var(--border, #e5e7eb)',
+          }}
+        >
+          <p style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {file.name}
           </p>
         </div>
 
-        <Tabs
-          tabs={[
-            ...(canShare ? [
-              { value: 'people', label: t('drive.people'), icon: <Users className="w-4 h-4" aria-hidden="true" /> },
-              { value: 'roles', label: t('drive.roles'), icon: <Shield className="w-4 h-4" aria-hidden="true" /> }
-            ] : []),
-            ...(canPublicLink ? [
-              { value: 'public', label: t('drive.publicLink'), icon: <LinkIcon className="w-4 h-4" aria-hidden="true" /> }
-            ] : [])
-          ]}
-          activeTab={shareType}
-          onTabChange={setShareType}
-          variant="underline"
-        />
+        <div style={{ marginTop: '0.75rem' }}>
+          <Tabs
+            tabs={[
+              ...(canShare ? [
+                { value: 'people', label: t('drive.people'), icon: <Users className="w-4 h-4" aria-hidden="true" /> },
+                { value: 'roles', label: t('drive.roles'), icon: <Shield className="w-4 h-4" aria-hidden="true" /> }
+              ] : []),
+              ...(canPublicLink ? [
+                { value: 'public', label: t('drive.publicLink'), icon: <LinkIcon className="w-4 h-4" aria-hidden="true" /> }
+              ] : [])
+            ]}
+            activeTab={shareType}
+            onTabChange={setShareType}
+            variant="default"
+            size="md"
+          />
+        </div>
 
-        <div>
+        <div
+          style={{
+            minHeight: 'min(70vh, 600px)',
+            overflowY: 'auto',
+          }}
+        >
           {shareType === 'people' && canShare && (
-            <div className="space-y-6">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
               {shareSuccess && (
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-base text-green-700 dark:text-green-400" role="status" aria-live="polite">
+                <div style={{ padding: '1rem', background: 'var(--color-success-bg, #ecfdf5)', border: '1px solid var(--color-success-border, #a7f3d0)', borderRadius: '0.75rem', color: 'var(--color-success-text, #065f46)' }} role="status" aria-live="polite">
                   {t('drive.shareSuccess')}
                 </div>
               )}
 
-              <UserSearchDropdown value={selectedUserId} onChange={setSelectedUserId} disabled={loading} />
-              <SharePermissionSelect value={permission} onChange={setPermission} disabled={loading} />
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1rem' }}>
+                <Select
+                  label={t('drive.selectUser')}
+                  options={userOptions}
+                  value={selectedUserIds}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSelectedUserIds(Array.isArray(value) ? value : (value ? [value] : []));
+                  }}
+                  placeholder={t('drive.searchUsers')}
+                  searchPlaceholder={t('drive.searchUsers')}
+                  disabled={loading}
+                  onSearchChange={searchUsers}
+                  multiple
+                />
 
-              <Select
-                label={`${t('drive.expiry')} (${t('common.optional')})`}
-                options={[
-                  { value: '', label: t('drive.noExpiry') },
-                  { value: 1, label: `1 ${t('common.day')}` },
-                  { value: 7, label: `7 ${t('common.days')}` },
-                  { value: 30, label: `30 ${t('common.days')}` },
-                  { value: 90, label: `90 ${t('common.days')}` }
-                ]}
-                value={expiryDays || ''}
-                onChange={(e) => setExpiryDays(e.target.value ? parseInt(e.target.value) : null)}
-                searchable={false}
-                fullWidth
-              />
+                <Select
+                  label={t('drive.permission')}
+                  options={[
+                    { value: 'VIEW', label: t('drive.permission.view') },
+                    { value: 'DOWNLOAD', label: t('drive.permission.download') },
+                    { value: 'COMMENT', label: t('drive.permission.comment') },
+                    { value: 'EDIT', label: t('drive.permission.edit') }
+                  ]}
+                  value={permission}
+                  onChange={(e) => setPermission(e.target.value)}
+                  disabled={loading}
+                />
+
+                <Select
+                  label={`${t('drive.expiry')} (${t('common.optional')})`}
+                  options={[
+                    { value: '', label: t('drive.noExpiry') },
+                    { value: 1, label: `1 ${t('common.day')}` },
+                    { value: 7, label: `7 ${t('common.days')}` },
+                    { value: 30, label: `30 ${t('common.days')}` },
+                    { value: 90, label: `90 ${t('common.days')}` }
+                  ]}
+                  value={expiryDays || ''}
+                  onChange={(e) => setExpiryDays(e.target.value ? parseInt(e.target.value) : null)}
+                  disabled={loading}
+                />
+              </div>
+
+              {searchingUsers && (
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', marginTop: '-1.25rem' }}>
+                  {t('common.searching')}&hellip;
+                </div>
+              )}
 
               <Button
                 onClick={handleShareWithUser}
-                disabled={!selectedUserId || loading}
+                disabled={selectedUserIds.length === 0 || loading}
                 loading={loading}
                 fullWidth
               >
                 {loading ? t('common.sharing') : t('drive.share')}
               </Button>
 
-              <div className="pt-5 border-t border-gray-200 dark:border-gray-700">
-                <SharesList fileId={file.id} />
+              <div style={{ paddingTop: '1.25rem', borderTop: '1px solid var(--border, #e5e7eb)' }}>
+                <SharesList fileId={file.id} refreshKey={sharesListKey} />
               </div>
             </div>
           )}
 
           {shareType === 'roles' && canShare && (
-            <div className="space-y-6">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
               {shareSuccess && (
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-base text-green-700 dark:text-green-400" role="status" aria-live="polite">
+                <div style={{ padding: '1rem', background: 'var(--color-success-bg, #ecfdf5)', border: '1px solid var(--color-success-border, #a7f3d0)', borderRadius: '0.75rem', color: 'var(--color-success-text, #065f46)' }} role="status" aria-live="polite">
                   {t('drive.shareSuccess')}
                 </div>
               )}
 
-              <RoleSelect value={selectedRole} onChange={setSelectedRole} disabled={loading} />
-              <SharePermissionSelect value={permission} onChange={setPermission} disabled={loading} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                <Select
+                  label={t('drive.selectRole')}
+                  options={[
+                    { value: 'hr', label: t('roles.hr') },
+                    { value: 'admin', label: t('roles.admin') },
+                    { value: 'instructor', label: t('roles.instructor') }
+                  ]}
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  disabled={loading}
+                />
 
-              <Select
-                label={`${t('drive.expiry')} (${t('common.optional')})`}
-                options={[
-                  { value: '', label: t('drive.noExpiry') },
-                  { value: 1, label: `1 ${t('common.day')}` },
-                  { value: 7, label: `7 ${t('common.days')}` },
-                  { value: 30, label: `30 ${t('common.days')}` },
-                  { value: 90, label: `90 ${t('common.days')}` }
-                ]}
-                value={expiryDays || ''}
-                onChange={(e) => setExpiryDays(e.target.value ? parseInt(e.target.value) : null)}
-                searchable={false}
-                fullWidth
-              />
+                <Select
+                  label={t('drive.permission')}
+                  options={[
+                    { value: 'VIEW', label: t('drive.permission.view') },
+                    { value: 'DOWNLOAD', label: t('drive.permission.download') },
+                    { value: 'COMMENT', label: t('drive.permission.comment') },
+                    { value: 'EDIT', label: t('drive.permission.edit') }
+                  ]}
+                  value={permission}
+                  onChange={(e) => setPermission(e.target.value)}
+                  disabled={loading}
+                />
+
+                <Select
+                  label={`${t('drive.expiry')} (${t('common.optional')})`}
+                  options={[
+                    { value: '', label: t('drive.noExpiry') },
+                    { value: 1, label: `1 ${t('common.day')}` },
+                    { value: 7, label: `7 ${t('common.days')}` },
+                    { value: 30, label: `30 ${t('common.days')}` },
+                    { value: 90, label: `90 ${t('common.days')}` }
+                  ]}
+                  value={expiryDays || ''}
+                  onChange={(e) => setExpiryDays(e.target.value ? parseInt(e.target.value) : null)}
+                  disabled={loading}
+                />
+              </div>
 
               <Button
                 onClick={handleShareWithRole}
@@ -209,46 +312,47 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
                 {loading ? t('common.sharing') : t('drive.shareWithRole')}
               </Button>
 
-              <div className="pt-5 border-t border-gray-200 dark:border-gray-700">
-                <SharesList fileId={file.id} />
+              <div style={{ paddingTop: '1.25rem', borderTop: '1px solid var(--border, #e5e7eb)' }}>
+                <SharesList fileId={file.id} refreshKey={sharesListKey} />
               </div>
             </div>
           )}
 
           {shareType === 'public' && canPublicLink && (
-            <div className="space-y-6">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
               <Select
                 label={t('drive.linkExpiry')}
                 options={[
+                  { value: '', label: t('drive.noExpiry') },
                   { value: 1, label: `1 ${t('common.day')}` },
                   { value: 7, label: `7 ${t('common.days')}` },
                   { value: 30, label: `30 ${t('common.days')}` },
                   { value: 90, label: `90 ${t('common.days')}` }
                 ]}
-                value={expiryDays || 7}
-                onChange={(e) => setExpiryDays(parseInt(e.target.value))}
-                searchable={false}
+                value={expiryDays || ''}
+                onChange={(e) => {
+                  setExpiryDays(e.target.value ? parseInt(e.target.value) : null);
+                  setPublicLink(''); // Reset link when expiry changes
+                }}
                 fullWidth
               />
 
-              {!publicLink && (
-                <Button
-                  onClick={handleGeneratePublicLink}
-                  disabled={loading}
-                  loading={loading}
-                  fullWidth
-                >
-                  {loading ? t('common.generating') : t('drive.generateLink')}
-                </Button>
-              )}
+              <Button
+                onClick={handleGeneratePublicLink}
+                disabled={loading}
+                loading={loading}
+                fullWidth
+              >
+                {loading ? t('common.generating') : t('drive.generateLink')}
+              </Button>
 
               {publicLink && (
-                <div className="space-y-3">
-                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700" role="status" aria-live="polite">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1.5">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ padding: '1rem', background: 'var(--background-secondary, #f9fafb)', borderRadius: '0.75rem', border: '1px solid var(--border, #e5e7eb)' }} role="status" aria-live="polite">
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)', margin: '0 0 0.375rem 0' }}>
                       {t('drive.publicLinkGenerated')}
                     </p>
-                    <p className="text-sm font-mono text-gray-900 dark:text-white break-all">
+                    <p style={{ fontSize: '0.875rem', fontFamily: 'monospace', color: 'var(--text, #111827)', wordBreak: 'break-all', margin: 0 }}>
                       {publicLink}
                     </p>
                   </div>

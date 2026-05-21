@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { Clock, RotateCcw, Download, User } from 'lucide-react';
+import { Clock, RotateCcw, Download, User, Tag } from 'lucide-react';
 import axios from 'axios';
 
 export default function VersionsTab({ fileId }) {
@@ -8,6 +8,7 @@ export default function VersionsTab({ fileId }) {
   const [versions, setVersions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const fetchVersions = useCallback(async () => {
     if (!fileId) return;
@@ -52,16 +53,44 @@ export default function VersionsTab({ fileId }) {
     return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
   };
 
-  const formatDate = (date) => {
+  const formatDateTime = (date) => {
     if (!date) return '\u2014';
     const d = new Date(date);
     if (Number.isNaN(d.getTime())) return '\u2014';
-    return d.toLocaleString();
+    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
+
+  const formatDateHeader = (dateStr) => {
+    const date = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return t('drive.today') || 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return t('drive.yesterday') || 'Yesterday';
+    } else {
+      return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+  };
+
+  // Group versions by date
+  const groupedVersions = versions.reduce((acc, version) => {
+    const date = new Date(version.createdAt).toDateString();
+    if (!acc[date]) {
+      acc[date] = [];
+    }
+    acc[date].push(version);
+    return acc;
+  }, {});
+
+  const sortedDates = Object.keys(groupedVersions).sort((a, b) => new Date(b) - new Date(a));
+  const selectedVersions = selectedDate ? groupedVersions[selectedDate] : versions;
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-gray-500 dark:text-gray-400" role="status">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }} role="status">
         {t('common.loading')}&hellip;
       </div>
     );
@@ -69,7 +98,7 @@ export default function VersionsTab({ fileId }) {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-red-600 dark:text-red-400" role="alert">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: '#dc2626' }} role="alert">
         {error}
       </div>
     );
@@ -77,7 +106,7 @@ export default function VersionsTab({ fileId }) {
 
   if (versions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-48 text-sm text-gray-500 dark:text-gray-400">
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
         <Clock className="w-10 h-10 mb-3 opacity-50" aria-hidden="true" />
         {t('drive.noVersions')}
       </div>
@@ -85,65 +114,161 @@ export default function VersionsTab({ fileId }) {
   }
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-        {t('drive.versionHistory')} ({versions.length})
-      </h3>
+    <div style={{ display: 'flex', gap: '1rem', height: '100%' }}>
+      {/* Left sidebar - Date timeline */}
+      <div style={{ 
+        width: '200px', 
+        flexShrink: 0, 
+        borderRight: '1px solid var(--border, #e5e7eb)', 
+        paddingInlineEnd: '1rem',
+        overflowY: 'auto',
+        maxHeight: '500px'
+      }}>
+        <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Clock className="w-4 h-4" />
+          {t('drive.timeline') || 'Timeline'}
+        </h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <button
+            onClick={() => setSelectedDate(null)}
+            style={{
+              padding: '0.5rem',
+              textAlign: 'start',
+              background: !selectedDate ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
+              border: 'none',
+              borderRadius: '0.375rem',
+              fontSize: '0.875rem',
+              color: !selectedDate ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
+              cursor: 'pointer',
+              fontWeight: !selectedDate ? 600 : 400,
+            }}
+          >
+            {t('drive.allVersions') || 'All Versions'} ({versions.length})
+          </button>
+          {sortedDates.map((date) => (
+            <button
+              key={date}
+              onClick={() => setSelectedDate(date)}
+              style={{
+                padding: '0.5rem',
+                textAlign: 'start',
+                background: selectedDate === date ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
+                border: 'none',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                color: selectedDate === date ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
+                cursor: 'pointer',
+                fontWeight: selectedDate === date ? 600 : 400,
+              }}
+            >
+              {formatDateHeader(date)} ({groupedVersions[date].length})
+            </button>
+          ))}
+        </div>
+      </div>
 
-      {versions.map((version) => (
-        <div
-          key={version.id}
-          className={`p-4 rounded-xl border transition-colors ${
-            version.isCurrent
-              ? 'bg-green-50 border-green-200'
-              : 'bg-white border-gray-200 hover:border-gray-300 shadow-sm'
-          }`}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-blue-600" aria-hidden="true" />
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {t('drive.version')} {version.versionNumber}
-                </span>
-                {version.isCurrent && (
-                  <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">
-                    {t('drive.current')}
-                  </span>
-                )}
-              </div>
+      {/* Right content - Versions */}
+      <div style={{ flex: 1, overflowY: 'auto', maxHeight: '500px' }}>
+        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
+          {selectedDate ? formatDateHeader(selectedDate) : t('drive.versionHistory')} ({selectedVersions.length})
+        </h3>
 
-              <div className="space-y-1 text-sm text-gray-500 dark:text-gray-400">
-                <div className="flex items-center gap-2">
-                  <User className="w-3.5 h-3.5" aria-hidden="true" />
-                  {version.uploadedBy?.displayName || version.uploadedBy?.email || '\u2014'}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Download className="w-3.5 h-3.5" aria-hidden="true" />
-                  {formatSize(version.size)}
-                </div>
-                <div>{formatDate(version.createdAt)}</div>
-                {version.changeNote && (
-                  <div className="mt-2 p-2 bg-gray-100 rounded text-xs text-gray-700">
-                    {version.changeNote}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {selectedVersions.map((version) => (
+            <div
+              key={version.id}
+              style={{
+                padding: '1rem',
+                borderRadius: '0.75rem',
+                border: '2px solid',
+                borderColor: version.isCurrent ? '#10b981' : 'var(--border, #e5e7eb)',
+                background: 'var(--panel, white)',
+                boxShadow: version.isCurrent ? 'none' : '0 1px 2px rgba(0,0,0,0.05)',
+                transition: 'border-color 0.15s',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <Clock className="w-4 h-4" style={{ color: 'var(--color-primary, #2563eb)' }} aria-hidden="true" />
+                    <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
+                      {t('drive.version')} {version.versionNumber}
+                    </span>
+                    {version.isCurrent && (
+                      <span style={{
+                        padding: '0.125rem 0.5rem',
+                        fontSize: '0.75rem',
+                        borderRadius: '9999px',
+                        background: '#10b981',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                      }}>
+                        <Tag className="w-3 h-3" aria-hidden="true" />
+                        {t('drive.current')}
+                      </span>
+                    )}
                   </div>
-                )}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <User className="w-3.5 h-3.5" aria-hidden="true" />
+                      {version.uploadedBy?.displayName || version.uploadedBy?.email || '\u2014'}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                      {formatSize(version.size)}
+                    </div>
+                  </div>
+                  {version.changeNote && (
+                    <div style={{
+                      marginTop: '0.5rem',
+                      padding: '0.5rem',
+                      background: 'var(--background-secondary, #f3f4f6)',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.75rem',
+                      color: 'var(--text, #374151)',
+                    }}>
+                      {version.changeNote}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                    {formatDateTime(version.createdAt)}
+                  </span>
+                  {!version.isCurrent && (
+                    <button
+                      onClick={() => handleRestore(version.id)}
+                      style={{
+                        padding: '0.375rem 0.75rem',
+                        background: 'var(--panel, white)',
+                        color: 'var(--text, #111827)',
+                        borderRadius: '0.5rem',
+                        border: '1px solid var(--border, #e5e7eb)',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'var(--panel, white)'}
+                      title={t('drive.restoreVersion')}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+                      {t('drive.restore')}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-
-            {!version.isCurrent && (
-              <button
-                onClick={() => handleRestore(version.id)}
-                className="flex-shrink-0 px-3 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors text-sm flex items-center gap-2 border border-gray-200 shadow-sm"
-                title={t('drive.restoreVersion')}
-              >
-                <RotateCcw className="w-4 h-4" aria-hidden="true" />
-                {t('drive.restore')}
-              </button>
-            )}
-          </div>
+          ))}
         </div>
-      ))}
+      </div>
     </div>
   );
 }

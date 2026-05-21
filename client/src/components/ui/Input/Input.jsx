@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useRef, useEffect } from 'react';
 import InfoTooltip from '../InfoTooltip/InfoTooltip';
 import styles from './Input.module.css';
 import { getComponentStyles, generateCSSVariables } from '@constants/uiTheme';
@@ -48,11 +48,29 @@ const Input = forwardRef(({
   ...rest
 }, ref) => {
   const computedPrefix = prefix || icon || prefixIcon;
-  
+  const inputRef = useRef(null);
+
+  // Preserve selection when value changes
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+
+    const handleSelect = () => {
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      if (start !== end) {
+        input.setSelectionRange(start, end);
+      }
+    };
+
+    input.addEventListener('select', handleSelect);
+    return () => input.removeEventListener('select', handleSelect);
+  }, [value]);
+
   // Get theme-aware styles
   const inputVariant = error ? 'error' : 'default';
   const themeStyles = getComponentStyles(theme, 'input', inputVariant, size);
-  
+
   const wrapperClasses = [
     styles.inputWrapper,
     styles[theme],
@@ -85,7 +103,14 @@ const Input = forwardRef(({
         {computedPrefix && <span className={styles.prefix}>{computedPrefix}</span>}
         
         <input
-          ref={ref}
+          ref={(node) => {
+            inputRef.current = node;
+            if (typeof ref === 'function') {
+              ref(node);
+            } else if (ref) {
+              ref.current = node;
+            }
+          }}
           type={type}
           className={inputClasses}
           placeholder={required ? `${placeholder}*` : placeholder}

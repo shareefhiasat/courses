@@ -29,9 +29,9 @@ class DriveDbService extends BaseDbService {
   /**
    * Complete file upload
    */
-  async completeUpload(fileId) {
+  async completeUpload(fileId, versionId) {
     try {
-      const result = await api.post(`/drive/upload/${fileId}/complete`);
+      const result = await api.post(`/drive/upload/${fileId}/complete`, { versionId });
       return result;
     } catch (error) {
       this.logError('completeUpload', error);

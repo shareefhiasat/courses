@@ -21,7 +21,7 @@ import styles from './AttendancePage.module.css';
 import PortalTooltip from '@ui/PortalTooltip';
 import { exportGeneric } from '@services/export/excelExportService.js';
 
-const AttendancePageEnhanced = () => {
+const AttendancePage = () => {
   const { user, isAdmin, isInstructor, isHR, loading: authLoading } = useAuth();
   const { t } = useLang();
   const { theme } = useTheme();
@@ -906,4 +906,4 @@ const AttendancePageEnhanced = () => {
   );
 };
 
-export default AttendancePageEnhanced;
+export default AttendancePage;

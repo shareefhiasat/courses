@@ -60,6 +60,9 @@ app.use(express.urlencoded({ extended: true }));
 // Import Keycloak authentication middleware
 import { keycloakAuth } from "./middleware/keycloakAuth.js";
 
+// Import WOPI router for Collabora (needs to be before global auth)
+import { wopiRouter } from "./routes/driveNew.js";
+
 // MinIO initialization
 import { ensureBuckets } from './services/minioService.js';
 
@@ -76,6 +79,12 @@ import { setWSEmitter } from './services/notifications/index.js';
     console.error('[minio] Failed to initialize buckets:', error);
   }
 })();
+
+// WOPI endpoints for Collabora - must be mounted BEFORE global auth
+app.use(`/api/v1/wopi`, wopiRouter);
+
+// Public links endpoints - must be mounted BEFORE global auth (no authentication required)
+app.use(`/api/v1/public`, publicLinksRoutes);
 
 // Apply Keycloak authentication to all API routes
 // This will verify JWT tokens and extract user information
@@ -366,7 +375,6 @@ app.use(`/api/${API_VERSION}/user-images`, userImagesRoutes);
 
 app.use(`/api/${API_VERSION}/drive`, driveRoutes);
 app.use(`/api/${API_VERSION}/p`, publicDriveRoutes);
-app.use(`/api/${API_VERSION}/public`, publicLinksRoutes);
 app.use(`/api/${API_VERSION}/workflows`, workflowRoutes);
 app.use(`/api/${API_VERSION}/notifications`, notificationRoutes);
 

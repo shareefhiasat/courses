@@ -140,18 +140,7 @@ const ClassSchedulePage = () => {
   }, [classes, lang, t]);
 
   const filteredClasses = useMemo(() => {
-    console.log('🔍 [DEBUG] filteredClasses called:', {
-      totalClasses: classes.length,
-      programFilter,
-      subjectFilter,
-      classFilter,
-      yearFilter,
-      termFilter,
-      quickSearch
-    });
-
     let result = [...classes];
-    console.log('🔍 [DEBUG] Initial result:', result.length);
 
     // Quick search filter for class name or instructor
     if (quickSearch.trim()) {
@@ -163,7 +152,6 @@ const ClassSchedulePage = () => {
           : '';
         return className.includes(searchLower) || instructorName.includes(searchLower);
       });
-      console.log('🔍 [DEBUG] After quick search:', result.length);
     }
 
     // Filter by program
@@ -177,21 +165,12 @@ const ClassSchedulePage = () => {
       
       // If it's an event object with empty value, treat as 'all'
       if (filterValue === '' || filterValue === undefined) {
-        console.log('🔍 [DEBUG] Program filter cleared, skipping filter');
+        // Skip filter
       } else {
         result = result.filter(cls => {
           const clsProgramId = cls.programId || cls.program?.id;
-          const matches = clsProgramId === parseInt(filterValue) || clsProgramId === filterValue;
-          console.log('🔍 [DEBUG] Program filter check:', {
-            clsId: cls.id,
-            clsProgramId,
-            filterValue,
-            programFilter,
-            matches
-          });
-          return matches;
+          return clsProgramId === parseInt(filterValue) || clsProgramId === filterValue;
         });
-        console.log('🔍 [DEBUG] After program filter:', result.length);
       }
     }
 
@@ -206,21 +185,13 @@ const ClassSchedulePage = () => {
       
       // If it's an event object with empty value, treat as 'all'
       if (filterValue === '' || filterValue === undefined) {
-        console.log('🔍 [DEBUG] Subject filter cleared, skipping filter');
+        // Skip filter
       } else {
         result = result.filter(cls => {
           const clsSubjectId = cls.subjectId || cls.subject?.id;
           const matches = clsSubjectId === parseInt(filterValue) || clsSubjectId === filterValue;
-          console.log('🔍 [DEBUG] Subject filter check:', {
-            clsId: cls.id,
-            clsSubjectId,
-            filterValue,
-            subjectFilter,
-            matches
-          });
           return matches;
         });
-        console.log('🔍 [DEBUG] After subject filter:', result.length);
       }
     }
 
@@ -235,20 +206,13 @@ const ClassSchedulePage = () => {
       
       // If it's an event object with empty value, treat as 'all'
       if (filterValue === '' || filterValue === undefined) {
-        console.log('🔍 [DEBUG] Class filter cleared, skipping filter');
+        // Skip filter
       } else {
         result = result.filter(cls => {
           const clsId = cls.docId || cls.id;
           const matches = clsId === parseInt(filterValue) || clsId === filterValue;
-          console.log('🔍 [DEBUG] Class filter check:', {
-            clsId,
-            filterValue,
-            classFilter,
-            matches
-          });
           return matches;
         });
-        console.log('🔍 [DEBUG] After class filter:', result.length);
       }
     }
 
@@ -332,15 +296,6 @@ const ClassSchedulePage = () => {
       const bInstructor = getInstructorName(b);
       return aInstructor.localeCompare(bInstructor);
     });
-    
-    console.log('🔍 [DEBUG] Final filtered result:', result.length);
-    console.log('🔍 [DEBUG] Final classes:', result.map(cls => ({
-      id: cls.id,
-      name: cls.name,
-      code: cls.code,
-      programId: cls.programId,
-      subjectId: cls.subjectId
-    })));
     
     return result;
   }, [classes, programFilter, subjectFilter, classFilter, yearFilter, termFilter, instructors, quickSearch]);
@@ -729,15 +684,24 @@ const ClassSchedulePage = () => {
             selectedSubject={subjectFilter}
             selectedClass={classFilter}
             onProgramChange={(programId) => {
-              setProgramFilter(programId);
-              setSubjectFilter('');
-              setClassFilter('');
+              // Extract value from event object if present
+              const extractedValue = programId?.target?.value !== undefined 
+                ? programId.target.value 
+                : programId?.value !== undefined 
+                  ? programId.value 
+                  : programId;
+              const normalizedValue = extractedValue === '' ? 'all' : extractedValue;
+              setProgramFilter(normalizedValue);
+              setSubjectFilter('all');
+              setClassFilter('all');
+              setYearFilter('all');
+              setTermFilter('all');
             }}
             onSubjectChange={(subjectId) => {
-              setSubjectFilter(subjectId);
-              setClassFilter('');
+              setSubjectFilter(subjectId === '' ? 'all' : subjectId);
+              setClassFilter('all');
             }}
-            onClassChange={setClassFilter}
+            onClassChange={(classId) => setClassFilter(classId === '' ? 'all' : classId)}
             showLabels={false}
             fullWidth
           />

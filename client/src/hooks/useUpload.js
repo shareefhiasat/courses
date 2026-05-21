@@ -9,24 +9,33 @@ import axios from 'axios';
 
 const API_BASE = '/api/v1/drive';
 
-export function useUpload() {
+export function useUpload(existingFiles = []) {
   const [uploads, setUploads] = useState([]);
   const [uploading, setUploading] = useState(false);
 
   const addToQueue = useCallback((files, folderId = null) => {
-    const newUploads = Array.from(files).map(file => ({
-      id: `${Date.now()}-${Math.random()}`,
-      file,
-      folderId,
-      status: 'queued', // queued, uploading, completed, failed
-      progress: 0,
-      error: null,
-      fileId: null,
-    }));
+    const newUploads = Array.from(files).map(file => {
+      // Check if file with same name already exists
+      const existingFile = existingFiles.find(f =>
+        f.name === file.name &&
+        f.folderId === folderId
+      );
+
+      return {
+        id: `${Date.now()}-${Math.random()}`,
+        file,
+        folderId,
+        status: 'queued', // queued, uploading, completed, failed
+        progress: 0,
+        error: null,
+        fileId: null,
+        isVersion: !!existingFile,
+      };
+    });
 
     setUploads(prev => [...prev, ...newUploads]);
     return newUploads;
-  }, []);
+  }, [existingFiles]);
 
   const uploadFile = useCallback(async (uploadItem) => {
     const { id, file, folderId } = uploadItem;

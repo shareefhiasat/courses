@@ -380,6 +380,12 @@ export const ICON_TYPES = {
     user_x: <UserX size={16} />,
     // UI-specific icons
     'ui.workflow': <Workflow size={16} />,
+    'ui.academic': <GraduationCap size={16} />,
+    'ui.attendance': <CheckCircle size={16} />,
+    'ui.assessment': <Award size={16} />,
+    'ui.announcement': <Megaphone size={16} />,
+    'ui.behavior': <Activity size={16} />,
+    'ui.qr': <QrCode size={16} />,
     
     // Aliases for hyphenated names to prevent warnings
     'help-circle': <HelpCircle size={16} />,

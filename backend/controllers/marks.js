@@ -703,6 +703,15 @@ const getAllStudentMarksReport = async (req, res) => {
   try {
     const { programId, subjectId, classId, year, term, isRepeated } = req.query;
     
+    console.log('🔍 [MARKS DEBUG] getAllStudentMarksReport called with filters:', {
+      programId,
+      subjectId,
+      classId,
+      year,
+      term,
+      isRepeated
+    });
+    
     // Build where clause for classes
     const classWhere = {};
     if (programId) {
@@ -767,6 +776,15 @@ const getAllStudentMarksReport = async (req, res) => {
       }
     });
     
+    console.log('🔍 [MARKS DEBUG] Found enrollments:', enrollments.length);
+    console.log('🔍 [MARKS DEBUG] Enrollment details:', enrollments.map(e => ({
+      userId: e.userId,
+      userName: e.user.displayName || e.user.email,
+      subjectId: e.subjectId,
+      classId: e.classId,
+      status: e.status?.code
+    })));
+    
     // Get all student marks for these enrollments
     const studentIds = enrollments.map(e => e.userId);
     const subjectIds = [...new Set(enrollments.map(e => e.subjectId))];
@@ -783,6 +801,15 @@ const getAllStudentMarksReport = async (req, res) => {
       }
     });
     
+    console.log('🔍 [MARKS DEBUG] Found marks records:', marks.length);
+    console.log('🔍 [MARKS DEBUG] Marks with isRepeated status:', marks.map(m => ({
+      userId: m.userId,
+      subjectId: m.subjectId,
+      classId: m.classId,
+      isRepeated: m.isRepeated,
+      gradeType: m.gradeType
+    })));
+    
     // Get marks distributions for all subjects
     const distributions = await prisma.marksDistribution.findMany({
       where: {
@@ -790,10 +817,10 @@ const getAllStudentMarksReport = async (req, res) => {
       }
     });
     
-    // Create a map of marks by userId-subjectId-classId
+    // Create a map of marks by userId-subjectId-classId-isRepeated
     const marksMap = {};
     marks.forEach(m => {
-      const key = `${m.userId}-${m.subjectId}-${m.classId}`;
+      const key = `${m.userId}-${m.subjectId}-${m.classId}-${m.isRepeated}`;
       marksMap[key] = m;
     });
     
@@ -804,102 +831,214 @@ const getAllStudentMarksReport = async (req, res) => {
     });
     
     // Build the report data
-    const reportData = enrollments.map(enrollment => {
-      const key = `${enrollment.userId}-${enrollment.subjectId}-${enrollment.classId}`;
-      const studentMarks = marksMap[key] || {};
-      const distribution = distributionMap[enrollment.subjectId] || {
-        midTermExam: 20,
-        finalExam: 40,
-        homework: 5,
-        labsProjectResearch: 10,
-        quizzes: 5,
-        participation: 10,
-        attendance: 10
-      };
+    const reportData = [];
+    enrollments.forEach(enrollment => {
+      console.log('🔍 [MARKS DEBUG] Processing enrollment:', {
+        userId: enrollment.userId,
+        subjectId: enrollment.subjectId,
+        classId: enrollment.classId
+      });
       
-      // Calculate total marks
-      // Input values are actual marks obtained out of the maximum for each component
-      // Each component contributes its weight percentage to the total
-      // Formula: (obtained / max) * weight
-      const totalMarks = 
-        ((studentMarks.midTermExam || 0) / distribution.midTermExam * distribution.midTermExam) +
-        ((studentMarks.finalExam || 0) / distribution.finalExam * distribution.finalExam) +
-        ((studentMarks.homework || 0) / distribution.homework * distribution.homework) +
-        ((studentMarks.labsProjectResearch || 0) / distribution.labsProjectResearch * distribution.labsProjectResearch) +
-        ((studentMarks.quizzes || 0) / distribution.quizzes * distribution.quizzes) +
-        ((studentMarks.participation || 0) / distribution.participation * distribution.participation) +
-        ((studentMarks.attendance || 0) / distribution.attendance * distribution.attendance);
+      // Get both first attempt and repeated marks for this enrollment
+      const firstAttemptKey = `${enrollment.userId}-${enrollment.subjectId}-${enrollment.classId}-false`;
+      const repeatedAttemptKey = `${enrollment.userId}-${enrollment.subjectId}-${enrollment.classId}-true`;
       
-      // Handle manual grades
-      const gradeType = studentMarks.gradeType || 'calculated';
-      let letterGrade, gradeRange, gradeDescriptionEn, gradeDescriptionAr, gradingStandard;
+      const firstAttemptMarks = marksMap[firstAttemptKey];
+      const repeatedAttemptMarks = marksMap[repeatedAttemptKey];
       
-      if (gradeType !== 'calculated') {
-        // Manual grades override calculation
-        const MANUAL_GRADES = [
-          { letter: 'FB', description: 'Fail Due to Absence', descriptionAr: 'راسب بسبب الغياب' },
-          { letter: 'FA', description: 'Fail Due to Absence', descriptionAr: 'راسب بسبب التغيب' },
-          { letter: 'WF', description: 'Withdrawal with Grade', descriptionAr: 'انسحاب مع درجة' }
-        ];
+      console.log('🔍 [MARKS DEBUG] Marks for enrollment:', {
+        firstAttemptKey,
+        hasFirstAttempt: !!firstAttemptMarks,
+        repeatedAttemptKey,
+        hasRepeatedAttempt: !!repeatedAttemptMarks
+      });
+      
+      // Add first attempt record if exists
+      if (firstAttemptMarks) {
+        const studentMarks = firstAttemptMarks;
+        const distribution = distributionMap[enrollment.subjectId] || {
+          midTermExam: 20,
+          finalExam: 40,
+          homework: 5,
+          labsProjectResearch: 10,
+          quizzes: 5,
+          participation: 10,
+          attendance: 10
+        };
         
-        const manualGrade = MANUAL_GRADES.find(g => g.letter === gradeType);
-        if (manualGrade) {
-          letterGrade = manualGrade.letter;
-          gradeRange = 'Manual';
-          gradeDescriptionEn = manualGrade.description;
-          gradeDescriptionAr = manualGrade.descriptionAr;
-          gradingStandard = 'Manual';
+        const totalMarks = 
+          ((studentMarks.midTermExam || 0) / distribution.midTermExam * distribution.midTermExam) +
+          ((studentMarks.finalExam || 0) / distribution.finalExam * distribution.finalExam) +
+          ((studentMarks.homework || 0) / distribution.homework * distribution.homework) +
+          ((studentMarks.labsProjectResearch || 0) / distribution.labsProjectResearch * distribution.labsProjectResearch) +
+          ((studentMarks.quizzes || 0) / distribution.quizzes * distribution.quizzes) +
+          ((studentMarks.participation || 0) / distribution.participation * distribution.participation) +
+          ((studentMarks.attendance || 0) / distribution.attendance * distribution.attendance);
+        
+        const gradeType = studentMarks.gradeType || 'calculated';
+        let letterGrade, gradeRange, gradeDescriptionEn, gradeDescriptionAr, gradingStandard;
+        
+        if (gradeType !== 'calculated') {
+          const MANUAL_GRADES = [
+            { letter: 'FB', description: 'Fail Due to Absence', descriptionAr: 'راسب بسبب الغياب' },
+            { letter: 'FA', description: 'Fail Due to Absence', descriptionAr: 'راسب بسبب التغيب' },
+            { letter: 'WF', description: 'Withdrawal with Grade', descriptionAr: 'انسحاب مع درجة' }
+          ];
+          
+          const manualGrade = MANUAL_GRADES.find(g => g.letter === gradeType);
+          if (manualGrade) {
+            letterGrade = manualGrade.letter;
+            gradeRange = 'Manual';
+            gradeDescriptionEn = manualGrade.description;
+            gradeDescriptionAr = manualGrade.descriptionAr;
+            gradingStandard = 'Manual';
+          }
+        } else {
+          const gradeResult = calculateLetterGrade(totalMarks, studentMarks.isRepeated || false);
+          letterGrade = gradeResult.letter;
+          gradeRange = gradeResult.range;
+          gradeDescriptionEn = gradeResult.descriptionEn;
+          gradeDescriptionAr = gradeResult.descriptionAr;
+          gradingStandard = studentMarks.isRepeated ? 'Repeated' : 'First Attempt';
         }
-      } else {
-        // Calculate letter grade for normal grades
-        const gradeResult = calculateLetterGrade(totalMarks, studentMarks.isRepeated || false);
-        letterGrade = gradeResult.letter;
-        gradeRange = gradeResult.range;
-        gradeDescriptionEn = gradeResult.descriptionEn;
-        gradeDescriptionAr = gradeResult.descriptionAr;
-        gradingStandard = studentMarks.isRepeated ? 'Repeated' : 'First Attempt';
+        
+        reportData.push({
+          id: firstAttemptKey,
+          studentId: enrollment.userId,
+          studentNumber: enrollment.user.studentNumber || '',
+          studentName: enrollment.user.displayName || 
+            `${enrollment.user.firstName} ${enrollment.user.lastName}`,
+          studentEmail: enrollment.user.email,
+          programId: enrollment.class.programId,
+          programName: enrollment.class.program?.nameEn || enrollment.class.program?.nameAr || 
+            enrollment.class.program?.code,
+          subjectId: enrollment.subjectId,
+          subjectCode: enrollment.class.subject.code,
+          subjectName: enrollment.class.subject.nameEn || enrollment.class.subject.nameAr,
+          classId: enrollment.classId,
+          className: enrollment.class.nameEn || enrollment.class.nameAr,
+          classCode: enrollment.class.code,
+          year: enrollment.class.year,
+          term: enrollment.class.term,
+          midTermExam: studentMarks.midTermExam || 0,
+          finalExam: studentMarks.finalExam || 0,
+          homework: studentMarks.homework || 0,
+          labsProjectResearch: studentMarks.labsProjectResearch || 0,
+          quizzes: studentMarks.quizzes || 0,
+          participation: studentMarks.participation || 0,
+          attendance: studentMarks.attendance || 0,
+          totalMarks: gradeType !== 'calculated' ? 0 : totalMarks,
+          letterGrade: letterGrade,
+          gradeRange: gradeRange,
+          gradeDescriptionEn: gradeDescriptionEn,
+          gradeDescriptionAr: gradeDescriptionAr,
+          isRepeated: studentMarks.isRepeated || false,
+          gradingStandard: gradingStandard,
+          gradeType: gradeType
+        });
       }
       
-      return {
-        id: key,
-        studentId: enrollment.userId,
-        studentNumber: enrollment.user.studentNumber || '',
-        studentName: enrollment.user.displayName || 
-          `${enrollment.user.firstName} ${enrollment.user.lastName}`,
-        studentEmail: enrollment.user.email,
-        programId: enrollment.class.programId,
-        programName: enrollment.class.program?.nameEn || enrollment.class.program?.nameAr || 
-          enrollment.class.program?.code,
-        subjectId: enrollment.subjectId,
-        subjectCode: enrollment.class.subject.code,
-        subjectName: enrollment.class.subject.nameEn || enrollment.class.subject.nameAr,
-        classId: enrollment.classId,
-        className: enrollment.class.nameEn || enrollment.class.nameAr,
-        classCode: enrollment.class.code,
-        year: enrollment.class.year,
-        term: enrollment.class.term,
-        midTermExam: studentMarks.midTermExam || 0,
-        finalExam: studentMarks.finalExam || 0,
-        homework: studentMarks.homework || 0,
-        labsProjectResearch: studentMarks.labsProjectResearch || 0,
-        quizzes: studentMarks.quizzes || 0,
-        participation: studentMarks.participation || 0,
-        attendance: studentMarks.attendance || 0,
-        totalMarks: gradeType !== 'calculated' ? 0 : totalMarks, // Manual grades show 0%
-        letterGrade: letterGrade,
-        gradeRange: gradeRange,
-        gradeDescriptionEn: gradeDescriptionEn,
-        gradeDescriptionAr: gradeDescriptionAr,
-        isRepeated: studentMarks.isRepeated || false,
-        gradingStandard: gradingStandard,
-        gradeType: gradeType
-      };
+      // Add repeated attempt record if exists
+      if (repeatedAttemptMarks) {
+        const studentMarks = repeatedAttemptMarks;
+        const distribution = distributionMap[enrollment.subjectId] || {
+          midTermExam: 20,
+          finalExam: 40,
+          homework: 5,
+          labsProjectResearch: 10,
+          quizzes: 5,
+          participation: 10,
+          attendance: 10
+        };
+        
+        const totalMarks = 
+          ((studentMarks.midTermExam || 0) / distribution.midTermExam * distribution.midTermExam) +
+          ((studentMarks.finalExam || 0) / distribution.finalExam * distribution.finalExam) +
+          ((studentMarks.homework || 0) / distribution.homework * distribution.homework) +
+          ((studentMarks.labsProjectResearch || 0) / distribution.labsProjectResearch * distribution.labsProjectResearch) +
+          ((studentMarks.quizzes || 0) / distribution.quizzes * distribution.quizzes) +
+          ((studentMarks.participation || 0) / distribution.participation * distribution.participation) +
+          ((studentMarks.attendance || 0) / distribution.attendance * distribution.attendance);
+        
+        const gradeType = studentMarks.gradeType || 'calculated';
+        let letterGrade, gradeRange, gradeDescriptionEn, gradeDescriptionAr, gradingStandard;
+        
+        if (gradeType !== 'calculated') {
+          const MANUAL_GRADES = [
+            { letter: 'FB', description: 'Fail Due to Absence', descriptionAr: 'راسب بسبب الغياب' },
+            { letter: 'FA', description: 'Fail Due to Absence', descriptionAr: 'راسب بسبب التغيب' },
+            { letter: 'WF', description: 'Withdrawal with Grade', descriptionAr: 'انسحاب مع درجة' }
+          ];
+          
+          const manualGrade = MANUAL_GRADES.find(g => g.letter === gradeType);
+          if (manualGrade) {
+            letterGrade = manualGrade.letter;
+            gradeRange = 'Manual';
+            gradeDescriptionEn = manualGrade.description;
+            gradeDescriptionAr = manualGrade.descriptionAr;
+            gradingStandard = 'Manual';
+          }
+        } else {
+          const gradeResult = calculateLetterGrade(totalMarks, studentMarks.isRepeated || false);
+          letterGrade = gradeResult.letter;
+          gradeRange = gradeResult.range;
+          gradeDescriptionEn = gradeResult.descriptionEn;
+          gradeDescriptionAr = gradeResult.descriptionAr;
+          gradingStandard = studentMarks.isRepeated ? 'Repeated' : 'First Attempt';
+        }
+        
+        reportData.push({
+          id: repeatedAttemptKey,
+          studentId: enrollment.userId,
+          studentNumber: enrollment.user.studentNumber || '',
+          studentName: enrollment.user.displayName || 
+            `${enrollment.user.firstName} ${enrollment.user.lastName}`,
+          studentEmail: enrollment.user.email,
+          programId: enrollment.class.programId,
+          programName: enrollment.class.program?.nameEn || enrollment.class.program?.nameAr || 
+            enrollment.class.program?.code,
+          subjectId: enrollment.subjectId,
+          subjectCode: enrollment.class.subject.code,
+          subjectName: enrollment.class.subject.nameEn || enrollment.class.subject.nameAr,
+          classId: enrollment.classId,
+          className: enrollment.class.nameEn || enrollment.class.nameAr,
+          classCode: enrollment.class.code,
+          year: enrollment.class.year,
+          term: enrollment.class.term,
+          midTermExam: studentMarks.midTermExam || 0,
+          finalExam: studentMarks.finalExam || 0,
+          homework: studentMarks.homework || 0,
+          labsProjectResearch: studentMarks.labsProjectResearch || 0,
+          quizzes: studentMarks.quizzes || 0,
+          participation: studentMarks.participation || 0,
+          attendance: studentMarks.attendance || 0,
+          totalMarks: gradeType !== 'calculated' ? 0 : totalMarks,
+          letterGrade: letterGrade,
+          gradeRange: gradeRange,
+          gradeDescriptionEn: gradeDescriptionEn,
+          gradeDescriptionAr: gradeDescriptionAr,
+          isRepeated: studentMarks.isRepeated || false,
+          gradingStandard: gradingStandard,
+          gradeType: gradeType
+        });
+      }
     });
     
     // Filter by isRepeated if specified
     const filteredData = isRepeated !== undefined && isRepeated !== '' 
       ? reportData.filter(r => r.isRepeated === (isRepeated === 'true'))
       : reportData;
+    
+    console.log('🔍 [MARKS DEBUG] Report data before filter:', reportData.length);
+    console.log('🔍 [MARKS DEBUG] Report data after isRepeated filter:', filteredData.length);
+    console.log('🔍 [MARKS DEBUG] Sample records:', filteredData.slice(0, 5).map(r => ({
+      studentId: r.studentId,
+      subjectId: r.subjectId,
+      classId: r.classId,
+      isRepeated: r.isRepeated,
+      gradeType: r.gradeType,
+      letterGrade: r.letterGrade
+    })));
     
     res.json({
       success: true,

@@ -11,9 +11,25 @@ export default function CreateFolderModal({ parentFolderId, onCreate, onClose })
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState(null);
 
+  const validateFolderName = (name) => {
+    if (!name.trim()) {
+      return t('drive.folderNameRequired');
+    }
+    if (name.length > 30) {
+      return t('drive.folderNameTooLong') || 'Folder name must be 30 characters or less';
+    }
+    // Allow only alphanumeric, spaces, hyphens, and underscores
+    const validPattern = /^[a-zA-Z0-9\s\-_]+$/;
+    if (!validPattern.test(name)) {
+      return t('drive.folderNameInvalid') || 'Folder name can only contain letters, numbers, spaces, hyphens, and underscores';
+    }
+    return null;
+  };
+
   const handleSubmit = async () => {
-    if (!folderName.trim()) {
-      setError(t('drive.folderNameRequired'));
+    const validationError = validateFolderName(folderName);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 

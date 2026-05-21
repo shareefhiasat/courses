@@ -10,7 +10,7 @@ export const KeycloakProvider = ({ children }) => {
           authClient={keycloak}
           initOptions={{
             onLoad: 'login-required',
-            redirectUri: window.location.origin,
+            redirectUri: window.location.href,
             silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
             pkceMethod: 'S256',
             checkLoginIframe: false,

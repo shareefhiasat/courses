@@ -150,9 +150,8 @@ export const useNotificationsFeed = (options = {}) => {
         // Update local state
         setNotifications(prev => {
           const notif = prev.find(n => n.id === notificationId);
-          setNotifications(prev.filter(n => n.id !== notificationId));
           if (notif && !notif.isRead && !notif.isArchived) {
-            setUnreadCount(prev => Math.max(0, prev - 1));
+            setUnreadCount(prevCount => Math.max(0, prevCount - 1));
           }
           return prev.filter(n => n.id !== notificationId);
         });

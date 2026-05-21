@@ -34,11 +34,27 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     types: ['participation-types']
   });
 
-  // Create participation type icons from lookup data
-  const PARTICIPATION_TYPE_ICONS = (lookupData['participation-types'] || []).reduce((acc, type) => {
-    acc[type.id] = type.icon || 'MessageSquare';
-    return acc;
-  }, {});
+  // Create participation type icons from lookup data - using unified icon mapping like attendance
+  const PARTICIPATION_TYPE_ICONS = useMemo(() => {
+    const iconMap = {
+      MessageSquare: getThemedIcon('ui', 'message_square', 16, theme),
+      Award: getThemedIcon('ui', 'award', 16, theme),
+      FileText: getThemedIcon('ui', 'file_text', 16, theme),
+      HelpCircle: getThemedIcon('ui', 'help_circle', 16, theme),
+      Users: getThemedIcon('ui', 'users', 16, theme),
+      Star: getThemedIcon('ui', 'star', 16, theme),
+      ThumbsUp: getThemedIcon('ui', 'thumbs_up', 16, theme),
+      Minus: getThemedIcon('ui', 'minus', 16, theme),
+      CheckCircle: getThemedIcon('ui', 'check_circle', 16, theme),
+      MoreHorizontal: getThemedIcon('ui', 'more_horizontal', 16, theme),
+    };
+    
+    return (lookupData['participation-types'] || []).reduce((acc, type) => {
+      const iconName = type.icon || 'MessageSquare';
+      acc[type.id] = iconMap[iconName] || iconMap.MessageSquare;
+      return acc;
+    }, {});
+  }, [lookupData, theme]);
 
   const [pageState, setPageState] = useState(PAGE_STATES.LOADING);
   const [formState, setFormState] = useState(FORM_STATES.IDLE);

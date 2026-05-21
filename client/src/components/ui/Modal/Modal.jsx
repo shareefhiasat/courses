@@ -35,6 +35,7 @@ const Modal = ({
   className = '',
   draggable = true,
   titleStyle = {},
+  zIndex,
 }) => {
   const { theme } = useTheme();
   const modalRef = useRef(null);
@@ -142,7 +143,11 @@ const Modal = ({
   } : {};
 
   return (
-    <div className={styles.overlay} onClick={handleOverlayClick}>
+    <div 
+      className={styles.overlay} 
+      onClick={handleOverlayClick}
+      style={{ zIndex: zIndex || 9999 }}
+    >
       <div 
         ref={modalRef}
         className={modalClasses} 

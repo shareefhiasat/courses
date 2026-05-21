@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import driveDbService from '../services/db/driveDbService';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@contexts/AuthContext';
+import { DEFAULT_STORAGE_LIMIT } from '@constants/driveConstants';
+import driveDbService from '@services/driveDbService';
 
 /**
  * Hook for MinIO drive operations (private, shared, and workflow buckets)
@@ -17,7 +18,7 @@ export function useDriveMinIO() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('private');
   const [storageUsage, setStorageUsage] = useState(0);
-  const [storageLimit, setStorageLimit] = useState(500 * 1024 * 1024); // 500 MB default
+  const [storageLimit, setStorageLimit] = useState(DEFAULT_STORAGE_LIMIT);
 
   /**
    * Load files from a specific bucket
@@ -94,6 +95,28 @@ export function useDriveMinIO() {
       setError(null);
       setUploadProgress(0);
 
+      // Check if file with same name already exists
+      const existingFiles = bucket === 'lms-private' ? privateFiles :
+                          bucket === 'lms-shared' ? sharedFiles :
+                          bucket === 'lms-workflow' ? workflowFiles : [];
+
+      const existingFile = existingFiles.find(f =>
+        f.name === file.name &&
+        f.folderPath === (options.folderPath || null)
+      );
+
+      if (existingFile && !options.skipVersionWarning) {
+        // Return a flag to show warning dialog
+        return {
+          warning: true,
+          message: 'A file with this name already exists. Uploading will create a new version.',
+          existingFile,
+          newFile: file,
+          bucket,
+          options
+        };
+      }
+
       // Step 1: Initiate upload
       const initiateResponse = await driveDbService.initiateUpload({
         name: file.name,
@@ -108,7 +131,7 @@ export function useDriveMinIO() {
         throw new Error(initiateResponse.error || 'Failed to initiate upload');
       }
 
-      const { fileId, presignedUrl } = initiateResponse.payload;
+      const { fileId, versionId, presignedUrl } = initiateResponse.payload;
 
       // Step 2: Upload to MinIO
       await driveDbService.uploadToMinIO(presignedUrl, file, (progress) => {
@@ -116,7 +139,7 @@ export function useDriveMinIO() {
       });
 
       // Step 3: Complete upload
-      const completeResponse = await driveDbService.completeUpload(fileId);
+      const completeResponse = await driveDbService.completeUpload(fileId, versionId);
 
       if (!completeResponse.success) {
         throw new Error(completeResponse.error || 'Failed to complete upload');
@@ -135,7 +158,7 @@ export function useDriveMinIO() {
       setLoading(false);
       setUploadProgress(0);
     }
-  }, [user?.id, loadPrivateFiles, loadSharedFiles, loadWorkflowFiles]);
+  }, [user?.id, loadPrivateFiles, loadSharedFiles, loadWorkflowFiles, privateFiles, sharedFiles, workflowFiles]);
 
   /**
    * Delete file

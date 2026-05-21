@@ -21,7 +21,7 @@ export const useNotifications = () => {
 
     try {
       const result = await getNotificationSettings(user.uid);
-      if (result.success) {
+      if (result && result.success && result.data) {
         setSettings(prev => ({ ...prev, ...result.data }));
       }
     } catch (error) {
@@ -35,7 +35,7 @@ export const useNotifications = () => {
 
     try {
       const result = await saveNotificationSettings(user.uid, newSettings);
-      if (result.success) {
+      if (result && result.success) {
         setSettings(newSettings);
         return true;
       }

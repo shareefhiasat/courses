@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -27,12 +27,33 @@ export default function FileRoster({
   onViewModeChange,
   isTrashView = false,
   currentUserEmail = null,
+  onEmptyTrash,
+  filterStarred = false,
 }) {
   const { t, isRTL } = useLang();
   const { theme } = useTheme();
   const [hoveredId, setHoveredId] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [openFolderMenuId, setOpenFolderMenuId] = useState(null);
+  const [showFolders, setShowFolders] = useState(true);
+  const [menuPositionAbove, setMenuPositionAbove] = useState(false);
+  const folderMenuRef = useRef(null);
+  const fileMenuRef = useRef(null);
+
+  // Calculate menu position to prevent cut-off at bottom
+  useEffect(() => {
+    const activeMenuRef = openFolderMenuId ? folderMenuRef : openMenuId ? fileMenuRef : null;
+    if (!activeMenuRef?.current) return;
+
+    const menu = activeMenuRef.current;
+    const rect = menu.getBoundingClientRect();
+    const windowHeight = window.innerHeight;
+    const spaceBelow = windowHeight - rect.bottom;
+    const menuHeight = rect.height;
+
+    // Always position below to prevent clipping at top
+    setMenuPositionAbove(false);
+  }, [openFolderMenuId, openMenuId]);
 
   // Helper to format owner name
   const formatOwnerName = (owner) => {
@@ -80,16 +101,25 @@ export default function FileRoster({
   const someSelected = selectedIds.size > 0 && selectedIds.size < allItems.length;
 
   const filteredFiles = useMemo(() => {
-    if (!searchQuery) return files;
+    let result = files;
+    if (filterStarred) {
+      result = result.filter((f) => f.starred);
+    }
+    if (!searchQuery) return result;
     const q = searchQuery.toLowerCase();
-    return files.filter((f) => (f.name || '').toLowerCase().includes(q));
-  }, [files, searchQuery]);
+    return result.filter((f) => (f.name || '').toLowerCase().includes(q));
+  }, [files, searchQuery, filterStarred]);
 
   const filteredFolders = useMemo(() => {
-    if (!searchQuery) return folders;
+    if (!showFolders) return [];
+    let result = folders;
+    if (filterStarred) {
+      result = result.filter((f) => f.starred);
+    }
+    if (!searchQuery) return result;
     const q = searchQuery.toLowerCase();
-    return folders.filter((f) => (f.name || '').toLowerCase().includes(q));
-  }, [folders, searchQuery]);
+    return result.filter((f) => (f.name || '').toLowerCase().includes(q));
+  }, [folders, searchQuery, showFolders, filterStarred]);
 
   const formatSize = (bytes) => {
     if (!bytes && bytes !== 0) return '—';
@@ -123,7 +153,29 @@ export default function FileRoster({
     if (mt.includes('zip') || mt.includes('rar')) return 'archive';
     if (mt.includes('sheet') || mt.includes('excel')) return 'table';
     if (mt.includes('presentation') || mt.includes('powerpoint')) return 'presentation';
+    if (mt.includes('word') || mt.includes('document')) return 'file_text';
     return 'file';
+  };
+
+  const isPreviewable = (file) => {
+    if (!file || file.path !== undefined) return false; // Not a file
+    const mt = file.mimeType || '';
+    const name = file.name || '';
+    // Images
+    if (mt.startsWith('image/')) return true;
+    // Videos
+    if (mt.startsWith('video/')) return true;
+    // PDF
+    if (mt.includes('pdf') || name.endsWith('.pdf')) return true;
+    // Word documents
+    if (mt.includes('word') || mt.includes('document') || name.endsWith('.doc') || name.endsWith('.docx')) return true;
+    // PowerPoint
+    if (mt.includes('presentation') || mt.includes('powerpoint') || name.endsWith('.ppt') || name.endsWith('.pptx')) return true;
+    // Excel
+    if (mt.includes('sheet') || mt.includes('excel') || name.endsWith('.xls') || name.endsWith('.xlsx')) return true;
+    // Archives (ZIP, RAR) - NOT previewable
+    if (mt.includes('zip') || mt.includes('rar') || name.endsWith('.zip') || name.endsWith('.rar')) return false;
+    return false;
   };
 
   const rowBase = {
@@ -142,7 +194,7 @@ export default function FileRoster({
         background: 'var(--panel, white)',
         border: '1px solid var(--border, #e5e7eb)',
         borderRadius: '0.75rem',
-        overflow: 'hidden',
+        overflow: 'visible',
       }}
       dir={isRTL ? 'rtl' : 'ltr'}
     >
@@ -168,10 +220,32 @@ export default function FileRoster({
           />
         </div>
 
+        {isTrashView && folders.length === 0 && files.length > 0 && (
+          <button
+            onClick={onEmptyTrash}
+            style={{
+              padding: '0.4rem 0.75rem',
+              background: 'rgba(220,38,38,0.08)',
+              color: '#dc2626',
+              border: '1px solid rgba(220,38,38,0.2)',
+              borderRadius: '0.5rem',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+            }}
+          >
+            {getThemedIcon('ui', 'trash', 14, 'error')}
+            {t('drive.emptyTrash') || 'Empty trash'}
+          </button>
+        )}
+
         {selectedIds.size > 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontSize: '0.875rem', color: 'var(--text, #111827)', fontWeight: 600 }}>
-              {t('selected_count', { count: selectedIds.size }) || `${selectedIds.size} selected`}
+              {selectedIds.size} {t('selected') || 'selected'}
             </span>
             <Button
               variant="outline"
@@ -224,48 +298,70 @@ export default function FileRoster({
             </Button>
           </div>
         ) : (
-          <div
-            style={{
-              display: 'flex',
-              gap: '0.25rem',
-              background: 'var(--background-secondary, #f3f4f6)',
-              border: '1px solid var(--border, #e5e7eb)',
-              borderRadius: '0.5rem',
-              padding: '0.25rem',
-            }}
-          >
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <button
-              onClick={() => onViewModeChange?.('list')}
+              onClick={() => setShowFolders(!showFolders)}
               style={{
-                padding: '0.4rem 0.6rem',
-                background: viewMode === 'list' ? 'var(--color-primary, #3b82f6)' : 'transparent',
-                color: viewMode === 'list' ? 'white' : 'var(--text-muted, #6b7280)',
-                border: 'none',
+                padding: '0.4rem 0.75rem',
+                background: showFolders ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                color: showFolders ? 'white' : 'var(--text-muted, #6b7280)',
+                border: '1px solid var(--border, #e5e7eb)',
                 borderRadius: '0.375rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
+                gap: '0.375rem',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
               }}
-              title={t('list_view') || 'List view'}
+              title={showFolders ? (t('drive.hideFolders') || 'Hide folders') : (t('drive.showFolders') || 'Show folders')}
             >
-              {getThemedIcon('ui', 'list', 16, viewMode === 'list' ? 'white' : theme)}
+              {getThemedIcon('ui', 'folder', 14, showFolders ? 'white' : 'muted')}
+              {showFolders ? (t('drive.folders') || 'Folders') : (t('drive.folders') || 'Folders')}
             </button>
-            <button
-              onClick={() => onViewModeChange?.('grid')}
+            <div
               style={{
-                padding: '0.4rem 0.6rem',
-                background: viewMode === 'grid' ? 'var(--color-primary, #3b82f6)' : 'transparent',
-                color: viewMode === 'grid' ? 'white' : 'var(--text-muted, #6b7280)',
-                border: 'none',
-                borderRadius: '0.375rem',
-                cursor: 'pointer',
                 display: 'flex',
-                alignItems: 'center',
+                gap: '0.25rem',
+                background: 'var(--background-secondary, #f3f4f6)',
+                border: '1px solid var(--border, #e5e7eb)',
+                borderRadius: '0.5rem',
+                padding: '0.25rem',
               }}
-              title={t('grid_view') || 'Grid view'}
             >
-              {getThemedIcon('ui', 'grid', 16, viewMode === 'grid' ? 'white' : theme)}
-            </button>
+              <button
+                onClick={() => onViewModeChange?.('list')}
+                style={{
+                  padding: '0.4rem 0.6rem',
+                  background: viewMode === 'list' ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                  color: viewMode === 'list' ? 'white' : 'var(--text-muted, #6b7280)',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                title={t('list_view') || 'List view'}
+              >
+                {getThemedIcon('ui', 'list', 16, viewMode === 'list' ? 'white' : theme)}
+              </button>
+              <button
+                onClick={() => onViewModeChange?.('grid')}
+                style={{
+                  padding: '0.4rem 0.6rem',
+                  background: viewMode === 'grid' ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                  color: viewMode === 'grid' ? 'white' : 'var(--text-muted, #6b7280)',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                title={t('grid_view') || 'Grid view'}
+              >
+                {getThemedIcon('ui', 'grid', 16, viewMode === 'grid' ? 'white' : theme)}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -274,7 +370,7 @@ export default function FileRoster({
       {filteredFolders.length === 0 && filteredFiles.length === 0 && (
         <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>
           {searchQuery
-            ? t('drive.noMatches') || 'No files match your search.'
+            ? t('drive.noMatches') || 'No matches found.'
             : t('drive.noFiles') || 'No files yet. Upload to get started.'}
         </div>
       )}
@@ -310,23 +406,45 @@ export default function FileRoster({
             <div style={{ flex: 2, textAlign: isRTL ? 'right' : 'left' }}>{t('drive.name') || 'Name'}</div>
             <div style={{ flex: 1, textAlign: isRTL ? 'right' : 'left' }}>{t('drive.owner') || 'Owner'}</div>
             <div style={{ flex: 1, textAlign: isRTL ? 'right' : 'left' }}>{t('drive.location') || 'Location'}</div>
-            <div style={{ width: 140, textAlign: 'center' }}>
+            <div style={{ width: 120, textAlign: isRTL ? 'right' : 'left' }}>
               {t('drive.status') || 'Status'}
             </div>
-            <div style={{ width: 140, textAlign: 'center' }}>
+            <div style={{ width: 160, textAlign: isRTL ? 'left' : 'right' }}>
               {t('drive.created') || 'Created'}
             </div>
-            <div style={{ width: 100, textAlign: 'center' }}>
+            <div style={{ width: 80, textAlign: isRTL ? 'left' : 'right' }}>
               {t('drive.size') || 'Size'}
             </div>
+            <div style={{ width: 40 }}></div>
           </div>
+
+          {filteredFolders.length > 0 && (
+            <div
+              style={{
+                padding: '0.5rem 1rem',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--text-muted, #6b7280)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                background: 'var(--background-secondary, #f9fafb)',
+                borderBottom: '1px solid var(--border, #e5e7eb)',
+              }}
+            >
+              {filteredFolders.length} {t('drive.folders') || 'folders'}
+            </div>
+          )}
 
           {filteredFolders.map((folder) => (
             <React.Fragment key={`folder-${folder.id}`}>
               <div
                 onMouseEnter={() => setHoveredId(folder.id)}
                 onMouseLeave={() => setHoveredId(null)}
-                onClick={() => onFolderOpen?.(folder)}
+                onClick={() => {
+                  if (openFolderMenuId === null && openMenuId === null) {
+                    onFolderOpen?.(folder);
+                  }
+                }}
                 style={{
                   ...rowBase,
                   background:
@@ -336,6 +454,7 @@ export default function FileRoster({
                   transition: 'all 0.15s ease',
                   borderLeft: hoveredId === folder.id ? '3px solid var(--color-primary, #3b82f6)' : '3px solid transparent',
                   position: 'relative',
+                  cursor: openFolderMenuId !== null || openMenuId !== null ? 'default' : 'pointer',
                 }}
               >
               <input
@@ -411,39 +530,39 @@ export default function FileRoster({
               </div>
               <div
                 style={{
-                  width: 140,
-                  textAlign: 'center',
+                  width: 120,
+                  textAlign: isRTL ? 'right' : 'left',
                   fontSize: '0.875rem',
                   color: 'var(--text-muted, #6b7280)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
+                  justifyContent: isRTL ? 'flex-end' : 'flex-start',
                 }}
               >
                 —
               </div>
               <div
                 style={{
-                  width: 140,
-                  textAlign: 'center',
+                  width: 160,
+                  textAlign: isRTL ? 'left' : 'right',
                   fontSize: '0.875rem',
                   color: 'var(--text-muted, #6b7280)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
+                  justifyContent: isRTL ? 'flex-start' : 'flex-end',
                 }}
               >
                 {formatDateTime(folder.createdAt)}
               </div>
               <div
                 style={{
-                  width: 100,
-                  textAlign: 'center',
+                  width: 80,
+                  textAlign: isRTL ? 'left' : 'right',
                   fontSize: '0.875rem',
                   color: 'var(--text-muted, #6b7280)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
+                  justifyContent: isRTL ? 'flex-start' : 'flex-end',
                 }}
               >
                 —
@@ -469,82 +588,41 @@ export default function FileRoster({
                   {getThemedIcon('ui', 'more_vertical', 16, 'muted')}
                 </button>
               </div>
-            </div>
-            {openFolderMenuId === folder.id && (
-              <>
-                {/* Backdrop */}
-                <div
-                  onClick={() => setOpenFolderMenuId(null)}
-                  style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0, 0, 0, 0.1)',
-                    zIndex: 9,
-                  }}
-                />
-                {/* Modal */}
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    [isRTL ? 'left' : 'right']: 0,
-                    marginTop: 4,
-                    background: 'var(--panel, white)',
-                    border: '1px solid var(--border, #e5e7eb)',
-                    borderRadius: '0.75rem',
-                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05)',
-                    minWidth: 200,
-                    zIndex: 10,
-                    padding: '0.5rem',
-                    animation: 'fadeIn 0.15s ease-out',
-                  }}
-                >
-                  {/* Header */}
+              {openFolderMenuId === folder.id && (
+                <>
+                  {/* Backdrop */}
                   <div
+                    onClick={() => setOpenFolderMenuId(null)}
                     style={{
-                      padding: '0.5rem 0.75rem',
-                      borderBottom: '1px solid var(--border, #e5e7eb)',
-                      marginBottom: '0.5rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      background: 'rgba(0, 0, 0, 0.1)',
+                      zIndex: 999998,
+                    }}
+                  />
+                  {/* Modal */}
+                  <div
+                    ref={folderMenuRef}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: 'absolute',
+                      ...(menuPositionAbove ? { bottom: '100%', marginBottom: 4 } : { top: '100%', marginTop: 4 }),
+                      [isRTL ? 'left' : 'right']: 0,
+                      background: 'var(--panel, white)',
+                      border: '1px solid var(--border, #e5e7eb)',
+                      borderRadius: '0.75rem',
+                      boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05)',
+                      minWidth: 240,
+                      zIndex: 999999,
+                      padding: 0,
+                      animation: 'fadeIn 0.15s ease-out',
                     }}
                   >
-                    <div
-                      style={{
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                        color: 'var(--text, #111827)',
-                      }}
-                    >
-                      {t('drive.actions') || 'Actions'}
-                    </div>
-                    <button
-                      onClick={() => setOpenFolderMenuId(null)}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        padding: '0.25rem',
-                        borderRadius: '0.25rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--text-muted, #6b7280)',
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)')
-                      }
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      {getThemedIcon('ui', 'x', 16, theme)}
-                    </button>
-                  </div>
                   {/* Actions */}
+                  <div style={{ padding: '0.5rem' }}>
                   {[
                     ...(isTrashView
                       ? [
@@ -600,11 +678,30 @@ export default function FileRoster({
                       {action.label}
                     </button>
                   ))}
-                </div>
+                  </div>
+                  </div>
               </>
             )}
+              </div>
             </React.Fragment>
           ))}
+
+          {filteredFolders.length > 0 && filteredFiles.length > 0 && (
+            <div
+              style={{
+                padding: '0.5rem 1rem',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--text-muted, #6b7280)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                background: 'var(--background-secondary, #f9fafb)',
+                borderBottom: '1px solid var(--border, #e5e7eb)',
+              }}
+            >
+              {filteredFiles.length} {t('drive.files') || 'files'}
+            </div>
+          )}
 
           {filteredFiles.map((file) => {
             const selected = selectedIds.has(file.id);
@@ -614,18 +711,23 @@ export default function FileRoster({
                 key={file.id}
                 onMouseEnter={() => setHoveredId(file.id)}
                 onMouseLeave={() => setHoveredId(null)}
-                onClick={() => onFileOpen?.(file)}
-                style={{
-                  ...rowBase,
-                  background: selected
-                    ? 'var(--color-primary-tint, #eff6ff)'
-                    : hovered
-                    ? 'var(--background-secondary, #f9fafb)'
-                    : 'transparent',
-                  transition: 'all 0.15s ease',
-                  borderLeft: hovered ? '3px solid var(--color-primary, #3b82f6)' : '3px solid transparent',
-                  cursor: 'pointer',
+                onClick={() => {
+                  if (openMenuId === null && openFolderMenuId === null) {
+                    onFileOpen?.(file);
+                  }
                 }}
+                  style={{
+                    ...rowBase,
+                    background: selected
+                      ? 'var(--color-primary-tint, #eff6ff)'
+                      : hovered
+                      ? 'var(--background-secondary, #f9fafb)'
+                      : 'transparent',
+                    transition: 'all 0.15s ease',
+                    borderLeft: hovered ? '3px solid var(--color-primary, #3b82f6)' : '3px solid transparent',
+                    cursor: openMenuId !== null || openFolderMenuId !== null ? 'default' : 'pointer',
+                    position: 'relative',
+                  }}
               >
                 <input
                   type="checkbox"
@@ -696,13 +798,13 @@ export default function FileRoster({
                 </div>
                 <div
                   style={{
-                    width: 140, // Increased width for better badge display
-                    textAlign: 'center', // Center align for better visual balance
+                    width: 120,
+                    textAlign: isRTL ? 'right' : 'left',
                     fontSize: '0.875rem',
                     color: 'var(--text-muted, #6b7280)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center', // Center the badge
+                    justifyContent: isRTL ? 'flex-end' : 'flex-start',
                   }}
                 >
                   {file.workflowStatus && file.workflowStatus !== 'none' ? (
@@ -715,63 +817,63 @@ export default function FileRoster({
                     <span style={{ 
                       color: 'var(--text-muted, #6b7280)',
                       fontSize: '0.8125rem',
-                      fontWeight: 500
                     }}>
-                      {t('drive.ready') || 'Ready'}
+                      —
                     </span>
                   )}
                 </div>
                 <div
                   style={{
-                    width: 140,
-                    textAlign: 'center',
+                    width: 160,
+                    textAlign: isRTL ? 'left' : 'right',
                     fontSize: '0.875rem',
                     color: 'var(--text-muted, #6b7280)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
+                    justifyContent: isRTL ? 'flex-start' : 'flex-end',
                   }}
                 >
                   {formatDateTime(file.createdAt)}
                 </div>
                 <div
                   style={{
-                    width: 100,
-                    textAlign: 'center',
+                    width: 80,
+                    textAlign: isRTL ? 'left' : 'right',
                     fontSize: '0.875rem',
                     color: 'var(--text-muted, #6b7280)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
+                    justifyContent: isRTL ? 'flex-start' : 'flex-end',
                   }}
                 >
                   {formatSize(file.size)}
                 </div>
                 <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenMenuId(openMenuId === file.id ? null : file.id);
-                    }}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      padding: 8,
-                      borderRadius: '0.375rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '36px',
-                      height: '36px',
-                      color: 'var(--text-secondary, #374151)',
-                    }}
-                    className="focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
-                    title={t('more_actions') || 'More actions'}
-                    aria-label={t('more_actions') || 'More actions'}
-                  >
-                    {getThemedIcon('ui', 'more_vertical', 16, theme)}
-                  </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log('[FileRoster] Opening file menu for:', file.id, 'isTrashView:', isTrashView);
+                        setOpenMenuId(openMenuId === file.id ? null : file.id);
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        padding: 8,
+                        borderRadius: '0.375rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '36px',
+                        height: '36px',
+                        color: 'var(--text-secondary, #374151)',
+                      }}
+                      className="focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
+                      title={t('more_actions') || 'More actions'}
+                      aria-label={t('more_actions') || 'More actions'}
+                    >
+                      {getThemedIcon('ui', 'more_vertical', 16, theme)}
+                    </button>
                   {openMenuId === file.id && (
                     <>
                       {/* Backdrop */}
@@ -784,69 +886,29 @@ export default function FileRoster({
                           right: 0,
                           bottom: 0,
                           background: 'rgba(0, 0, 0, 0.1)',
-                          zIndex: 9,
+                          zIndex: 999998,
                         }}
                       />
                       {/* Modal */}
                       <div
+                        ref={fileMenuRef}
                         onClick={(e) => e.stopPropagation()}
                         style={{
                           position: 'absolute',
-                          top: '100%',
+                          ...(menuPositionAbove ? { bottom: '100%', marginBottom: 4 } : { top: '100%', marginTop: 4 }),
                           [isRTL ? 'left' : 'right']: 0,
-                          marginTop: 4,
                           background: 'var(--panel, white)',
                           border: '1px solid var(--border, #e5e7eb)',
                           borderRadius: '0.75rem',
                           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05)',
-                          minWidth: 200,
-                          zIndex: 10,
-                          padding: '0.5rem',
+                          minWidth: 240,
+                          zIndex: 999999,
+                          padding: 0,
                           animation: 'fadeIn 0.15s ease-out',
                         }}
                       >
-                        {/* Header */}
-                        <div
-                          style={{
-                            padding: '0.5rem 0.75rem',
-                            borderBottom: '1px solid var(--border, #e5e7eb)',
-                            marginBottom: '0.5rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: '0.875rem',
-                              fontWeight: 600,
-                              color: 'var(--text, #111827)',
-                            }}
-                          >
-                            {t('drive.actions') || 'Actions'}
-                          </div>
-                          <button
-                            onClick={() => setOpenMenuId(null)}
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              padding: '0.25rem',
-                              borderRadius: '0.25rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: 'var(--text-muted, #6b7280)',
-                            }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)')
-                            }
-                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                          >
-                            {getThemedIcon('ui', 'x', 16, theme)}
-                          </button>
-                        </div>
-                        {/* Actions */}
+                      {/* Actions */}
+                      <div style={{ padding: '0.5rem' }}>
                         {[
                           ...(isTrashView
                             ? [
@@ -854,7 +916,7 @@ export default function FileRoster({
                                 { key: 'permanent-delete', label: t('drive.permanentDelete') || 'Delete permanently', icon: 'trash', danger: true },
                               ]
                             : [
-                                { key: 'open', label: t('open') || 'Open', icon: 'external_link' },
+                                ...(isPreviewable(file) ? [{ key: 'open', label: t('open') || 'Open', icon: 'external_link' }] : []),
                                 { key: 'download', label: t('download') || 'Download', icon: 'download' },
                                 { key: 'share', label: t('share') || 'Share', icon: 'send' },
                                 { key: 'rename', label: t('rename') || 'Rename', icon: 'edit' },
@@ -865,7 +927,7 @@ export default function FileRoster({
                             key={action.key}
                             onClick={() => {
                               setOpenMenuId(null);
-                              onFileAction?.(action.key, [file.id]);
+                              onFileAction?.(action.key, [file]);
                             }}
                             style={{
                               width: '100%',
@@ -902,10 +964,11 @@ export default function FileRoster({
                             <span>{action.label}</span>
                           </button>
                         ))}
+                        </div>
                       </div>
                     </>
                   )}
-                </div>
+                  </div>
               </div>
             );
           })}
@@ -925,14 +988,18 @@ export default function FileRoster({
           {filteredFolders.map((folder) => (
             <div
               key={`folder-${folder.id}`}
-              onClick={() => onFolderOpen?.(folder)}
+              onClick={() => {
+                if (openFolderMenuId === null && openMenuId === null) {
+                  onFolderOpen?.(folder);
+                }
+              }}
               style={{
                 position: 'relative',
                 background: 'var(--panel, white)',
                 border: '1px solid var(--border, #e5e7eb)',
                 borderRadius: '0.75rem',
                 padding: '0.75rem',
-                cursor: 'pointer',
+                cursor: openFolderMenuId !== null || openMenuId !== null ? 'default' : 'pointer',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
@@ -986,14 +1053,18 @@ export default function FileRoster({
             return (
               <div
                 key={file.id}
-                onClick={() => onFileOpen?.(file)}
+                onClick={() => {
+                  if (openMenuId === null && openFolderMenuId === null) {
+                    onFileOpen?.(file);
+                  }
+                }}
                 style={{
                   position: 'relative',
                   background: 'var(--panel, white)',
                   border: `1px solid ${selected ? 'var(--color-primary, #3b82f6)' : 'var(--border, #e5e7eb)'}`,
                   borderRadius: '0.75rem',
                   padding: '0.75rem',
-                  cursor: 'pointer',
+                  cursor: openMenuId !== null || openFolderMenuId !== null ? 'default' : 'pointer',
                   transition: 'all 0.15s ease',
                   boxShadow: selected ? '0 0 0 2px var(--color-primary, #3b82f6)' : 'none',
                 }}
@@ -1052,7 +1123,8 @@ export default function FileRoster({
                   }}
                 >
                   <span>{formatSize(file.size)}</span>
-                  <span>{formatDate(file.createdAt || file.modifiedAt)}</span>
+                  <span>{formatDate(file.modifiedAt || file.createdAt)}</span>
+                  <span>{file.owner?.displayName || file.owner?.email || '—'}</span>
                 </div>
                 {file.workflowStatus && file.workflowStatus !== 'none' && (
                   <div style={{ marginTop: '0.5rem' }}>

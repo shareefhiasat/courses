@@ -35,3 +35,8 @@ export const BUCKET_TYPES = {
   PRIVATE: 'PRIVATE',
   WORKFLOW: 'WORKFLOW'
 };
+
+/**
+ * Default storage limit in bytes (1 GB)
+ */
+export const DEFAULT_STORAGE_LIMIT = 1 * 1024 * 1024 * 1024;

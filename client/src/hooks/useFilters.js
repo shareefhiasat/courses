@@ -118,27 +118,44 @@ export function useFilters() {
   // Convert filters to API query params
   const toAPIParams = useCallback(() => {
     const params = {};
+    const mimePrefixes = [];
 
     filters.forEach(filter => {
       switch (filter.type) {
-        case 'type':
-          if (!params.mimeTypes) params.mimeTypes = [];
-          params.mimeTypes.push(filter.value);
+        case 'type': {
+          const map = {
+            images: 'image/',
+            documents: 'application/',
+            videos: 'video/',
+            audio: 'audio/',
+            archives: 'application/zip,application/x-rar,application/gzip,application/x-7z,application/x-tar,application/x-tgz',
+          };
+          if (map[filter.value]) mimePrefixes.push(map[filter.value]);
           break;
-        case 'date':
-          params.dateRange = filter.value;
+        }
+        case 'date': {
+          const now = new Date();
+          let d;
+          if (filter.value === 'today') d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          else if (filter.value === 'week') d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          else if (filter.value === 'month') d = new Date(now.getFullYear(), now.getMonth(), 1);
+          else if (filter.value === 'year') d = new Date(now.getFullYear(), 0, 1);
+          if (d) params.modifiedAfter = d.toISOString();
           break;
+        }
         case 'owner':
-          params.owner = filter.value;
+          if (filter.value === 'me') params.ownedOnly = true;
+          else if (filter.value === 'shared') params.sharedOnly = true;
           break;
         case 'status':
-          if (filter.value === 'starred') params.isStarred = true;
-          if (filter.value === 'trash') params.isDeleted = true;
-          if (filter.value === 'recent') params.sortBy = 'recent';
+          if (filter.value === 'starred') params.starredOnly = true;
+          else if (filter.value === 'trash') params.deletedOnly = true;
+          else if (filter.value === 'recent') { params.sortField = 'updatedAt'; params.sortOrder = 'desc'; }
           break;
       }
     });
 
+    if (mimePrefixes.length > 0) params.mimeTypePrefix = mimePrefixes.join(',');
     return params;
   }, [filters]);
 

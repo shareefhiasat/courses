@@ -84,15 +84,27 @@ export default function FilterMenu({ onAddFilter }) {
     <div ref={menuRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-[#32343d] border border-[#434655]/30 rounded-lg text-sm text-white hover:bg-[#434655] transition-colors"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.375rem',
+          padding: '0.3rem 0.65rem',
+          background: 'var(--background-secondary, #f3f4f6)',
+          color: 'var(--text-secondary, #374151)',
+          border: '1px solid var(--border, #e5e7eb)',
+          borderRadius: '999px',
+          fontSize: '0.8125rem',
+          cursor: 'pointer',
+          transition: 'background 0.15s',
+        }}
       >
-        <Filter className="w-4 h-4" />
+        <Filter className="w-3.5 h-3.5" />
         {t('drive.addFilter')}
-        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full mt-2 start-0 w-64 bg-[#191b23] border border-[#434655]/30 rounded-lg shadow-2xl z-50 overflow-hidden">
+        <div className="absolute top-full mt-2 start-0 w-64 bg-[var(--panel,#191b23)] border border-[var(--border,#434655)]/30 rounded-lg shadow-2xl z-50 overflow-hidden">
           {!activeCategory ? (
             // Category List
             <div className="p-2">
@@ -102,13 +114,27 @@ export default function FilterMenu({ onAddFilter }) {
                   <button
                     key={category.id}
                     onClick={() => setActiveCategory(category.id)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-[#32343d] transition-colors text-start"
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: '0.5rem',
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--text, inherit)',
+                      cursor: 'pointer',
+                      textAlign: 'start',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--background-secondary, #32343d)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                   >
-                    <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4 text-[#b4c5ff]" />
-                      <span className="text-sm text-white">{category.label}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Icon className="w-4 h-4" style={{ color: 'var(--color-primary, #b4c5ff)' }} />
+                      <span className="text-sm">{category.label}</span>
                     </div>
-                    <ChevronDown className="w-4 h-4 text-[#8d90a0] -rotate-90" />
+                    <ChevronDown className="w-4 h-4 -rotate-90" style={{ color: 'var(--text-muted, #8d90a0)' }} />
                   </button>
                 );
               })}
@@ -118,7 +144,21 @@ export default function FilterMenu({ onAddFilter }) {
             <div className="p-2">
               <button
                 onClick={() => setActiveCategory(null)}
-                className="w-full flex items-center gap-2 px-3 py-2 mb-2 text-sm text-[#8d90a0] hover:text-white transition-colors"
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 0.75rem',
+                  marginBottom: '0.5rem',
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--text-muted, #8d90a0)',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text, inherit)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted, #8d90a0)'}
               >
                 <ChevronDown className="w-4 h-4 rotate-90" />
                 {t('common.back')}
@@ -132,10 +172,24 @@ export default function FilterMenu({ onAddFilter }) {
                     <button
                       key={option.value}
                       onClick={() => handleAddFilter(activeCategory, option.value)}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#32343d] transition-colors text-start"
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '0.5rem',
+                        border: 'none',
+                        background: 'transparent',
+                        color: 'var(--text, inherit)',
+                        cursor: 'pointer',
+                        textAlign: 'start',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--background-secondary, #32343d)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >
-                      <OptionIcon className="w-4 h-4 text-[#b4c5ff]" />
-                      <span className="text-sm text-white">{option.label}</span>
+                      <OptionIcon className="w-4 h-4" style={{ color: 'var(--color-primary, #b4c5ff)' }} />
+                      <span className="text-sm">{option.label}</span>
                     </button>
                   );
                 })}

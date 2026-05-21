@@ -1,0 +1,88 @@
+/* QAF LMS Branding for Collabora Online */
+/* Primary color: Maroon (#800000) */
+
+/* Override primary colors */
+:root {
+  --primary-color: #800000;
+  --primary-light: #990000;
+  --primary-dark: #660000;
+  --accent-color: #800000;
+}
+
+/* Logo area - use QAF logo */
+.logo-area {
+  background-color: #800000 !important;
+}
+
+.logo-area img {
+  content: url('branding/logo.png') !important;
+  max-height: 50px !important;
+  width: auto !important;
+}
+
+/* Toolbar styling */
+.toolbar {
+  background-color: #800000 !important;
+}
+
+.toolbar .toolbutton:hover {
+  background-color: #990000 !important;
+}
+
+/* Active states */
+.toolbutton.active {
+  background-color: #660000 !important;
+}
+
+/* Header and navigation */
+.header {
+  background-color: #800000 !important;
+}
+
+/* Buttons with primary color */
+.primary-button {
+  background-color: #800000 !important;
+  border-color: #800000 !important;
+}
+
+.primary-button:hover {
+  background-color: #990000 !important;
+}
+
+/* Links and highlights */
+a.highlight {
+  color: #800000 !important;
+}
+
+/* Selection color */
+::selection {
+  background-color: #800000 !important;
+  color: white !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar-thumb {
+  background-color: #800000 !important;
+}
+
+/* Footer branding */
+footer {
+  border-top: 3px solid #800000 !important;
+}
+
+/* Document tabs */
+.tab-active {
+  border-bottom: 3px solid #800000 !important;
+  color: #800000 !important;
+}
+
+/* Status indicators */
+.status-indicator.active {
+  background-color: #800000 !important;
+}
+
+/* Loading spinner */
+.spinner {
+  border-color: #800000 !important;
+  border-top-color: transparent !important;
+}

@@ -108,46 +108,46 @@ export async function downloadViaPublicLink(req, res) {
   const bucket = BUCKETS[bucketName] || bucketName;
 
   try {
-    const streamRes = await minioService.streamObject({ bucket, objectKey: s3Key, req, res, filename: file.name, mimeType: file.mimeType });
-    if (!streamRes.success) {
-      console.error('[downloadViaPublicLink] Stream failed:', streamRes.error);
-      // Attempt fallback for legacy files (similar to fileService.streamFile)
-      if (streamRes.error?.code === 'NotFound' || streamRes.error?.message?.includes('Not Found')) {
-        console.log('[downloadViaPublicLink] Object not found, attempting legacy fallback');
-        try {
-          const { minioClient } = await import('../services/minioService.js');
-          const prefix = `${bucketName}/${file.ownerId}/${file.id}/`;
-          console.log('[downloadViaPublicLink] Listing objects with prefix:', prefix);
-          const objectsStream = minioClient.listObjects(bucket, prefix, true);
-          const objects = [];
-          for await (const obj of objectsStream) {
-            objects.push(obj);
-          }
-          console.log('[downloadViaPublicLink] Found objects:', objects.length);
-          if (objects.length > 0) {
-            const fallbackKey = objects[0].name;
-            console.log('[downloadViaPublicLink] Using fallback key:', fallbackKey);
-            return await minioService.streamObject({ 
-              bucket, 
-              objectKey: fallbackKey, 
-              req, 
-              res, 
-              filename: file.name, 
-              mimeType: file.mimeType 
-            });
-          }
-        } catch (listError) {
-          console.error('[downloadViaPublicLink] Fallback failed:', listError);
-        }
-      }
-      return res.status(500).json(streamRes);
-    }
+    await minioService.streamObject({ bucket, objectKey: s3Key, req, res, filename: file.name, mimeType: file.mimeType });
   } catch (error) {
     console.error('[downloadViaPublicLink] Unexpected error:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: { code: 'DOWNLOAD_FAILED', message: 'Failed to download file' } 
-    });
+    // Attempt fallback for legacy files if the error is about not found
+    if (error.message?.includes('Not Found') || error.code === 'NotFound') {
+      console.log('[downloadViaPublicLink] Object not found, attempting legacy fallback');
+      try {
+        const { minioClient } = await import('../services/minioService.js');
+        const prefix = `${bucketName}/${file.ownerId}/${file.id}/`;
+        console.log('[downloadViaPublicLink] Listing objects with prefix:', prefix);
+        const objectsStream = minioClient.listObjects(bucket, prefix, true);
+        const objects = [];
+        for await (const obj of objectsStream) {
+          objects.push(obj);
+        }
+        console.log('[downloadViaPublicLink] Found objects:', objects.length);
+        if (objects.length > 0) {
+          const fallbackKey = objects[0].name;
+          console.log('[downloadViaPublicLink] Using fallback key:', fallbackKey);
+          return await minioService.streamObject({ 
+            bucket, 
+            objectKey: fallbackKey, 
+            req, 
+            res, 
+            filename: file.name, 
+            mimeType: file.mimeType 
+          });
+        }
+      } catch (listError) {
+        console.error('[downloadViaPublicLink] Fallback failed:', listError);
+      }
+    }
+    
+    // Only send error response if headers haven't been sent yet
+    if (!res.headersSent) {
+      return res.status(500).json({ 
+        success: false, 
+        error: { code: 'DOWNLOAD_FAILED', message: 'Failed to download file' } 
+      });
+    }
   }
 }
 

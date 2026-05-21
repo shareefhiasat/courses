@@ -2,8 +2,11 @@ import * as fileService from '../services/fileService.js';
 import * as fileVersionService from '../services/fileVersionService.js';
 import * as fileShareService from '../services/fileShareService.js';
 import { addFileComment, getFileComments, deleteFileComment } from '../services/fileCommentService.js';
-import { generatePresignedGetUrl } from '../services/minioService.js';
-import { getBucketSize } from '../services/minioService.js';
+import { PrismaClient } from '@prisma/client';
+import { generatePresignedGetUrl, generatePresignedPutUrl, getBucketSize } from '../services/minioService.js';
+import { DEFAULT_STORAGE_LIMIT } from '../constants/driveConstants.js';
+
+const prisma = new PrismaClient();
 
 export const downloadFile = async (req, res) => {
   try {
@@ -148,6 +151,7 @@ export const listFiles = async (req, res) => {
       starredOnly = false,
       rootOnly = false,
       ownedOnly = false,
+      sharedOnly = false,
     } = req.query;
 
     const result = await fileService.listFiles(req.user, {
@@ -166,6 +170,7 @@ export const listFiles = async (req, res) => {
       starredOnly: starredOnly === 'true',
       rootOnly: rootOnly === 'true',
       ownedOnly: ownedOnly === 'true',
+      sharedOnly: sharedOnly === 'true',
     });
 
     if (!result.success) {
@@ -494,7 +499,7 @@ export const getStorageUsage = async (req, res) => {
 
     const storageLimit = process.env.STORAGE_LIMIT_MB 
       ? parseInt(process.env.STORAGE_LIMIT_MB) * 1024 * 1024 
-      : 500 * 1024 * 1024; // Default 500 MB
+      : DEFAULT_STORAGE_LIMIT;
 
     res.json({
       success: true,

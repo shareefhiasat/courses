@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { Button, Select, DatePicker, Tooltip, AttendanceTypeSelect, Slider } from '@ui';
+import { Button, Select, DatePicker, Tooltip, AttendanceTypeSelect, Slider, SimpleLoading } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
@@ -10,14 +10,14 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
-import { getAttendanceStats, getAttendanceMarksForExport, getAllAttendanceSessions, updateAttendanceMark, getAttendanceMarksCount } from '@services/business/attendanceService';
+import attendanceService from '@services/business/attendanceService';
 import { getUsers, getUserById } from '@services/business/userService';
 import { getAttendanceIcon, createAttendanceBadge } from '@constants/iconTypes';
 import { getQatarNow, formatQatarDateOnly, formatQatarStandard } from '@utils/qatarDate';
 import { exportGeneric } from '@services/export/excelExportService.js';
 
 const HRAttendancePage = () => {
-  const { user, isHR, isAdmin, loading: authLoading } = useAuth();
+  const { user, isHR, isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
   const { t } = useLang();
   const { theme } = useTheme();
   const { primaryColor } = useColorTheme();
@@ -89,7 +89,7 @@ const HRAttendancePage = () => {
     const stopLoading = startLoading({ message: t('hr_attendance_loading_attendance_sessions') });
     try {
       // Use attendance service to get attendance sessions
-      const attendanceResult = await getAllAttendanceSessions();
+      const attendanceResult = await attendanceService.getAllAttendanceSessions();
       const data = attendanceResult.success ? attendanceResult.data.sessions || [] : [];
       
       info('[HRAttendance] Fetched sessions count:', data.length);
@@ -145,7 +145,7 @@ const HRAttendancePage = () => {
         
         // Get scan counts
         try {
-          const countResult = await getAttendanceMarksCount(session.id);
+          const countResult = await attendanceService.getAttendanceMarksCount(session.id);
           if (countResult.success) {
             scanCounts = countResult.data;
           }
@@ -365,7 +365,7 @@ const HRAttendancePage = () => {
           }
         }));
         // Reload sessions after closing expired ones
-        const reloadResult = await getAllAttendanceSessions();
+        const reloadResult = await attendanceService.getAllAttendanceSessions();
         if (reloadResult.success) {
           let updatedData = reloadResult.data.sessions || [];
         
@@ -542,7 +542,7 @@ const HRAttendancePage = () => {
     
     const stopLoading = startLoading({ message: t('hr_attendance_loading_attendance_marks') });
     try {
-      const result = await getAttendanceMarksForExport(sessionId);
+      const result = await attendanceService.getAttendanceMarksForExport(sessionId);
       let data = result.success ? result.data : [];
       
       console.log('🔍 [HRAttendance] Raw attendance data loaded:', {
@@ -625,7 +625,7 @@ const HRAttendancePage = () => {
 
   const updateMarkStatus = async (sessionId, uid, newStatus, newReason, newFeedback) => {
     try {
-      const result = await updateAttendanceMark(sessionId, uid, newStatus, newReason, newFeedback, user?.uid);
+      const result = await attendanceService.updateAttendanceMark(sessionId, uid, newStatus, newReason, newFeedback, user?.uid);
       if (!result.success) {
         throw new Error(result.error);
       }
@@ -642,7 +642,7 @@ const HRAttendancePage = () => {
 
   const exportSessionCSV = async (sessionId) => {
     try {
-      const result = await getAttendanceMarksForExport(sessionId);
+      const result = await attendanceService.getAttendanceMarksForExport(sessionId);
       const rows = result.success ? result.data : [];
       
       // Enrich with user data
@@ -767,7 +767,7 @@ const HRAttendancePage = () => {
     );
   }
 
-  if (!isHR && !isAdmin) {
+  if (!isHR && !isAdmin && !isSuperAdmin) {
     return (
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '2rem', textAlign: 'center' }}>
         {getThemedIcon('ui', 'alert_triangle', 48, theme)}

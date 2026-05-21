@@ -15,12 +15,53 @@ export default function UploadModal({
   const { t } = useLang();
   const fileInputRef = useRef(null);
 
+  // File size limit: 50MB
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
+  // Allowed file extensions (basic types)
+  const ALLOWED_EXTENSIONS = [
+    'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', // Images
+    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', // Documents
+    'mp4', 'mov', 'avi', 'mkv', 'webm', // Videos
+    'mp3', 'wav', 'ogg', 'm4a', // Audio
+    'zip', 'rar', '7z', 'tar', 'gz' // Archives
+  ];
+
+  const validateFile = (file) => {
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      return {
+        valid: false,
+        error: `${file.name} exceeds the 50MB limit`
+      };
+    }
+
+    // Check file extension
+    const extension = file.name.split('.').pop().toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(extension)) {
+      return {
+        valid: false,
+        error: `${file.name} has an unsupported file type`
+      };
+    }
+
+    return { valid: true };
+  };
+
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      onAddFiles(files);
+      const validFiles = Array.from(files).filter(file => {
+        const validation = validateFile(file);
+        if (!validation.valid) {
+          console.warn(validation.error);
+        }
+        return validation.valid;
+      });
+      if (validFiles.length > 0) {
+        onAddFiles(validFiles);
+      }
     }
   };
 
@@ -32,7 +73,16 @@ export default function UploadModal({
   const handleFileSelect = (e) => {
     const files = e.target.files;
     if (files.length > 0) {
-      onAddFiles(files);
+      const validFiles = Array.from(files).filter(file => {
+        const validation = validateFile(file);
+        if (!validation.valid) {
+          console.warn(validation.error);
+        }
+        return validation.valid;
+      });
+      if (validFiles.length > 0) {
+        onAddFiles(validFiles);
+      }
     }
   };
 
@@ -66,10 +116,11 @@ export default function UploadModal({
   const queuedCount = uploads.filter(u => u.status === 'queued').length;
   const completedCount = uploads.filter(u => u.status === 'completed').length;
   const failedCount = uploads.filter(u => u.status === 'failed').length;
+  const versionUploads = uploads.filter(u => u.isVersion && u.status === 'queued').length;
 
   const summary = uploads.length > 0
     ? `${uploads.length} ${t('drive.filesInQueue')} · ${completedCount} ${t('drive.completed')} · ${failedCount} ${t('drive.failed')}`
-    : t('drive.dragDropOrClick');
+    : null;
 
   const footer = uploads.length > 0 ? (
     <div className="flex items-center justify-between w-full">
@@ -90,7 +141,13 @@ export default function UploadModal({
         </Button>
       </div>
     </div>
-  ) : null;
+  ) : (
+    <div className="flex items-center justify-end w-full">
+      <Button variant="outline" onClick={onClose}>
+        {t('common.cancel')}
+      </Button>
+    </div>
+  );
 
   return (
     <Modal
@@ -101,7 +158,16 @@ export default function UploadModal({
       footer={footer}
       titleStyle={{ fontSize: '1.25rem', fontWeight: '600' }}
     >
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{summary}</p>
+      {versionUploads > 0 && (
+        <div className="p-3 mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+            {versionUploads} {versionUploads === 1 ? 'file will' : 'files will'} create a new version because {versionUploads === 1 ? 'it' : 'they'} {versionUploads === 1 ? 'has' : 'have'} the same name as an existing file.
+          </p>
+        </div>
+      )}
+      {summary && (
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 font-medium">{summary}</p>
+      )}
 
       <input
         ref={fileInputRef}
@@ -116,15 +182,21 @@ export default function UploadModal({
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onClick={() => fileInputRef.current?.click()}
-          className="p-14 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:border-blue-500/50 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors cursor-pointer text-center"
+          className="p-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:border-blue-500 transition-colors cursor-pointer"
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
         >
-          <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
-          <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+          <Upload className="w-14 h-14 mb-3 text-blue-500 dark:text-blue-400" aria-hidden="true" />
+          <p className="text-lg font-semibold text-gray-900 dark:text-white mb-1" style={{ textAlign: 'center' }}>
             {t('drive.dragDropFiles')}
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-black dark:text-white mb-4" style={{ textAlign: 'center' }}>
             {t('drive.orClickToSelect')}
           </p>
+          <div className="flex items-center justify-center gap-6 text-xs text-black dark:text-white">
+            <span>Max: 50MB</span>
+            <span>•</span>
+            <span>Images, Docs, Video, Audio, Archives</span>
+          </div>
         </div>
       )}
 

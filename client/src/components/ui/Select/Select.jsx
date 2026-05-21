@@ -42,6 +42,8 @@ const Select = forwardRef(({
   searchable = true,
   className = '',
   theme = 'light',
+  onSearchChange,
+  searchPlaceholder,
   ...rest
 }, ref) => {
   const { t } = useLang();
@@ -168,11 +170,13 @@ const Select = forwardRef(({
     return '';
   };
 
-  const filteredOptions = searchable && searchTerm
-    ? options.filter(option =>
-        getOptionSearchText(option).includes(searchTerm.toLowerCase())
-      )
-    : options;
+  const filteredOptions = onSearchChange
+    ? options
+    : (searchable && searchTerm
+      ? options.filter(option =>
+          getOptionSearchText(option).includes(searchTerm.toLowerCase())
+        )
+      : options);
 
   // Get selected option label
   // Use loose equality (==) to handle string/number type mismatches
@@ -183,7 +187,7 @@ const Select = forwardRef(({
         (typeof selectedOption.label === 'string'
           ? selectedOption.label
           : (selectedOption.text || selectedOption.value || localizedPlaceholder)))
-    : localizedPlaceholder;
+    : (onSearchChange && searchTerm ? searchTerm : localizedPlaceholder);
 
   const handleSelect = (optionValue) => {
     try {
@@ -372,9 +376,13 @@ const Select = forwardRef(({
                     ref={searchInputRef}
                     type="text"
                     className={styles.searchInput}
-                    placeholder={t('search') || 'Search...'}
+                    placeholder={searchPlaceholder || t('search') || 'Search...'}
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value || '')}
+                    onChange={(e) => {
+                      const v = e.target.value || '';
+                      setSearchTerm(v);
+                      if (onSearchChange) onSearchChange(v);
+                    }}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
@@ -416,13 +424,15 @@ const Select = forwardRef(({
                         padding: '8px 12px',
                         backgroundColor: option.value === value ? 'var(--primary-light, #eef2ff)' : 'transparent',
                         color: option.value === value ? 'var(--primary, #800020)' : 'inherit',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
                       }}
                     >
-                      {option.icon && <span style={{ display: 'flex', alignItems: 'center' }}>{option.icon}</span>}
-                      {option.label}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                        {option.icon && <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>{option.icon}</span>}
+                        <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{option.label}</span>
+                          {option.subtext && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{option.subtext}</span>}
+                        </span>
+                      </span>
                     </div>
                   );
                 })

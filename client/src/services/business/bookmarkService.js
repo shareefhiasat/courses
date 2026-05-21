@@ -61,18 +61,30 @@ export const isBookmarked = async (itemId, type, userId) => {
     };
   }
 };
-export const calculateBookmarkCount = async (userId) => {
+export const calculateBookmarkCount = (items = [], bookmarks = {}, mode = 'activities', activityType = null) => {
   try {
-    return {
-      success: true,
-      count: 0
-    };
+    const bookmarkedIds = new Set();
+    
+    if (mode === 'activities' || mode === 'quiz') {
+      const activityBookmarks = bookmarks.activities || {};
+      Object.keys(activityBookmarks).forEach(id => bookmarkedIds.add(id));
+    } else if (mode === 'resources') {
+      const resourceBookmarks = bookmarks.resources || {};
+      Object.keys(resourceBookmarks).forEach(id => bookmarkedIds.add(id));
+    } else if (mode === 'announcements') {
+      const announcementBookmarks = bookmarks.announcements || {};
+      Object.keys(announcementBookmarks).forEach(id => bookmarkedIds.add(id));
+    }
+    
+    const count = items.filter(item => {
+      const itemId = item.docId || item.id;
+      return bookmarkedIds.has(itemId);
+    }).length;
+    
+    return count;
   } catch (error) {
-    return {
-      success: false,
-      count: 0,
-      error: error.message
-    };
+    debug('[bookmarkService] calculateBookmarkCount error:', error);
+    return 0;
   }
 };
 export const getEmptyBookmarks = () => ({

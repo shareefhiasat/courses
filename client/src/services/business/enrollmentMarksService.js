@@ -10,8 +10,8 @@ import { info, error as logError } from '../utils/logger.js';
 
 const serviceName = 'enrollmentMarksService';
 
-// Base API URL
-const API_BASE = '/api/v1/marks';
+// Base API URL (apiService already includes /api/v1)
+const API_BASE = '/marks';
 
 // Frontend grading standards utility
 export const GRADING_STANDARDS = {
@@ -246,7 +246,7 @@ export const getAllStudentMarksReport = async (filters = {}) => {
       params.append('isRepeated', filters.isRepeated);
     }
     
-    const response = await apiService.get(`/api/v1/marks/report?${params.toString()}`);
+    const response = await apiService.get(`${API_BASE}/report?${params.toString()}`);
     
     return {
       success: response.success,

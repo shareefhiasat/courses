@@ -25,11 +25,11 @@ const getAllClasses = async (params = {}) => {
       total: result.pagination?.total || 0,
       pagination: result.pagination
     };
-  } catch (error) {
-    error(`${serviceName}:getAllClasses:error`, { error: error.message, params });
+  } catch (err) {
+    error(`${serviceName}:getAllClasses:error`, { error: err.message, params });
     return {
       success: false,
-      error: error.message || 'Failed to load classes',
+      error: err.message || 'Failed to load classes',
       data: []
     };
   }
@@ -45,11 +45,11 @@ const getClassById = async (id) => {
       data: result.data,
       error: result.success ? undefined : result.error
     };
-  } catch (error) {
-    error(`${serviceName}:getClassById:error`, { error: error.message, id });
+  } catch (err) {
+    error(`${serviceName}:getClassById:error`, { error: err.message, id });
     return {
       success: false,
-      error: error.message || 'Failed to load class',
+      error: err.message || 'Failed to load class',
       data: null
     };
   }
@@ -75,11 +75,11 @@ const createClass = async (classData, user = null) => {
         data: null
       };
     }
-  } catch (error) {
-    error(`${serviceName}:createClass:error`, { error: error.message, data: classData });
+  } catch (err) {
+    error(`${serviceName}:createClass:error`, { error: err.message, data: classData });
     return {
       success: false,
-      error: error.message || 'Failed to create class',
+      error: err.message || 'Failed to create class',
       data: null
     };
   }
@@ -105,11 +105,11 @@ const updateClass = async (id, updateData, user = null) => {
         data: null
       };
     }
-  } catch (error) {
-    error(`${serviceName}:updateClass:error`, { error: error.message, id, data: updateData });
+  } catch (err) {
+    error(`${serviceName}:updateClass:error`, { error: err.message, id, data: updateData });
     return {
       success: false,
-      error: error.message || 'Failed to update class',
+      error: err.message || 'Failed to update class',
       data: null
     };
   }
@@ -134,11 +134,11 @@ const deleteClass = async (id, user = null) => {
         data: null
       };
     }
-  } catch (error) {
-    error(`${serviceName}:deleteClass:error`, { error: error.message, id });
+  } catch (err) {
+    error(`${serviceName}:deleteClass:error`, { error: err.message, id });
     return {
       success: false,
-      error: error.message || 'Failed to deactivate class',
+      error: err.message || 'Failed to deactivate class',
       data: null
     };
   }

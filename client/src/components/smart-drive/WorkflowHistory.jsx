@@ -57,7 +57,7 @@ export default function WorkflowHistory({ history = [], onClose }) {
               </span>
               {entry.fromStatus && (
                 <>
-                  <span className="text-xs text-gray-400">from</span>
+                  <span className="text-xs text-gray-400">{t('workflow.inbox.from')}</span>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(entry.fromStatus)}`}>
                     {entry.fromStatus}
                   </span>

@@ -309,6 +309,7 @@ export async function listFiles(keycloakUser, {
   starredOnly = false,
   rootOnly = false,
   ownedOnly = false,
+  sharedOnly = false,
 } = {}) {
   try {
     const userId = await getDatabaseUserId(keycloakUser);
@@ -316,15 +317,21 @@ export async function listFiles(keycloakUser, {
 
     const where = {
       isDeleted: deletedOnly ? true : includeDeleted ? undefined : false,
-      ...(ownedOnly
-        ? { ownerId: userId }
-        : {
-            OR: [
-              { ownerId: userId },
-              { shares: { some: { subjectType: 'USER', subjectUserId: userId } } },
-            ],
-          }),
     };
+
+    // Ownership filter
+    if (ownedOnly) {
+      where.ownerId = userId;
+    } else if (sharedOnly) {
+      where.ownerId = { not: userId };
+      where.shares = { some: { subjectType: 'USER', subjectUserId: userId } };
+    } else {
+      where.OR = [
+        { ownerId: userId },
+        { shares: { some: { subjectType: 'USER', subjectUserId: userId } } },
+      ];
+    }
+
     if (folderId !== undefined && folderId !== null && folderId !== '') {
       where.folderId = folderId;
     } else if (rootOnly) {
@@ -332,7 +339,28 @@ export async function listFiles(keycloakUser, {
     }
     if (folderPath !== undefined) where.folderPath = folderPath;
     if (bucket) where.bucket = mapBucketName(bucket);
-    if (mimeTypePrefix) where.mimeType = { startsWith: mimeTypePrefix };
+
+    // Mime type filter — supports comma-separated prefixes via AND
+    if (mimeTypePrefix) {
+      const prefixes = mimeTypePrefix.split(',').map(p => p.trim()).filter(Boolean);
+      if (prefixes.length === 1) {
+        where.mimeType = { startsWith: prefixes[0] };
+      } else if (prefixes.length > 1) {
+        const mimeConditions = prefixes.map(prefix => ({ mimeType: { startsWith: prefix } }));
+        const hasOwnershipOr = Array.isArray(where.OR);
+        if (hasOwnershipOr) {
+          // Wrap existing OR + mime OR inside AND
+          where.AND = [
+            { OR: where.OR },
+            { OR: mimeConditions },
+          ];
+          delete where.OR;
+        } else {
+          where.OR = mimeConditions;
+        }
+      }
+    }
+
     if (modifiedAfter) where.updatedAt = { gte: new Date(modifiedAfter) };
     if (search) where.name = { contains: search, mode: 'insensitive' };
     if (starredOnly) where.isStarred = true;
@@ -376,7 +404,7 @@ export async function updateFile(fileId, actorUserId, updates) {
 
     const updated = await prisma.file.update({ where: { id: fileId }, data: safe });
     await prisma.fileActivity.create({
-      data: { fileId, userId: actorUserId, action: 'update', metadata: safe },
+      data: { fileId, userId: actorUserId, action: 'RENAME', metadata: safe },
     });
     return ok(updated);
   } catch (error) {
@@ -396,7 +424,7 @@ export async function softDeleteFile(fileId, actorUserId) {
       data: { isDeleted: true, deletedAt: new Date(), deletedById: actorUserId },
     });
     await prisma.fileActivity.create({
-      data: { fileId, userId: actorUserId, action: 'soft_delete' },
+      data: { fileId, userId: actorUserId, action: 'DELETE' },
     });
     return ok(updated);
   } catch (error) {
@@ -416,7 +444,7 @@ export async function restoreFile(fileId, actorUserId) {
       data: { isDeleted: false, deletedAt: null, deletedById: null },
     });
     await prisma.fileActivity.create({
-      data: { fileId, userId: actorUserId, action: 'restore' },
+      data: { fileId, userId: actorUserId, action: 'RESTORE' },
     });
     return ok(updated);
   } catch (error) {
@@ -470,7 +498,48 @@ export async function getPreviewUrl(fileId, actorUserId) {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
     if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');
 
+    // Check if file has a placeholder key (incomplete upload)
+    if (file.s3Key && file.s3Key.includes('/placeholder')) {
+      return err('FILE_NOT_READY', 'File upload not completed');
+    }
+
+    // Check if file has no versions
+    const versionCount = await prisma.fileVersion.count({ where: { fileId } });
+    if (versionCount === 0) {
+      return err('FILE_NOT_READY', 'File upload not completed');
+    }
+
     const bucketReal = resolveBucket(file.bucket);
+    
+    // Check if it's an office document that should use Collabora
+    const isOfficeDocument = file.mimeType?.includes('word') || 
+                           file.mimeType?.includes('document') ||
+                           file.mimeType?.includes('presentation') ||
+                           file.mimeType?.includes('spreadsheet') ||
+                           file.mimeType?.includes('excel') ||
+                           file.mimeType?.includes('powerpoint') ||
+                           file.mimeType?.includes('officedocument');
+    
+    if (isOfficeDocument) {
+      const { generateWopiToken } = await import('./wopiService.js');
+      
+      // Get user info for WOPI context
+      const user = await prisma.user.findUnique({ where: { id: actorUserId } });
+      const userInfo = {
+        displayName: user?.displayName || 'User',
+        email: user?.email || '',
+        id: user?.id || actorUserId,
+      };
+      
+      const wopiToken = generateWopiToken(actorUserId, fileId, 'write', userInfo);
+      
+      await prisma.fileActivity.create({
+        data: { fileId, userId: actorUserId, action: 'preview' },
+      });
+      
+      return ok({ mode: 'collabora', wopiToken });
+    }
+    
     if (!isInlinePreviewable(file.mimeType)) {
       return ok({ mode: 'download' });
     }
@@ -541,7 +610,7 @@ export async function streamFile({ fileId, req, res, actorUserId }) {
   console.log('[streamFile] Bucket mapping:', { bucketName, bucketReal });
 
   await prisma.fileActivity.create({
-    data: { fileId, userId: actorUserId, action: 'download' },
+    data: { fileId, userId: actorUserId, action: 'DOWNLOAD' },
   });
 
   console.log('[streamFile] Streaming object with:', { bucket: bucketReal, objectKey: s3Key, filename: file.name });
@@ -658,7 +727,7 @@ export async function toggleStarFile(fileId, actorUserId) {
     if (!file) return err('FILE_NOT_FOUND', 'File not found');
 
     // Allow starring if user is owner or has access via shares
-    const hasAccess = file.ownerId === actorUserId || await prisma.fileShareV2.findFirst({
+    const hasAccess = file.ownerId === actorUserId || await prisma.fileShare.findFirst({
       where: {
         fileId,
         subjectType: 'USER',

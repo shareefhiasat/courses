@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { DEFAULT_STORAGE_LIMIT } from '@constants/driveConstants';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -48,9 +49,17 @@ export default function SmartDrivePage() {
   const [detailsModalFile, setDetailsModalFile] = useState(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [createFolderModalOpen, setCreateFolderModalOpen] = useState(false);
+  const [renameTarget, setRenameTarget] = useState(null);
+  const [newName, setNewName] = useState('');
+  const [renameError, setRenameError] = useState('');
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth <= 768 : false
   );
+  const [openFilterChip, setOpenFilterChip] = useState(null);
+  const filterChipRefs = useRef({});
+  const [emptyTrashConfirmOpen, setEmptyTrashConfirmOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemsToDelete, setItemsToDelete] = useState([]);
 
   // Real data hooks
   const {
@@ -72,6 +81,7 @@ export default function SmartDrivePage() {
     createPublicLink,
     createFolder,
     renameFolder,
+    renameFile,
     deleteFolder,
     downloadFolder,
     shareFolder,
@@ -149,15 +159,20 @@ export default function SmartDrivePage() {
     () => (allFiles || []).reduce((sum, f) => sum + (f.size || 0), 0),
     [allFiles]
   );
-  const storageLimit = 10 * 1024 * 1024 * 1024; // 10 GB
+  const storageLimit = DEFAULT_STORAGE_LIMIT;
 
   const visibleFiles = useMemo(() => {
     return allFiles || [];
   }, [allFiles]);
 
   const visibleFolders = useMemo(() => {
-    return activeSpace === 'my-drive' ? folders || [] : [];
-  }, [activeSpace, folders]);
+    let result = activeSpace === 'my-drive' ? folders || [] : [];
+    const hasStarredFilter = filters.some(f => f.type === 'status' && f.value === 'starred');
+    if (hasStarredFilter) {
+      result = result.filter(f => f.starred);
+    }
+    return result;
+  }, [activeSpace, folders, filters]);
 
   const handleToggleSelect = (id) => {
     setSelectedIds((prev) => {
@@ -169,7 +184,8 @@ export default function SmartDrivePage() {
   };
 
   const handleSelectAll = (checked) => {
-    setSelectedIds(checked ? new Set(visibleFiles.map((f) => f.id)) : new Set());
+    const allIds = [...visibleFolders, ...visibleFiles].map(item => item.id);
+    setSelectedIds(checked ? new Set(allIds) : new Set());
   };
 
   const handleClearSelection = () => setSelectedIds(new Set());
@@ -217,17 +233,26 @@ export default function SmartDrivePage() {
           return starFile(item.id);
         }
       }));
+    } else if (action === 'open') {
+      const item = items[0];
+      if (item && item.path === undefined) {
+        // It's a file - open preview
+        setDetailsModalFile(item);
+      }
+    } else if (action === 'rename') {
+      // Handle rename for single item
+      const item = items[0];
+      if (item) {
+        // For files, show name without extension in the input
+        const isFile = item.path === undefined;
+        const displayName = isFile ? item.name.replace(/\.[^/.]+$/, '') : item.name;
+        setNewName(displayName);
+        setRenameTarget(item);
+        setRenameError('');
+      }
     } else if (action === 'delete' || action === 'trash') {
-      await Promise.all(items.map((item) => {
-        if (item.path !== undefined) {
-          // It's a folder
-          return deleteFolder(item.id);
-        } else {
-          // It's a file
-          return trashFile(item.id);
-        }
-      }));
-      handleClearSelection();
+      setItemsToDelete(items);
+      setDeleteConfirmOpen(true);
     } else if (action === 'restore') {
       await Promise.all(items.map((item) => {
         if (item.path !== undefined) {
@@ -238,38 +263,16 @@ export default function SmartDrivePage() {
           return restoreFile(item.id);
         }
       }));
-      handleClearSelection();
-    } else if (action === 'permanent-delete') {
+    } else if (action === 'download') {
       await Promise.all(items.map((item) => {
         if (item.path !== undefined) {
-          // Folders don't have permanent delete yet, skip
-          return Promise.resolve();
+          // It's a folder
+          return downloadFolder(item.id);
         } else {
           // It's a file
-          return permanentDeleteFile(item.id);
+          return downloadFile(item.id);
         }
       }));
-      handleClearSelection();
-    } else if (action === 'download') {
-      if (items.length === 1) {
-        const item = items[0];
-        if (item.path !== undefined) {
-          // It's a folder
-          await downloadFolder(item.id);
-        } else {
-          // It's a file
-          await downloadFile(item.id);
-        }
-      } else {
-        // Multiple items download - handle separately
-        await Promise.all(items.map((item) => {
-          if (item.path !== undefined) {
-            return downloadFolder(item.id);
-          } else {
-            return downloadFile(item.id);
-          }
-        }));
-      }
     } else if (action === 'share') {
       if (items.length === 1) {
         const item = items[0];
@@ -293,15 +296,8 @@ export default function SmartDrivePage() {
         error(t('drive.deleteFolderFailed'));
       }
     } else if (action === 'rename') {
-      const newName = prompt(t('drive.enterNewName') || 'Enter new name:', folder.name);
-      if (newName && newName !== folder.name) {
-        const result = await renameFolder(folder.id, newName);
-        if (result.success) {
-          success(t('drive.folderRenamed'));
-        } else {
-          error(t('drive.renameFolderFailed'));
-        }
-      }
+      setNewName(folder.name);
+      setRenameTarget(folder);
     } else if (action === 'download') {
       const result = await downloadFolder(folder.id);
       if (!result.success) {
@@ -363,6 +359,37 @@ export default function SmartDrivePage() {
     success(t('drive.uploadComplete'));
   };
 
+  const handleEmptyTrash = async () => {
+    const trashedFiles = visibleFiles.filter(f => f.isDeleted);
+    if (trashedFiles.length === 0) return;
+    setEmptyTrashConfirmOpen(true);
+  };
+
+  const confirmEmptyTrash = async () => {
+    const trashedFiles = visibleFiles.filter(f => f.isDeleted);
+    if (trashedFiles.length === 0) return;
+    await Promise.all(trashedFiles.map(f => permanentDeleteFile(f.id)));
+    refreshFiles();
+    setEmptyTrashConfirmOpen(false);
+    success(t('drive.trashEmptied') || 'Trash emptied');
+  };
+
+  const confirmDelete = async () => {
+    await Promise.all(itemsToDelete.map((item) => {
+      if (item.path !== undefined) {
+        // It's a folder
+        return deleteFolder(item.id);
+      } else {
+        // It's a file
+        return trashFile(item.id);
+      }
+    }));
+    handleClearSelection();
+    setDeleteConfirmOpen(false);
+    setItemsToDelete([]);
+    success(t('drive.deleteSuccess') || 'Items moved to trash');
+  };
+
   const handleCreateFolder = async (name, parentId) => {
     const result = await createFolder(name, parentId);
     if (result.success) {
@@ -373,6 +400,56 @@ export default function SmartDrivePage() {
     }
     return result;
   };
+
+  // Close filter chip dropdowns on outside click
+  useEffect(() => {
+    if (!openFilterChip) return;
+    const handler = (e) => {
+      const ref = filterChipRefs.current[openFilterChip];
+      if (ref && !ref.contains(e.target)) setOpenFilterChip(null);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openFilterChip]);
+
+  const quickFilterCategories = [
+    {
+      key: 'type', label: t('drive.type'), icon: 'file_text',
+      options: [
+        { value: 'images', label: t('drive.filter.type.images'), icon: 'image' },
+        { value: 'documents', label: t('drive.filter.type.documents'), icon: 'file_text' },
+        { value: 'videos', label: t('drive.filter.type.videos'), icon: 'video' },
+        { value: 'audio', label: t('drive.filter.type.audio'), icon: 'music' },
+        { value: 'archives', label: t('drive.filter.type.archives'), icon: 'archive' },
+      ],
+    },
+    {
+      key: 'people', label: t('drive.people'), icon: 'users',
+      options: [
+        { value: 'me', label: t('drive.filter.owner.me'), icon: 'user' },
+        { value: 'shared', label: t('drive.filter.owner.shared'), icon: 'users' },
+      ],
+    },
+    {
+      key: 'modified', label: t('drive.modified'), icon: 'clock',
+      options: [
+        { value: 'today', label: t('drive.filter.date.today'), icon: 'clock' },
+        { value: 'week', label: t('drive.filter.date.week'), icon: 'calendar' },
+        { value: 'month', label: t('drive.filter.date.month'), icon: 'calendar' },
+        { value: 'year', label: t('drive.filter.date.year'), icon: 'calendar' },
+      ],
+    },
+    {
+      key: 'status', label: t('drive.status'), icon: 'star',
+      options: [
+        { value: 'starred', label: t('drive.filter.status.starred'), icon: 'star' },
+        { value: 'recent', label: t('drive.filter.status.recent'), icon: 'clock' },
+        { value: 'trash', label: t('drive.filter.status.trash'), icon: 'trash' },
+      ],
+    },
+  ];
+
+  const filterTypeToKey = { type: 'type', people: 'owner', modified: 'date', status: 'status' };
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -648,68 +725,83 @@ export default function SmartDrivePage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                flexWrap: 'wrap',
+                flexWrap: 'nowrap',
+                overflow: 'hidden',
               }}
             >
-              <button
-                type="button"
-                onClick={() => handleBreadcrumbOpen(null)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: currentFolderId ? 'var(--color-primary, #2563eb)' : 'var(--text, #111827)',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '0.25rem',
-                }}
-                onMouseEnter={(e) => {
-                  if (!currentFolderId) e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)';
-                }}
-                onMouseLeave={(e) => {
-                  if (!currentFolderId) e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                {getThemedIcon('ui', 'folder', 14, currentFolderId ? 'primary' : theme)}
-                <span style={{ marginInlineStart: '0.375rem' }}>{t('drive.myDrive') || 'My Drive'}</span>
-              </button>
-              {breadcrumbs.map((crumb, idx) => (
-                <React.Fragment key={crumb.id}>
-                  <span style={{ color: 'var(--text-muted, #9ca3af)', fontSize: '0.75rem' }}>
-                    {getThemedIcon('ui', 'chevron_right', 12, 'muted')}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleBreadcrumbOpen(crumb.id)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: crumb.id === currentFolderId ? 'var(--text, #111827)' : 'var(--color-primary, #2563eb)',
-                      cursor: 'pointer',
-                      fontSize: '0.875rem',
-                      fontWeight: crumb.id === currentFolderId ? 600 : 500,
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (crumb.id !== currentFolderId) e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)';
-                    }}
-                    onMouseLeave={(e) => {
-                      if (crumb.id !== currentFolderId) e.currentTarget.style.background = 'transparent';
-                    }}
-                  >
-                    {getThemedIcon('ui', 'folder', 14, crumb.id === currentFolderId ? theme : 'primary')}
-                    <span style={{ marginInlineStart: '0.375rem' }}>{crumb.name}</span>
-                  </button>
-                </React.Fragment>
-              ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden', flex: 1, minWidth: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => handleBreadcrumbOpen(null)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: currentFolderId ? 'var(--color-primary, #2563eb)' : 'var(--text, #111827)',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '0.25rem',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!currentFolderId) e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!currentFolderId) e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  {getThemedIcon('ui', 'folder', 14, currentFolderId ? 'primary' : theme)}
+                  <span>{t('drive.myDrive') || 'My Drive'}</span>
+                </button>
+                {breadcrumbs.map((crumb, idx) => (
+                  <React.Fragment key={crumb.id}>
+                    <span style={{ color: 'var(--text-muted, #9ca3af)', fontSize: '0.75rem', flexShrink: 0 }}>
+                      {getThemedIcon('ui', 'chevron_right', 12, 'muted')}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleBreadcrumbOpen(crumb.id)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: crumb.id === currentFolderId ? 'var(--text, #111827)' : 'var(--color-primary, #2563eb)',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        fontWeight: crumb.id === currentFolderId ? 600 : 500,
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '0.25rem',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        minWidth: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.375rem',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (crumb.id !== currentFolderId) e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (crumb.id !== currentFolderId) e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      {getThemedIcon('ui', 'folder', 14, crumb.id === currentFolderId ? theme : 'primary')}
+                      <span>{crumb.name}</span>
+                    </button>
+                  </React.Fragment>
+                ))}
+              </div>
               {currentFolderId && (
                 <button
                   type="button"
                   onClick={handleGoUp}
                   style={{
-                    marginInlineStart: 'auto',
+                    flexShrink: 0,
                     padding: '0.375rem 0.75rem',
                     background: 'var(--background-secondary, #f3f4f6)',
                     border: '1px solid var(--border, #e5e7eb)',
@@ -730,80 +822,112 @@ export default function SmartDrivePage() {
             </div>
           )}
 
-          {/* Filter chips bar */}
+          {/* Filter bar — merged quick filters + add filter + active chips */}
           <div
             style={{
               background: 'var(--panel, white)',
               border: '1px solid var(--border, #e5e7eb)',
               borderRadius: '0.75rem',
-              padding: '0.75rem 1rem',
+              padding: '0.5rem 0.75rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
               flexWrap: 'wrap',
             }}
           >
-            <span
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                color: 'var(--text-muted, #6b7280)',
-                marginInlineEnd: '0.5rem',
-              }}
-            >
-              {t('filters') || 'Filters'}:
-            </span>
-            {[
-              { key: 'type', label: t('drive.type') || 'Type' },
-              { key: 'people', label: t('drive.people') || 'People' },
-              { key: 'modified', label: t('drive.modified') || 'Modified' },
-              { key: 'location', label: t('drive.location') || 'Location' },
-            ].map((chip) => (
-              <button
-                key={chip.key}
-                style={{
-                  padding: '0.375rem 0.75rem',
-                  background: 'var(--background-secondary, #f3f4f6)',
-                  color: 'var(--text-secondary, #374151)',
-                  border: '1px solid var(--border, #e5e7eb)',
-                  borderRadius: '999px',
-                  fontSize: '0.8125rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                }}
-              >
-                {chip.label}
-                {getThemedIcon('ui', 'chevron_down', 12, theme)}
-              </button>
-            ))}
-          </div>
+            {quickFilterCategories.map((chip) => (
+              <div key={chip.key} ref={(el) => { filterChipRefs.current[chip.key] = el; }} style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setOpenFilterChip(openFilterChip === chip.key ? null : chip.key)}
+                  style={{
+                    padding: '0.3rem 0.65rem',
+                    background: openFilterChip === chip.key ? 'var(--color-primary-alpha, rgba(37,99,235,0.1))' : 'var(--background-secondary, #f3f4f6)',
+                    color: openFilterChip === chip.key ? 'var(--color-primary, #2563eb)' : 'var(--text-secondary, #374151)',
+                    border: openFilterChip === chip.key ? '1px solid var(--color-primary, #2563eb)' : '1px solid var(--border, #e5e7eb)',
+                    borderRadius: '999px',
+                    fontSize: '0.8125rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    transition: 'all 0.12s',
+                  }}
+                >
+                  {getThemedIcon('ui', chip.icon, 14, theme)}
+                  {chip.label}
+                  {getThemedIcon('ui', openFilterChip === chip.key ? 'chevron_up' : 'chevron_down', 12, theme)}
+                </button>
 
-          {/* Filter Controls */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: isMobile ? '0.5rem' : '1rem',
-              marginBottom: '1.5rem',
-              flexWrap: isMobile ? 'wrap' : 'nowrap',
-              padding: isMobile ? '0.5rem' : '0.75rem',
-              background: 'var(--background-secondary, #f9fafb)',
-              borderRadius: '0.75rem',
-              border: '1px solid var(--border, #e5e7eb)',
-            }}
-          >
+                {openFilterChip === chip.key && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 0.375rem)',
+                      insetInlineStart: 0,
+                      minWidth: '200px',
+                      padding: '0.375rem',
+                      background: 'var(--panel, white)',
+                      border: '1px solid var(--border, #e5e7eb)',
+                      borderRadius: '0.75rem',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      zIndex: 50,
+                    }}
+                  >
+                    {chip.options.map((opt) => {
+                      const isActive = filters.some(
+                        f => f.type === filterTypeToKey[chip.key] && f.value === opt.value
+                      );
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => {
+                            if (isActive) removeFilter({ type: filterTypeToKey[chip.key], value: opt.value });
+                            else addFilter({ type: filterTypeToKey[chip.key], value: opt.value });
+                            setOpenFilterChip(null);
+                          }}
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.625rem',
+                            padding: '0.5rem 0.75rem',
+                            height: '2.5rem',
+                            border: 'none',
+                            borderRadius: '0.5rem',
+                            background: isActive ? 'var(--color-primary-alpha, rgba(37,99,235,0.08))' : 'transparent',
+                            color: isActive ? 'var(--color-primary, #2563eb)' : 'var(--text, #111827)',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: isActive ? 600 : 400,
+                            textAlign: 'start',
+                            transition: 'background 0.1s',
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = isActive ? 'var(--color-primary-alpha, rgba(37,99,235,0.12))' : 'var(--background-secondary, #f3f4f6)'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = isActive ? 'var(--color-primary-alpha, rgba(37,99,235,0.08))' : 'transparent'}
+                        >
+                          <div style={{ width: '1.25rem', height: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {isActive ? (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+                                  <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            ) : (
+                              getThemedIcon('ui', opt.icon, 14, theme)
+                            )}
+                          </div>
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
             <FilterMenu onAddFilter={addFilter} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 0 }}>
-              <FilterChips
-                activeFilters={filters}
-                onRemoveFilter={removeFilter}
-                onClearAll={clearAllFilters}
-              />
-            </div>
+            <FilterChips
+              activeFilters={filters}
+              onRemoveFilter={removeFilter}
+              onClearAll={clearAllFilters}
+            />
           </div>
 
           {/* Files Roster / Loading / Empty */}
@@ -834,6 +958,7 @@ export default function SmartDrivePage() {
               onViewModeChange={setViewMode}
               isTrashView={activeSpace === 'trash'}
               currentUserEmail={user?.email}
+              onEmptyTrash={handleEmptyTrash}
             />
           )}
         </main>
@@ -866,7 +991,6 @@ export default function SmartDrivePage() {
           onClose={() => setDetailsModalFile(null)}
           onDownload={downloadFile}
           onShare={(file) => {
-            setDetailsModalFile(null);
             setShareDialogFile(file);
           }}
           onStar={starFile}
@@ -891,6 +1015,117 @@ export default function SmartDrivePage() {
         />
       )}
 
+      {/* Rename Dialog */}
+      {renameTarget && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.4)',
+          }}
+          onClick={() => setRenameTarget(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--panel, white)',
+              borderRadius: '0.75rem',
+              padding: '1.5rem',
+              width: '420px',
+              maxWidth: '90vw',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+            }}
+          >
+            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)' }}>
+              {t('drive.rename') || 'Rename'}
+            </h3>
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Allow only alphanumeric, spaces, dots, hyphens, underscores
+                const validChars = /^[a-zA-Z0-9\s._-]*$/;
+                if (validChars.test(value) && value.length <= 255) {
+                  setNewName(value);
+                  setRenameError('');
+                } else if (value.length > 255) {
+                  setRenameError('Name must be 255 characters or less');
+                } else {
+                  setRenameError('Only letters, numbers, spaces, dots, hyphens, and underscores allowed');
+                }
+              }}
+              autoFocus
+              onKeyDown={async (e) => {
+                if (e.key === 'Enter' && newName && !renameError) {
+                  const isFolder = renameTarget.path !== undefined;
+                  // For files, append the original extension
+                  const finalName = isFolder ? newName : `${newName}.${renameTarget.name.split('.').pop()}`;
+                  const result = isFolder
+                    ? await renameFolder(renameTarget.id, finalName)
+                    : await renameFile(renameTarget.id, finalName);
+                  if (result.success) success(t('drive.renamed'));
+                  else error(t('drive.renameFailed'));
+                  setRenameTarget(null);
+                  setRenameError('');
+                } else if (e.key === 'Escape') {
+                  setRenameTarget(null);
+                  setRenameError('');
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '1px solid var(--border, #d1d5db)',
+                borderRadius: '0.5rem',
+                fontSize: '0.9375rem',
+                background: 'var(--panel, white)',
+                color: 'var(--text, #111827)',
+                outline: 'none',
+                marginBottom: '1rem',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-primary, #2563eb)';
+                e.currentTarget.style.boxShadow = '0 0 0 2px var(--color-primary-alpha, rgba(37,99,235,0.2))';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border, #d1d5db)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            />
+            {renameError && (
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.75rem', color: '#dc2626' }}>
+                {renameError}
+              </p>
+            )}
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <Button variant="outline" onClick={() => setRenameTarget(null)}>
+                {t('common.cancel') || 'Cancel'}
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (newName && !renameError) {
+                    const isFolder = renameTarget.path !== undefined;
+                    // For files, append the original extension
+                    const finalName = isFolder ? newName : `${newName}.${renameTarget.name.split('.').pop()}`;
+                    const result = isFolder
+                      ? await renameFolder(renameTarget.id, finalName)
+                      : await renameFile(renameTarget.id, finalName);
+                    if (result.success) success(t('drive.renamed'));
+                    else error(t('drive.renameFailed'));
+                  }
+                  setRenameTarget(null);
+                  setRenameError('');
+                }}
+                disabled={!newName || !!renameError}
+              >
+                {t('drive.rename') || 'Rename'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Folder Modal */}
       {createFolderModalOpen && (
         <CreateFolderModal
@@ -898,6 +1133,257 @@ export default function SmartDrivePage() {
           onCreate={handleCreateFolder}
           onClose={() => setCreateFolderModalOpen(false)}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setDeleteConfirmOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--panel, white)',
+              borderRadius: '1rem',
+              padding: '1.75rem',
+              maxWidth: '420px',
+              width: '90%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            }}
+          >
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '1rem',
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 9V12M12 15H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <h2
+              style={{
+                margin: '0 0 0.5rem 0',
+                fontSize: '1.25rem',
+                fontWeight: 600,
+                color: 'var(--text, #111827)',
+              }}
+            >
+              {t('drive.deleteConfirm') || 'Move to Trash?'}
+            </h2>
+            <p
+              style={{
+                margin: '0 0 1.75rem 0',
+                fontSize: '0.9375rem',
+                color: 'var(--text-muted, #6b7280)',
+                lineHeight: '1.6',
+              }}
+            >
+              {itemsToDelete.length === 1
+                ? (t('drive.deleteConfirmMessageSingle') || 'This item will be moved to trash. You can restore it from the trash later.')
+                : (t('drive.deleteConfirmMessageMultiple') || 'These items will be moved to trash. You can restore them from the trash later.')}
+            </p>
+            <div
+              style={{
+                display: 'flex',
+                gap: '0.75rem',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <button
+                onClick={() => {
+                  setDeleteConfirmOpen(false);
+                  setItemsToDelete([]);
+                }}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  background: 'transparent',
+                  border: '1px solid var(--border, #e5e7eb)',
+                  borderRadius: '0.625rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  color: 'var(--text, #111827)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--background-secondary, #f9fafb)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                {t('common.cancel') || 'Cancel'}
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                  border: 'none',
+                  borderRadius: '0.625rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: 'white',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                {t('drive.moveToTrash') || 'Move to Trash'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Empty Trash Confirmation Modal */}
+      {emptyTrashConfirmOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setEmptyTrashConfirmOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--panel, white)',
+              borderRadius: '1rem',
+              padding: '1.75rem',
+              maxWidth: '420px',
+              width: '90%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            }}
+          >
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '1rem',
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 9V12M12 15H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <h2
+              style={{
+                margin: '0 0 0.5rem 0',
+                fontSize: '1.25rem',
+                fontWeight: 600,
+                color: 'var(--text, #111827)',
+              }}
+            >
+              {t('drive.emptyTrashConfirm') || 'Empty Trash?'}
+            </h2>
+            <p
+              style={{
+                margin: '0 0 1.75rem 0',
+                fontSize: '0.9375rem',
+                color: 'var(--text-muted, #6b7280)',
+                lineHeight: '1.6',
+              }}
+            >
+              {t('drive.emptyTrashConfirmMessage') || 'This will permanently delete all items in the trash. This action cannot be undone.'}
+            </p>
+            <div
+              style={{
+                display: 'flex',
+                gap: '0.75rem',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <button
+                onClick={() => setEmptyTrashConfirmOpen(false)}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  background: 'transparent',
+                  border: '1px solid var(--border, #e5e7eb)',
+                  borderRadius: '0.625rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  color: 'var(--text, #111827)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--background-secondary, #f9fafb)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                {t('common.cancel') || 'Cancel'}
+              </button>
+              <button
+                onClick={confirmEmptyTrash}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                  border: 'none',
+                  borderRadius: '0.625rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: 'white',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                {t('drive.emptyTrash') || 'Empty Trash'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Toast Notifications */}

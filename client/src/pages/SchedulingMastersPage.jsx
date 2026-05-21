@@ -348,7 +348,7 @@ const SchedulingMastersPage = () => {
     deleteEntity(item);
   }, [deleteEntity]);
   
-  const handleDeleteConfirm = useCallback(async () => {
+  const handleDeleteEntity = useCallback(async () => {
     if (!deleteModal.entity) return;
     
     setSaving(true);
@@ -780,7 +780,7 @@ const SchedulingMastersPage = () => {
         <DeleteModal
           isOpen={deleteModal.isOpen}
           onClose={hideDeleteModal}
-          onConfirm={handleDeleteConfirm}
+          onConfirm={handleDeleteEntity}
           title={t('confirm_delete') || 'Confirm Delete'}
           message={t('confirm_delete_message') || 'Are you sure you want to delete this item?'}
           entityName={deleteModal.entity?.code || deleteModal.entity?.labelEn || deleteModal.entity?.descriptionEn || deleteModal.entity?.user?.displayName || 'Item'}
