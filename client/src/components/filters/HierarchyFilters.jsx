@@ -103,66 +103,84 @@ const HierarchyFilters = ({
   ], [students, selectedProgram, selectedSubject, selectedClass, t]);
 
   return (
-    <div style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap', marginLeft: 'auto' }}>
+    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', width: '100%' }}>
       {showPrograms && programs.length > 0 && (
-        <Select
-          value={selectedProgram}
-          onChange={(value) => {
-            setSelectedProgram(value);
-            if (setSelectedSubject) setSelectedSubject('all');
-            if (setSelectedClass) setSelectedClass('all');
-          }}
-          options={programOptions}
-        />
+        <div style={{ flex: 2, minWidth: '300px' }}>
+          <Select
+            value={selectedProgram}
+            onChange={(value) => {
+              setSelectedProgram(value);
+              if (setSelectedSubject) setSelectedSubject('all');
+              if (setSelectedClass) setSelectedClass('all');
+            }}
+            options={programOptions}
+            fullWidth
+          />
+        </div>
       )}
       
       {showSubjects && subjects.length > 0 && (
-        <Select
-          value={selectedSubject}
-          onChange={(value) => {
-            setSelectedSubject(value);
-            if (setSelectedClass) setSelectedClass('all');
-          }}
-          options={subjectOptions}
-        />
+        <div style={{ flex: 1.5, minWidth: '250px' }}>
+          <Select
+            value={selectedSubject}
+            onChange={(value) => {
+              setSelectedSubject(value);
+              if (setSelectedClass) setSelectedClass('all');
+            }}
+            options={subjectOptions}
+            fullWidth
+          />
+        </div>
       )}
       
       {showClasses && classes.length > 0 && (
-        <Select
-          value={selectedClass}
-          onChange={setSelectedClass}
-          options={classOptions}
-        />
+        <div style={{ flex: 1.5, minWidth: '250px' }}>
+          <Select
+            value={selectedClass}
+            onChange={setSelectedClass}
+            options={classOptions}
+            fullWidth
+          />
+        </div>
       )}
 
       {showStudents && students.length > 0 && (
-        <Select
-          value={selectedStudent}
-          onChange={setSelectedStudent}
-          options={studentOptions}
-        />
+        <div style={{ flex: 1, minWidth: '200px' }}>
+          <Select
+            value={selectedStudent}
+            onChange={setSelectedStudent}
+            options={studentOptions}
+            fullWidth
+          />
+        </div>
       )}
 
       {showYears && years.length > 0 && (
-        <YearSelect
-          value={selectedYear}
-          onChange={setSelectedYear}
-          includeAll
-          allValue="all"
-          allLabel={t('all_years') || 'All Years'}
-          startYear={Number(years[0]) || 2024}
-          yearsAhead={6}
-        />
+        <div style={{ flex: 1, minWidth: '150px' }}>
+          <YearSelect
+            value={selectedYear}
+            onChange={setSelectedYear}
+            includeAll
+            allValue="all"
+            allLabel={t('all_years') || 'All Years'}
+            startYear={Number(years[0]) || 2024}
+            yearsAhead={6}
+            fullWidth
+          />
+        </div>
       )}
 
       {showTerms && terms.length > 0 && (
-        <FilterSelect
-          filterKey="terms"
-          value={selectedTerm}
-          onChange={setSelectedTerm}
-          data={terms}
-          allLabel={t('all_terms') || 'All Terms'}
-        />
+        <div style={{ flex: 1, minWidth: '150px' }}>
+          <FilterSelect
+            filterKey="terms"
+            value={selectedTerm}
+            onChange={setSelectedTerm}
+            data={terms}
+            allLabel={t('all_terms') || 'All Terms'}
+            fullWidth
+          />
+        </div>
       )}
     </div>
   );

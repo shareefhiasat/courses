@@ -347,6 +347,47 @@ export const updateAnnouncement = async (announcementId, updateData, user = null
     }
     
     const result = await updateAnnouncementInDb(announcementId, updateData, user);
+    
+    // Emit notification for announcement update
+    if (result.success && result.data) {
+      try {
+        const announcement = result.data;
+        
+        // Determine recipients based on target audience
+        let recipients = [];
+        
+        if (announcement.targetAudience === 'all' || announcement.targetAudience === 'students') {
+          recipients.push({ role: 'student' });
+        }
+        
+        if (announcement.targetAudience === 'all' || announcement.targetAudience === 'instructors') {
+          recipients.push({ role: 'instructor' });
+        }
+        
+        if (announcement.targetAudience === 'all' || announcement.targetAudience === 'hr') {
+          recipients.push({ role: 'hr' });
+        }
+        
+        if (announcement.targetAudience === 'all' || announcement.targetAudience === 'admin') {
+          recipients.push({ role: 'admin' });
+        }
+        
+        // Send notifications
+        for (const recipient of recipients) {
+          await notificationGateway.emit(EVENTS.ANNOUNCEMENT_UPDATED, {
+            announcementId: announcement.id,
+            titleEn: announcement.titleEn,
+            titleAr: announcement.titleAr,
+            descriptionEn: announcement.descriptionEn,
+            descriptionAr: announcement.descriptionAr,
+            targetAudience: announcement.targetAudience,
+          }, recipient, user);
+        }
+      } catch (notifError) {
+        console.error('Failed to send announcement update notifications:', notifError);
+      }
+    }
+    
     return result;
   } catch (error) {
     console.error('Error in updateAnnouncement:', error);
@@ -378,7 +419,49 @@ export const deleteAnnouncement = async (announcementId, user = null) => {
     // Business rule: Only creator and admin can delete announcements
     // This would typically involve checking the announcement's createdBy field
     
+    // Get announcement details before deletion for notification
+    const announcement = await getAnnouncementByIdFromDb(announcementId);
+    
     const result = await deleteAnnouncementInDb(announcementId, user);
+    
+    // Emit notification for announcement deletion
+    if (result.success && announcement?.data) {
+      try {
+        const announcementData = announcement.data;
+        
+        // Determine recipients based on target audience
+        let recipients = [];
+        
+        if (announcementData.targetAudience === 'all' || announcementData.targetAudience === 'students') {
+          recipients.push({ role: 'student' });
+        }
+        
+        if (announcementData.targetAudience === 'all' || announcementData.targetAudience === 'instructors') {
+          recipients.push({ role: 'instructor' });
+        }
+        
+        if (announcementData.targetAudience === 'all' || announcementData.targetAudience === 'hr') {
+          recipients.push({ role: 'hr' });
+        }
+        
+        if (announcementData.targetAudience === 'all' || announcementData.targetAudience === 'admin') {
+          recipients.push({ role: 'admin' });
+        }
+        
+        // Send notifications
+        for (const recipient of recipients) {
+          await notificationGateway.emit(EVENTS.ANNOUNCEMENT_DELETED, {
+            announcementId: announcementData.id,
+            titleEn: announcementData.titleEn,
+            titleAr: announcementData.titleAr,
+            targetAudience: announcementData.targetAudience,
+          }, recipient, user);
+        }
+      } catch (notifError) {
+        console.error('Failed to send announcement deletion notifications:', notifError);
+      }
+    }
+    
     return result;
   } catch (error) {
     console.error('Error in deleteAnnouncement:', error);

@@ -57,6 +57,7 @@ const QuizPreviewPage = lazy(() => import('./pages/quizzes/QuizPreviewPage'));
 const StudentQuizPage = lazy(() => import('./pages/quizzes/StudentQuizPage'));
 const QuestionBankPage = lazy(() => import('./pages/quizzes/QuestionBankPage'));
 const QuizResultsPage = lazy(() => import('./pages/quizzes/quiz-results/QuizResultsPage'));
+const ReviewResultsPage = lazy(() => import('./pages/quizzes/quiz-results/ReviewResultsPage'));
 const ProgramsManagementPage = lazy(() => import('./pages/academic/programs/ProgramsPage'));
 const SubjectsManagementPage = lazy(() => import('./pages/academic/subjects/SubjectsPage'));
 const ScheduledReportsPage = lazy(() => import('./pages/feedback/reports/ScheduledReportsPage'));
@@ -146,6 +147,15 @@ const AppContent = () => {
   const toggleSideDrawerCollapse = useCallback(() => {
     setIsSideDrawerCollapsed((prev) => !prev);
   }, []);
+
+  // Handle keyboard shortcut to toggle drawer (Cmd+M / Ctrl+M)
+  useEffect(() => {
+    const handleToggleDrawer = () => {
+      toggleSideDrawer();
+    };
+    window.addEventListener('toggle-drawer', handleToggleDrawer);
+    return () => window.removeEventListener('toggle-drawer', handleToggleDrawer);
+  }, [toggleSideDrawer]);
   
   return (
     <HelpProvider>
@@ -287,7 +297,11 @@ const AppContent = () => {
           
           <Route 
             path="/review-results" 
-            element={<Navigate to="/home?mode=review" replace />}
+            element={
+              <ProtectedRoute screenId="review-results" screenName="Review Results">
+                <ReviewResultsPage />
+              </ProtectedRoute>
+            }
           />
           
           {/* ============================================ */}

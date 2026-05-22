@@ -15,7 +15,6 @@ import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { getActivities } from '@services/business/activitiesService';
 import { getUsers } from '@services/business/userService';
-import { getQuizSubmissions } from '@services/business/quizSubmissionsService';
 import { getSubmissions } from '@services/business/submissionsService';
 import { getCategories } from '@services/business/categoryService';
 import { getActivityTypeConfig } from '@constants/activityTypes';
@@ -567,9 +566,17 @@ const ReviewResultsPage = () => {
   }, [filteredSubmissions, filterCounts]);
 
   const handleViewDetails = (submission) => {
-    if (mode === 'quiz') {
+    // Route based on activity type
+    const type = submission.activityType || submission.activity?.type;
+    
+    if (type === 'quiz') {
       navigate(`/quiz-preview/${submission.activityId}?resultId=${submission.id}`);
+    } else if (type === 'training') {
+      navigate(`/training-preview/${submission.activityId}?resultId=${submission.id}`);
+    } else if (type === 'labandproject' || type === 'lab_work') {
+      navigate(`/lab-preview/${submission.activityId}?resultId=${submission.id}`);
     } else {
+      // Default to submission view for homework and other types
       navigate(`/submission/${submission.id}`);
     }
   };
@@ -627,26 +634,26 @@ const ReviewResultsPage = () => {
               {
                 value: 'quiz',
                 label: lang === 'en' ? 'Quiz' : 'اختبار',
-                icon: activityType === 'quiz' ? getIconWithColor('ui', getActivityTypeConfig('quiz').icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('quiz').icon, 16, primaryColor),
+                icon: activityType === 'quiz' ? getIconWithColor('ui', 'list_checks', 16, '#ffffff') : getIconWithColor('ui', 'list_checks', 16, primaryColor),
                 badge: getActivityTypeCount('quiz')
               },
               {
                 value: 'homework',
                 label: lang === 'en' ? 'Homework' : 'واجب',
-                icon: activityType === 'homework' ? getIconWithColor('ui', getActivityTypeConfig('homework').icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('homework').icon, 16, primaryColor),
+                icon: activityType === 'homework' ? getIconWithColor('activity_type', getActivityTypeConfig('homework').icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig('homework').icon, 16, primaryColor),
                 badge: getActivityTypeCount('homework')
               },
               {
                 value: 'training',
                 label: lang === 'en' ? 'Training' : 'تدريب',
-                icon: activityType === 'training' ? getIconWithColor('ui', getActivityTypeConfig('training').icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('training').icon, 16, primaryColor),
+                icon: activityType === 'training' ? getIconWithColor('activity_type', getActivityTypeConfig('training').icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig('training').icon, 16, primaryColor),
                 badge: getActivityTypeCount('training')
               },
               {
-                value: 'labandproject',
+                value: 'lab_work',
                 label: lang === 'en' ? 'Lab & Project' : 'معمل ومشروع',
-                icon: activityType === 'labandproject' ? getIconWithColor('ui', getActivityTypeConfig('labandproject').icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('labandproject').icon, 16, primaryColor),
-                badge: getActivityTypeCount('labandproject')
+                icon: activityType === 'lab_work' ? getIconWithColor('activity_type', getActivityTypeConfig('lab_work').icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig('lab_work').icon, 16, primaryColor),
+                badge: getActivityTypeCount('lab_work')
               }
             ]}
             activeTab={activityType}

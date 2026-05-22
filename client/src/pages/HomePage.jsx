@@ -56,7 +56,9 @@ const HomePage = memo(() => {
   const mode = searchParams.get('mode') || MODE_TYPES.ACTIVITIES;
   
   // Activity type: 'all' | 'quiz' | 'homework' | 'training' | 'labandproject' (only used when mode === 'activities')
-  const [activityType, setActivityType] = useState('all');
+  // Read from URL params to auto-select tab from side menu navigation
+  const urlActivityType = searchParams.get('activityType');
+  const [activityType, setActivityType] = useState(urlActivityType || 'all');
   
   // Category filter for activities: '' | 'programming' | 'computing' | 'algorithm' | 'general'
   const [category, setCategory] = useState('');
@@ -234,11 +236,17 @@ const HomePage = memo(() => {
   // Initialize mode from URL
   useEffect(() => {
     const urlMode = searchParams.get('mode');
+    const urlActivityType = searchParams.get('activityType');
+    
     if (urlMode && [MODE_TYPES.ACTIVITIES, MODE_TYPES.RESOURCES].includes(urlMode)) {
       // Mode is already set via searchParams
-      // Reset activity type and category when switching to activities
+      // Set activity type from URL when switching to activities
       if (urlMode === MODE_TYPES.ACTIVITIES) {
-        setActivityType('all');
+        if (urlActivityType) {
+          setActivityType(urlActivityType);
+        } else {
+          setActivityType('all');
+        }
         setCategory('');
       }
     }
@@ -524,24 +532,13 @@ const HomePage = memo(() => {
           (category === '' || (a.course || 'general') === category)
         );
       } else {
-        // For other activity types (training, homework, labandproject), show all activities if specific type is empty
-        const specificTypeActivities = activities.filter(a => 
+        // For other activity types (training, homework, lab_work), filter by specific type
+        filtered = activities.filter(a => 
           a.type === activityType && 
           a.show !== false && 
           canUserAccessItem(a) &&
           (category === '' || (a.course || 'general') === category)
         );
-        
-        // If no activities of this specific type, show all activities
-        if (specificTypeActivities.length === 0) {
-          filtered = activities.filter(a => 
-            a.show !== false && 
-            canUserAccessItem(a) &&
-            (category === '' || (a.course || 'general') === category)
-          );
-        } else {
-          filtered = specificTypeActivities;
-        }
       }
       
       return filtered;
@@ -958,7 +955,7 @@ const HomePage = memo(() => {
     const quizActivities = allActivities.filter(a => a.type === ACTIVITY_TYPES.QUIZ);
     const homeworkActivities = allActivities.filter(a => a.type === ACTIVITY_TYPES.HOMEWORK);
     const trainingActivities = allActivities.filter(a => a.type === ACTIVITY_TYPES.TRAINING);
-    const labProjectActivities = allActivities.filter(a => a.type === ACTIVITY_TYPES.LAB_AND_PROJECT);
+    const labProjectActivities = allActivities.filter(a => a.type === 'lab_work');
     
     return {
       all: allActivities.length,
@@ -1332,7 +1329,7 @@ const HomePage = memo(() => {
                 {
                   value: ACTIVITY_TYPES.QUIZ,
                   label: t('quiz') || 'Quiz',
-                  icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ).icon, 16, primaryColor),
+                  icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('ui', 'list_checks', 16, '#ffffff') : getIconWithColor('ui', 'list_checks', 16, primaryColor),
                   badge: activityTypeCounts.quiz
                 },
                 {
@@ -1348,9 +1345,9 @@ const HomePage = memo(() => {
                   badge: activityTypeCounts.training
                 },
                 {
-                  value: ACTIVITY_TYPES.LAB_AND_PROJECT,
+                  value: 'lab_work',
                   label: (t('lab_and_project') || 'Lab & Project').replace(/\b\w/g, l => l.toUpperCase()),
-                  icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT).icon, 16, primaryColor),
+                  icon: activityType === 'lab_work' ? getIconWithColor('activity_type', getActivityTypeConfig('lab_work').icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig('lab_work').icon, 16, primaryColor),
                   badge: activityTypeCounts.labandproject
                 }
               ]}

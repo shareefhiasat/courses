@@ -20,7 +20,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { canAccessScreen: checkScreenAccess, roleCode, loading: permissionsLoading } = usePermissions();
   const [drawerWidth, setDrawerWidth] = useState(() => {
-    try { return Math.min(480, Math.max(260, parseInt(localStorage.getItem('drawer_width') || '280', 10))); } catch { return 280; }
+    try { return Math.min(600, Math.max(320, parseInt(localStorage.getItem('drawer_width') || '380', 10))); } catch { return 380; }
   });
   const [density, setDensity] = useState(() => {
     try { return document.documentElement.getAttribute('data-density') || 'compact'; } catch { return 'compact'; }
@@ -36,11 +36,13 @@ const SideDrawer = ({ isOpen, onClose }) => {
     try { return localStorage.getItem('pin_timer_widget') === 'true'; } catch { return false; }
   });
   const [stickyMode, setStickyMode] = useState(() => {
-    try { 
+    try {
       const saved = localStorage.getItem('drawer_sticky_mode');
-      if (saved === null) return true; // Default to sticky
-      return saved === 'true'; 
-    } catch { return true; }
+      const value = saved === null ? true : saved === 'true';
+      return value;
+    } catch {
+      return true;
+    }
   });
   const isMobile = useIsMobile();
   const [userAccentColor, setUserAccentColor] = useState(DEFAULT_ACCENT);
@@ -82,8 +84,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
   }, [collapsed]);
   useEffect(() => {
     try { localStorage.setItem('drawer_sticky_mode', String(stickyMode)); } catch {}
-    if (stickyMode && isOpen && !collapsed && !isMobile) {
-      const width = collapsed ? 64 : drawerWidth;
+    if (stickyMode && !collapsed && !isMobile) {
+      const width = collapsed ? 80 : drawerWidth;
       document.documentElement.style.setProperty('--drawer-width', `${width}px`);
       document.documentElement.classList.add('drawer-sticky-open');
     } else {
@@ -94,11 +96,24 @@ const SideDrawer = ({ isOpen, onClose }) => {
       document.documentElement.style.removeProperty('--drawer-width');
       document.documentElement.classList.remove('drawer-sticky-open');
     };
-  }, [stickyMode, isOpen, collapsed, drawerWidth, isMobile]);
+  }, [stickyMode, collapsed, drawerWidth, isMobile]);
   useEffect(() => {
     const handler = (e) => setDensity((e && e.detail && e.detail.density) ? e.detail.density : (document.documentElement.getAttribute('data-density') || 'compact'));
     window.addEventListener('density-change', handler);
     return () => window.removeEventListener('density-change', handler);
+  }, []);
+
+  // Keyboard shortcut to toggle drawer (Cmd+M / Ctrl+M)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'm') {
+        e.preventDefault();
+        // Dispatch custom event for parent to handle toggle
+        window.dispatchEvent(new CustomEvent('toggle-drawer'));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
   // removed per unified menu UX
 
@@ -177,6 +192,26 @@ const SideDrawer = ({ isOpen, onClose }) => {
     if (hash) {
       return location.pathname === path && location.hash === hash;
     }
+    // For query parameter URLs, check if pathname matches and query params match
+    if (path.includes('?')) {
+      const [pathname, queryString] = path.split('?');
+      const urlParams = new URLSearchParams(queryString);
+      const currentParams = new URLSearchParams(location.search);
+      
+      if (location.pathname !== pathname) return false;
+      
+      // Check if all params in the link match current URL params
+      for (const [key, value] of urlParams.entries()) {
+        if (currentParams.get(key) !== value) return false;
+      }
+      // Also ensure current URL doesn't have extra params that make it more specific
+      // For example, if link is "?mode=activities" and current is "?mode=activities&activityType=quiz",
+      // the link should NOT be active
+      for (const [key] of currentParams.entries()) {
+        if (!urlParams.has(key)) return false;
+      }
+      return true;
+    }
     return location.pathname === path;
   };
   const [showTimerPanel, setShowTimerPanel] = useState(false);
@@ -191,7 +226,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
     analytics: false,
     community: false,
     tools: false,
-    settings: false
+    settings: false,
+    review: false
   });
 
   const toggleSection = (section) => {
@@ -307,17 +343,25 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: t('home') || 'Home' },
         { path: '/student-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: t('student_dashboard') || 'Student Dashboard' },
         { path: '/student-dashboard', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: t('progress') || 'Progress' },
+      ]
+    },
+    activity: {
+      label: t('activity') || 'ACTIVITY',
+      items: [
         { path: '/?mode=activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: (t('activities') || 'Activities').charAt(0).toUpperCase() + (t('activities') || 'Activities').slice(1) },
-        { path: '/?mode=quizzes', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
+        { path: '/?mode=activities&activityType=quiz', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: (t('quiz') || 'Quiz').charAt(0).toUpperCase() + (t('quiz') || 'Quiz').slice(1) },
+        { path: '/?mode=activities&activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: (t('homework') || 'Homework').charAt(0).toUpperCase() + (t('homework') || 'Homework').slice(1) },
+        { path: '/?mode=activities&activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: (t('training') || 'Training').charAt(0).toUpperCase() + (t('training') || 'Training').slice(1) },
+        { path: '/?mode=activities&activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: 'Lab & Project' },
       ]
     },
     quiz: {
       label: t('quiz') || 'QUIZ',
       items: [
-        { path: '/review-results', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: (t('quiz_results') || 'Quiz Results').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
-        { path: '/?mode=quizzes', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
-        { path: '/?mode=activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: (t('activities') || 'Activities').charAt(0).toUpperCase() + (t('activities') || 'Activities').slice(1) },
-        { path: '/?mode=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: (t('homework') || 'Homework').charAt(0).toUpperCase() + (t('homework') || 'Homework').slice(1) },
+        { path: '/review-results?activityType=quiz', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
+        { path: '/review-results?activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: (t('homework') || 'Homework').charAt(0).toUpperCase() + (t('homework') || 'Homework').slice(1) },
+        { path: '/review-results?activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: (t('training') || 'Training').charAt(0).toUpperCase() + (t('training') || 'Training').slice(1) },
+        { path: '/review-results?activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: 'Lab & Project' },
       ]
     },
     classes: {
@@ -363,15 +407,24 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: t('home') || 'Home' },
         { path: '/dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: t('dashboard') || 'Dashboard' },
         { path: '/student-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: t('student_dashboard') || 'Student Dashboard' },
-        { path: '/?mode=activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: t('activities') || 'Activities' },
         // Role Access only visible for SuperAdmin (conditionally added below)
+      ]
+    },
+    activity: {
+      label: t('activity') || 'ACTIVITY',
+      items: [
+        { path: '/?mode=activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: (t('activities') || 'Activities').charAt(0).toUpperCase() + (t('activities') || 'Activities').slice(1) },
+        { path: '/?mode=activities&activityType=quiz', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: (t('quiz') || 'Quiz').charAt(0).toUpperCase() + (t('quiz') || 'Quiz').slice(1) },
+        { path: '/?mode=activities&activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: (t('homework') || 'Homework').charAt(0).toUpperCase() + (t('homework') || 'Homework').slice(1) },
+        { path: '/?mode=activities&activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: (t('training') || 'Training').charAt(0).toUpperCase() + (t('training') || 'Training').slice(1) },
+        { path: '/?mode=activities&activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: 'Lab & Project' },
       ]
     },
     quiz: {
       label: t('quiz') || 'QUIZ',
       items: [
         { path: '/quizzes', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
-        { path: '/review-results', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: t('quiz_results') || 'Quiz Results' },
+        { path: '/review-results?activityType=quiz', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: t('quiz_results') || 'Quiz Results' },
       ]
     },
     academic: isSuperAdmin || isInstructor || isAdmin ? {
@@ -383,13 +436,18 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { path: '/dashboard', hash: '#enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: t('enrollments') || 'Enrollments' },
         { path: '/dashboard', hash: '#marks', icon: getThemedIcon('ui', 'award', 18, theme), label: t('marks_entry') || 'Marks Entry' },
         { path: '/dashboard', hash: '#class-schedule', icon: getThemedIcon('ui', 'calendar', 18, theme), label: t('class_schedules') || 'Class Schedule' },
-        { path: '/review-results?mode=quiz', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: t('quiz_results') || 'Quiz Results' },
-        { path: '/review-results?mode=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: t('homework_results') || 'Homework Results' },
-        { path: '/review-results?mode=training', icon: getThemedIcon('ui', 'activity', 18, theme), label: t('training_results') || 'Training Results' },
-        { path: '/review-results?mode=labandproject', icon: getThemedIcon('ui', 'clipboard_list', 18, theme), label: t('lab_results') || 'Lab Results' },
         { path: '/penalty', icon: getThemedIcon('ui', 'alert_triangle', 18, theme), label: t('penalty') || 'Penalty' },
         { path: '/participation', icon: getThemedIcon('ui', 'award', 18, theme), label: t('participation') || 'Participation' },
         { path: '/behavior', icon: getThemedIcon('ui', 'alert_circle', 18, theme), label: t('behavior') || 'Behavior' },
+      ]
+    } : null,
+    review: isSuperAdmin || isInstructor || isAdmin ? {
+      label: t('review_results') || 'REVIEW RESULTS',
+      items: [
+        { path: '/review-results?activityType=quiz', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: t('quiz_results') || 'Quiz Results' },
+        { path: '/review-results?activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: t('homework_results') || 'Homework Results' },
+        { path: '/review-results?activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: t('training_results') || 'Training Results' },
+        { path: '/review-results?activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: t('lab_results') || 'Lab Results' },
       ]
     } : null,
     classes: {
@@ -508,8 +566,10 @@ const SideDrawer = ({ isOpen, onClose }) => {
       // Create a proper deep clone without circular references
       links = {
         main: { ...adminLinks.main, items: [...adminLinks.main.items] },
+        activity: { ...adminLinks.activity, items: [...adminLinks.activity.items] },
         quiz: { ...adminLinks.quiz, items: [...adminLinks.quiz.items] },
         ...(adminLinks.academic ? { academic: adminLinks.academic } : {}),
+        ...(adminLinks.review ? { review: adminLinks.review } : {}),
         classes: { ...adminLinks.classes, items: [...adminLinks.classes.items] },
         scheduling: { ...adminLinks.scheduling, items: [...adminLinks.scheduling.items] },
         attendance: { ...adminLinks.attendance, items: [...adminLinks.attendance.items] },
@@ -604,7 +664,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
   
   return (
     <AnimatePresence>
-      {isOpen && (
+      {(isOpen || stickyMode) && (
         <>
           {isOpen && !stickyMode && !collapsed && !(autoHide && !isHovering) ? (
           <motion.div
@@ -674,7 +734,11 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 : 0
             }}
             exit={{ x: stickyMode ? 0 : (lang==='ar' ? drawerWidth : -drawerWidth) }}
-            transition={{ type: 'tween', ease: 'easeInOut' }}
+            transition={{
+              type: 'tween',
+              duration: (autoHide && !isHovering && !collapsed && !stickyMode) ? 0.5 : 0.3,
+              ease: [0.4, 0, 0.2, 1]
+            }}
             style={{
               position: stickyMode ? 'fixed' : 'fixed',
               top: 0,
@@ -686,21 +750,29 @@ const SideDrawer = ({ isOpen, onClose }) => {
               // - Collapsed: fixed 64px (icons only)
               // - Auto-hide (not hovering): keep full width so hover area expands smoothly; we shift with x
               // - Normal: drawerWidth
-              width: collapsed ? 64 : drawerWidth,
+              width: collapsed ? 80 : drawerWidth,
               background: theme === 'light' ? '#ffffff' : 'linear-gradient(180deg, #0f172a, #111827)',
               borderRight: lang==='ar' ? 'none' : (theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)'),
               borderLeft: lang==='ar' ? (theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)') : 'none',
               color: theme === 'light' ? '#0f172a' : 'white',
-              zIndex: stickyMode ? 100 : 9999,
+              zIndex: stickyMode ? 1000 : 9999,
               display: 'flex',
               flexDirection: 'column',
               boxShadow: stickyMode ? 'none' : '2px 0 10px rgba(0, 0, 0, 0.1)',
               overflow: 'hidden',
-              transition: stickyMode ? 'none' : 'width 0.3s ease-in-out',
+              transition: stickyMode ? 'none' : 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
               flexShrink: 0
             }}
-            onMouseEnter={() => (autoHide && !collapsed && !stickyMode) ? setIsHovering(true) : null}
-            onMouseLeave={() => (autoHide && !collapsed && !stickyMode) ? setIsHovering(false) : null}
+            onMouseEnter={() => {
+              if (autoHide && !collapsed && !stickyMode) {
+                setIsHovering(true);
+              }
+            }}
+            onMouseLeave={() => {
+              if (autoHide && !collapsed && !stickyMode) {
+                setIsHovering(false);
+              }
+            }}
           >
             {/* Magic arrow for collapsed (icons-only) restore */}
             {collapsed && (
@@ -753,8 +825,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
               borderBottom: '1px solid rgba(255,255,255,0.08)',
               background: 'rgba(0,0,0,0.15)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.1rem', flexDirection: collapsed ? 'column' : 'row', gap: collapsed ? '0.5rem' : '0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: collapsed ? '0' : '1' }}>
                   <div style={{
                     width: '32px',
                     height: '32px',
@@ -779,7 +851,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                   const accentBg = theme==='light' ? `rgba(${rgb}, 0.25)` : `rgba(${rgb}, 0.2)`;
                   const accentHover = theme==='light' ? `rgba(${rgb}, 0.4)` : `rgba(${rgb}, 0.3)`;
                   return (
-                    <>
+                    <div style={{ display: 'flex', flexDirection: collapsed ? 'column' : 'row', gap: collapsed ? '0.5rem' : '0' }}>
                       <button
                         onClick={toggleTheme}
                         title={theme==='light' ? (t('switch_to_dark')||'Dark') : (t('switch_to_light')||'Light')}
@@ -794,7 +866,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           borderRadius: '8px',
                           width: '28px',
                           height: '28px',
-                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 4,
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          marginRight: collapsed ? '0' : 4,
                           transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease'
                         }}
                         onMouseEnter={onHeaderButtonEnter}
@@ -816,7 +889,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           background: collapsed ? accentBg : neutralBg,
                           border: 'none', color: theme==='light' ? '#111' : 'white', cursor: 'pointer',
                           padding: '0.3rem', borderRadius: '8px', width: '28px', height: '28px',
-                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 4,
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          marginRight: collapsed ? '0' : 4,
                           transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease'
                         }}
                         onMouseEnter={onHeaderButtonEnter}
@@ -833,13 +907,14 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           background: autoHide ? accentBg : neutralBg,
                           border: 'none', color: theme==='light' ? '#111' : 'white', cursor: 'pointer',
                           padding: '0.3rem', borderRadius: '8px', width: '28px', height: '28px',
-                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 4,
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          marginRight: collapsed ? '0' : 4,
                           transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease'
                         }}
                         onMouseEnter={onHeaderButtonEnter}
                         onMouseLeave={onHeaderButtonLeave}
                       >
-                        {getThemedIcon('ui', 'help_circle', 14, theme)}
+                        {getThemedIcon('ui', 'eye', 14, theme)}
                       </button>
                       <button
                         onClick={() => setStickyMode(v => !v)}
@@ -850,13 +925,14 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           background: stickyMode ? accentBg : neutralBg,
                           border: 'none', color: theme==='light' ? '#111' : 'white', cursor: 'pointer',
                           padding: '0.3rem', borderRadius: '8px', width: '28px', height: '28px',
-                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 4,
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          marginRight: collapsed ? '0' : 4,
                           transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease'
                         }}
                         onMouseEnter={onHeaderButtonEnter}
                         onMouseLeave={onHeaderButtonLeave}
                       >
-                        {stickyMode ? getThemedIcon('ui', 'pin', 12, theme) : getThemedIcon('ui', 'open_tab', 12, theme)}
+                        {getThemedIcon('ui', 'pin', 12, theme)}
                       </button>
                       <button
                         onClick={onClose}
@@ -883,7 +959,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                       >
                         {getThemedIcon('ui', 'x', 14, theme)}
                       </button>
-                    </>
+                    </div>
                   );
                 })()}
               </div>
@@ -971,7 +1047,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
               {Object.entries(links).map(([groupKey, group]) => (
                 <div key={groupKey} style={{ marginTop: '0.1rem' }}>
                   {/* Section Header - Collapsible */}
-                  {(!collapsed && (!autoHide || isHovering)) && (
+                  {!collapsed && (
                     <button
                       onClick={() => toggleSection(groupKey)}
                       style={{
@@ -1047,9 +1123,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           style={{
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: ( (autoHide && !isHovering) || collapsed ) ? 'center' : 'flex-start',
+                          justifyContent: collapsed ? 'center' : 'flex-start',
                           gap: '0.85rem',
-                          padding: ( (autoHide && !isHovering) || collapsed ) ? '0.7rem' : '0.7rem 1rem',
+                          padding: collapsed ? '0.7rem' : '0.7rem 1rem',
                           borderRadius: '8px',
                           color: isActive(link.path, link.hash)
                             ? userAccentColor
@@ -1090,7 +1166,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                                 : (theme==='light' ? '#6b7280' : '#9ca3af')
                             })}
                           </span>
-                          {(!collapsed && (!autoHide || isHovering)) && <span style={{ display:'inline-flex', alignItems:'center', gap:6, whiteSpace: 'nowrap' }}>{link.label}</span>}
+                          {!collapsed && <span style={{ display:'inline-flex', alignItems:'center', gap:6, whiteSpace: 'nowrap' }}>{link.label}</span>}
                         </Link>
                       )}
                       {!collapsed && density === 'compact' && (
@@ -1188,9 +1264,10 @@ const SideDrawer = ({ isOpen, onClose }) => {
               {/* Button Row */}
               <div style={{
                 display: 'flex',
+                flexDirection: collapsed ? 'column' : 'row',
                 justifyContent: collapsed ? 'center' : 'space-between',
                 alignItems: 'center',
-                gap: collapsed ? '0.75rem' : '0.5rem'
+                gap: collapsed ? '0.5rem' : '0.5rem'
               }}>
               {/* Language Toggle */}
               <button
@@ -1202,12 +1279,14 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 style={{
                   ...langButtonStyle,
                   margin: '0',
-                  flex: collapsed ? '1' : 'auto'
+                  flex: collapsed ? '1' : 'auto',
+                  padding: collapsed ? '0.5rem' : '0.5rem 1rem',
+                  minWidth: collapsed ? 'auto' : 'auto'
                 }}
                 onMouseEnter={onFooterHover}
                 onMouseLeave={onFooterLeave}
               >
-                <span>{t(lang === 'en' ? 'arabic' : 'english') || (lang === 'en' ? 'العربية' : 'English')}</span>
+                {collapsed ? getThemedIcon('ui', 'globe', 16, theme) : <span>{t(lang === 'en' ? 'arabic' : 'english') || (lang === 'en' ? 'العربية' : 'English')}</span>}
               </button>
 
               {/* Logout */}
@@ -1217,12 +1296,14 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 style={{
                   ...logoutButtonStyle,
                   margin: '0',
-                  flex: collapsed ? '1' : 'auto'
+                  flex: collapsed ? '1' : 'auto',
+                  padding: collapsed ? '0.5rem' : '0.5rem 1rem',
+                  minWidth: collapsed ? 'auto' : 'auto'
                 }}
                 onMouseEnter={onFooterHover}
                 onMouseLeave={onFooterLeave}
               >
-                <span>{t('logout') || 'Logout'}</span>
+                {collapsed ? getThemedIcon('ui', 'log_out', 16, theme) : <span>{t('logout') || 'Logout'}</span>}
               </button>
               </div>
             </div>

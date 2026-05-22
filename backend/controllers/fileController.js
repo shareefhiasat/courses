@@ -5,6 +5,8 @@ import { addFileComment, getFileComments, deleteFileComment } from '../services/
 import { PrismaClient } from '@prisma/client';
 import { generatePresignedGetUrl, generatePresignedPutUrl, getBucketSize } from '../services/minioService.js';
 import { DEFAULT_STORAGE_LIMIT } from '../constants/driveConstants.js';
+import notificationGateway from '../services/notifications/index.js';
+import { EVENTS } from '../services/notifications/constants.js';
 
 const prisma = new PrismaClient();
 
@@ -98,6 +100,43 @@ export const completeUpload = async (req, res) => {
 
     if (!result.success) {
       return res.status(400).json(result);
+    }
+
+    // Emit notification for file upload if uploaded to shared folder
+    if (result.success && result.payload) {
+      try {
+        const file = await prisma.file.findUnique({
+          where: { id: fileId },
+          include: {
+            user: { select: { displayName: true, firstName: true, lastName: true } }
+          }
+        });
+
+        if (file && file.folderId) {
+          // Get all users who have access to this folder
+          const folderShares = await prisma.folderShare.findMany({
+            where: { folderId: file.folderId },
+            select: { sharedWithId: true }
+          });
+
+          const recipientIds = folderShares.map(s => s.sharedWithId).filter(id => id !== req.user?.dbId);
+
+          if (recipientIds.length > 0) {
+            await notificationGateway.emit(
+              EVENTS.DRIVE_FILE_UPLOADED,
+              {
+                fileName: file.name,
+                folderName: file.folderId ? (await prisma.folder.findUnique({ where: { id: file.folderId } }))?.name : 'root',
+                uploadedBy: file.user?.displayName || `${file.user?.firstName} ${file.user?.lastName}`
+              },
+              req.user,
+              { userIds: recipientIds }
+            );
+          }
+        }
+      } catch (notifError) {
+        console.error('[fileController] Failed to emit file upload notification:', notifError);
+      }
     }
 
     res.json(result);
@@ -346,6 +385,30 @@ export const shareFile = async (req, res) => {
       return res.status(403).json(result);
     }
 
+    // Emit notification for file share
+    try {
+      const file = await prisma.file.findUnique({
+        where: { id: fileId },
+        include: {
+          user: { select: { displayName: true, firstName: true, lastName: true } }
+        }
+      });
+
+      if (file) {
+        await notificationGateway.emit(
+          EVENTS.DRIVE_FILE_SHARED,
+          {
+            fileName: file.name,
+            sharedBy: file.user?.displayName || `${file.user?.firstName} ${file.user?.lastName}`
+          },
+          req.user,
+          { userId: sharedWithId }
+        );
+      }
+    } catch (notifError) {
+      console.error('[fileController] Failed to emit file share notification:', notifError);
+    }
+
     res.json(result);
   } catch (error) {
     console.error('[fileController] Share file error:', error);
@@ -362,10 +425,39 @@ export const unshareFile = async (req, res) => {
     const userId = req.user?.dbId;
     const { shareId } = req.params;
 
+    // Get share details before revoking
+    const existingShare = await prisma.fileShare.findUnique({
+      where: { id: shareId },
+      include: {
+        file: {
+          include: {
+            user: { select: { displayName: true, firstName: true, lastName: true } }
+          }
+        }
+      }
+    });
+
     const result = await fileShareService.unshareFile(shareId, userId);
 
     if (!result.success) {
       return res.status(403).json(result);
+    }
+
+    // Emit notification for permission revocation
+    if (existingShare) {
+      try {
+        await notificationGateway.emit(
+          EVENTS.DRIVE_PERMISSION_REVOKED,
+          {
+            itemName: existingShare.file.name,
+            revokedBy: existingShare.file.user?.displayName || `${existingShare.file.user?.firstName} ${existingShare.file.user?.lastName}`
+          },
+          req.user,
+          { userId: existingShare.sharedWithId }
+        );
+      } catch (notifError) {
+        console.error('[fileController] Failed to emit permission revocation notification:', notifError);
+      }
     }
 
     res.json(result);
@@ -413,6 +505,40 @@ export const addComment = async (req, res) => {
     if (!result.success) {
       console.error('❌ [ADD COMMENT] Failed:', result.error);
       return res.status(400).json(result);
+    }
+
+    // Emit notification for comment added
+    try {
+      const file = await prisma.file.findUnique({
+        where: { id: fileId },
+        include: {
+          user: { select: { displayName: true, firstName: true, lastName: true } }
+        }
+      });
+
+      // Get all users who have access to this file (owner + shared users)
+      const shares = await prisma.fileShare.findMany({
+        where: { fileId },
+        select: { sharedWithId: true }
+      });
+
+      const recipientIds = [file.userId, ...shares.map(s => s.sharedWithId)].filter(id => id !== userId);
+
+      if (file && recipientIds.length > 0) {
+        const commentText = comment || content;
+        await notificationGateway.emit(
+          EVENTS.DRIVE_COMMENT_ADDED,
+          {
+            fileName: file.name,
+            commenter: file.user?.displayName || `${file.user?.firstName} ${file.user?.lastName}`,
+            commentText: commentText.length > 50 ? commentText.substring(0, 50) + '...' : commentText
+          },
+          req.user,
+          { userIds: recipientIds }
+        );
+      }
+    } catch (notifError) {
+      console.error('[fileController] Failed to emit comment notification:', notifError);
     }
 
     console.log('✅ [ADD COMMENT] Success:', result.payload?.id);
@@ -548,10 +674,45 @@ export const softDeleteFile = async (req, res) => {
     const userId = req.user?.dbId;
     const { fileId } = req.params;
 
+    // Get file details before deletion
+    const file = await prisma.file.findUnique({
+      where: { id: fileId },
+      include: {
+        user: { select: { displayName: true, firstName: true, lastName: true } }
+      }
+    });
+
     const result = await fileService.softDeleteFile(fileId, userId);
 
     if (!result.success) {
       return res.status(403).json(result);
+    }
+
+    // Emit notification for file deletion
+    if (file) {
+      try {
+        // Get all users who have access to this file (owner + shared users)
+        const shares = await prisma.fileShare.findMany({
+          where: { fileId },
+          select: { sharedWithId: true }
+        });
+
+        const recipientIds = [file.userId, ...shares.map(s => s.sharedWithId)].filter(id => id !== userId);
+
+        if (recipientIds.length > 0) {
+          await notificationGateway.emit(
+            EVENTS.DRIVE_FILE_DELETED,
+            {
+              fileName: file.name,
+              deletedBy: file.user?.displayName || `${file.user?.firstName} ${file.user?.lastName}`
+            },
+            req.user,
+            { userIds: recipientIds }
+          );
+        }
+      } catch (notifError) {
+        console.error('[fileController] Failed to emit file deletion notification:', notifError);
+      }
     }
 
     res.json(result);

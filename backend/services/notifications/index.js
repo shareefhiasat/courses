@@ -15,8 +15,10 @@ import { PrismaClient } from '@prisma/client';
 import { EVENTS, CATEGORIES, PRIORITIES, getCategoryFromEvent, getPriorityFromEvent } from './constants.js';
 import { registerAdapter, registerTemplate, getTemplate, getEnabledChannels, getAdapter } from './registry.js';
 import { resolveRecipients } from './recipients.js';
+import { registerAllTemplates } from './templates.js';
 import inAppAdapter from './adapters/inApp.js';
 import emailAdapter from './adapters/email.js';
+import smsAdapter from './adapters/sms.js';
 import log from './logger.js';
 
 const prisma = new PrismaClient();
@@ -24,30 +26,10 @@ const prisma = new PrismaClient();
 // Register built-in adapters
 registerAdapter(inAppAdapter);
 registerAdapter(emailAdapter);
+registerAdapter(smsAdapter);
 
-// Register built-in templates (workflow events)
-const templateFiles = [
-  './templates/workflow.assigned.js',
-  './templates/workflow.approved.js',
-  './templates/workflow.rejected.js',
-  './templates/workflow.completed.js',
-  './templates/workflow.sla_warning.js',
-  './templates/workflow.sla_overdue.js'
-];
-
-/**
- * Load and register templates dynamically
- */
-async function loadTemplates() {
-  for (const file of templateFiles) {
-    try {
-      const template = (await import(file)).default;
-      registerTemplate(template);
-    } catch (error) {
-      log.warn('Failed to load template', { file, error: error.message });
-    }
-  }
-}
+// Register all templates from the centralized templates file
+registerAllTemplates(registerTemplate);
 
 /**
  * Set WebSocket emitter for real-time delivery
@@ -167,19 +149,12 @@ export const emitBulk = async (event, userIds, payload, actor) => {
  * @param {Function} options.wsEmitter - WebSocket emitter function
  */
 export const initialize = async (options = {}) => {
-  await loadTemplates();
-  
   if (options.wsEmitter) {
     setWSEmitter(options.wsEmitter);
   }
   
   log.info('Notification gateway initialized');
 };
-
-// Auto-initialize on import (load templates)
-loadTemplates().catch(error => {
-  log.error('Failed to load templates on initialization', { error: error.message });
-});
 
 export default {
   emit,

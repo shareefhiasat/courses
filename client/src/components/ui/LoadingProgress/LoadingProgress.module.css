@@ -6,6 +6,8 @@
   right: 0;
   height: 6px;
   background-color: rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 2147483647;
   pointer-events: none;
   overflow: hidden;

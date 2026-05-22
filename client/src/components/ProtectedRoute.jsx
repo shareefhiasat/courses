@@ -3,9 +3,9 @@ import { useKeycloak } from '@react-keycloak/web';
 import { Navigate } from 'react-router-dom';
 import RoleGuard from './RoleGuard';
 import { GlobalLoadingFallback } from '@/contexts/GlobalLoadingContext';
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
-
-import { info, error, warn, debug } from '@services/utils/logger.js';/**
+/**
  * ProtectedRoute Component
  * 
  * A comprehensive wrapper component that protects routes with:
@@ -58,7 +58,7 @@ const ProtectedRoute = ({
   // Show loading while Keycloak is initializing
   if (!initialized) {
     info('🔄 ProtectedRoute - Keycloak initializing...');
-    if (loadingComponent); {
+    if (loadingComponent) {
       return loadingComponent;
     }
     return <GlobalLoadingFallback />;

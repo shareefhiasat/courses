@@ -31,13 +31,20 @@ export const createBehavior = async (behaviorData, user = null) => {
   // Send notification for new behavior record
   if (result.success && result.data) {
     try {
-      await notificationGateway.emit(EVENTS.BEHAVIOR_RECORDED, {
-        behaviorId: result.data.id,
-        studentId: result.data.studentId,
-        classId: result.data.classId,
-        action: result.data.action,
-        description: result.data.description,
-      }, { userId: result.data.studentId }, user);
+      // Determine if positive or negative behavior
+      const eventType = result.data.isPositive 
+        ? EVENTS.BEHAVIOR_POSITIVE_RECORDED 
+        : EVENTS.BEHAVIOR_NEGATIVE_RECORDED;
+      
+      await notificationGateway.emit(
+        eventType,
+        {
+          studentName: result.data.student?.displayName || result.data.studentName,
+          behaviorType: result.data.behaviorType?.nameEn || result.data.action
+        },
+        user,
+        { userId: result.data.studentId }
+      );
     } catch (notifError) {
       console.error('Failed to send behavior notification:', notifError);
     }
@@ -52,11 +59,15 @@ export const updateBehavior = async (id, behaviorData, user = null) => {
   // Send notification for behavior update
   if (result.success && result.data) {
     try {
-      await notificationGateway.emit(EVENTS.BEHAVIOR_UPDATED, {
-        behaviorId: result.data.id,
-        studentId: result.data.studentId,
-        classId: result.data.classId,
-      }, { userId: result.data.studentId }, user);
+      await notificationGateway.emit(
+        EVENTS.BEHAVIOR_UPDATED,
+        {
+          studentName: result.data.student?.displayName || result.data.studentName,
+          behaviorType: result.data.behaviorType?.nameEn || result.data.action
+        },
+        user,
+        { userId: result.data.studentId }
+      );
     } catch (notifError) {
       console.error('Failed to send behavior update notification:', notifError);
     }
@@ -74,11 +85,15 @@ export const deleteBehavior = async (id, user = null) => {
   // Send notification for behavior deletion
   if (result.success && existing?.data) {
     try {
-      await notificationGateway.emit(EVENTS.BEHAVIOR_DELETED, {
-        behaviorId: existing.data.id,
-        studentId: existing.data.studentId,
-        classId: existing.data.classId,
-      }, { userId: existing.data.studentId }, user);
+      await notificationGateway.emit(
+        EVENTS.BEHAVIOR_DELETED,
+        {
+          studentName: existing.data.student?.displayName || existing.data.studentName,
+          behaviorType: existing.data.behaviorType?.nameEn || existing.data.action
+        },
+        user,
+        { userId: existing.data.studentId }
+      );
     } catch (notifError) {
       console.error('Failed to send behavior deletion notification:', notifError);
     }

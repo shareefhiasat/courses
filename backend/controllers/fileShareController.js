@@ -6,6 +6,11 @@
  */
 
 import fileShareService from '../services/fileShareService.js';
+import { PrismaClient } from '@prisma/client';
+import notificationGateway from '../services/notifications/index.js';
+import { EVENTS } from '../services/notifications/constants.js';
+
+const prisma = new PrismaClient();
 
 export async function createFileShare(req, res) {
   const { fileId, folderId, subjectType, subjectId, permission, expiresAt } = req.body;
@@ -38,6 +43,33 @@ export async function createFileShare(req, res) {
     actor
   );
   if (!result.success) return res.status(400).json(result);
+
+  // Emit notification for folder share
+  if (result.success && folderId && subjectType === 'USER') {
+    try {
+      const folder = await prisma.folder.findUnique({
+        where: { id: folderId },
+        include: {
+          user: { select: { displayName: true, firstName: true, lastName: true } }
+        }
+      });
+
+      if (folder) {
+        await notificationGateway.emit(
+          EVENTS.DRIVE_FOLDER_SHARED,
+          {
+            folderName: folder.name,
+            sharedBy: folder.user?.displayName || `${folder.user?.firstName} ${folder.user?.lastName}`
+          },
+          req.user,
+          { userId: subjectUserId }
+        );
+      }
+    } catch (notifError) {
+      console.error('[fileShareController] Failed to emit folder share notification:', notifError);
+    }
+  }
+
   return res.status(201).json(result);
 }
 

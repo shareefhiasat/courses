@@ -13,6 +13,8 @@ import {
   deleteActivity as deleteActivityInDb,
   getActivitiesByClass as getActivitiesByClassFromDb
 } from '../db/activities-postgres.js';
+import notificationGateway from './notifications/index.js';
+import { EVENTS } from './notifications/constants.js';
 
 /**
  * Get all activities with business logic
@@ -129,6 +131,43 @@ export const createActivity = async (activityData, user = null) => {
     }
     
     const result = await createActivityInDb(activityData, user);
+    
+    // Emit notification for activity creation if toggle is on
+    if (result.success && result.data && activityData.sendNotification !== false) {
+      try {
+        const activity = result.data;
+        
+        // Get students in the class
+        const classId = activity.classId;
+        if (classId) {
+          // Get all students enrolled in this class
+          const { PrismaClient } = await import('@prisma/client');
+          const prisma = new PrismaClient();
+          
+          const enrollments = await prisma.enrollment.findMany({
+            where: { classId: parseInt(classId) },
+            select: { userId: true }
+          });
+          
+          const studentIds = enrollments.map(e => e.userId);
+          
+          if (studentIds.length > 0) {
+            await notificationGateway.emit(
+              EVENTS.ACTIVITY_ASSIGNED,
+              {
+                activityName: activity.titleEn || activity.titleAr,
+                dueDate: activity.dueDate
+              },
+              user,
+              { userIds: studentIds }
+            );
+          }
+        }
+      } catch (notifError) {
+        console.error('Failed to emit activity creation notification:', notifError);
+      }
+    }
+    
     return result;
   } catch (error) {
     console.error('Error in createActivity:', error);
@@ -184,6 +223,29 @@ export const updateActivity = async (activityId, updateData, user = null) => {
     }
     
     const result = await updateActivityInDb(activityId, updateData, user);
+    
+    // Emit notification for activity completion if status changed to completed and toggle is on
+    if (result.success && result.data && updateData.sendNotification !== false && updateData.status === 'completed') {
+      try {
+        const activity = result.data;
+        
+        // Get the student who completed the activity (from user object)
+        if (user?.dbId) {
+          await notificationGateway.emit(
+            EVENTS.ACTIVITY_COMPLETED,
+            {
+              activityName: activity.titleEn || activity.titleAr,
+              grade: updateData.grade
+            },
+            user,
+            { userId: user.dbId }
+          );
+        }
+      } catch (notifError) {
+        console.error('Failed to emit activity completion notification:', notifError);
+      }
+    }
+    
     return result;
   } catch (error) {
     console.error('Error in updateActivity:', error);

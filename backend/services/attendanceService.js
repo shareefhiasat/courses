@@ -6,6 +6,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import notificationGateway from './notifications/index.js';
+import { EVENTS } from './notifications/constants.js';
 
 const prisma = new PrismaClient();
 
@@ -278,6 +280,32 @@ export const createAttendance = async (attendanceData, user = null) => {
         }
       });
       
+      // Emit notification for attendance update
+      try {
+        const statusEventMap = {
+          'present': EVENTS.ATTENDANCE_MARKED_PRESENT,
+          'absent': EVENTS.ATTENDANCE_MARKED_ABSENT,
+          'late': EVENTS.ATTENDANCE_MARKED_LATE,
+          'excused': EVENTS.ATTENDANCE_MARKED_EXCUSED
+        };
+        
+        const eventType = statusEventMap[status] || EVENTS.ATTENDANCE_MARKED;
+        
+        await notificationGateway.emit(
+          eventType,
+          {
+            studentName: updatedAttendance.user.displayName || `${updatedAttendance.user.firstName} ${updatedAttendance.user.lastName}`,
+            date: updatedAttendance.date,
+            className: updatedAttendance.class.nameEn,
+            status: status
+          },
+          user,
+          { userId: parseInt(userId) }
+        );
+      } catch (notificationError) {
+        console.error('[Attendance Service] Failed to emit notification:', notificationError);
+      }
+      
       return {
         success: true,
         data: updatedAttendance,
@@ -327,6 +355,32 @@ export const createAttendance = async (attendanceData, user = null) => {
         }
       }
     });
+    
+    // Emit notification for attendance creation
+    try {
+      const statusEventMap = {
+        'present': EVENTS.ATTENDANCE_MARKED_PRESENT,
+        'absent': EVENTS.ATTENDANCE_MARKED_ABSENT,
+        'late': EVENTS.ATTENDANCE_MARKED_LATE,
+        'excused': EVENTS.ATTENDANCE_MARKED_EXCUSED
+      };
+      
+      const eventType = statusEventMap[status] || EVENTS.ATTENDANCE_MARKED;
+      
+      await notificationGateway.emit(
+        eventType,
+        {
+          studentName: newAttendance.user.displayName || `${newAttendance.user.firstName} ${newAttendance.user.lastName}`,
+          date: newAttendance.date,
+          className: newAttendance.class.nameEn,
+          status: status
+        },
+        user,
+        { userId: parseInt(userId) }
+      );
+    } catch (notificationError) {
+      console.error('[Attendance Service] Failed to emit notification:', notificationError);
+    }
     
     return {
       success: true,

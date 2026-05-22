@@ -7,6 +7,8 @@
 
 import enrollmentDbService from "../db/enrollments-postgres.js";
 import { LMS_ROLES } from './keycloakAdminService.js';
+import notificationGateway from './notifications/index.js';
+import { EVENTS } from './notifications/constants.js';
 
 const serviceName = "enrollmentsBusinessService";
 
@@ -158,6 +160,50 @@ export const createEnrollment = async (enrollmentData, user = null) => {
 
     const result = await enrollmentDbService.create(enrollmentData, user);
 
+    // Emit notification for enrollment creation
+    if (result.success && result.data) {
+      try {
+        const enrollment = result.data;
+        const { PrismaClient } = await import('@prisma/client');
+        const prisma = new PrismaClient();
+
+        // Get student and course/program details
+        const student = await prisma.user.findUnique({
+          where: { id: enrollmentData.studentId },
+          select: { displayName: true, firstName: true, lastName: true }
+        });
+
+        let courseName = 'Course';
+        if (enrollmentData.classId) {
+          const classData = await prisma.class.findUnique({
+            where: { id: enrollmentData.classId },
+            include: { subject: { select: { nameEn: true, nameAr: true } } }
+          });
+          courseName = classData?.subject?.nameEn || classData?.subject?.nameAr || 'Course';
+        } else if (enrollmentData.programId) {
+          const program = await prisma.program.findUnique({
+            where: { id: enrollmentData.programId },
+            select: { nameEn: true, nameAr: true }
+          });
+          courseName = program?.nameEn || program?.nameAr || 'Program';
+        }
+
+        if (student) {
+          await notificationGateway.emit(
+            EVENTS.ENROLLMENT_CONFIRMED,
+            {
+              studentName: student.displayName || `${student.firstName} ${student.lastName}`,
+              courseName: courseName
+            },
+            user,
+            { userId: enrollmentData.studentId }
+          );
+        }
+      } catch (notifError) {
+        console.error('Failed to emit enrollment notification:', notifError);
+      }
+    }
+
     return {
       ...result,
       message: result.success
@@ -218,6 +264,71 @@ export const updateEnrollment = async (id, updateData, user = null) => {
 
     const result = await enrollmentDbService.update(id, updateData, user);
 
+    // Emit notification for enrollment status change
+    if (result.success && result.data && updateData.statusId) {
+      try {
+        const enrollment = result.data;
+        const { PrismaClient } = await import('@prisma/client');
+        const prisma = new PrismaClient();
+
+        // Get student and course details
+        const student = await prisma.user.findUnique({
+          where: { id: enrollment.userId },
+          select: { displayName: true, firstName: true, lastName: true }
+        });
+
+        // Get status name
+        const status = await prisma.lookup.findUnique({
+          where: { id: updateData.statusId },
+          select: { nameEn: true, nameAr: true }
+        });
+
+        let courseName = 'Course';
+        if (enrollment.classId) {
+          const classData = await prisma.class.findUnique({
+            where: { id: enrollment.classId },
+            include: { subject: { select: { nameEn: true, nameAr: true } } }
+          });
+          courseName = classData?.subject?.nameEn || classData?.subject?.nameAr || 'Course';
+        } else if (enrollment.programId) {
+          const program = await prisma.program.findUnique({
+            where: { id: enrollment.programId },
+            select: { nameEn: true, nameAr: true }
+          });
+          courseName = program?.nameEn || program?.nameAr || 'Program';
+        }
+
+        if (student && status) {
+          let eventType;
+          const statusName = status.nameEn || status.nameAr;
+          
+          if (statusName.toLowerCase().includes('approved')) {
+            eventType = EVENTS.ENROLLMENT_APPROVED;
+          } else if (statusName.toLowerCase().includes('rejected')) {
+            eventType = EVENTS.ENROLLMENT_REJECTED;
+          } else if (statusName.toLowerCase().includes('dropped')) {
+            eventType = EVENTS.ENROLLMENT_DROPPED;
+          } else if (statusName.toLowerCase().includes('completed')) {
+            eventType = EVENTS.ENROLLMENT_COMPLETED;
+          } else {
+            eventType = EVENTS.ENROLLMENT_PENDING;
+          }
+
+          await notificationGateway.emit(
+            eventType,
+            {
+              studentName: student.displayName || `${student.firstName} ${student.lastName}`,
+              courseName: courseName
+            },
+            user,
+            { userId: enrollment.userId }
+          );
+        }
+      } catch (notifError) {
+        console.error('Failed to emit enrollment update notification:', notifError);
+      }
+    }
+
     return {
       ...result,
       message: result.success
@@ -261,6 +372,53 @@ export const deleteEnrollment = async (id, user = null) => {
     }
 
     const result = await enrollmentDbService.deleteEnrollment(id);
+
+    // Emit notification for enrollment deletion
+    if (result.success) {
+      try {
+        const { PrismaClient } = await import('@prisma/client');
+        const prisma = new PrismaClient();
+
+        // Get enrollment details before deletion
+        const enrollment = await enrollmentDbService.getEnrollmentById(id);
+        
+        if (enrollment.success && enrollment.data) {
+          const student = await prisma.user.findUnique({
+            where: { id: enrollment.data.userId },
+            select: { displayName: true, firstName: true, lastName: true }
+          });
+
+          let courseName = 'Course';
+          if (enrollment.data.classId) {
+            const classData = await prisma.class.findUnique({
+              where: { id: enrollment.data.classId },
+              include: { subject: { select: { nameEn: true, nameAr: true } } }
+            });
+            courseName = classData?.subject?.nameEn || classData?.subject?.nameAr || 'Course';
+          } else if (enrollment.data.programId) {
+            const program = await prisma.program.findUnique({
+              where: { id: enrollment.data.programId },
+              select: { nameEn: true, nameAr: true }
+            });
+            courseName = program?.nameEn || program?.nameAr || 'Program';
+          }
+
+          if (student) {
+            await notificationGateway.emit(
+              EVENTS.ENROLLMENT_DROPPED,
+              {
+                studentName: student.displayName || `${student.firstName} ${student.lastName}`,
+                courseName: courseName
+              },
+              user,
+              { userId: enrollment.data.userId }
+            );
+          }
+        }
+      } catch (notifError) {
+        console.error('Failed to emit enrollment deletion notification:', notifError);
+      }
+    }
 
     return {
       ...result,

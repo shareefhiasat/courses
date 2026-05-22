@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { calculateLetterGrade, MANUAL_GRADES } from '../utils/gradingStandards.js';
+import notificationGateway from '../services/notifications/index.js';
+import { EVENTS } from '../services/notifications/constants.js';
 
 const prisma = new PrismaClient();
 
@@ -364,6 +366,37 @@ const updateStudentMarks = async (req, res) => {
       );
     }
 
+    // Emit notification for marks update
+    try {
+      const subject = await prisma.subject.findUnique({
+        where: { id: parseInt(subjectId) },
+        select: { nameEn: true, nameAr: true }
+      });
+
+      const student = await prisma.user.findUnique({
+        where: { id: parseInt(userId) },
+        select: { displayName: true, firstName: true, lastName: true }
+      });
+
+      if (subject && student) {
+        const eventType = isRepeated ? EVENTS.REPEATED_ATTEMPT_GRADED : (previousRecord ? EVENTS.MARKS_UPDATED : EVENTS.GRADE_POSTED);
+        
+        await notificationGateway.emit(
+          eventType,
+          {
+            studentName: student.displayName || `${student.firstName} ${student.lastName}`,
+            subjectName: subject.nameEn || subject.nameAr,
+            grade: letterGrade,
+            totalMarks: `${totalMarks}%`
+          },
+          req.user,
+          { userId: parseInt(userId) }
+        );
+      }
+    } catch (notifError) {
+      console.error('[marks.js] Failed to emit marks notification:', notifError);
+    }
+
     // Create grade info object for response
     const gradeInfo = {
       letterGrade,
@@ -464,6 +497,42 @@ const batchUpdateStudentMarks = async (req, res) => {
         });
       })
     );
+
+    // Emit notifications for batch marks update
+    try {
+      const subject = await prisma.subject.findUnique({
+        where: { id: parseInt(subjectId) },
+        select: { nameEn: true, nameAr: true }
+      });
+
+      if (subject) {
+        // Send individual notifications to each student
+        await Promise.all(
+          results.map(async (result) => {
+            const student = await prisma.user.findUnique({
+              where: { id: result.userId },
+              select: { displayName: true, firstName: true, lastName: true }
+            });
+
+            if (student) {
+              await notificationGateway.emit(
+                EVENTS.MARKS_UPDATED,
+                {
+                  studentName: student.displayName || `${student.firstName} ${student.lastName}`,
+                  subjectName: subject.nameEn || subject.nameAr,
+                  grade: result.letterGrade,
+                  totalMarks: `${result.totalMarks}%`
+                },
+                req.user,
+                { userId: result.userId }
+              );
+            }
+          })
+        );
+      }
+    } catch (notifError) {
+      console.error('[marks.js] Failed to emit batch marks notifications:', notifError);
+    }
 
     res.json({
       success: true,

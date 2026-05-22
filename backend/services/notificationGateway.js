@@ -1,73 +1,76 @@
 /**
- * Notification Gateway Service
+ * Notification Gateway Service (Legacy)
  *
- * PURPOSE: Centralized notification dispatch for the application
- * ARCHITECTURE: Business Logic → Notification Gateway → Email/Push/In-App
+ * PURPOSE: Legacy notification gateway - DEPRECATED
+ * 
+ * This file is kept for backward compatibility with workflow notifications.
+ * New code should use the new notification system in services/notifications/index.js
+ * 
+ * Migration: Replace calls to this gateway with the new notificationGateway from services/notifications/index.js
  */
 
-// const { info, error, warn, debug } = require('../utils/logger.js');
+import notificationGateway from './notifications/index.js';
+import { EVENTS } from './notifications/constants.js';
 
-/**
- * Generic notification sender
- * @param {object} notification - Notification object with type, recipient, message
- */
-async function sendNotification(notification) {
-  console.log('[notificationGateway] Sending notification:', notification);
-  // TODO: Implement actual notification sending logic (email, push, in-app)
-}
-
-/**
- * Workflow notifications
- */
+// Legacy function mapping to new system
 export async function notifyWorkflowAssigned(user, { workflowInstanceId, workflowName, stageName, entityType, entityId, userName }) {
-  await sendNotification({
-    type: 'workflow_assigned',
-    recipient: user,
-    data: { workflowInstanceId, workflowName, stageName, entityType, entityId, userName },
-  });
+  await notificationGateway.emit(
+    EVENTS.WORKFLOW_ASSIGNED,
+    { workflowInstanceId, workflowName, stageName, entityType, entityId, userName },
+    { id: user?.id },
+    { userId: user?.id }
+  );
 }
 
 export async function notifyWorkflowApproved(initiator, { instanceId, workflowName, stageName, approverName }) {
-  await sendNotification({
-    type: 'workflow_approved',
-    recipient: initiator,
-    data: { instanceId, workflowName, stageName, approverName },
-  });
+  await notificationGateway.emit(
+    EVENTS.WORKFLOW_APPROVED,
+    { instanceId, workflowName, stageName, approverName },
+    { id: initiator?.id },
+    { userId: initiator?.id }
+  );
 }
 
 export async function notifyWorkflowCompleted(initiator, { instanceId, workflowName }) {
-  await sendNotification({
-    type: 'workflow_completed',
-    recipient: initiator,
-    data: { instanceId, workflowName },
-  });
+  await notificationGateway.emit(
+    EVENTS.WORKFLOW_COMPLETED,
+    { instanceId, workflowName },
+    { id: initiator?.id },
+    { userId: initiator?.id }
+  );
 }
 
 export async function notifyWorkflowRejected(initiator, { instanceId, workflowName, stageName, rejecterName, reason }) {
-  await sendNotification({
-    type: 'workflow_rejected',
-    recipient: initiator,
-    data: { instanceId, workflowName, stageName, rejecterName, reason },
-  });
+  await notificationGateway.emit(
+    EVENTS.WORKFLOW_REJECTED,
+    { instanceId, workflowName, stageName, rejecterName, reason },
+    { id: initiator?.id },
+    { userId: initiator?.id }
+  );
 }
 
-/**
- * SLA notifications
- */
 export async function notifySLAWarning(user, { workflowInstanceId, workflowName, stageName, deadline }) {
-  await sendNotification({
-    type: 'sla_warning',
-    recipient: user,
-    data: { workflowInstanceId, workflowName, stageName, deadline },
-  });
+  await notificationGateway.emit(
+    EVENTS.WORKFLOW_SLA_WARNING,
+    { workflowInstanceId, workflowName, stageName, deadline },
+    { id: user?.id },
+    { userId: user?.id }
+  );
 }
 
 export async function notifySLAOverdue(user, { workflowInstanceId, workflowName, stageName, deadline }) {
-  await sendNotification({
-    type: 'sla_overdue',
-    recipient: user,
-    data: { workflowInstanceId, workflowName, stageName, deadline },
-  });
+  await notificationGateway.emit(
+    EVENTS.WORKFLOW_SLA_OVERDUE,
+    { workflowInstanceId, workflowName, stageName, deadline },
+    { id: user?.id },
+    { userId: user?.id }
+  );
+}
+
+// Deprecated generic sender - kept for compatibility
+async function sendNotification(notification) {
+  console.warn('[notificationGateway] Legacy sendNotification called - use new notification system');
+  // This is a no-op - notifications should be sent via the new system
 }
 
 export default {

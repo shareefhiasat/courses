@@ -3,6 +3,11 @@
  */
 
 import * as folderService from '../services/folderService.js';
+import { PrismaClient } from '@prisma/client';
+import notificationGateway from '../services/notifications/index.js';
+import { EVENTS } from '../services/notifications/constants.js';
+
+const prisma = new PrismaClient();
 
 const jsonOrStatus = (res, result, okStatus = 200) => {
   if (!result.success) {
@@ -32,6 +37,43 @@ export const getFolder = async (req, res) => {
 export const createFolder = async (req, res) => {
   const { name, parentId, isPrivate } = req.body || {};
   const result = await folderService.createFolder(req.user, { name, parentId, isPrivate });
+  
+  // Emit notification for folder creation if successful
+  if (result.success && result.payload) {
+    try {
+      const folder = await prisma.folder.findUnique({
+        where: { id: result.payload.id },
+        include: {
+          user: { select: { displayName: true, firstName: true, lastName: true } }
+        }
+      });
+
+      if (folder && folder.parentId) {
+        // Get all users who have access to parent folder
+        const parentShares = await prisma.folderShare.findMany({
+          where: { folderId: folder.parentId },
+          select: { sharedWithId: true }
+        });
+
+        const recipientIds = [folder.userId, ...parentShares.map(s => s.sharedWithId)].filter(id => id !== req.user?.dbId);
+
+        if (recipientIds.length > 0) {
+          await notificationGateway.emit(
+            EVENTS.DRIVE_FOLDER_CREATED,
+            {
+              folderName: folder.name,
+              createdBy: folder.user?.displayName || `${folder.user?.firstName} ${folder.user?.lastName}`
+            },
+            req.user,
+            { userIds: recipientIds }
+          );
+        }
+      }
+    } catch (notifError) {
+      console.error('[folderController] Failed to emit folder creation notification:', notifError);
+    }
+  }
+  
   return jsonOrStatus(res, result, 201);
 };
 
@@ -41,7 +83,43 @@ export const updateFolder = async (req, res) => {
 };
 
 export const softDeleteFolder = async (req, res) => {
+  // Get folder details before deletion
+  const folder = await prisma.folder.findUnique({
+    where: { id: req.params.folderId },
+    include: {
+      user: { select: { displayName: true, firstName: true, lastName: true } }
+    }
+  });
+
   const result = await folderService.softDeleteFolder(req.params.folderId, req.user?.dbId);
+  
+  // Emit notification for folder deletion if successful
+  if (result.success && folder) {
+    try {
+      // Get all users who have access to this folder
+      const folderShares = await prisma.folderShare.findMany({
+        where: { folderId: folder.id },
+        select: { sharedWithId: true }
+      });
+
+      const recipientIds = [folder.userId, ...folderShares.map(s => s.sharedWithId)].filter(id => id !== req.user?.dbId);
+
+      if (recipientIds.length > 0) {
+        await notificationGateway.emit(
+          EVENTS.DRIVE_FOLDER_DELETED,
+          {
+            folderName: folder.name,
+            deletedBy: folder.user?.displayName || `${folder.user?.firstName} ${folder.user?.lastName}`
+          },
+          req.user,
+          { userIds: recipientIds }
+        );
+      }
+    } catch (notifError) {
+      console.error('[folderController] Failed to emit folder deletion notification:', notifError);
+    }
+  }
+  
   return jsonOrStatus(res, result);
 };
 

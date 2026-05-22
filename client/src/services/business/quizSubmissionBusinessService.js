@@ -22,7 +22,7 @@ const update = async (id, data, user = null) => {
   return { success: true, data: { id, ...data } };
 };
 
-const delete = async (id, user = null) => {
+const deleteQuizSubmission = async (id, user = null) => {
   return { success: true, message: 'Deleted successfully' };
 };
 
@@ -31,5 +31,5 @@ module.exports = {
   getById,
   create,
   update,
-  delete
+  deleteQuizSubmission
 };
