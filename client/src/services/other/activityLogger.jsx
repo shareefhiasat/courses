@@ -227,7 +227,9 @@ export const ActivityLogger = {
   ACTIVITY_LOG_TYPES,
   resourceViewed: logResourceViewed,
   announcementRead: logAnnouncementRead,
-  activityViewed: logActivityViewed
+  activityViewed: logActivityViewed,
+  quizViewed: logActivityViewed,
+  quizStarted: logActivityViewed
 };
 
 export default ActivityLogger;

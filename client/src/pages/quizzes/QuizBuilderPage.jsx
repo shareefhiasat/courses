@@ -852,7 +852,7 @@ export default function QuizBuilderPage() {
                       e.preventDefault();
                       e.stopPropagation();
                       e.dataTransfer.dropEffect = 'move';
-                      e.currentTarget.style.borderTop = '3px solid #8b5cf6';
+                      e.currentTarget.style.borderTop = '3px solid var(--color-primary, #800020)';
                     }}
                     onDragLeave={(e) => {
                       e.currentTarget.style.borderTop = '';

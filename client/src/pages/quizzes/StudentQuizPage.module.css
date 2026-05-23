@@ -71,7 +71,7 @@
   align-items: center;
   justify-content: center;
   background: rgba(139, 92, 246, 0.12);
-  color: #7c3aed;
+  color: var(--color-primary, #800020);
 }
 
 .quizTitle {
@@ -266,14 +266,14 @@
 
 .optionButton:hover {
   transform: translateY(-2px);
-  border-color: #a855f7;
+  border-color: var(--color-primary, #800020);
   background: rgba(234, 231, 255, 0.6);
 }
 
 .optionButton.selected {
-  border-color: #6d28d9;
+  border-color: var(--color-primary, #800020);
   background: rgba(109, 40, 217, 0.12);
-  color: #4c1d95;
+  color: var(--color-primary, #800020);
 }
 
 .optionIndicator {
@@ -289,9 +289,9 @@
 }
 
 .optionButton.selected .optionIndicator {
-  border-color: #6d28d9;
-  background: #f5f3ff;
-  color: #6d28d9;
+  border-color: var(--color-primary, #800020);
+  background: #f8fafc;
+  color: var(--color-primary, #800020);
 }
 
 .optionRadio {
@@ -328,7 +328,7 @@
 
 .navCenter {
   font-weight: 600;
-  color: #4c1d95;
+  color: var(--color-primary, #800020);
 }
 
 .questionIndicator {
@@ -368,13 +368,13 @@
 
 .paletteItem:hover {
   transform: translateY(-2px);
-  border-color: #a855f7;
+  border-color: var(--color-primary, #800020);
 }
 
 .paletteItem.current {
-  border-color: #7c3aed;
+  border-color: var(--color-primary, #800020);
   background: rgba(124, 58, 237, 0.15);
-  color: #5b21b6;
+  color: var(--color-primary, #800020);
 }
 
 .paletteItem.answered {
@@ -414,7 +414,7 @@
 }
 
 .legendBox.current {
-  border-color: #7c3aed;
+  border-color: var(--color-primary, #800020);
   background: rgba(124, 58, 237, 0.15);
 }
 

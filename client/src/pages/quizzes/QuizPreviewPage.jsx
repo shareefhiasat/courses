@@ -305,11 +305,16 @@ export default function QuizPreviewPage() {
                   <div 
                     className={styles.questionText}
                     style={{ marginBottom: '1.25rem', fontSize: '1.05rem', lineHeight: '1.7', color: '#374151' }}
-                    dangerouslySetInnerHTML={{ __html: (lang === 'ar' ? (question.question_ar || question.question) : (question.question_en || question.question)) }}
+                    dangerouslySetInnerHTML={{ __html: (lang === 'ar' ? (question.question_ar || question.questionAr || question.question) : (question.question_en || question.questionEn || question.question)) }}
                   />
 
                   <div className={styles.optionsList} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {Array.isArray(question.options) && question.options.map((option) => (
+                    {(() => {
+                      const parsedOptions = typeof question.options === 'string' 
+                        ? (question.options ? JSON.parse(question.options) : [])
+                        : question.options;
+                      if (!Array.isArray(parsedOptions)) return null;
+                      return parsedOptions.map((option) => (
                       <div
                         key={option.id}
                         className={`${styles.optionItem} ${option.correct ? styles.correct : ''}`}
@@ -336,7 +341,7 @@ export default function QuizPreviewPage() {
                           dangerouslySetInnerHTML={{ __html: option.text }}
                         />
                       </div>
-                    ))}
+                    ))})()}
                   </div>
                 </CardBody>
               </Card>

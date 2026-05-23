@@ -112,7 +112,7 @@ export default function QuizzesPage() {
     description_en: '',
     description_ar: '',
     type: QUESTION_TYPES.MULTIPLE_CHOICE,
-    difficulty: DIFFICULTY_TYPES.BEGINNER,
+    difficulty: DIFFICULTY_TYPES.MEDIUM,
     estimatedTime: 10,
     questions: [],
     settings: {
@@ -220,7 +220,6 @@ export default function QuizzesPage() {
 
   const formatQuiz = useCallback(async (quiz) => {
     const createdAt = toDate(quiz.createdAt);
-    const settings = quiz.settings || {};
     const questionsArray = Array.isArray(quiz.questions) ? quiz.questions : [];
 
     let creatorName = t('quiz_unknown_creator');
@@ -242,16 +241,23 @@ export default function QuizzesPage() {
       title: lang === 'ar' ? (quiz.titleAr || quiz.titleEn || quiz.title || t('quiz_untitled')) : (quiz.titleEn || quiz.titleAr || quiz.title || t('quiz_untitled')),
       description: lang === 'ar' ? (quiz.descriptionAr || quiz.descriptionEn || quiz.description || '') : (quiz.descriptionEn || quiz.descriptionAr || quiz.description || ''),
       type: quiz.type || 'multiple_choice',
-      difficulty: (quiz.difficulty || settings.difficulty || 'general').toLowerCase(),
-      estimatedTime: Number.isFinite(quiz.estimatedTime) ? quiz.estimatedTime : (settings.timeLimit || 0),
+      difficulty: (quiz.difficulty || 'general').toLowerCase(),
+      estimatedTime: Number.isFinite(quiz.duration) ? quiz.duration : 0,
+      duration: Number.isFinite(quiz.duration) ? quiz.duration : 0,
       questionCount: Number.isFinite(quiz.questionCount) ? quiz.questionCount : questionsArray.length,
       totalAttempts: Number.isFinite(quiz.totalAttempts) ? quiz.totalAttempts : 0,
       averageScore: Number.isFinite(quiz.averageScore) ? quiz.averageScore : 0,
-      allowRetake: typeof quiz.allowRetake === 'boolean' ? quiz.allowRetake : !!settings.allowRetake,
+      allowRetake: quiz.maxAttempts > 1,
+      maxAttempts: quiz.maxAttempts || 1,
+      randomizeQuestions: quiz.randomizeQuestions || false,
+      randomizeAnswers: quiz.randomizeAnswers || false,
+      showCorrectAnswers: quiz.showCorrectAnswers || false,
+      passingScore: quiz.passingScore || 60,
       createdAt,
-      createdBy: quiz.createdBy || settings.createdBy || '',
+      createdBy: quiz.createdBy || '',
       creatorName,
-      updatedAt: toDate(quiz.updatedAt)
+      updatedAt: toDate(quiz.updatedAt),
+      questions: questionsArray
     };
   }, [t, lang]);
 
@@ -403,10 +409,31 @@ export default function QuizzesPage() {
 
     setSaving(true);
     
+    // Clean up quiz data before sending - remove settings object and use direct fields
+    // Prioritize settings values if they exist (UI updates settings object)
+    const quizDataToSend = {
+      ...quizData,
+      titleEn: quizData.titleEn || quizData.title || '',
+      titleAr: quizData.titleAr || '',
+      descriptionEn: quizData.descriptionEn || quizData.description || '',
+      descriptionAr: quizData.descriptionAr || '',
+      difficulty: quizData.difficulty || 'medium',
+      duration: quizData.duration || quizData.estimatedTime || 60,
+      // Use settings values if they exist, otherwise use direct fields
+      maxAttempts: quizData.settings?.allowRetake ? 3 : (quizData.maxAttempts || 1),
+      passingScore: quizData.settings?.passingScore || quizData.passingScore || 60,
+      randomizeQuestions: quizData.settings?.randomizeOrder !== undefined ? quizData.settings.randomizeOrder : (quizData.randomizeQuestions || false),
+      randomizeAnswers: quizData.settings?.shuffleOptions !== undefined ? quizData.settings.shuffleOptions : (quizData.randomizeAnswers || false),
+      showCorrectAnswers: quizData.settings?.showCorrectAnswers !== undefined ? quizData.settings.showCorrectAnswers : (quizData.showCorrectAnswers || false),
+      updatedBy: user?.uid || quizData.updatedBy,
+      // Remove settings object - backend doesn't use it
+      settings: undefined
+    };
+    
     console.log('[Quiz Save] Starting save for quiz:', quizId);
-    console.log('[Quiz Save] Quiz data:', JSON.stringify(quizData, null, 2));
-    console.log('[Quiz Save] Questions count:', quizData.questions?.length);
-    quizData.questions?.forEach((q, i) => {
+    console.log('[Quiz Save] Quiz data to send:', JSON.stringify(quizDataToSend, null, 2));
+    console.log('[Quiz Save] Questions count:', quizDataToSend.questions?.length);
+    quizDataToSend.questions?.forEach((q, i) => {
       console.log(`[Quiz Save] Question ${i}:`, {
         question_en: q.question_en,
         question_ar: q.question_ar,
@@ -420,7 +447,7 @@ export default function QuizzesPage() {
 
       if (quizId) {
         debug('[Save] Updating quiz:', quizId);
-        const result = await updateQuiz(quizId, quizData);
+        const result = await updateQuiz(quizId, quizDataToSend);
         if (result.success) {
           debug('[Save] Quiz updated successfully');
           toast?.showSuccess?.('Quiz updated successfully!');
@@ -431,7 +458,7 @@ export default function QuizzesPage() {
         }
       } else {
         debug('[Save] Creating new quiz');
-        const result = await createQuiz(quizData, user.uid);
+        const result = await createQuiz(quizDataToSend, user.uid);
         if (result.success) {
           targetQuizId = result.id;
           info('[Save] Quiz created successfully:', targetQuizId);
@@ -451,7 +478,7 @@ export default function QuizzesPage() {
 
     } catch (err) {
       error('Error saving quiz:', err);
-      toast?.showError?.(t('quiz_error_saving') + ': ' + err.message);
+      toast?.showError?.(t('quiz_error_saving') + ': ' + (err?.message || err));
     } finally {
       setSaving(false);
     }
@@ -789,24 +816,24 @@ export default function QuizzesPage() {
 
   const getDifficultyLabel = (difficulty) => {
     switch ((difficulty || '').toLowerCase()) {
-      case DIFFICULTY_TYPES.BEGINNER:
-        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.BEGINNER];
-      case DIFFICULTY_TYPES.INTERMEDIATE:
-        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.INTERMEDIATE];
-      case DIFFICULTY_TYPES.ADVANCED:
-        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.ADVANCED];
+      case DIFFICULTY_TYPES.EASY:
+        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.EASY];
+      case DIFFICULTY_TYPES.MEDIUM:
+        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.MEDIUM];
+      case DIFFICULTY_TYPES.HARD:
+        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.HARD];
       default:
-        return 'General';
+        return 'Medium';
     }
   };
 
   const getDifficultyChipClass = (difficulty) => {
     switch ((difficulty || '').toLowerCase()) {
-      case DIFFICULTY_TYPES.BEGINNER:
+      case DIFFICULTY_TYPES.EASY:
         return QuizManagementPageStyles.difficultyBeginner;
-      case DIFFICULTY_TYPES.INTERMEDIATE:
+      case DIFFICULTY_TYPES.MEDIUM:
         return QuizManagementPageStyles.difficultyIntermediate;
-      case DIFFICULTY_TYPES.ADVANCED:
+      case DIFFICULTY_TYPES.HARD:
         return QuizManagementPageStyles.difficultyAdvanced;
       default:
         return QuizManagementPageStyles.difficultyDefault;
@@ -871,13 +898,13 @@ export default function QuizzesPage() {
     }
 
     // Use same difficulty label logic as builder
-    const difficultyLabel = quiz.difficulty === DIFFICULTY_TYPES.BEGINNER ? 'Beginner' 
-      : quiz.difficulty === DIFFICULTY_TYPES.INTERMEDIATE ? 'Intermediate' 
-      : quiz.difficulty === DIFFICULTY_TYPES.ADVANCED ? 'Advanced' 
-      : 'General';
+    const difficultyLabel = quiz.difficulty === DIFFICULTY_TYPES.EASY ? 'Easy' 
+      : quiz.difficulty === DIFFICULTY_TYPES.MEDIUM ? 'Medium' 
+      : quiz.difficulty === DIFFICULTY_TYPES.HARD ? 'Hard' 
+      : 'Medium';
     
     chips.push(
-      <Badge key={`${quiz.id}-difficulty`} variant="subtle" color={quiz.difficulty === DIFFICULTY_TYPES.BEGINNER ? 'success' : quiz.difficulty === DIFFICULTY_TYPES.INTERMEDIATE ? 'warning' : 'danger'} size="small">
+      <Badge key={`${quiz.id}-difficulty`} variant="subtle" color={quiz.difficulty === DIFFICULTY_TYPES.EASY ? 'success' : quiz.difficulty === DIFFICULTY_TYPES.MEDIUM ? 'warning' : 'danger'} size="small">
         {difficultyLabel}
       </Badge>
     );
@@ -931,11 +958,11 @@ export default function QuizzesPage() {
 
   const getDifficultyChipClassForBuilder = (difficulty) => {
     switch ((difficulty || '').toLowerCase()) {
-      case DIFFICULTY_TYPES.BEGINNER:
+      case DIFFICULTY_TYPES.EASY:
         return QuizBuilderPageStyles.difficultyBeginner;
-      case DIFFICULTY_TYPES.INTERMEDIATE:
+      case DIFFICULTY_TYPES.MEDIUM:
         return QuizBuilderPageStyles.difficultyIntermediate;
-      case DIFFICULTY_TYPES.ADVANCED:
+      case DIFFICULTY_TYPES.HARD:
         return QuizBuilderPageStyles.difficultyAdvanced;
       default:
         return QuizBuilderPageStyles.difficultyDefault;
@@ -944,7 +971,7 @@ export default function QuizzesPage() {
 
   const getDifficultyLabelForBuilder = (difficulty) => {
     const key = (difficulty || '').toLowerCase();
-    return DIFFICULTY_LABELS[key] || (difficulty ? difficulty : 'General');
+    return DIFFICULTY_LABELS[key] || (difficulty ? difficulty : 'Medium');
   };
 
   const renderMetaChipsForBuilder = () => {
@@ -1001,7 +1028,7 @@ export default function QuizzesPage() {
     }
 
     chips.push(
-      <Badge key="difficulty" variant="subtle" color={quizData.difficulty === DIFFICULTY_TYPES.BEGINNER ? 'success' : quizData.difficulty === DIFFICULTY_TYPES.INTERMEDIATE ? 'warning' : 'danger'} size="small">
+      <Badge key="difficulty" variant="subtle" color={quizData.difficulty === DIFFICULTY_TYPES.EASY ? 'success' : quizData.difficulty === DIFFICULTY_TYPES.MEDIUM ? 'warning' : 'danger'} size="small">
         {getDifficultyLabelForBuilder(quizData.difficulty)}
       </Badge>
     );

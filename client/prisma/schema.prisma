@@ -915,6 +915,7 @@ model Quiz {
   titleAr            String?
   descriptionEn      String?
   descriptionAr      String?
+  difficulty         String        @default("medium")
   duration           Int           @default(60)
   maxAttempts        Int           @default(1)
   passingScore       Float         @default(60)

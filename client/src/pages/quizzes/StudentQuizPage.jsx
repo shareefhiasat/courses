@@ -68,8 +68,20 @@ export default function StudentQuizPage() {
 
   // Use shuffled questions when quiz is started, otherwise original questions
   const activeQuestions = useMemo(() => {
-    if (started && shuffledQuestions) return shuffledQuestions;
-    return quiz?.questions || [];
+    let questions = [];
+    if (started && shuffledQuestions) {
+      questions = shuffledQuestions;
+    } else {
+      questions = quiz?.questions || [];
+    }
+    
+    // Parse options if they're JSON strings
+    return questions.map(q => ({
+      ...q,
+      options: typeof q.options === 'string' 
+        ? (q.options ? JSON.parse(q.options) : [])
+        : q.options
+    }));
   }, [started, shuffledQuestions, quiz?.questions]);
 
   const resolvedQuizLang = useMemo(() => {
@@ -752,6 +764,20 @@ export default function StudentQuizPage() {
   }
 
   if (!started) {
+    if (!quiz) {
+      return (
+        <div className={styles.quizStart}>
+          <Container maxWidth="md">
+            <Card>
+              <CardBody className={styles.startContent}>
+                <Spinner />
+              </CardBody>
+            </Card>
+          </Container>
+        </div>
+      );
+    }
+    
     return (
       <div className={styles.quizStart}>
         <Container maxWidth="md">
@@ -775,18 +801,18 @@ export default function StudentQuizPage() {
 
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
                 <Badge variant="subtle" color="primary" size="small">
-                  {getQuestionIcon(quiz.type)}
-                  <span style={{ marginLeft: '0.25rem' }}>{getQuestionTypeLabel(quiz.type)}</span>
+                  {getQuestionIcon(quiz?.type)}
+                  <span style={{ marginLeft: '0.25rem' }}>{getQuestionTypeLabel(quiz?.type)}</span>
                 </Badge>
                 <Badge variant="subtle" color="info" size="small">
                   {getThemedIcon('ui', 'list_checks', 12, theme)}
-                  {quiz.questions.length} {quiz.questions.length === 1 ? 'question' : 'questions'}
+                  {quiz?.questions?.length || 0} {quiz?.questions?.length === 1 ? 'question' : 'questions'}
                 </Badge>
                 <Badge variant="subtle" color="warning" size="small">
                   {getThemedIcon('ui', 'award', 12, theme)}
-                  {quiz.questions.reduce((sum, q) => sum + (q.points || 1), 0)} points
+                  {quiz?.questions?.reduce((sum, q) => sum + (q.points || 1), 0) || 0} points
                 </Badge>
-                {quiz.settings?.timeLimit > 0 ? (
+                {quiz?.settings?.timeLimit > 0 ? (
                   <Badge variant="outline" color="danger" size="small">
                     {getThemedIcon('ui', 'clock', 12, theme)}
                     {quiz.settings.timeLimit} min limit
@@ -794,25 +820,25 @@ export default function StudentQuizPage() {
                 ) : (
                   <Badge variant="subtle" color="info" size="small">
                     {getThemedIcon('ui', 'clock', 12, theme)}
-                    {quiz.estimatedTime || 10} min
+                    {quiz?.estimatedTime || 10} min
                   </Badge>
                 )}
-                <Badge variant="subtle" color={quiz.difficulty === 'beginner' ? 'success' : quiz.difficulty === 'intermediate' ? 'warning' : 'danger'} size="small">
-                  {quiz.difficulty || 'General'}
+                <Badge variant="subtle" color={quiz?.difficulty === 'beginner' ? 'success' : quiz?.difficulty === 'intermediate' ? 'warning' : 'danger'} size="small">
+                  {quiz?.difficulty || 'General'}
                 </Badge>
-                {quiz.settings?.allowRetake && (
+                {quiz?.settings?.allowRetake && (
                   <Badge variant="outline" color="info" size="small">
                     {getThemedIcon('ui', 'repeat', 12, theme)}
                     Retake allowed
                   </Badge>
                 )}
-                {quiz.settings?.randomizeOrder && (
+                {quiz?.settings?.randomizeOrder && (
                   <Badge variant="outline" color="primary" size="small">
                     {getThemedIcon('ui', 'shuffle', 12, theme)}
                     Shuffle questions
                   </Badge>
                 )}
-                {quiz.settings?.shuffleOptions && (
+                {quiz?.settings?.shuffleOptions && (
                   <Badge variant="outline" color="primary" size="small">
                     {getThemedIcon('ui', 'shuffle', 12, theme)}
                     Shuffle options
@@ -1172,7 +1198,7 @@ export default function StudentQuizPage() {
                     disabled={answeredCount === activeQuestions.length}
                     className={styles.navIconBtn}
                   >
-                    {getThemedIcon('ui', 'circle', 18, theme)}
+                    {getThemedIcon('ui', 'radio_button_unchecked', 18, theme)}
                   </Button>
                 </Tooltip>
                 <Tooltip content="Next Marked">

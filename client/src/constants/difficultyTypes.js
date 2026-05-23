@@ -3,30 +3,30 @@ import { info, error, warn, debug } from '../services/utils/logger.js';
 
 // Difficulty level types
 export const DIFFICULTY_TYPES = {
-  BEGINNER: 'beginner',
-  INTERMEDIATE: 'intermediate', 
-  ADVANCED: 'advanced'
+  EASY: 'easy',
+  MEDIUM: 'medium',
+  HARD: 'hard'
 };
 
 // Labels for UI display
 export const DIFFICULTY_LABELS = {
-  [DIFFICULTY_TYPES.BEGINNER]: 'Beginner',
-  [DIFFICULTY_TYPES.INTERMEDIATE]: 'Intermediate',
-  [DIFFICULTY_TYPES.ADVANCED]: 'Advanced'
+  [DIFFICULTY_TYPES.EASY]: 'Easy',
+  [DIFFICULTY_TYPES.MEDIUM]: 'Medium',
+  [DIFFICULTY_TYPES.HARD]: 'Hard'
 };
 
 // Colors for difficulty levels
 export const DIFFICULTY_COLORS = {
-  [DIFFICULTY_TYPES.BEGINNER]: '#10b981', // Green
-  [DIFFICULTY_TYPES.INTERMEDIATE]: '#f59e0b', // Yellow
-  [DIFFICULTY_TYPES.ADVANCED]: '#ef4444' // Red
+  [DIFFICULTY_TYPES.EASY]: '#10b981', // Green
+  [DIFFICULTY_TYPES.MEDIUM]: '#f59e0b', // Yellow
+  [DIFFICULTY_TYPES.HARD]: '#ef4444' // Red
 };
 
 // Icons for difficulty levels
 export const DIFFICULTY_ICONS = {
-  [DIFFICULTY_TYPES.BEGINNER]: getThemedIcon('difficulty', 'beginner'),
-  [DIFFICULTY_TYPES.INTERMEDIATE]: getThemedIcon('difficulty', 'intermediate'),
-  [DIFFICULTY_TYPES.ADVANCED]: getThemedIcon('difficulty', 'advanced')
+  [DIFFICULTY_TYPES.EASY]: getThemedIcon('difficulty', 'easy'),
+  [DIFFICULTY_TYPES.MEDIUM]: getThemedIcon('difficulty', 'medium'),
+  [DIFFICULTY_TYPES.HARD]: getThemedIcon('difficulty', 'hard')
 };
 
 // Helper functions
@@ -48,12 +48,12 @@ export const isValidDifficultyType = (type) => {
 
 export const getDifficultyLevel = (type) => {
   const levels = {
-    [DIFFICULTY_TYPES.BEGINNER]: 1,
-    [DIFFICULTY_TYPES.INTERMEDIATE]: 2,
-    [DIFFICULTY_TYPES.ADVANCED]: 3
+    [DIFFICULTY_TYPES.EASY]: 1,
+    [DIFFICULTY_TYPES.MEDIUM]: 2,
+    [DIFFICULTY_TYPES.HARD]: 3
   };
   
-  return levels[type] || 1;
+  return levels[type] || 2;
 };
 
 export const compareDifficulty = (type1, type2) => {

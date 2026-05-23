@@ -377,7 +377,7 @@ export default function QuizManagementPage() {
               <CardBody>
                 <div className={styles.statContent}>
                   <div className={styles.statIcon}>
-                    <ListChecks size={16} style={{ color: '#8b5cf6' }} />
+                    <ListChecks size={16} style={{ color: 'var(--color-primary, #800020)' }} />
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>{quizzes.length}</h3>
