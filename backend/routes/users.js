@@ -11,6 +11,7 @@ import {
   getProgramsController,
   getSubjectsController,
   listUsersController,
+  getUserByIdController,
   createUserController,
   updateUserController,
   setPasswordController,
@@ -178,6 +179,7 @@ router.get('/subjects', getSubjectsController);
 // Protected by Keycloak middleware (super_admin role required)
 // Temporarily disabled for testing - will re-enable after fixing token issue
 router.get('/', listUsersController);
+router.get('/:id', getUserByIdController);
 router.post('/', createUserController);
 router.put('/:id', updateUserController);
 router.put('/:id/password', setPasswordController);

@@ -29,7 +29,7 @@ import {
   // Behavior/Sleep Icons
   Bed,
   // Other Icons
-  HelpCircle, Star, StarOff, ThumbsUp, Moon, LayoutGrid, LayoutDashboard, ZoomIn, Menu, Sun, Ruler, Pin, ClipboardList, Check, Play, Download, BarChart3, LineChart, PieChart, Save, GripVertical, Hash,
+  HelpCircle, Star, StarOff, ThumbsUp, Moon, LayoutGrid, LayoutDashboard, ZoomIn, Menu, Sun, Ruler, Pin, ClipboardList, Check, Play, PlayCircle, Download, BarChart3, LineChart, PieChart, Save, GripVertical, Hash,
   // Reaction Icons
   Smile, Frown, Mic,
   // Additional icons from dashboard and chat pages
@@ -280,7 +280,15 @@ export const ICON_TYPES = {
     clipboard_list: <ClipboardList size={16} />,
     check: <Check size={16} />,
     play: <Play size={16} />,
+    play_circle: <PlayCircle size={16} />,
     download: <Download size={16} />,
+    workflow: <Workflow size={16} />,
+    academic: <GraduationCap size={16} />,
+    attendance: <CheckCircle size={16} />,
+    assessment: <FileText size={16} />,
+    announcement: <Megaphone size={16} />,
+    behavior: <TrendingUp size={16} />,
+    qr: <QrCode size={16} />,
     bar_chart3: <BarChart3 size={16} />,
     line_chart: <LineChart size={16} />,
     pie_chart: <PieChart size={16} />,
@@ -423,7 +431,15 @@ export const ICON_TYPES = {
     checkcircle: <CheckCircle size={16} />,
     xcircle: <XCircle size={16} />,
     alertcircle: <AlertCircle size={16} />,
-    helpcircle: <HelpCircle size={16} />
+    helpcircle: <HelpCircle size={16} />,
+    // Arrow icon aliases
+    arrow_left: <ChevronLeft size={16} />,
+    arrow_right: <ChevronRight size={16} />,
+    // Additional missing icons
+    bookmark_check: <Bookmark size={16} />,
+    edit2: <Edit size={16} />,
+    edit3: <Edit size={16} />,
+    check_square: <Check size={16} />
   }
 };
 

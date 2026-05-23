@@ -5,7 +5,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { Container } from '@ui';
 import { GlobalLoadingFallback } from '@/contexts/GlobalLoadingContext';
-import { Navbar } from '@ui';
+import Navbar from '@ui/Navbar/Navbar';
 import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
 import AuthForm from '@components/AuthForm';
 import styles from './LoginPage.module.css';

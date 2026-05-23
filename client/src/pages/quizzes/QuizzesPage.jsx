@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
 import { DIFFICULTY_TYPES, DIFFICULTY_LABELS } from '@constants/difficultyTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { sendQuizAvailable } from '@services/business/notificationService';
@@ -65,19 +65,19 @@ export default function QuizzesPage() {
   const QUESTION_TYPE_INFO = useMemo(() => ({
     [QUESTION_TYPES.MULTIPLE_CHOICE]: {
       name: t('quiz_question_multiple_choice'),
-      icon: () => getThemedIcon('ui', 'list_checks', 20, theme),
+      icon: getThemedIcon('ui', 'list_checks', 20, theme),
       description: t('quiz_question_multiple_choice_desc'),
       color: 'var(--color-primary, #6366f1)'
     },
     [QUESTION_TYPES.SINGLE_CHOICE]: {
       name: t('quiz_question_single_choice'),
-      icon: () => getThemedIcon('ui', 'check_circle', 20, theme),
+      icon: getThemedIcon('ui', 'check_circle', 20, theme),
       description: t('quiz_question_single_choice_desc'),
       color: '#0ea5e9'
     },
     [QUESTION_TYPES.TRUE_FALSE]: {
       name: t('quiz_question_true_false'),
-      icon: () => getThemedIcon('ui', 'help_circle', 20, theme),
+      icon: getThemedIcon('ui', 'help_circle', 20, theme),
       description: t('quiz_question_true_false_desc'),
       color: '#f59e0b'
     }
@@ -195,89 +195,6 @@ export default function QuizzesPage() {
   const [quizData, setQuizData] = useState(() => normalizeQuizData());
   const [originalQuizData, setOriginalQuizData] = useState(null); // Store original for comparison
 
-  const loadQuizzes = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    setError('');
-    try {
-      let response;
-      if (isAdmin) {
-        response = await getAllQuizzes();
-      } else if (isInstructor) {
-        response = await getQuizzesByCreator(user.uid);
-      } else {
-        response = await getQuizzesByCreator(user.uid);
-      }
-
-      if (!response?.success) {
-        throw new Error(response?.error || t('quiz_failed_to_load'));
-      }
-
-      const quizzesWithCreators = await Promise.all(
-        (response.data || [])
-          .filter(Boolean)
-          .map(q => formatQuiz(q))
-      );
-
-      const normalized = quizzesWithCreators.sort((a, b) => {
-        const ad = a.createdAt ? a.createdAt.getTime() : 0;
-        const bd = b.createdAt ? b.createdAt.getTime() : 0;
-        return bd - ad;
-      });
-
-      setQuizzes(normalized);
-    } catch (error) {
-      console.error('Error loading quizzes:', error);
-      const message = String(error?.message || '').toLowerCase().includes('permission')
-        ? t('quiz_no_permission')
-        : (error?.message || t('quiz_failed_to_load'));
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, isAdmin, isInstructor, t, formatQuiz]);
-
-  // Load quizzes list
-  useEffect(() => {
-    if (viewMode === 'list' && !authLoading && user) {
-      loadQuizzes();
-    }
-  }, [viewMode, authLoading, user, loadQuizzes]);
-
-  // Load quiz for editing
-  useEffect(() => {
-    if (viewMode === 'edit' && quizId) {
-      loadQuiz(quizId);
-    }
-  }, [viewMode, quizId, loadQuiz]);
-
-  // Log state changes when active question changes
-  useEffect(() => {
-    if (activeQuestionIndex >= 0 && quizData.questions[activeQuestionIndex]) {
-      const question = quizData.questions[activeQuestionIndex];
-      info('[QuestionChange] Active question changed:', {
-        activeQuestionIndex,
-        questionId: question.id,
-        questionText: question.question?.substring(0, 50),
-        optionsCount: question.options?.length,
-        options: question.options?.map((opt, idx) => ({
-          index: idx,
-          id: opt.id,
-          text: opt.text?.substring(0, 50),
-          correct: opt.correct
-        })),
-        timestamp: new Date().toISOString()
-      });
-    }
-  }, [activeQuestionIndex, quizData.questions]);
-
-  // Reset to list when mode changes
-  useEffect(() => {
-    if (!quizId && !mode) {
-      setViewMode('list');
-    }
-  }, [quizId, mode]);
-
   const toDate = (value) => {
     if (!value) return null;
     if (value instanceof Date) return value;
@@ -323,6 +240,48 @@ export default function QuizzesPage() {
     };
   }, [t, lang]);
 
+  const loadQuizzes = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    setError('');
+    try {
+      let response;
+      if (isAdmin) {
+        response = await getAllQuizzes();
+      } else if (isInstructor) {
+        response = await getQuizzesByCreator(user.uid);
+      } else {
+        response = await getQuizzesByCreator(user.uid);
+      }
+
+      if (!response?.success) {
+        throw new Error(response?.error || t('quiz_failed_to_load'));
+      }
+
+      const quizzesWithCreators = await Promise.all(
+        (response.data || [])
+          .filter(Boolean)
+          .map(q => formatQuiz(q))
+      );
+
+      const normalized = quizzesWithCreators.sort((a, b) => {
+        const ad = a.createdAt ? a.createdAt.getTime() : 0;
+        const bd = b.createdAt ? b.createdAt.getTime() : 0;
+        return bd - ad;
+      });
+
+      setQuizzes(normalized);
+    } catch (error) {
+      console.error('Error loading quizzes:', error);
+      const message = String(error?.message || '').toLowerCase().includes('permission')
+        ? t('quiz_no_permission')
+        : (error?.message || t('quiz_failed_to_load'));
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, isAdmin, isInstructor, t, formatQuiz]);
+
   const loadQuiz = useCallback(async (id) => {
     setLoading(true);
     try {
@@ -337,15 +296,68 @@ export default function QuizzesPage() {
         setViewMode('edit');
       }
     } catch (error) {
-      error('Error loading quiz:', error);
+      console.error('Error loading quiz:', error);
     } finally {
       setLoading(false);
     }
   }, [normalizeQuizData]);
 
+  // Load quizzes list
+  useEffect(() => {
+    if (viewMode === 'list' && !authLoading && user) {
+      loadQuizzes();
+    }
+  }, [viewMode, authLoading, user, loadQuizzes]);
+
+  // Load quiz for editing
+  useEffect(() => {
+    if (viewMode === 'edit' && quizId) {
+      loadQuiz(quizId);
+    }
+  }, [viewMode, quizId, loadQuiz]);
+
+  // Log state changes when active question changes
+  useEffect(() => {
+    if (activeQuestionIndex >= 0 && quizData.questions[activeQuestionIndex]) {
+      const question = quizData.questions[activeQuestionIndex];
+      info('[QuestionChange] Active question changed:', {
+        activeQuestionIndex,
+        questionId: question.id,
+        questionText: question.question?.substring(0, 50),
+        optionsCount: question.options?.length,
+        options: question.options?.map((opt, idx) => ({
+          index: idx,
+          id: opt.id,
+          text: opt.text?.substring(0, 50),
+          correct: opt.correct
+        })),
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [activeQuestionIndex, quizData.questions]);
+
+  // Reset to list when mode changes
+  useEffect(() => {
+    if (!quizId && !mode) {
+      setViewMode('list');
+    }
+  }, [quizId, mode]);
+
   const saveQuiz = async () => {
     const titleEn = (quizData.titleEn || quizData.title || '').trim();
     const titleAr = (quizData.titleAr || quizData.title || '').trim();
+    
+    // Debug logging
+    info('[Save Quiz Validation]', {
+      quizDataTitleEn: quizData.titleEn,
+      quizDataTitleAr: quizData.titleAr,
+      quizDataTitle: quizData.title,
+      computedTitleEn: titleEn,
+      computedTitleAr: titleAr,
+      titleEnLength: titleEn.length,
+      titleArLength: titleAr.length
+    });
+    
     if (!titleEn || !titleAr) {
       toast?.showError?.(t('quiz_title_required_both'));
       return;
@@ -488,9 +500,9 @@ export default function QuizzesPage() {
         }
       }
 
-    } catch (error) {
-      error('Error saving quiz:', error);
-      toast?.showError?.(t('quiz_error_saving') + ': ' + error.message);
+    } catch (err) {
+      error('Error saving quiz:', err);
+      toast?.showError?.(t('quiz_error_saving') + ': ' + err.message);
     } finally {
       setSaving(false);
     }
@@ -511,9 +523,8 @@ export default function QuizzesPage() {
     if (!quiz) return;
 
     try {
-      const submissionsResult = await getQuizSubmissions({ quizId: quizIdToDelete });
-      const submissionsData = submissionsResult.success ? submissionsResult.data : [];
-      const quizSubmissions = submissionsData;
+      // TODO: Implement getQuizSubmissions when available
+      const quizSubmissions = [];
 
       const itemName = lang === 'ar' ? (quiz.titleAr || quiz.titleEn || quiz.title || quiz.name || t('quiz_untitled')) : (quiz.titleEn || quiz.titleAr || quiz.title || quiz.name || t('quiz_untitled'));
 
@@ -737,6 +748,42 @@ export default function QuizzesPage() {
     }
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl/Cmd + S to save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (viewMode === 'add' || viewMode === 'edit') {
+          saveQuiz();
+        }
+      }
+      // Ctrl/Cmd + N to add new question
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n' && step === 'build') {
+        e.preventDefault();
+        addQuestion();
+      }
+      // Escape to cancel
+      if (e.key === 'Escape') {
+        handleCancel();
+      }
+      // Arrow keys to navigate questions
+      if (step === 'build' && quizData.questions.length > 0) {
+        if (e.key === 'ArrowDown' && activeQuestionIndex < quizData.questions.length - 1) {
+          e.preventDefault();
+          setActiveQuestionIndex(activeQuestionIndex + 1);
+        }
+        if (e.key === 'ArrowUp' && activeQuestionIndex > 0) {
+          e.preventDefault();
+          setActiveQuestionIndex(activeQuestionIndex - 1);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewMode, step, activeQuestionIndex, quizData.questions.length, saveQuiz, addQuestion]);
+
   const getQuestionIcon = (type) => {
     switch (type) {
       case QUESTION_TYPES.MULTIPLE_CHOICE:
@@ -841,35 +888,51 @@ export default function QuizzesPage() {
       </Badge>
     );
 
-    // Calculate total time from per-question time limits or use quiz-level timeLimit
+    // Calculate total time - match builder logic
     let totalTimeMinutes = 0;
-    if (quiz.settings?.timeLimit > 0) {
-      // Quiz-level time limit (in minutes) - legacy support
-      totalTimeMinutes = quiz.settings.timeLimit;
-    } else if (quiz.questions && Array.isArray(quiz.questions) && quiz.questions.length > 0) {
-      // Calculate from per-question time limits (in seconds)
-      const totalSeconds = quiz.questions.reduce((sum, q) => sum + (q.timeLimit || 0), 0);
-      totalTimeMinutes = Math.round(totalSeconds / 60);
-    } else if (quiz.estimatedTime) {
-      totalTimeMinutes = quiz.estimatedTime;
-    }
+    const totalTimeLimit = quiz.duration || 0; // duration field in DB
+    const hasPerQuestionTime = quiz.questions?.some(q => q.timeLimit > 0);
+    const totalPerQuestionTime = quiz.questions?.reduce((sum, q) => sum + (q.timeLimit || 0), 0) || 0;
+    const estimatedTime = quiz.estimatedTime || 0;
 
-    if (totalTimeMinutes > 0) {
+    if (totalTimeLimit > 0) {
       chips.push(
-        <Badge key={`${quiz.id}-time`} variant={quiz.settings?.timeLimit > 0 ? "outline" : "subtle"} color={quiz.settings?.timeLimit > 0 ? "danger" : "info"} size="small">
+        <Badge key={`${quiz.id}-time`} variant="outline" color="danger" size="small">
           {getThemedIcon('ui', 'clock', 12, theme)}
-          <span style={{ marginLeft: '0.25rem' }}>{totalTimeMinutes} min{quiz.settings?.timeLimit > 0 ? ' limit' : ''}</span>
+          <span style={{ marginLeft: '0.25rem' }}>{totalTimeLimit} min total</span>
+        </Badge>
+      );
+    } else if (hasPerQuestionTime && totalPerQuestionTime > 0) {
+      const totalMinutes = Math.ceil(totalPerQuestionTime / 60);
+      chips.push(
+        <Badge key={`${quiz.id}-time`} variant="outline" color="info" size="small">
+          {getThemedIcon('ui', 'clock', 12, theme)}
+          <span style={{ marginLeft: '0.25rem' }}>~{totalMinutes} min (per question)</span>
+        </Badge>
+      );
+    } else if (estimatedTime > 0) {
+      chips.push(
+        <Badge key={`${quiz.id}-time`} variant="subtle" color="info" size="small">
+          {getThemedIcon('ui', 'clock', 12, theme)}
+          <span style={{ marginLeft: '0.25rem' }}>{estimatedTime} min</span>
         </Badge>
       );
     }
 
+    // Use same difficulty label logic as builder
+    const difficultyLabel = quiz.difficulty === DIFFICULTY_TYPES.BEGINNER ? 'Beginner' 
+      : quiz.difficulty === DIFFICULTY_TYPES.INTERMEDIATE ? 'Intermediate' 
+      : quiz.difficulty === DIFFICULTY_TYPES.ADVANCED ? 'Advanced' 
+      : 'General';
+    
     chips.push(
       <Badge key={`${quiz.id}-difficulty`} variant="subtle" color={quiz.difficulty === DIFFICULTY_TYPES.BEGINNER ? 'success' : quiz.difficulty === DIFFICULTY_TYPES.INTERMEDIATE ? 'warning' : 'danger'} size="small">
-        {getDifficultyLabel(quiz.difficulty)}
+        {difficultyLabel}
       </Badge>
     );
 
-    if (quiz.allowRetake || quiz.settings?.allowRetake) {
+    // Check for retake allowed using maxAttempts field
+    if (quiz.maxAttempts > 1) {
       chips.push(
         <Badge key={`${quiz.id}-retake`} variant="outline" color="info" size="small">
           {getThemedIcon('ui', 'repeat', 12, theme)}
@@ -878,7 +941,8 @@ export default function QuizzesPage() {
       );
     }
 
-    if (quiz.settings?.randomizeOrder) {
+    // Use randomizeQuestions field instead of settings.randomizeOrder
+    if (quiz.randomizeQuestions) {
       chips.push(
         <Badge key={`${quiz.id}-shuffle-questions`} variant="outline" color="primary" size="small">
           {getThemedIcon('ui', 'shuffle', 12, theme)}
@@ -887,7 +951,8 @@ export default function QuizzesPage() {
       );
     }
 
-    if (quiz.settings?.shuffleOptions) {
+    // Use randomizeAnswers field instead of settings.shuffleOptions
+    if (quiz.randomizeAnswers) {
       chips.push(
         <Badge key={`${quiz.id}-shuffle-options`} variant="outline" color="primary" size="small">
           {getThemedIcon('ui', 'shuffle', 12, theme)}
@@ -1280,7 +1345,7 @@ export default function QuizzesPage() {
   // This is a simplified version - you'll need to copy the full builder JSX from QuizBuilderPage
   // For now, I'll show the structure and you can import the full builder component or copy the JSX
 
-  if (loading && (viewMode === 'add' || viewMode === 'edit')) {
+  if (loading && viewMode === 'edit') {
     return (
       <SimpleLoading
         loading
@@ -1291,22 +1356,101 @@ export default function QuizzesPage() {
     );
   }
 
+  // Progress stepper component
+  const renderProgressStepper = () => {
+    const steps = [
+      { id: 'setup', label: 'Setup', icon: 'settings' },
+      { id: 'build', label: 'Questions', icon: 'list_checks' },
+      { id: 'preview', label: 'Preview', icon: 'eye' }
+    ];
+
+    return (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '0.5rem', 
+        marginBottom: '2.5rem', 
+        padding: '1.25rem 1.5rem', 
+        background: theme === 'light' ? '#ffffff' : 'rgba(255,255,255,0.03)', 
+        borderRadius: '12px',
+        border: `1px solid ${theme === 'light' ? '#e5e7eb' : 'rgba(255,255,255,0.1)'}`,
+        boxShadow: theme === 'light' ? '0 2px 8px rgba(0,0,0,0.04)' : '0 2px 8px rgba(0,0,0,0.2)'
+      }}>
+        {steps.map((s, index) => {
+          const isActive = step === s.id;
+          const isCompleted = steps.findIndex(st => st.id === step) > index;
+          const iconColor = isActive || isCompleted ? '#fff' : (theme === 'light' ? '#6b7280' : 'rgba(255,255,255,0.6)');
+          
+          return (
+            <React.Fragment key={s.id}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: isActive 
+                    ? 'linear-gradient(135deg, var(--color-primary, #800020) 0%, #a00028 100%)' 
+                    : (isCompleted 
+                      ? 'linear-gradient(135deg, var(--color-primary, #800020) 0%, #a00028 100%)' 
+                      : (theme === 'light' ? '#f3f4f6' : 'rgba(255,255,255,0.1)')),
+                  color: isActive || isCompleted ? '#fff' : (theme === 'light' ? '#9ca3af' : 'rgba(255,255,255,0.4)'),
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  transition: 'all 0.3s ease',
+                  boxShadow: isActive || isCompleted ? '0 4px 12px rgba(128, 0, 32, 0.3)' : 'none'
+                }}>
+                  {isCompleted ? getIconWithColor('ui', 'check', 18, iconColor) : getIconWithColor('ui', s.icon, 20, iconColor)}
+                </div>
+                <span style={{
+                  fontSize: '0.95rem',
+                  fontWeight: isActive ? 700 : 500,
+                  color: isActive ? 'var(--color-primary, #800020)' : (theme === 'light' ? '#374151' : 'rgba(255,255,255,0.7)'),
+                  transition: 'all 0.3s ease'
+                }}>
+                  {s.label}
+                </span>
+              </div>
+              {index < steps.length - 1 && (
+                <div style={{
+                  width: '32px',
+                  height: '2px',
+                  background: isCompleted 
+                    ? 'linear-gradient(90deg, var(--color-primary, #800020) 0%, #a00028 100%)' 
+                    : (theme === 'light' ? '#e5e7eb' : 'rgba(255,255,255,0.1)'),
+                  borderRadius: '1px',
+                  transition: 'all 0.3s ease'
+                }} />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
+  };
+
   // For add/edit mode, redirect to the builder view
   // We'll render the builder UI here
   return (
     <div className={QuizBuilderPageStyles.quizBuilder}>
       <Container maxWidth="xl">
+        {(viewMode === 'add' || viewMode === 'edit') && (
+          renderProgressStepper()
+        )}
+
         {(viewMode === 'add' || viewMode === 'edit') && step === 'setup' && (
           <Card>
             <CardBody>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
                 <Badge
-                  variant="outline"
-                  color="default"
+                  variant="solid"
+                  color="primary"
                   style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
                   onClick={handleCancel}
                 >
-                  {getThemedIcon('ui', 'arrow_left', 14, theme)}
+                  {getIconWithColor('ui', 'arrow_left', 14, '#fff')}
                   Back
                 </Badge>
                 <h1 style={{ fontSize: '1.5rem', fontWeight: 600 }}>
@@ -1341,11 +1485,17 @@ export default function QuizzesPage() {
                         : (quizData.titleAr || quizData.title || '')}
                       onChange={(e) => {
                         const value = e.target.value;
-                        setQuizData(prev => ({
-                          ...prev,
-                          title: quizLang === 'en' ? value : (prev.titleEn || prev.title || ''),
-                          [quizLang === 'en' ? 'titleEn' : 'titleAr']: value
-                        }));
+                        setQuizData(prev => {
+                          const updated = { ...prev };
+                          if (quizLang === 'en') {
+                            updated.titleEn = value;
+                            updated.title = value;
+                          } else {
+                            updated.titleAr = value;
+                            // Don't overwrite title when typing Arabic
+                          }
+                          return updated;
+                        });
                       }}
                       className={QuizBuilderPageStyles.titleInput}
                     />
@@ -1434,7 +1584,7 @@ export default function QuizzesPage() {
                   disabled={saving}
                   aria-label="Save quiz"
                 >
-                  {saving ? <Spinner size="sm" /> : getThemedIcon('ui', 'save', 16, theme)}
+                  {saving ? <Spinner size="sm" /> : getIconWithColor('ui', 'save', 16, '#fff')}
                 </Button>
               </div>
             </div>
@@ -1598,7 +1748,11 @@ export default function QuizzesPage() {
                             {quizData.questions[activeQuestionIndex]?.options?.map((option, optIndex) => {
                               if (!option || !option.id) return null;
                               return (
-                                <div key={option.id} className={QuizBuilderPageStyles.optionRow}>
+                                <div key={option.id} className={QuizBuilderPageStyles.optionRow} style={{
+                                  border: option.correct ? '2px solid #10b981' : '1px solid ' + (theme === 'light' ? '#e5e7eb' : 'rgba(255,255,255,0.2)'),
+                                  background: option.correct ? (theme === 'light' ? '#ecfdf5' : 'rgba(16, 185, 129, 0.1)') : 'transparent',
+                                  transition: 'all 0.2s'
+                                }}>
                                   <button
                                     className={`${QuizBuilderPageStyles.correctToggle} ${option.correct ? QuizBuilderPageStyles.correct : ''}`}
                                     onClick={() => {
@@ -1607,6 +1761,12 @@ export default function QuizzesPage() {
                                         setCorrectAnswer(activeQuestionIndex, option.id);
                                       }
                                     }}
+                                    style={{
+                                      background: option.correct ? '#10b981' : (theme === 'light' ? '#f3f4f6' : 'rgba(255,255,255,0.1)'),
+                                      color: option.correct ? '#fff' : (theme === 'light' ? '#6b7280' : 'rgba(255,255,255,0.5)'),
+                                      border: option.correct ? '2px solid #10b981' : '1px solid ' + (theme === 'light' ? '#d1d5db' : 'rgba(255,255,255,0.2)')
+                                    }}
+                                    title={option.correct ? 'Mark as incorrect' : 'Mark as correct'}
                                   >
                                     {option.correct ? getThemedIcon('ui', 'check_circle', 16, theme) : getThemedIcon('ui', 'x_circle', 16, theme)}
                                   </button>
@@ -1644,6 +1804,7 @@ export default function QuizzesPage() {
                                           deleteOption(activeQuestionIndex, option.id);
                                         }
                                       }}
+                                      title="Delete option"
                                     >
                                       {getThemedIcon('ui', 'trash', 14, theme)}
                                     </button>
@@ -1797,7 +1958,7 @@ export default function QuizzesPage() {
                     disabled={saving}
                     aria-label="Save quiz"
                   >
-                    {saving ? <Spinner size="sm" /> : getThemedIcon('ui', 'save', 16, theme)}
+                    {saving ? <Spinner size="sm" /> : getIconWithColor('ui', 'save', 16, '#fff')}
                   </Button>
                 </div>
               </div>

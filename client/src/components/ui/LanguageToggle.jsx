@@ -1,5 +1,5 @@
 import React from 'react';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
 import { Badge } from '@ui';
 
 
@@ -15,7 +15,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
         style={{ cursor: 'pointer' }}
         onClick={() => onChange?.('en')}
       >
-        {getThemedIcon('ui', 'globe', 12)}
+        {current === 'en' ? getIconWithColor('ui', 'globe', 12, '#fff') : getThemedIcon('ui', 'globe', 12)}
         EN
       </Badge>
       <Badge
@@ -25,7 +25,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
         style={{ cursor: 'pointer' }}
         onClick={() => onChange?.('ar')}
       >
-        {getThemedIcon('ui', 'globe', 12)}
+        {current === 'ar' ? getIconWithColor('ui', 'globe', 12, '#fff') : getThemedIcon('ui', 'globe', 12)}
         AR
       </Badge>
     </div>

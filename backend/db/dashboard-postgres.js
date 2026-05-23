@@ -18,7 +18,7 @@ const getDashboardSummary = async (params = {}) => {
     console.log('[DashboardDbService] Getting dashboard summary with params:', params);
     
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = today.toISOString();
     const weekStart = new Date(today);
     weekStart.setDate(today.getDate() - today.getDay());
     const weekEnd = new Date(weekStart);
@@ -84,7 +84,7 @@ const getDashboardSummary = async (params = {}) => {
     const upcomingHolidays = await prisma.holiday.findMany({
       where: {
         startDate: { gte: todayStr },
-        endDate: { lte: holidaysEnd.toISOString().split('T')[0] },
+        endDate: { lte: holidaysEnd.toISOString() },
         isActive: true
       },
       orderBy: {
@@ -169,7 +169,7 @@ const getTeacherDashboard = async (teacherUserId) => {
     console.log(`[DashboardDbService] Getting teacher dashboard for user: ${teacherUserId}`);
     
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = today.toISOString();
     const weekStart = new Date(today);
     weekStart.setDate(today.getDate() - today.getDay());
     
@@ -196,7 +196,7 @@ const getTeacherDashboard = async (teacherUserId) => {
     const weekSessions = await prisma.scheduleSession.findMany({
       where: {
         instructorUserId: parseInt(teacherUserId),
-        date: { gte: weekStart.toISOString().split('T')[0] },
+        date: { gte: weekStart.toISOString() },
         isCancelled: false,
         isActive: true
       },
@@ -228,7 +228,7 @@ const getTeacherDashboard = async (teacherUserId) => {
           totalSessions: todaySessions.length
         },
         weekSchedule: {
-          startDate: weekStart.toISOString().split('T')[0],
+          startDate: weekStart.toISOString(),
           sessions: weekSessions,
           totalSessions: weekSessions.length
         },

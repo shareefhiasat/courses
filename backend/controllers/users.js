@@ -99,6 +99,61 @@ export const listUsersController = async (req, res) => {
 };
 
 /**
+ * GET /api/v1/users/:id
+ * Get user by ID
+ */
+export const getUserByIdController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id: parseInt(id) },
+      select: {
+        id: true,
+        displayName: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        isActive: true,
+        keycloakId: true,
+        studentNumber: true,
+        sequence: true,
+        roleAssignments: {
+          select: {
+            role: {
+              select: {
+                id: true,
+                code: true,
+                nameEn: true,
+                nameAr: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    console.error('Error in getUserByIdController:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+};
+
+/**
  * POST /api/v1/users
  * Create new user (admin only)
  */
