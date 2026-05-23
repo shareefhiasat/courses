@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { getDatabaseUserId } from '../utils/userResolver.js';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
 
 const prisma = new PrismaClient();
@@ -250,40 +251,8 @@ export const createActivity = async (activityData, user = null) => {
     
     const startTime = Date.now();
     
-    // Get user ID for audit trail
-    let createdBy = 1; // Default to admin user
-    
-    if (user && user.id) {
-      createdBy = user.id;
-    } else {
-      // Try to find an existing user or create a default one
-      const defaultUser = await prisma.user.findFirst({ 
-        where: { email: 'admin@milmanylms.com' } 
-      });
-      if (defaultUser) {
-        createdBy = defaultUser.id;
-      } else {
-        // Find the ADMIN role (should exist from seed)
-        const adminRole = await prisma.userRoles.findFirst({ 
-          where: { code: 'ADMIN' } 
-        });
-        
-        if (!adminRole) {
-          throw new Error('ADMIN role not found. Please run: pnpm db:seed:roles');
-        }
-        
-        const newAdmin = await prisma.user.create({
-          data: {
-            displayName: 'System Administrator',
-            firstName: 'System',
-            lastName: 'Administrator',
-            email: 'admin@milmanylms.com',
-            roleId: adminRole.id
-          }
-        });
-        createdBy = newAdmin.id;
-      }
-    }
+    // Get user ID for audit trail - resolve Keycloak UUID to numeric DB user ID
+    const createdBy = await getDatabaseUserId(user) || 1;
     
     const newActivity = await prisma.activity.create({
       data: {
@@ -413,63 +382,131 @@ export const updateActivity = async (activityId, updateData, user = null) => {
     if (updateData.isActive !== undefined) data.isActive = updateData.isActive;
     if (updateData.classId !== undefined) data.classId = updateData.classId;
     
-    // Add audit trail
-    data.updatedBy = user?.id || 1;
+    // Add audit trail - resolve Keycloak UUID to numeric DB user ID
+    const dbUserId = await getDatabaseUserId(user);
+    data.updatedBy = dbUserId || 1;
     
-    const updatedActivity = await prisma.activity.update({
+    // Check if activity exists first
+    const existingActivity = await prisma.activity.findUnique({
       where: { id: parseInt(activityId) },
-      data,
-      include: {
-        creator: {
-          select: {
-            id: true,
-            displayName: true,
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        },
-        updater: {
-          select: {
-            id: true,
-            displayName: true,
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        },
-        class: {
-          select: {
-            id: true,
-            code: true,
-            nameEn: true,
-            nameAr: true,
-            program: {
-              select: {
-                id: true,
-                nameEn: true,
-                nameAr: true
-              }
-            },
-            subject: {
-              select: {
-                id: true,
-                nameEn: true,
-                nameAr: true
+      select: { id: true }
+    });
+    
+    let updatedActivity;
+    if (existingActivity) {
+      // Update existing activity
+      updatedActivity = await prisma.activity.update({
+        where: { id: parseInt(activityId) },
+        data,
+        include: {
+          creator: {
+            select: {
+              id: true,
+              displayName: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          },
+          updater: {
+            select: {
+              id: true,
+              displayName: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          },
+          class: {
+            select: {
+              id: true,
+              code: true,
+              nameEn: true,
+              nameAr: true,
+              program: {
+                select: {
+                  id: true,
+                  nameEn: true,
+                  nameAr: true
+                }
+              },
+              subject: {
+                select: {
+                  id: true,
+                  nameEn: true,
+                  nameAr: true
+                }
               }
             }
-          }
-        },
-        type: {
-          select: {
-            id: true,
-            code: true,
-            nameEn: true,
-            nameAr: true
+          },
+          type: {
+            select: {
+              id: true,
+              code: true,
+              nameEn: true,
+              nameAr: true
+            }
           }
         }
-      }
-    });
+      });
+    } else {
+      // Activity doesn't exist - create it instead
+      data.createdBy = dbUserId || 1;
+      data.id = parseInt(activityId);
+      updatedActivity = await prisma.activity.create({
+        data,
+        include: {
+          creator: {
+            select: {
+              id: true,
+              displayName: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          },
+          updater: {
+            select: {
+              id: true,
+              displayName: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          },
+          class: {
+            select: {
+              id: true,
+              code: true,
+              nameEn: true,
+              nameAr: true,
+              program: {
+                select: {
+                  id: true,
+                  nameEn: true,
+                  nameAr: true
+                }
+              },
+              subject: {
+                select: {
+                  id: true,
+                  nameEn: true,
+                  nameAr: true
+                }
+              }
+            }
+          },
+          type: {
+            select: {
+              id: true,
+              code: true,
+              nameEn: true,
+              nameAr: true
+            }
+          }
+        }
+      });
+    }
     
     const executionTime = Date.now() - startTime;
     console.log(`[Activities DB] ✅ Updated activity in ${executionTime}ms`);
@@ -477,7 +514,7 @@ export const updateActivity = async (activityId, updateData, user = null) => {
     return {
       success: true,
       data: updatedActivity,
-      message: 'Activity updated successfully'
+      message: existingActivity ? 'Activity updated successfully' : 'Activity created successfully'
     };
     
   } catch (error) {

@@ -106,6 +106,45 @@ class ActivityDbService {
       return { success: false, error: error.message, data: null };
     }
   }
+
+  /**
+   * Create a new activity
+   */
+  async create(activityData) {
+    try {
+      const result = await api.post('/activities', activityData);
+      return result;
+    } catch (error) {
+      console.error(`[${this.serviceName}] ❌ Error creating activity:`, error);
+      return { success: false, error: error.message, data: null };
+    }
+  }
+
+  /**
+   * Update an existing activity
+   */
+  async update(id, updateData) {
+    try {
+      const result = await api.put(`/activities/${id}`, updateData);
+      return result;
+    } catch (error) {
+      console.error(`[${this.serviceName}] ❌ Error updating activity:`, error);
+      return { success: false, error: error.message, data: null };
+    }
+  }
+
+  /**
+   * Delete an activity
+   */
+  async delete(id) {
+    try {
+      const result = await api.delete(`/activities/${id}`);
+      return result;
+    } catch (error) {
+      console.error(`[${this.serviceName}] ❌ Error deleting activity:`, error);
+      return { success: false, error: error.message, data: null };
+    }
+  }
 }
 
 // Create singleton instance

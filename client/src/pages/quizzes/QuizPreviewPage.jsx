@@ -309,7 +309,7 @@ export default function QuizPreviewPage() {
                   />
 
                   <div className={styles.optionsList} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {question.options?.map((option) => (
+                    {Array.isArray(question.options) && question.options.map((option) => (
                       <div
                         key={option.id}
                         className={`${styles.optionItem} ${option.correct ? styles.correct : ''}`}

@@ -50,7 +50,7 @@ export const usePermissions = () => {
 
       try {
         const token = localStorage.getItem('keycloak_token');
-        console.log('[usePermissions] Fetching permissions for roles:', roleCodes);
+        // console.log('[usePermissions] Fetching permissions for roles:', roleCodes);
         
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:8001/api/v1'}/permissions`, {
           headers: {
@@ -60,7 +60,7 @@ export const usePermissions = () => {
 
         if (response.ok) {
           const data = await response.json();
-          console.log('[usePermissions] Permissions data received:', data);
+          // console.log('[usePermissions] Permissions data received:', data);
           setPermissionsData(data.data);
         } else {
           console.error('[usePermissions] Failed to fetch permissions:', response.status, response.statusText);
@@ -96,10 +96,10 @@ export const usePermissions = () => {
       });
     });
 
-    console.log('[usePermissions] Extracted permissions for role:', highestRoleCode, {
-      count: Object.keys(result).length,
-      permissions: Object.keys(result)
-    });
+    // console.log('[usePermissions] Extracted permissions for role:', highestRoleCode, {
+    //   count: Object.keys(result).length,
+    //   permissions: Object.keys(result)
+    // });
 
     return result;
   }, [permissionsData, highestRoleCode]);

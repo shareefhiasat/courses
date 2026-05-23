@@ -54,9 +54,6 @@ const getDashboardSummary = async (params = {}) => {
       },
       _count: {
         id: true
-      },
-      include: {
-        instructor: true
       }
     });
     
@@ -71,9 +68,6 @@ const getDashboardSummary = async (params = {}) => {
       },
       _count: {
         id: true
-      },
-      include: {
-        classroom: true
       }
     });
     

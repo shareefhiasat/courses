@@ -164,6 +164,13 @@ export const getQuizStats = async (quizId) => {
   return apiRequest(`quizzes/stats?quizId=${quizId}`);
 };
 
+export const submitQuiz = async (quizId, submissionData) => {
+  return apiRequest(`quizzes/${quizId}/submit`, {
+    method: 'POST',
+    body: JSON.stringify(submissionData)
+  });
+};
+
 export default {
   getAllQuizzes,
   getQuiz,
@@ -175,4 +182,5 @@ export default {
   getQuizzesByClass,
   getActiveQuizzes,
   getQuizStats,
+  submitQuiz,
 };

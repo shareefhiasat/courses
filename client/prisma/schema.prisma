@@ -972,25 +972,27 @@ model TargetAudienceTypes {
 }
 
 model Question {
-  id            Int           @id @default(autoincrement())
-  quizId        Int
-  questionEn    String
-  questionAr    String?
-  typeId        Int
-  options       String?
-  correctAnswer String?
-  points        Float         @default(1)
-  order         Int           @default(0)
-  isActive      Boolean       @default(true)
-  createdBy     Int
-  updatedBy     Int?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  answers       Answer[]
-  creator       User          @relation("QuestionCreator", fields: [createdBy], references: [id])
-  quiz          Quiz          @relation(fields: [quizId], references: [id])
-  questionType  QuestionTypes @relation(fields: [typeId], references: [id])
-  updater       User?         @relation("QuestionUpdater", fields: [updatedBy], references: [id])
+  id              Int           @id @default(autoincrement())
+  quizId          Int
+  questionEn      String
+  questionAr      String?
+  explanationEn   String?
+  explanationAr   String?
+  typeId          Int
+  options         String?
+  correctAnswer   String?
+  points          Float         @default(1)
+  order           Int           @default(0)
+  isActive        Boolean       @default(true)
+  createdBy       Int
+  updatedBy       Int?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  answers         Answer[]
+  creator         User          @relation("QuestionCreator", fields: [createdBy], references: [id])
+  quiz            Quiz          @relation(fields: [quizId], references: [id])
+  questionType    QuestionTypes @relation(fields: [typeId], references: [id])
+  updater         User?         @relation("QuestionUpdater", fields: [updatedBy], references: [id])
 
   @@map("questions")
 }

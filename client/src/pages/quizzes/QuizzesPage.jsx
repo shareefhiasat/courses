@@ -130,36 +130,51 @@ export default function QuizzesPage() {
   };
 
   const normalizeQuestion = useCallback((question = {}) => {
-    const baseOptions = Array.isArray(question.options) ? question.options : [];
+    // Parse options if they're a JSON string
+    const parsedOptions = typeof question.options === 'string' 
+      ? (question.options ? JSON.parse(question.options) : [])
+      : question.options;
+    
+    console.log('[normalizeQuestion] Input question:', {
+      id: question.id,
+      questionEn: question.questionEn,
+      question_ar: question.question_ar,
+      explanationEn: question.explanationEn,
+      explanation_ar: question.explanation_ar,
+      optionsType: typeof question.options,
+      options: parsedOptions?.map(o => ({ textEn: o.textEn, text_ar: o.text_ar }))
+    });
+    
+    const baseOptions = Array.isArray(parsedOptions) ? parsedOptions : [];
     const resolvedType = question.type || QUESTION_TYPES.MULTIPLE_CHOICE;
     
-    const questionText = question.question || question.question_en || '';
-    const questionTextAr = question.question_ar || questionText;
+    const questionText = question.question || question.question_en || question.questionEn || '';
+    const questionTextAr = question.question_ar || question.questionAr || questionText;
 
     const normalizedOptions = baseOptions.length > 0
       ? baseOptions.map(opt => ({
           ...opt,
-          text: opt.text || opt.text_en || '',
-          text_en: opt.text_en || opt.text || '',
-          text_ar: opt.text_ar || opt.text || ''
+          text: opt.text || opt.text_en || opt.textEn || '',
+          text_en: opt.text_en || opt.textEn || opt.text || '',
+          text_ar: opt.text_ar || opt.textAr || opt.text || ''
         }))
       : getDefaultOptions(resolvedType, t).map(opt => ({
           ...opt,
-          text: opt.text || opt.text_en || '',
-          text_en: opt.text_en || opt.text || '',
-          text_ar: opt.text_ar || opt.text || ''
+          text: opt.text || opt.text_en || opt.textEn || '',
+          text_en: opt.text_en || opt.textEn || opt.text || '',
+          text_ar: opt.text_ar || opt.textAr || opt.text || ''
         }));
 
     return {
       id: question.id || generateUniqueId(),
       type: resolvedType,
       question: questionText,
-      question_en: question.question_en || questionText,
-      question_ar: question.question_ar || questionTextAr,
+      question_en: question.question_en || question.questionEn || questionText,
+      question_ar: question.question_ar || question.questionAr || questionTextAr,
       image: question.image || null,
       explanation: question.explanation || '',
-      explanation_en: question.explanation_en || question.explanation || '',
-      explanation_ar: question.explanation_ar || question.explanation || '',
+      explanation_en: question.explanation_en || question.explanationEn || question.explanation || '',
+      explanation_ar: question.explanation_ar || question.explanationAr || question.explanation || '',
       points: Number.isFinite(question.points) ? question.points : 1,
       timeLimit: Number.isFinite(question.timeLimit) ? question.timeLimit : 0,
       difficulty: question.difficulty || 'medium',
@@ -347,19 +362,9 @@ export default function QuizzesPage() {
     const titleEn = (quizData.titleEn || quizData.title || '').trim();
     const titleAr = (quizData.titleAr || quizData.title || '').trim();
     
-    // Debug logging
-    info('[Save Quiz Validation]', {
-      quizDataTitleEn: quizData.titleEn,
-      quizDataTitleAr: quizData.titleAr,
-      quizDataTitle: quizData.title,
-      computedTitleEn: titleEn,
-      computedTitleAr: titleAr,
-      titleEnLength: titleEn.length,
-      titleArLength: titleAr.length
-    });
-    
-    if (!titleEn || !titleAr) {
-      toast?.showError?.(t('quiz_title_required_both'));
+    // Only require at least one title to be present
+    if (!titleEn && !titleAr) {
+      toast?.showError?.(t('quiz_title_required') || 'Please enter a quiz title');
       return;
     }
     if (quizData.questions.length === 0) {
@@ -397,6 +402,18 @@ export default function QuizzesPage() {
     }
 
     setSaving(true);
+    
+    console.log('[Quiz Save] Starting save for quiz:', quizId);
+    console.log('[Quiz Save] Quiz data:', JSON.stringify(quizData, null, 2));
+    console.log('[Quiz Save] Questions count:', quizData.questions?.length);
+    quizData.questions?.forEach((q, i) => {
+      console.log(`[Quiz Save] Question ${i}:`, {
+        question_en: q.question_en,
+        question_ar: q.question_ar,
+        optionsCount: q.options?.length
+      });
+    });
+    
     toast?.showInfo?.(quizId ? 'Updating quiz...' : 'Creating quiz...');
     try {
       let targetQuizId = quizId;
@@ -429,76 +446,8 @@ export default function QuizzesPage() {
       // Update last saved time
       lastSavedRef.current = new Date();
 
-      // Sync to Activities collection
-      if (targetQuizId) {
-        const activityData = {
-          titleEn: quizData.titleEn || quizData.title || '',
-          titleAr: quizData.titleAr || quizData.title || '',
-          descriptionEn: quizData.descriptionEn || quizData.description || '',
-          descriptionAr: quizData.descriptionAr || quizData.description || '',
-          type: 'quiz',
-          level: quizData.difficulty,
-          internalQuizId: targetQuizId,
-          updatedAt: new Date(),
-          createdBy: user.uid,
-          points: quizData.questions.reduce((acc, q) => acc + (q.points || 1), 0),
-          allowRetake: quizData.settings.allowRetake,
-          estimatedTime: quizData.estimatedTime,
-          questionCount: quizData.questions.length
-        };
-
-        if (!quizId) {
-          activityData.createdAt = new Date();
-        }
-
-        await updateActivity(targetQuizId, activityData, user, { sendEmail: false });
-
-        // Send notifications for new quizzes
-        if (!quizId && targetQuizId) {
-          try {
-            const assignedClassIds = quizData.assignedClassIds || (quizData.classId ? [quizData.classId] : []);
-            
-            if (assignedClassIds.length > 0) {
-              const enrollmentsResult = await getEnrollments();
-              const usersResult = await getUsers();
-              
-              if (enrollmentsResult.success && usersResult.success) {
-                const enrollments = enrollmentsResult.data || [];
-                const users = usersResult.data || [];
-                const usersMap = new Map(users.map(u => [u.id || u.docId, u]));
-                
-                const studentIds = new Set(
-                  enrollments
-                    .filter(e => assignedClassIds.includes(e.classId) && e.role !== 'instructor')
-                    .map(e => e.userId)
-                );
-                
-                const studentsToNotify = Array.from(studentIds)
-                  .map(id => usersMap.get(id))
-                  .filter(Boolean);
-                
-                if (studentsToNotify.length > 0) {
-                  await sendQuizAvailable(
-                    { 
-                      id: targetQuizId, 
-                      title: quizData.titleEn || quizData.title || '',
-                      titleEn: quizData.titleEn || quizData.title || '',
-                      titleAr: quizData.titleAr || quizData.title || '',
-                      description: quizData.descriptionEn || quizData.description || '',
-                      descriptionEn: quizData.descriptionEn || quizData.description || '',
-                      descriptionAr: quizData.descriptionAr || quizData.description || '',
-                      settings: quizData.settings 
-                    },
-                    studentsToNotify
-                  );
-                }
-              }
-            }
-          } catch (notifyError) {
-            warn('Failed to send quiz notifications:', notifyError);
-          }
-        }
-      }
+      // TODO: Activity sync disabled temporarily - needs review
+      // The quiz saves successfully without this sync
 
     } catch (err) {
       error('Error saving quiz:', err);
@@ -548,7 +497,9 @@ export default function QuizzesPage() {
 
             try {
               await deleteActivity(quizIdToDelete);
-            } catch {}
+            } catch (e) {
+              console.warn('[Quiz Delete] Failed to delete associated activity (non-blocking):', e);
+            }
 
             setQuizzes(prev => prev.filter(q => q.id !== quizIdToDelete));
             setDeleteModal({ open: false, item: null, onConfirm: null, relatedData: null, warningMessage: null });
@@ -1712,13 +1663,11 @@ export default function QuizzesPage() {
                               ? (quizData.questions[activeQuestionIndex]?.question_en || quizData.questions[activeQuestionIndex]?.question || '')
                               : (quizData.questions[activeQuestionIndex]?.question_ar || '')}
                             onChange={(html) => {
-                              const currentQuestion = quizData.questions[activeQuestionIndex];
-                              if (currentQuestion && currentQuestion.id) {
-                                if (questionLang === 'en') {
-                                  updateQuestion(activeQuestionIndex, { question: html, question_en: html });
-                                } else {
-                                  updateQuestion(activeQuestionIndex, { question_ar: html });
-                                }
+                              console.log('[Question Text onChange] questionLang:', questionLang, 'html:', html);
+                              if (questionLang === 'en') {
+                                updateQuestion(activeQuestionIndex, { question: html, question_en: html });
+                              } else {
+                                updateQuestion(activeQuestionIndex, { question_ar: html });
                               }
                             }}
                             height={120}

@@ -1,0 +1,2 @@
+core-js@3.49.0
+unrs-resolver@1.11.1
