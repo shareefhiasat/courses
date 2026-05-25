@@ -110,6 +110,101 @@
   box-shadow: 0 2px 8px rgba(128, 0, 32, 0.2);
 }
 
+.tab.active .tabIcon,
+.tab.active .tabIcon svg,
+.tab.active .tabIcon svg *,
+.tab.active svg,
+.tab.active svg * {
+  fill: none !important;
+  stroke: #ffffff !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+.tab.active .tabIcon {
+  color: #ffffff !important;
+}
+
+.tab:focus .tabIcon,
+.tab:focus .tabIcon svg,
+.tab:focus .tabIcon svg * {
+  color: inherit !important;
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
+.tab:focus.active .tabIcon,
+.tab:focus.active .tabIcon svg,
+.tab:focus.active .tabIcon svg * {
+  color: #ffffff !important;
+  fill: none !important;
+  stroke: #ffffff !important;
+}
+
+.tab:focus {
+  outline: none;
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-primary, #800020);
+  outline-offset: 2px;
+}
+
+/* Force all SVGs and their children in tabs to have no fill, regardless of focus state */
+.tab svg,
+.tab:focus svg,
+.tab:focus-visible svg,
+.tab:hover svg,
+.tab.active svg,
+.tab svg *,
+.tab:focus svg *,
+.tab:focus-visible svg *,
+.tab:hover svg *,
+.tab.active svg *,
+.tab svg path,
+.tab:focus svg path,
+.tab:focus-visible svg path,
+.tab:hover svg path,
+.tab.active svg path,
+.tab svg circle,
+.tab:focus svg circle,
+.tab:focus-visible svg circle,
+.tab:hover svg circle,
+.tab.active svg circle,
+.tab svg rect,
+.tab:focus svg rect,
+.tab:focus-visible svg rect,
+.tab:hover svg rect,
+.tab.active svg rect,
+.tab svg polygon,
+.tab:focus svg polygon,
+.tab:focus-visible svg polygon,
+.tab:hover svg polygon,
+.tab.active svg polygon,
+.tab svg line,
+.tab:focus svg line,
+.tab:focus-visible svg line,
+.tab:hover svg line,
+.tab.active svg line,
+.tab svg ellipse,
+.tab:focus svg ellipse,
+.tab:focus-visible svg ellipse,
+.tab:hover svg ellipse,
+.tab.active svg ellipse,
+.tab svg polyline,
+.tab:focus svg polyline,
+.tab:focus-visible svg polyline,
+.tab:hover svg polyline,
+.tab.active svg polyline {
+  fill: none !important;
+  fill-opacity: 0 !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
 .pills .tab.active {
   background: var(--color-primary, #800020);
   color: #ffffff;
@@ -121,12 +216,20 @@
   align-items: center;
   line-height: 1;
   color: inherit;
+  pointer-events: none;
+  user-select: none;
 }
 
 .tabIcon svg {
   width: 16px;
   height: 16px;
   color: inherit;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
 }
 
 /* Tab label */

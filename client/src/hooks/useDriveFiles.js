@@ -77,7 +77,10 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
         const uniqueFiles = Array.from(new Map(files.map(f => [f.id, f])).values());
         const uniqueFolders = Array.from(new Map(folders.map(f => [f.id, f])).values());
         setFiles(uniqueFiles);
-        setFolders(uniqueFolders);
+        // Only set folders if they're present in the response (don't overwrite with empty array)
+        if (uniqueFolders.length > 0) {
+          setFolders(uniqueFolders);
+        }
       } else {
         setError(response.error?.message || 'Failed to fetch files');
       }
@@ -91,27 +94,53 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
 
   const fetchFolders = useCallback(async () => {
     try {
+      console.log('[useDriveFiles] fetchFolders called with activeSpace:', activeSpace, 'folderId:', folderId);
       const params = new URLSearchParams();
       if (activeSpace !== 'my-drive') {
         setFolders([]);
+        console.log('[useDriveFiles] skipping folders fetch, not my-drive');
         return;
       }
       if (folderId) params.append('parentId', folderId);
 
       const url = `${API_BASE}/folders?${params.toString()}`;
+      console.log('[useDriveFiles] fetching folders from:', url);
       const response = await apiService.get(url);
+      console.log('[useDriveFiles] folders response:', response);
       if (response.success) {
         // Map backend isStarred to frontend starred for folders
         const folders = (response.payload || []).map(folder => ({
           ...folder,
           starred: folder.isStarred || false,
         }));
+        console.log('[useDriveFiles] setting folders:', folders);
         setFolders(folders);
       }
     } catch (err) {
       console.error('[useDriveFiles] fetch folders failed:', err);
     }
   }, [activeSpace, folderId]);
+
+  const fetchFolderTree = useCallback(async () => {
+    try {
+      console.log('[useDriveFiles] fetchFolderTree called with activeSpace:', activeSpace);
+      if (activeSpace !== 'my-drive') {
+        console.log('[useDriveFiles] skipping folder tree fetch, not my-drive');
+        return [];
+      }
+      const url = `${API_BASE}/folders/tree`;
+      console.log('[useDriveFiles] fetching folder tree from:', url);
+      const response = await apiService.get(url);
+      console.log('[useDriveFiles] folder tree response:', response);
+      if (response.success) {
+        return response.payload || [];
+      }
+      return [];
+    } catch (err) {
+      console.error('[useDriveFiles] fetch folder tree failed:', err);
+      return [];
+    }
+  }, [activeSpace]);
 
   const getFolderDetails = useCallback(async (targetFolderId) => {
     if (!targetFolderId) {
@@ -256,7 +285,7 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
         ...linkData,
       });
       if (response.success) {
-        return { success: true, payload: response.data?.payload };
+        return { success: true, payload: response.data?.payload || response.data || response.payload };
       }
       return { success: false, error: response.error };
     } catch (err) {
@@ -366,6 +395,7 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
     error,
     fetchFiles,
     fetchFolders,
+    fetchFolderTree,
     getFolderDetails,
     refreshFiles,
     starFile,

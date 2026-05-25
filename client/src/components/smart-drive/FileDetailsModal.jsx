@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getIcon } from '@constants/iconTypes';
 import Modal from '@ui/Modal/Modal';
 import Button from '@ui/Button/Button';
 import Tabs from '@ui/Tabs/Tabs';
@@ -9,15 +9,17 @@ import VersionsTab from './tabs/VersionsTab';
 import CommentsTab from './tabs/CommentsTab';
 import ActivityTab from './tabs/ActivityTab';
 import WorkflowTab from './tabs/WorkflowTab';
+import ShareTab from './tabs/ShareTab';
 
-export default function FileDetailsModal({ file, onClose, onDownload, onShare, onStar, onTrash, onRefresh }) {
+export default function FileDetailsModal({ file, onClose, onDownload, onShare, onGenerateLink, onStar, onTrash, onRefresh, initialTab = 'details', userCanEdit = false }) {
   const { t } = useLang();
-  const [activeTab, setActiveTab] = useState('preview');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [previewOpened, setPreviewOpened] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewMode, setPreviewMode] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [wopiToken, setWopiToken] = useState(null);
+  const [editWopiToken, setEditWopiToken] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentFile, setCurrentFile] = useState(file);
   const previewContainerRef = useRef(null);
@@ -39,6 +41,8 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
 
   const fileType = getFileType(currentFile);
   const isPreviewable = ['image', 'video', 'pdf', 'document', 'presentation', 'spreadsheet'].includes(fileType);
+  const isCollaboraFile = ['document', 'presentation', 'spreadsheet'].includes(fileType);
+  const canShowEditTab = isCollaboraFile && userCanEdit;
 
   // Update current file when file prop changes
   useEffect(() => {
@@ -72,6 +76,13 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
     }
   }, [currentFile, isPreviewable]);
 
+  // Fetch edit token when edit tab is activated
+  useEffect(() => {
+    if (currentFile && activeTab === 'edit' && canShowEditTab && !editWopiToken) {
+      fetchEditToken();
+    }
+  }, [activeTab, currentFile, canShowEditTab, editWopiToken]);
+
   const fetchPreviewUrl = async () => {
     if (!currentFile) return;
 
@@ -98,6 +109,27 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
     } catch (error) {
       console.error('[FileDetailsModal] Error fetching preview URL:', error);
       setPreviewMode('download');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const fetchEditToken = async () => {
+    if (!currentFile) return;
+
+    setPreviewLoading(true);
+    try {
+      const response = await fetch(`/api/v1/drive/files/${currentFile.id}/collabora/edit`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setEditWopiToken(data.payload.wopiToken);
+        console.log('[FileDetailsModal] Edit token fetched');
+      } else {
+        console.error('[FileDetailsModal] Failed to get edit token:', data.error);
+      }
+    } catch (error) {
+      console.error('[FileDetailsModal] Error fetching edit token:', error);
     } finally {
       setPreviewLoading(false);
     }
@@ -149,12 +181,14 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
   };
 
   const tabs = [
-    ...(isPreviewable ? [{ value: 'preview', label: t('drive.preview'), icon: getThemedIcon('ui', 'eye', 16, 'light') }] : []),
-    { value: 'details', label: t('drive.details'), icon: getThemedIcon('ui', 'info', 16, 'light') },
-    { value: 'versions', label: t('drive.versions'), icon: getThemedIcon('ui', 'clock', 16, 'light') },
-    { value: 'comments', label: t('drive.comments'), icon: getThemedIcon('ui', 'message', 16, 'light') },
-    { value: 'activity', label: t('drive.activity'), icon: getThemedIcon('ui', 'activity', 16, 'light') },
-    { value: 'workflow', label: t('drive.workflow'), icon: getThemedIcon('ui', 'git_branch', 16, 'light') },
+    ...(isPreviewable ? [{ value: 'preview', label: t('drive.preview'), icon: getIcon('ui', 'eye') }] : []),
+    ...(canShowEditTab ? [{ value: 'edit', label: t('drive.edit'), icon: getIcon('ui', 'edit') }] : []),
+    { value: 'details', label: t('drive.details'), icon: getIcon('ui', 'info') },
+    { value: 'versions', label: t('drive.versions'), icon: getIcon('ui', 'clock') },
+    { value: 'comments', label: t('drive.comments'), icon: getIcon('ui', 'message') },
+    { value: 'activity', label: t('drive.activity'), icon: getIcon('ui', 'activity') },
+    { value: 'workflow', label: t('drive.workflow'), icon: getIcon('ui', 'git_branch') },
+    { value: 'share', label: t('drive.share'), icon: getIcon('ui', 'share') },
   ];
 
   const footer = (
@@ -162,11 +196,6 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
       {onDownload && (
         <Button variant="primary" onClick={() => onDownload(file.id)}>
           {t('drive.download')}
-        </Button>
-      )}
-      {onShare && (
-        <Button variant="secondary" onClick={() => onShare(file)}>
-          {t('drive.share')}
         </Button>
       )}
     </div>
@@ -191,64 +220,80 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
           variant="default"
           size="md"
         />
-        {activeTab === 'preview' && previewMode === 'collabora' && wopiToken && (
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <Button
-              variant="secondary"
-              onClick={async () => {
-                const collaboraUrl = `https://localhost:9980/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${wopiToken}`;
-                window.open(collaboraUrl, '_blank', 'noopener,noreferrer');
-                // Log activity
-                try {
-                  await fetch(`/api/v1/drive/files/${file.id}/activity`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'open_in_new_tab' })
-                  });
-                } catch (error) {
-                  console.error('Failed to log activity:', error);
-                }
-              }}
-              style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
-              title={t('drive.openInNewTab') || 'Open in New Tab'}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                <polyline points="15 3 21 3 21 9"></polyline>
-                <line x1="10" y1="14" x2="21" y2="3"></line>
-              </svg>
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                const iframe = previewContainerRef.current?.querySelector('iframe');
-                if (iframe) {
-                  if (!document.fullscreenElement) {
-                    if (iframe.requestFullscreen) {
-                      iframe.requestFullscreen();
-                    } else if (iframe.webkitRequestFullscreen) {
-                      iframe.webkitRequestFullscreen();
-                    } else if (iframe.msRequestFullscreen) {
-                      iframe.msRequestFullscreen();
+        {(activeTab === 'preview' || activeTab === 'edit') && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {file.currentVersion?.versionNumber && (
+              <span style={{
+                padding: '0.25rem 0.5rem',
+                borderRadius: '0.375rem',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                background: '#e5e7eb',
+                color: '#6b7280',
+              }}>
+                v{file.currentVersion.versionNumber}
+              </span>
+            )}
+            {activeTab === 'preview' && previewMode === 'collabora' && wopiToken && (
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <Button
+                  variant="secondary"
+                  onClick={async () => {
+                    const collaboraUrl = `https://localhost:9980/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${wopiToken}`;
+                    window.open(collaboraUrl, '_blank', 'noopener,noreferrer');
+                    // Log activity
+                    try {
+                      await fetch(`/api/v1/drive/files/${file.id}/activity`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'open_in_new_tab' })
+                      });
+                    } catch (error) {
+                      console.error('Failed to log activity:', error);
                     }
-                  } else {
-                    if (document.exitFullscreen) {
-                      document.exitFullscreen();
-                    } else if (document.webkitExitFullscreen) {
-                      document.webkitExitFullscreen();
-                    } else if (document.msExitFullscreen) {
-                      document.msExitFullscreen();
+                  }}
+                  style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
+                  title={t('drive.openInNewTab') || 'Open in New Tab'}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    const iframe = previewContainerRef.current?.querySelector('iframe');
+                    if (iframe) {
+                      if (!document.fullscreenElement) {
+                        if (iframe.requestFullscreen) {
+                          iframe.requestFullscreen();
+                        } else if (iframe.webkitRequestFullscreen) {
+                          iframe.webkitRequestFullscreen();
+                        } else if (iframe.msRequestFullscreen) {
+                          iframe.msRequestFullscreen();
+                        }
+                      } else {
+                        if (document.exitFullscreen) {
+                          document.exitFullscreen();
+                        } else if (document.webkitExitFullscreen) {
+                          document.webkitExitFullscreen();
+                        } else if (document.msExitFullscreen) {
+                          document.msExitFullscreen();
+                        }
+                      }
                     }
-                  }
-                }
-              }}
-              style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
-              title={t('drive.fullscreen') || 'Fullscreen'}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-              </svg>
-            </Button>
+                  }}
+                  style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
+                  title={t('drive.fullscreen') || 'Fullscreen'}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                  </svg>
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -305,7 +350,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
                       }}
                       title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
                     >
-                      {isFullscreen ? getThemedIcon('ui', 'minimize', 20, 'light') : getThemedIcon('ui', 'maximize', 20, 'light')}
+                      {isFullscreen ? getIcon('ui', 'minimize', 20) : getIcon('ui', 'maximize', 20)}
                     </button>
                     <iframe
                       ref={previewContainerRef}
@@ -351,11 +396,39 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
             )}
           </div>
         )}
+        {activeTab === 'edit' && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+            {previewLoading && (
+              <div style={{ padding: '2rem', color: 'var(--text-muted, #6b7280)' }}>
+                Loading editor...
+              </div>
+            )}
+            {!previewLoading && editWopiToken && (
+              <div ref={previewContainerRef} style={{ width: '100%' }}>
+                <iframe
+                  ref={iframeRef}
+                  src={`https://localhost:9980/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${editWopiToken}`}
+                  style={{ width: '100%', height: '600px', border: 'none' }}
+                  title={file.name}
+                />
+              </div>
+            )}
+            {!previewLoading && !editWopiToken && (
+              <div style={{ padding: '2rem', color: 'var(--text-muted, #6b7280)', textAlign: 'center' }}>
+                <p style={{ marginBottom: '1rem' }}>Failed to load editor. Please try again.</p>
+                <Button variant="secondary" onClick={fetchEditToken}>
+                  Retry
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
         {activeTab === 'details' && <DetailsTab file={file} />}
         {activeTab === 'versions' && <VersionsTab fileId={file.id} />}
         {activeTab === 'comments' && <CommentsTab fileId={file.id} />}
         {activeTab === 'activity' && <ActivityTab fileId={file.id} />}
         {activeTab === 'workflow' && <WorkflowTab fileId={file.id} />}
+        {activeTab === 'share' && <ShareTab fileId={file.id} onShare={onShare} onGenerateLink={onGenerateLink} />}
       </div>
     </Modal>
   );

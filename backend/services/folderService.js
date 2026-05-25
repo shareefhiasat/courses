@@ -11,6 +11,7 @@
 
 import { PrismaClient, Prisma } from '@prisma/client';
 import { getDatabaseUserId } from '../utils/userResolver.js';
+import { LMS_ROLES } from './keycloakAdminService.js';
 
 const prisma = new PrismaClient();
 
@@ -21,9 +22,113 @@ const err = (code, message) => ({
   timestamp: Date.now(),
 });
 
+/**
+ * Helper: Soft delete folder and all its descendants (folders and files)
+ * Uses raw SQL for efficient recursive path-based deletion
+ */
+async function softDeleteFolderTree(tx, folderPath, deletedAt, deletedById) {
+  await tx.$executeRaw`
+    UPDATE folders
+    SET "isDeleted" = TRUE, "deletedAt" = ${deletedAt}, "deletedById" = ${deletedById}
+    WHERE (path = ${folderPath} OR path LIKE ${folderPath + '/%'}) AND "isDeleted" = FALSE
+  `;
+  await tx.$executeRaw`
+    UPDATE files
+    SET "isDeleted" = TRUE, "deletedAt" = ${deletedAt}, "deletedById" = ${deletedById}
+    WHERE "folderId" IN (
+      SELECT id FROM folders WHERE path = ${folderPath} OR path LIKE ${folderPath + '/%'}
+    ) AND "isDeleted" = FALSE
+  `;
+}
+
 // --------------------------------------------------------------------------
 // Reads
 // --------------------------------------------------------------------------
+
+/**
+ * Build hierarchical tree structure of all folders with file counts
+ */
+export async function getFolderTree(keycloakUser) {
+  try {
+    const userId = await getDatabaseUserId(keycloakUser);
+    if (!userId) return err('USER_NOT_FOUND', 'User not found');
+
+    // Get all non-deleted folders for the user
+    const folders = await prisma.folder.findMany({
+      where: {
+        ownerId: userId,
+        isDeleted: false,
+      },
+      orderBy: { name: 'asc' },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    // Count files and calculate sizes in each folder
+    const folderIds = folders.map(f => f.id);
+    const fileStats = await prisma.file.groupBy({
+      by: ['folderId'],
+      where: {
+        folderId: { in: folderIds },
+        isDeleted: false,
+      },
+      _count: {
+        id: true,
+      },
+      _sum: {
+        size: true,
+      },
+    });
+
+    const countMap = new Map(
+      fileStats.map(fc => [fc.folderId, fc._count.id])
+    );
+    const sizeMap = new Map(
+      fileStats.map(fc => [fc.folderId, fc._sum.size || 0])
+    );
+
+    console.log('[folderService.getFolderTree] File stats:', fileStats);
+    console.log('[folderService.getFolderTree] Size map:', Object.fromEntries(sizeMap));
+
+    // Build tree structure
+    const folderMap = new Map();
+    const rootFolders = [];
+
+    // First pass: create map of all folders
+    folders.forEach(folder => {
+      folderMap.set(folder.id, {
+        ...folder,
+        fileCount: countMap.get(folder.id) || 0,
+        totalSize: sizeMap.get(folder.id) || 0,
+        children: [],
+      });
+    });
+
+    // Second pass: build hierarchy
+    folders.forEach(folder => {
+      const folderNode = folderMap.get(folder.id);
+      if (folder.parentId && folderMap.has(folder.parentId)) {
+        folderMap.get(folder.parentId).children.push(folderNode);
+      } else {
+        rootFolders.push(folderNode);
+      }
+    });
+
+    return ok(rootFolders);
+  } catch (error) {
+    console.error('[folderService.getFolderTree]', error);
+    return err('TREE_FETCH_FAILED', error.message);
+  }
+}
 
 /**
  * List immediate children of a folder (or the root if parentId is null).
@@ -231,28 +336,27 @@ export async function updateFolder(folderId, actorUserId, updates = {}) {
  * files inside them (so they disappear from the Drive view but stay
  * recoverable via the Trash).
  */
-export async function softDeleteFolder(folderId, actorUserId) {
+export async function softDeleteFolder(folderId, actorUserId, actorRoles = []) {
   try {
     const folder = await prisma.folder.findUnique({ where: { id: folderId } });
     if (!folder) return err('FOLDER_NOT_FOUND', 'Folder not found');
     if (folder.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Only owner can trash');
 
+    // Check if folder is shared (unless super_admin)
+    const isSuperAdmin = actorRoles.includes(LMS_ROLES.SUPER_ADMIN);
+    if (!isSuperAdmin) {
+      const { isFolderShared } = await import('./fileShareService.js');
+      const shared = await isFolderShared(folderId);
+      if (shared) {
+        return err('FOLDER_SHARED', 'Cannot delete shared folders. Remove shares first.');
+      }
+    }
+
     const oldPath = folder.path;
     const now = new Date();
 
     const result = await prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`
-        UPDATE folders
-        SET "isDeleted" = TRUE, "deletedAt" = ${now}, "deletedById" = ${actorUserId}
-        WHERE (path = ${oldPath} OR path LIKE ${oldPath + '/%'}) AND "isDeleted" = FALSE
-      `;
-      await tx.$executeRaw`
-        UPDATE files
-        SET "isDeleted" = TRUE, "deletedAt" = ${now}, "deletedById" = ${actorUserId}
-        WHERE "folderId" IN (
-          SELECT id FROM folders WHERE path = ${oldPath} OR path LIKE ${oldPath + '/%'}
-        ) AND "isDeleted" = FALSE
-      `;
+      await softDeleteFolderTree(tx, oldPath, now, actorUserId);
       return tx.folder.findUnique({ where: { id: folderId } });
     });
 

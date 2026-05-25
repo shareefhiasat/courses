@@ -38,7 +38,18 @@ const Tabs = ({
               onClick={() => handleTabClick(tab.value)}
               type="button"
             >
-              {tab.icon && <span className={styles.tabIcon}>{tab.icon}</span>}
+              {tab.icon && (
+                <span className={styles.tabIcon}>
+                  {React.cloneElement(tab.icon, {
+                    color: isActive ? '#ffffff' : 'currentColor',
+                    fill: 'none',
+                    stroke: 'currentColor',
+                    strokeWidth: 2,
+                    strokeLinecap: 'round',
+                    strokeLinejoin: 'round'
+                  })}
+                </span>
+              )}
               <span className={styles.tabLabel}>{tab.label}</span>
               {tab.badge !== undefined && (
                 <span className={`${styles.tabBadge} ${isActive ? styles.activeBadge : ''}`}>

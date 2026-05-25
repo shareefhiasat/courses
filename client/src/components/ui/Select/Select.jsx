@@ -1,7 +1,7 @@
 import React, { forwardRef, useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useLang } from '@contexts/LangContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getIcon } from '@constants/iconTypes';
 import styles from './Select.module.css';
 import { getComponentStyles, generateCSSVariables } from '@constants/uiTheme';
 import { info, error, warn, debug } from '@services/utils/logger.js';
@@ -296,7 +296,7 @@ const Select = forwardRef(({
               </option>
             ))}
           </select>
-          {getThemedIcon('ui', 'chevron_down', 16)}
+          {getIcon('ui', 'chevron_down', 16)}
         </div>
         
         {(error || helperText) && (
@@ -344,10 +344,10 @@ const Select = forwardRef(({
                 onClick={handleClear}
                 style={{ background: 'none', border: 'none', cursor: 'pointer' }}
               >
-                {getThemedIcon('ui', 'close', 16)}
+                {getIcon('ui', 'close', 16)}
               </button>
             )}
-            {getThemedIcon('ui', 'chevron_down', 16)}
+            {getIcon('ui', 'chevron_down', 16)}
           </div>
         </div>
 
@@ -368,24 +368,20 @@ const Select = forwardRef(({
           >
             {searchable && (
               <div className={styles.searchContainer}>
-                <div style={{ position: 'relative' }}>
-                  <span className={styles.searchIcon}>
-                    {getThemedIcon('ui', 'search', 16)}
-                  </span>
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    className={styles.searchInput}
-                    placeholder={searchPlaceholder || t('search') || 'Search...'}
-                    value={searchTerm}
-                    onChange={(e) => {
-                      const v = e.target.value || '';
-                      setSearchTerm(v);
-                      if (onSearchChange) onSearchChange(v);
-                    }}
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  className={styles.searchInput}
+                  placeholder={searchPlaceholder || t('search') || 'Search...'}
+                  value={searchTerm}
+                  onChange={(e) => {
+                    const v = e.target.value || '';
+                    setSearchTerm(v);
+                    if (onSearchChange) onSearchChange(v);
+                  }}
                     onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
+                  style={{ width: '100%', padding: '8px 12px' }}
+                />
               </div>
             )}
             

@@ -221,6 +221,7 @@ export const ICON_TYPES = {
     close: <X size={16} />,
     expand: <ChevronDown size={16} />,
     collapse: <ChevronDown size={16} />,
+    chevron_up: <ChevronUp size={16} />,
     image: <Image size={16} />,
     presentation: <Presentation size={16} />,
     link: <Link size={16} />,
@@ -408,7 +409,6 @@ export const ICON_TYPES = {
     // Additional missing icons
     alert_circle: <AlertCircle size={16} />,
     chevron_down: <ChevronDown size={16} />,
-    chevron_up: <ChevronUp size={16} />,
     chevrons_up: <ChevronsUp size={16} />,
     chevrons_up_down: <ChevronsUpDown size={16} />,
     x: <X size={16} />,
@@ -543,9 +543,10 @@ export const getIcon = (category, type, size = 16) => {
     const defaultIcon = defaultIcons[category] || 'file';
     const iconConfig = ICON_TYPES[category]?.[defaultIcon];
     if (iconConfig) {
-      return typeof iconConfig === 'function' ? iconConfig(size) : iconConfig;
+      const icon = typeof iconConfig === 'function' ? iconConfig(size) : iconConfig;
+      return React.cloneElement(icon, { fill: 'none' });
     }
-    return <FileText size={size} />;
+    return <FileText size={size} fill="none" />;
   }
   
   const iconConfig = ICON_TYPES[category]?.[type];
@@ -574,29 +575,31 @@ export const getIcon = (category, type, size = 16) => {
     const defaultIcon = defaultIcons[category] || 'file';
     const fallbackConfig = ICON_TYPES[category]?.[defaultIcon];
     if (fallbackConfig) {
-      return typeof fallbackConfig === 'function' ? fallbackConfig(size) : fallbackConfig;
+      const icon = typeof fallbackConfig === 'function' ? fallbackConfig(size) : fallbackConfig;
+      return React.cloneElement(icon, { fill: 'none' });
     }
-    return <FileText size={size} />;
+    return <FileText size={size} fill="none" />;
   }
   
-  return typeof iconConfig === 'function' ? iconConfig(size) : iconConfig;
+  const icon = typeof iconConfig === 'function' ? iconConfig(size) : iconConfig;
+  return React.cloneElement(icon, { fill: 'none' });
 };
 
 export const getIconWithColor = (category, type, size = 16, color = 'currentColor') => {
   // Skip warning for undefined types - we handle this gracefully
   if (type === undefined || type === null) {
-    return <Info size={size} color={color} />;
+    return <Info size={size} color={color} fill="none" />;
   }
   
   const iconConfig = ICON_TYPES[category]?.[type];
   if (!iconConfig) {
     // Only warn for defined types that are missing
     warn(`Icon not found: ${category}.${type}`);
-    return <Info size={size} color={color} />;
+    return <Info size={size} color={color} fill="none" />;
   }
   
-  // Clone the icon with custom size and color
-  return React.cloneElement(iconConfig, { size, color });
+  // Clone the icon with custom size, color, and ensure no fill
+  return React.cloneElement(iconConfig, { size, color, fill: 'none' });
 };
 
 // Legacy compatibility functions for existing code
@@ -640,7 +643,8 @@ export const getUserRoleIcon = (role) => {
 export const getThemedIcon = (category, type, size = 16, theme = 'light') => {
   // Check if theme is an explicit color (like 'white') - if so, use it directly
   if (typeof theme === 'string' && (theme === 'white' || theme.startsWith('#') || theme === 'currentColor')) {
-    return getIconWithColor(category, type, size, theme);
+    const icon = getIconWithColor(category, type, size, theme);
+    return React.cloneElement(icon, { fill: 'none' });
   }
   
   // Use dynamic theme colors from CSS variables
@@ -690,7 +694,8 @@ export const getThemedIcon = (category, type, size = 16, theme = 'light') => {
   };
   
   const color = getThemeBasedColor();
-  return getIconWithColor(category, type, size, color);
+  const icon = getIconWithColor(category, type, size, color);
+  return React.cloneElement(icon, { fill: 'none' });
 };
 
 // White icon utility for navbar

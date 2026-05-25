@@ -91,7 +91,7 @@ export default defineConfig({
       key: './localhost-key.pem',
       cert: './localhost-cert.pem'
     },
-    allowedHosts: "all",
+    allowedHosts: ['all'],
     // Optional: if HMR has issues over LAN, set your LAN IP below:
     // hmr: { host: '192.168.1.7', protocol: 'ws', port: 5174 },
     proxy: {
@@ -101,5 +101,8 @@ export default defineConfig({
         secure: false,
       },
     },
+  },
+  define: {
+    'import.meta.env.COLLABORA_URL': JSON.stringify(process.env.COLLABORA_URL || 'http://localhost:9980'),
   },
 });

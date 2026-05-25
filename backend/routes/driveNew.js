@@ -45,6 +45,7 @@ import {
 
 import {
   listChildren as listFolderChildren,
+  getFolderTree,
   getFolder,
   createFolder as createFolderV2,
   updateFolder,
@@ -366,6 +367,9 @@ wopiRouter.post('/files/:fileId/contents', async (req, res) => {
 // All drive routes require auth.
 router.use(keycloakAuth([]));
 
+// Mount WOPI (no auth required for WOPI - Collabora accesses directly)
+router.use('/wopi', wopiRouter);
+
 // ---------------- Files ----------------
 router.post('/upload/initiate', initiateUpload);
 router.post('/upload/:fileId/complete', completeUpload);
@@ -383,9 +387,85 @@ router.delete('/files/:fileId/permanent', permanentDeleteFile);
 
 // Preview & secure download
 router.get('/files/:fileId/preview', getPreview);
-router.get('/files/:fileId/download', (req, res, next) => {
-  console.log('[driveNew.js] Download route hit for fileId:', req.params.fileId);
-  next();
+router.get('/files/:fileId/collabora/edit', async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const actorUserId = req.user?.keycloakId;
+
+    if (!actorUserId) {
+      return res.status(401).json({ success: false, error: 'User not authenticated' });
+    }
+
+    // Get database user ID from Keycloak ID
+    const user = await prisma.user.findUnique({ where: { keycloakId: actorUserId } });
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    // Get file
+    const file = await prisma.file.findUnique({ where: { id: fileId } });
+    if (!file) {
+      return res.status(404).json({ success: false, error: 'File not found' });
+    }
+
+    // Check edit permission - owners always have edit permission
+    const { canAccessFile } = await import('../services/permissionService.js');
+    const permissionResult = await canAccessFile(fileId, { userId: user.id });
+    
+    // Owner always has edit permission
+    const isOwner = file.ownerId === user.id;
+    const hasEditPermission = isOwner || (permissionResult.allowed && permissionResult.granted === 'EDIT');
+    
+    if (!hasEditPermission) {
+      return res.status(403).json({ success: false, error: 'No edit permission' });
+    }
+
+    // Generate WOPI token with write permission
+    const { generateWopiToken } = await import('../services/wopiService.js');
+    const userInfo = {
+      displayName: user.displayName || 'User',
+      email: user.email || '',
+      id: user.id,
+    };
+    const wopiToken = generateWopiToken(user.id, fileId, 'write', userInfo);
+
+    return res.json({ success: true, payload: { wopiToken } });
+  } catch (error) {
+    console.error('[Collabora Edit] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+router.get('/files/:fileId/download', async (req, res, next) => {
+  try {
+    const { fileId } = req.params;
+    const actorUserId = req.user?.keycloakId;
+
+    if (!actorUserId) {
+      return res.status(401).json({ success: false, error: 'User not authenticated' });
+    }
+
+    // Get database user ID from Keycloak ID
+    const user = await prisma.user.findUnique({ where: { keycloakId: actorUserId } });
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    // Check download permission
+    const { requireFilePermission } = await import('../services/permissionService.js');
+    await requireFilePermission(fileId, { userId: user.id, roles: req.user?.roles || [] }, 'DOWNLOAD');
+
+    // Permission granted, proceed with download
+    next();
+  } catch (error) {
+    if (error.status === 403) {
+      return res.status(403).json({ success: false, error: 'No download permission' });
+    }
+    if (error.status === 404) {
+      return res.status(404).json({ success: false, error: 'File not found' });
+    }
+    console.error('[driveNew.js] Download permission check error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 }, proxyDownload);
 
 // Activity logging
@@ -427,6 +507,7 @@ router.get('/files-by-key/:s3Key/download', downloadFile);
 
 // ---------------- Folders (v2) ----------------
 router.get('/folders', listFolderChildren);
+router.get('/folders/tree', getFolderTree);
 router.get('/folders/:folderId', getFolder);
 router.post('/folders', createFolderV2);
 // Legacy path used by existing front-end code — points at same handler.

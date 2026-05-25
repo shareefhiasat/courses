@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getIcon } from '@constants/iconTypes';
 import axios from 'axios';
 
 const ACTION_COLORS = {
@@ -141,7 +141,7 @@ export default function ActivityTab({ fileId }) {
   if (activities.length === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
-        {getThemedIcon('ui', 'activity', 40, 'muted')}
+        {getIcon('ui', 'activity', 40)}
         {t('drive.noActivity')}
       </div>
     );
@@ -159,7 +159,7 @@ export default function ActivityTab({ fileId }) {
         maxHeight: '600px'
       }}>
         <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {getThemedIcon('ui', 'clock', 16, 'muted')}
+          {getIcon('ui', 'clock', 16)}
           {t('drive.timeline') || 'Timeline'}
         </h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -205,7 +205,6 @@ export default function ActivityTab({ fileId }) {
       <div style={{ flex: 1, overflowY: 'auto', maxHeight: '600px' }}>
         {/* Search filter */}
         <div style={{ position: 'relative', marginBottom: '1rem' }}>
-          {getThemedIcon('ui', 'search', 16, 'muted', { position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' })}
           <input
             type="text"
             value={filterText}
@@ -213,7 +212,7 @@ export default function ActivityTab({ fileId }) {
             placeholder={t('drive.filterActivities') || 'Filter activities...'}
             style={{
               width: '100%',
-              padding: '0.625rem 2.5rem',
+              padding: '0.625rem 0.75rem',
               border: '1px solid var(--border, #d1d5db)',
               borderRadius: '0.5rem',
               background: 'var(--panel, white)',
@@ -253,7 +252,7 @@ export default function ActivityTab({ fileId }) {
 
         {filteredActivities.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
-            {getThemedIcon('ui', 'activity', 40, 'muted')}
+            {getIcon('ui', 'activity', 40)}
             {filterText ? t('drive.noMatchingActivities') || 'No matching activities' : t('drive.noActivity')}
           </div>
         ) : (
@@ -280,7 +279,7 @@ export default function ActivityTab({ fileId }) {
                         border: '2px solid var(--panel, white)',
                       }}
                     >
-                      {getThemedIcon('ui', actionIcon, 16, 'light')}
+                      {getIcon('ui', actionIcon, 16)}
                     </div>
 
                     <div style={{

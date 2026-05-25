@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getIcon } from '@constants/iconTypes';
 import axios from 'axios';
 
 export default function CommentsTab({ fileId }) {
@@ -185,7 +185,7 @@ export default function CommentsTab({ fileId }) {
             }}
             aria-label={submitting ? t('common.sending') : t('drive.send')}
           >
-            {getThemedIcon('ui', 'send', 16, 'light')}
+            <span style={{ color: '#ffffff' }}>{getIcon('ui', 'send', 16)}</span>
             <span>{submitting ? t('common.sending') : t('drive.send')}</span>
           </button>
         </div>
@@ -194,7 +194,7 @@ export default function CommentsTab({ fileId }) {
       {/* Timeline and comments */}
       {filteredAndSortedComments.length === 0 && !filterText ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
-          {getThemedIcon('ui', 'message', 40, 'muted')}
+          {getIcon('ui', 'message', 40)}
           {t('drive.noComments')}
         </div>
       ) : (
@@ -209,7 +209,7 @@ export default function CommentsTab({ fileId }) {
             maxHeight: '500px'
           }}>
             <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {getThemedIcon('ui', 'clock', 16, 'muted')}
+              {getIcon('ui', 'clock', 16)}
               {t('drive.timeline') || 'Timeline'}
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -255,7 +255,6 @@ export default function CommentsTab({ fileId }) {
           <div style={{ flex: 1, overflowY: 'auto', maxHeight: '500px' }}>
             {/* Search filter */}
             <div style={{ position: 'relative', marginBottom: '1rem' }}>
-              {getThemedIcon('ui', 'search', 16, 'muted', { position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' })}
               <input
                 type="text"
                 value={filterText}
@@ -263,7 +262,7 @@ export default function CommentsTab({ fileId }) {
                 placeholder={t('drive.filterComments')}
                 style={{
                   width: '100%',
-                  padding: '0.625rem 2.5rem',
+                  padding: '0.625rem 0.75rem',
                   border: '1px solid var(--border, #d1d5db)',
                   borderRadius: '0.5rem',
                   background: 'var(--panel, white)',
@@ -303,7 +302,7 @@ export default function CommentsTab({ fileId }) {
 
             {filteredAndSortedComments.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
-                {getThemedIcon('ui', 'message', 40, 'muted')}
+                {getIcon('ui', 'message', 40)}
                 {t('drive.noMatchingComments')}
               </div>
             ) : (
@@ -331,7 +330,7 @@ export default function CommentsTab({ fileId }) {
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}>
-                          {getThemedIcon('ui', 'user', 16, 'primary')}
+                          {getIcon('ui', 'user', 16)}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
@@ -371,10 +370,8 @@ export default function CommentsTab({ fileId }) {
                             e.currentTarget.style.color = 'var(--text-muted, #6b7280)';
                             e.currentTarget.style.background = 'transparent';
                           }}
-                          title={t('drive.deleteComment')}
-                          aria-label={t('drive.deleteComment')}
                         >
-                          {getThemedIcon('ui', 'trash2', 16, 'light')}
+                          {getIcon('ui', 'trash2', 16)}
                         </button>
                       </div>
                     </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getIcon } from '@constants/iconTypes';
 import axios from 'axios';
 
 export default function VersionsTab({ fileId }) {
@@ -10,6 +10,7 @@ export default function VersionsTab({ fileId }) {
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [fileInfo, setFileInfo] = useState(null);
 
   const fetchVersions = useCallback(async () => {
     if (!fileId) return;
@@ -19,6 +20,11 @@ export default function VersionsTab({ fileId }) {
       const response = await axios.get(`/api/v1/drive/files/${fileId}/versions`);
       if (response.data.success) {
         setVersions(response.data.payload || []);
+        // Also fetch file info to check if it's a Collabora file
+        const fileResponse = await axios.get(`/api/v1/drive/files/${fileId}`);
+        if (fileResponse.data.success) {
+          setFileInfo(fileResponse.data.payload);
+        }
       } else {
         setError(response.data.error?.message || 'Failed to fetch versions');
       }
@@ -49,6 +55,45 @@ export default function VersionsTab({ fileId }) {
       } else {
         alert(t('drive.versions.restoreError') || 'Failed to restore version');
       }
+    }
+  };
+
+  const handleViewVersion = async (versionId) => {
+    // Check if this is a Collabora file (document, presentation, spreadsheet)
+    const getFileType = (mimeType, fileName) => {
+      if (!mimeType && !fileName) return 'unknown';
+      const mt = (mimeType || '').toLowerCase();
+      const name = (fileName || '').toLowerCase();
+      
+      if (mt.includes('word') || mt.includes('document') || name.endsWith('.doc') || name.endsWith('.docx')) return 'document';
+      if (mt.includes('presentation') || mt.includes('powerpoint') || name.endsWith('.ppt') || name.endsWith('.pptx')) return 'presentation';
+      if (mt.includes('sheet') || mt.includes('excel') || name.endsWith('.xls') || name.endsWith('.xlsx')) return 'spreadsheet';
+      return 'unknown';
+    };
+
+    const fileType = getFileType(fileInfo?.mimeType, fileInfo?.name);
+    const isCollaboraFile = ['document', 'presentation', 'spreadsheet'].includes(fileType);
+
+    if (isCollaboraFile) {
+      // For Collabora files, fetch WOPI token and open in Collabora
+      try {
+        const response = await fetch(`/api/v1/drive/files/${fileId}/preview?versionId=${versionId}`);
+        const data = await response.json();
+        
+        if (data.success && data.payload.wopiToken) {
+          const collaboraUrl = `https://localhost:9980/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + fileId)}&access_token=${data.payload.wopiToken}`;
+          window.open(collaboraUrl, '_blank', 'noopener,noreferrer');
+        } else {
+          // Fallback to download if preview fails
+          window.open(`/api/v1/drive/files/${fileId}/download?versionId=${versionId}`, '_blank');
+        }
+      } catch (error) {
+        console.error('[VersionsTab] Failed to get preview URL:', error);
+        window.open(`/api/v1/drive/files/${fileId}/download?versionId=${versionId}`, '_blank');
+      }
+    } else {
+      // For non-Collabora files, just download
+      window.open(`/api/v1/drive/files/${fileId}/download?versionId=${versionId}`, '_blank');
     }
   };
 
@@ -139,7 +184,7 @@ export default function VersionsTab({ fileId }) {
   if (versions.length === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
-        {getThemedIcon('ui', 'clock', 40, 'muted')}
+        {getIcon('ui', 'clock', 40)}
         {t('drive.noVersions')}
       </div>
     );
@@ -157,7 +202,7 @@ export default function VersionsTab({ fileId }) {
         maxHeight: '500px'
       }}>
         <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {getThemedIcon('ui', 'clock', 16, 'muted')}
+          {getIcon('ui', 'clock', 16)}
           {t('drive.timeline') || 'Timeline'}
         </h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -203,35 +248,25 @@ export default function VersionsTab({ fileId }) {
       <div style={{ flex: 1, overflowY: 'auto', maxHeight: '500px' }}>
         {/* Search filter */}
         <div style={{ marginBottom: '1rem' }}>
-          <div style={{
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-          }}>
-            {getThemedIcon('ui', 'search', 16, 'muted', {
-              position: 'absolute',
-              left: '0.75rem',
-            })}
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('drive.searchVersions') || 'Search versions...'}
-              style={{
-                width: '100%',
-                padding: '0.625rem 0.75rem 0.625rem 2.25rem',
-                fontSize: '0.875rem',
-                border: '1px solid var(--border, #e5e7eb)',
-                borderRadius: '0.5rem',
-                background: 'var(--panel, white)',
-                color: 'var(--text, #111827)',
-                outline: 'none',
-                transition: 'border-color 0.15s',
-              }}
-              onFocus={(e) => e.currentTarget.style.borderColor = 'var(--color-primary, #2563eb)'}
-              onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)'}
-            />
-          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('drive.searchVersions') || 'Search versions...'}
+            style={{
+              width: '100%',
+              padding: '0.625rem 0.75rem',
+              fontSize: '0.875rem',
+              border: '1px solid var(--border, #e5e7eb)',
+              borderRadius: '0.5rem',
+              background: 'var(--panel, white)',
+              color: 'var(--text, #111827)',
+              outline: 'none',
+              transition: 'border-color 0.15s',
+            }}
+            onFocus={(e) => e.currentTarget.style.borderColor = 'var(--color-primary, #2563eb)'}
+            onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)'}
+          />
         </div>
 
         <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
@@ -255,7 +290,7 @@ export default function VersionsTab({ fileId }) {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    {getThemedIcon('ui', 'clock', 16, 'primary')}
+                    {getIcon('ui', 'clock', 16)}
                     <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
                       {t('drive.version')} {version.versionNumber}
                     </span>
@@ -270,7 +305,7 @@ export default function VersionsTab({ fileId }) {
                         alignItems: 'center',
                         gap: '0.25rem',
                       }}>
-                        {getThemedIcon('ui', 'tag', 12, 'white')}
+                        {getIcon('ui', 'tag', 12)}
                         {t('drive.current')}
                       </span>
                     )}
@@ -278,11 +313,11 @@ export default function VersionsTab({ fileId }) {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {getThemedIcon('ui', 'user', 14, 'muted')}
+                      {getIcon('ui', 'user', 14)}
                       {version.uploadedBy?.displayName || version.uploadedBy?.email || '\u2014'}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {getThemedIcon('ui', 'download', 14, 'muted')}
+                      {getIcon('ui', 'download', 14)}
                       {formatSize(version.size)}
                     </div>
                   </div>
@@ -304,29 +339,35 @@ export default function VersionsTab({ fileId }) {
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                     {formatDateTime(version.createdAt)}
                   </span>
+                  <button
+                    onClick={() => handleViewVersion(version.id)}
+                    style={{
+                      padding: '0.375rem',
+                      fontSize: '0.875rem',
+                      color: 'var(--text-muted, #6b7280)',
+                      background: 'transparent',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = 'var(--color-primary, #2563eb)';
+                      e.currentTarget.style.background = 'var(--bg-secondary, #f3f4f6)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = 'var(--text-muted, #6b7280)';
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    {getIcon('ui', 'eye', 16)}
+                  </button>
                   {!version.isCurrent && (
-                    <button
-                      onClick={() => handleRestore(version.id)}
-                      style={{
-                        padding: '0.375rem 0.75rem',
-                        background: 'var(--panel, white)',
-                        color: 'var(--text, #111827)',
-                        borderRadius: '0.5rem',
-                        border: '1px solid var(--border, #e5e7eb)',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        transition: 'background 0.15s',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'var(--panel, white)'}
-                      title={t('drive.restoreVersion')}
-                    >
-                      {getThemedIcon('ui', 'rotate_ccw', 14, 'light')}
-                      {t('drive.restore')}
-                    </button>
+                    /* Restore button hidden per user request */
+                    null
                   )}
                 </div>
               </div>

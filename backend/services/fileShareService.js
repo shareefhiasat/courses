@@ -143,13 +143,20 @@ export async function revokeShare(shareId, actor) {
       include: {
         file: { select: { ownerId: true } },
         folder: { select: { ownerId: true } },
+        grantedBy: { select: { id: true } },
       },
     });
     if (!share) return err('SHARE_NOT_FOUND', 'Share not found');
+    
+    // Only the original sharer (grantedBy) can revoke the share
+    const isOriginalSharer = share.grantedBy?.id === actor.userId;
     const ownerId = share.file?.ownerId ?? share.folder?.ownerId;
     const isOwner = ownerId === actor.userId;
     const isAdmin = (actor.roles || []).includes('super_admin');
-    if (!isOwner && !isAdmin) return err('ACCESS_DENIED', 'Only owner can revoke');
+    
+    if (!isOriginalSharer && !isOwner && !isAdmin) {
+      return err('ACCESS_DENIED', 'Only the original sharer, file owner, or admin can revoke');
+    }
 
     await prisma.fileShare.delete({ where: { id: shareId } });
     if (share.fileId) {
@@ -325,6 +332,36 @@ export async function getSharedFiles(actor) {
   return ok(result.payload.files);
 }
 
+/**
+ * Check if a file is shared with anyone
+ */
+export async function isFileShared(fileId) {
+  try {
+    const shareCount = await prisma.fileShare.count({
+      where: { fileId: { not: null }, fileId },
+    });
+    return shareCount > 0;
+  } catch (error) {
+    console.error('[fileShareService.isFileShared]', error);
+    return false;
+  }
+}
+
+/**
+ * Check if a folder is shared with anyone
+ */
+export async function isFolderShared(folderId) {
+  try {
+    const shareCount = await prisma.fileShare.count({
+      where: { folderId: { not: null }, folderId },
+    });
+    return shareCount > 0;
+  } catch (error) {
+    console.error('[fileShareService.isFolderShared]', error);
+    return false;
+  }
+}
+
 export default {
   createShare,
   revokeShare,
@@ -335,4 +372,6 @@ export default {
   getFolderDetailsForNotification,
   shareFile,
   unshareFile,
+  isFileShared,
+  isFolderShared,
 };

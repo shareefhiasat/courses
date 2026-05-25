@@ -3,7 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Input, Button, Checkbox } from '@ui';
-import WorkflowStatusIndicator from './WorkflowStatusIndicator';
+import StatusColumn from './StatusColumn';
 
 /**
  * FileRoster - Files grid with search, filters, multi-select & row actions.
@@ -81,6 +81,18 @@ export default function FileRoster({
     }
 
     return t('drive.unknown') || 'Unknown';
+  };
+
+  // Helper to get user-friendly text for delete reason
+  const getDeleteReasonText = (reason) => {
+    const reasonMap = {
+      'FILE_SHARED': t('drive.deleteReasonShared') || 'File is shared with others',
+      'WORKFLOW_ACTIVE': t('drive.deleteReasonWorkflow') || 'File has an active workflow',
+      'WORKFLOW_NOT_OWNER': t('drive.deleteReasonWorkflowOwner') || 'Only workflow owner can delete',
+      'NOT_OWNER': t('drive.deleteReasonNotOwner') || 'You are not the owner',
+      'FILE_NOT_FOUND': t('drive.deleteReasonNotFound') || 'File not found',
+    };
+    return reasonMap[reason] || t('drive.deleteReasonUnknown') || 'Cannot delete this file';
   };
 
   const allItems = [...folders, ...files];
@@ -389,7 +401,7 @@ export default function FileRoster({
             <div style={{ flex: 2, textAlign: isRTL ? 'right' : 'left' }}>{t('drive.name') || 'Name'}</div>
             <div style={{ flex: 1, textAlign: isRTL ? 'right' : 'left' }}>{t('drive.owner') || 'Owner'}</div>
             <div style={{ flex: 1, textAlign: isRTL ? 'right' : 'left' }}>{t('drive.location') || 'Location'}</div>
-            <div style={{ width: 120, textAlign: isRTL ? 'right' : 'left' }}>
+            <div style={{ width: 180, textAlign: isRTL ? 'right' : 'left' }}>
               {t('drive.status') || 'Status'}
             </div>
             <div style={{ width: 80, textAlign: isRTL ? 'right' : 'left' }}>
@@ -778,9 +790,26 @@ export default function FileRoster({
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
+                      position: 'relative',
                     }}
                   >
                     {getThemedIcon('ui', getFileIconName(file), 18, theme)}
+                    {file.canDelete === false && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: -2,
+                          right: -2,
+                          background: 'var(--panel, white)',
+                          borderRadius: '50%',
+                          padding: 2,
+                          border: '1px solid var(--border, #e5e7eb)',
+                        }}
+                        title={getDeleteReasonText(file.deleteReason)}
+                      >
+                        {getThemedIcon('ui', 'lock', 10, 'muted')}
+                      </div>
+                    )}
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div
@@ -814,12 +843,7 @@ export default function FileRoster({
                     justifyContent: isRTL ? 'flex-end' : 'flex-start',
                   }}
                 >
-                  {file.workflowCounts && (
-                    <WorkflowStatusIndicator
-                      workflowCounts={file.workflowCounts}
-                      onClick={() => onFileOpen?.(file)}
-                    />
-                  )}
+                  <StatusColumn file={file} onClick={() => onFileOpen?.(file)} />
                 </div>
                 <div
                   style={{
@@ -1113,9 +1137,26 @@ export default function FileRoster({
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginBottom: '0.5rem',
+                    position: 'relative',
                   }}
                 >
                   {getThemedIcon('ui', getFileIconName(file), 36, theme)}
+                  {file.canDelete === false && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 4,
+                        right: 4,
+                        background: 'var(--panel, white)',
+                        borderRadius: '50%',
+                        padding: 4,
+                        border: '1px solid var(--border, #e5e7eb)',
+                      }}
+                      title={getDeleteReasonText(file.deleteReason)}
+                    >
+                      {getThemedIcon('ui', 'lock', 12, 'muted')}
+                    </div>
+                  )}
                 </div>
                 <div
                   style={{
@@ -1143,14 +1184,9 @@ export default function FileRoster({
                   <span>{formatDate(file.modifiedAt || file.createdAt)}</span>
                   <span>{file.owner?.displayName || file.owner?.email || '—'}</span>
                 </div>
-                {file.workflowCounts && (
-                  <div style={{ marginTop: '0.5rem' }}>
-                    <WorkflowStatusIndicator
-                      workflowCounts={file.workflowCounts}
-                      onClick={() => onFileOpen?.(file)}
-                    />
-                  </div>
-                )}
+                <div style={{ marginTop: '0.5rem' }}>
+                  <StatusColumn file={file} onClick={() => onFileOpen?.(file)} />
+                </div>
               </div>
             );
           })}

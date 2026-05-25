@@ -3,7 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import axios from 'axios';
 
-export default function SharesList({ fileId, onRevoke, refreshKey }) {
+export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = false }) {
   const { t } = useLang();
   const [shares, setShares] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -201,7 +201,6 @@ export default function SharesList({ fileId, onRevoke, refreshKey }) {
       <div style={{ flex: 1, overflowY: 'auto', maxHeight: '400px' }}>
         {/* Search filter */}
         <div style={{ position: 'relative', marginBottom: '1rem' }}>
-          {getThemedIcon('ui', 'search', 16, 'muted', { position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' })}
           <input
             type="text"
             value={filterText}
@@ -209,7 +208,7 @@ export default function SharesList({ fileId, onRevoke, refreshKey }) {
             placeholder={t('drive.filterActivities') || 'Filter shares...'}
             style={{
               width: '100%',
-              padding: '0.625rem 2.5rem',
+              padding: '0.625rem 2.5rem 0.625rem 0.75rem',
               border: '1px solid var(--border, #d1d5db)',
               borderRadius: '0.5rem',
               background: 'var(--panel, white)',
@@ -329,35 +328,36 @@ export default function SharesList({ fileId, onRevoke, refreshKey }) {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => handleRevoke(share.id)}
-                    style={{
-                      flexShrink: 0,
-                      padding: '0.375rem',
-                      border: 'none',
-                      background: 'transparent',
-                      color: 'var(--text-muted, #6b7280)',
-                      cursor: 'pointer',
-                      borderRadius: '0.25rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minWidth: '2.25rem',
-                      minHeight: '2.25rem',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = '#dc2626';
-                      e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'var(--text-muted, #6b7280)';
-                      e.currentTarget.style.background = 'transparent';
-                    }}
-                    title={t('drive.revokeShare')}
-                    aria-label={t('drive.revokeShare')}
-                  >
-                    {getThemedIcon('ui', 'x', 16, 'light')}
-                  </button>
+                  {!readOnly && (
+                    <button
+                      onClick={() => handleRevoke(share.id)}
+                      style={{
+                        flexShrink: 0,
+                        padding: '0.375rem',
+                        border: 'none',
+                        background: 'transparent',
+                        color: 'var(--text-muted, #6b7280)',
+                        cursor: 'pointer',
+                        borderRadius: '0.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '2.25rem',
+                        minHeight: '2.25rem',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = '#dc2626';
+                        e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = 'var(--text-muted, #6b7280)';
+                        e.currentTarget.style.background = 'transparent';
+                      }}
+                      aria-label={t('drive.revokeShare')}
+                    >
+                      {getThemedIcon('ui', 'x', 16, 'light')}
+                    </button>
+                  )}
                 </div>
               );
             })}

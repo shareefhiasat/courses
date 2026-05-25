@@ -3791,7 +3791,7 @@ const DICT = {
     custom_note: 'Custom Note',
     
     // Workflow translations
-    'workflow.create.title': 'Create Workflow Document',
+    'workflow.create.title': 'Create Workflow',
     'workflow.create.description': 'Create a new document for approval workflow',
     'workflow.create.backToInbox': 'Back to Inbox',
     'workflow.create.documentDetails': 'Document Details',
@@ -3827,7 +3827,7 @@ const DICT = {
     'workflow.types.other': 'Other',
     
     'workflow.inbox.title': 'Workflow Inbox',
-    'workflow.inbox.description': 'Manage your workflow documents and approvals',
+    'workflow.inbox.description': 'Manage your workflows and approvals',
     'workflow.inbox.createDocument': 'Create Document',
     'workflow.inbox.refresh': 'Refresh',
     'workflow.inbox.markAllRead': 'Mark All Read',
@@ -3864,7 +3864,7 @@ const DICT = {
     'workflow.inbox.needsAction': 'Needs Action',
     'workflow.inbox.closed': 'Closed',
     'workflow.inbox.total': 'Total',
-    'workflow.inbox.createFirst': 'Create Workflow Document',
+    'workflow.inbox.createFirst': 'Create Workflow',
     
     'workflow.actions.review': 'Review',
     'workflow.actions.approve': 'Approve',
@@ -3892,6 +3892,13 @@ const DICT = {
     'workflow.status.rejected': 'Rejected',
     'workflow.status.needs_feedback': 'Needs Feedback',
     'workflow.status.closed': 'Closed',
+
+    'workflow.status.submitted.desc': 'Submitted for review',
+    'workflow.status.pending.desc': 'Awaiting review',
+    'workflow.status.inProgress.desc': 'Currently being reviewed',
+    'workflow.status.completed.desc': 'Workflow completed successfully',
+    'workflow.status.approved.desc': 'Approved and finalized',
+    'workflow.status.rejected.desc': 'Rejected and requires changes',
 
     'workflow.create.openWorkspace': 'Open Workspace',
     'workflow.create.recipientSection': 'Recipient',
@@ -3986,7 +3993,7 @@ const DICT = {
 
     'workflow.workspace.back': 'Back to Inbox',
     'workflow.workspace.title': 'Personal Drive Workspace',
-    'workflow.workspace.subtitle': 'Manage your private files and attach them to workflow documents',
+    'workflow.workspace.subtitle': 'Manage your private files and attach them to workflows',
     'workflow.workspace.refresh': 'Refresh',
     'workflow.workspace.upload': 'Upload to Workspace',
     'workflow.workspace.filters': 'Filters',
@@ -4034,8 +4041,10 @@ const DICT = {
     'drive.description': 'Manage your files in personal, shared, and workflow spaces',
     'drive.personal': 'Personal Space',
     'drive.shared': 'Shared Space',
-    'drive.workflow': 'Workflow Documents',
+    'drive.workflow': 'Workflow',
     'drive.workflows': 'Workflows',
+    'drive.collapseAll': 'Collapse All',
+    'drive.folderStorage': 'This folder',
     'drive.personal_tab': 'Personal',
     'drive.shared_tab': 'Shared',
     'drive.public_tab': 'Public',
@@ -4241,6 +4250,7 @@ const DICT = {
     'drive.renameFailed': 'Rename failed',
     'drive.restoreVersion': 'Restore Version',
     'drive.preview': 'Preview',
+    'drive.edit': 'Edit',
     'drive.activity.rollback_version': 'Rolled back to version',
 
     // Activity actions
@@ -4254,11 +4264,13 @@ const DICT = {
     'drive.activity.unstarred': 'Unstarred',
     'drive.activity.public_link_created': 'Public link created',
     'drive.activity.preview': 'Previewed',
+    'drive.activity.open': 'Opened',
 
     // Common
     'common.cancel': 'Cancel',
     'common.back': 'Back',
     'common.submit': 'Submit',
+    'common.loading': 'Loading',
 
     // Smart Drive additional labels
     'drive.addMore': 'Add More',
@@ -4333,6 +4345,7 @@ const DICT = {
     'drive.workflowCreationError': 'Error creating workflow',
     'drive.workflowStatus': 'Workflow Status',
     'drive.searchWorkflows': 'Search workflows...',
+    'drive.searchVersions': 'Search versions...',
     'drive.sort': 'Sort',
     'drive.sortNewest': 'Newest first',
     'drive.sortOldest': 'Oldest first',
@@ -4378,6 +4391,10 @@ const DICT = {
     'drive.shareWithUser': 'Share with User',
     'drive.chooseUser': 'Choose a user...',
     'drive.permission': 'Permission',
+    'drive.statusDetails': 'Status Details',
+    'drive.sharedWith': 'Shared with',
+    'drive.groups': 'groups',
+    'drive.noStatus': 'No status information',
     'drive.canView': 'Can View',
     'drive.canDownload': 'Can Download',
     'drive.canEdit': 'Can Edit',
@@ -8479,6 +8496,13 @@ const DICT = {
     'workflow.status.needs_feedback': 'يتطلب ملاحظات',
     'workflow.status.closed': 'مغلق',
 
+    'workflow.status.submitted.desc': 'مُقدم للمراجعة',
+    'workflow.status.pending.desc': 'في انتظار المراجعة',
+    'workflow.status.inProgress.desc': 'قيد المراجعة حالياً',
+    'workflow.status.completed.desc': 'اكتمل سير العمل بنجاح',
+    'workflow.status.approved.desc': 'موافق عليه ومُنهي',
+    'workflow.status.rejected.desc': 'مرفوض ويتطلب تعديلات',
+
     'workflow.create.openWorkspace': 'فتح مساحة العمل',
     'workflow.create.recipientSection': 'المستلم',
     'workflow.create.recipientRoleFilter': 'دور المستلم',
@@ -8631,6 +8655,7 @@ const DICT = {
     'drive.workflowCreationError': 'خطأ في إنشاء سير العمل',
     'drive.workflowStatus': 'حالة سير العمل',
     'drive.searchWorkflows': 'البحث في سير العمل...',
+    'drive.searchVersions': 'البحث في الإصدارات...',
     'drive.sort': 'ترتيب',
     'drive.sortNewest': 'الأحدث أولاً',
     'drive.sortOldest': 'الأقدم أولاً',
@@ -8671,6 +8696,11 @@ const DICT = {
     'drive.selectUser': 'مستخدم',
     'drive.chooseUser': 'اختر مستخدماً...',
     'drive.permission': 'الصلاحية',
+    'drive.statusDetails': 'تفاصيل الحالة',
+    'drive.sharedWith': 'مشاركة مع',
+    'drive.people': 'أشخاص',
+    'drive.groups': 'مجموعات',
+    'drive.noStatus': 'لا توجد معلومات عن الحالة',
     'drive.canView': 'يمكنه العرض',
     'drive.canDownload': 'يمكنه التنزيل',
     'drive.canEdit': 'يمكنه التعديل',
@@ -8706,7 +8736,6 @@ const DICT = {
     'drive.totalFiles': 'إجمالي الملفات',
     'drive.showingCount': 'يتم عرض {count} من {total} عنصراً',
     'drive.type': 'النوع',
-    'drive.people': 'الأشخاص',
     'drive.modified': 'تم التعديل',
     'drive.location': 'الموقع',
     'drive.star': 'تمييز بنجمة',
@@ -8759,6 +8788,8 @@ const DICT = {
     'drive.title': 'محرك الأقراص',
     'drive.description': 'إدارة ملفاتك في المساحات الشخصية والمشتركة وسير العمل',
     'drive.personal': 'المساحة الشخصية',
+    'drive.collapseAll': 'طي الكل',
+    'drive.folderStorage': 'هذا المجلد',
     'drive.personal_tab': 'شخصي',
     'drive.shared_tab': 'مشترك',
     'drive.public_tab': 'عام',
@@ -8953,6 +8984,7 @@ const DICT = {
     'drive.renameFailed': 'فشل في إعادة التسمية',
     'drive.restoreVersion': 'استعادة الإصدار',
     'drive.preview': 'معاينة',
+    'drive.edit': 'تعديل',
     'drive.activity.rollback_version': 'تم التراجع إلى الإصدار',
 
     // Activity actions
@@ -8966,11 +8998,13 @@ const DICT = {
     'drive.activity.unstarred': 'إزالة التمييز بنجمة',
     'drive.activity.public_link_created': 'تم إنشاء رابط عام',
     'drive.activity.preview': 'تمت المعاينة',
+    'drive.activity.open': 'تم الفتح',
 
     // Common
     'common.cancel': 'إلغاء',
     'common.back': 'رجوع',
     'common.submit': 'إرسال',
+    'common.loading': 'جاري التحميل',
 
     // Smart Drive additional labels
     'drive.addFilter': 'إضافة فلتر',

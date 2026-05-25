@@ -162,6 +162,7 @@ export const completeUpload = async (req, res) => {
 export const getFile = async (req, res) => {
   try {
     const userId = req.user?.dbId;
+    const roles = req.user?.roles || [];
     const { fileId } = req.params;
 
     const result = await fileService.getFileById(fileId, userId);
@@ -169,6 +170,11 @@ export const getFile = async (req, res) => {
     if (!result.success) {
       return res.status(result.error.code === 'FILE_NOT_FOUND' ? 404 : 403).json(result);
     }
+
+    // Add delete permission check to response
+    const deleteCheck = await fileService.canDeleteFile(fileId, userId, roles);
+    result.payload.canDelete = deleteCheck.canDelete;
+    result.payload.deleteReason = deleteCheck.reason;
 
     res.json(result);
   } catch (error) {
@@ -681,6 +687,7 @@ export const toggleStarFile = async (req, res) => {
 export const softDeleteFile = async (req, res) => {
   try {
     const userId = req.user?.dbId;
+    const roles = req.user?.roles || [];
     const { fileId } = req.params;
 
     // Get file details before deletion
@@ -691,7 +698,7 @@ export const softDeleteFile = async (req, res) => {
       }
     });
 
-    const result = await fileService.softDeleteFile(fileId, userId);
+    const result = await fileService.softDeleteFile(fileId, userId, roles);
 
     if (!result.success) {
       return res.status(403).json(result);

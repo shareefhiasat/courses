@@ -117,7 +117,10 @@ export const deleteFileComment = async ({ commentId, userId }) => {
 
     const comment = await prisma.fileComment.findUnique({
       where: { id: commentId },
-      include: { user: true }
+      include: { 
+        user: true,
+        file: { select: { ownerId: true } }
+      }
     });
 
     if (!comment) {
@@ -129,9 +132,9 @@ export const deleteFileComment = async ({ commentId, userId }) => {
       };
     }
 
-    console.log('[fileCommentService] Comment found:', { commentId: comment.id, userId: comment.userId });
+    console.log('[fileCommentService] Comment found:', { commentId: comment.id, userId: comment.userId, fileOwnerId: comment.file.ownerId });
 
-    // Check if user is the comment owner or admin
+    // Check if user is the comment owner, file owner, or admin
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { roleAssignments: { include: { role: true } } }
@@ -151,7 +154,8 @@ export const deleteFileComment = async ({ commentId, userId }) => {
 
     console.log('[fileCommentService] User roles:', roles, 'isAdmin:', isAdmin);
 
-    if (comment.userId !== userId && !isAdmin) {
+    // Only comment owner, file owner, or admin can delete
+    if (comment.userId !== userId && comment.file.ownerId !== userId && !isAdmin) {
       console.log('[fileCommentService] Insufficient permissions');
       return {
         success: false,

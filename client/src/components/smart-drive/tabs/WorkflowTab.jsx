@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getIcon } from '@constants/iconTypes';
 import { apiService } from '@services/api/apiService';
 
 const formatDateHeader = (dateStr, t) => {
@@ -17,6 +17,15 @@ const formatDateHeader = (dateStr, t) => {
   } else {
     return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
+};
+
+const formatSize = (bytes) => {
+  if (!bytes && bytes !== 0) return '\u2014';
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
+  return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
 };
 
 const STATUS_STYLES = {
@@ -387,7 +396,7 @@ export default function WorkflowTab({ fileId }) {
   if (filteredAndSortedWorkflows.length === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
-        {getThemedIcon('ui', 'git_branch', 40, 'muted')}
+        {getIcon('ui', 'git_branch', 40)}
         {searchQuery ? t('drive.noWorkflowsFound', 'No workflows found') : t('drive.noWorkflow')}
       </div>
     );
@@ -398,7 +407,6 @@ export default function WorkflowTab({ fileId }) {
       {/* Search and sort controls */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
         <div style={{ position: 'relative', flex: 1 }}>
-          {getThemedIcon('ui', 'search', 16, 'muted', { position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' })}
           <input
             type="text"
             placeholder={t('drive.searchWorkflows', 'Search workflows...')}
@@ -406,7 +414,7 @@ export default function WorkflowTab({ fileId }) {
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               width: '100%',
-              padding: '0.5rem 0.75rem 0.5rem 2.25rem',
+              padding: '0.5rem 0.75rem',
               borderRadius: '0.5rem',
               border: '1px solid #e5e7eb',
               fontSize: '0.875rem',
@@ -433,9 +441,9 @@ export default function WorkflowTab({ fileId }) {
               color: '#374151',
             }}
           >
-            {getThemedIcon('ui', 'filter', 16, 'light')}
+            {getIcon('ui', 'filter', 16)}
             <span>{t('drive.sort', 'Sort')}</span>
-            {getThemedIcon('ui', 'chevron_down', 16, 'light')}
+            {getIcon('ui', 'chevron_down', 16)}
           </button>
           {showSortMenu && (
             <div style={{
@@ -496,7 +504,7 @@ export default function WorkflowTab({ fileId }) {
               color: '#374151',
             }}
           >
-            {getThemedIcon('ui', 'grid', 16, 'light')}
+            {getIcon('ui', 'grid', 16)}
           </button>
           <button
             onClick={() => setViewMode('list')}
@@ -513,7 +521,7 @@ export default function WorkflowTab({ fileId }) {
               color: '#374151',
             }}
           >
-            {getThemedIcon('ui', 'list', 16, 'light')}
+            {getIcon('ui', 'list', 16)}
           </button>
         </div>
       </div>
@@ -540,7 +548,7 @@ export default function WorkflowTab({ fileId }) {
                 cursor: 'help',
               }}
             >
-              {getThemedIcon('ui', statusIcon, 14, 'light')}
+              {getIcon('ui', statusIcon, 14)}
               <span style={{ fontWeight: 500 }}>{status}</span>
               <span style={{ fontWeight: 600, opacity: 0.8 }}>({count})</span>
             </div>
@@ -561,7 +569,7 @@ export default function WorkflowTab({ fileId }) {
             maxHeight: '500px'
           }}>
             <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#6b7280', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {getThemedIcon('ui', 'clock', 16, 'muted')}
+              {getIcon('ui', 'clock', 16)}
               {t('drive.timeline') || 'Timeline'}
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -607,7 +615,7 @@ export default function WorkflowTab({ fileId }) {
           <div style={{ flex: 1, overflowY: 'auto', maxHeight: '500px' }}>
             {filteredAndSortedWorkflows.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: '#6b7280' }}>
-                {getThemedIcon('ui', 'git_branch', 40, 'muted')}
+                {getIcon('ui', 'git_branch', 40)}
                 {t('drive.noWorkflowsFound')}
               </div>
             ) : (
@@ -641,7 +649,7 @@ export default function WorkflowTab({ fileId }) {
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}>
-                        {getThemedIcon('ui', statusIcon, 16, 'light')}
+                        {getIcon('ui', statusIcon, 16)}
                       </div>
 
                       {/* Content */}
@@ -667,13 +675,24 @@ export default function WorkflowTab({ fileId }) {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: '#6b7280' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            {getThemedIcon('ui', 'user', 12, 'muted')}
+                            {getIcon('ui', 'user', 12)}
                             {workflow.submitter?.displayName || workflow.submitter?.email || '\u2014'}
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            {getThemedIcon('ui', 'calendar', 12, 'muted')}
+                            {getIcon('ui', 'calendar', 12)}
                             {getRelativeTime(workflow.createdAt)}
                           </span>
+                          {workflow.fileVersionNumber && (
+                            <span style={{
+                              padding: '0.125rem 0.375rem',
+                              borderRadius: '0.25rem',
+                              fontSize: '0.7rem',
+                              background: '#e5e7eb',
+                              color: '#6b7280',
+                            }}>
+                              v{workflow.fileVersionNumber}
+                            </span>
+                          )}
                           {workflow.file && (
                             <button
                               onClick={() => handleViewSnapshot(workflow.file, workflow.fileVersionId)}
@@ -707,7 +726,8 @@ export default function WorkflowTab({ fileId }) {
           gap: '1rem',
         }}>
           {filteredAndSortedWorkflows.map((workflow) => {
-            const StatusIcon = getStatusIcon(workflow.status);
+            const statusIcon = getStatusIcon(workflow.status);
+            const StatusIcon = statusIcon;
             const statusStyle = getStatusStyle(workflow.status);
             const typeStyle = getWorkflowTypeStyle(workflow.workflowType);
 
@@ -746,7 +766,7 @@ export default function WorkflowTab({ fileId }) {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {getThemedIcon('ui', statusIcon, 14, 'light')}
+                    {getIcon('ui', statusIcon, 14)}
                     {t(`workflow.status.${workflow.status.toLowerCase()}`) || workflow.status}
                   </span>
                 </div>
@@ -768,25 +788,36 @@ export default function WorkflowTab({ fileId }) {
                   </span>
                   {workflow.currentAssignee && (
                     <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                      {getThemedIcon('ui', 'user', 12, 'muted')}
+                      {getIcon('ui', 'user', 12)}
                       {t('drive.assignedTo')}: {workflow.currentAssignee.displayName || workflow.currentAssignee.email}
                     </span>
                   )}
                 </div>
 
-                {/* Third row: Initiator + Timestamp + Version Alias */}
+                {/* Third row: Initiator + Timestamp + Version */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.875rem', color: '#6b7280' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    {getThemedIcon('ui', 'user', 14, 'muted')}
+                    {getIcon('ui', 'user', 14)}
                     {workflow.submitter?.displayName || workflow.submitter?.email || '\u2014'}
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    {getThemedIcon('ui', 'calendar', 14, 'muted')}
+                    {getIcon('ui', 'calendar', 14)}
                     {getRelativeTime(workflow.createdAt)}
                   </span>
+                  {workflow.fileVersionNumber && (
+                    <span style={{
+                      padding: '0.125rem 0.375rem',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.7rem',
+                      background: '#e5e7eb',
+                      color: '#6b7280',
+                    }}>
+                      v{workflow.fileVersionNumber}
+                    </span>
+                  )}
                   {workflow.fileVersionAlias && (
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontStyle: 'italic' }}>
-                      {getThemedIcon('ui', 'git_branch', 14, 'muted')}
+                      {getIcon('ui', 'git_branch', 14)}
                       {workflow.fileVersionAlias}
                     </span>
                   )}
@@ -800,42 +831,49 @@ export default function WorkflowTab({ fileId }) {
                     background: '#f9fafb',
                     border: '1px solid #e5e7eb',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {getThemedIcon('ui', 'file_text', 16, 'muted')}
-                      <span style={{ flex: 1, fontSize: '0.875rem', color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {workflow.file.name}
-                      </span>
-                      <button
-                        onClick={() => handleViewSnapshot(workflow.file, workflow.fileVersionId)}
-                        style={{
-                          fontSize: '0.75rem',
-                          color: '#2563eb',
-                          textDecoration: 'none',
-                          whiteSpace: 'nowrap',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: 0,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                        }}
-                      >
-                        {t('drive.viewSnapshot', 'View snapshot')}
-                        {getThemedIcon('ui', 'external_link', 12, 'muted')}
-                        {workflow.fileVersionNumber && (
-                          <span style={{
-                            marginLeft: '0.25rem',
-                            fontSize: '0.7rem',
-                            color: '#6b7280',
-                            background: '#e5e7eb',
-                            padding: '0.125rem 0.375rem',
-                            borderRadius: '0.25rem',
-                          }}>
-                            v{workflow.fileVersionNumber}
-                          </span>
-                        )}
-                      </button>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 0 }}>
+                        {getIcon('ui', 'file_text', 16)}
+                        <span style={{ fontSize: '0.875rem', color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {workflow.file.name}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                          {formatSize(workflow.file.size)}
+                        </span>
+                        <button
+                          onClick={() => handleViewSnapshot(workflow.file, workflow.fileVersionId)}
+                          style={{
+                            fontSize: '0.75rem',
+                            color: '#2563eb',
+                            textDecoration: 'none',
+                            whiteSpace: 'nowrap',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                          }}
+                        >
+                          {t('drive.viewSnapshot', 'View snapshot')}
+                          {getIcon('ui', 'external_link', 12)}
+                          {workflow.fileVersionNumber && (
+                            <span style={{
+                              marginLeft: '0.25rem',
+                              fontSize: '0.7rem',
+                              color: '#6b7280',
+                              background: '#e5e7eb',
+                              padding: '0.125rem 0.375rem',
+                              borderRadius: '0.25rem',
+                            }}>
+                              v{workflow.fileVersionNumber}
+                            </span>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

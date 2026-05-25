@@ -33,6 +33,7 @@ import {
 } from './minioService.js';
 import { mapBucketName } from '../constants/driveConstants.js';
 import { getDatabaseUserId } from '../utils/userResolver.js';
+import { LMS_ROLES } from './keycloakAdminService.js';
 
 const prisma = new PrismaClient();
 
@@ -256,7 +257,7 @@ export async function getFileById(fileId, actorUserId) {
     const file = await prisma.file.findUnique({
       where: { id: fileId },
       include: {
-        owner: { select: { id: true, email: true, displayName: true } },
+        owner: { select: { id: true, keycloakId: true, email: true, displayName: true } },
         folder: { select: { id: true, name: true, path: true } },
         currentVersion: true,
         versions: { orderBy: { versionNumber: 'desc' }, take: 10 },
@@ -369,7 +370,7 @@ export async function listFiles(keycloakUser, {
       prisma.file.findMany({
         where,
         include: {
-          owner: { select: { id: true, email: true, displayName: true, firstName: true, lastName: true } },
+          owner: { select: { id: true, keycloakId: true, email: true, displayName: true, firstName: true, lastName: true } },
           currentVersion: { select: { versionNumber: true, size: true, createdAt: true } },
         },
         orderBy: { [sortField]: sortOrder },
@@ -382,10 +383,15 @@ export async function listFiles(keycloakUser, {
     // Add workflow counts for each file
     const fileIds = files.map(f => f.id);
     let workflowInstances = [];
+    let workflowDocuments = [];
     try {
       workflowInstances = await prisma.workflowInstance.findMany({
         where: { fileId: { in: fileIds } },
         select: { fileId: true, status: true },
+      });
+      workflowDocuments = await prisma.workflowDocument.findMany({
+        where: { fileId: { in: fileIds } },
+        select: { fileId: true, status: true, fileVersionId: true },
       });
     } catch (error) {
       console.error('[fileService.listFiles] Failed to fetch workflow counts:', error);
@@ -394,6 +400,9 @@ export async function listFiles(keycloakUser, {
 
     // Aggregate workflow counts by file and status
     const workflowCountsMap = {};
+    const workflowVersionMap = {}; // Map fileId to captured version ID
+    
+    // Process WorkflowInstance
     workflowInstances.forEach(instance => {
       if (!workflowCountsMap[instance.fileId]) {
         workflowCountsMap[instance.fileId] = {
@@ -415,19 +424,95 @@ export async function listFiles(keycloakUser, {
       workflowCountsMap[instance.fileId][mappedStatus]++;
     });
 
-    // Attach workflow counts to each file
-    const filesWithCounts = files.map(file => ({
-      ...file,
-      workflowCounts: workflowCountsMap[file.id] || {
+    // Process WorkflowDocument (map to similar statuses)
+    workflowDocuments.forEach(doc => {
+      if (!workflowCountsMap[doc.fileId]) {
+        workflowCountsMap[doc.fileId] = {
+          pending: 0,
+          in_progress: 0,
+          completed: 0,
+          rejected: 0,
+          needs_feedback: 0,
+        };
+      }
+      const statusMap = {
+        DRAFT: 'pending',
+        SUBMITTED: 'in_progress',
+        UNDER_REVIEW: 'in_progress',
+        APPROVED: 'completed',
+        REJECTED: 'rejected',
+        NEEDS_REVISION: 'needs_feedback',
+      };
+      const mappedStatus = statusMap[doc.status] || 'pending';
+      workflowCountsMap[doc.fileId][mappedStatus]++;
+      
+      // Store the captured version ID for this file
+      if (doc.fileVersionId) {
+        workflowVersionMap[doc.fileId] = doc.fileVersionId;
+      }
+    });
+
+    // Add share counts for each file (people + groups)
+    let fileShares = [];
+    try {
+      fileShares = await prisma.fileShare.findMany({
+        where: { fileId: { in: fileIds } },
+        select: { fileId: true, subjectType: true },
+      });
+    } catch (error) {
+      console.error('[fileService.listFiles] Failed to fetch share counts:', error);
+      // Continue without share counts if query fails
+    }
+
+    // Aggregate share counts by file
+    const shareCountsMap = {};
+    fileShares.forEach(share => {
+      if (!shareCountsMap[share.fileId]) {
+        shareCountsMap[share.fileId] = {
+          people: 0,
+          groups: 0,
+        };
+      }
+      if (share.subjectType === 'USER') {
+        shareCountsMap[share.fileId].people++;
+      } else if (share.subjectType === 'GROUP') {
+        shareCountsMap[share.fileId].groups++;
+      }
+    });
+
+    // Attach workflow and share counts to each file
+    const filesWithCounts = files.map(file => {
+      const counts = workflowCountsMap[file.id] || {
         pending: 0,
         in_progress: 0,
         completed: 0,
         rejected: 0,
         needs_feedback: 0,
-      },
-      versionCount: file.versions?.length || 1,
-      versionNumber: file.currentVersion?.versionNumber || 1,
-    }));
+      };
+      const shares = shareCountsMap[file.id] || {
+        people: 0,
+        groups: 0,
+      };
+      
+      // Get workflow version number if this file has a workflow with a captured version
+      let workflowVersionNumber = null;
+      if (workflowVersionMap[file.id] && file.versions) {
+        const snapshotVersion = file.versions.find(v => v.id === workflowVersionMap[file.id]);
+        if (snapshotVersion) {
+          workflowVersionNumber = snapshotVersion.versionNumber;
+        }
+      }
+      
+      console.log('[fileService.listFiles] File:', file.id, file.name, 'workflowCounts:', counts, 'shareCounts:', shares, 'workflowVersionNumber:', workflowVersionNumber);
+      return {
+        ...file,
+        workflowCounts: counts,
+        shareCounts: shares,
+        versionCount: file.versions?.length || 1,
+        versionNumber: file.currentVersion?.versionNumber || 1,
+        workflowVersionNumber, // Add the captured workflow version number
+      };
+    });
 
     return ok({ files: filesWithCounts, total, page, pageSize });
   } catch (error) {
@@ -463,11 +548,32 @@ export async function updateFile(fileId, actorUserId, updates) {
   }
 }
 
-export async function softDeleteFile(fileId, actorUserId) {
+export async function softDeleteFile(fileId, actorUserId, actorRoles = []) {
   try {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
     if (!file) return err('FILE_NOT_FOUND', 'File not found');
     if (file.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Only owner can trash');
+
+    // Check if file is shared (unless super_admin)
+    const isSuperAdmin = actorRoles.includes(LMS_ROLES.SUPER_ADMIN);
+    if (!isSuperAdmin) {
+      const { isFileShared } = await import('./fileShareService.js');
+      const shared = await isFileShared(fileId);
+      if (shared) {
+        return err('FILE_SHARED', 'Cannot delete shared files. Remove shares first.');
+      }
+
+      // Check workflow status
+      const workflowStatus = await getFileWorkflowStatus(fileId, actorUserId);
+      if (workflowStatus.hasWorkflow) {
+        if (workflowStatus.status !== 'REJECTED') {
+          return err('WORKFLOW_ACTIVE', 'Cannot delete files with active workflows.');
+        }
+        if (!workflowStatus.isOwner) {
+          return err('WORKFLOW_NOT_OWNER', 'Only the workflow owner can delete rejected workflow files.');
+        }
+      }
+    }
 
     const updated = await prisma.file.update({
       where: { id: fileId },
@@ -518,6 +624,65 @@ export async function restoreFile(fileId, actorUserId) {
 }
 
 /**
+ * Get workflow status for a file
+ * Returns whether file has a workflow, its status, and if the user is the owner
+ */
+export async function getFileWorkflowStatus(fileId, userId) {
+  try {
+    const workflow = await prisma.workflowInstance.findFirst({
+      where: { fileId },
+      include: { initiatedBy: true },
+    });
+
+    if (!workflow) {
+      return { hasWorkflow: false };
+    }
+
+    return {
+      hasWorkflow: true,
+      status: workflow.status,
+      isOwner: workflow.initiatedById === userId,
+    };
+  } catch (error) {
+    console.error('[fileService.getFileWorkflowStatus]', error);
+    return { hasWorkflow: false };
+  }
+}
+
+/**
+ * Check if a file can be deleted and return the reason if not
+ */
+export async function canDeleteFile(fileId, userId, roles = []) {
+  try {
+    const file = await prisma.file.findUnique({ where: { id: fileId } });
+    if (!file) return { canDelete: false, reason: 'FILE_NOT_FOUND' };
+    if (file.ownerId !== userId) return { canDelete: false, reason: 'NOT_OWNER' };
+
+    const isSuperAdmin = roles.includes(LMS_ROLES.SUPER_ADMIN);
+    if (isSuperAdmin) return { canDelete: true };
+
+    const { isFileShared } = await import('./fileShareService.js');
+    const shared = await isFileShared(fileId);
+    if (shared) return { canDelete: false, reason: 'FILE_SHARED' };
+
+    const workflowStatus = await getFileWorkflowStatus(fileId, userId);
+    if (workflowStatus.hasWorkflow) {
+      if (workflowStatus.status !== 'REJECTED') {
+        return { canDelete: false, reason: 'WORKFLOW_ACTIVE' };
+      }
+      if (!workflowStatus.isOwner) {
+        return { canDelete: false, reason: 'WORKFLOW_NOT_OWNER' };
+      }
+    }
+
+    return { canDelete: true };
+  } catch (error) {
+    console.error('[fileService.canDeleteFile]', error);
+    return { canDelete: false, reason: 'ERROR' };
+  }
+}
+
+/**
  * Hard-delete: removes ALL MinIO versions then removes the DB row.
  * Normally called by the purge cron, but also exposed as an admin escape hatch.
  */
@@ -561,18 +726,23 @@ export async function permanentDeleteFile(fileId, actorUserId) {
  * @param {string} fileVersionId - Optional specific file version ID for workflow snapshots
  */
 export async function getPreviewUrl(fileId, actorUserId, fileVersionId = null) {
+  console.log('[fileService.getPreviewUrl] Request:', { fileId, actorUserId, fileVersionId });
   try {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
+    console.log('[fileService.getPreviewUrl] File found:', file ? { id: file.id, name: file.name, isDeleted: file.isDeleted, s3Key: file.s3Key } : null);
     if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');
 
     // Check if file has a placeholder key (incomplete upload)
     if (file.s3Key && file.s3Key.includes('/placeholder')) {
+      console.log('[fileService.getPreviewUrl] File has placeholder key, upload not complete');
       return err('FILE_NOT_READY', 'File upload not completed');
     }
 
     // Check if file has no versions
     const versionCount = await prisma.fileVersion.count({ where: { fileId } });
+    console.log('[fileService.getPreviewUrl] Version count:', versionCount);
     if (versionCount === 0) {
+      console.log('[fileService.getPreviewUrl] No versions found');
       return err('FILE_NOT_READY', 'File upload not completed');
     }
 
@@ -599,7 +769,8 @@ export async function getPreviewUrl(fileId, actorUserId, fileVersionId = null) {
       };
 
       // If fileVersionId is provided, use read-only permission to preserve snapshot
-      const permission = fileVersionId ? 'read' : 'write';
+      // Default to read-only (view mode) for preview, user can explicitly edit if needed
+      const permission = 'read';
       const wopiToken = generateWopiToken(actorUserId, fileId, permission, userInfo, fileVersionId);
 
       await prisma.fileActivity.create({
@@ -909,4 +1080,6 @@ export default {
   getFileByPublicToken,
   toggleStarFile,
   createFolder,
+  getFileWorkflowStatus,
+  canDeleteFile,
 };

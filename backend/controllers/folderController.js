@@ -29,6 +29,11 @@ export const listChildren = async (req, res) => {
   return jsonOrStatus(res, result);
 };
 
+export const getFolderTree = async (req, res) => {
+  const result = await folderService.getFolderTree(req.user);
+  return jsonOrStatus(res, result);
+};
+
 export const getFolder = async (req, res) => {
   console.log('[folderController] getFolder called with folderId:', req.params.folderId, 'userId:', req.user?.dbId);
   const result = await folderService.getFolderWithBreadcrumb(req.params.folderId, req.user?.dbId);
@@ -93,7 +98,7 @@ export const softDeleteFolder = async (req, res) => {
     }
   });
 
-  const result = await folderService.softDeleteFolder(req.params.folderId, req.user?.dbId);
+  const result = await folderService.softDeleteFolder(req.params.folderId, req.user?.dbId, req.user?.roles || []);
   
   // Emit notification for folder deletion if successful
   if (result.success && folder) {

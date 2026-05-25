@@ -106,7 +106,12 @@ export async function getWorkflowDocumentById(id) {
     const document = await prisma.workflowDocument.findUnique({
       where: { id },
       include: {
-        file: true,
+        file: {
+          include: {
+            currentVersion: true,
+            versions: true
+          }
+        },
         submitter: true,
         currentAssignee: true,
         instructor: true,
@@ -125,6 +130,14 @@ export async function getWorkflowDocumentById(id) {
         }
       }
     });
+
+    // If fileVersionId is set, find the corresponding version and add its number
+    if (document && document.fileVersionId && document.file) {
+      const snapshotVersion = document.file.versions.find(v => v.id === document.fileVersionId);
+      if (snapshotVersion) {
+        document.fileVersionNumber = snapshotVersion.versionNumber;
+      }
+    }
 
     return { success: true, data: document };
   } catch (error) {
@@ -185,7 +198,8 @@ export async function getWorkflowDocumentsByFileId(fileId) {
       include: {
         file: {
           include: {
-            currentVersion: true
+            currentVersion: true,
+            versions: true
           }
         },
         currentAssignee: true,
@@ -196,11 +210,22 @@ export async function getWorkflowDocumentsByFileId(fileId) {
     });
 
     // Add fileVersionNumber and fileVersionAlias to each document
-    const documentsWithVersionNumber = documents.map(doc => ({
-      ...doc,
-      fileVersionNumber: doc.file?.currentVersion?.versionNumber || null,
-      fileVersionAlias: doc.file?.currentVersion?.changeNote || null
-    }));
+    const documentsWithVersionNumber = documents.map(doc => {
+      // If fileVersionId is set, find the corresponding version and add its number
+      let snapshotVersionNumber = null;
+      if (doc.fileVersionId && doc.file) {
+        const snapshotVersion = doc.file.versions.find(v => v.id === doc.fileVersionId);
+        if (snapshotVersion) {
+          snapshotVersionNumber = snapshotVersion.versionNumber;
+        }
+      }
+
+      return {
+        ...doc,
+        fileVersionNumber: snapshotVersionNumber || doc.file?.currentVersion?.versionNumber || null,
+        fileVersionAlias: doc.file?.currentVersion?.changeNote || null
+      };
+    });
 
     return { success: true, data: documentsWithVersionNumber, total: documents.length };
   } catch (error) {

@@ -4,6 +4,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { DEFAULT_STORAGE_LIMIT } from '@constants/driveConstants';
+import DriveTreeView from './DriveTreeView';
 
 /**
  * DriveSpacesSidebar - Left-rail navigation for SmartDrive.
@@ -15,10 +16,13 @@ export default function DriveSpacesSidebar({
   onSpaceChange,
   storageUsage = 0,
   storageLimit = DEFAULT_STORAGE_LIMIT,
+  folderStorage = 0,
   folders = [],
+  folderTree = [],
   onFolderSelect,
   onUploadClick,
   isMinimized = false,
+  currentFolderId = null,
 }) {
   const { t, isRTL } = useLang();
   const { theme } = useTheme();
@@ -144,7 +148,7 @@ export default function DriveSpacesSidebar({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>{spaces.map(spaceButton)}</div>
       </div>
 
-      {/* Folders */}
+      {/* Folders / Tree View */}
       {!isMinimized && (
         <div style={cardStyle}>
           <div
@@ -159,56 +163,64 @@ export default function DriveSpacesSidebar({
           >
             {t('drive.folders') || 'Folders'}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {folders.length === 0 ? (
-              <p
-                style={{
-                  margin: 0,
-                  padding: '0.5rem 0.75rem',
-                  fontSize: '0.75rem',
-                  color: 'var(--text-muted, #9ca3af)',
-                  fontStyle: 'italic',
-                }}
-              >
-                {t('drive.noFolders') || 'No folders yet'}
-              </p>
-            ) : (
-              folders.slice(0, 8).map((folder) => (
-                <button
-                  key={folder.id || folder.path || folder.name}
-                  onClick={() => onFolderSelect?.(folder)}
+          {activeSpace === 'my-drive' ? (
+            <DriveTreeView
+              folders={folderTree}
+              onFolderSelect={onFolderSelect}
+              currentFolderId={currentFolderId}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {folders.length === 0 ? (
+                <p
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
+                    margin: 0,
                     padding: '0.5rem 0.75rem',
-                    background: 'transparent',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    cursor: 'pointer',
-                    fontSize: '0.8125rem',
-                    color: 'var(--text-secondary, #374151)',
-                    textAlign: isRTL ? 'right' : 'left',
+                    fontSize: '0.75rem',
+                    color: 'var(--text-muted, #9ca3af)',
+                    fontStyle: 'italic',
                   }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)')
-                  }
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  {getThemedIcon('ui', 'folder', 14, theme)}
-                  <span
+                  {t('drive.noFolders') || 'No folders yet'}
+                </p>
+              ) : (
+                folders.slice(0, 8).map((folder) => (
+                  <button
+                    key={folder.id || folder.path || folder.name}
+                    onClick={() => onFolderSelect?.(folder)}
                     style={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.5rem 0.75rem',
+                      background: 'transparent',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      cursor: 'pointer',
+                      fontSize: '0.8125rem',
+                      color: 'var(--text-secondary, #374151)',
+                      textAlign: isRTL ? 'right' : 'left',
                     }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)')
+                    }
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
-                    {folder.name}
-                  </span>
-                </button>
-              ))
-            )}
-          </div>
+                    {getThemedIcon('ui', 'folder', 14, theme)}
+                    <span
+                      style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {folder.name}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -262,6 +274,54 @@ export default function DriveSpacesSidebar({
                 `${fmt(storageUsage)} of ${fmt(storageLimit)} used`)
             )}
           </p>
+          {/* Folder-specific storage indicator */}
+          {currentFolderId && folderStorage > 0 && (
+            <div
+              style={{
+                marginTop: '0.5rem',
+                paddingTop: '0.5rem',
+                borderTop: '1px solid var(--border, #e5e7eb)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 500,
+                    color: 'var(--text-secondary, #374151)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                  }}
+                >
+                  {getThemedIcon('ui', 'folder', 12, 'muted')}
+                  {t('drive.folderStorage') || 'This folder'}
+                </span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>
+                  {fmt(folderStorage)}
+                </span>
+              </div>
+              <div
+                style={{
+                  width: '100%',
+                  height: 4,
+                  background: 'var(--background-secondary, #e5e7eb)',
+                  borderRadius: 999,
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${Math.min((folderStorage / storageUsage) * 100, 100)}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #10b981, #059669)',
+                    transition: 'width 0.3s ease',
+                    borderRadius: 999,
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

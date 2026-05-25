@@ -10,7 +10,6 @@ import { Clock, CheckCircle, XCircle, AlertCircle, GitBranch } from 'lucide-reac
 import DriveSpacesSidebar from '@components/smart-drive/DriveSpacesSidebar';
 import FileRoster from '@components/smart-drive/FileRoster';
 import InboxDrawer from '@components/smart-drive/InboxDrawer';
-import ShareDialog from '@components/smart-drive/ShareDialog';
 import FileDetailsModal from '@components/smart-drive/FileDetailsModal';
 import UploadModal from '@components/smart-drive/UploadModal';
 import CreateFolderModal from '@components/smart-drive/CreateFolderModal';
@@ -46,13 +45,16 @@ export default function SmartDrivePage() {
   const [activeSpace, setActiveSpace] = useState('my-drive');
   const [currentFolderId, setCurrentFolderId] = useState(null);
   const [breadcrumbs, setBreadcrumbs] = useState([]);
+  const [folderTree, setFolderTree] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
+
+  console.log('[SmartDrivePage] Component render, activeSpace:', activeSpace, 'folderTree:', folderTree);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('list');
   const [sidebarMinimized, setSidebarMinimized] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
-  const [shareDialogFile, setShareDialogFile] = useState(null);
   const [detailsModalFile, setDetailsModalFile] = useState(null);
+  const [detailsModalInitialTab, setDetailsModalInitialTab] = useState(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [createFolderModalOpen, setCreateFolderModalOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState(null);
@@ -77,6 +79,7 @@ export default function SmartDrivePage() {
     error: filesError,
     fetchFiles,
     fetchFolders,
+    fetchFolderTree,
     getFolderDetails,
     refreshFiles,
     starFile,
@@ -117,6 +120,23 @@ export default function SmartDrivePage() {
     fetchFiles(filterParams);
     fetchFolders();
   }, [fetchFiles, fetchFolders, toAPIParams]);
+
+  useEffect(() => {
+    console.log('[SmartDrivePage] Folder tree useEffect triggered, activeSpace:', activeSpace);
+    const loadFolderTree = async () => {
+      console.log('[SmartDrivePage] loadFolderTree called, activeSpace:', activeSpace);
+      if (activeSpace === 'my-drive') {
+        console.log('[SmartDrivePage] Fetching folder tree...');
+        const tree = await fetchFolderTree();
+        console.log('[SmartDrivePage] Folder tree received:', tree);
+        setFolderTree(tree);
+      } else {
+        console.log('[SmartDrivePage] Skipping folder tree, not my-drive');
+        setFolderTree([]);
+      }
+    };
+    loadFolderTree();
+  }, [activeSpace, fetchFolderTree]);
 
   useEffect(() => {
     let mounted = true;
@@ -167,6 +187,12 @@ export default function SmartDrivePage() {
   const visibleFiles = useMemo(() => {
     return allFiles || [];
   }, [allFiles]);
+
+  // Compute folder-specific storage (only files in current folder)
+  const folderStorage = useMemo(
+    () => (visibleFiles || []).reduce((sum, f) => sum + (f.size || 0), 0),
+    [visibleFiles]
+  );
 
   // Aggregate workflow status counts across all visible files
   const workflowStatusCounts = useMemo(() => {
@@ -253,6 +279,7 @@ export default function SmartDrivePage() {
     if (hasStarredFilter) {
       result = result.filter(f => f.starred);
     }
+    console.log('[SmartDrivePage] visibleFolders:', result, 'activeSpace:', activeSpace, 'folders:', folders);
     return result;
   }, [activeSpace, folders, filters]);
 
@@ -367,12 +394,10 @@ export default function SmartDrivePage() {
     } else if (action === 'share') {
       if (items.length === 1) {
         const item = items[0];
-        if (item.path !== undefined) {
-          // It's a folder
-          setShareDialogFile(item);
-        } else {
-          // It's a file
-          setShareDialogFile(item);
+        if (item.path === undefined) {
+          // It's a file - open details modal on share tab
+          setDetailsModalFile(item);
+          setDetailsModalInitialTab('share');
         }
       }
     } else if (action === 'create-workflow') {
@@ -404,8 +429,8 @@ export default function SmartDrivePage() {
         error(t('drive.downloadFolderFailed'));
       }
     } else if (action === 'share') {
-      // Open share dialog with folder data
-      setShareDialogFile(folder);
+      // Folders don't have share tab yet - show toast
+      info(t('drive.folderShareNotAvailable') || 'Folder sharing not available');
     }
   };
 
@@ -437,7 +462,7 @@ export default function SmartDrivePage() {
 
   const handleGeneratePublicLink = async (fileId, expiryDays) => {
     const result = await createPublicLink(fileId, { expiryDays });
-    return result.payload;
+    return result.success ? result.payload : result;
   };
 
   const handleFileOpen = async (file) => {
@@ -622,7 +647,6 @@ export default function SmartDrivePage() {
     },
     onEscape: () => {
       if (selectedIds.size > 0) handleClearSelection();
-      if (shareDialogFile) setShareDialogFile(null);
       if (detailsModalFile) setDetailsModalFile(null);
     },
   });
@@ -851,10 +875,13 @@ export default function SmartDrivePage() {
             onSpaceChange={handleSpaceChange}
             storageUsage={storageUsage}
             storageLimit={storageLimit}
+            folderStorage={folderStorage}
             folders={folders}
+            folderTree={folderTree}
             onFolderSelect={handleFolderOpen}
             onUploadClick={handleUpload}
             isMinimized={!isMobile && sidebarMinimized}
+            currentFolderId={currentFolderId}
           />
         </aside>
 
@@ -1167,16 +1194,6 @@ export default function SmartDrivePage() {
         />
       )}
 
-      {/* Share Dialog */}
-      {shareDialogFile && (
-        <ShareDialog
-          file={shareDialogFile}
-          onShare={handleShare}
-          onGenerateLink={handleGeneratePublicLink}
-          onClose={() => setShareDialogFile(null)}
-        />
-      )}
-
       {/* Custom Workflow Dialog */}
       <CustomWorkflowDialog
         isOpen={showWorkflowDialog}
@@ -1192,11 +1209,15 @@ export default function SmartDrivePage() {
       {detailsModalFile && (
         <FileDetailsModal
           file={detailsModalFile}
-          onClose={() => setDetailsModalFile(null)}
-          onDownload={downloadFile}
-          onShare={(file) => {
-            setShareDialogFile(file);
+          initialTab={detailsModalInitialTab || 'details'}
+          userCanEdit={detailsModalFile?.owner?.keycloakId === user?.id}
+          onClose={() => {
+            setDetailsModalFile(null);
+            setDetailsModalInitialTab(null);
           }}
+          onDownload={downloadFile}
+          onShare={handleShare}
+          onGenerateLink={handleGeneratePublicLink}
           onStar={starFile}
           onTrash={trashFile}
           onRefresh={() => {

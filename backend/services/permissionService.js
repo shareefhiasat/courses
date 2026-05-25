@@ -57,6 +57,30 @@ export async function canAccessFile(fileId, actor) {
   if (file.ownerId === actor.userId) return ok('EDIT');
   if ((actor.roles || []).includes(SUPER_ADMIN_ROLE)) return ok('EDIT');
 
+  // Check if user is a workflow participant (initiatedBy, assignee, or reviewer)
+  const workflowInstance = await prisma.workflowInstance.findFirst({
+    where: { fileId },
+    select: {
+      initiatedById: true,
+      workflowSteps: {
+        select: {
+          assigneeId: true,
+          reviewerId: true,
+        },
+      },
+    },
+  });
+
+  if (workflowInstance) {
+    const isInitiator = workflowInstance.initiatedById === actor.userId;
+    const isAssignee = workflowInstance.workflowSteps.some(step => step.assigneeId === actor.userId);
+    const isReviewer = workflowInstance.workflowSteps.some(step => step.reviewerId === actor.userId);
+    
+    if (isInitiator || isAssignee || isReviewer) {
+      return ok('VIEW'); // Workflow participants get VIEW access by default
+    }
+  }
+
   const now = new Date();
 
   // Direct file shares (user OR role).

@@ -40,7 +40,7 @@ const statusConfig = {
   },
 };
 
-export default function WorkflowStatusIndicator({ workflowCounts = {}, onClick }) {
+export default function WorkflowStatusIndicator({ workflowCounts = {}, onClick, showTooltip = false }) {
   const { theme } = useTheme();
   const { t } = useLang();
 
@@ -73,7 +73,7 @@ export default function WorkflowStatusIndicator({ workflowCounts = {}, onClick }
           e.currentTarget.style.background = 'transparent';
         }
       }}
-      title={activeStatuses.map(s => `${t(s.config.labelKey)}: ${s.count}`).join(', ')}
+      title={showTooltip ? activeStatuses.map(s => `${t(s.config.labelKey)}: ${s.count}`).join(', ') : undefined}
     >
       {activeStatuses.map(({ status, count, config }) => (
         <div
