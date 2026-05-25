@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Info, Clock, MessageSquare, Activity, GitBranch, Eye, Maximize2, Minimize2 } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import Modal from '@ui/Modal/Modal';
 import Button from '@ui/Button/Button';
 import Tabs from '@ui/Tabs/Tabs';
@@ -10,7 +10,7 @@ import CommentsTab from './tabs/CommentsTab';
 import ActivityTab from './tabs/ActivityTab';
 import WorkflowTab from './tabs/WorkflowTab';
 
-export default function FileDetailsModal({ file, onClose, onDownload, onShare, onStar, onTrash }) {
+export default function FileDetailsModal({ file, onClose, onDownload, onShare, onStar, onTrash, onRefresh }) {
   const { t } = useLang();
   const [activeTab, setActiveTab] = useState('preview');
   const [previewOpened, setPreviewOpened] = useState(false);
@@ -19,6 +19,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
   const [previewLoading, setPreviewLoading] = useState(false);
   const [wopiToken, setWopiToken] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [currentFile, setCurrentFile] = useState(file);
   const previewContainerRef = useRef(null);
   const iframeRef = useRef(null);
 
@@ -26,7 +27,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
     if (!file || !file.mimeType) return 'unknown';
     const mt = file.mimeType.toLowerCase();
     const name = (file.name || '').toLowerCase();
-    
+
     if (mt.startsWith('image/')) return 'image';
     if (mt.startsWith('video/')) return 'video';
     if (mt.includes('pdf') || name.endsWith('.pdf')) return 'pdf';
@@ -36,22 +37,47 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
     return 'unknown';
   };
 
-  const fileType = getFileType(file);
+  const fileType = getFileType(currentFile);
   const isPreviewable = ['image', 'video', 'pdf', 'document', 'presentation', 'spreadsheet'].includes(fileType);
+
+  // Update current file when file prop changes
+  useEffect(() => {
+    setCurrentFile(file);
+  }, [file]);
+
+  // Listen for version update events
+  useEffect(() => {
+    const handleVersionUpdate = (event) => {
+      if (event.detail?.fileId === currentFile?.id) {
+        console.log('[FileDetailsModal] Version update detected, refreshing file data');
+        // Trigger parent refresh
+        if (onRefresh) {
+          onRefresh();
+        }
+        // Refetch preview URL to show latest version
+        if (isPreviewable) {
+          fetchPreviewUrl();
+        }
+      }
+    };
+
+    window.addEventListener('file-version-updated', handleVersionUpdate);
+    return () => window.removeEventListener('file-version-updated', handleVersionUpdate);
+  }, [currentFile?.id, isPreviewable, onRefresh]);
 
   // Fetch preview URL when modal opens or file changes
   useEffect(() => {
-    if (file && isPreviewable) {
+    if (currentFile && isPreviewable) {
       fetchPreviewUrl();
     }
-  }, [file, isPreviewable]);
+  }, [currentFile, isPreviewable]);
 
   const fetchPreviewUrl = async () => {
-    if (!file) return;
-    
+    if (!currentFile) return;
+
     setPreviewLoading(true);
     try {
-      const response = await fetch(`/api/v1/drive/files/${file.id}/preview`);
+      const response = await fetch(`/api/v1/drive/files/${currentFile.id}/preview`);
       const data = await response.json();
       
       if (data.success) {
@@ -123,12 +149,12 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
   };
 
   const tabs = [
-    ...(isPreviewable ? [{ value: 'preview', label: t('drive.preview'), icon: <Eye className="w-4 h-4" aria-hidden="true" /> }] : []),
-    { value: 'details', label: t('drive.details'), icon: <Info className="w-4 h-4" aria-hidden="true" /> },
-    { value: 'versions', label: t('drive.versions'), icon: <Clock className="w-4 h-4" aria-hidden="true" /> },
-    { value: 'comments', label: t('drive.comments'), icon: <MessageSquare className="w-4 h-4" aria-hidden="true" /> },
-    { value: 'activity', label: t('drive.activity'), icon: <Activity className="w-4 h-4" aria-hidden="true" /> },
-    { value: 'workflow', label: t('drive.workflow'), icon: <GitBranch className="w-4 h-4" aria-hidden="true" /> },
+    ...(isPreviewable ? [{ value: 'preview', label: t('drive.preview'), icon: getThemedIcon('ui', 'eye', 16, 'light') }] : []),
+    { value: 'details', label: t('drive.details'), icon: getThemedIcon('ui', 'info', 16, 'light') },
+    { value: 'versions', label: t('drive.versions'), icon: getThemedIcon('ui', 'clock', 16, 'light') },
+    { value: 'comments', label: t('drive.comments'), icon: getThemedIcon('ui', 'message', 16, 'light') },
+    { value: 'activity', label: t('drive.activity'), icon: getThemedIcon('ui', 'activity', 16, 'light') },
+    { value: 'workflow', label: t('drive.workflow'), icon: getThemedIcon('ui', 'git_branch', 16, 'light') },
   ];
 
   const footer = (
@@ -279,7 +305,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
                       }}
                       title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
                     >
-                      {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+                      {isFullscreen ? getThemedIcon('ui', 'minimize', 20, 'light') : getThemedIcon('ui', 'maximize', 20, 'light')}
                     </button>
                     <iframe
                       ref={previewContainerRef}

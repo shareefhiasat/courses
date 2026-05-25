@@ -72,8 +72,9 @@ const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
 const MarksPage = lazy(() => import('./pages/academic/enrollments/grading/MarksPage'));
 const WorkflowInboxPage = lazy(() => import('./pages/workflow/WorkflowInboxPage'));
 const WorkflowDetailPage = lazy(() => import('./pages/workflow/WorkflowDetailPage'));
-const WorkflowCreatePage = lazy(() => import('./pages/workflow/WorkflowCreatePage'));
-const WorkflowWorkspacePage = lazy(() => import('./pages/workflow/WorkflowWorkspacePage'));
+const WorkflowDocumentDetailPage = lazy(() => import('./pages/workflow/WorkflowDocumentDetailPage'));
+const CalendarCompliancePage = lazy(() => import('./pages/workflow/CalendarCompliancePage'));
+const WorkflowAnalyticsPage = lazy(() => import('./pages/workflow/WorkflowAnalyticsPage'));
 const SmartDrivePage = lazy(() => import('./pages/SmartDrivePage'));
 
 // Handle MobX State Tree errors globally
@@ -538,22 +539,11 @@ const AppContent = () => {
           />
           
           <Route 
-            path="/workflow/create" 
+            path="/workflow-documents/:documentId" 
             element={
-              <ProtectedRoute screenId="workflow" screenName="Workflow Create">
+              <ProtectedRoute screenId="workflow" screenName="Workflow Document Detail">
                 <Suspense fallback={<GlobalLoadingFallback />}>
-                  <WorkflowCreatePage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/workflow/workspace" 
-            element={
-              <ProtectedRoute screenId="workflow" screenName="Workflow Workspace">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <WorkflowWorkspacePage />
+                  <WorkflowDocumentDetailPage />
                 </Suspense>
               </ProtectedRoute>
             } 
@@ -576,6 +566,28 @@ const AppContent = () => {
               <ProtectedRoute screenId="workflow" screenName="Workflow Detail">
                 <Suspense fallback={<GlobalLoadingFallback />}>
                   <WorkflowDetailPage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/workflow/compliance" 
+            element={
+              <ProtectedRoute screenId="workflow" screenName="Calendar Compliance">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <CalendarCompliancePage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/workflow/analytics" 
+            element={
+              <ProtectedRoute screenId="workflow" screenName="Workflow Analytics">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <WorkflowAnalyticsPage />
                 </Suspense>
               </ProtectedRoute>
             } 

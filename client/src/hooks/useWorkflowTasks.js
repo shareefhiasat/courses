@@ -6,9 +6,9 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import { apiService } from '@services/api/apiService';
 
-const API_BASE = '/api/v1/workflows';
+const API_BASE = '/workflows';
 
 export function useWorkflowTasks() {
   const [tasks, setTasks] = useState([]);
@@ -20,17 +20,20 @@ export function useWorkflowTasks() {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE}/my-tasks`);
-      if (response.data.success) {
-        const taskList = response.data.payload || [];
+      const response = await apiService.get(`${API_BASE}/my-tasks`);
+      if (response.success) {
+        const taskList = response.data?.payload || [];
         setTasks(taskList);
         setUnreadCount(taskList.length);
       } else {
-        setError(response.data.error?.message || 'Failed to fetch tasks');
+        setError(response.error?.message || 'Failed to fetch tasks');
+        setTasks([]);
+        setUnreadCount(0);
       }
     } catch (err) {
       console.error('[useWorkflowTasks] fetch failed:', err);
-      setError(err.response?.data?.error?.message || err.message);
+      // Gracefully handle errors - don't break the page
+      setError(err.message || 'Failed to fetch tasks');
       setTasks([]);
       setUnreadCount(0);
     } finally {

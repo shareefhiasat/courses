@@ -1,13 +1,16 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useLang } from '../contexts/LangContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Upload, FileText, Trash2, RefreshCw, FolderOpen, Users } from 'lucide-react';
-import { Navigate } from 'react-router-dom';
+import { Upload, FileText, Trash2, RefreshCw, FolderOpen, Users, GitBranch } from 'lucide-react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import {
   getPrivateFiles,
   uploadFilePrivate,
   deleteFilePrivate
 } from '../services/business/driveService';
+import { createCustomWorkflow } from '../services/business/workflowDocumentService';
+import CustomWorkflowDialog from '../components/workflow/CustomWorkflowDialog.jsx';
+import { info, error as logError } from '../services/utils/logger';
 
 /**
  * Drive Page - Private and Shared Spaces
@@ -16,6 +19,7 @@ import {
 export default function DrivePage() {
   const { t } = useLang();
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   const [privateFiles, setPrivateFiles] = useState([]);
   const [sharedFiles, setSharedFiles] = useState([]);
@@ -24,6 +28,8 @@ export default function DrivePage() {
   const [activeTab, setActiveTab] = useState('private');
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [showWorkflowDialog, setShowWorkflowDialog] = useState(false);
+  const [selectedFileForWorkflow, setSelectedFileForWorkflow] = useState(null);
 
   const loadFiles = useCallback(async () => {
     try {
@@ -100,6 +106,46 @@ export default function DrivePage() {
     }
   }, [loadFiles, t, user?.keycloakId]);
 
+  const handleCreateWorkflow = useCallback((file) => {
+    setSelectedFileForWorkflow(file);
+    setShowWorkflowDialog(true);
+  }, []);
+
+  const handleWorkflowSubmit = useCallback(async (workflowData) => {
+    info('[DrivePage] Workflow submit initiated', {
+      hasFile: !!selectedFileForWorkflow,
+      fileName: selectedFileForWorkflow?.name
+    });
+
+    try {
+      const result = await createCustomWorkflow(selectedFileForWorkflow, workflowData);
+
+      if (result.success) {
+        info('[DrivePage] Workflow created successfully', {
+          documentId: result.data?.document?.id
+        });
+        
+        alert(t('drive.workflowCreated', 'Workflow created successfully'));
+        setShowWorkflowDialog(false);
+        setSelectedFileForWorkflow(null);
+        
+        // Navigate to workflow document detail page
+        navigate(`/workflow-documents/${result.data.document.id}`);
+      } else {
+        logError('[DrivePage] Workflow creation failed', {
+          error: result.error
+        });
+        alert(result.error || t('drive.workflowCreationFailed', 'Failed to create workflow'));
+      }
+    } catch (err) {
+      logError('[DrivePage] Error creating workflow', {
+        error: err.message,
+        stack: err.stack
+      });
+      alert(t('drive.workflowCreationError', 'Error creating workflow'));
+    }
+  }, [t, selectedFileForWorkflow, navigate]);
+
   const handleRefresh = useCallback(() => {
     loadFiles();
   }, [loadFiles]);
@@ -134,7 +180,7 @@ export default function DrivePage() {
       {/* Tabs */}
       <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
         <button
-          onClick={() => setActiveTab('private')}
+          onClick={() => navigate('/smart-drive')}
           className={`flex items-center px-4 py-2 border-b-2 transition-colors ${
             activeTab === 'private'
               ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -247,17 +293,39 @@ export default function DrivePage() {
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleDelete(file.path || file.filePath)}
-                  className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {user?.roles?.includes('instructor') || user?.roles?.includes('hr') || user?.roles?.includes('admin') || user?.roles?.includes('super_admin') ? (
+                    <button
+                      onClick={() => handleCreateWorkflow(file)}
+                      className="p-2 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+                      title={t('drive.actions.createWorkflow', 'Create Workflow')}
+                    >
+                      <GitBranch className="w-4 h-4" />
+                    </button>
+                  ) : null}
+                  <button
+                    onClick={() => handleDelete(file.path || file.filePath)}
+                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Custom Workflow Dialog */}
+      <CustomWorkflowDialog
+        isOpen={showWorkflowDialog}
+        onClose={() => {
+          setShowWorkflowDialog(false);
+          setSelectedFileForWorkflow(null);
+        }}
+        file={selectedFileForWorkflow}
+        onSubmit={handleWorkflowSubmit}
+      />
     </div>
   );
 }

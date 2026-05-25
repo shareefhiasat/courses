@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DEFAULT_STORAGE_LIMIT } from '@constants/driveConstants';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Input, Button } from '@ui';
+import { Clock, CheckCircle, XCircle, AlertCircle, GitBranch } from 'lucide-react';
 import DriveSpacesSidebar from '@components/smart-drive/DriveSpacesSidebar';
 import FileRoster from '@components/smart-drive/FileRoster';
 import InboxDrawer from '@components/smart-drive/InboxDrawer';
@@ -17,6 +19,9 @@ import FilterMenu from '@components/smart-drive/FilterMenu';
 import FileRosterSkeleton from '@components/smart-drive/FileRosterSkeleton';
 import EmptyState from '@components/smart-drive/EmptyState';
 import ToastContainer from '@components/smart-drive/ToastContainer';
+import CustomWorkflowDialog from '@components/workflow/CustomWorkflowDialog';
+import { createCustomWorkflow } from '@services/business/workflowDocumentService';
+import { info, error as logError } from '@services/utils/logger';
 import useDriveFiles from '@hooks/useDriveFiles';
 import useWorkflowTasks from '@hooks/useWorkflowTasks';
 import useUpload from '@hooks/useUpload';
@@ -28,6 +33,7 @@ export default function SmartDrivePage() {
   const { t, isRTL } = useLang();
   const { theme } = useTheme();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Debug current user
   console.log('[SmartDrivePage] Current user:', {
@@ -60,6 +66,8 @@ export default function SmartDrivePage() {
   const [emptyTrashConfirmOpen, setEmptyTrashConfirmOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemsToDelete, setItemsToDelete] = useState([]);
+  const [showWorkflowDialog, setShowWorkflowDialog] = useState(false);
+  const [selectedFileForWorkflow, setSelectedFileForWorkflow] = useState(null);
 
   // Real data hooks
   const {
@@ -86,15 +94,6 @@ export default function SmartDrivePage() {
     downloadFolder,
     shareFolder,
   } = useDriveFiles(activeSpace, currentFolderId);
-
-  const {
-    uploads,
-    uploading,
-    addToQueue,
-    startUpload,
-    removeUpload,
-    clearCompleted,
-  } = useUpload();
 
   const {
     filters,
@@ -128,7 +127,11 @@ export default function SmartDrivePage() {
         return;
       }
 
+      console.log('[Breadcrumb Debug] Loading breadcrumbs for folder:', currentFolderId);
       const result = await getFolderDetails(currentFolderId);
+      console.log('[Breadcrumb Debug] API result:', result);
+      console.log('[Breadcrumb Debug] result.payload:', result.payload);
+      console.log('[Breadcrumb Debug] result.payload?.breadcrumb:', result.payload?.breadcrumb);
       if (mounted && result.success) {
         setBreadcrumbs(result.payload?.breadcrumb || []);
       }
@@ -165,6 +168,85 @@ export default function SmartDrivePage() {
     return allFiles || [];
   }, [allFiles]);
 
+  // Aggregate workflow status counts across all visible files
+  const workflowStatusCounts = useMemo(() => {
+    const counts = {
+      pending: 0,
+      in_progress: 0,
+      completed: 0,
+      rejected: 0,
+      needs_feedback: 0,
+    };
+    visibleFiles.forEach(file => {
+      if (file.workflowCounts) {
+        counts.pending += file.workflowCounts.pending || 0;
+        counts.in_progress += file.workflowCounts.in_progress || 0;
+        counts.completed += file.workflowCounts.completed || 0;
+        counts.rejected += file.workflowCounts.rejected || 0;
+        counts.needs_feedback += file.workflowCounts.needs_feedback || 0;
+      }
+    });
+    return counts;
+  }, [visibleFiles]);
+
+  const getWorkflowStatusIcon = (status) => {
+    switch (status) {
+      case 'completed': return CheckCircle;
+      case 'rejected': return XCircle;
+      case 'pending':
+      case 'in_progress': return Clock;
+      case 'needs_feedback': return AlertCircle;
+      default: return GitBranch;
+    }
+  };
+
+  const getWorkflowStatusStyle = (status) => {
+    switch (status) {
+      case 'completed':
+        return {
+          bg: 'rgba(34, 197, 94, 0.1)',
+          color: '#16a34a',
+          borderColor: '#22c55e',
+        };
+      case 'rejected':
+        return {
+          bg: 'rgba(239, 68, 68, 0.1)',
+          color: '#dc2626',
+          borderColor: '#ef4444',
+        };
+      case 'in_progress':
+        return {
+          bg: 'rgba(59, 130, 246, 0.1)',
+          color: '#2563eb',
+          borderColor: '#3b82f6',
+        };
+      case 'needs_feedback':
+        return {
+          bg: 'rgba(234, 179, 8, 0.1)',
+          color: '#ca8a04',
+          borderColor: '#eab308',
+        };
+      case 'pending':
+      default:
+        return {
+          bg: 'rgba(107, 114, 128, 0.1)',
+          color: '#6b7280',
+          borderColor: '#9ca3af',
+        };
+    }
+  };
+
+  const getWorkflowStatusDescription = (status) => {
+    switch (status) {
+      case 'pending': return t('workflow.status.pending.desc', 'Awaiting review');
+      case 'in_progress': return t('workflow.status.inProgress.desc', 'Currently being reviewed');
+      case 'completed': return t('workflow.status.completed.desc', 'Workflow completed successfully');
+      case 'rejected': return t('workflow.status.rejected.desc', 'Rejected and requires changes');
+      case 'needs_feedback': return t('workflow.status.needsFeedback.desc', 'Additional information required');
+      default: return t('workflow.status.unknown.desc', 'Unknown status');
+    }
+  };
+
   const visibleFolders = useMemo(() => {
     let result = activeSpace === 'my-drive' ? folders || [] : [];
     const hasStarredFilter = filters.some(f => f.type === 'status' && f.value === 'starred');
@@ -173,6 +255,15 @@ export default function SmartDrivePage() {
     }
     return result;
   }, [activeSpace, folders, filters]);
+
+  const {
+    uploads,
+    uploading,
+    addToQueue,
+    startUpload,
+    removeUpload,
+    clearCompleted,
+  } = useUpload(visibleFiles);
 
   const handleToggleSelect = (id) => {
     setSelectedIds((prev) => {
@@ -284,6 +375,15 @@ export default function SmartDrivePage() {
           setShareDialogFile(item);
         }
       }
+    } else if (action === 'create-workflow') {
+      if (items.length === 1) {
+        const item = items[0];
+        if (item.path === undefined) {
+          // It's a file - open workflow dialog
+          setSelectedFileForWorkflow(item);
+          setShowWorkflowDialog(true);
+        }
+      }
     }
   };
 
@@ -340,14 +440,72 @@ export default function SmartDrivePage() {
     return result.payload;
   };
 
-  const handleFileOpen = (file) => {
-    // Open details modal instead of direct download
-    setDetailsModalFile(file);
+  const handleFileOpen = async (file) => {
+    // Fetch fresh file data to get latest version info
+    try {
+      const response = await fetch(`/api/v1/drive/files/${file.id}`);
+      const data = await response.json();
+      if (data.success && data.payload) {
+        setDetailsModalFile(data.payload);
+      } else {
+        // Fallback to original file if fetch fails
+        setDetailsModalFile(file);
+      }
+    } catch (error) {
+      console.error('[SmartDrivePage] Error fetching fresh file data:', error);
+      // Fallback to original file if fetch fails
+      setDetailsModalFile(file);
+    }
   };
 
   const handleUpload = () => {
     setUploadModalOpen(true);
   };
+
+  const handleWorkflowSubmit = useCallback(async (workflowData) => {
+    console.log('🟣 [SmartDrivePage] Workflow submit initiated', {
+      selectedFileForWorkflow,
+      workflowData,
+      hasFile: !!selectedFileForWorkflow,
+      fileName: selectedFileForWorkflow?.name || selectedFileForWorkflow?.fileName,
+      fileId: selectedFileForWorkflow?.id || selectedFileForWorkflow?.fileId
+    });
+
+    try {
+      console.log('🟣 [SmartDrivePage] Calling createCustomWorkflow...');
+      const result = await createCustomWorkflow(selectedFileForWorkflow, workflowData);
+      console.log('🟣 [SmartDrivePage] createCustomWorkflow returned:', result);
+
+      if (result.success) {
+        console.log('✅ [SmartDrivePage] Workflow created successfully', {
+          documentId: result.data?.document?.id,
+          fullData: result.data
+        });
+        
+        success(t('drive.workflowCreated', 'Workflow created successfully'));
+        setShowWorkflowDialog(false);
+        setSelectedFileForWorkflow(null);
+
+        // Navigate to workflow document detail page
+        const docId = result.data?.document?.id;
+        console.log('🟣 [SmartDrivePage] Navigating to:', `/workflow-documents/${docId}`);
+        navigate(`/workflow-documents/${docId}`);
+      } else {
+        console.error('❌ [SmartDrivePage] Workflow creation failed', {
+          error: result.error,
+          fullResult: result
+        });
+        error(result.error || t('drive.workflowCreationFailed', 'Failed to create workflow'));
+      }
+    } catch (err) {
+      console.error('❌ [SmartDrivePage] Error creating workflow', {
+        error: err.message,
+        stack: err.stack,
+        fullError: err
+      });
+      error(t('drive.workflowCreationError', 'Error creating workflow'));
+    }
+  }, [t, success, error, selectedFileForWorkflow]);
 
   const handleAddFilesToQueue = (files) => {
     addToQueue(files, activeSpace === 'my-drive' ? currentFolderId : null);
@@ -711,17 +869,17 @@ export default function SmartDrivePage() {
             transition: 'width 0.3s ease',
             display: 'flex',
             flexDirection: 'column',
-            gap: isMobile ? '1rem' : '1.5rem',
+            gap: isMobile ? '1.5rem' : '2rem',
           }}
         >
           {/* Google-like breadcrumb */}
-          {activeSpace === 'my-drive' && (
+          {(activeSpace === 'my-drive' || currentFolderId) && (
             <div
               style={{
-                background: 'var(--panel, white)',
-                border: '1px solid var(--border, #e5e7eb)',
-                borderRadius: '0.75rem',
-                padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1rem',
+                background: 'var(--background-secondary, #f9fafb)',
+                border: '1px solid var(--border-light, #f3f4f6)',
+                borderRadius: '0.5rem',
+                padding: isMobile ? '0.75rem 1rem' : '0.875rem 1.125rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
@@ -738,15 +896,15 @@ export default function SmartDrivePage() {
                     border: 'none',
                     color: currentFolderId ? 'var(--color-primary, #2563eb)' : 'var(--text, #111827)',
                     cursor: 'pointer',
-                    fontSize: '0.875rem',
+                    fontSize: isMobile ? '0.875rem' : '1rem',
                     fontWeight: 600,
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '0.25rem',
+                    padding: '0.375rem 0.625rem',
+                    borderRadius: '0.375rem',
                     whiteSpace: 'nowrap',
                     flexShrink: 0,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.375rem',
+                    gap: '0.5rem',
                   }}
                   onMouseEnter={(e) => {
                     if (!currentFolderId) e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)';
@@ -755,13 +913,15 @@ export default function SmartDrivePage() {
                     if (!currentFolderId) e.currentTarget.style.background = 'transparent';
                   }}
                 >
-                  {getThemedIcon('ui', 'folder', 14, currentFolderId ? 'primary' : theme)}
+                  {getThemedIcon('ui', 'folder', 16, currentFolderId ? 'primary' : theme)}
                   <span>{t('drive.myDrive') || 'My Drive'}</span>
                 </button>
+                {console.log('[Breadcrumb Debug] currentFolderId:', currentFolderId, 'breadcrumbs:', breadcrumbs, 'breadcrumbs.length:', breadcrumbs.length)}
                 {breadcrumbs.map((crumb, idx) => (
                   <React.Fragment key={crumb.id}>
-                    <span style={{ color: 'var(--text-muted, #9ca3af)', fontSize: '0.75rem', flexShrink: 0 }}>
-                      {getThemedIcon('ui', 'chevron_right', 12, 'muted')}
+                    {console.log('[Breadcrumb Debug] Rendering crumb:', crumb, 'idx:', idx)}
+                    <span style={{ color: 'var(--text-muted, #9ca3af)', fontSize: '0.875rem', flexShrink: 0 }}>
+                      {getThemedIcon('ui', 'chevron_right', 14, 'muted')}
                     </span>
                     <button
                       type="button"
@@ -771,17 +931,17 @@ export default function SmartDrivePage() {
                         border: 'none',
                         color: crumb.id === currentFolderId ? 'var(--text, #111827)' : 'var(--color-primary, #2563eb)',
                         cursor: 'pointer',
-                        fontSize: '0.875rem',
+                        fontSize: isMobile ? '0.875rem' : '1rem',
                         fontWeight: crumb.id === currentFolderId ? 600 : 500,
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '0.25rem',
+                        padding: '0.375rem 0.625rem',
+                        borderRadius: '0.375rem',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         minWidth: 0,
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '0.375rem',
+                        gap: '0.5rem',
                       }}
                       onMouseEnter={(e) => {
                         if (crumb.id !== currentFolderId) e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)';
@@ -790,7 +950,7 @@ export default function SmartDrivePage() {
                         if (crumb.id !== currentFolderId) e.currentTarget.style.background = 'transparent';
                       }}
                     >
-                      {getThemedIcon('ui', 'folder', 14, crumb.id === currentFolderId ? theme : 'primary')}
+                      {getThemedIcon('ui', 'folder', 16, crumb.id === currentFolderId ? theme : 'primary')}
                       <span>{crumb.name}</span>
                     </button>
                   </React.Fragment>
@@ -930,6 +1090,39 @@ export default function SmartDrivePage() {
             />
           </div>
 
+          {/* Workflow status summary */}
+          {activeSpace === 'workflow' && (
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center', marginTop: '0.5rem' }}>
+              {Object.entries(workflowStatusCounts).map(([status, count]) => {
+                if (count === 0) return null;
+                const StatusIcon = getWorkflowStatusIcon(status);
+                const statusStyle = getWorkflowStatusStyle(status);
+                return (
+                  <div
+                    key={status}
+                    title={getWorkflowStatusDescription(status)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      padding: '0.375rem 0.625rem',
+                      borderRadius: '0.375rem',
+                      background: statusStyle.bg,
+                      border: `1px solid ${statusStyle.borderColor}`,
+                      fontSize: '0.75rem',
+                      color: statusStyle.color,
+                      cursor: 'help',
+                    }}
+                  >
+                    <StatusIcon style={{ width: '0.875rem', height: '0.875rem' }} />
+                    <span style={{ fontWeight: 500 }}>{status.replace('_', ' ')}</span>
+                    <span style={{ fontWeight: 600, opacity: 0.8 }}>({count})</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* Files Roster / Loading / Empty */}
           {filesLoading ? (
             <FileRosterSkeleton rows={8} />
@@ -984,6 +1177,17 @@ export default function SmartDrivePage() {
         />
       )}
 
+      {/* Custom Workflow Dialog */}
+      <CustomWorkflowDialog
+        isOpen={showWorkflowDialog}
+        onClose={() => {
+          setShowWorkflowDialog(false);
+          setSelectedFileForWorkflow(null);
+        }}
+        file={selectedFileForWorkflow}
+        onSubmit={handleWorkflowSubmit}
+      />
+
       {/* File Details Modal */}
       {detailsModalFile && (
         <FileDetailsModal
@@ -995,6 +1199,12 @@ export default function SmartDrivePage() {
           }}
           onStar={starFile}
           onTrash={trashFile}
+          onRefresh={() => {
+            // Refresh files when version is updated
+            if (currentSpace === 'private') loadPrivateFiles();
+            else if (currentSpace === 'shared') loadSharedFiles();
+            else if (currentSpace === 'workflow') loadWorkflowFiles();
+          }}
         />
       )}
 

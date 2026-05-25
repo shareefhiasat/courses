@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Download, Share2, MoreVertical, FileText, Image, Film, Music, Archive, File } from 'lucide-react';
 import { usePermissions } from '@hooks/usePermissions';
 import { useLang } from '@contexts/LangContext';
+import { getThemedIcon } from '@constants/iconTypes';
 
 /**
  * FileCard Component
@@ -20,14 +20,14 @@ export default function FileCard({ file, onDownload, onShare, onDelete, onVersio
 
   // Get file icon based on mime type
   const getFileIcon = () => {
-    if (!file.mimeType) return <File className="w-8 h-8 text-gray-400" />;
-    
-    if (file.mimeType.startsWith('image/')) return <Image className="w-8 h-8 text-blue-500" />;
-    if (file.mimeType.startsWith('video/')) return <Film className="w-8 h-8 text-purple-500" />;
-    if (file.mimeType.startsWith('audio/')) return <Music className="w-8 h-8 text-pink-500" />;
-    if (file.mimeType.includes('zip') || file.mimeType.includes('rar')) return <Archive className="w-8 h-8 text-yellow-500" />;
-    
-    return <FileText className="w-8 h-8 text-gray-500" />;
+    if (!file.mimeType) return getThemedIcon('ui', 'file', 32, 'muted');
+
+    if (file.mimeType.startsWith('image/')) return getThemedIcon('ui', 'image', 32, 'primary');
+    if (file.mimeType.startsWith('video/')) return getThemedIcon('ui', 'video', 32, 'primary');
+    if (file.mimeType.startsWith('audio/')) return getThemedIcon('ui', 'music', 32, 'primary');
+    if (file.mimeType.includes('zip') || file.mimeType.includes('rar')) return getThemedIcon('ui', 'archive', 32, 'primary');
+
+    return getThemedIcon('ui', 'file_text', 32, 'muted');
   };
 
   // Format file size
@@ -71,7 +71,7 @@ export default function FileCard({ file, onDownload, onShare, onDelete, onVersio
             onClick={() => setShowMenu(!showMenu)}
             className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
           >
-            <MoreVertical className="w-5 h-5 text-gray-500" />
+            {getThemedIcon('ui', 'more_vertical', 20, 'muted')}
           </button>
 
           {showMenu && (
@@ -85,7 +85,7 @@ export default function FileCard({ file, onDownload, onShare, onDelete, onVersio
                     }}
                     className="w-full text-start px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
                   >
-                    <Download className="w-4 h-4" />
+                    {getThemedIcon('ui', 'download', 16, 'light')}
                     {t('drive.download')}
                   </button>
                 )}
@@ -97,7 +97,7 @@ export default function FileCard({ file, onDownload, onShare, onDelete, onVersio
                     }}
                     className="w-full text-start px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
                   >
-                    <Share2 className="w-4 h-4" />
+                    {getThemedIcon('ui', 'share', 16, 'light')}
                     {t('drive.share')}
                   </button>
                 )}
@@ -150,7 +150,7 @@ export default function FileCard({ file, onDownload, onShare, onDelete, onVersio
             onClick={() => onDownload?.(file)}
             className="flex-1 px-3 py-1.5 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
           >
-            <Download className="w-4 h-4 inline me-1" />
+            {getThemedIcon('ui', 'download', 16, 'primary')}
             {t('drive.download')}
           </button>
         )}
@@ -159,7 +159,7 @@ export default function FileCard({ file, onDownload, onShare, onDelete, onVersio
             onClick={() => onShare?.(file)}
             className="flex-1 px-3 py-1.5 text-sm bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
           >
-            <Share2 className="w-4 h-4 inline me-1" />
+            {getThemedIcon('ui', 'share', 16, 'light')}
             {t('drive.share')}
           </button>
         )}

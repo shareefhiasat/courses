@@ -22,6 +22,12 @@ const minioClient = new Client({
   region: process.env.MINIO_REGION || 'us-east-1',
 });
 
+// Public endpoint for presigned URLs (must match frontend protocol)
+const PUBLIC_ENDPOINT = process.env.MINIO_PUBLIC_ENDPOINT || `http://${process.env.MINIO_ENDPOINT || 'localhost'}:${process.env.MINIO_PORT || '9000'}`;
+
+// Determine if MinIO client should use SSL based on PUBLIC_ENDPOINT protocol
+const USE_SSL = PUBLIC_ENDPOINT.startsWith('https://');
+
 const BUCKETS = {
   PRIVATE: process.env.MINIO_BUCKET_PRIVATE || 'lms-private',
   WORKFLOW: process.env.MINIO_BUCKET_WORKFLOW || 'lms-workflow',
@@ -81,7 +87,22 @@ export async function generatePresignedPutUrl(bucket, objectKey, expirySeconds =
  * Never use for sensitive workflow documents — prefer `streamObject` instead.
  */
 export async function generatePresignedGetUrl(bucket, objectKey, expirySeconds = PRESIGNED_EXPIRY.GET) {
-  return minioClient.presignedGetObject(bucket, objectKey, expirySeconds);
+  const url = await minioClient.presignedGetObject(bucket, objectKey, expirySeconds);
+
+  // Replace the endpoint in the presigned URL with PUBLIC_ENDPOINT
+  // This ensures the protocol matches the frontend (HTTPS vs HTTP)
+  if (PUBLIC_ENDPOINT) {
+    const urlObj = new URL(url);
+    const publicUrlObj = new URL(PUBLIC_ENDPOINT);
+
+    // Replace protocol, host, and port
+    urlObj.protocol = publicUrlObj.protocol;
+    urlObj.host = publicUrlObj.host;
+
+    return urlObj.toString();
+  }
+
+  return url;
 }
 
 export async function deleteObject(bucket, objectKey) {
@@ -140,7 +161,11 @@ export async function streamObject({ bucket, objectKey, req, res, filename, mime
   res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
   if (filename) {
     const safe = String(filename).replace(/["\\\r\n]/g, '_');
-    res.setHeader('Content-Disposition', `attachment; filename="${safe}"`);
+    // Use inline for images and PDFs to allow browser preview, attachment for other types
+    const isImage = mimeType && mimeType.startsWith('image/');
+    const isPdf = mimeType === 'application/pdf';
+    const disposition = (isImage || isPdf) ? 'inline' : 'attachment';
+    res.setHeader('Content-Disposition', `${disposition}; filename="${safe}"`);
   }
 
   if (range) {
@@ -160,6 +185,52 @@ export async function streamObject({ bucket, objectKey, req, res, filename, mime
 
   res.setHeader('Content-Length', total);
   const stream = await minioClient.getObject(bucket, objectKey);
+  stream.pipe(res);
+}
+
+/**
+ * Stream a specific object version to an Express response with HTTP Range support.
+ * Used for downloading historical versions of documents.
+ *
+ * @param {object}   args
+ * @param {string}   args.bucket
+ * @param {string}   args.objectKey
+ * @param {string}   args.versionId - Specific version to download
+ * @param {object}   args.req  - Express request (for Range header)
+ * @param {object}   args.res  - Express response
+ * @param {string}   args.filename - user-facing filename for Content-Disposition
+ * @param {string}   args.mimeType
+ */
+export async function streamObjectVersion({ bucket, objectKey, versionId, req, res, filename, mimeType }) {
+  const stat = await minioClient.statObject(bucket, objectKey, { versionId });
+  const total = stat.size;
+  const range = req.headers.range;
+
+  res.setHeader('Content-Type', mimeType || 'application/octet-stream');
+  res.setHeader('Accept-Ranges', 'bytes');
+  res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
+  if (filename) {
+    const safe = String(filename).replace(/["\\\r\n]/g, '_');
+    res.setHeader('Content-Disposition', `attachment; filename="${safe}"`);
+  }
+
+  if (range) {
+    const match = /^bytes=(\d+)-(\d*)$/.exec(range);
+    if (match) {
+      const start = parseInt(match[1], 10);
+      const end = match[2] ? parseInt(match[2], 10) : total - 1;
+      const length = end - start + 1;
+      res.status(206);
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${total}`);
+      res.setHeader('Content-Length', length);
+      const stream = await minioClient.getPartialObject(bucket, objectKey, start, length, { versionId });
+      stream.pipe(res);
+      return;
+    }
+  }
+
+  res.setHeader('Content-Length', total);
+  const stream = await minioClient.getObject(bucket, objectKey, { versionId });
   stream.pipe(res);
 }
 
@@ -183,6 +254,11 @@ export async function getBucketSize(bucket, prefix = '') {
   return total;
 }
 
+export async function putObject(bucket, objectKey, buffer, size, metaData) {
+  await minioClient.putObject(bucket, objectKey, buffer, size, metaData);
+  return { success: true };
+}
+
 export { minioClient, BUCKETS, PRESIGNED_EXPIRY };
 
 export default {
@@ -197,7 +273,9 @@ export default {
   copyObject,
   getObjectMetadata,
   streamObject,
+  streamObjectVersion,
   listObjectVersions,
   getBucketSize,
   isInlinePreviewable,
+  putObject,
 };

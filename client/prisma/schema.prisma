@@ -127,6 +127,22 @@ enum WorkflowStatus {
   REJECTED
 }
 
+enum WorkflowDocumentStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  AMENDED
+  CLOSED
+}
+
+enum WorkflowType {
+  ATTENDANCE_DAILY
+  ATTENDANCE_WEEKLY
+  GENERAL
+}
+
 enum SharePermission {
   VIEW
   DOWNLOAD
@@ -169,6 +185,8 @@ model AttendanceStatusTypes {
   updater            User?               @relation("AttendanceStatusTypesUpdater", fields: [updatedBy], references: [id])
   attendances        Attendance[]
   standupAttendances StandupAttendance[]
+  amendmentsFrom     AttendanceAmendment[] @relation("AttendanceAmendmentFromStatus")
+  amendmentsTo       AttendanceAmendment[] @relation("AttendanceAmendmentToStatus")
 
   @@map("attendance_status_types")
 }
@@ -606,6 +624,13 @@ model User {
   workflowStepsAssigned          WorkflowStep[]            @relation("WorkflowStepAssignee")
   workflowStepsActed             WorkflowStep[]            @relation("WorkflowStepActor")
   workflowHistoryActed           WorkflowHistory[]         @relation("WorkflowHistoryActor")
+  workflowDocumentsSubmitted     WorkflowDocument[]        @relation("WorkflowDocumentSubmitter")
+  workflowDocumentsAssigned      WorkflowDocument[]        @relation("WorkflowDocumentAssignee")
+  workflowDocumentsInstructed    WorkflowDocument[]        @relation("WorkflowDocumentInstructor")
+  workflowCommentsAuthored       WorkflowComment[]         @relation("WorkflowCommentAuthor")
+  workflowStatusHistoryActed     WorkflowStatusHistory[]   @relation("WorkflowStatusHistoryActor")
+  permissionDenialAudits        PermissionDenialAudit[]   @relation("PermissionDenialAuditUser")
+  attendanceAmendments          AttendanceAmendment[]   @relation("AttendanceAmendmentAmender")
   fileFavorites                  UserFilePreference[]
   notifications                  Notification[]             @relation("UserNotifications")
   notificationsCreated           Notification[]             @relation("NotificationCreator")
@@ -719,6 +744,7 @@ model Class {
   resources      Resource[]
   studentMarks   StudentMarks[]
   scheduleSessions ScheduleSession[] @relation("ClassScheduleSessions")
+  workflowDocuments WorkflowDocument[] @relation("WorkflowDocumentClass")
 
   @@map("classes")
 }
@@ -764,9 +790,29 @@ model Attendance {
   status    AttendanceStatusTypes @relation(fields: [statusId], references: [id])
   updater   User?                 @relation("AttendanceUpdater", fields: [updatedBy], references: [id])
   user      User                  @relation(fields: [userId], references: [id])
+  amendments AttendanceAmendment[]
 
   @@unique([userId, classId, date])
   @@map("attendances")
+}
+
+model AttendanceAmendment {
+  id         Int      @id @default(autoincrement())
+  attendanceId Int
+  fromStatusId Int
+  toStatusId   Int
+  reason      String
+  amendedBy   Int
+  amendedAt   DateTime @default(now())
+
+  attendance Attendance @relation(fields: [attendanceId], references: [id])
+  fromStatus AttendanceStatusTypes @relation("AttendanceAmendmentFromStatus", fields: [fromStatusId], references: [id])
+  toStatus   AttendanceStatusTypes @relation("AttendanceAmendmentToStatus", fields: [toStatusId], references: [id])
+  amendedByUser User @relation("AttendanceAmendmentAmender", fields: [amendedBy], references: [id])
+
+  @@index([attendanceId])
+  @@index([amendedAt])
+  @@map("attendance_amendments")
 }
 
 model StandupAttendance {
@@ -1352,6 +1398,7 @@ model File {
   comments          FileComment[]
   activities        FileActivity[]
   workflowInstances WorkflowInstance[]
+  workflowDocuments WorkflowDocument[] @relation("WorkflowDocumentFile")
   preferences       UserFilePreference[]
 
   @@index([folderId])
@@ -1814,6 +1861,98 @@ model ScheduleSession {
   @@index([classroomId, date])
   @@unique([classId, timeSlotId, date])
   @@map("schedule_sessions")
+}
+
+// ============================================================================
+// Workflow Document System
+// ============================================================================
+
+model WorkflowDocument {
+  id                  Int                 @id @default(autoincrement())
+  workflowType        WorkflowType
+  title               String
+  description         String?
+  status              WorkflowDocumentStatus @default(DRAFT)
+  fileId              String?              // Reference to File model (UUID)
+  fileVersionId       String?              // Reference to specific FileVersion (UUID) - tracks exact version used
+  submitterId         Int
+  currentAssigneeId   Int?
+  classId             Int?
+  instructorId        Int?
+  date                DateTime?
+  program             String?
+  subject             String?
+  reviewCycleCount     Int                 @default(0)
+  createdBy           Int?
+  updatedBy           Int?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  file                File?                   @relation("WorkflowDocumentFile", fields: [fileId], references: [id], onDelete: SetNull)
+  submitter           User                    @relation("WorkflowDocumentSubmitter", fields: [submitterId], references: [id])
+  currentAssignee     User?                   @relation("WorkflowDocumentAssignee", fields: [currentAssigneeId], references: [id])
+  instructor          User?                   @relation("WorkflowDocumentInstructor", fields: [instructorId], references: [id])
+  class               Class?                  @relation("WorkflowDocumentClass", fields: [classId], references: [id])
+  comments            WorkflowComment[]
+  statusHistory       WorkflowStatusHistory[]
+
+  @@index([submitterId])
+  @@index([currentAssigneeId])
+  @@index([status])
+  @@index([workflowType])
+  @@index([workflowType, status])
+  @@index([date, status])
+  @@index([program, subject])
+  @@map("workflow_documents")
+}
+
+model WorkflowComment {
+  id                 Int             @id @default(autoincrement())
+  workflowDocumentId Int
+  authorId           Int
+  comment            String
+  action             String?         // e.g., "APPROVED", "REJECTED", "AMENDED", "COMMENT"
+  createdAt          DateTime        @default(now())
+
+  workflowDocument   WorkflowDocument @relation(fields: [workflowDocumentId], references: [id], onDelete: Cascade)
+  author             User             @relation("WorkflowCommentAuthor", fields: [authorId], references: [id])
+
+  @@index([workflowDocumentId])
+  @@index([authorId])
+  @@map("workflow_comments")
+}
+
+model WorkflowStatusHistory {
+  id                 Int                    @id @default(autoincrement())
+  workflowDocumentId Int
+  fromStatus         WorkflowDocumentStatus?
+  toStatus           WorkflowDocumentStatus
+  actorId            Int
+  reason             String?
+  createdAt          DateTime               @default(now())
+
+  workflowDocument   WorkflowDocument       @relation(fields: [workflowDocumentId], references: [id])
+  actor              User                   @relation("WorkflowStatusHistoryActor", fields: [actorId], references: [id])
+
+  @@index([workflowDocumentId])
+  @@index([actorId])
+  @@map("workflow_status_history")
+}
+
+model PermissionDenialAudit {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  action    String
+  resource  String
+  reason    String
+  userRole  String
+  createdAt DateTime @default(now())
+
+  user      User     @relation("PermissionDenialAuditUser", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("permission_denial_audit")
 }
 
 model AdminScope {

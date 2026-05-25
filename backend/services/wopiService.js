@@ -14,14 +14,16 @@ const TOKEN_EXPIRY = '1h'; // 1 hour
  * @param {string} fileId - File ID
  * @param {string} permission - 'read' or 'write'
  * @param {object} userInfo - User information (displayName, email)
+ * @param {string} fileVersionId - Optional specific file version ID for workflow snapshots
  * @returns {string} JWT access token
  */
-export function generateWopiToken(userId, fileId, permission = 'write', userInfo = {}) {
+export function generateWopiToken(userId, fileId, permission = 'write', userInfo = {}, fileVersionId = null) {
   const payload = {
     userId,
     fileId,
     permission,
     type: 'wopi',
+    fileVersionId, // Include version ID to lock to specific version
     userInfo: {
       displayName: userInfo.displayName || 'User',
       email: userInfo.email || '',

@@ -1,5 +1,5 @@
 import { useLang } from '@contexts/LangContext';
-import { File, Calendar, User, HardDrive, Folder } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 
 export default function DetailsTab({ file }) {
   const { t } = useLang();
@@ -22,37 +22,37 @@ export default function DetailsTab({ file }) {
 
   const details = [
     {
-      icon: File,
+      icon: 'file',
       label: t('drive.fileName'),
       value: file.name,
     },
     {
-      icon: HardDrive,
+      icon: 'hard_drive',
       label: t('drive.fileSize'),
       value: formatSize(file.size),
     },
     {
-      icon: File,
+      icon: 'file',
       label: t('drive.mimeType'),
       value: file.mimeType || '\u2014',
     },
     {
-      icon: User,
+      icon: 'user',
       label: t('drive.owner'),
       value: file.owner?.displayName || file.owner?.email || '\u2014',
     },
     {
-      icon: Folder,
+      icon: 'folder',
       label: t('drive.location'),
       value: file.folderPath || t('drive.myDrive'),
     },
     {
-      icon: Calendar,
+      icon: 'calendar',
       label: t('drive.created'),
       value: formatDate(file.createdAt),
     },
     {
-      icon: Calendar,
+      icon: 'calendar',
       label: t('drive.modified'),
       value: formatDate(file.updatedAt),
     },
@@ -61,7 +61,7 @@ export default function DetailsTab({ file }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
-        {details.map(({ icon: Icon, label, value }, idx) => (
+        {details.map(({ icon, label, value }, idx) => (
           <div
             key={idx}
             style={{
@@ -87,7 +87,7 @@ export default function DetailsTab({ file }) {
                 justifyContent: 'center',
               }}
             >
-              <Icon className="w-5 h-5" style={{ color: 'var(--color-primary, #2563eb)' }} aria-hidden="true" />
+              {getThemedIcon('ui', icon, 20, 'primary')}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: '0.875rem', color: 'var(--text, #111827)', margin: 0, marginBottom: '0.125rem' }}>

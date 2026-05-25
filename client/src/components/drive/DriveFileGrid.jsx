@@ -7,7 +7,7 @@ import FileListRow from './FileListRow';
  * 
  * Grid/list container that maps files to FileCard/FileListRow
  */
-const DriveFileGrid = ({ files, viewMode, selectedFiles, onSelect, onOpen, onEdit, onShare, onComment, onDownload, onDelete }) => {
+const DriveFileGrid = ({ files, viewMode, selectedFiles, onSelect, onOpen, onEdit, onShare, onComment, onDownload, onDelete, onCreateWorkflow }) => {
   const isSelected = (file) => selectedFiles.has(file.path);
 
   if (viewMode === 'list') {
@@ -39,6 +39,7 @@ const DriveFileGrid = ({ files, viewMode, selectedFiles, onSelect, onOpen, onEdi
               onComment={onComment}
               onDownload={onDownload}
               onDelete={onDelete}
+              onCreateWorkflow={onCreateWorkflow}
             />
           ))}
         </div>
@@ -60,6 +61,7 @@ const DriveFileGrid = ({ files, viewMode, selectedFiles, onSelect, onOpen, onEdi
           onComment={onComment}
           onDownload={onDownload}
           onDelete={onDelete}
+          onCreateWorkflow={onCreateWorkflow}
         />
       ))}
     </div>

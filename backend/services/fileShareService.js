@@ -12,6 +12,7 @@
 
 import { PrismaClient, Prisma } from '@prisma/client';
 import { getDatabaseUserId } from '../utils/userResolver.js';
+import { SHARE_SUBJECT_TYPES, SHARE_PERMISSIONS } from '../constants/driveConstants.js';
 
 const prisma = new PrismaClient();
 
@@ -22,7 +23,7 @@ const err = (code, message) => ({
   timestamp: Date.now(),
 });
 
-const VALID_PERMISSIONS = new Set(['VIEW', 'DOWNLOAD', 'COMMENT', 'EDIT']);
+const VALID_PERMISSIONS = new Set(Object.values(SHARE_PERMISSIONS));
 
 /**
  * Create or update a share.
@@ -51,7 +52,7 @@ export async function createShare(input, actor) {
     if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
     if (!fileId && !folderId) return err('INVALID_INPUT', 'fileId or folderId required');
     if (fileId && folderId) return err('INVALID_INPUT', 'Provide fileId OR folderId, not both');
-    if (!['USER', 'ROLE'].includes(subjectType)) return err('INVALID_INPUT', 'subjectType must be USER or ROLE');
+    if (!Object.values(SHARE_SUBJECT_TYPES).includes(subjectType)) return err('INVALID_INPUT', 'subjectType must be USER or ROLE');
     if (subjectType === 'USER' && !subjectUserId) return err('INVALID_INPUT', 'subjectUserId required for USER share');
     if (subjectType === 'ROLE' && !subjectRole) return err('INVALID_INPUT', 'subjectRole required for ROLE share');
     if (!VALID_PERMISSIONS.has(permission)) return err('INVALID_INPUT', `permission must be one of ${[...VALID_PERMISSIONS].join(', ')}`);
@@ -114,6 +115,24 @@ export async function createShare(input, actor) {
     }
     console.error('[fileShareService.createShare]', error);
     return err('SHARE_CREATE_FAILED', error.message);
+  }
+}
+
+/**
+ * Get folder details for notification purposes
+ */
+export async function getFolderDetailsForNotification(folderId) {
+  try {
+    const folder = await prisma.folder.findUnique({
+      where: { id: folderId },
+      include: {
+        user: { select: { displayName: true, firstName: true, lastName: true } }
+      }
+    });
+    return ok(folder);
+  } catch (error) {
+    console.error('[fileShareService.getFolderDetailsForNotification]', error);
+    return err('FOLDER_NOT_FOUND', error.message);
   }
 }
 
@@ -222,6 +241,61 @@ export async function listSharedWithMe(actor) {
   }
 }
 
+/**
+ * Everything shared by the actor: files and folders where the actor is the owner
+ * and has shared them with others. Returns files and folders in a single unified list.
+ */
+export async function listSharedByMe(actor) {
+  try {
+    if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
+
+    const now = new Date();
+    const v2FileShares = await prisma.fileShare.findMany({
+      where: {
+        fileId: { not: null },
+        file: {
+          ownerId: actor.userId,
+          isDeleted: false,
+        },
+        AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
+      },
+      include: {
+        file: {
+          include: {
+            owner: { select: { id: true, email: true, displayName: true } },
+          },
+        },
+      },
+    });
+
+    const v2FolderShares = await prisma.fileShare.findMany({
+      where: {
+        folderId: { not: null },
+        folder: {
+          ownerId: actor.userId,
+          isDeleted: false,
+        },
+        AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
+      },
+      include: {
+        folder: {
+          include: {
+            owner: { select: { id: true, email: true, displayName: true } },
+          },
+        },
+      },
+    });
+
+    return ok({
+      files: v2FileShares,
+      folders: v2FolderShares,
+    });
+  } catch (error) {
+    console.error('[fileShareService.listSharedByMe]', error);
+    return err('LIST_SHARED_FAILED', error.message);
+  }
+}
+
 // -------- Legacy aliases for existing controller (driveNew.js still calls) --
 // These delegate to v2 under the hood, accepting the old shape.
 
@@ -256,7 +330,9 @@ export default {
   revokeShare,
   listFileShares,
   listSharedWithMe,
+  listSharedByMe,
+  getSharedFiles,
+  getFolderDetailsForNotification,
   shareFile,
   unshareFile,
-  getSharedFiles,
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { X, User, Shield, Calendar, Eye, Download, MessageSquare, Edit, Clock, Search } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import axios from 'axios';
 
 export default function SharesList({ fileId, onRevoke, refreshKey }) {
@@ -77,11 +77,11 @@ export default function SharesList({ fileId, onRevoke, refreshKey }) {
 
   const getPermissionIcon = (permission) => {
     switch (permission) {
-      case 'VIEW': return Eye;
-      case 'DOWNLOAD': return Download;
-      case 'COMMENT': return MessageSquare;
-      case 'EDIT': return Edit;
-      default: return Eye;
+      case 'VIEW': return 'eye';
+      case 'DOWNLOAD': return 'download';
+      case 'COMMENT': return 'message';
+      case 'EDIT': return 'edit';
+      default: return 'eye';
     }
   };
 
@@ -155,7 +155,7 @@ export default function SharesList({ fileId, onRevoke, refreshKey }) {
         maxHeight: '400px'
       }}>
         <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Clock className="w-4 h-4" />
+          {getThemedIcon('ui', 'clock', 16, 'muted')}
           {t('drive.timeline') || 'Timeline'}
         </h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -201,7 +201,7 @@ export default function SharesList({ fileId, onRevoke, refreshKey }) {
       <div style={{ flex: 1, overflowY: 'auto', maxHeight: '400px' }}>
         {/* Search filter */}
         <div style={{ position: 'relative', marginBottom: '1rem' }}>
-          <Search style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)' }} aria-hidden="true" />
+          {getThemedIcon('ui', 'search', 16, 'muted', { position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' })}
           <input
             type="text"
             value={filterText}
@@ -254,7 +254,7 @@ export default function SharesList({ fileId, onRevoke, refreshKey }) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {filteredShares.map(share => {
-              const PermIcon = getPermissionIcon(share.permission);
+              const permIcon = getPermissionIcon(share.permission);
               const isUser = share.subjectType === 'USER';
               const displayName = isUser
                 ? (share.subjectUser?.displayName || share.subjectUser?.email || t('drive.unknownUser'))
@@ -287,11 +287,7 @@ export default function SharesList({ fileId, onRevoke, refreshKey }) {
                         flexShrink: 0,
                       }}
                     >
-                      {isUser ? (
-                        <User className="w-4 h-4" style={{ color: 'var(--color-primary, #3b82f6)' }} aria-hidden="true" />
-                      ) : (
-                        <Shield className="w-4 h-4" style={{ color: '#f59e0b' }} aria-hidden="true" />
-                      )}
+                      {isUser ? getThemedIcon('ui', 'user', 16, 'primary') : getThemedIcon('ui', 'shield', 16, 'light')}
                     </div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -315,13 +311,13 @@ export default function SharesList({ fileId, onRevoke, refreshKey }) {
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-                          <PermIcon className="w-3 h-3" aria-hidden="true" />
+                          {getThemedIcon('ui', permIcon, 12, 'muted')}
                           {t(`drive.permission.${share.permission.toLowerCase()}`)}
                         </div>
 
                         {expiryText && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-                            <Calendar className="w-3 h-3" aria-hidden="true" />
+                            {getThemedIcon('ui', 'calendar', 12, 'muted')}
                             {expiryText}
                           </div>
                         )}
@@ -360,7 +356,7 @@ export default function SharesList({ fileId, onRevoke, refreshKey }) {
                     title={t('drive.revokeShare')}
                     aria-label={t('drive.revokeShare')}
                   >
-                    <X className="w-4 h-4" aria-hidden="true" />
+                    {getThemedIcon('ui', 'x', 16, 'light')}
                   </button>
                 </div>
               );

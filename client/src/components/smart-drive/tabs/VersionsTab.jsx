@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { Clock, RotateCcw, Download, User, Tag } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import axios from 'axios';
 
 export default function VersionsTab({ fileId }) {
@@ -9,6 +9,7 @@ export default function VersionsTab({ fileId }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchVersions = useCallback(async () => {
     if (!fileId) return;
@@ -38,9 +39,16 @@ export default function VersionsTab({ fileId }) {
       const response = await axios.post(`/api/v1/drive/versions/${versionId}/restore`);
       if (response.data.success) {
         fetchVersions();
+      } else if (response.data.error?.code === 'NAME_CONFLICT') {
+        alert(t('drive.versions.restoreNameConflict') || 'Cannot restore: A file with this name already exists in this folder.');
       }
     } catch (err) {
       console.error('[VersionsTab] restore failed:', err);
+      if (err.response?.data?.error?.code === 'NAME_CONFLICT') {
+        alert(t('drive.versions.restoreNameConflict') || 'Cannot restore: A file with this name already exists in this folder.');
+      } else {
+        alert(t('drive.versions.restoreError') || 'Failed to restore version');
+      }
     }
   };
 
@@ -86,7 +94,31 @@ export default function VersionsTab({ fileId }) {
   }, {});
 
   const sortedDates = Object.keys(groupedVersions).sort((a, b) => new Date(b) - new Date(a));
-  const selectedVersions = selectedDate ? groupedVersions[selectedDate] : versions;
+
+  // Filter versions by search query
+  const filteredVersions = versions.filter(version => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      version.uploadedBy?.displayName?.toLowerCase().includes(query) ||
+      version.uploadedBy?.email?.toLowerCase().includes(query) ||
+      version.changeNote?.toLowerCase().includes(query) ||
+      version.versionNumber?.toString().includes(query)
+    );
+  });
+
+  // Group filtered versions by date
+  const filteredGroupedVersions = filteredVersions.reduce((acc, version) => {
+    const date = new Date(version.createdAt).toDateString();
+    if (!acc[date]) {
+      acc[date] = [];
+    }
+    acc[date].push(version);
+    return acc;
+  }, {});
+
+  const filteredSortedDates = Object.keys(filteredGroupedVersions).sort((a, b) => new Date(b) - new Date(a));
+  const selectedVersions = selectedDate ? filteredGroupedVersions[selectedDate] : filteredVersions;
 
   if (loading) {
     return (
@@ -107,7 +139,7 @@ export default function VersionsTab({ fileId }) {
   if (versions.length === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
-        <Clock className="w-10 h-10 mb-3 opacity-50" aria-hidden="true" />
+        {getThemedIcon('ui', 'clock', 40, 'muted')}
         {t('drive.noVersions')}
       </div>
     );
@@ -116,16 +148,16 @@ export default function VersionsTab({ fileId }) {
   return (
     <div style={{ display: 'flex', gap: '1rem', height: '100%' }}>
       {/* Left sidebar - Date timeline */}
-      <div style={{ 
-        width: '200px', 
-        flexShrink: 0, 
-        borderRight: '1px solid var(--border, #e5e7eb)', 
+      <div style={{
+        width: '200px',
+        flexShrink: 0,
+        borderRight: '1px solid var(--border, #e5e7eb)',
         paddingInlineEnd: '1rem',
         overflowY: 'auto',
         maxHeight: '500px'
       }}>
         <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Clock className="w-4 h-4" />
+          {getThemedIcon('ui', 'clock', 16, 'muted')}
           {t('drive.timeline') || 'Timeline'}
         </h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -143,9 +175,9 @@ export default function VersionsTab({ fileId }) {
               fontWeight: !selectedDate ? 600 : 400,
             }}
           >
-            {t('drive.allVersions') || 'All Versions'} ({versions.length})
+            {t('drive.allVersions') || 'All Versions'} ({filteredVersions.length})
           </button>
-          {sortedDates.map((date) => (
+          {filteredSortedDates.map((date) => (
             <button
               key={date}
               onClick={() => setSelectedDate(date)}
@@ -161,7 +193,7 @@ export default function VersionsTab({ fileId }) {
                 fontWeight: selectedDate === date ? 600 : 400,
               }}
             >
-              {formatDateHeader(date)} ({groupedVersions[date].length})
+              {formatDateHeader(date)} ({filteredGroupedVersions[date].length})
             </button>
           ))}
         </div>
@@ -169,6 +201,39 @@ export default function VersionsTab({ fileId }) {
 
       {/* Right content - Versions */}
       <div style={{ flex: 1, overflowY: 'auto', maxHeight: '500px' }}>
+        {/* Search filter */}
+        <div style={{ marginBottom: '1rem' }}>
+          <div style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+          }}>
+            {getThemedIcon('ui', 'search', 16, 'muted', {
+              position: 'absolute',
+              left: '0.75rem',
+            })}
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('drive.searchVersions') || 'Search versions...'}
+              style={{
+                width: '100%',
+                padding: '0.625rem 0.75rem 0.625rem 2.25rem',
+                fontSize: '0.875rem',
+                border: '1px solid var(--border, #e5e7eb)',
+                borderRadius: '0.5rem',
+                background: 'var(--panel, white)',
+                color: 'var(--text, #111827)',
+                outline: 'none',
+                transition: 'border-color 0.15s',
+              }}
+              onFocus={(e) => e.currentTarget.style.borderColor = 'var(--color-primary, #2563eb)'}
+              onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)'}
+            />
+          </div>
+        </div>
+
         <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
           {selectedDate ? formatDateHeader(selectedDate) : t('drive.versionHistory')} ({selectedVersions.length})
         </h3>
@@ -190,7 +255,7 @@ export default function VersionsTab({ fileId }) {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <Clock className="w-4 h-4" style={{ color: 'var(--color-primary, #2563eb)' }} aria-hidden="true" />
+                    {getThemedIcon('ui', 'clock', 16, 'primary')}
                     <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
                       {t('drive.version')} {version.versionNumber}
                     </span>
@@ -205,7 +270,7 @@ export default function VersionsTab({ fileId }) {
                         alignItems: 'center',
                         gap: '0.25rem',
                       }}>
-                        <Tag className="w-3 h-3" aria-hidden="true" />
+                        {getThemedIcon('ui', 'tag', 12, 'white')}
                         {t('drive.current')}
                       </span>
                     )}
@@ -213,11 +278,11 @@ export default function VersionsTab({ fileId }) {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <User className="w-3.5 h-3.5" aria-hidden="true" />
+                      {getThemedIcon('ui', 'user', 14, 'muted')}
                       {version.uploadedBy?.displayName || version.uploadedBy?.email || '\u2014'}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                      {getThemedIcon('ui', 'download', 14, 'muted')}
                       {formatSize(version.size)}
                     </div>
                   </div>
@@ -259,7 +324,7 @@ export default function VersionsTab({ fileId }) {
                       onMouseLeave={(e) => e.currentTarget.style.background = 'var(--panel, white)'}
                       title={t('drive.restoreVersion')}
                     >
-                      <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+                      {getThemedIcon('ui', 'rotate_ccw', 14, 'light')}
                       {t('drive.restore')}
                     </button>
                   )}

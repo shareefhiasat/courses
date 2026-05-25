@@ -8,7 +8,7 @@
 import { apiService } from '../api/apiService';
 
 // Base API URL (apiService already includes /api/v1)
-const API_BASE = '/workflow';
+const API_BASE = '/workflow-documents';
 
 const serviceName = 'workflowService';
 
@@ -46,26 +46,45 @@ export const createWorkflowDocument = async (documentData) => {
 
 /**
  * Get workflow documents with filtering and pagination
- * 
+ *
  * @param {Object} params - Query parameters
  * @returns {Promise<Object>} - Result object
  */
 export const getWorkflowDocuments = async (params = {}) => {
   try {
     console.log(`[${serviceName}] Getting workflow documents with params:`, params);
-    
-    const response = await apiService.get(`${API_BASE}/documents`, { params });
-    
+
+    // Backend only accepts: role, status, workflowType, limit, offset
+    // Filter out unsupported params like createdBy, sortBy, sortOrder
+    const { role, status, workflowType, limit, offset } = params;
+    const supportedParams = {};
+    if (role) supportedParams.role = role;
+    if (status) supportedParams.status = status;
+    if (workflowType) supportedParams.workflowType = workflowType;
+    if (limit) supportedParams.limit = limit;
+    if (offset) supportedParams.offset = offset;
+
+    const response = await apiService.get(`${API_BASE}`, { params: supportedParams });
+
     if (response.success) {
       console.log(`[${serviceName}] ✅ Retrieved ${response.data?.length || 0} workflow documents`);
     } else {
       console.error(`[${serviceName}] ❌ Failed to get workflow documents:`, response.error);
     }
-    
+
     return response;
-    
+
   } catch (error) {
     console.error(`[${serviceName}] Error getting workflow documents:`, error);
+    // Gracefully handle 404 and other errors - return empty data instead of breaking
+    if (error.response?.status === 404) {
+      console.warn(`[${serviceName}] Endpoint not available (404), returning empty documents`);
+      return {
+        success: true,
+        data: [],
+        error: null
+      };
+    }
     return {
       success: false,
       error: error.message || 'Failed to retrieve workflow documents',
@@ -234,26 +253,37 @@ export const closeWorkflowDocument = async (documentId, closeData) => {
 
 /**
  * Get workflow inbox items for the current user
- * 
+ *
  * @param {Object} params - Query parameters
  * @returns {Promise<Object>} - Result object
  */
 export const getWorkflowInbox = async (params = {}) => {
   try {
     console.log(`[${serviceName}] Getting workflow inbox with params:`, params);
-    
-    const response = await apiService.get(`${API_BASE}/inbox`, { params });
-    
+
+    // Backend getMyTasks accepts no query parameters
+    // Remove all params like page, limit, action, sortBy, sortOrder
+    const response = await apiService.get('/workflows/my-tasks');
+
     if (response.success) {
-      console.log(`[${serviceName}] ✅ Retrieved workflow inbox:`, response.data?.items?.length || 0, 'items');
+      console.log(`[${serviceName}] ✅ Retrieved workflow inbox:`, response.data?.payload?.length || 0, 'items');
     } else {
       console.error(`[${serviceName}] ❌ Failed to get workflow inbox:`, response.error);
     }
-    
+
     return response;
-    
+
   } catch (error) {
     console.error(`[${serviceName}] Error getting workflow inbox:`, error);
+    // Gracefully handle 404 and other errors - return empty data instead of breaking
+    if (error.response?.status === 404) {
+      console.warn(`[${serviceName}] Endpoint not available (404), returning empty inbox`);
+      return {
+        success: true,
+        data: { items: [], total: 0 },
+        error: null
+      };
+    }
     return {
       success: false,
       error: error.message || 'Failed to get workflow inbox',

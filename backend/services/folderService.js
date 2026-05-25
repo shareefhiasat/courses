@@ -69,7 +69,9 @@ export async function listChildren(keycloakUser, { parentId = null, includeDelet
  */
 export async function getFolderWithBreadcrumb(folderId, actorUserId) {
   try {
+    console.log('[folderService.getFolderWithBreadcrumb] folderId:', folderId, 'actorUserId:', actorUserId);
     const folder = await prisma.folder.findUnique({ where: { id: folderId } });
+    console.log('[folderService.getFolderWithBreadcrumb] folder:', folder);
     if (!folder || folder.isDeleted) return err('FOLDER_NOT_FOUND', 'Folder not found');
 
     const chainRows = await prisma.$queryRaw`
@@ -82,7 +84,10 @@ export async function getFolderWithBreadcrumb(folderId, actorUserId) {
       )
       SELECT id, name, "parentId", path FROM chain ORDER BY depth DESC
     `;
-    return ok({ folder, breadcrumb: chainRows });
+    console.log('[folderService.getFolderWithBreadcrumb] chainRows:', chainRows);
+    const result = ok({ folder, breadcrumb: chainRows });
+    console.log('[folderService.getFolderWithBreadcrumb] returning:', result);
+    return result;
   } catch (error) {
     console.error('[folderService.getFolderWithBreadcrumb]', error);
     return err('GET_FOLDER_FAILED', error.message);
@@ -266,6 +271,20 @@ export async function restoreFolder(folderId, actorUserId) {
     const folder = await prisma.folder.findUnique({ where: { id: folderId } });
     if (!folder) return err('FOLDER_NOT_FOUND', 'Folder not found');
     if (folder.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Only owner can restore');
+
+    // Check for name conflicts in the same parent folder
+    const existingFolder = await prisma.folder.findFirst({
+      where: {
+        id: { not: folderId },
+        parentId: folder.parentId,
+        name: folder.name,
+        isDeleted: false,
+      },
+    });
+
+    if (existingFolder) {
+      return err('NAME_CONFLICT', 'A folder with this name already exists in this location. Restore not allowed to prevent conflicts.');
+    }
 
     const oldPath = folder.path;
     await prisma.$transaction(async (tx) => {

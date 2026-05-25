@@ -331,7 +331,14 @@ export const PAGINATION_CONFIG = {
 
 // File upload limits
 export const FILE_UPLOAD_CONFIG = {
-  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+  MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
+  ALLOWED_EXTENSIONS: [
+    'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', // Images
+    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', // Documents
+    'mp4', 'mov', 'avi', 'mkv', 'webm', // Videos
+    'mp3', 'wav', 'ogg', 'm4a', // Audio
+    'zip', 'rar', '7z', 'tar', 'gz' // Archives
+  ],
   ALLOWED_FILE_TYPES: [
     'image/jpeg',
     'image/png',

@@ -20,6 +20,7 @@ import { getClasses } from '@services/business/classService';
 import styles from './AttendancePage.module.css';
 import PortalTooltip from '@ui/PortalTooltip';
 import { exportGeneric } from '@services/export/excelExportService.js';
+import { submitAttendanceReport } from '@services/business/workflowDocumentService.js';
 
 const AttendancePage = () => {
   const { user, isAdmin, isInstructor, isHR, loading: authLoading } = useAuth();
@@ -56,6 +57,9 @@ const AttendancePage = () => {
     try { return parseInt(localStorage.getItem('attendance_qr_size') || '200', 10); } catch { return 200; }
   });
   const [sessionStartTime, setSessionStartTime] = useState(null);
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [submitComments, setSubmitComments] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const selectedClass = useMemo(() => classOptions.find(c => (c.id||c.docId) === classId), [classOptions, classId]);
 
@@ -423,6 +427,47 @@ const AttendancePage = () => {
     try {
       await saveAttendanceConfigDoc(cfg);
     } finally { setSavingCfg(false); }
+  };
+
+  const handleExportAndSubmit = async () => {
+    if (!sessionId || !selectedClass) return;
+    
+    setShowSubmitDialog(true);
+  };
+
+  const confirmSubmission = async () => {
+    if (!sessionId || !selectedClass) return;
+    
+    setIsSubmitting(true);
+    try {
+      const result = await getAttendanceMarksForExport(sessionId);
+      const attendanceData = result.success ? result.data : [];
+      
+      const today = new Date().toISOString().split('T')[0];
+      
+      const submitResult = await submitAttendanceReport(attendanceData, {
+        classId: selectedClass.id || selectedClass.docId,
+        className: selectedClass.name || selectedClass.className,
+        date: today,
+        program: selectedClass.program || programFilter,
+        subject: selectedClass.subject || subjectFilter,
+        instructorId: user.id,
+        comments: submitComments
+      });
+
+      if (submitResult.success) {
+        setErr('');
+        alert(`Attendance report submitted successfully! Document ID: ${submitResult.data.document.id}`);
+        setShowSubmitDialog(false);
+        setSubmitComments('');
+      } else {
+        setErr(submitResult.error || 'Submission failed');
+      }
+    } catch (error) {
+      setErr(error.message || 'Submission failed');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Use GlobalLoading for initial data load
@@ -824,6 +869,16 @@ const AttendancePage = () => {
                   >
                     {t('export_excel') || 'Export Excel'}
                   </Button>
+                  {isInstructor && (
+                    <Button 
+                      variant="primary"
+                      icon={getThemedIcon('ui', 'send', 16, theme)}
+                      onClick={handleExportAndSubmit}
+                      disabled={!sessionId || loading}
+                    >
+                      {t('export_submit_hr') || 'Export & Submit for HR Review'}
+                    </Button>
+                  )}
                 </div>
               </>
             )}
@@ -902,6 +957,92 @@ const AttendancePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Submission Confirmation Dialog */}
+      {showSubmitDialog && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: 12,
+            padding: '1.5rem',
+            maxWidth: '500px',
+            width: '90%',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
+          }}>
+            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 600 }}>
+              {t('submit_attendance_report') || 'Submit Attendance Report for HR Review'}
+            </h3>
+            <p style={{ margin: '0 0 1rem 0', color: '#666' }}>
+              {t('submit_confirmation') || 'This will generate an attendance report and submit it to HR for review. Are you sure you want to proceed?'}
+            </p>
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+                {t('optional_comments') || 'Optional Comments'}
+              </label>
+              <textarea
+                value={submitComments}
+                onChange={(e) => setSubmitComments(e.target.value)}
+                placeholder={t('add_submission_notes') || 'Add any notes for HR...'}
+                style={{
+                  width: '100%',
+                  minHeight: '80px',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: 8,
+                  fontSize: '0.875rem',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setShowSubmitDialog(false);
+                  setSubmitComments('');
+                }}
+                disabled={isSubmitting}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: 8,
+                  background: 'white',
+                  color: '#374151',
+                  fontWeight: 500,
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {t('cancel') || 'Cancel'}
+              </button>
+              <button
+                onClick={confirmSubmission}
+                disabled={isSubmitting}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  border: 'none',
+                  borderRadius: 8,
+                  background: isSubmitting ? '#9ca3af' : '#10b981',
+                  color: 'white',
+                  fontWeight: 500,
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {isSubmitting ? (t('submitting') || 'Submitting...') : (t('confirm_submit') || 'Confirm & Submit')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

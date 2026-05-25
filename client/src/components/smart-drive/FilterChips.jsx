@@ -1,16 +1,16 @@
 import { useLang } from '@contexts/LangContext';
-import { X, FileImage, FileText, Video, Music, Archive, Calendar, User, Star, Clock, Trash2 } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 
 export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll }) {
   const { t } = useLang();
 
   const getFilterIcon = (type) => {
     switch (type) {
-      case 'type': return FileText;
-      case 'date': return Calendar;
-      case 'owner': return User;
-      case 'status': return Star;
-      default: return FileText;
+      case 'type': return 'file_text';
+      case 'date': return 'calendar';
+      case 'owner': return 'user';
+      case 'status': return 'star';
+      default: return 'file_text';
     }
   };
 
@@ -42,7 +42,7 @@ export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll 
       </span>
 
       {activeFilters.map((filter, idx) => {
-        const Icon = getFilterIcon(filter.type);
+        const icon = getFilterIcon(filter.type);
 
         return (
           <button
@@ -64,9 +64,9 @@ export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll 
             onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(128, 0, 32, 0.2)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(128, 0, 32, 0.1)'}
           >
-            <Icon className="w-3.5 h-3.5" />
+            {getThemedIcon('ui', icon, 14, 'light')}
             {getFilterLabel(filter)}
-            <X className="w-3.5 h-3.5 ms-1" />
+            {getThemedIcon('ui', 'x', 14, 'light')}
           </button>
         );
       })}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { Search, User, X } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import axios from 'axios';
 
 export default function UserSearchDropdown({ value, onChange, disabled = false, excludeUserIds = [] }) {
@@ -76,7 +76,7 @@ export default function UserSearchDropdown({ value, onChange, disabled = false, 
           marginBottom: '0.5rem',
         }}
       >
-        <User className="w-4 h-4" aria-hidden="true" />
+        {getThemedIcon('ui', 'user', 16, 'light')}
         {t('drive.selectUser')}
       </label>
 
@@ -107,28 +107,22 @@ export default function UserSearchDropdown({ value, onChange, disabled = false, 
                 flexShrink: 0,
               }}
             >
-              <User className="w-4 h-4" style={{ color: 'var(--color-primary, #2563eb)' }} aria-hidden="true" />
+              {getThemedIcon('ui', 'user', 16, 'primary')}
             </div>
             <span style={{ flex: 1, fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
               {query}
             </span>
-            <X className="w-4 h-4" style={{ color: 'var(--text-muted, #6b7280)', flexShrink: 0 }} />
+            {getThemedIcon('ui', 'x', 16, 'muted')}
           </div>
         ) : (
           <>
-            <Search
-              style={{
-                position: 'absolute',
-                insetInlineStart: '0.75rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '1rem',
-                height: '1rem',
-                color: 'var(--text-muted, #6b7280)',
-                pointerEvents: 'none',
-              }}
-              aria-hidden="true"
-            />
+            {getThemedIcon('ui', 'search', 16, 'muted', {
+              position: 'absolute',
+              insetInlineStart: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              pointerEvents: 'none',
+            })}
             <input
               type="text"
               value={query}
@@ -189,7 +183,7 @@ export default function UserSearchDropdown({ value, onChange, disabled = false, 
 
           {!loading && !error && users.length === 0 && query.length >= 2 && (
             <div style={{ padding: '1.5rem 0.75rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
-              <User className="w-8 h-8 mx-auto mb-2 opacity-30" aria-hidden="true" />
+              {getThemedIcon('ui', 'user', 32, 'muted')}
               {t('drive.noUsersFound')}
             </div>
           )}
@@ -228,7 +222,7 @@ export default function UserSearchDropdown({ value, onChange, disabled = false, 
                       flexShrink: 0,
                     }}
                   >
-                    <User className="w-4 h-4" style={{ color: 'var(--color-primary, #2563eb)' }} aria-hidden="true" />
+                    {getThemedIcon('ui', 'user', 16, 'primary')}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>

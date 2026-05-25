@@ -179,7 +179,7 @@ export async function startWorkflow(input, actor) {
       include: {
         definition: true,
         currentStage: true,
-        steps: { orderBy: { createdAt: 'asc' } },
+        steps: { orderBy: { enteredAt: 'asc' } },
       },
     });
 
@@ -390,7 +390,7 @@ export async function approveStage(instanceId, input, actor) {
       include: {
         definition: true,
         currentStage: true,
-        steps: { orderBy: { createdAt: 'asc' } },
+        steps: { orderBy: { enteredAt: 'asc' } },
       },
     });
 
@@ -480,7 +480,7 @@ export async function rejectStage(instanceId, input, actor) {
       include: {
         definition: true,
         currentStage: true,
-        steps: { orderBy: { createdAt: 'asc' } },
+        steps: { orderBy: { enteredAt: 'asc' } },
       },
     });
 
@@ -502,7 +502,7 @@ export async function getWorkflowInstance(instanceId, actor) {
       include: {
         definition: { include: { stages: { orderBy: { order: 'asc' } } } },
         currentStage: true,
-        steps: { orderBy: { createdAt: 'asc' } },
+        steps: { orderBy: { enteredAt: 'asc' } },
         initiatedBy: { select: { id: true, name: true, email: true } },
       },
     });
@@ -566,7 +566,7 @@ export async function getMyPendingTasks(actor) {
       include: {
         definition: true,
         currentStage: true,
-        steps: { where: { status: 'PENDING' }, orderBy: { createdAt: 'asc' } },
+        steps: { where: { status: 'PENDING' }, orderBy: { enteredAt: 'asc' } },
         initiatedBy: { select: { id: true, displayName: true } },
       },
     });

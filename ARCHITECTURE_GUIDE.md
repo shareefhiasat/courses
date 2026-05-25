@@ -2,50 +2,37 @@
 
 ## 🏗️ Overview
 
-Military LMS uses **Node.js API Server** with **PostgreSQL** and **Prisma** ORM. The architecture follows a clean 4-layer separation:
+Military LMS uses **Node.js/Express Backend** with **PostgreSQL**, **Prisma ORM**, **Keycloak Authentication**, and **MinIO Object Storage**. The architecture follows a clean layered separation:
 
 ```
-Frontend (Vite :5174)
+Frontend (Vite :5174 HTTPS)
     ↓ fetch
-API Server (Express :3001)
-    ↓ Business Services
-DB Services (Prisma)
+Backend API (Express :8001)
+    ↓ Controllers
+    ↓ Services (Business Logic)
+    ↓ DB Services (Prisma)
     ↓
 PostgreSQL Database (:5432)
+
+Infrastructure:
+- Keycloak (Authentication) :8080
+- MinIO (Object Storage) :9000
+- Redis (Caching) :6379
+- Nginx (TLS Termination) :443
 ```
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Database Setup
+### 1. Start Docker Infrastructure
 ```bash
-# PostgreSQL must be running on localhost:5432
-# Database: military_lms
-# User: military_lms
-# Password: military_lms123
+# Start all services (PostgreSQL, Keycloak, MinIO, Redis, Nginx)
+docker compose -p qaf-lms -f scripts/docker/docker-compose.yml up -d
 
-# Generate Prisma client
-pnpm db:generate
-
-# Push schema to database
-pnpm db:push
+# Check status
+docker ps
 ```
-
-### 2. Start Development Servers
-```bash
-# Terminal 1: Start API Server
-pnpm api
-
-# Terminal 2: Start Frontend
-pnpm dev
-```
-
-### 3. Access the Application
-- **Frontend**: http://localhost:5174
-- **API Server**: http://localhost:3001/api/*
-- **Health Check**: http://localhost:3001/api/health
-- **Prisma Studio**: `pnpm db:studio`
 
 ---
 
@@ -53,49 +40,72 @@ pnpm dev
 
 ```
 courses/
-├── server.js                        # 🚀 API Server (Express)
-├── client/                          # 🎯 Frontend Application
+├── backend/                         # 🚀 Backend Application
+│   ├── server.js                    # Express server entry point
+│   ├── routes/                      # API route definitions
+│   │   ├── workflows.js
+│   │   ├── activities.js
+│   │   └── ...
+│   ├── controllers/                 # Request handlers
+│   │   ├── activities.js
+│   │   ├── admin-scopes.js
+│   │   └── ...
+│   ├── services/                    # Business logic layer
+│   │   ├── minioService.js          # MinIO object storage
+│   │   ├── notifications/           # Notification gateway
+│   │   └── ...
+│   ├── db/                          # Database operations
+│   │   ├── activities-postgres.js
+│   │   ├── admin-scopes-postgres.js
+│   │   └── ...
+│   ├── middleware/                  # Express middleware
+│   │   ├── keycloakAuth.js          # Keycloak JWT validation
+│   │   └── adminScopeMiddleware.js
+│   └── constants/                   # Shared constants
+│       ├── driveConstants.js        # MinIO bucket names
+│       └── fileConstants.js
+├── client/                          # � Frontend Application
 │   ├── src/
 │   │   ├── pages/                   # 📄 UI Pages
-│   │   │   ├── academic/            # 📚 Academic UI Pages
-│   │   │   │   ├── programs/        # Programs UI
-│   │   │   │   │   └── ProgramsPage.jsx
-│   │   │   │   ├── subjects/        # Subjects UI
-│   │   │   │   └── classes/         # Classes UI
-│   │   │   ├── dashboard/           # 📊 Dashboard UI
-│   │   │   ├── users/               # 👥 User Management UI
-│   │   │   └── HomePage.jsx         # 🏠 Main UI Page
+│   │   │   ├── workflow/            # Workflow UI
+│   │   │   │   ├── WorkflowInboxPage.jsx
+│   │   │   │   └── WorkflowWorkspacePage.jsx
+│   │   │   ├── academic/            # 📚 Academic UI
+│   │   │   ├── dashboard/           # � Dashboard
+│   │   │   └── ...
 │   │   ├── services/
-│   │   │   ├── business/            # 🧠 Business Logic Layer
-│   │   │   │   ├── programBusinessService.js
-│   │   │   │   ├── programService.js
-│   │   │   │   └── ...
+│   │   │   ├── business/            # 🧠 Business Logic
+│   │   │   │   └── workflowService.js
 │   │   │   └── db/                  # 🗄️ Database Layer
-│   │   │       ├── databaseService.js    # Prisma Client Management
-│   │   │       ├── programDbService.js   # Direct Prisma Operations
-│   │   │       └── programDbService-postgres.cjs  # API Client (Frontend)
-│   │   ├── components/              # 🎨 React Components
+│   │   ├── components/             # 🎨 React Components
+│   │   ├── hooks/                   # Custom React hooks
 │   │   └── contexts/                # 📦 React Contexts
 │   ├── prisma/
-│   │   └── schema.postgres.prisma   # 🗄️ Database Schema
+│   │   └── schema.prisma            # 🗄️ Database Schema
 │   └── package.json
-└── package.json                     # 📋 Root Scripts
+├── scripts/docker/                  # 🐳 Docker configurations
+│   └── docker-compose.yml           # Infrastructure services
+└── package.json                     # 📋 Root workspace
 ```
 
 ---
 
 ## 🔧 Environment Variables
 
+### Backend (.env)
+```env
+DATABASE_URL="postgresql://military_lms:military_lms123@localhost:5432/military_lms"
+KEYCLOAK_URL=http://localhost:8080
+KEYCLOAK_REALM=military-lms
+MINIO_ENDPOINT=localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+REDIS_URL=redis://localhost:6379
+```
+
 ### Client (.env)
 ```env
-# Database (for Prisma generation)
-DATABASE_URL="postgresql://military_lms:military_lms123@localhost:5432/military_lms"
-VITE_DATABASE_URL="postgresql://military_lms:military_lms123@localhost:5432/military_lms"
-
-# API (Standalone Express Server)
-VITE_API_BASE_URL=http://localhost:3001
-
-# Authentication
+VITE_API_BASE_URL=http://localhost:8001
 VITE_KEYCLOAK_URL=http://localhost:8080
 VITE_KEYCLOAK_REALM=military-lms
 VITE_KEYCLOAK_CLIENT_ID=military-lms-app
@@ -105,64 +115,66 @@ VITE_KEYCLOAK_CLIENT_ID=military-lms-app
 
 ## 🌐 API Architecture
 
-### Standalone Express API Server
-- **Location**: `server.js` (root level)
-- **Port**: 3001
-- **Database**: Direct Prisma queries with connection pooling
-- **Service Layer**: Business Services → DB Services → Prisma
+### Backend API Server
+- **Location**: `backend/server.js`
+- **Port**: 8001
+- **Database**: Prisma ORM with PostgreSQL
+- **Authentication**: Keycloak JWT middleware
+- **Service Layer**: Routes → Controllers → Services → DB Services → Prisma
 
-**Example - Programs API:**
+**Example - Workflow API:**
 ```javascript
-// server.js
-import programBusinessService from './client/src/services/business/programBusinessService.js';
+// backend/routes/workflows.js
+import workflowController from '../controllers/workflows.js';
 
-app.get('/api/programs', async (req, res) => {
-  const result = await programBusinessService.getAllPrograms(req.query);
-  res.json(result);
-});
+router.get('/api/v1/workflows', keycloakAuth, workflowController.list);
+router.post('/api/v1/workflows', keycloakAuth, workflowController.create);
 ```
 
 ### Service Layer Pattern
-- **Business Services**: `client/src/services/business/`
-- **DB Services**: `client/src/services/db/`
-- **Database Service**: `client/src/services/db/databaseService.js`
+- **Controllers**: `backend/controllers/` - Request validation and response formatting
+- **Services**: `backend/services/` - Business logic
+- **DB Services**: `backend/db/` - Prisma database operations
 
-**Example - Program Business Service:**
+**Example - Workflow Controller:**
 ```javascript
-// client/src/services/business/programBusinessService.js
-import programDbService from '../db/programDbService.js';
+// backend/controllers/workflows.js
+import workflowDbService from '../db/workflows-postgres.js';
 
-const getAllPrograms = async (params = {}) => {
-  const result = await programDbService.getPrograms(params);
-  return result;
+const create = async (req, res) => {
+  const result = await workflowDbService.create(req.body);
+  res.json(result);
 };
 ```
 
-**Example - Program DB Service:**
+**Example - Workflow DB Service:**
 ```javascript
-// client/src/services/db/programDbService.js
-import { getDatabaseClient } from './databaseService.js';
+// backend/db/workflows-postgres.js
+import { prisma } from '../services/prismaService.js';
 
-const prisma = getDatabaseClient();
-
-const getPrograms = async (params = {}) => {
-  const programs = await prisma.program.findMany({...});
-  return { success: true, data: programs };
+const create = async (data) => {
+  const workflow = await prisma.workflow.create({ data });
+  return { success: true, data: workflow };
 };
 ```
 
 ### Frontend API Client
-- **Location**: `client/src/services/db/programDbService-postgres.cjs`
+- **Location**: `client/src/services/business/`
 - **Purpose**: HTTP client for API communication
-- **No Prisma**: Only fetch() calls to API server
+- **Authentication**: Includes Keycloak token in headers
 
-**Example - Programs API Client:**
+**Example - Workflow Service:**
 ```javascript
-// client/src/services/db/programDbService-postgres.cjs
-const API_BASE_URL = 'http://localhost:3001';
+// client/src/services/business/workflowService.js
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const getPrograms = async (params = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/programs`);
+const createWorkflow = async (data) => {
+  const token = await getToken();
+  const response = await fetch(`${API_BASE_URL}/api/v1/workflows`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify(data)
+  });
   return response.json();
 };
 ```
@@ -171,112 +183,139 @@ const getPrograms = async (params = {}) => {
 
 ## 🔄 Data Flow Example
 
-### Get All Programs
+### Create Workflow
 ```
-1. ProgramsPage.jsx
+1. WorkflowPage.jsx
    ↓ calls
-2. programService.getAllPrograms() (Frontend)
-   ↓ calls  
-3. programDbService-postgres.cjs.getPrograms() (Frontend)
-   ↓ fetches
-4. GET http://localhost:3001/api/programs
+2. workflowService.createWorkflow() (Frontend)
+   ↓ fetches with Keycloak token
+3. POST http://localhost:8001/api/v1/workflows
+   ↓ validates token
+4. keycloakAuth middleware
    ↓ calls
-5. programBusinessService.getAllPrograms() (API Server)
+5. workflowController.create() (Backend)
    ↓ calls
-6. programDbService.getPrograms() (API Server)
+6. workflowDbService.create() (Backend)
    ↓ queries
 7. Prisma → PostgreSQL
    ↓ returns
-8. ProgramsPage displays data
+8. WorkflowPage displays success
 ```
 
 ---
 
 ## 📋 Available Scripts
 
-### Root Commands (Main)
+### Backend
 ```bash
-pnpm api          # Start API server (port 3001)
-pnpm dev          # Start frontend dev server (port 5174)
-pnpm build        # Build for production
-pnpm test         # Run E2E tests
-pnpm db:generate  # Generate Prisma client
-pnpm db:push      # Push schema to database
-pnpm db:studio    # Open Prisma Studio
+node backend/server.js              # Start backend server (port 8001)
+npx prisma generate --schema=client/prisma/schema.prisma  # Generate Prisma client
+npx prisma studio --schema=client/prisma/schema.prisma        # Open Prisma Studio
 ```
 
-### Client Commands (from client/ directory)
+### Frontend
 ```bash
-pnpm dev          # Start Vite dev server
-pnpm build        # Build application
-pnpm test         # Run tests
-pnpm db:generate  # Generate Prisma client
-pnpm db:push      # Push schema changes
+cd client
+node node_modules/vite/bin/vite.js --host  # Start Vite dev server (port 5174)
+npm build                              # Build for production
 ```
 
 ---
 
 ## 🎯 Entity Implementation Pattern
 
-To add a new entity (e.g., Subjects):
+To add a new entity (e.g., Workflow Documents):
 
-### 1. API Server Route
-```javascript
-// server.js
-import subjectBusinessService from './client/src/services/business/subjectBusinessService.js';
+### 1. Prisma Schema
+```prisma
+// client/prisma/schema.prisma
+model WorkflowDocument {
+  id String @id @default(cuid())
+  workflowType WorkflowType
+  title String
+  status WorkflowStatus
+  // ...
+}
 
-app.get('/api/subjects', async (req, res) => {
-  const result = await subjectBusinessService.getAllSubjects(req.query);
-  res.json(result);
-});
-```
-
-### 2. Business Service
-```javascript
-// client/src/services/business/subjectBusinessService.js
-import subjectDbService from '../db/subjectDbService.js';
-
-const getAllSubjects = async (params = {}) => {
-  const result = await subjectDbService.getSubjects(params);
-  return result;
-};
-```
-
-### 3. DB Service
-```javascript
-// client/src/services/db/subjectDbService.js
-import { getDatabaseClient } from './databaseService.js';
-
-const prisma = getDatabaseClient();
-
-const getSubjects = async (params = {}) => {
-  const subjects = await prisma.subject.findMany({...});
-  return { success: true, data: subjects };
-};
-```
-
-### 4. Frontend API Client
-```javascript
-// client/src/services/db/subjectDbService-postgres.cjs
-const getSubjects = async (params = {}) => {
-  const response = await fetch(`http://localhost:3001/api/subjects`);
-  return response.json();
-};
+enum WorkflowType {
+  ATTENDANCE_DAILY
+  ATTENDANCE_WEEKLY
+  GENERAL
+}
 ```
 
 ---
 
+### 2. DB Service
+```javascript
+// backend/db/workflowDocuments-postgres.js
+import { prisma } from '../services/prismaService.js';
+
+const create = async (data) => {
+  const document = await prisma.workflowDocument.create({ data });
+  return { success: true, data: document };
+};
+```
+
+### 3. Controller
+```javascript
+// backend/controllers/workflowDocuments.js
+import workflowDocumentDbService from '../db/workflowDocuments-postgres.js';
+
+const create = async (req, res) => {
+  const result = await workflowDocumentDbService.create(req.body);
+  res.json(result);
+};
+```
+
+### 4. Route
+```javascript
+// backend/routes/workflowDocuments.js
+import express from 'express';
+import workflowDocumentController from '../controllers/workflowDocuments.js';
+import keycloakAuth from '../middleware/keycloakAuth.js';
+
+const router = express.Router();
+router.post('/', keycloakAuth, workflowDocumentController.create);
+
+export default router;
+```
+
+### 5. Frontend Service
+```javascript
+// client/src/services/business/workflowDocumentService.js
+const createWorkflowDocument = async (data) => {
+  const token = await getToken();
+  const response = await fetch(`${API_BASE_URL}/api/v1/workflow-documents`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+};
+```
+
 ## 🔐 Security Notes
+
+### Authentication
+- Keycloak JWT validation on all protected routes
+- Token stored in browser, sent in Authorization header
+- Role-based access control (RBAC) via Keycloak realms
 
 ### Environment Variables
 - **VITE_** prefix: Exposed to browser (safe for URLs)
-- **No VITE_**: Server-side only (database credentials)
+- **No VITE_**: Server-side only (database credentials, secrets)
 
 ### Database Security
 - Prisma handles SQL injection prevention
-- API server validates inputs
+- API server validates inputs via Zod schemas
 - No direct database access from browser
 - Service layer provides additional validation
+
+### File Storage
+- MinIO with presigned URLs for secure file access
+- URL expiration (5 minutes)
+- Bucket-level access control
 
 ---
 
@@ -286,35 +325,35 @@ const getSubjects = async (params = {}) => {
 ```env
 NODE_ENV=production
 DATABASE_URL="postgresql://..."
-VITE_API_BASE_URL=http://api-server:3001
+KEYCLOAK_URL=https://keycloak.example.com
+MINIO_ENDPOINT=minio.example.com
 ```
 
 ### Build Process
 ```bash
-pnpm build          # Build optimized bundle
-pnpm api            # Start API server
-pnpm start          # Start frontend server
+# Frontend
+cd client
+npm run build
+
+# Backend
+# No build needed (ES modules)
+node backend/server.js
 ```
 
-### Docker Deployment (Future)
-```dockerfile
-# API Server
-FROM node:18-alpine
-WORKDIR /app
-COPY . .
-RUN npm install
-EXPOSE 3001
-CMD ["npm", "run", "api"]
-
-# Frontend
-FROM node:18-alpine as build
-WORKDIR /app
-COPY client/ .
-RUN npm install && npm run build
-
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
+### Docker Deployment
+```yaml
+# docker-compose.yml
+services:
+  app-db:
+    image: postgres:15
+  keycloak:
+    image: quay.io/keycloak/keycloak:26
+  minio:
+    image: minio/minio
+  redis:
+    image: redis:7
+  nginx:
+    image: nginx:alpine
 ```
 
 ---
@@ -324,49 +363,76 @@ EXPOSE 80
 ### ✅ Clean Architecture
 - **Separation of Concerns**: UI, Business, Data layers clearly separated
 - **Service Layer**: Reusable business logic
-- **Connection Pooling**: Efficient database connections
+- **Layered Backend**: Routes → Controllers → Services → DB Services → Prisma
 
 ### ✅ Scalability
-- **Standalone API**: Can be scaled independently
+- **Standalone Backend**: Can be scaled independently
 - **Service Layer**: Easy to extend with new entities
-- **TypeScript**: Full type safety across layers
+- **Object Storage**: MinIO for scalable file storage
+- **Caching**: Redis for performance optimization
 
 ### ✅ Development Experience
-- **Hot Reload**: Both frontend and API server
+- **Hot Reload**: Both frontend and backend
 - **Prisma Studio**: Visual database management
 - **Clear Data Flow**: Easy to debug and maintain
+- **Type Safety**: TypeScript strict mode
+
+### ✅ Security
+- **Keycloak Authentication**: Enterprise-grade identity management
+- **Role-Based Access Control**: Fine-grained permissions
+- **Secure File Storage**: MinIO with presigned URLs
+- **Offline Deployment**: Air-gapped red network support
 
 ---
 
 ## 📞 Support & Troubleshooting
 
 ### Common Issues
-1. **Database Connection**: Ensure PostgreSQL is running
-2. **Port Conflicts**: API server uses 3001, frontend uses 5174
-3. **Process Errors**: Fixed with `typeof process !== 'undefined'` checks
+1. **Database Connection**: Ensure PostgreSQL container is running
+2. **Keycloak Startup**: Takes 20-30s after healthy to accept requests
+3. **Port Conflicts**: Backend uses 8001, frontend uses 5174
+4. **HTTPS Cert**: Vite uses self-signed cert - browser may warn
 
 ### Debug Commands
 ```bash
 # Check database connection
-pnpm db:studio
+docker exec -it lms-qaf-app-db psql -U military_lms -d military_lms
+
+# Check Docker logs
+docker logs lms-qaf-keycloak
+docker logs lms-qaf-app-db
 
 # Test API server
-curl http://localhost:3001/api/health
+curl http://localhost:8001/api/health
 
-# Check logs
-pnpm api --verbose
+# Check backend logs
+tail -f /tmp/backend.log
 ```
 
 ---
 
 ## 🏁 Summary
 
-The Military LMS now features a **clean, scalable architecture** with:
+The Military LMS features a **clean, scalable architecture** with:
 
 - **🔄 Complete Service Layer**: Business logic separated from database operations
-- **🚀 Standalone API Server**: Express server with Prisma connection pooling
-- **🎯 Clean Data Flow**: Frontend → API → Business → DB → PostgreSQL
+- **🚀 Backend API Server**: Express server on port 8001 with Prisma
+- **🎯 Clean Data Flow**: Frontend → API → Controllers → Services → DB Services → Prisma → PostgreSQL
+- **🔒 Keycloak Authentication**: Enterprise-grade identity management
+- **📦 MinIO Object Storage**: Scalable file storage with versioning
+- **🔄 Redis Caching**: Performance optimization
+- **🌐 Nginx TLS Termination**: Secure HTTPS delivery
 - **🔒 Browser-Safe**: No Prisma in browser, only HTTP API calls
 - **📚 Complete Documentation**: Updated architecture guide
 
 **Ready for production development!** 🎉
+
+## 🆕 Recent Updates (2026-05)
+
+- Migrated from standalone server.js to backend/ folder structure
+- Added Keycloak 26 authentication
+- Integrated MinIO object storage (lms-private, lms-shared, lms-workflow buckets)
+- Added Redis caching layer
+- Implemented unified notification system
+- Docker Compose infrastructure for offline deployment
+- Updated to Node.js 22, React 19, Vite 6, Prisma 5.22

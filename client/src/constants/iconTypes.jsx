@@ -7,7 +7,7 @@ import {
   // User & Role Icons
   User, UserCheck, UserX, UserMinus, Users, Shield, Crown, UserPlus,
   // Workflow Icons
-  Workflow,
+  Workflow, GitBranch,
   // Status Icons
   CheckCircle, XCircle, AlertTriangle, AlertCircle, Info,
   // Activity Icons
@@ -15,7 +15,7 @@ import {
   // Academic Icons
   BookOpen, GraduationCap, Award, FileText, Database, Trophy, Gamepad2, Calculator,
   // Communication Icons
-  MessageSquare, Bell, BellOff, Send, Phone, Mailbox, Megaphone, MailOpen, MousePointerClick, CornerDownLeft, Flag, ListFilter,
+  MessageSquare, Bell, BellOff, Send, Phone, Mailbox, Megaphone, MailOpen, MousePointerClick, CornerDownLeft, Flag, ListFilter, Share,
   // Navigation Icons
   Home, Search, Filter, ChevronDown, ChevronUp, ChevronsUp, ChevronsUpDown, Link, Video, List, ExternalLink, Maximize, Square,
   // Time Icons
@@ -172,8 +172,7 @@ export const ICON_TYPES = {
   difficulty: {
     beginner: <Star size={16} />,
     intermediate: <Star size={16} />,
-    advanced: <Star size={16} />,
-    default: <Star size={16} />
+    advanced: <Star size={16} />
   },
   
   // Notification Type Icons
@@ -248,6 +247,7 @@ export const ICON_TYPES = {
     phone: <Phone size={16} />,
     globe: <Globe size={16} />,
     tag: <Tag size={16} />,
+    share: <Share size={16} />,
     archive: <Archive size={16} />,
     database: <Database size={16} />,
     file: <FileText size={16} />,
@@ -366,6 +366,7 @@ export const ICON_TYPES = {
     copy: <Copy size={16} />,
     more_vertical: <MoreVertical size={16} />,
     wrench: <Wrench size={16} />,
+    git_branch: <GitBranch size={16} />,
     // Missing icons causing warnings
     volume2: <Volume2 size={16} />,
     test_tube: <Monitor size={16} />,
@@ -394,6 +395,7 @@ export const ICON_TYPES = {
     'ui.announcement': <Megaphone size={16} />,
     'ui.behavior': <Activity size={16} />,
     'ui.qr': <QrCode size={16} />,
+    'ui.more_vertical': <MoreVertical size={16} />,
     
     // Aliases for hyphenated names to prevent warnings
     'help-circle': <HelpCircle size={16} />,

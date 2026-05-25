@@ -379,7 +379,57 @@ export async function listFiles(keycloakUser, {
       prisma.file.count({ where }),
     ]);
 
-    return ok({ files, total, page, pageSize });
+    // Add workflow counts for each file
+    const fileIds = files.map(f => f.id);
+    let workflowInstances = [];
+    try {
+      workflowInstances = await prisma.workflowInstance.findMany({
+        where: { fileId: { in: fileIds } },
+        select: { fileId: true, status: true },
+      });
+    } catch (error) {
+      console.error('[fileService.listFiles] Failed to fetch workflow counts:', error);
+      // Continue without workflow counts if query fails
+    }
+
+    // Aggregate workflow counts by file and status
+    const workflowCountsMap = {};
+    workflowInstances.forEach(instance => {
+      if (!workflowCountsMap[instance.fileId]) {
+        workflowCountsMap[instance.fileId] = {
+          pending: 0,
+          in_progress: 0,
+          completed: 0,
+          rejected: 0,
+          needs_feedback: 0,
+        };
+      }
+      const statusMap = {
+        PENDING: 'pending',
+        IN_PROGRESS: 'in_progress',
+        COMPLETED: 'completed',
+        REJECTED: 'rejected',
+        NEEDS_FEEDBACK: 'needs_feedback',
+      };
+      const mappedStatus = statusMap[instance.status] || 'pending';
+      workflowCountsMap[instance.fileId][mappedStatus]++;
+    });
+
+    // Attach workflow counts to each file
+    const filesWithCounts = files.map(file => ({
+      ...file,
+      workflowCounts: workflowCountsMap[file.id] || {
+        pending: 0,
+        in_progress: 0,
+        completed: 0,
+        rejected: 0,
+        needs_feedback: 0,
+      },
+      versionCount: file.versions?.length || 1,
+      versionNumber: file.currentVersion?.versionNumber || 1,
+    }));
+
+    return ok({ files: filesWithCounts, total, page, pageSize });
   } catch (error) {
     console.error('[fileService.listFiles]', error);
     return err('LIST_FILES_FAILED', error.message);
@@ -439,6 +489,20 @@ export async function restoreFile(fileId, actorUserId) {
     if (!file) return err('FILE_NOT_FOUND', 'File not found');
     if (file.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Only owner can restore');
 
+    // Check for name conflicts in the same folder
+    const existingFile = await prisma.file.findFirst({
+      where: {
+        id: { not: fileId },
+        folderId: file.folderId,
+        name: file.name,
+        isDeleted: false,
+      },
+    });
+
+    if (existingFile) {
+      return err('NAME_CONFLICT', 'A file with this name already exists in this folder. Restore not allowed to prevent conflicts.');
+    }
+
     const updated = await prisma.file.update({
       where: { id: fileId },
       data: { isDeleted: false, deletedAt: null, deletedById: null },
@@ -492,8 +556,11 @@ export async function permanentDeleteFile(fileId, actorUserId) {
 /**
  * Return a short-lived presigned GET URL for inline preview of safe types,
  * or a signal to use the proxy download for everything else.
+ * @param {string} fileId - File ID
+ * @param {number} actorUserId - User ID
+ * @param {string} fileVersionId - Optional specific file version ID for workflow snapshots
  */
-export async function getPreviewUrl(fileId, actorUserId) {
+export async function getPreviewUrl(fileId, actorUserId, fileVersionId = null) {
   try {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
     if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');
@@ -510,19 +577,19 @@ export async function getPreviewUrl(fileId, actorUserId) {
     }
 
     const bucketReal = resolveBucket(file.bucket);
-    
+
     // Check if it's an office document that should use Collabora
-    const isOfficeDocument = file.mimeType?.includes('word') || 
+    const isOfficeDocument = file.mimeType?.includes('word') ||
                            file.mimeType?.includes('document') ||
                            file.mimeType?.includes('presentation') ||
                            file.mimeType?.includes('spreadsheet') ||
                            file.mimeType?.includes('excel') ||
                            file.mimeType?.includes('powerpoint') ||
                            file.mimeType?.includes('officedocument');
-    
+
     if (isOfficeDocument) {
       const { generateWopiToken } = await import('./wopiService.js');
-      
+
       // Get user info for WOPI context
       const user = await prisma.user.findUnique({ where: { id: actorUserId } });
       const userInfo = {
@@ -530,20 +597,23 @@ export async function getPreviewUrl(fileId, actorUserId) {
         email: user?.email || '',
         id: user?.id || actorUserId,
       };
-      
-      const wopiToken = generateWopiToken(actorUserId, fileId, 'write', userInfo);
-      
+
+      // If fileVersionId is provided, use read-only permission to preserve snapshot
+      const permission = fileVersionId ? 'read' : 'write';
+      const wopiToken = generateWopiToken(actorUserId, fileId, permission, userInfo, fileVersionId);
+
       await prisma.fileActivity.create({
         data: { fileId, userId: actorUserId, action: 'preview' },
       });
-      
+
       return ok({ mode: 'collabora', wopiToken });
     }
-    
+
     if (!isInlinePreviewable(file.mimeType)) {
       return ok({ mode: 'download' });
     }
-    const url = await generatePresignedGetUrl(bucketReal, file.s3Key);
+    // Use backend proxy URL instead of direct MinIO presigned URL to avoid mixed content
+    const url = `/api/v1/drive/files/${fileId}/download${fileVersionId ? `?versionId=${fileVersionId}` : ''}`;
 
     await prisma.fileActivity.create({
       data: { fileId, userId: actorUserId, action: 'preview' },
@@ -558,9 +628,15 @@ export async function getPreviewUrl(fileId, actorUserId) {
 /**
  * Stream a file through Express (no presigned URL exposure).
  * Caller is responsible for auth + permission check BEFORE invoking this.
+ * @param {object} args
+ * @param {string} args.fileId
+ * @param {object} args.req
+ * @param {object} args.res
+ * @param {number} args.actorUserId
+ * @param {string} args.versionId - Optional specific file version ID for workflow snapshots
  */
-export async function streamFile({ fileId, req, res, actorUserId }) {
-  console.log('[streamFile] Starting download for fileId:', fileId, 'actorUserId:', actorUserId);
+export async function streamFile({ fileId, req, res, actorUserId, versionId = null }) {
+  console.log('[streamFile] Starting download for fileId:', fileId, 'actorUserId:', actorUserId, 'versionId:', versionId);
   const file = await prisma.file.findUnique({ where: { id: fileId } });
   console.log('[streamFile] File found:', file ? { id: file.id, name: file.name, bucket: file.bucket, s3Key: file.s3Key } : null);
   if (!file || file.isDeleted) {
@@ -584,26 +660,44 @@ export async function streamFile({ fileId, req, res, actorUserId }) {
     if (!share) return res.status(403).json(err('ACCESS_DENIED', 'Access denied'));
   }
 
-  // Get latest version's s3Key if available
-  const latestVersion = await prisma.fileVersion.findFirst({
-    where: { fileId, isCurrent: true },
-    orderBy: { versionNumber: 'desc' },
-  });
-  console.log('[streamFile] Latest version:', latestVersion ? { id: latestVersion.id, versionNumber: latestVersion.versionNumber, s3Key: latestVersion.s3Key } : null);
-
   let s3Key;
   let bucketName;
-  if (latestVersion && latestVersion.s3Key) {
-    s3Key = latestVersion.s3Key;
-    bucketName = file.bucket;
-    console.log('[streamFile] Using version s3Key:', s3Key);
-  } else if (file.s3Key) {
-    s3Key = file.s3Key;
-    bucketName = file.bucket;
-    console.log('[streamFile] Using file s3Key:', s3Key);
-  } else {
-    console.log('[streamFile] No s3Key found in version or file');
-    return res.status(404).json(err('FILE_NOT_FOUND', 'No file content available'));
+
+  // If versionId is provided, use that specific version
+  if (versionId) {
+    console.log('[streamFile] Using specific version:', versionId);
+    const fileVersion = await prisma.fileVersion.findUnique({
+      where: { id: versionId }
+    });
+    if (fileVersion && fileVersion.fileId === fileId) {
+      s3Key = fileVersion.s3Key;
+      bucketName = file.bucket;
+      console.log('[streamFile] Using version s3Key:', s3Key);
+    } else {
+      console.warn('[streamFile] File version not found or mismatch, falling back to current');
+    }
+  }
+
+  // If no versionId or version not found, get latest version's s3Key
+  if (!s3Key) {
+    const latestVersion = await prisma.fileVersion.findFirst({
+      where: { fileId, isCurrent: true },
+      orderBy: { versionNumber: 'desc' },
+    });
+    console.log('[streamFile] Latest version:', latestVersion ? { id: latestVersion.id, versionNumber: latestVersion.versionNumber, s3Key: latestVersion.s3Key } : null);
+
+    if (latestVersion && latestVersion.s3Key) {
+      s3Key = latestVersion.s3Key;
+      bucketName = file.bucket;
+      console.log('[streamFile] Using version s3Key:', s3Key);
+    } else if (file.s3Key) {
+      s3Key = file.s3Key;
+      bucketName = file.bucket;
+      console.log('[streamFile] Using file s3Key:', s3Key);
+    } else {
+      console.log('[streamFile] No s3Key found in version or file');
+      return res.status(404).json(err('FILE_NOT_FOUND', 'No file content available'));
+    }
   }
 
   const bucketReal = resolveBucket(bucketName);

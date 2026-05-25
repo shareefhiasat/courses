@@ -102,6 +102,9 @@ export const completeUpload = async (req, res) => {
       return res.status(400).json(result);
     }
 
+    // Check if this is a new version (versionNumber > 1)
+    const isNewVersion = result.payload?.version?.versionNumber > 1;
+
     // Emit notification for file upload if uploaded to shared folder
     if (result.success && result.payload) {
       try {
@@ -139,7 +142,13 @@ export const completeUpload = async (req, res) => {
       }
     }
 
-    res.json(result);
+    // Include version information in response
+    res.json({
+      ...result,
+      isNewVersion,
+      versionNumber: result.payload?.version?.versionNumber,
+      versionId: result.payload?.version?.id,
+    });
   } catch (error) {
     console.error('[fileController] Complete upload error:', error);
     res.status(500).json({
@@ -777,7 +786,8 @@ export const getPreview = async (req, res) => {
   try {
     const actorUserId = req.user?.dbId;
     const { fileId } = req.params;
-    const result = await fileService.getPreviewUrl(fileId, actorUserId);
+    const { versionId } = req.query;
+    const result = await fileService.getPreviewUrl(fileId, actorUserId, versionId);
     if (!result.success) {
       const status = result.error?.code === 'FILE_NOT_FOUND' ? 404 : 403;
       return res.status(status).json(result);
@@ -797,10 +807,11 @@ export const proxyDownload = async (req, res) => {
   try {
     const actorUserId = req.user?.dbId;
     const { fileId } = req.params;
-    console.log('[fileController.proxyDownload] Request received:', { fileId, actorUserId });
+    const { versionId } = req.query;
+    console.log('[fileController.proxyDownload] Request received:', { fileId, actorUserId, versionId });
     // Permission check happens inside a later PR via permissionService; for
     // now we rely on the service's ownership/share check.
-    await fileService.streamFile({ fileId, req, res, actorUserId });
+    await fileService.streamFile({ fileId, req, res, actorUserId, versionId });
   } catch (error) {
     console.error('[fileController.proxyDownload]', error);
     if (!res.headersSent) {

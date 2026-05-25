@@ -348,6 +348,10 @@ import scheduleSessionRoutes from "./routes/schedule-sessions.js";
 import adminScopeRoutes from "./routes/admin-scopes.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import quizRoutes from "./routes/quizzes.js";
+import workflowDocumentRoutes from "./routes/workflow-documents.js";
+import weeklySummaryRoutes from "./routes/weekly-summary.js";
+import auditExportRoutes from "./routes/audit-export.js";
+import attendanceAmendmentRoutes from "./routes/attendance-amendment.js";
 
 // Mount routes with versioning
 app.use(`/api/${API_VERSION}/programs`, programRoutes);
@@ -392,6 +396,18 @@ app.use(`/api/${API_VERSION}/dashboard`, dashboardRoutes);
 
 // Quiz routes
 app.use(`/api/${API_VERSION}/quizzes`, quizRoutes);
+
+// Workflow document routes
+app.use(`/api/${API_VERSION}/workflow-documents`, workflowDocumentRoutes);
+
+// Weekly summary routes
+app.use(`/api/${API_VERSION}/weekly-summary`, weeklySummaryRoutes);
+
+// Audit export routes
+app.use(`/api/${API_VERSION}/audit-export`, auditExportRoutes);
+
+// Attendance amendment routes
+app.use(`/api/${API_VERSION}/attendance-amendment`, attendanceAmendmentRoutes);
 
 // ==================== ERROR HANDLING ====================
 

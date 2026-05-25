@@ -9,7 +9,7 @@ import FileActionsMenu from './FileActionsMenu';
  * 
  * Grid card with thumbnail, hover quick actions, and selection
  */
-const FileCard = ({ file, selected, onSelect, onOpen, onEdit, onShare, onComment, onDownload, onDelete }) => {
+const FileCard = ({ file, selected, onSelect, onOpen, onEdit, onShare, onComment, onDownload, onDelete, onCreateWorkflow }) => {
   const { t } = useLang();
   const [isHovered, setIsHovered] = useState(false);
 
@@ -133,6 +133,7 @@ const FileCard = ({ file, selected, onSelect, onOpen, onEdit, onShare, onComment
             onComment={() => onComment(file)}
             onDownload={() => onDownload(file)}
             onDelete={() => onDelete(file)}
+            onCreateWorkflow={onCreateWorkflow}
           />
         </div>
       </div>

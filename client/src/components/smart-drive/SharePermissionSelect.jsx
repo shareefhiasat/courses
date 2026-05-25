@@ -1,18 +1,18 @@
 import { useLang } from '@contexts/LangContext';
-import { Eye, Download, MessageSquare, Edit } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 
 export default function SharePermissionSelect({ value, onChange, disabled = false }) {
   const { t } = useLang();
 
   const permissions = [
-    { value: 'VIEW', label: t('drive.permission.view'), icon: Eye, desc: t('drive.permission.viewDesc') },
-    { value: 'DOWNLOAD', label: t('drive.permission.download'), icon: Download, desc: t('drive.permission.downloadDesc') },
-    { value: 'COMMENT', label: t('drive.permission.comment'), icon: MessageSquare, desc: t('drive.permission.commentDesc') },
-    { value: 'EDIT', label: t('drive.permission.edit'), icon: Edit, desc: t('drive.permission.editDesc') },
+    { value: 'VIEW', label: t('drive.permission.view'), icon: 'eye', desc: t('drive.permission.viewDesc') },
+    { value: 'DOWNLOAD', label: t('drive.permission.download'), icon: 'download', desc: t('drive.permission.downloadDesc') },
+    { value: 'COMMENT', label: t('drive.permission.comment'), icon: 'message', desc: t('drive.permission.commentDesc') },
+    { value: 'EDIT', label: t('drive.permission.edit'), icon: 'edit', desc: t('drive.permission.editDesc') },
   ];
 
   const selectedPerm = permissions.find(p => p.value === value);
-  const SelectedIcon = selectedPerm?.icon || Eye;
+  const selectedIcon = selectedPerm?.icon || 'eye';
 
   return (
     <div>
@@ -27,7 +27,7 @@ export default function SharePermissionSelect({ value, onChange, disabled = fals
           marginBottom: '0.5rem',
         }}
       >
-        <SelectedIcon className="w-4 h-4" aria-hidden="true" />
+        {getThemedIcon('ui', selectedIcon, 16, 'light')}
         {t('drive.permission')}
       </label>
       <select

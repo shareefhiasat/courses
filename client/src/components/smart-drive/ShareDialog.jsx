@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
-import { Users, Link as LinkIcon, Shield, User } from 'lucide-react';
 import { usePermissions } from '@hooks/usePermissions';
 import { useLang } from '@contexts/LangContext';
 import { ROLE_STRINGS } from '@utils/userUtils';
+import { getThemedIcon } from '@constants/iconTypes';
 import Modal from '@ui/Modal/Modal';
 import Tabs from '@ui/Tabs/Tabs';
 import Select from '@ui/Select/Select';
@@ -42,7 +42,7 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
               value: u.id,
               label: u.displayName || u.email,
               subtext: u.displayName && u.email && u.email !== u.displayName ? u.email : null,
-              icon: <div style={{ width: '2rem', height: '2rem', borderRadius: '9999px', background: 'var(--color-primary-alpha, rgba(37,99,235,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User className="w-4 h-4" style={{ color: 'var(--color-primary, #2563eb)' }} /></div>,
+              icon: <div style={{ width: '2rem', height: '2rem', borderRadius: '9999px', background: 'var(--color-primary-alpha, rgba(37,99,235,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{getThemedIcon('ui', 'user', 16, 'primary')}</div>,
             }))
           );
         }
@@ -161,11 +161,11 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
           <Tabs
             tabs={[
               ...(canShare ? [
-                { value: 'people', label: t('drive.people'), icon: <Users className="w-4 h-4" aria-hidden="true" /> },
-                { value: 'roles', label: t('drive.roles'), icon: <Shield className="w-4 h-4" aria-hidden="true" /> }
+                { value: 'people', label: t('drive.people'), icon: getThemedIcon('ui', 'users', 16, 'light') },
+                { value: 'roles', label: t('drive.roles'), icon: getThemedIcon('ui', 'shield', 16, 'light') }
               ] : []),
               ...(canPublicLink ? [
-                { value: 'public', label: t('drive.publicLink'), icon: <LinkIcon className="w-4 h-4" aria-hidden="true" /> }
+                { value: 'public', label: t('drive.publicLink'), icon: getThemedIcon('ui', 'link', 16, 'light') }
               ] : [])
             ]}
             activeTab={shareType}

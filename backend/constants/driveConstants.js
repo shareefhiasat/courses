@@ -11,10 +11,10 @@
 export function mapBucketName(bucket) {
   const bucketMapping = {
     'lms-shared': 'SHARED',
-    'lms-private': 'PRIVATE', 
+    'lms-private': 'PRIVATE',
     'lms-workflow': 'WORKFLOW'
   };
-  
+
   return bucketMapping[bucket] || bucket;
 }
 
@@ -34,6 +34,24 @@ export const BUCKET_TYPES = {
   SHARED: 'SHARED',
   PRIVATE: 'PRIVATE',
   WORKFLOW: 'WORKFLOW'
+};
+
+/**
+ * Share subject types (from Prisma enum ShareSubjectType)
+ */
+export const SHARE_SUBJECT_TYPES = {
+  USER: 'USER',
+  ROLE: 'ROLE'
+};
+
+/**
+ * Share permission levels (from Prisma enum SharePermission)
+ */
+export const SHARE_PERMISSIONS = {
+  VIEW: 'VIEW',
+  DOWNLOAD: 'DOWNLOAD',
+  COMMENT: 'COMMENT',
+  EDIT: 'EDIT'
 };
 
 /**

@@ -1,16 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Download, Trash2, Share2, MessageSquare, Eye, Edit3, MoreVertical } from 'lucide-react';
+import { Download, Trash2, Share2, MessageSquare, Eye, Edit3, MoreVertical, FileText, GitBranch } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
+import { useAuth } from '@contexts/AuthContext';
 
 /**
  * FileActionsMenu Component
  * 
  * Dropdown menu for file actions
  */
-const FileActionsMenu = ({ file, onView, onEdit, onShare, onComment, onDownload, onDelete }) => {
+const FileActionsMenu = ({ file, onView, onEdit, onShare, onComment, onDownload, onDelete, onCreateWorkflow }) => {
   const { t } = useLang();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
+
+  // Check if user has permission to create workflows
+  const canCreateWorkflow = user && user.roles && (
+    user.roles.includes('instructor') || 
+    user.roles.includes('hr') || 
+    user.roles.includes('admin')
+  );
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -93,6 +102,16 @@ const FileActionsMenu = ({ file, onView, onEdit, onShare, onComment, onDownload,
             <MessageSquare className="w-4 h-4" />
             {t('drive.actions.comment')}
           </button>
+
+          {canCreateWorkflow && onCreateWorkflow && (
+            <button
+              onClick={() => handleAction(() => onCreateWorkflow(file))}
+              className="w-full px-4 py-2 text-start text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+            >
+              <GitBranch className="w-4 h-4" />
+              {t('drive.actions.createWorkflow', 'Create Workflow')}
+            </button>
+          )}
 
           <div className="border-t border-gray-200 my-1" />
 

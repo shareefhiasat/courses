@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { Activity, Upload, Download, Share2, Trash2, Edit, Star, RotateCcw, Clock, Search } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import axios from 'axios';
 
 const ACTION_COLORS = {
@@ -86,17 +86,17 @@ export default function ActivityTab({ fileId }) {
 
   const getActionIcon = (action) => {
     switch (action?.toUpperCase()) {
-      case 'UPLOAD': return Upload;
-      case 'DOWNLOAD': return Download;
-      case 'SHARE': return Share2;
-      case 'DELETE': return Trash2;
-      case 'RENAME': return Edit;
-      case 'EDIT': return Edit;
-      case 'STAR': return Star;
-      case 'RESTORE': return RotateCcw;
-      case 'PREVIEW': return Activity;
-      case 'OPEN_IN_NEW_TAB': return Activity;
-      default: return Activity;
+      case 'UPLOAD': return 'upload';
+      case 'DOWNLOAD': return 'download';
+      case 'SHARE': return 'share';
+      case 'DELETE': return 'trash2';
+      case 'RENAME': return 'edit';
+      case 'EDIT': return 'edit';
+      case 'STAR': return 'star';
+      case 'RESTORE': return 'rotate_ccw';
+      case 'PREVIEW': return 'activity';
+      case 'OPEN_IN_NEW_TAB': return 'activity';
+      default: return 'activity';
     }
   };
 
@@ -141,7 +141,7 @@ export default function ActivityTab({ fileId }) {
   if (activities.length === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
-        <Activity className="w-10 h-10 mb-3 opacity-50" aria-hidden="true" />
+        {getThemedIcon('ui', 'activity', 40, 'muted')}
         {t('drive.noActivity')}
       </div>
     );
@@ -159,7 +159,7 @@ export default function ActivityTab({ fileId }) {
         maxHeight: '600px'
       }}>
         <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Clock className="w-4 h-4" />
+          {getThemedIcon('ui', 'clock', 16, 'muted')}
           {t('drive.timeline') || 'Timeline'}
         </h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -205,7 +205,7 @@ export default function ActivityTab({ fileId }) {
       <div style={{ flex: 1, overflowY: 'auto', maxHeight: '600px' }}>
         {/* Search filter */}
         <div style={{ position: 'relative', marginBottom: '1rem' }}>
-          <Search style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)' }} aria-hidden="true" />
+          {getThemedIcon('ui', 'search', 16, 'muted', { position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' })}
           <input
             type="text"
             value={filterText}
@@ -253,7 +253,7 @@ export default function ActivityTab({ fileId }) {
 
         {filteredActivities.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
-            <Activity className="w-10 h-10 mb-3 opacity-50" aria-hidden="true" />
+            {getThemedIcon('ui', 'activity', 40, 'muted')}
             {filterText ? t('drive.noMatchingActivities') || 'No matching activities' : t('drive.noActivity')}
           </div>
         ) : (
@@ -262,7 +262,7 @@ export default function ActivityTab({ fileId }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {filteredActivities.map((activity) => {
-                const ActionIcon = getActionIcon(activity.action);
+                const actionIcon = getActionIcon(activity.action);
 
                 return (
                   <div key={activity.id} style={{ position: 'relative', paddingInlineStart: '3rem' }}>
@@ -280,7 +280,7 @@ export default function ActivityTab({ fileId }) {
                         border: '2px solid var(--panel, white)',
                       }}
                     >
-                      <ActionIcon className="w-4 h-4" style={getActionStyle(activity.action)} aria-hidden="true" />
+                      {getThemedIcon('ui', actionIcon, 16, 'light')}
                     </div>
 
                     <div style={{

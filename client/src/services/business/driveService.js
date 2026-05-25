@@ -1,4 +1,4 @@
-import apiService from '../api/apiService';
+import { apiService } from '../api/apiService';
 
 /**
  * Drive service for private and shared space file operations

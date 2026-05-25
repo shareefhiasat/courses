@@ -25,12 +25,16 @@ export const CATEGORIES = {
 // Notification Events (canonical event names)
 export const EVENTS = {
   // Workflow events
+  WORKFLOW_SUBMITTED: 'workflow.submitted',
   WORKFLOW_ASSIGNED: 'workflow.assigned',
   WORKFLOW_APPROVED: 'workflow.approved',
   WORKFLOW_REJECTED: 'workflow.rejected',
+  WORKFLOW_RETURNED: 'workflow.returned',
+  WORKFLOW_RESUBMITTED: 'workflow.resubmitted',
   WORKFLOW_COMPLETED: 'workflow.completed',
   WORKFLOW_SLA_WARNING: 'workflow.sla_warning',
   WORKFLOW_SLA_OVERDUE: 'workflow.sla_overdue',
+  WORKFLOW_AMENDED: 'workflow.amended',
   
   // Announcement events
   ANNOUNCEMENT_POSTED: 'announcement.posted',
@@ -175,6 +179,7 @@ export const DELIVERY_STATUS = {
 // Event to category mapping
 export const EVENT_CATEGORIES = {
   // Workflow events
+  [EVENTS.WORKFLOW_SUBMITTED]: CATEGORIES.WORKFLOW,
   [EVENTS.WORKFLOW_ASSIGNED]: CATEGORIES.WORKFLOW,
   [EVENTS.WORKFLOW_APPROVED]: CATEGORIES.WORKFLOW,
   [EVENTS.WORKFLOW_REJECTED]: CATEGORIES.WORKFLOW,
@@ -300,6 +305,7 @@ export const EVENT_CATEGORIES = {
 // Default priority per event
 export const EVENT_PRIORITIES = {
   // Workflow events
+  [EVENTS.WORKFLOW_SUBMITTED]: PRIORITIES.NORMAL,
   [EVENTS.WORKFLOW_ASSIGNED]: PRIORITIES.NORMAL,
   [EVENTS.WORKFLOW_APPROVED]: PRIORITIES.NORMAL,
   [EVENTS.WORKFLOW_REJECTED]: PRIORITIES.HIGH,

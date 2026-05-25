@@ -1,5 +1,5 @@
 import { useLang } from '@contexts/LangContext';
-import { Shield } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 
 export default function RoleSelect({ value, onChange, disabled = false }) {
   const { t } = useLang();
@@ -24,7 +24,7 @@ export default function RoleSelect({ value, onChange, disabled = false }) {
           marginBottom: '0.5rem',
         }}
       >
-        <Shield className="w-4 h-4" aria-hidden="true" />
+        {getThemedIcon('ui', 'shield', 16, 'light')}
         {t('drive.selectRole')}
       </label>
       <select

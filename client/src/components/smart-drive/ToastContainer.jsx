@@ -1,4 +1,4 @@
-import { X, CheckCircle, XCircle, Info, AlertTriangle } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 
 /**
  * ToastContainer - Renders toast notifications
@@ -7,10 +7,10 @@ import { X, CheckCircle, XCircle, Info, AlertTriangle } from 'lucide-react';
 export default function ToastContainer({ toasts, onDismiss }) {
   const getIcon = (type) => {
     switch (type) {
-      case 'success': return CheckCircle;
-      case 'error': return XCircle;
-      case 'warning': return AlertTriangle;
-      default: return Info;
+      case 'success': return 'check_circle';
+      case 'error': return 'x_circle';
+      case 'warning': return 'alert_triangle';
+      default: return 'info';
     }
   };
 
@@ -32,7 +32,7 @@ export default function ToastContainer({ toasts, onDismiss }) {
   return (
     <div className="fixed top-4 end-4 z-[100] space-y-2 max-w-sm w-full">
       {toasts.map((toast) => {
-        const Icon = getIcon(toast.type);
+        const icon = getIcon(toast.type);
         const colors = getColors(toast.type);
 
         return (
@@ -40,7 +40,7 @@ export default function ToastContainer({ toasts, onDismiss }) {
             key={toast.id}
             className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg animate-slide-in ${colors}`}
           >
-            <Icon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            {getThemedIcon('ui', icon, 20, 'light')}
             <p className="flex-1 text-sm font-medium">
               {toast.message}
             </p>
@@ -48,7 +48,7 @@ export default function ToastContainer({ toasts, onDismiss }) {
               onClick={() => onDismiss(toast.id)}
               className="flex-shrink-0 p-0.5 hover:opacity-70 transition-opacity"
             >
-              <X className="w-4 h-4" />
+              {getThemedIcon('ui', 'x', 16, 'light')}
             </button>
           </div>
         );

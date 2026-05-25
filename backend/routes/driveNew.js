@@ -61,6 +61,7 @@ import {
   listFileShares,
   revokeFileShare,
   listSharedWithMe,
+  listSharedByMe,
   listSharedFiles,
 } from '../controllers/fileShareController.js';
 
@@ -109,30 +110,33 @@ wopiRouter.get('/files/:fileId', async (req, res) => {
   try {
     const { fileId } = req.params;
     const { verifyWopiToken, extractWopiToken } = await import('../services/wopiService.js');
-    
+
     // Extract and verify access token
     const token = extractWopiToken(req);
     if (!token) {
       return res.status(401).json({ success: false, error: 'Missing access token' });
     }
-    
+
     const decoded = verifyWopiToken(token);
     if (!decoded || decoded.fileId !== fileId) {
       return res.status(403).json({ success: false, error: 'Invalid access token' });
     }
-    
+
     // Use fileService instead of bare Prisma
     const { getFileById } = await import('../services/fileService.js');
     const result = await getFileById(fileId, decoded.userId);
-    
+
     if (!result.success) {
       return res.status(404).json({ success: false, error: 'File not found' });
     }
-    
+
     const file = result.payload;
     const canWrite = decoded.permission === 'write';
     const userInfo = decoded.userInfo || {};
-    
+
+    // If fileVersionId is present, disable editing to preserve snapshot
+    const supportsUpdate = canWrite && !decoded.fileVersionId;
+
     const metadata = {
       BaseFileName: file.name,
       Size: file.size,
@@ -141,20 +145,20 @@ wopiRouter.get('/files/:fileId', async (req, res) => {
       OwnerId: file.ownerId,
       UserCanWrite: canWrite,
       UserCanNotWriteRelative: !canWrite,
-      SupportsUpdate: canWrite,
-      SupportsLocks: canWrite,
-      SupportsGetLock: canWrite,
+      SupportsUpdate: supportsUpdate,
+      SupportsLocks: supportsUpdate,
+      SupportsGetLock: supportsUpdate,
       SupportsExtendedLockLength: true,
       SupportsFolders: false,
       SupportsRename: false,
       UserFriendlyName: userInfo.displayName || 'User',
     };
-    
+
     // Set WOPI user headers for Collabora
     res.setHeader('X-WOPI-UserDisplayName', userInfo.displayName || 'User');
     res.setHeader('X-WOPI-UserId', userInfo.id || decoded.userId);
     res.setHeader('X-WOPI-UserEmail', userInfo.email || '');
-    
+
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.json(metadata);
@@ -171,40 +175,55 @@ wopiRouter.get('/files/:fileId/contents', async (req, res) => {
   try {
     const { fileId } = req.params;
     const { verifyWopiToken, extractWopiToken } = await import('../services/wopiService.js');
-    
+
     // Extract and verify access token
     const token = extractWopiToken(req);
     if (!token) {
       return res.status(401).json({ success: false, error: 'Missing access token' });
     }
-    
+
     const decoded = verifyWopiToken(token);
     if (!decoded || decoded.fileId !== fileId) {
       return res.status(403).json({ success: false, error: 'Invalid access token' });
     }
-    
+
     // Use fileService instead of bare Prisma
     const { getFileById } = await import('../services/fileService.js');
     const result = await getFileById(fileId, decoded.userId);
-    
+
     if (!result.success) {
       return res.status(404).json({ success: false, error: 'File not found' });
     }
-    
+
     const file = result.payload;
     const bucketReal = resolveBucket(file.bucket);
-    
+
+    // If fileVersionId is present in token, use that specific version
+    let s3Key = file.s3Key;
+    if (decoded.fileVersionId) {
+      console.log('[WOPI GetFile] Using specific file version:', decoded.fileVersionId);
+      const fileVersion = await prisma.fileVersion.findUnique({
+        where: { id: decoded.fileVersionId }
+      });
+      if (fileVersion && fileVersion.fileId === fileId) {
+        s3Key = fileVersion.s3Key;
+        console.log('[WOPI GetFile] Using version s3Key:', s3Key);
+      } else {
+        console.warn('[WOPI GetFile] File version not found or mismatch, falling back to current');
+      }
+    }
+
     // Stream the file from MinIO
     const { minioClient } = await import('../services/minioService.js');
-    const stream = await minioClient.getObject(bucketReal, file.s3Key);
-    
+    const stream = await minioClient.getObject(bucketReal, s3Key);
+
     res.setHeader('Content-Type', file.mimeType);
     res.setHeader('Content-Disposition', `inline; filename="${file.name}"`);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    
+
     stream.pipe(res);
   } catch (error) {
     console.error('[WOPI GetFile] Error:', error);
@@ -428,6 +447,7 @@ router.post('/shares', createFileShare);
 router.get('/files/:fileId/shares', listFileShares);
 router.delete('/shares/:shareId', revokeFileShare);
 router.get('/shared-with-me', listSharedWithMe);
+router.get('/shared-by-me', listSharedByMe);
 router.get('/shared', listSharedFiles);
 
 // Legacy endpoints (keep for backward compatibility, delegate to v2).

@@ -10,6 +10,10 @@ import { EVENTS, CATEGORIES, PRIORITIES, getCategoryFromEvent, getPriorityFromEv
 // Raw template strings for each event
 const RAW_TEMPLATES = {
   // Workflow events
+  [EVENTS.WORKFLOW_SUBMITTED]: {
+    en: 'New attendance document submitted for review: {{title}}',
+    ar: 'تم تقديم وثيقة حضور جديدة للمراجعة: {{title}}'
+  },
   [EVENTS.WORKFLOW_ASSIGNED]: {
     en: 'You have been assigned to a workflow: {{workflowName}}',
     ar: 'تم تعيينك في سير عمل: {{workflowName}}'
@@ -21,6 +25,14 @@ const RAW_TEMPLATES = {
   [EVENTS.WORKFLOW_REJECTED]: {
     en: 'Workflow "{{workflowName}}" has been rejected',
     ar: 'تم رفض سير العمل "{{workflowName}}"'
+  },
+  [EVENTS.WORKFLOW_RETURNED]: {
+    en: 'Workflow "{{workflowName}}" has been returned for revision',
+    ar: 'تم إرجاع سير العمل "{{workflowName}}" للمراجعة'
+  },
+  [EVENTS.WORKFLOW_RESUBMITTED]: {
+    en: 'Workflow "{{workflowName}}" has been resubmitted for review',
+    ar: 'تم إعادة تقديم سير العمل "{{workflowName}}" للمراجعة'
   },
   [EVENTS.WORKFLOW_COMPLETED]: {
     en: 'Workflow "{{workflowName}}" has been completed',

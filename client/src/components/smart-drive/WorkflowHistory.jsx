@@ -1,5 +1,5 @@
-import { Clock, User, FileText } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
+import { getThemedIcon } from '@constants/iconTypes';
 
 /**
  * WorkflowHistory Component
@@ -11,7 +11,7 @@ export default function WorkflowHistory({ history = [], onClose }) {
   if (!history || history.length === 0) {
     return (
       <div className="text-center py-8">
-        <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+        {getThemedIcon('ui', 'clock', 48, 'muted')}
         <p className="text-sm text-gray-500">{t('drive.noWorkflowHistory')}</p>
       </div>
     );
@@ -43,7 +43,7 @@ export default function WorkflowHistory({ history = [], onClose }) {
         <div key={index} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
           <div className="flex-shrink-0">
             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <User className="w-4 h-4 text-blue-600" />
+              {getThemedIcon('ui', 'user', 16, 'primary')}
             </div>
           </div>
           <div className="flex-1 min-w-0">
@@ -66,7 +66,7 @@ export default function WorkflowHistory({ history = [], onClose }) {
             </div>
             {entry.comment && (
               <div className="flex items-start gap-2 mt-2">
-                <FileText className="w-3.5 h-3.5 text-gray-400 mt-0.5" />
+                {getThemedIcon('ui', 'file_text', 14, 'muted')}
                 <p className="text-xs text-gray-600">{entry.comment}</p>
               </div>
             )}

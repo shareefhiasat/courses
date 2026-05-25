@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
-import { Upload, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { usePermissions } from '@hooks/usePermissions';
 import { useLang } from '@contexts/LangContext';
 import { ROLE_STRINGS } from '@utils/userUtils';
+import { getThemedIcon } from '@constants/iconTypes';
 
 /**
  * UploadZone Component
@@ -118,7 +118,7 @@ export default function UploadZone({ bucket, onUpload, onClose }) {
           onClick={onClose}
           className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
         >
-          <X className="w-5 h-5" />
+          {getThemedIcon('ui', 'x', 20, 'light')}
         </button>
       </div>
 
@@ -133,7 +133,7 @@ export default function UploadZone({ bucket, onUpload, onClose }) {
             : 'border-gray-300 dark:border-gray-600 hover:border-blue-400'
         }`}
       >
-        <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+        {getThemedIcon('ui', 'upload', 64, 'muted')}
         <p className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
           {t('drive.dragDropFiles')}
         </p>
@@ -184,18 +184,14 @@ export default function UploadZone({ bucket, onUpload, onClose }) {
                       </div>
                     )}
                   </div>
-                  {status === 'success' && (
-                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                  )}
-                  {status === 'error' && (
-                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-                  )}
+                  {status === 'success' && getThemedIcon('ui', 'check_circle', 20, 'success')}
+                  {status === 'error' && getThemedIcon('ui', 'alert_circle', 20, 'error')}
                   {!status && !uploading && (
                     <button
                       onClick={() => removeFile(index)}
                       className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded flex-shrink-0"
                     >
-                      <X className="w-4 h-4" />
+                      {getThemedIcon('ui', 'x', 16, 'light')}
                     </button>
                   )}
                 </div>

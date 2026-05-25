@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { format } from "date-fns";
 import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
+import { getSlaInfo, sortBySlaUrgency } from '@utils/sla.js';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useAuth } from "@contexts/AuthContext";
@@ -39,6 +40,7 @@ import { Button, useToast } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Input, Select, SimpleLoading, EmptyState, AdvancedDataGrid } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import CollapsibleDashboardSection from '@components/ui/CollapsibleDashboardSection/CollapsibleDashboardSection.jsx';
+import WorkflowDiagram from '@components/workflow/WorkflowDiagram';
 
 const WorkflowInboxPage = () => {
   const navigate = useNavigate();
@@ -52,6 +54,9 @@ const WorkflowInboxPage = () => {
   // Collapsible states
   const [isStatsCollapsed, setIsStatsCollapsed] = useState(false);
   const [isFiltersCollapsed, setIsFiltersCollapsed] = useState(false);
+  const [sortBySla, setSortBySla] = useState(true); // Default to SLA sorting
+  const [selectedDocumentForWorkflow, setSelectedDocumentForWorkflow] = useState(null);
+  const [showWorkflowDiagram, setShowWorkflowDiagram] = useState(false);
   
   const {
     inboxItems,
@@ -166,6 +171,14 @@ const WorkflowInboxPage = () => {
     { value: 'send', label: t('workflow.actions.send', 'Send') }
   ], [t]);
 
+  // Apply SLA sorting to inbox items
+  const sortedInboxItems = useMemo(() => {
+    if (sortBySla) {
+      return sortBySlaUrgency(inboxItems);
+    }
+    return inboxItems;
+  }, [inboxItems, sortBySla]);
+
   // Status badge variants
   const getStatusVariant = (action) => {
     switch (action) {
@@ -223,6 +236,12 @@ const WorkflowInboxPage = () => {
       triggerNotification('error', result.error || t('workflow.inbox.markReadError', 'Failed to mark as read'));
     }
   }, [t, triggerNotification, markAsRead]);
+
+  // Handle show workflow diagram
+  const handleShowWorkflowDiagram = useCallback((document) => {
+    setSelectedDocumentForWorkflow(document);
+    setShowWorkflowDiagram(true);
+  }, []);
 
   // Grid columns
   const columns = useMemo(() => [
@@ -299,17 +318,44 @@ const WorkflowInboxPage = () => {
       )
     },
     {
+      field: 'sla',
+      headerName: t('workflow.inbox.sla', 'SLA'),
+      width: 100,
+      renderCell: (params) => {
+        const slaInfo = getSlaInfo(params.row.document?.submittedAt);
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge variant={slaInfo.badgeVariant} className="text-xs">
+              {slaInfo.timeElapsed}
+            </Badge>
+            {slaInfo.isOverdue && (
+              <span className="text-xs text-red-600 font-medium">
+                {t('workflow.inbox.overdue', 'Overdue')}
+              </span>
+            )}
+          </div>
+        );
+      }
+    },
+    {
       field: 'actions',
       headerName: t('workflow.inbox.actions', 'Actions'),
-      width: 180,
+      width: 220,
       renderCell: (params) => (
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(`/workflow/${params.row.documentId || params.row.document?.id}`)}
+            onClick={() => navigate(`/workflow-documents/${params.row.documentId || params.row.document?.id}`)}
           >
             {t('workflow.inbox.open', 'Open')}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleShowWorkflowDiagram(params.row.document)}
+          >
+            {t('workflow.inbox.workflow', 'Workflow')}
           </Button>
           {!params.row.isRead && (
             <Button
@@ -612,6 +658,15 @@ const WorkflowInboxPage = () => {
               className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
               placeholder={t('workflow.inbox.viewPlaceholder', 'View')}
             />
+            <Button
+              variant={sortBySla ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSortBySla(!sortBySla)}
+              className="flex items-center gap-2"
+            >
+              <Clock className="h-4 w-4" />
+              {t('workflow.inbox.sortBySla', 'Sort by SLA')}
+            </Button>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
@@ -707,11 +762,11 @@ const WorkflowInboxPage = () => {
       )}
 
       {/* Data Grid */}
-      {inboxItems.length > 0 ? (
+      {sortedInboxItems.length > 0 ? (
         <Card className="shadow-sm border-gray-200">
           <CardContent className="p-0">
             <AdvancedDataGrid
-              rows={inboxItems}
+              rows={sortedInboxItems}
               columns={columns}
               pagination={pagination}
               onPageChange={handlePageChange}
@@ -741,6 +796,33 @@ const WorkflowInboxPage = () => {
             />
           </CardContent>
         </Card>
+      )}
+
+      {/* Workflow Diagram Modal */}
+      {showWorkflowDiagram && selectedDocumentForWorkflow && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="text-lg font-semibold">
+                {t('workflow.inbox.workflowProgress', 'Workflow Progress')}: {selectedDocumentForWorkflow.title}
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowWorkflowDiagram(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-4 overflow-auto" style={{ height: 'calc(90vh - 60px)' }}>
+              <WorkflowDiagram
+                status={selectedDocumentForWorkflow.status}
+                workflowType={selectedDocumentForWorkflow.workflowType || 'ATTENDANCE_REPORT'}
+                onNodeClick={(nodeId) => console.log('Node clicked:', nodeId)}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

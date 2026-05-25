@@ -145,6 +145,18 @@ export function useDriveMinIO() {
         throw new Error(completeResponse.error || 'Failed to complete upload');
       }
 
+      // Show notification if this is a new version
+      if (completeResponse.isNewVersion) {
+        console.log('📦 [useDriveMinIO] New version created:', {
+          versionNumber: completeResponse.versionNumber,
+          versionId: completeResponse.versionId,
+        });
+        // Emit event for FileDetailsModal to refresh
+        window.dispatchEvent(new CustomEvent('file-version-updated', {
+          detail: { fileId, versionNumber: completeResponse.versionNumber, versionId: completeResponse.versionId }
+        }));
+      }
+
       // Refresh the appropriate file list
       if (bucket === 'lms-private') await loadPrivateFiles();
       else if (bucket === 'lms-shared') await loadSharedFiles();

@@ -90,6 +90,20 @@ export async function rollbackToVersion(versionId, actorUserId) {
     }
     if (target.isCurrent) return ok({ message: 'Already current', versionId });
 
+    // Check for name conflicts in the same folder
+    const existingFile = await prisma.file.findFirst({
+      where: {
+        id: { not: target.fileId },
+        folderId: target.file.folderId,
+        name: target.file.name,
+        isDeleted: false,
+      },
+    });
+
+    if (existingFile) {
+      return err('NAME_CONFLICT', 'A file with this name already exists in this folder. Restore not allowed to prevent conflicts.');
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       await tx.fileVersion.updateMany({
         where: { fileId: target.fileId, isCurrent: true },

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { MessageSquare, Send, Trash2, User, Search, Clock } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import axios from 'axios';
 
 export default function CommentsTab({ fileId }) {
@@ -185,7 +185,7 @@ export default function CommentsTab({ fileId }) {
             }}
             aria-label={submitting ? t('common.sending') : t('drive.send')}
           >
-            <Send className="w-4 h-4" aria-hidden="true" />
+            {getThemedIcon('ui', 'send', 16, 'light')}
             <span>{submitting ? t('common.sending') : t('drive.send')}</span>
           </button>
         </div>
@@ -194,7 +194,7 @@ export default function CommentsTab({ fileId }) {
       {/* Timeline and comments */}
       {filteredAndSortedComments.length === 0 && !filterText ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
-          <MessageSquare className="w-10 h-10 mb-3 opacity-50" aria-hidden="true" />
+          {getThemedIcon('ui', 'message', 40, 'muted')}
           {t('drive.noComments')}
         </div>
       ) : (
@@ -209,7 +209,7 @@ export default function CommentsTab({ fileId }) {
             maxHeight: '500px'
           }}>
             <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Clock className="w-4 h-4" />
+              {getThemedIcon('ui', 'clock', 16, 'muted')}
               {t('drive.timeline') || 'Timeline'}
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -255,7 +255,7 @@ export default function CommentsTab({ fileId }) {
           <div style={{ flex: 1, overflowY: 'auto', maxHeight: '500px' }}>
             {/* Search filter */}
             <div style={{ position: 'relative', marginBottom: '1rem' }}>
-              <Search style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)' }} aria-hidden="true" />
+              {getThemedIcon('ui', 'search', 16, 'muted', { position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' })}
               <input
                 type="text"
                 value={filterText}
@@ -303,7 +303,7 @@ export default function CommentsTab({ fileId }) {
 
             {filteredAndSortedComments.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
-                <MessageSquare className="w-10 h-10 mb-3 opacity-50" aria-hidden="true" />
+                {getThemedIcon('ui', 'message', 40, 'muted')}
                 {t('drive.noMatchingComments')}
               </div>
             ) : (
@@ -331,7 +331,7 @@ export default function CommentsTab({ fileId }) {
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}>
-                          <User className="w-4 h-4" style={{ color: 'var(--color-primary, #2563eb)' }} aria-hidden="true" />
+                          {getThemedIcon('ui', 'user', 16, 'primary')}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
@@ -374,7 +374,7 @@ export default function CommentsTab({ fileId }) {
                           title={t('drive.deleteComment')}
                           aria-label={t('drive.deleteComment')}
                         >
-                          <Trash2 className="w-4 h-4" aria-hidden="true" />
+                          {getThemedIcon('ui', 'trash2', 16, 'light')}
                         </button>
                       </div>
                     </div>

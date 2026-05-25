@@ -2,8 +2,8 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Input, Button } from '@ui';
-import WorkflowBadge from './WorkflowBadge';
+import { Input, Button, Checkbox } from '@ui';
+import WorkflowStatusIndicator from './WorkflowStatusIndicator';
 
 /**
  * FileRoster - Files grid with search, filters, multi-select & row actions.
@@ -57,42 +57,29 @@ export default function FileRoster({
 
   // Helper to format owner name
   const formatOwnerName = (owner) => {
-    console.log('[FileRoster] formatOwnerName called with:', {
-      owner,
-      currentUserEmail,
-      hasOwner: !!owner,
-      ownerEmail: owner?.email,
-      ownerDisplayName: owner?.displayName
-    });
-    
     if (!owner) {
-      console.log('[FileRoster] No owner data, returning "Unknown"');
       return t('drive.unknown') || 'Unknown';
     }
-    
+
     // Always show displayName if available
     if (owner.displayName) {
-      console.log('[FileRoster] Using displayName:', owner.displayName);
       return owner.displayName;
     }
-    
+
     // Fallback to firstName + lastName if displayName not available
     if (owner.firstName || owner.lastName) {
       const name = [owner.firstName, owner.lastName].filter(Boolean).join(' ');
-      console.log('[FileRoster] Using firstName + lastName:', name);
       return name;
     }
-    
+
     // Fallback to email if displayName and name not available
     if (owner.email) {
       const isPlaceholder = owner.email.includes('pending') || owner.email.includes('example.com');
-      console.log('[FileRoster] Email check:', { email: owner.email, isPlaceholder });
       if (!isPlaceholder) {
         return owner.email;
       }
     }
-    
-    console.log('[FileRoster] Returning "Unknown" for owner');
+
     return t('drive.unknown') || 'Unknown';
   };
 
@@ -391,14 +378,10 @@ export default function FileRoster({
               color: 'var(--text-muted, #6b7280)',
             }}
           >
-            <input
-              type="checkbox"
+            <Checkbox
               checked={allSelected}
-              ref={(el) => {
-                if (el) el.indeterminate = someSelected;
-              }}
-              onChange={(e) => onSelectAll?.(e.target.checked)}
-              style={{ width: 16, height: 16, cursor: 'pointer' }}
+              onChange={(checked) => onSelectAll?.(checked)}
+              style={{ width: 16, height: 16 }}
             />
             <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
               {getThemedIcon('ui', 'star', 14, 'muted')}
@@ -408,6 +391,9 @@ export default function FileRoster({
             <div style={{ flex: 1, textAlign: isRTL ? 'right' : 'left' }}>{t('drive.location') || 'Location'}</div>
             <div style={{ width: 120, textAlign: isRTL ? 'right' : 'left' }}>
               {t('drive.status') || 'Status'}
+            </div>
+            <div style={{ width: 80, textAlign: isRTL ? 'right' : 'left' }}>
+              {t('drive.version') || 'Version'}
             </div>
             <div style={{ width: 160, textAlign: isRTL ? 'left' : 'right' }}>
               {t('drive.created') || 'Created'}
@@ -440,9 +426,14 @@ export default function FileRoster({
               <div
                 onMouseEnter={() => setHoveredId(folder.id)}
                 onMouseLeave={() => setHoveredId(null)}
-                onClick={() => {
+                onClick={(e) => {
                   if (openFolderMenuId === null && openMenuId === null) {
-                    onFolderOpen?.(folder);
+                    // Don't open folder if clicking on checkbox or its wrapper
+                    if (!e.target.closest('input[type="checkbox"]') && 
+                        !e.target.closest('.checkboxContainer') && 
+                        !e.target.closest('label[class*="wrapper"]')) {
+                      onFolderOpen?.(folder);
+                    }
                   }
                 }}
                 style={{
@@ -457,12 +448,11 @@ export default function FileRoster({
                   cursor: openFolderMenuId !== null || openMenuId !== null ? 'default' : 'pointer',
                 }}
               >
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={selectedIds.has(folder.id)}
-                onClick={(e) => e.stopPropagation()}
                 onChange={() => onToggleSelect?.(folder.id)}
-                style={{ width: 16, height: 16, cursor: 'pointer' }}
+                onClick={(e) => e.stopPropagation()}
+                style={{ width: 16, height: 16 }}
               />
               <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
                 <button
@@ -531,6 +521,19 @@ export default function FileRoster({
               <div
                 style={{
                   width: 120,
+                  textAlign: isRTL ? 'right' : 'left',
+                  fontSize: '0.875rem',
+                  color: 'var(--text-muted, #6b7280)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: isRTL ? 'flex-end' : 'flex-start',
+                }}
+              >
+                —
+              </div>
+              <div
+                style={{
+                  width: 80,
                   textAlign: isRTL ? 'right' : 'left',
                   fontSize: '0.875rem',
                   color: 'var(--text-muted, #6b7280)',
@@ -711,9 +714,14 @@ export default function FileRoster({
                 key={file.id}
                 onMouseEnter={() => setHoveredId(file.id)}
                 onMouseLeave={() => setHoveredId(null)}
-                onClick={() => {
+                onClick={(e) => {
                   if (openMenuId === null && openFolderMenuId === null) {
-                    onFileOpen?.(file);
+                    // Don't open file if clicking on checkbox or its wrapper
+                    if (!e.target.closest('input[type="checkbox"]') && 
+                        !e.target.closest('.checkboxContainer') && 
+                        !e.target.closest('label[class*="wrapper"]')) {
+                      onFileOpen?.(file);
+                    }
                   }
                 }}
                   style={{
@@ -729,12 +737,11 @@ export default function FileRoster({
                     position: 'relative',
                   }}
               >
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={selected}
-                  onClick={(e) => e.stopPropagation()}
                   onChange={() => onToggleSelect?.(file.id)}
-                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ width: 16, height: 16 }}
                 />
                 <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
                   <button
@@ -807,20 +814,25 @@ export default function FileRoster({
                     justifyContent: isRTL ? 'flex-end' : 'flex-start',
                   }}
                 >
-                  {file.workflowStatus && file.workflowStatus !== 'none' ? (
-                    <WorkflowBadge
-                      status={file.workflowStatus}
-                      currentStage={file.workflowStageName}
-                      compact
+                  {file.workflowCounts && (
+                    <WorkflowStatusIndicator
+                      workflowCounts={file.workflowCounts}
+                      onClick={() => onFileOpen?.(file)}
                     />
-                  ) : (
-                    <span style={{ 
-                      color: 'var(--text-muted, #6b7280)',
-                      fontSize: '0.8125rem',
-                    }}>
-                      —
-                    </span>
                   )}
+                </div>
+                <div
+                  style={{
+                    width: 80,
+                    textAlign: isRTL ? 'right' : 'left',
+                    fontSize: '0.875rem',
+                    color: 'var(--text-muted, #6b7280)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: isRTL ? 'flex-end' : 'flex-start',
+                  }}
+                >
+                  {file.versionCount > 1 ? `${file.versionNumber || 1}/${file.versionCount}` : `${file.versionNumber || 1}`}
                 </div>
                 <div
                   style={{
@@ -919,6 +931,7 @@ export default function FileRoster({
                                 ...(isPreviewable(file) ? [{ key: 'open', label: t('open') || 'Open', icon: 'external_link' }] : []),
                                 { key: 'download', label: t('download') || 'Download', icon: 'download' },
                                 { key: 'share', label: t('share') || 'Share', icon: 'send' },
+                                { key: 'create-workflow', label: t('drive.workflow') || 'Workflow', icon: 'git_branch', color: '#ea580c' },
                                 { key: 'rename', label: t('rename') || 'Rename', icon: 'edit' },
                                 { key: 'delete', label: t('delete') || 'Delete', icon: 'trash', danger: true },
                               ]),
@@ -1053,9 +1066,14 @@ export default function FileRoster({
             return (
               <div
                 key={file.id}
-                onClick={() => {
+                onClick={(e) => {
                   if (openMenuId === null && openFolderMenuId === null) {
-                    onFileOpen?.(file);
+                    // Don't open file if clicking on checkbox or its wrapper
+                    if (!e.target.closest('input[type="checkbox"]') && 
+                        !e.target.closest('.checkboxContainer') && 
+                        !e.target.closest('label[class*="wrapper"]')) {
+                      onFileOpen?.(file);
+                    }
                   }
                 }}
                 style={{
@@ -1079,11 +1097,10 @@ export default function FileRoster({
                   style={{ position: 'absolute', top: 8, [isRTL ? 'right' : 'left']: 8 }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={selected}
                     onChange={() => onToggleSelect?.(file.id)}
-                    style={{ width: 16, height: 16, cursor: 'pointer' }}
+                    style={{ width: 16, height: 16 }}
                   />
                 </div>
                 <div
@@ -1126,12 +1143,11 @@ export default function FileRoster({
                   <span>{formatDate(file.modifiedAt || file.createdAt)}</span>
                   <span>{file.owner?.displayName || file.owner?.email || '—'}</span>
                 </div>
-                {file.workflowStatus && file.workflowStatus !== 'none' && (
+                {file.workflowCounts && (
                   <div style={{ marginTop: '0.5rem' }}>
-                    <WorkflowBadge
-                      status={file.workflowStatus}
-                      currentStage={file.workflowStageName}
-                      compact
+                    <WorkflowStatusIndicator
+                      workflowCounts={file.workflowCounts}
+                      onClick={() => onFileOpen?.(file)}
                     />
                   </div>
                 )}

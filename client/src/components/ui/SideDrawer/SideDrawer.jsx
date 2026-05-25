@@ -520,8 +520,6 @@ const SideDrawer = ({ isOpen, onClose }) => {
       children: [
         { id: 'smart-drive', path: '/smart-drive', icon: getThemedIcon('ui', 'hard_drive', 18, theme), label: (t('smart_drive') || 'Smart Drive').toUpperCase() },
         { id: 'workflow-inbox', path: '/workflow/inbox', icon: getThemedIcon('ui', 'list', 18, theme), label: (t('workflow_inbox') || 'Workflow Inbox').toUpperCase() },
-        { id: 'workflow-create', path: '/workflow/create', icon: getThemedIcon('ui', 'plus', 18, theme), label: (t('workflow_create') || 'Create Workflow').toUpperCase() },
-        { id: 'workflow-workspace', path: '/workflow/workspace', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: (t('workflow_workspace') || 'Workflow Workspace').toUpperCase() },
       ]
     },
     {

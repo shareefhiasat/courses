@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { Folder } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import Modal from '@ui/Modal/Modal';
 import Input from '@ui/Input/Input';
 import Button from '@ui/Button/Button';

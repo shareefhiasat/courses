@@ -12,7 +12,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 const statusConfig = {
   pending: {
     labelKey: 'workflow.status.pending',
-    icon: null,
+    icon: 'clock',
     bgClass: 'bg-yellow-50',
     textClass: 'text-yellow-800',
     borderClass: 'border-0',
@@ -52,7 +52,7 @@ export default function WorkflowBadge({ status, currentStage, compact = false })
   if (compact) {
     return (
       <div
-        className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ${config.bgClass} ${config.textClass}`}
+        className={`inline-flex items-center gap-2 px-3 py-1 rounded-md text-xs font-medium ${config.bgClass} ${config.textClass}`}
         title={currentStage ? `${label}: ${currentStage}` : label}
         style={{
           fontSize: '0.8125rem',

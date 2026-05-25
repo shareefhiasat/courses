@@ -3,7 +3,6 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Infinity } from 'lucide-react';
 import { DEFAULT_STORAGE_LIMIT } from '@constants/driveConstants';
 
 /**
@@ -38,6 +37,7 @@ export default function DriveSpacesSidebar({
   const spaces = [
     { id: 'my-drive', label: t('drive.myDrive') || 'My Drive', icon: 'folder' },
     { id: 'shared', label: t('drive.sharedWithMe') || 'Shared with me', icon: 'users' },
+    { id: 'shared-by-me', label: t('drive.sharedByMe') || 'Shared by me', icon: 'share' },
     { id: 'recent', label: t('drive.recent') || 'Recent', icon: 'clock' },
     { id: 'starred', label: t('drive.starred') || 'Starred', icon: 'star' },
     { id: 'trash', label: t('drive.trash') || 'Trash', icon: 'trash' },
@@ -230,16 +230,18 @@ export default function DriveSpacesSidebar({
               {t('drive.storage') || 'Storage'}
             </span>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-              {isSuperAdmin ? <Infinity size={14} /> : `${storagePercentage.toFixed(0)}%`}
+              {isSuperAdmin ? getThemedIcon('ui', 'infinity', 14, 'muted') : `${storagePercentage.toFixed(0)}%`}
             </span>
           </div>
           <div
             style={{
               width: '100%',
-              height: 6,
+              height: 8,
               background: 'var(--background-secondary, #e5e7eb)',
               borderRadius: 999,
               overflow: 'hidden',
+              border: '1px solid var(--border, #d1d5db)',
+              boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.05)',
             }}
           >
             <div
@@ -248,6 +250,7 @@ export default function DriveSpacesSidebar({
                 height: '100%',
                 background: 'linear-gradient(90deg, #3b82f6, #2563eb)',
                 transition: 'width 0.3s ease',
+                borderRadius: 999,
               }}
             />
           </div>

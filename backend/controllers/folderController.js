@@ -30,7 +30,9 @@ export const listChildren = async (req, res) => {
 };
 
 export const getFolder = async (req, res) => {
+  console.log('[folderController] getFolder called with folderId:', req.params.folderId, 'userId:', req.user?.dbId);
   const result = await folderService.getFolderWithBreadcrumb(req.params.folderId, req.user?.dbId);
+  console.log('[folderController] getFolder result:', result);
   return jsonOrStatus(res, result);
 };
 
