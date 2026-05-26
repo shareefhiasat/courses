@@ -51,9 +51,10 @@ const WorkflowDocumentDetailPage = () => {
       }
 
       try {
+        const token = localStorage.getItem('keycloak_token');
         const response = await fetch(`/api/v1/workflow-documents/${documentId}`, {
           headers: {
-            'Authorization': `Bearer ${window.keycloak?.token}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });

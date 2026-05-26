@@ -3921,6 +3921,12 @@ const DICT = {
     'workflow.searchComments': 'Search comments...',
     'workflow.noSearchResults': 'No comments match your search',
     'workflow.deleteCommentConfirm': 'Are you sure you want to delete this comment?',
+    'workflow.legend.completed': 'Completed',
+    'workflow.legend.current': 'Current',
+    'workflow.legend.pending': 'Pending',
+    'workflow.view.flow': 'Flow View',
+    'workflow.view.timeline': 'Timeline View',
+    'workflow.pending': 'Pending',
 
     'workflow.inbox.workspace': 'Private Workspace',
     'workflow.inbox.viewMode': 'View',
@@ -4328,6 +4334,7 @@ const DICT = {
     'common.submit': 'Submit',
     'common.loading': 'Loading',
     'common.delete': 'Delete',
+    'common.complete': 'Complete',
 
     // Smart Drive additional labels
     'drive.addMore': 'Add More',
@@ -8584,6 +8591,12 @@ const DICT = {
     'workflow.searchComments': 'البحث في التعليقات...',
     'workflow.noSearchResults': 'لا توجد تعليقات تطابق بحثك',
     'workflow.deleteCommentConfirm': 'هل أنت متأكد من حذف هذا التعليق؟',
+    'workflow.legend.completed': 'مكتمل',
+    'workflow.legend.current': 'الحالي',
+    'workflow.legend.pending': 'معلق',
+    'workflow.view.flow': 'عرض التدفق',
+    'workflow.view.timeline': 'عرض الجدول الزمني',
+    'workflow.pending': 'معلق',
 
     'workflow.inbox.workspace': 'المساحة الخاصة',
     'workflow.inbox.viewMode': 'العرض',
@@ -9127,6 +9140,7 @@ const DICT = {
     'common.submit': 'إرسال',
     'common.loading': 'جاري التحميل',
     'common.delete': 'حذف',
+    'common.complete': 'مكتمل',
 
     // Smart Drive additional labels
     'drive.addFilter': 'إضافة فلتر',

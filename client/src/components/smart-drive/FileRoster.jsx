@@ -39,6 +39,8 @@ export default function FileRoster({
   const [showVersion, setShowVersion] = useState(false);
   const [showSize, setShowSize] = useState(false);
   const [showOwner, setShowOwner] = useState(false);
+  const [showStatus, setShowStatus] = useState(false);
+  const [showCreated, setShowCreated] = useState(true);
   const [menuPositionAbove, setMenuPositionAbove] = useState(false);
   const folderMenuRef = useRef(null);
   const fileMenuRef = useRef(null);
@@ -262,7 +264,6 @@ export default function FileRoster({
                 }).filter(Boolean);
                 onFileAction?.('share', selectedItems);
               }}
-              leftIcon={getThemedIcon('ui', 'send', 14, theme)}
             >
               {t('share') || 'Share'}
             </Button>
@@ -364,6 +365,38 @@ export default function FileRoster({
               >
                 {getThemedIcon('ui', 'grid', 16, viewMode === 'grid' ? 'white' : theme)}
               </button>
+              <button
+                onClick={() => setShowStatus(!showStatus)}
+                style={{
+                  padding: '0.4rem 0.6rem',
+                  background: showStatus ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                  color: showStatus ? 'white' : 'var(--text-muted, #6b7280)',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                title={t('drive.status') || 'Status'}
+              >
+                {getThemedIcon('ui', 'check_circle', 16, showStatus ? 'white' : theme)}
+              </button>
+              <button
+                onClick={() => setShowCreated(!showCreated)}
+                style={{
+                  padding: '0.4rem 0.6rem',
+                  background: showCreated ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                  color: showCreated ? 'white' : 'var(--text-muted, #6b7280)',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                title={t('drive.created') || 'Created'}
+              >
+                {getThemedIcon('ui', 'calendar', 16, showCreated ? 'white' : theme)}
+              </button>
             </div>
           </div>
         )}
@@ -421,9 +454,6 @@ export default function FileRoster({
                 </button>
               </div>
             </div>
-            <div style={{ width: 60, textAlign: isRTL ? 'left' : 'right', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
-              {t('drive.status') || 'Status'}
-            </div>
             <button
               onClick={() => setShowOwner(!showOwner)}
               style={{
@@ -438,9 +468,6 @@ export default function FileRoster({
             >
               {getThemedIcon('ui', 'user', 14, showOwner ? 'primary' : 'muted')}
             </button>
-            <div style={{ width: 80, textAlign: isRTL ? 'left' : 'right', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
-              {t('drive.created') || 'Created'}
-            </div>
             <button
               onClick={() => setShowSize(!showSize)}
               style={{
@@ -580,31 +607,35 @@ export default function FileRoster({
                   </div>
                 </div>
               </div>
-              <div style={{ width: 60, paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
-                —
-              </div>
+              {showStatus && (
+                <div style={{ width: 60, paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+                  —
+                </div>
+              )}
               {showOwner && (
                 <div style={{ width: 100, fontSize: '0.875rem', color: 'var(--text-secondary, #374151)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
                   {formatOwnerName(folder.owner)}
                 </div>
               )}
-              <div
-                style={{
-                  width: 80,
-                  textAlign: isRTL ? 'left' : 'right',
-                  fontSize: '0.875rem',
-                  color: 'var(--text-muted, #6b7280)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: isRTL ? 'flex-start' : 'flex-end',
-                  whiteSpace: 'pre-line',
-                  lineHeight: 1.2,
-                  paddingRight: isRTL ? 0 : '0.5rem',
-                  paddingLeft: isRTL ? '0.5rem' : 0,
-                }}
-              >
-                {formatDateTime(folder.createdAt)}
-              </div>
+              {showCreated && (
+                <div
+                  style={{
+                    width: 80,
+                    textAlign: isRTL ? 'left' : 'right',
+                    fontSize: '0.875rem',
+                    color: 'var(--text-muted, #6b7280)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: isRTL ? 'flex-start' : 'flex-end',
+                    whiteSpace: 'pre-line',
+                    lineHeight: 1.2,
+                    paddingRight: isRTL ? 0 : '0.5rem',
+                    paddingLeft: isRTL ? '0.5rem' : 0,
+                  }}
+                >
+                  {formatDateTime(folder.createdAt)}
+                </div>
+              )}
               {showSize && (
                 <div
                   style={{
@@ -869,31 +900,35 @@ export default function FileRoster({
                     </div>
                   </div>
                 </div>
-                <div style={{ width: 60, paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
-                  <StatusColumn file={file} onClick={() => onFileOpen?.(file)} />
-                </div>
+                {showStatus && (
+                  <div style={{ width: 60, paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+                    <StatusColumn file={file} onClick={() => onFileOpen?.(file)} />
+                  </div>
+                )}
                 {showOwner && (
                   <div style={{ width: 100, fontSize: '0.875rem', color: 'var(--text-secondary, #374151)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
                     {formatOwnerName(file.owner)}
                   </div>
                 )}
-                <div
-                  style={{
-                    width: 80,
-                    textAlign: isRTL ? 'left' : 'right',
-                    fontSize: '0.875rem',
-                    color: 'var(--text-muted, #6b7280)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: isRTL ? 'flex-start' : 'flex-end',
-                    whiteSpace: 'pre-line',
-                    lineHeight: 1.2,
-                    paddingRight: isRTL ? 0 : '0.5rem',
-                    paddingLeft: isRTL ? '0.5rem' : 0,
-                  }}
-                >
-                  {formatDateTime(file.createdAt)}
-                </div>
+                {showCreated && (
+                  <div
+                    style={{
+                      width: 80,
+                      textAlign: isRTL ? 'left' : 'right',
+                      fontSize: '0.875rem',
+                      color: 'var(--text-muted, #6b7280)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: isRTL ? 'flex-start' : 'flex-end',
+                      whiteSpace: 'pre-line',
+                      lineHeight: 1.2,
+                      paddingRight: isRTL ? 0 : '0.5rem',
+                      paddingLeft: isRTL ? '0.5rem' : 0,
+                    }}
+                  >
+                    {formatDateTime(file.createdAt)}
+                  </div>
+                )}
                 {showSize && (
                   <div
                     style={{
