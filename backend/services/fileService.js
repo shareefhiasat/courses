@@ -480,6 +480,34 @@ export async function listFiles(keycloakUser, {
       }
     });
 
+    // Add public link counts for each file
+    let publicLinks = [];
+    try {
+      publicLinks = await prisma.publicLink.findMany({
+        where: { 
+          fileId: { in: fileIds },
+          revokedAt: null,
+          OR: [
+            { expiresAt: null },
+            { expiresAt: { gte: new Date() } }
+          ]
+        },
+        select: { fileId: true },
+      });
+    } catch (error) {
+      console.error('[fileService.listFiles] Failed to fetch public link counts:', error);
+      // Continue without public link counts if query fails
+    }
+
+    // Aggregate public link counts by file
+    const publicLinkCountsMap = {};
+    publicLinks.forEach(link => {
+      if (!publicLinkCountsMap[link.fileId]) {
+        publicLinkCountsMap[link.fileId] = 0;
+      }
+      publicLinkCountsMap[link.fileId]++;
+    });
+
     // Attach workflow and share counts to each file
     const filesWithCounts = files.map(file => {
       const counts = workflowCountsMap[file.id] || {
@@ -493,6 +521,7 @@ export async function listFiles(keycloakUser, {
         people: 0,
         groups: 0,
       };
+      const publicLinksCount = publicLinkCountsMap[file.id] || 0;
       
       // Get workflow version number if this file has a workflow with a captured version
       let workflowVersionNumber = null;
@@ -503,11 +532,12 @@ export async function listFiles(keycloakUser, {
         }
       }
       
-      console.log('[fileService.listFiles] File:', file.id, file.name, 'workflowCounts:', counts, 'shareCounts:', shares, 'workflowVersionNumber:', workflowVersionNumber);
+      console.log('[fileService.listFiles] File:', file.id, file.name, 'workflowCounts:', counts, 'shareCounts:', shares, 'publicLinksCount:', publicLinksCount, 'workflowVersionNumber:', workflowVersionNumber);
       return {
         ...file,
         workflowCounts: counts,
         shareCounts: shares,
+        publicLinksCount,
         versionCount: file.versions?.length || 1,
         versionNumber: file.currentVersion?.versionNumber || 1,
         workflowVersionNumber, // Add the captured workflow version number

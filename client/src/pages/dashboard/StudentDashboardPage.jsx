@@ -21,7 +21,6 @@ import {
   OverviewTab,
   AttendanceTab,
   MarksTab,
-  PerformanceTab,
 } from '@components/student-dashboard';
 import styles from './StudentDashboardPage.module.css';
 
@@ -185,7 +184,6 @@ export default function StudentDashboardPage() {
     { value: 'overview',      label: t('dashboard.overview') || (lang === 'ar' ? 'نظرة عامة'   : 'Overview') },
     { value: 'attendance',    label: t('dashboard.attendance') || (lang === 'ar' ? 'الحضور'       : 'Attendance') },
     { value: 'marks',         label: t('dashboard.marks') || (lang === 'ar' ? 'الدرجات'      : 'Marks') },
-    { value: 'performance',   label: t('dashboard.performance') || (lang === 'ar' ? 'الأداء'       : 'Performance') },
     /*{ value: 'penalties',     label: t('dashboard.penalties') || (lang === 'ar' ? 'العقوبات'     : 'Penalties') },
     { value: 'participations',label: t('dashboard.participations') || (lang === 'ar' ? 'المشاركات'    : 'Participations') },
     { value: 'behaviors',     label: t('dashboard.behaviors') || (lang === 'ar' ? 'السلوك'       : 'Behaviors') },*/
@@ -354,24 +352,6 @@ export default function StudentDashboardPage() {
                   statsData={dashData.statsData}
                   canNavigateToMarksEntry={permissions.canNavigateToMarksEntry}
                   studentId={displayStudentId}
-                  t={t}
-                  lang={lang}
-                />
-              )}
-              {activeTab === 'performance' && (
-                <PerformanceTab
-                  marks={dashData.marks}
-                  enrollments={dashData.enrollments}
-                  attendance={dashData.attendance}
-                  participations={dashData.participations}
-                  penalties={dashData.penalties}
-                  behaviors={dashData.behaviors}
-                  statsData={dashData.statsData}
-                  canSeeClassDistributions={permissions.canSeeClassDistributions}
-                  selectedClassId={filters.selectedClassId}
-                  selectedStudentId={filters.selectedStudentId}
-                  selectedProgramId={filters.selectedProgramId}
-                  selectedSubjectId={filters.selectedSubjectId}
                   t={t}
                   lang={lang}
                 />

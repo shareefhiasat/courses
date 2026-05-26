@@ -134,11 +134,11 @@ class DriveDbService extends BaseDbService {
   }
 
   /**
-   * Generate public link
+   * Generate public link (v2 endpoint)
    */
   async generatePublicLink(fileId, expiryDays = 7) {
     try {
-      const result = await api.post(`/drive/files/${fileId}/public-link`, { expiryDays });
+      const result = await api.post(`/drive/public-links`, { fileId, expiryDays });
       return result;
     } catch (error) {
       this.logError('generatePublicLink', error);

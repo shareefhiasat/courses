@@ -19,7 +19,7 @@ export default function StatusColumn({ file, onClick }) {
   const [hovered, setHovered] = useState(false);
   const [hoverDelay, setHoverDelay] = useState(null);
 
-  const { shareCounts = { people: 0, groups: 0 }, workflowCounts = {} } = file;
+  const { shareCounts = { people: 0, groups: 0 }, workflowCounts = {}, publicLinksCount = 0 } = file;
 
   // Calculate total shares
   const totalShares = shareCounts.people + shareCounts.groups;
@@ -28,6 +28,9 @@ export default function StatusColumn({ file, onClick }) {
   // Check if has any active workflow (non-zero counts)
   const hasActiveWorkflow = Object.values(workflowCounts).some(count => count > 0);
   const hasRejected = workflowCounts.rejected > 0;
+
+  // Check if has active public links
+  const hasPublicLinks = publicLinksCount > 0;
 
   // Handle hover with delay
   const handleMouseEnter = () => {
@@ -117,17 +120,23 @@ export default function StatusColumn({ file, onClick }) {
         />
       )}
 
-      {/* Priority badge for rejected workflows */}
-      {hasRejected && (
+      {/* Public link indicator */}
+      {hasPublicLinks && (
         <div
           style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: '#ef4444',
-            border: `2px solid ${theme === 'dark' ? '#1f2937' : '#ffffff'}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.125rem',
+            fontSize: '0.75rem',
+            fontWeight: 500,
+            color: '#10b981',
           }}
-        />
+        >
+          <span style={{ fontSize: '0.875rem' }}>
+            {getThemedIcon('ui', 'link', 14, '#10b981')}
+          </span>
+          <span>{publicLinksCount}</span>
+        </div>
       )}
 
       {/* Rich hover tooltip (to be implemented) */}
@@ -213,7 +222,23 @@ export default function StatusColumn({ file, onClick }) {
             </div>
           )}
 
-          {!hasShares && !hasActiveWorkflow && (
+          {/* Public links details */}
+          {hasPublicLinks && (
+            <div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', marginBottom: '0.25rem' }}>
+                {t('drive.publicLinks') || 'Public Links'}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: '#10b981' }}>
+                <span style={{ fontSize: '0.875rem' }}>
+                  {getThemedIcon('ui', 'link', 12, '#10b981')}
+                </span>
+                <span style={{ fontWeight: 600 }}>{publicLinksCount}</span>
+                <span>{t('drive.active') || 'active link'}{publicLinksCount > 1 ? 's' : ''}</span>
+              </div>
+            </div>
+          )}
+
+          {!hasShares && !hasActiveWorkflow && !hasPublicLinks && (
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
               {t('drive.noStatus') || 'No status information'}
             </div>

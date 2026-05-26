@@ -45,7 +45,7 @@ export const amendAttendanceController = async (req, res) => {
       attendanceId: parseInt(attendanceId),
       toStatusId: parseInt(toStatusId),
       reason,
-      amendedBy: user.id,
+      amendedBy: user.dbId,
       workflowDocumentId: workflowDocumentId ? parseInt(workflowDocumentId) : null
     });
 

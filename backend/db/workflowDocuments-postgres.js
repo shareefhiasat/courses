@@ -670,6 +670,60 @@ export async function getAnalyticsData(filters) {
   }
 }
 
+/**
+ * Hard delete a workflow document
+ * This permanently deletes the workflow document and its associated data
+ */
+export async function deleteWorkflowDocument(id) {
+  try {
+    // Check if document exists
+    const existing = await prisma.workflowDocument.findUnique({
+      where: { id },
+      include: { file: true }
+    });
+
+    if (!existing) {
+      return { success: false, error: 'Workflow document not found' };
+    }
+
+    // Delete in transaction to ensure consistency
+    await prisma.$transaction(async (tx) => {
+      // Delete status history
+      await tx.workflowStatusHistory.deleteMany({
+        where: { workflowDocumentId: id }
+      });
+
+      // Delete comments
+      await tx.workflowComment.deleteMany({
+        where: { workflowDocumentId: id }
+      });
+
+      // Delete workflow document
+      await tx.workflowDocument.delete({
+        where: { id }
+      });
+
+      // Delete associated file if it exists and is not used by other documents
+      if (existing.fileId) {
+        const fileUsageCount = await tx.workflowDocument.count({
+          where: { fileId: existing.fileId }
+        });
+
+        if (fileUsageCount === 0) {
+          await tx.file.delete({
+            where: { id: existing.fileId }
+          });
+        }
+      }
+    });
+
+    return { success: true, data: { id } };
+  } catch (error) {
+    console.error('Error deleting workflow document:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 export default {
   createWorkflowDocument,
   createWorkflowStatusHistory,
@@ -681,5 +735,6 @@ export default {
   addWorkflowComment,
   resubmitWorkflowDocument,
   getComplianceData,
-  getAnalyticsData
+  getAnalyticsData,
+  deleteWorkflowDocument
 };

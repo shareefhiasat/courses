@@ -22,7 +22,8 @@ import {
   getAnalyticsDataController,
   listFileVersionsController,
   downloadFileVersionController,
-  createCustomWorkflowDocumentController
+  createCustomWorkflowDocumentController,
+  deleteWorkflowDocumentController
 } from '../controllers/workflowDocuments.js';
 
 const router = Router();
@@ -232,6 +233,33 @@ router.get('/', getWorkflowDocumentsController);
  *         description: Internal server error
  */
 router.get('/:id', getWorkflowDocumentController);
+
+/**
+ * @swagger
+ * /api/v1/workflow-documents/{id}:
+ *   delete:
+ *     summary: Hard delete a workflow document
+ *     tags: [Workflow Documents]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Workflow document ID
+ *     responses:
+ *       200:
+ *         description: Workflow document deleted successfully
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Workflow document not found
+ *       500:
+ *         description: Internal server error
+ */
+router.delete('/:id', deleteWorkflowDocumentController);
 
 /**
  * @swagger

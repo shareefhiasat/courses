@@ -3,7 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import axios from 'axios';
 
-export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = false }) {
+export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = false, subjectTypeFilter = null }) {
   const { t } = useLang();
   const [shares, setShares] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -17,9 +17,13 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`/api/v1/drive/files/${fileId}/shares`);
+      let url = `/api/v1/drive/files/${fileId}/shares`;
+      if (subjectTypeFilter) {
+        url += `?subjectType=${subjectTypeFilter}`;
+      }
+      const response = await axios.get(url);
       if (response.data.success) {
-        setShares(response.data.payload || []);
+        setShares(response.data.data || []);
       } else {
         setError(response.data.error?.message || 'Failed to fetch shares');
       }
@@ -29,7 +33,7 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
     } finally {
       setLoading(false);
     }
-  }, [fileId]);
+  }, [fileId, subjectTypeFilter]);
 
   useEffect(() => {
     fetchShares();

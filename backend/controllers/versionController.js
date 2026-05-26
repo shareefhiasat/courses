@@ -22,7 +22,7 @@ async function getFileVersions(req, res) {
 
     const result = await fileVersionService.getFileVersions({
       fileId: decodedFileId,
-      userId: currentUser.id
+      userId: currentUser.dbId
     });
 
     if (!result.success) {
@@ -55,7 +55,7 @@ async function restoreFileVersion(req, res) {
     const result = await fileVersionService.restoreFileVersion({
       fileId: decodedFileId,
       versionId,
-      userId: currentUser.id
+      userId: currentUser.dbId
     });
 
     if (!result.success) {
@@ -65,7 +65,7 @@ async function restoreFileVersion(req, res) {
     // Log activity
     await fileActivityService.logFileActivity({
       fileId: decodedFileId,
-      userId: currentUser.id,
+      userId: currentUser.dbId,
       action: 'restore',
       metadata: { versionId }
     });
@@ -95,7 +95,7 @@ async function enableFileVersioning(req, res) {
 
     const result = await fileVersionService.enableFileVersioning({
       filePath: decodedFileId,
-      userId: currentUser.id
+      userId: currentUser.dbId
     });
 
     if (!result.success) {
@@ -128,7 +128,7 @@ async function getFileActivities(req, res) {
 
     const result = await fileActivityService.getFileActivities({
       fileId: decodedFileId,
-      userId: currentUser.id,
+      userId: currentUser.dbId,
       limit: limit ? parseInt(limit) : 50
     });
 
@@ -161,7 +161,7 @@ async function getFileActivityStats(req, res) {
 
     const result = await fileActivityService.getFileActivityStats({
       fileId: decodedFileId,
-      userId: currentUser.id
+      userId: currentUser.dbId
     });
 
     if (!result.success) {

@@ -77,8 +77,12 @@ export async function createFileShare(req, res) {
 
 export async function listFileShares(req, res) {
   const { fileId } = req.params;
+  const { subjectType } = req.query;
   const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
-  const result = await fileShareService.listFileShares(fileId, actor);
+  
+  console.log('[fileShareController] listFileShares called:', { fileId, subjectType, userId: actor.userId, roles: actor.roles });
+  
+  const result = await fileShareService.listFileShares(fileId, actor, subjectType);
   if (!result.success) return res.status(400).json(result);
   return res.json(result);
 }

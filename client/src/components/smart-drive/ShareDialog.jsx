@@ -107,10 +107,10 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
     setLoading(true);
     try {
       const result = await onGenerateLink?.(file.id, expiryDays);
-      if (result?.token || result?.publicToken) {
-        const token = result.token || result.publicToken;
+      if (result?.token) {
+        const token = result.token;
         const apiUrl = window.location.origin;
-        setPublicLink(`${apiUrl}/api/v1/public/links/${token}/download`);
+        setPublicLink(`${apiUrl}/public/links/${token}/download`);
       }
     } catch (error) {
       console.error('Generate link error:', error);

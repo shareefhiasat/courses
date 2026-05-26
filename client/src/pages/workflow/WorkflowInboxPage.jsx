@@ -72,43 +72,7 @@ const WorkflowInboxPage = () => {
     bulkMarkAsRead
   } = useWorkflowInbox();
 
-  const [recipientRoleFilter, setRecipientRoleFilter] = useState('all');
   const [recipientOptions, setRecipientOptions] = useState([{ value: '', label: t('workflow.inbox.allRecipients', 'All Recipients') }]);
-
-  const getRoleCodes = useCallback((userItem) => {
-    const normalizeRoleToken = (value) => String(value || '')
-      .toLowerCase()
-      .replace(/[\s-]+/g, '_')
-      .trim();
-
-    const expandRoleAliases = (roleCode) => {
-      const normalized = normalizeRoleToken(roleCode);
-      if (!normalized) return [];
-
-      const aliases = new Set([normalized]);
-      if (normalized === 'superadmin') aliases.add('super_admin');
-      if (normalized === 'humanresources') aliases.add('human_resources');
-      if (normalized === 'teacher') aliases.add('instructor');
-      if (normalized === 'admin' || normalized === 'super_admin') aliases.add('admin_group');
-      return Array.from(aliases);
-    };
-
-    if (!userItem || typeof userItem !== 'object') {
-      return [];
-    }
-
-    const roleTokens = [
-      ...(Array.isArray(userItem.roleAssignments)
-        ? userItem.roleAssignments.map((assignment) => assignment?.role?.code)
-        : []),
-      ...(Array.isArray(userItem.roles) ? userItem.roles : []),
-      ...(userItem.primaryRole?.code ? [userItem.primaryRole.code] : []),
-      ...(userItem.role ? [userItem.role] : []),
-      ...(userItem.userRole ? [userItem.userRole] : [])
-    ];
-
-    return Array.from(new Set(roleTokens.flatMap(expandRoleAliases).filter(Boolean)));
-  }, []);
 
   useEffect(() => {
     const loadRecipients = async () => {
@@ -119,28 +83,9 @@ const WorkflowInboxPage = () => {
           return;
         }
 
-        const roleFilteredUsers = result.data.filter((u) => {
-          if (recipientRoleFilter === 'all') return true;
-          const roleCodes = getRoleCodes(u);
-
-          if (recipientRoleFilter === 'admin_group') {
-            return roleCodes.includes('admin_group') || roleCodes.includes('admin') || roleCodes.includes('super_admin');
-          }
-
-          if (recipientRoleFilter === 'hr') {
-            return roleCodes.includes('hr') || roleCodes.includes('human_resources');
-          }
-
-          if (recipientRoleFilter === 'instructor') {
-            return roleCodes.includes('instructor') || roleCodes.includes('teacher');
-          }
-
-          return roleCodes.includes(recipientRoleFilter);
-        });
-
         const options = [
           { value: '', label: t('workflow.inbox.allRecipients', 'All Recipients') },
-          ...roleFilteredUsers.map((u) => {
+          ...result.data.map((u) => {
             const displayName = u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || `User ${u.id}`;
             return {
               value: String(u.id),
@@ -156,7 +101,7 @@ const WorkflowInboxPage = () => {
     };
 
     loadRecipients();
-  }, [recipientRoleFilter, getRoleCodes, t]);
+  }, [t]);
 
   // Action type options - will be populated from lookup table
   const actionOptions = useMemo(() => [
@@ -700,22 +645,6 @@ const WorkflowInboxPage = () => {
               placeholder={t('workflow.inbox.statusPlaceholder', 'Status')}
             />
             <Select
-              value={recipientRoleFilter}
-              onChange={(valueOrEvent) => {
-                const value = valueOrEvent?.target?.value ?? valueOrEvent;
-                setRecipientRoleFilter(value);
-                updateFilters({ recipientId: '' });
-              }}
-              options={[
-                { value: 'all', label: t('workflow.inbox.roleAll', 'All Roles') },
-                { value: 'admin_group', label: t('workflow.inbox.roleAdmin', 'Admin') },
-                { value: 'hr', label: t('workflow.inbox.roleHr', 'HR') },
-                { value: 'instructor', label: t('workflow.inbox.roleInstructor', 'Instructor') }
-              ]}
-              className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              placeholder={t('workflow.inbox.rolePlaceholder', 'Role')}
-            />
-            <Select
               value={filters.recipientId || ''}
               onChange={(valueOrEvent) => {
                 const value = valueOrEvent?.target?.value ?? valueOrEvent;
@@ -728,7 +657,6 @@ const WorkflowInboxPage = () => {
             <Button
               variant="outline"
               onClick={() => {
-                setRecipientRoleFilter('all');
                 updateFilters({
                   viewMode: 'all',
                   search: '',

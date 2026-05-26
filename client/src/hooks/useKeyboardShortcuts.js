@@ -26,12 +26,6 @@ export function useKeyboardShortcuts(handlers) {
         handlers.onNewFolder();
       }
 
-      // Ctrl/Cmd + A - Select all
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a' && handlers.onSelectAll) {
-        e.preventDefault();
-        handlers.onSelectAll();
-      }
-
       // Delete - Move to trash
       if (e.key === 'Delete' && handlers.onDelete) {
         e.preventDefault();

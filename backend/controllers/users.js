@@ -18,46 +18,23 @@ export const listUsersController = async (req, res) => {
     const { studentsOnly, excludeStudents, search, limit: limitStr } = req.query;
     const limit = parseInt(limitStr) || 20;
 
+    console.log('[listUsersController] Query params:', { studentsOnly, excludeStudents, search, limit });
+
     let where = { isActive: true };
 
-    if (studentsOnly === 'true') {
-      const studentRole = await prisma.userRoles.findFirst({
-        where: { code: 'student' }
-      });
+    // Build search conditions
+    const searchConditions = search ? [
+      { displayName: { contains: search, mode: 'insensitive' } },
+      { firstName: { contains: search, mode: 'insensitive' } },
+      { lastName: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+    ] : [];
 
-      if (studentRole) {
-        where = {
-          ...where,
-          roleAssignments: {
-            some: { roleId: studentRole.id }
-          },
-        };
-      }
+    if (searchConditions.length > 0) {
+      where.OR = searchConditions;
     }
 
-    if (excludeStudents === 'true') {
-      const studentRole = await prisma.userRoles.findFirst({
-        where: { code: 'student' }
-      });
-
-      if (studentRole) {
-        where = {
-          ...where,
-          roleAssignments: {
-            none: { roleId: studentRole.id }
-          },
-        };
-      }
-    }
-
-    if (search) {
-      where.OR = [
-        { displayName: { contains: search, mode: 'insensitive' } },
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-      ];
-    }
+    console.log('[listUsersController] Prisma where clause:', JSON.stringify(where, null, 2));
 
     const users = await prisma.user.findMany({
       where,
@@ -85,9 +62,32 @@ export const listUsersController = async (req, res) => {
       orderBy: { displayName: 'asc' },
     });
 
+    console.log('[listUsersController] Users fetched from DB:', users.length);
+    console.log('[listUsersController] Sample users:', JSON.stringify(users.slice(0, 3), null, 2));
+
+    // Client-side filtering for studentsOnly/excludeStudents
+    let filteredUsers = users;
+    
+    if (studentsOnly === 'true') {
+      filteredUsers = users.filter(user => {
+        const hasStudentRole = user.roleAssignments?.some(ra => ra.role?.code === 'student');
+        return hasStudentRole;
+      });
+      console.log('[listUsersController] After studentsOnly filter:', filteredUsers.length);
+    }
+
+    if (excludeStudents === 'true') {
+      filteredUsers = users.filter(user => {
+        const hasStudentRole = user.roleAssignments?.some(ra => ra.role?.code === 'student');
+        return !hasStudentRole;
+      });
+      console.log('[listUsersController] After excludeStudents filter:', filteredUsers.length);
+    }
+
     res.status(200).json({
       success: true,
-      payload: users
+      data: filteredUsers,
+      total: filteredUsers.length
     });
   } catch (error) {
     console.error('Error in listUsersController:', error);

@@ -16,7 +16,8 @@ import {
   addWorkflowComment,
   resubmitWorkflowDocument as resubmitWorkflowDocumentDB,
   getComplianceData as getComplianceDataDB,
-  getAnalyticsData as getAnalyticsDataDB
+  getAnalyticsData as getAnalyticsDataDB,
+  deleteWorkflowDocument as deleteWorkflowDocumentDB
 } from '../db/workflowDocuments-postgres.js';
 import { putObject, deleteObject, BUCKETS, ensureBuckets, getObjectMetadata, listObjectVersions, streamObjectVersion, copyObject } from './minioService.js';
 import { byRole } from './notifications/recipients.js';
@@ -816,6 +817,47 @@ export async function createCustomWorkflowDocument(data) {
   }
 }
 
+/**
+ * Hard delete a workflow document
+ * This permanently deletes the workflow document and its associated data
+ */
+export async function deleteWorkflowDocument(id) {
+  try {
+    console.log('[deleteWorkflowDocument] Deleting workflow document:', id);
+
+    // Get document details before deletion for cleanup
+    const document = await getWorkflowDocumentById(id);
+    if (!document.success) {
+      return { success: false, error: 'Workflow document not found' };
+    }
+
+    const docData = document.data;
+
+    // Delete from database
+    const result = await deleteWorkflowDocumentDB(id);
+    if (!result.success) {
+      return result;
+    }
+
+    // Delete file from MinIO if it exists
+    if (docData.file && docData.file.s3Key) {
+      try {
+        await deleteObject(BUCKETS.WORKFLOW, docData.file.s3Key);
+        console.log('[deleteWorkflowDocument] File deleted from MinIO:', docData.file.s3Key);
+      } catch (error) {
+        console.error('[deleteWorkflowDocument] Error deleting file from MinIO:', error);
+        // Continue even if file deletion fails
+      }
+    }
+
+    console.log('[deleteWorkflowDocument] Document deleted successfully:', id);
+    return { success: true, data: { id } };
+  } catch (error) {
+    console.error('[deleteWorkflowDocument] Error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 export default {
   createWorkflowDocumentWithUpload,
   getWorkflowDocument,
@@ -831,5 +873,6 @@ export default {
   getAnalyticsData,
   listFileVersions,
   downloadFileVersion,
-  createCustomWorkflowDocument
+  createCustomWorkflowDocument,
+  deleteWorkflowDocument
 };

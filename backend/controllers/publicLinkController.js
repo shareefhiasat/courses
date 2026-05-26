@@ -38,8 +38,14 @@ export async function createPublicLink(req, res) {
 export async function listPublicLinks(req, res) {
   const { fileId } = req.params;
   const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
+  console.log('[publicLinkController.listPublicLinks] Fetching links for fileId:', fileId, 'actor:', actor);
   const result = await publicLinkService.listLinksForFile(fileId, actor);
-  if (!result.success) return res.status(400).json(result);
+  if (!result.success) {
+    console.error('[publicLinkController.listPublicLinks] Failed:', result.error);
+    return res.status(400).json(result);
+  }
+  console.log('[publicLinkController.listPublicLinks] Success, result:', JSON.stringify(result));
+  console.log('[publicLinkController.listPublicLinks] Success, returning', result.data?.length, 'links');
   return res.json(result);
 }
 

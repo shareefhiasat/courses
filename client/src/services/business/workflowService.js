@@ -249,6 +249,166 @@ export const closeWorkflowDocument = async (documentId, closeData) => {
   }
 };
 
+/**
+ * Reject document
+ * 
+ * @param {number|string} documentId - Document ID
+ * @param {Object} rejectData - Reject data (reason, etc.)
+ * @returns {Promise<Object>} - Result object
+ */
+export const rejectWorkflowDocument = async (documentId, rejectData) => {
+  try {
+    console.log(`[${serviceName}] Rejecting workflow document:`, { documentId, rejectData });
+    
+    const response = await apiService.post(`${API_BASE}/${documentId}/reject`, rejectData);
+    
+    if (response.success) {
+      console.log(`[${serviceName}] ✅ Document rejected successfully`);
+    } else {
+      console.error(`[${serviceName}] ❌ Failed to reject document:`, response.error);
+    }
+    
+    return response;
+    
+  } catch (error) {
+    console.error(`[${serviceName}] Error rejecting workflow document:`, error);
+    return {
+      success: false,
+      error: error.message || 'Failed to reject document',
+      data: null
+    };
+  }
+};
+
+/**
+ * Hard delete workflow document
+ * 
+ * @param {number|string} documentId - Document ID
+ * @returns {Promise<Object>} - Result object
+ */
+export const deleteWorkflowDocument = async (documentId) => {
+  try {
+    console.log(`[${serviceName}] Hard deleting workflow document:`, documentId);
+    console.log(`[${serviceName}] API endpoint: ${API_BASE}/${documentId}`);
+    
+    const response = await apiService.delete(`${API_BASE}/${documentId}`);
+    
+    console.log(`[${serviceName}] Delete response:`, response);
+    
+    if (response.success) {
+      console.log(`[${serviceName}] ✅ Document deleted successfully`);
+    } else {
+      console.error(`[${serviceName}] ❌ Failed to delete document:`, response.error);
+    }
+    
+    return response;
+    
+  } catch (error) {
+    console.error(`[${serviceName}] Error deleting workflow document:`, error);
+    console.error(`[${serviceName}] Error status:`, error.response?.status);
+    console.error(`[${serviceName}] Error data:`, error.response?.data);
+    return {
+      success: false,
+      error: error.message || 'Failed to delete document',
+      data: null
+    };
+  }
+};
+
+// ==================== COMMENTS ====================
+
+/**
+ * Get comments for a workflow document
+ * 
+ * @param {number|string} documentId - Document ID
+ * @returns {Promise<Object>} - Result object
+ */
+export const getWorkflowComments = async (documentId) => {
+  try {
+    console.log(`[${serviceName}] Getting comments for workflow document:`, documentId);
+    
+    const response = await apiService.get(`${API_BASE}/${documentId}/comments`);
+    
+    if (response.success) {
+      console.log(`[${serviceName}] ✅ Retrieved ${response.data?.length || 0} comments`);
+    } else {
+      console.error(`[${serviceName}] ❌ Failed to get comments:`, response.error);
+    }
+    
+    return response;
+    
+  } catch (error) {
+    console.error(`[${serviceName}] Error getting workflow comments:`, error);
+    return {
+      success: false,
+      error: error.message || 'Failed to retrieve comments',
+      data: []
+    };
+  }
+};
+
+/**
+ * Add a comment to a workflow document
+ * 
+ * @param {number|string} documentId - Document ID
+ * @param {Object} commentData - Comment data (content, mentions, etc.)
+ * @returns {Promise<Object>} - Result object
+ */
+export const addWorkflowComment = async (documentId, commentData) => {
+  try {
+    console.log(`[${serviceName}] Adding comment to workflow document:`, { documentId, commentData });
+    
+    const response = await apiService.post(`${API_BASE}/${documentId}/comments`, commentData);
+    
+    if (response.success) {
+      console.log(`[${serviceName}] ✅ Comment added successfully`);
+    } else {
+      console.error(`[${serviceName}] ❌ Failed to add comment:`, response.error);
+    }
+    
+    return response;
+    
+  } catch (error) {
+    console.error(`[${serviceName}] Error adding workflow comment:`, error);
+    return {
+      success: false,
+      error: error.message || 'Failed to add comment',
+      data: null
+    };
+  }
+};
+
+/**
+ * Delete a workflow comment
+ * 
+ * @param {number|string} documentId - Document ID
+ * @param {number|string} commentId - Comment ID
+ * @returns {Promise<Object>} - Result object
+ */
+export const deleteWorkflowComment = async (documentId, commentId) => {
+  try {
+    console.log(`[${serviceName}] Deleting comment:`, { documentId, commentId });
+    
+    const response = await apiService.delete(`${API_BASE}/${documentId}/comments/${commentId}`);
+    
+    if (response.success) {
+      console.log(`[${serviceName}] ✅ Comment deleted successfully`);
+    } else {
+      console.error(`[${serviceName}] ❌ Failed to delete comment:`, response.error);
+    }
+    
+    return response;
+    
+  } catch (error) {
+    console.error(`[${serviceName}] Error deleting workflow comment:`, error);
+    return {
+      success: false,
+      error: error.message || 'Failed to delete comment',
+      data: null
+    };
+  }
+};
+
 // ==================== INBOX OPERATIONS ====================
 
 /**
@@ -358,12 +518,19 @@ export default {
   createWorkflowDocument,
   getWorkflowDocuments,
   getWorkflowDocumentById,
+  deleteWorkflowDocument,
   
   // Workflow transitions
   sendWorkflowDocument,
   approveWorkflowDocument,
+  rejectWorkflowDocument,
   returnWorkflowDocument,
   closeWorkflowDocument,
+  
+  // Comments
+  getWorkflowComments,
+  addWorkflowComment,
+  deleteWorkflowComment,
   
   // Inbox
   getWorkflowInbox,

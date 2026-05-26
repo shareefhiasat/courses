@@ -10,7 +10,6 @@ import { getBehaviors } from '@services/business/behaviorService';
 import { getStudentMarks } from '@services/business/enrollmentMarksService';
 import { getActivitiesByClasses } from '@services/business/activitiesService';
 import { getSubmissionsByUser } from '@services/business/submissionsService';
-import { getQuizResultsByUser } from '@services/business/quizResultsService';
 import { getLocalizedActionLabel } from '@utils/sharedTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
@@ -41,7 +40,6 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
     marks: [],
     activities: [],
     submissions: [],
-    quizResults: [],
   });
 
   const effectiveUserId = displayStudentId || user?.uid;
@@ -59,7 +57,7 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
     try {
       info('[StudentDashboardData] Loading data', { effectiveUserId, classId, isClassMode });
 
-      let enrollmentsRes, attendanceRes, penaltiesRes, participationsRes, behaviorsRes, marksRes, submissionsRes, quizResultsRes;
+      let enrollmentsRes, attendanceRes, penaltiesRes, participationsRes, behaviorsRes, marksRes, submissionsRes;
 
       if (isClassMode) {
         // Fetch data for ALL students in the class
@@ -107,7 +105,6 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
             getBehaviors({ studentId }),
             getStudentMarks(studentId),
             getSubmissionsByUser(studentId),
-            getQuizResultsByUser(studentId),
           ])
         );
 
@@ -122,13 +119,12 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
           behaviors: [],
           marks: [],
           submissions: [],
-          quizResults: [],
         };
 
         results.forEach((studentResults, index) => {
           const studentId = studentIds[index];
           studentResults.forEach((result, resultIndex) => {
-            const dataKey = ['enrollments', 'attendance', 'penalties', 'participations', 'behaviors', 'marks', 'submissions', 'quizResults'][resultIndex];
+            const dataKey = ['enrollments', 'attendance', 'penalties', 'participations', 'behaviors', 'marks', 'submissions'][resultIndex];
             if (result.status === 'fulfilled' && result.value?.data) {
               aggregatedData[dataKey].push(...result.value.data);
             }
@@ -143,7 +139,6 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
         behaviorsRes = { status: 'fulfilled', value: { data: aggregatedData.behaviors } };
         marksRes = { status: 'fulfilled', value: { data: aggregatedData.marks } };
         submissionsRes = { status: 'fulfilled', value: { data: aggregatedData.submissions } };
-        quizResultsRes = { status: 'fulfilled', value: { data: aggregatedData.quizResults } };
 
         // Add localized labels for class mode data
         aggregatedData.participations = aggregatedData.participations.map(p => ({
@@ -171,7 +166,6 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
           behaviorsRes,
           marksRes,
           submissionsRes,
-          quizResultsRes,
         ] = await Promise.allSettled([
           getEnrollments({ userId: effectiveUserId }),
           getAttendanceByStudent(effectiveUserId),
@@ -180,7 +174,6 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
           getBehaviors({ studentId: effectiveUserId }),
           getStudentMarks(effectiveUserId),
           getSubmissionsByUser(effectiveUserId),
-          getQuizResultsByUser(effectiveUserId),
         ]);
       }
 
@@ -191,7 +184,6 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
       const behaviors = behaviorsRes.status === 'fulfilled' ? (behaviorsRes.value?.data || []) : [];
       const marks = marksRes.status === 'fulfilled' ? (marksRes.value?.data || []) : [];
       const submissions = submissionsRes.status === 'fulfilled' ? (submissionsRes.value?.data || []) : [];
-      const quizResults = quizResultsRes.status === 'fulfilled' ? (quizResultsRes.value?.data || []) : [];
 
       // Add localized labels to action types
       const participationsWithLabels = participations.map(p => ({
@@ -221,7 +213,7 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
         }
       }
 
-      setRawData({ enrollments, attendance, penalties: penaltiesWithLabels, participations: participationsWithLabels, behaviors: behaviorsWithLabels, marks, activities, submissions, quizResults });
+      setRawData({ enrollments, attendance, penalties: penaltiesWithLabels, participations: participationsWithLabels, behaviors: behaviorsWithLabels, marks, activities, submissions });
       
       // Comprehensive data verification logging
       const dataScope = isClassMode ? `ALL_STUDENTS_IN_CLASS (${classId})` : `SINGLE_STUDENT (${effectiveUserId})`;
@@ -240,7 +232,6 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
           marks: marks.length,
           activities: activities.length,
           submissions: submissions.length,
-          quizResults: quizResults.length,
         },
         '👥 ATTENDANCE VERIFICATION': {
           totalRecords: attendance.length,
@@ -346,7 +337,6 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
         attendanceRate,
         activities: rawData.activities.filter(a => a.classId === enrollment.classId),
         submissions: rawData.submissions.filter(s => s.classId === enrollment.classId),
-        quizResults: rawData.quizResults.filter(q => q.classId === enrollment.classId),
       });
     });
 

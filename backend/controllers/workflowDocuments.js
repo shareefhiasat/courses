@@ -5,6 +5,7 @@
  * ARCHITECTURE: HTTP Requests → Controllers → Business Services → DB Services → PostgreSQL
  */
 
+import { LMS_ROLES } from '../services/keycloakAdminService.js';
 import {
   createWorkflowDocumentWithUpload,
   getWorkflowDocument,
@@ -20,7 +21,8 @@ import {
   getAnalyticsData,
   listFileVersions,
   downloadFileVersion,
-  createCustomWorkflowDocument
+  createCustomWorkflowDocument,
+  deleteWorkflowDocument
 } from '../services/workflowDocumentService.js';
 import { emit } from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
@@ -84,15 +86,15 @@ export const createWorkflowDocumentController = async (req, res) => {
       fileData,
       fileName,
       fileType,
-      submitterId: user.id,
+      submitterId: user.dbId,
       currentAssigneeId: null, // Will be assigned to HR role
       classId,
-      instructorId: user.id,
+      instructorId: user.dbId,
       date,
       program,
       subject,
-      createdBy: user.id,
-      updatedBy: user.id
+      createdBy: user.dbId,
+      updatedBy: user.dbId
     });
 
     if (result.success) {
@@ -104,7 +106,7 @@ export const createWorkflowDocumentController = async (req, res) => {
           documentId: result.data.document.id,
           classId: result.data.document.classId,
           date: result.data.document.date
-        }, user, { role: 'hr' });
+        }, user, { role: LMS_ROLES.HR });
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
         // Don't fail the request if notification fails
@@ -172,9 +174,9 @@ export const getWorkflowDocumentsController = async (req, res) => {
     // If fileId is provided, query by file ID
     if (fileId) {
       result = await getDocumentsByFileId(fileId);
-    } else if (role === 'assignee' && (user.roles?.includes('hr') || user.roles?.includes('admin'))) {
+    } else if (role === 'assignee' && (user.roles?.includes(LMS_ROLES.HR) || user.roles?.includes(LMS_ROLES.ADMIN))) {
       // Get documents assigned to this user (HR/Admin inbox)
-      result = await getAssigneeDocuments(user.id, {
+      result = await getAssigneeDocuments(user.dbId, {
         status,
         workflowType,
         limit: limit ? parseInt(limit) : 50,
@@ -182,7 +184,7 @@ export const getWorkflowDocumentsController = async (req, res) => {
       });
     } else {
       // Get documents submitted by this user
-      result = await getSubmitterDocuments(user.id, {
+      result = await getSubmitterDocuments(user.dbId, {
         status,
         workflowType,
         limit: limit ? parseInt(limit) : 50,
@@ -228,7 +230,7 @@ export const updateWorkflowDocumentStatusController = async (req, res) => {
       });
     }
 
-    const result = await updateStatus(parseInt(id), status, user.id, reason);
+    const result = await updateStatus(parseInt(id), status, user.dbId, reason);
 
     if (result.success) {
       res.status(200).json({
@@ -269,7 +271,7 @@ export const addWorkflowCommentController = async (req, res) => {
 
     const result = await addComment({
       workflowDocumentId: parseInt(id),
-      authorId: user.id,
+      authorId: user.dbId,
       comment,
       action
     });
@@ -296,7 +298,7 @@ export const addWorkflowCommentController = async (req, res) => {
 
 /**
  * POST /api/v1/workflow-documents/:id/approve
- * Approve workflow document
+ * Approve workflow document (HR, Admin, or Super Admin can approve)
  */
 export const approveWorkflowDocumentController = async (req, res) => {
   try {
@@ -304,23 +306,24 @@ export const approveWorkflowDocumentController = async (req, res) => {
     const { user } = req;
     const { comment } = req.body;
 
-    // Validate HR or Admin role
-    if (!user || !user.roles || (!user.roles.includes('hr') && !user.roles.includes('admin'))) {
+    // Validate HR, Admin, or Super Admin role
+    const isSuperAdmin = user.roles && user.roles.includes(LMS_ROLES.SUPER_ADMIN);
+    if (!user || !user.roles || (!user.roles.includes(LMS_ROLES.HR) && !user.roles.includes(LMS_ROLES.ADMIN) && !isSuperAdmin)) {
       await logPermissionDenial({
         userId: user?.id,
         action: 'workflowAction',
         resource: `workflow-documents/${id}`,
-        reason: 'HR or Admin role required',
+        reason: 'HR, Admin, or Super Admin role required',
         userRole: user?.roles?.join(',') || 'none'
       });
       return res.status(403).json({
         success: false,
-        error: 'Access denied. HR or Admin role required.'
+        error: 'Access denied. HR, Admin, or Super Admin role required.'
       });
     }
 
     // Update status to APPROVED
-    const result = await updateStatus(parseInt(id), 'APPROVED', user.id, comment);
+    const result = await updateStatus(parseInt(id), 'APPROVED', user.dbId, comment);
 
     if (result.success) {
       // Emit notification to submitter
@@ -354,7 +357,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
 
 /**
  * POST /api/v1/workflow-documents/:id/reject
- * Reject workflow document
+ * Reject workflow document (only owner or super admin can reject)
  */
 export const rejectWorkflowDocumentController = async (req, res) => {
   try {
@@ -362,18 +365,32 @@ export const rejectWorkflowDocumentController = async (req, res) => {
     const { user } = req;
     const { comment } = req.body;
 
-    // Validate HR or Admin role
-    if (!user || !user.roles || (!user.roles.includes('hr') && !user.roles.includes('admin'))) {
+    // Get the document first to check ownership
+    const documentResult = await getWorkflowDocument(parseInt(id));
+    if (!documentResult.success) {
+      return res.status(404).json({
+        success: false,
+        error: 'Document not found'
+      });
+    }
+
+    const document = documentResult.data.document;
+
+    // Validate admin or instructor role (reviewers can reject)
+    const isAdmin = user.roles && (user.roles.includes(LMS_ROLES.ADMIN) || user.roles.includes(LMS_ROLES.SUPER_ADMIN));
+    const isInstructor = user.roles && user.roles.includes(LMS_ROLES.INSTRUCTOR);
+
+    if (!isAdmin && !isInstructor) {
       await logPermissionDenial({
         userId: user?.id,
         action: 'workflowAction',
         resource: `workflow-documents/${id}`,
-        reason: 'HR or Admin role required',
+        reason: 'Admin or Instructor role required for rejection',
         userRole: user?.roles?.join(',') || 'none'
       });
       return res.status(403).json({
         success: false,
-        error: 'Access denied. HR or Admin role required.'
+        error: 'Access denied. Admin or Instructor role required for rejection.'
       });
     }
 
@@ -386,7 +403,7 @@ export const rejectWorkflowDocumentController = async (req, res) => {
     }
 
     // Update status to REJECTED
-    const result = await updateStatus(parseInt(id), 'REJECTED', user.id, comment);
+    const result = await updateStatus(parseInt(id), 'REJECTED', user.dbId, comment);
 
     if (result.success) {
       // Emit notification to submitter
@@ -421,7 +438,7 @@ export const rejectWorkflowDocumentController = async (req, res) => {
 
 /**
  * POST /api/v1/workflow-documents/:id/return
- * Return workflow document for revision
+ * Return workflow document for revision (HR, Admin, or Super Admin can return)
  */
 export const returnWorkflowDocumentController = async (req, res) => {
   try {
@@ -429,18 +446,19 @@ export const returnWorkflowDocumentController = async (req, res) => {
     const { user } = req;
     const { comment, targetUserId } = req.body;
 
-    // Validate HR or Admin role
-    if (!user || !user.roles || (!user.roles.includes('hr') && !user.roles.includes('admin'))) {
+    // Validate HR, Admin, or Super Admin role
+    const isSuperAdmin = user.roles && user.roles.includes(LMS_ROLES.SUPER_ADMIN);
+    if (!user || !user.roles || (!user.roles.includes(LMS_ROLES.HR) && !user.roles.includes(LMS_ROLES.ADMIN) && !isSuperAdmin)) {
       await logPermissionDenial({
         userId: user?.id,
         action: 'workflowAction',
         resource: `workflow-documents/${id}`,
-        reason: 'HR or Admin role required',
+        reason: 'HR, Admin, or Super Admin role required',
         userRole: user?.roles?.join(',') || 'none'
       });
       return res.status(403).json({
         success: false,
-        error: 'Access denied. HR or Admin role required.'
+        error: 'Access denied. HR, Admin, or Super Admin role required.'
       });
     }
 
@@ -453,7 +471,7 @@ export const returnWorkflowDocumentController = async (req, res) => {
     }
 
     // Update status to REJECTED (same as reject, but with different target)
-    const result = await updateStatus(parseInt(id), 'REJECTED', user.id, comment);
+    const result = await updateStatus(parseInt(id), 'REJECTED', user.dbId, comment);
 
     if (result.success) {
       // Emit notification to target user (submitter or specified target)
@@ -511,9 +529,9 @@ export const resubmitWorkflowDocumentController = async (req, res) => {
       fileData,
       fileName,
       fileType,
-      submitterId: user.id,
+      submitterId: user.dbId,
       comment,
-      updatedBy: user.id
+      updatedBy: user.dbId
     });
 
     if (result.success) {
@@ -523,7 +541,7 @@ export const resubmitWorkflowDocumentController = async (req, res) => {
           workflowName: result.data.title,
           documentId: result.data.id,
           reviewCycleCount: result.data.reviewCycleCount
-        }, user, { role: 'hr' });
+        }, user, { role: LMS_ROLES.HR });
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
       }
@@ -571,9 +589,9 @@ export const uploadSignedDocumentController = async (req, res) => {
       fileData,
       fileName,
       fileType,
-      adminId: user.id,
+      adminId: user.dbId,
       comment,
-      updatedBy: user.id
+      updatedBy: user.dbId
     });
 
     if (result.success) {
@@ -582,7 +600,7 @@ export const uploadSignedDocumentController = async (req, res) => {
         await emit(EVENTS.WORKFLOW_ASSIGNED, {
           workflowName: result.data.title,
           documentId: result.data.id
-        }, user, { role: 'hr' });
+        }, user, { role: LMS_ROLES.HR });
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
       }
@@ -619,9 +637,9 @@ export const withdrawWorkflowDocumentController = async (req, res) => {
     // Withdraw document
     const result = await withdrawWorkflowDocument({
       documentId: parseInt(id),
-      submitterId: user.id,
+      submitterId: user.dbId,
       comment,
-      updatedBy: user.id
+      updatedBy: user.dbId
     });
 
     if (result.success) {
@@ -654,7 +672,7 @@ export const getComplianceDataController = async (req, res) => {
 
     // Validate HR or Admin role
     const { user } = req;
-    if (!user || !user.roles || (!user.roles.includes('hr') && !user.roles.includes('admin'))) {
+    if (!user || !user.roles || (!user.roles.includes(LMS_ROLES.HR) && !user.roles.includes(LMS_ROLES.ADMIN))) {
       await logPermissionDenial({
         userId: user?.id,
         action: 'getComplianceData',
@@ -707,7 +725,7 @@ export const getAnalyticsDataController = async (req, res) => {
 
     // Validate HR or Admin role
     const { user } = req;
-    if (!user || !user.roles || (!user.roles.includes('hr') && !user.roles.includes('admin'))) {
+    if (!user || !user.roles || (!user.roles.includes(LMS_ROLES.HR) && !user.roles.includes(LMS_ROLES.ADMIN))) {
       await logPermissionDenial({
         userId: user?.id,
         action: 'getAnalyticsData',
@@ -815,7 +833,7 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
     const { user } = req;
     
     // Validate user has permission (instructor, hr, or admin)
-    if (!user || !user.roles || !user.roles.some(role => ['instructor', 'hr', 'admin'].includes(role))) {
+    if (!user || !user.roles || !user.roles.some(role => [LMS_ROLES.INSTRUCTOR, LMS_ROLES.HR, LMS_ROLES.ADMIN].includes(role))) {
       await logPermissionDenial({
         userId: user?.id,
         action: 'createCustomWorkflowDocument',
@@ -850,11 +868,43 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
     }
 
     // Validate reviewers is required
-    if (!reviewers || !Array.isArray(reviewers) || reviewers.length === 0) {
+    if (!reviewers || reviewers.length === 0) {
       return res.status(400).json({
         success: false,
-        error: 'At least one reviewer role is required'
+        error: 'At least one reviewer is required'
       });
+    }
+
+    // If attaching existing file, validate ownership (disable workflow on shared files)
+    if (attachFile && fileId) {
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const file = await prisma.file.findUnique({
+        where: { id: parseInt(fileId) },
+        select: { ownerId: true, isDeleted: true }
+      });
+
+      if (!file || file.isDeleted) {
+        return res.status(404).json({
+          success: false,
+          error: 'File not found'
+        });
+      }
+
+      if (file.ownerId !== user.dbId) {
+        await logPermissionDenial({
+          userId: user?.id,
+          action: 'createCustomWorkflowDocument',
+          resource: `workflow-documents/custom`,
+          reason: 'Workflow initiation disabled on shared files',
+          userRole: user?.roles?.join(',') || 'none'
+        });
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied. Workflow initiation is disabled on shared files. Only the file owner can initiate a workflow.'
+        });
+      }
     }
 
     // Validate user has database ID
@@ -920,6 +970,61 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
   }
 };
 
+/**
+ * DELETE /api/v1/workflow-documents/:id
+ * Hard delete a workflow document
+ */
+export const deleteWorkflowDocumentController = async (req, res) => {
+  try {
+    const { user } = req;
+    const { id } = req.params;
+
+    // Convert ID to integer
+    const documentId = parseInt(id, 10);
+    if (isNaN(documentId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid document ID'
+      });
+    }
+
+    // Validate admin or instructor role
+    if (!user || !user.roles || (!user.roles.includes('admin') && !user.roles.includes('instructor'))) {
+      await logPermissionDenial({
+        userId: user?.id,
+        action: 'deleteWorkflowDocument',
+        resource: `workflow-documents/${id}`,
+        reason: 'Admin or instructor role required',
+        userRole: user?.roles?.join(',') || 'none'
+      });
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. Admin or instructor role required.'
+      });
+    }
+
+    const result = await deleteWorkflowDocument(documentId);
+
+    if (result.success) {
+      return res.status(200).json({
+        success: true,
+        data: result.data
+      });
+    } else {
+      return res.status(404).json({
+        success: false,
+        error: result.error || 'Failed to delete workflow document'
+      });
+    }
+  } catch (error) {
+    console.error('Error deleting workflow document:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+};
+
 export default {
   createWorkflowDocumentController,
   getWorkflowDocumentController,
@@ -936,5 +1041,6 @@ export default {
   getAnalyticsDataController,
   listFileVersionsController,
   downloadFileVersionController,
-  createCustomWorkflowDocumentController
+  createCustomWorkflowDocumentController,
+  deleteWorkflowDocumentController
 };

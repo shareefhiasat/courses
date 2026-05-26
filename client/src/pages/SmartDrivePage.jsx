@@ -628,6 +628,7 @@ export default function SmartDrivePage() {
         { value: 'starred', label: t('drive.filter.status.starred'), icon: 'star' },
         { value: 'recent', label: t('drive.filter.status.recent'), icon: 'clock' },
         { value: 'trash', label: t('drive.filter.status.trash'), icon: 'trash' },
+        { value: 'has-workflow', label: t('drive.filter.status.hasWorkflow'), icon: 'workflow', color: '#8b5cf6' },
       ],
     },
   ];

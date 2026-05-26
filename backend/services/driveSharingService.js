@@ -78,17 +78,25 @@ export const shareFileWithUser = async ({ fileId, targetUserId, permissions = 'V
  * Get shares for a file
  * @param {string} fileId - File ID in Nextcloud
  * @param {number} userId - Database user ID requesting shares
+ * @param {string} subjectType - Optional filter by subject type ('USER' or 'ROLE')
  * @returns {Promise<Object>} - Result object with success status and data
  */
-export const getFileShares = async ({ fileId, userId }) => {
+export const getFileShares = async ({ fileId, userId, subjectType }) => {
   try {
+    const where = { fileId };
+    
+    // Add subjectType filter if provided
+    if (subjectType) {
+      where.subjectType = subjectType;
+    }
+
     const shares = await prisma.fileShare.findMany({
-      where: { fileId },
+      where,
       include: {
-        sharedBy: {
+        grantedBy: {
           select: { id: true, email: true, displayName: true }
         },
-        sharedWith: {
+        subjectUser: {
           select: { id: true, email: true, displayName: true }
         }
       }
@@ -111,12 +119,54 @@ export const getFileShares = async ({ fileId, userId }) => {
     const roles = user.roleAssignments.map(ra => ra.role.code);
     const isAdmin = roles.includes('SUPER_ADMIN') || roles.includes('ADMIN');
 
-    // Filter: only show shares where user is owner, recipient, or admin
-    const filteredShares = shares.filter(share => 
-      share.sharedById === userId || 
-      share.sharedWithId === userId || 
-      isAdmin
-    );
+    console.log('[driveSharingService] User roles:', roles);
+    console.log('[driveSharingService] Shares before filter:', shares.map(s => ({ subjectType: s.subjectType, subjectRole: s.subjectRole, subjectUserId: s.subjectUserId })));
+
+    // Filter based on user permissions
+    const filteredShares = shares.filter(share => {
+      // If subjectType filter is active, strictly enforce it
+      if (subjectType) {
+        // For USER shares: only show if user is recipient or granter
+        if (subjectType === 'USER') {
+          if (share.subjectType !== 'USER') return false;
+          if (share.subjectUserId === userId) return true;
+          if (share.grantedById === userId) return true;
+          if (isAdmin) return true;
+          return false;
+        }
+        
+        // For ROLE shares: only show if user has the role or is granter
+        if (subjectType === 'ROLE') {
+          if (share.subjectType !== 'ROLE') return false;
+          const hasRole = roles.some(role => role.toLowerCase() === share.subjectRole?.toLowerCase());
+          console.log('[driveSharingService] ROLE share check:', { shareRole: share.subjectRole, userRoles: roles, hasRole });
+          if (hasRole) return true;
+          if (share.grantedById === userId) return true;
+          if (isAdmin) return true;
+          return false;
+        }
+      }
+      
+      // No subjectType filter - show all shares the user has access to
+      // User is the one who granted the share
+      if (share.grantedById === userId) return true;
+      
+      // User is admin
+      if (isAdmin) return true;
+      
+      // For USER shares, check if user is the recipient
+      if (share.subjectType === 'USER' && share.subjectUserId === userId) return true;
+      
+      // For ROLE shares, check if user has the role (case-insensitive)
+      if (share.subjectType === 'ROLE') {
+        const hasRole = roles.some(role => role.toLowerCase() === share.subjectRole?.toLowerCase());
+        if (hasRole) return true;
+      }
+      
+      return false;
+    });
+
+    console.log('[driveSharingService] Shares after filter:', filteredShares.length);
 
     return {
       success: true,

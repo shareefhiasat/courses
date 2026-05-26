@@ -371,7 +371,7 @@ export default function CommentsTab({ fileId }) {
                             e.currentTarget.style.background = 'transparent';
                           }}
                         >
-                          {getIcon('ui', 'trash2', 16)}
+                          {getIcon('ui', 'trash', 16, '#dc2626')}
                         </button>
                       </div>
                     </div>

@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
-import { getIcon } from '@constants/iconTypes';
+import { getIcon, getIconWithColor } from '@constants/iconTypes';
 import { apiService } from '@services/api/apiService';
+import workflowService from '@services/business/workflowService';
+import Modal from '@ui/Modal/Modal';
 
 const formatDateHeader = (dateStr, t) => {
   const date = new Date(dateStr);
@@ -146,8 +148,10 @@ export default function WorkflowTab({ fileId }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date-desc');
   const [showSortMenu, setShowSortMenu] = useState(false);
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState('list');
   const [selectedDate, setSelectedDate] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, workflowId: null });
+  const [rejectModal, setRejectModal] = useState({ isOpen: false, workflowId: null, reason: '' });
 
   const fetchWorkflow = useCallback(async () => {
     if (!fileId) return;
@@ -185,7 +189,7 @@ export default function WorkflowTab({ fileId }) {
       case 'IN_PROGRESS':
       case 'SUBMITTED': return 'clock';
       case 'WITHDRAWN': return 'alert_circle';
-      default: return 'git_branch';
+      default: return 'workflow';
     }
   };
 
@@ -314,6 +318,40 @@ export default function WorkflowTab({ fileId }) {
     window.open(downloadUrl, '_blank');
   };
 
+  const handleViewWorkflowDetails = useCallback((workflowId) => {
+    window.open(`/workflow-documents/${workflowId}`, '_blank');
+  }, []);
+
+  const handleDeleteWorkflow = useCallback(async () => {
+    if (!deleteModal.workflowId) return;
+    try {
+      const result = await workflowService.deleteWorkflowDocument(deleteModal.workflowId);
+      if (result.success) {
+        setDeleteModal({ isOpen: false, workflowId: null });
+        fetchWorkflow();
+      } else {
+        console.error('Failed to delete workflow:', result.error);
+      }
+    } catch (error) {
+      console.error('Error deleting workflow:', error);
+    }
+  }, [deleteModal.workflowId, fetchWorkflow]);
+
+  const handleRejectWorkflow = useCallback(async () => {
+    if (!rejectModal.workflowId || !rejectModal.reason.trim()) return;
+    try {
+      const result = await workflowService.rejectWorkflowDocument(rejectModal.workflowId, { comment: rejectModal.reason.trim() });
+      if (result.success) {
+        setRejectModal({ isOpen: false, workflowId: null, reason: '' });
+        fetchWorkflow();
+      } else {
+        console.error('Failed to reject workflow:', result.error);
+      }
+    } catch (error) {
+      console.error('Error rejecting workflow:', error);
+    }
+  }, [rejectModal.workflowId, rejectModal.reason, fetchWorkflow]);
+
   const filteredAndSortedWorkflows = useMemo(() => {
     let filtered = workflows;
     
@@ -396,17 +434,34 @@ export default function WorkflowTab({ fileId }) {
   if (filteredAndSortedWorkflows.length === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
-        {getIcon('ui', 'git_branch', 40)}
+        {getIcon('ui', 'workflow', 40, '#8b5cf6')}
         {searchQuery ? t('drive.noWorkflowsFound', 'No workflows found') : t('drive.noWorkflow')}
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: '1.5rem',
+      maxWidth: '1400px',
+      margin: '0 auto',
+      width: '100%',
+      padding: '0 1rem'
+    }}>
       {/* Search and sort controls */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
-        <div style={{ position: 'relative', flex: 1 }}>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        gap: '1rem',
+        padding: '1rem',
+        background: 'var(--panel, white)',
+        borderRadius: '0.75rem',
+        border: '1px solid var(--border, #e5e7eb)'
+      }}>
+        <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
           <input
             type="text"
             placeholder={t('drive.searchWorkflows', 'Search workflows...')}
@@ -414,37 +469,64 @@ export default function WorkflowTab({ fileId }) {
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               width: '100%',
-              padding: '0.5rem 0.75rem',
+              padding: '0.625rem 0.875rem',
               borderRadius: '0.5rem',
-              border: '1px solid #e5e7eb',
+              border: '1px solid var(--border, #e5e7eb)',
               fontSize: '0.875rem',
+              transition: 'border-color 0.15s ease',
             }}
+            onFocus={(e) => e.target.style.borderColor = 'var(--color-primary, #3b82f6)'}
+            onBlur={(e) => e.target.style.borderColor = 'var(--border, #e5e7eb)'}
           />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <span style={{ 
+            fontSize: '0.875rem', 
+            color: 'var(--text-muted, #6b7280)',
+            fontWeight: 500
+          }}>
             {filteredAndSortedWorkflows.length} {filteredAndSortedWorkflows.length === 1 ? t('drive.workflow') : t('drive.workflows')}
           </span>
-          <div style={{ position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button
-              onClick={() => setShowSortMenu(!showSortMenu)}
+              onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 0.75rem',
+                justifyContent: 'center',
+                padding: '0.5rem',
                 borderRadius: '0.5rem',
-                border: '1px solid #e5e7eb',
-                background: 'white',
-                fontSize: '0.875rem',
+                border: '1px solid var(--border, #e5e7eb)',
+                background: viewMode === 'grid' ? 'var(--color-primary-tint, #eff6ff)' : 'var(--panel, white)',
                 cursor: 'pointer',
-              color: '#374151',
-            }}
-          >
-            {getIcon('ui', 'filter', 16)}
-            <span>{t('drive.sort', 'Sort')}</span>
-            {getIcon('ui', 'chevron_down', 16)}
-          </button>
+                color: viewMode === 'grid' ? 'var(--color-primary, #3b82f6)' : 'var(--text, #374151)',
+              }}
+            >
+              {viewMode === 'grid' ? getIcon('ui', 'list', 16) : getIcon('ui', 'grid', 16)}
+            </button>
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setShowSortMenu(!showSortMenu)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 0.875rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid var(--border, #e5e7eb)',
+                  background: 'var(--panel, white)',
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                  color: 'var(--text, #374151)',
+                  fontWeight: 500,
+                }}
+              >
+                {getIcon('ui', 'filter', 16)}
+                <span>{t('drive.sort', 'Sort')}</span>
+                {getIcon('ui', 'chevron_down', 16)}
+              </button>
           {showSortMenu && (
             <div style={{
               position: 'absolute',
@@ -486,48 +568,22 @@ export default function WorkflowTab({ fileId }) {
               ))}
             </div>
           )}
+            </div>
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: '0.25rem' }}>
-          <button
-            onClick={() => setViewMode('grid')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.5rem 0.75rem',
-              borderRadius: '0.5rem',
-              border: '1px solid #e5e7eb',
-              background: viewMode === 'grid' ? '#f3f4f6' : 'white',
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-              color: '#374151',
-            }}
-          >
-            {getIcon('ui', 'grid', 16)}
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.5rem 0.75rem',
-              borderRadius: '0.5rem',
-              border: '1px solid #e5e7eb',
-              background: viewMode === 'list' ? '#f3f4f6' : 'white',
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-              color: '#374151',
-            }}
-          >
-            {getIcon('ui', 'list', 16)}
-          </button>
         </div>
       </div>
 
       {/* Status summary */}
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ 
+        display: 'flex', 
+        gap: '0.75rem', 
+        flexWrap: 'wrap', 
+        alignItems: 'center',
+        padding: '0.75rem 1rem',
+        background: 'var(--background-secondary, #f9fafb)',
+        borderRadius: '0.5rem',
+        border: '1px solid var(--border, #e5e7eb)'
+      }}>
         {Object.entries(statusCounts).map(([status, count]) => {
           const statusIcon = getStatusIcon(status);
           const statusStyle = getStatusStyle(status);
@@ -538,19 +594,30 @@ export default function WorkflowTab({ fileId }) {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.375rem',
-                padding: '0.375rem 0.625rem',
-                borderRadius: '0.375rem',
+                gap: '0.5rem',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '0.5rem',
                 background: statusStyle.bg,
                 border: `1px solid ${statusStyle.borderColor}`,
-                fontSize: '0.75rem',
+                fontSize: '0.875rem',
                 color: statusStyle.color,
                 cursor: 'help',
+                transition: 'all 0.15s ease',
               }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
             >
-              {getIcon('ui', statusIcon, 14)}
+              <span style={{ color: statusStyle.color, display: 'flex', alignItems: 'center' }}>
+                {getIcon('ui', statusIcon, 16, statusIcon === 'workflow' ? '#8b5cf6' : statusStyle.color)}
+              </span>
               <span style={{ fontWeight: 500 }}>{status}</span>
-              <span style={{ fontWeight: 600, opacity: 0.8 }}>({count})</span>
+              <span style={{ 
+                fontWeight: 600, 
+                opacity: 0.9,
+                background: 'rgba(255,255,255,0.3)',
+                padding: '0.125rem 0.375rem',
+                borderRadius: '0.25rem'
+              }}>{count}</span>
             </div>
           );
         })}
@@ -558,17 +625,27 @@ export default function WorkflowTab({ fileId }) {
 
       {/* Workflow cards */}
       {viewMode === 'list' ? (
-        <div style={{ display: 'flex', gap: '1rem', height: '100%' }}>
+        <div style={{ display: 'flex', gap: '1.5rem', height: '100%' }}>
           {/* Left sidebar - Date timeline */}
           <div style={{
-            width: '200px',
+            width: '220px',
             flexShrink: 0,
-            borderRight: '1px solid #e5e7eb',
-            paddingInlineEnd: '1rem',
+            borderRight: '1px solid var(--border, #e5e7eb)',
+            paddingInlineEnd: '1.5rem',
             overflowY: 'auto',
-            maxHeight: '500px'
+            maxHeight: '600px'
           }}>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#6b7280', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h4 style={{ 
+              fontSize: '0.875rem', 
+              fontWeight: 600, 
+              color: 'var(--text-muted, #6b7280)', 
+              marginBottom: '1rem', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>
               {getIcon('ui', 'clock', 16)}
               {t('drive.timeline') || 'Timeline'}
             </h4>
@@ -576,16 +653,19 @@ export default function WorkflowTab({ fileId }) {
               <button
                 onClick={() => setSelectedDate(null)}
                 style={{
-                  padding: '0.5rem',
+                  padding: '0.625rem 0.875rem',
                   textAlign: 'start',
-                  background: !selectedDate ? '#f3f4f6' : 'transparent',
-                  border: 'none',
-                  borderRadius: '0.375rem',
+                  background: !selectedDate ? 'var(--color-primary-tint, #eff6ff)' : 'transparent',
+                  border: !selectedDate ? '1px solid var(--color-primary, #3b82f6)' : '1px solid transparent',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem',
-                  color: !selectedDate ? '#111827' : '#6b7280',
+                  color: !selectedDate ? 'var(--color-primary, #3b82f6)' : 'var(--text, #374151)',
                   cursor: 'pointer',
                   fontWeight: !selectedDate ? 600 : 400,
+                  transition: 'all 0.15s ease',
                 }}
+                onMouseEnter={(e) => !selectedDate && (e.currentTarget.style.background = 'var(--background-secondary, #f9fafb)')}
+                onMouseLeave={(e) => !selectedDate && (e.currentTarget.style.background = 'transparent')}
               >
                 {t('drive.allActivities') || 'All Workflows'} ({workflows.length})
               </button>
@@ -594,16 +674,19 @@ export default function WorkflowTab({ fileId }) {
                   key={date}
                   onClick={() => setSelectedDate(date)}
                   style={{
-                    padding: '0.5rem',
+                    padding: '0.625rem 0.875rem',
                     textAlign: 'start',
-                    background: selectedDate === date ? '#f3f4f6' : 'transparent',
-                    border: 'none',
-                    borderRadius: '0.375rem',
+                    background: selectedDate === date ? 'var(--color-primary-tint, #eff6ff)' : 'transparent',
+                    border: selectedDate === date ? '1px solid var(--color-primary, #3b82f6)' : '1px solid transparent',
+                    borderRadius: '0.5rem',
                     fontSize: '0.875rem',
-                    color: selectedDate === date ? '#111827' : '#6b7280',
+                    color: selectedDate === date ? 'var(--color-primary, #3b82f6)' : 'var(--text, #374151)',
                     cursor: 'pointer',
                     fontWeight: selectedDate === date ? 600 : 400,
+                    transition: 'all 0.15s ease',
                   }}
+                  onMouseEnter={(e) => selectedDate !== date && (e.currentTarget.style.background = 'var(--background-secondary, #f9fafb)')}
+                  onMouseLeave={(e) => selectedDate !== date && (e.currentTarget.style.background = 'transparent')}
                 >
                   {formatDateHeader(date, t)} ({groupedWorkflows[date].length})
                 </button>
@@ -612,14 +695,14 @@ export default function WorkflowTab({ fileId }) {
           </div>
 
           {/* Right content - Compact list */}
-          <div style={{ flex: 1, overflowY: 'auto', maxHeight: '500px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', maxHeight: '600px' }}>
             {filteredAndSortedWorkflows.length === 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: '#6b7280' }}>
-                {getIcon('ui', 'git_branch', 40)}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+                {getIcon('ui', 'workflow', 40, '#8b5cf6')}
                 {t('drive.noWorkflowsFound')}
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {filteredAndSortedWorkflows.map((workflow) => {
                   const statusIcon = getStatusIcon(workflow.status);
                   const statusStyle = getStatusStyle(workflow.status);
@@ -629,88 +712,204 @@ export default function WorkflowTab({ fileId }) {
                     <div
                       key={workflow.id}
                       style={{
-                        padding: '0.5rem 0.75rem',
-                        borderRadius: '0.5rem',
-                        border: '1px solid #e5e7eb',
-                        background: 'white',
+                        padding: '0.875rem 1rem',
+                        borderRadius: '0.75rem',
+                        border: '1px solid var(--border, #e5e7eb)',
+                        background: 'var(--panel, white)',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '0.75rem',
+                        gap: '1rem',
+                        transition: 'all 0.15s ease',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--color-primary, #3b82f6)';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
+                        e.currentTarget.style.boxShadow = 'none';
                       }}
                     >
                       {/* Status icon */}
                       <div style={{
                         flexShrink: 0,
-                        width: '2rem',
-                        height: '2rem',
+                        width: '2.25rem',
+                        height: '2.25rem',
                         borderRadius: '9999px',
                         background: statusStyle.bg,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        border: `1px solid ${statusStyle.borderColor}`,
                       }}>
-                        {getIcon('ui', statusIcon, 16)}
+                        {getIconWithColor('ui', statusIcon, 18, statusStyle.color)}
                       </div>
 
                       {/* Content */}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                          <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem' }}>
+                          <span style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text, #111827)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {workflow.title || t('drive.workflow')}
                           </span>
                           <span
                             style={{
-                              padding: '0.125rem 0.375rem',
+                              padding: '0.25rem 0.5rem',
                               borderRadius: '9999px',
-                              fontSize: '0.7rem',
-                              fontWeight: 500,
+                              fontSize: '0.6875rem',
+                              fontWeight: 600,
                               background: typeStyle.bg,
                               color: typeStyle.color,
                               textTransform: 'uppercase',
                               whiteSpace: 'nowrap',
+                              letterSpacing: '0.025em',
                             }}
                           >
                             {workflow.workflowType?.replace('_', ' ') || 'GENERAL'}
                           </span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: '#6b7280' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            {getIcon('ui', 'user', 12)}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8125rem', color: 'var(--text-muted, #6b7280)' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                            {getIcon('ui', 'user', 14, 'var(--text-muted, #6b7280)')}
                             {workflow.submitter?.displayName || workflow.submitter?.email || '\u2014'}
                           </span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            {getIcon('ui', 'calendar', 12)}
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                            {getIcon('ui', 'calendar', 14, 'var(--text-muted, #6b7280)')}
                             {getRelativeTime(workflow.createdAt)}
                           </span>
                           {workflow.fileVersionNumber && (
                             <span style={{
-                              padding: '0.125rem 0.375rem',
-                              borderRadius: '0.25rem',
-                              fontSize: '0.7rem',
-                              background: '#e5e7eb',
-                              color: '#6b7280',
+                              padding: '0.125rem 0.5rem',
+                              borderRadius: '0.375rem',
+                              fontSize: '0.75rem',
+                              background: 'var(--background-secondary, #f3f4f6)',
+                              color: 'var(--text-muted, #6b7280)',
+                              fontWeight: 500,
                             }}>
                               v{workflow.fileVersionNumber}
                             </span>
                           )}
-                          {workflow.file && (
-                            <button
-                              onClick={() => handleViewSnapshot(workflow.file, workflow.fileVersionId)}
-                              style={{
-                                fontSize: '0.75rem',
-                                color: '#2563eb',
-                                textDecoration: 'none',
-                                whiteSpace: 'nowrap',
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: 0,
-                              }}
-                            >
-                              {t('drive.viewSnapshot', 'View snapshot')}
-                            </button>
-                          )}
                         </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                        {workflow.file && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewSnapshot(workflow.file, workflow.fileVersionId);
+                            }}
+                            style={{
+                              color: 'var(--color-primary, #3b82f6)',
+                              textDecoration: 'none',
+                              whiteSpace: 'nowrap',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '0.375rem',
+                              borderRadius: '0.375rem',
+                              transition: 'background 0.15s ease',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-primary-tint, #eff6ff)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            {getIcon('ui', 'external_link', 16, 'var(--color-primary, #3b82f6)')}
+                          </button>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewWorkflowDetails(workflow.id);
+                          }}
+                          style={{
+                            color: 'var(--text-muted, #6b7280)',
+                            textDecoration: 'none',
+                            whiteSpace: 'nowrap',
+                            background: 'none',
+                            border: '1px solid var(--border, #e5e7eb)',
+                            cursor: 'pointer',
+                            padding: '0.375rem',
+                            borderRadius: '0.375rem',
+                            transition: 'all 0.15s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--color-primary, #3b82f6)';
+                            e.currentTarget.style.color = 'var(--color-primary, #3b82f6)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
+                            e.currentTarget.style.color = 'var(--text-muted, #6b7280)';
+                          }}
+                        >
+                          {getIcon('ui', 'workflow', 16, '#8b5cf6')}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRejectModal({ isOpen: true, workflowId: workflow.id, reason: '' });
+                          }}
+                          style={{
+                            color: '#dc2626',
+                            textDecoration: 'none',
+                            whiteSpace: 'nowrap',
+                            background: 'none',
+                            border: '1px solid var(--border, #e5e7eb)',
+                            cursor: 'pointer',
+                            padding: '0.375rem',
+                            borderRadius: '0.375rem',
+                            transition: 'all 0.15s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = '#dc2626';
+                            e.currentTarget.style.background = 'rgba(220, 38, 38, 0.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
+                            e.currentTarget.style.background = 'transparent';
+                          }}
+                        >
+                          {getIcon('ui', 'x_circle', 16, '#dc2626')}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteModal({ isOpen: true, workflowId: workflow.id });
+                          }}
+                          style={{
+                            color: '#dc2626',
+                            textDecoration: 'none',
+                            whiteSpace: 'nowrap',
+                            background: 'none',
+                            border: '1px solid var(--border, #e5e7eb)',
+                            cursor: 'pointer',
+                            padding: '0.375rem',
+                            borderRadius: '0.375rem',
+                            transition: 'all 0.15s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = '#dc2626';
+                            e.currentTarget.style.background = 'rgba(220, 38, 38, 0.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
+                            e.currentTarget.style.background = 'transparent';
+                          }}
+                        >
+                          {getIcon('ui', 'trash', 16, '#dc2626')}
+                        </button>
                       </div>
                     </div>
                   );
@@ -722,8 +921,8 @@ export default function WorkflowTab({ fileId }) {
       ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-          gap: '1rem',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
+          gap: '1.25rem',
         }}>
           {filteredAndSortedWorkflows.map((workflow) => {
             const statusIcon = getStatusIcon(workflow.status);
@@ -735,19 +934,30 @@ export default function WorkflowTab({ fileId }) {
               <div
                 key={workflow.id}
                 style={{
-                  padding: '1rem',
+                  padding: '1.25rem',
                   borderRadius: '0.75rem',
-                  border: '1px solid #e5e7eb',
-                  background: 'white',
+                  border: '1px solid var(--border, #e5e7eb)',
+                  background: 'var(--panel, white)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '0.75rem',
+                  gap: '1rem',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-primary, #3b82f6)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
                 {/* Top row: Title + Status badge */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <h4 style={{ margin: 0, fontWeight: 600, fontSize: '1rem', color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <h4 style={{ margin: 0, fontWeight: 600, fontSize: '1.0625rem', color: 'var(--text, #111827)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {workflow.title || t('drive.workflow')}
                     </h4>
                   </div>
@@ -755,62 +965,64 @@ export default function WorkflowTab({ fileId }) {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.25rem',
-                      padding: '0.25rem 0.625rem',
+                      gap: '0.375rem',
+                      padding: '0.375rem 0.75rem',
                       borderRadius: '9999px',
-                      fontSize: '0.75rem',
-                      fontWeight: 500,
+                      fontSize: '0.8125rem',
+                      fontWeight: 600,
                       background: statusStyle.bg,
                       color: statusStyle.color,
                       border: `1px solid ${statusStyle.borderColor}`,
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {getIcon('ui', statusIcon, 14)}
+                    {getIcon('ui', statusIcon, 16)}
                     {t(`workflow.status.${workflow.status.toLowerCase()}`) || workflow.status}
                   </span>
                 </div>
 
                 {/* Second row: Type pill + Reviewer role */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
                   <span
                     style={{
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.375rem',
-                      fontSize: '0.75rem',
-                      fontWeight: 500,
+                      padding: '0.375rem 0.625rem',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.8125rem',
+                      fontWeight: 600,
                       background: typeStyle.bg,
                       color: typeStyle.color,
                       textTransform: 'uppercase',
+                      letterSpacing: '0.025em',
                     }}
                   >
                     {workflow.workflowType?.replace('_', ' ') || 'GENERAL'}
                   </span>
                   {workflow.currentAssignee && (
-                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                      {getIcon('ui', 'user', 12)}
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted, #6b7280)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      {getIcon('ui', 'user', 14)}
                       {t('drive.assignedTo')}: {workflow.currentAssignee.displayName || workflow.currentAssignee.email}
                     </span>
                   )}
                 </div>
 
                 {/* Third row: Initiator + Timestamp + Version */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.875rem', color: '#6b7280' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                     {getIcon('ui', 'user', 14)}
                     {workflow.submitter?.displayName || workflow.submitter?.email || '\u2014'}
                   </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                     {getIcon('ui', 'calendar', 14)}
                     {getRelativeTime(workflow.createdAt)}
                   </span>
                   {workflow.fileVersionNumber && (
                     <span style={{
-                      padding: '0.125rem 0.375rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.7rem',
-                      background: '#e5e7eb',
-                      color: '#6b7280',
+                      padding: '0.125rem 0.5rem',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.75rem',
+                      background: 'var(--background-secondary, #f3f4f6)',
+                      color: 'var(--text-muted, #6b7280)',
+                      fontWeight: 500,
                     }}>
                       v{workflow.fileVersionNumber}
                     </span>
@@ -826,52 +1038,69 @@ export default function WorkflowTab({ fileId }) {
                 {/* File attachment section */}
                 {workflow.file && (
                   <div style={{
-                    padding: '0.5rem',
-                    borderRadius: '0.375rem',
-                    background: '#f9fafb',
-                    border: '1px solid #e5e7eb',
+                    padding: '0.75rem',
+                    borderRadius: '0.5rem',
+                    background: 'var(--background-secondary, #f9fafb)',
+                    border: '1px solid var(--border, #e5e7eb)',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 0 }}>
-                        {getIcon('ui', 'file_text', 16)}
-                        <span style={{ fontSize: '0.875rem', color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flex: 1, minWidth: 0 }}>
+                        {getIcon('ui', 'file_text', 18)}
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text, #374151)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>
                           {workflow.file.name}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500 }}>
                           {formatSize(workflow.file.size)}
                         </span>
                         <button
                           onClick={() => handleViewSnapshot(workflow.file, workflow.fileVersionId)}
                           style={{
-                            fontSize: '0.75rem',
-                            color: '#2563eb',
+                            color: 'var(--color-primary, #3b82f6)',
                             textDecoration: 'none',
                             whiteSpace: 'nowrap',
                             background: 'none',
                             border: 'none',
                             cursor: 'pointer',
-                            padding: 0,
+                            padding: '0.375rem',
+                            borderRadius: '0.375rem',
+                            transition: 'background 0.15s ease',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.25rem',
+                            justifyContent: 'center',
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-primary-tint, #eff6ff)'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
+                          {getIcon('ui', 'external_link', 16)}
+                        </button>
+                        <button
+                          onClick={() => handleViewWorkflowDetails(workflow.id)}
+                          style={{
+                            color: 'var(--text-muted, #6b7280)',
+                            textDecoration: 'none',
+                            whiteSpace: 'nowrap',
+                            background: 'none',
+                            border: '1px solid var(--border, #e5e7eb)',
+                            cursor: 'pointer',
+                            padding: '0.375rem',
+                            borderRadius: '0.375rem',
+                            transition: 'all 0.15s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--color-primary, #3b82f6)';
+                            e.currentTarget.style.color = 'var(--color-primary, #3b82f6)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
+                            e.currentTarget.style.color = 'var(--text-muted, #6b7280)';
                           }}
                         >
-                          {t('drive.viewSnapshot', 'View snapshot')}
-                          {getIcon('ui', 'external_link', 12)}
-                          {workflow.fileVersionNumber && (
-                            <span style={{
-                              marginLeft: '0.25rem',
-                              fontSize: '0.7rem',
-                              color: '#6b7280',
-                              background: '#e5e7eb',
-                              padding: '0.125rem 0.375rem',
-                              borderRadius: '0.25rem',
-                            }}>
-                              v{workflow.fileVersionNumber}
-                            </span>
-                          )}
+                          {getIcon('ui', 'workflow', 16, '#8b5cf6')}
                         </button>
                       </div>
                     </div>
@@ -883,7 +1112,8 @@ export default function WorkflowTab({ fileId }) {
                   <p style={{
                     margin: 0,
                     fontSize: '0.875rem',
-                    color: '#6b7280',
+                    color: 'var(--text-muted, #6b7280)',
+                    lineHeight: 1.5,
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
@@ -897,6 +1127,113 @@ export default function WorkflowTab({ fileId }) {
           })}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, workflowId: null })}
+        title={t('workflow.deleteWorkflow', 'Delete Workflow')}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <p style={{ margin: 0, color: 'var(--text, #374151)' }}>
+            {t('workflow.deleteWorkflowConfirm', 'Are you sure you want to hard delete this workflow document? This action cannot be undone.')}
+          </p>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <button
+              onClick={() => setDeleteModal({ isOpen: false, workflowId: null })}
+              style={{
+                padding: '0.625rem 1.25rem',
+                borderRadius: '0.5rem',
+                border: '1px solid var(--border, #e5e7eb)',
+                background: 'var(--panel, white)',
+                color: 'var(--text, #374151)',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
+              {t('cancel', 'Cancel')}
+            </button>
+            <button
+              onClick={handleDeleteWorkflow}
+              style={{
+                padding: '0.625rem 1.25rem',
+                borderRadius: '0.5rem',
+                border: 'none',
+                background: '#dc2626',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
+              {t('delete', 'Delete')}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Reject Confirmation Modal */}
+      <Modal
+        isOpen={rejectModal.isOpen}
+        onClose={() => setRejectModal({ isOpen: false, workflowId: null, reason: '' })}
+        title={t('workflow.rejectWorkflow', 'Reject Workflow')}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #374151)', marginBottom: '0.5rem' }}>
+              {t('workflow.rejectReason', 'Reason for rejection')}
+            </label>
+            <textarea
+              value={rejectModal.reason}
+              onChange={(e) => setRejectModal({ ...rejectModal, reason: e.target.value })}
+              placeholder={t('workflow.rejectReasonPlaceholder', 'Please provide a reason for rejection...')}
+              style={{
+                width: '100%',
+                minHeight: '100px',
+                padding: '0.625rem',
+                borderRadius: '0.5rem',
+                border: '1px solid var(--border, #e5e7eb)',
+                fontSize: '0.875rem',
+                resize: 'vertical',
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <button
+              onClick={() => setRejectModal({ isOpen: false, workflowId: null, reason: '' })}
+              style={{
+                padding: '0.625rem 1.25rem',
+                borderRadius: '0.5rem',
+                border: '1px solid var(--border, #e5e7eb)',
+                background: 'var(--panel, white)',
+                color: 'var(--text, #374151)',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
+              {t('cancel', 'Cancel')}
+            </button>
+            <button
+              onClick={handleRejectWorkflow}
+              disabled={!rejectModal.reason.trim()}
+              style={{
+                padding: '0.625rem 1.25rem',
+                borderRadius: '0.5rem',
+                border: 'none',
+                background: !rejectModal.reason.trim() ? '#9ca3af' : '#dc2626',
+                color: 'white',
+                cursor: !rejectModal.reason.trim() ? 'not-allowed' : 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
+              {t('drive.reject', 'Reject')}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

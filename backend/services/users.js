@@ -1,19 +1,60 @@
 /**
  * Users Service - Business Logic Layer
- * 
+ *
  * PURPOSE: Business logic for user operations
  * ARCHITECTURE: Controllers → Business Services → DB Services → PostgreSQL
  */
 
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
 export const getAllUsers = async (params = {}, user = null) => {
-  return {
-    success: true,
-    data: [],
-    total: 0,
-    page: parseInt(params.page) || 1,
-    limit: parseInt(params.limit) || 10,
-    totalPages: 0
-  };
+  try {
+    const { search, limit = 20, excludeStudents = false, page = 1 } = params;
+
+    const where = {};
+
+    // Add search filter
+    if (search) {
+      where.OR = [
+        { displayName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Exclude students if requested
+    if (excludeStudents) {
+      where.role = { not: 'student' };
+    }
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        take: limit,
+        skip: (page - 1) * limit,
+        orderBy: { displayName: 'asc' },
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    return {
+      success: true,
+      data: users,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  } catch (error) {
+    console.error('[Users Service] getAllUsers error:', error);
+    return {
+      success: false,
+      error: error.message,
+      data: [],
+      total: 0,
+    };
+  }
 };
 
 export const getUserById = async (id, user = null) => {

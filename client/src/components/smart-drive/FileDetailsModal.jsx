@@ -187,7 +187,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
     { value: 'versions', label: t('drive.versions'), icon: getIcon('ui', 'clock') },
     { value: 'comments', label: t('drive.comments'), icon: getIcon('ui', 'message') },
     { value: 'activity', label: t('drive.activity'), icon: getIcon('ui', 'activity') },
-    { value: 'workflow', label: t('drive.workflow'), icon: getIcon('ui', 'git_branch') },
+    { value: 'workflow', label: t('drive.workflow'), icon: getIcon('ui', 'workflow', 16, '#8b5cf6') },
     { value: 'share', label: t('drive.share'), icon: getIcon('ui', 'share') },
   ];
 

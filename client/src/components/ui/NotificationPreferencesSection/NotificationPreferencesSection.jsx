@@ -30,7 +30,7 @@ const NotificationPreferencesSection = () => {
 
   // Categories for the matrix
   const categories = [
-    { key: 'WORKFLOW', label: t('category_workflow', 'Workflow'), icon: 'workflow' },
+    { key: 'WORKFLOW', label: t('category_workflow', 'Workflow'), icon: 'workflow', color: '#8b5cf6' },
     { key: 'ACADEMIC', label: t('category_academic', 'Academic'), icon: 'academic' },
     { key: 'ATTENDANCE', label: t('category_attendance', 'Attendance'), icon: 'attendance' },
     { key: 'ASSESSMENT', label: t('category_assessment', 'Assessment'), icon: 'assessment' },

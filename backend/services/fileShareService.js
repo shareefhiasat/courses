@@ -16,7 +16,7 @@ import { SHARE_SUBJECT_TYPES, SHARE_PERMISSIONS } from '../constants/driveConsta
 
 const prisma = new PrismaClient();
 
-const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
+const ok = (data) => ({ success: true, data, timestamp: Date.now() });
 const err = (code, message) => ({
   success: false,
   error: { code, message },
@@ -176,17 +176,79 @@ export async function revokeShare(shareId, actor) {
   }
 }
 
-export async function listFileShares(fileId) {
+export async function listFileShares(fileId, actor, subjectType = null) {
   try {
+    console.log('[fileShareService] listFileShares called:', { fileId, subjectType, userId: actor?.userId, roles: actor?.roles });
+    
+    const where = { fileId };
+    
+    // Add subjectType filter if provided
+    if (subjectType) {
+      where.subjectType = subjectType;
+    }
+    
     const shares = await prisma.fileShare.findMany({
-      where: { fileId },
+      where,
       include: {
         subjectUser: { select: { id: true, email: true, displayName: true } },
         grantedBy: { select: { id: true, email: true, displayName: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
-    return ok(shares);
+    
+    console.log('[fileShareService] Shares fetched from DB:', shares.length);
+    console.log('[fileShareService] Shares before filter:', shares.map(s => ({ subjectType: s.subjectType, subjectRole: s.subjectRole, subjectUserId: s.subjectUserId })));
+    
+    // Filter based on user permissions
+    const filteredShares = shares.filter(share => {
+      // If subjectType filter is active, strictly enforce it
+      if (subjectType) {
+        // For USER shares: only show if user is recipient or granter
+        if (subjectType === 'USER') {
+          if (share.subjectType !== 'USER') return false;
+          if (share.subjectUserId === actor?.userId) return true;
+          if (share.grantedById === actor?.userId) return true;
+          const isAdmin = actor?.roles?.includes('SUPER_ADMIN') || actor?.roles?.includes('ADMIN');
+          if (isAdmin) return true;
+          return false;
+        }
+        
+        // For ROLE shares: only show if user has the role or is granter
+        if (subjectType === 'ROLE') {
+          if (share.subjectType !== 'ROLE') return false;
+          const hasRole = actor?.roles?.some(role => role.toLowerCase() === share.subjectRole?.toLowerCase());
+          console.log('[fileShareService] ROLE share check:', { shareRole: share.subjectRole, userRoles: actor?.roles, hasRole });
+          if (hasRole) return true;
+          if (share.grantedById === actor?.userId) return true;
+          const isAdmin = actor?.roles?.includes('SUPER_ADMIN') || actor?.roles?.includes('ADMIN');
+          if (isAdmin) return true;
+          return false;
+        }
+      }
+      
+      // No subjectType filter - show all shares the user has access to
+      // User is the one who granted the share
+      if (share.grantedById === actor?.userId) return true;
+      
+      // User is admin
+      const isAdmin = actor?.roles?.includes('SUPER_ADMIN') || actor?.roles?.includes('ADMIN');
+      if (isAdmin) return true;
+      
+      // For USER shares, check if user is the recipient
+      if (share.subjectType === 'USER' && share.subjectUserId === actor?.userId) return true;
+      
+      // For ROLE shares, check if user has the role (case-insensitive)
+      if (share.subjectType === 'ROLE') {
+        const hasRole = actor?.roles?.some(role => role.toLowerCase() === share.subjectRole?.toLowerCase());
+        if (hasRole) return true;
+      }
+      
+      return false;
+    });
+    
+    console.log('[fileShareService] Shares after filter:', filteredShares.length);
+    
+    return ok(filteredShares);
   } catch (error) {
     console.error('[fileShareService.listFileShares]', error);
     return err('LIST_SHARES_FAILED', error.message);
@@ -329,7 +391,7 @@ export async function getSharedFiles(actor) {
   if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
   const result = await listSharedWithMe(actor);
   if (!result.success) return result;
-  return ok(result.payload.files);
+  return ok(result.data.files);
 }
 
 /**

@@ -24,7 +24,7 @@ async function getCollaboraEditUrl(req, res) {
     // Validate access
     const validateResult = await collaboraService.validateCollaboraAccess({
       filePath: decodedFileId,
-      userId: currentUser.id,
+      userId: currentUser.dbId,
       mode: 'edit'
     });
 
@@ -35,7 +35,7 @@ async function getCollaboraEditUrl(req, res) {
     // Generate edit URL
     const result = await collaboraService.generateCollaboraEditUrl({
       filePath: fileId,
-      userId: currentUser.id
+      userId: currentUser.dbId
     });
 
     if (!result.success) {
@@ -68,7 +68,7 @@ async function getCollaboraViewUrl(req, res) {
     // Validate access
     const validateResult = await collaboraService.validateCollaboraAccess({
       filePath: decodedFileId,
-      userId: currentUser.id,
+      userId: currentUser.dbId,
       mode: 'view'
     });
 
@@ -79,7 +79,7 @@ async function getCollaboraViewUrl(req, res) {
     // Generate view URL
     const result = await collaboraService.generateCollaboraViewUrl({
       filePath: decodedFileId,
-      userId: currentUser.id
+      userId: currentUser.dbId
     });
 
     if (!result.success) {
@@ -120,7 +120,7 @@ async function addFileComment(req, res) {
 
     const result = await fileCommentService.addFileComment({
       fileId: decodedFileId,
-      userId: currentUser.id,
+      userId: currentUser.dbId,
       comment
     });
 
@@ -131,7 +131,7 @@ async function addFileComment(req, res) {
     // Log activity
     await logFileActivity({
       fileId: decodedFileId,
-      userId: currentUser.id,
+      userId: currentUser.dbId,
       action: 'comment',
       metadata: { commentLength: comment.length }
     });
@@ -161,7 +161,7 @@ async function getFileComments(req, res) {
 
     const result = await fileCommentService.getFileComments({
       fileId: decodedFileId,
-      userId: currentUser.id
+      userId: currentUser.dbId
     });
 
     if (!result.success) {
@@ -190,7 +190,7 @@ async function deleteFileComment(req, res) {
 
     const result = await fileCommentService.deleteFileComment({
       commentId: parseInt(commentId),
-      userId: currentUser.id
+      userId: currentUser.dbId
     });
 
     if (!result.success) {

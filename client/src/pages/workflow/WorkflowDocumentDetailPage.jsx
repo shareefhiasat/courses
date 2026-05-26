@@ -9,23 +9,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiService } from '@services/api/apiService';
-import {
-  ArrowLeft,
-  FileText,
-  Download,
-  History,
-  MessageSquare,
-  User,
-  Calendar,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  X,
-  ThumbsUp,
-  ThumbsDown,
-  RotateCcw,
-  Upload
-} from 'lucide-react';
 import { formatQatarDate } from '@utils/timezone';
 import { getSlaInfo } from '@utils/sla.js';
 import { useAuth } from '@contexts/AuthContext';
@@ -35,6 +18,12 @@ import { Card, CardContent, CardHeader, CardTitle, Badge } from '@ui';
 import { SimpleLoading, EmptyState, Modal, Textarea } from '@ui';
 import { approveWorkflowDocument, rejectWorkflowDocument, returnWorkflowDocument, resubmitWorkflowDocument, uploadSignedDocument, withdrawWorkflowDocument, listFileVersions, downloadFileVersion } from '@services/api/workflow-documents-api.js';
 import WorkflowDiagram from '@components/workflow/WorkflowDiagram.jsx';
+import WorkflowAttachments from '@components/workflow/WorkflowAttachments.jsx';
+import WorkflowHistory from '@components/workflow/WorkflowHistory.jsx';
+import WorkflowCommentsTab from '@components/workflow/WorkflowCommentsTab.jsx';
+import CollapsibleDashboardSection from '@components/ui/CollapsibleDashboardSection/CollapsibleDashboardSection.jsx';
+import FileDetailsModal from '@components/smart-drive/FileDetailsModal.jsx';
+import { getThemedIcon } from '@constants/iconTypes';
 
 const WorkflowDocumentDetailPage = () => {
   const { t } = useLang();
@@ -51,6 +40,7 @@ const WorkflowDocumentDetailPage = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [resubmitFile, setResubmitFile] = useState(null);
   const [signedFile, setSignedFile] = useState(null);
+  const [previewFile, setPreviewFile] = useState(null);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [versions, setVersions] = useState(null);
   const [versionsLoading, setVersionsLoading] = useState(false);
@@ -222,17 +212,40 @@ const WorkflowDocumentDetailPage = () => {
     }
   };
 
+  // Handle preview
+  const handlePreview = (file) => {
+    setPreviewFile(file);
+  };
+
   // Check if user can perform review actions
   const canReview = () => {
     if (!document || !user) return false;
     const userRoles = user.roles || [];
     const isHR = userRoles.includes('hr');
     const isAdmin = userRoles.includes('admin');
+    const isSuperAdmin = userRoles.includes('super_admin');
     const isSubmitter = document.submitterId === user.id;
     const isCurrentAssignee = document.currentAssigneeId === user.id;
     
+    // Super Admin can review any document
+    if (isSuperAdmin) return true;
+    
     // HR or Admin can review if they are the current assignee
     return (isHR || isAdmin) && isCurrentAssignee && !isSubmitter;
+  };
+
+  // Check if user can reject (only owner or super admin)
+  const canReject = () => {
+    if (!document || !user) return false;
+    const userRoles = user.roles || [];
+    const isSuperAdmin = userRoles.includes('super_admin');
+    const isOwner = document.submitterId === user.id;
+    
+    // Super Admin can reject any document
+    if (isSuperAdmin) return true;
+    
+    // Only owner can reject
+    return isOwner;
   };
 
   // Check if document is in reviewable status
@@ -446,7 +459,7 @@ const WorkflowDocumentDetailPage = () => {
         <Card className="border-red-200 bg-red-50">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-red-800">
-              <AlertCircle className="h-5 w-5" />
+              {getThemedIcon('ui', 'alert_circle', 20)}
               <span>{error}</span>
             </div>
           </CardContent>
@@ -461,7 +474,7 @@ const WorkflowDocumentDetailPage = () => {
         <Card>
           <CardContent className="p-12 text-center">
             <EmptyState
-              icon={<FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />}
+              icon={getThemedIcon('ui', 'file_text', 64)}
               title={t('workflow.document.notFound', 'Document not found')}
               description={t('workflow.document.notFoundDesc', 'The requested document could not be found.')}
               action={
@@ -469,7 +482,7 @@ const WorkflowDocumentDetailPage = () => {
                   onClick={() => navigate('/workflow/inbox')}
                   className="mt-4"
                 >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  {getThemedIcon('ui', 'arrow_left', 16)}
                   {t('workflow.document.backToInbox', 'Back to Inbox')}
                 </Button>
               }
@@ -481,180 +494,213 @@ const WorkflowDocumentDetailPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
-      {/* Header */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/workflow/inbox')}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {document.title}
-                </h1>
-                <p className="text-gray-600 text-sm mt-1">
-                  {document.description}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={getStatusVariant(document.status)}>
-                {document.status}
-              </Badge>
-              {canReview() && isReviewable() && (
-                <>
-                  <Button
-                    variant="success"
-                    size="sm"
-                    onClick={() => setActionModal('approve')}
-                  >
-                    <ThumbsUp className="h-4 w-4 mr-2" />
-                    {t('workflow.document.approve', 'Approve')}
-                  </Button>
+    <div className="flex justify-center px-4 py-6">
+      <div className="w-full space-y-8" style={{ maxWidth: '1400px' }}>
+      {/* Workflow Progress - Full Width */}
+      <CollapsibleDashboardSection
+        title={t('workflow.document.workflowProgress', 'Workflow Progress')}
+        icon={getThemedIcon('ui', 'workflow', 20)}
+        sectionId="workflow-diagram"
+        color="#6366f1"
+        headerRight={
+          <div className="flex items-center gap-2">
+            <Badge variant={getStatusVariant(document.status)}>
+              {document.status}
+            </Badge>
+            {canReview() && isReviewable() && (
+              <>
+                <Button
+                  variant="success"
+                  size="sm"
+                  onClick={() => setActionModal('approve')}
+                >
+                  {getThemedIcon('ui', 'thumbs_up', 16)}
+                  {t('workflow.document.approve', 'Approve')}
+                </Button>
+                {canReject() && (
                   <Button
                     variant="destructive"
                     size="sm"
                     onClick={() => setActionModal('reject')}
                   >
-                    <ThumbsDown className="h-4 w-4 mr-2" />
+                    {getThemedIcon('ui', 'thumbs_down', 16)}
                     {t('workflow.document.reject', 'Reject')}
                   </Button>
-                  <Button
-                    variant="warning"
-                    size="sm"
-                    onClick={() => setActionModal('return')}
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    {t('workflow.document.return', 'Return')}
-                  </Button>
-                </>
-              )}
-              {canResubmit() && (
+                )}
                 <Button
-                  variant="info"
+                  variant="warning"
                   size="sm"
-                  onClick={() => setActionModal('resubmit')}
+                  onClick={() => setActionModal('return')}
                 >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {t('workflow.document.resubmit', 'Resubmit')}
+                  {getThemedIcon('ui', 'rotate_ccw', 16)}
+                  {t('workflow.document.return', 'Return')}
                 </Button>
-              )}
-              {canUploadSigned() && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setActionModal('upload-signed')}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {t('workflow.document.uploadSigned', 'Upload Signed')}
-                </Button>
-              )}
-              {canWithdraw() && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setActionModal('withdraw')}
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  {t('workflow.document.withdraw', 'Withdraw')}
-                </Button>
-              )}
+              </>
+            )}
+            {canResubmit() && (
+              <Button
+                variant="info"
+                size="sm"
+                onClick={() => setActionModal('resubmit')}
+              >
+                {getThemedIcon('ui', 'upload', 16)}
+                {t('workflow.document.resubmit', 'Resubmit')}
+              </Button>
+            )}
+            {canUploadSigned() && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setActionModal('upload-signed')}
+              >
+                {getThemedIcon('ui', 'upload', 16)}
+                {t('workflow.document.uploadSigned', 'Upload Signed')}
+              </Button>
+            )}
+            {canWithdraw() && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActionModal('withdraw')}
+              >
+                {getThemedIcon('ui', 'rotate_ccw', 16)}
+                {t('workflow.document.withdraw', 'Withdraw')}
+              </Button>
+            )}
+          </div>
+        }
+      >
+        <WorkflowDiagram
+          status={document.status}
+          workflowType={document.workflowType}
+          document={document}
+        />
+      </CollapsibleDashboardSection>
+
+      {/* Workflow Details - Full Width */}
+      <CollapsibleDashboardSection
+        title={t('workflow.document.details', 'Workflow Details')}
+        icon={getThemedIcon('ui', 'info', 20)}
+        sectionId="document-details"
+        color="#3b82f6"
+      >
+        {/* Title and Description */}
+        <div className="grid grid-cols-2 gap-6">
+          <div className="min-h-[60px]">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
+                {t('workflow.document.title', 'Title')}
+              </label>
+              <p className="text-gray-900 text-sm">{document.title}</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="min-h-[60px]">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
+                {t('workflow.document.description', 'Description')}
+              </label>
+              <p className="text-gray-900 text-sm">{document.description}</p>
+            </div>
+          </div>
+        </div>
 
-      {/* Workflow Diagram */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            {t('workflow.document.workflowProgress', 'Workflow Progress')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <WorkflowDiagram 
-            status={document.status} 
-            workflowType={document.workflowType} 
-            onNodeClick={handleNodeClick}
-          />
-        </CardContent>
-      </Card>
+        {/* Divider */}
+        <div className="my-6 border-t border-gray-200"></div>
 
-      {/* Document Metadata */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            {t('workflow.document.details', 'Document Details')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+        {/* Program, Subject, Class */}
+        <div className="grid grid-cols-3 gap-6">
+          <div className="min-h-[60px]">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
+                {t('workflow.document.program', 'Program')}
+              </label>
+              <p className="text-gray-900 text-sm flex items-center gap-2">
+                {getThemedIcon('ui', 'book', 16)}
+                {document.program || '-'}
+              </p>
+            </div>
+          </div>
+          <div className="min-h-[60px]">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
+                {t('workflow.document.class', 'Class')}
+              </label>
+              <p className="text-gray-900 text-sm flex items-center gap-2">
+                {getThemedIcon('ui', 'users', 16)}
+                {document.class?.name || '-'}
+              </p>
+            </div>
+          </div>
+          <div className="min-h-[60px]">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
+                {t('workflow.document.subject', 'Subject')}
+              </label>
+              <p className="text-gray-900 text-sm flex items-center gap-2">
+                {getThemedIcon('ui', 'file_text', 16)}
+                {document.subject || '-'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="my-6 border-t border-gray-200"></div>
+
+        {/* Rest of the fields */}
+        <div className="grid grid-cols-4 gap-6">
+          <div className="min-h-[60px]">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
                 {t('workflow.document.workflowType', 'Workflow Type')}
               </label>
-              <p className="text-gray-900 mt-1">{document.workflowType}</p>
+              <p className="text-gray-900 text-sm flex items-center gap-2">
+                {getThemedIcon('ui', 'workflow', 16)}
+                {document.workflowType}
+              </p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+          </div>
+          <div className="min-h-[60px]">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
                 {t('workflow.document.submitter', 'Submitter')}
               </label>
-              <p className="text-gray-900 mt-1 flex items-center gap-2">
-                <User className="h-4 w-4" />
+              <p className="text-gray-900 text-sm flex items-center gap-2">
+                {getThemedIcon('ui', 'user', 16)}
                 {document.submitter?.name || document.submitter?.firstName || '-'}
               </p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+          </div>
+          <div className="min-h-[60px]">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
                 {t('workflow.document.currentAssignee', 'Current Assignee')}
               </label>
-              <p className="text-gray-900 mt-1 flex items-center gap-2">
-                <User className="h-4 w-4" />
+              <p className="text-gray-900 text-sm flex items-center gap-2">
+                {getThemedIcon('ui', 'user', 16)}
                 {document.currentAssignee?.name || document.currentAssignee?.firstName || '-'}
               </p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                {t('workflow.document.class', 'Class')}
-              </label>
-              <p className="text-gray-900 mt-1">{document.class?.name || '-'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                {t('workflow.document.program', 'Program')}
-              </label>
-              <p className="text-gray-900 mt-1">{document.program || '-'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                {t('workflow.document.subject', 'Subject')}
-              </label>
-              <p className="text-gray-900 mt-1">{document.subject || '-'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+          </div>
+          <div className="min-h-[60px]">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
                 {t('workflow.document.submittedAt', 'Submitted At')}
               </label>
-              <p className="text-gray-900 mt-1 flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                {formatQatarDate(document.submittedAt, 'MMM d, yyyy HH:mm')}
+              <p className="text-gray-900 text-sm flex items-center gap-2">
+                {getThemedIcon('ui', 'calendar', 16)}
+                {formatQatarDate(document.createdAt, 'MMM d, yyyy HH:mm')}
               </p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+          </div>
+          <div className="min-h-[60px]">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
                 {t('workflow.document.sla', 'SLA Status')}
               </label>
-              <div className="mt-1">
+              <div className="flex items-center gap-2">
                 {(() => {
-                  const slaInfo = getSlaInfo(document.submittedAt);
+                  const slaInfo = getSlaInfo(document.createdAt);
                   return (
                     <div className="flex flex-col gap-1">
                       <Badge variant={slaInfo.badgeVariant} className="text-xs w-fit">
@@ -670,302 +716,88 @@ const WorkflowDocumentDetailPage = () => {
                 })()}
               </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+          </div>
+          <div className="min-h-[60px]">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
                 {t('workflow.document.date', 'Date')}
               </label>
-              <p className="text-gray-900 mt-1 flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
+              <p className="text-gray-900 text-sm flex items-center gap-2">
+                {getThemedIcon('ui', 'calendar', 16)}
                 {document.date ? formatQatarDate(new Date(document.date), 'MMM d, yyyy') : '-'}
               </p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+          </div>
+          <div className="min-h-[60px]">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
                 {t('workflow.document.reviewCycleCount', 'Review Cycles')}
               </label>
-              <p className="text-gray-900 mt-1">{document.reviewCycleCount || 0}</p>
+              <p className="text-gray-900 text-sm flex items-center gap-2">
+                {getThemedIcon('ui', 'refresh', 16)}
+                {document.reviewCycleCount || 0}
+              </p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+          </div>
+          <div className="min-h-[60px]">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
                 {t('workflow.document.createdAt', 'Created')}
               </label>
-              <p className="text-gray-900 mt-1 flex items-center gap-2">
-                <Clock className="h-4 w-4" />
+              <p className="text-gray-900 text-sm flex items-center gap-2">
+                {getThemedIcon('ui', 'clock', 16)}
                 {formatQatarDate(new Date(document.createdAt), 'MMM d, yyyy HH:mm')}
               </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleDashboardSection>
 
-      {/* File Download */}
-      {document.file && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              {t('workflow.document.file', 'Attached File')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium text-gray-900">{document.file.name}</p>
-                <p className="text-sm text-gray-500">
-                  {document.file.mimeType} • {(document.file.size / 1024).toFixed(2)} KB
-                </p>
-              </div>
-              <Button
-                onClick={() => handleDownload(document.file.id, document.file.name)}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                {t('workflow.document.download', 'Download')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Version History */}
-      {document.file?.versions && document.file.versions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <History className="h-5 w-5" />
-              {t('workflow.document.versionHistory', 'Version History')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {document.file.versions
-                .sort((a, b) => b.versionNumber - a.versionNumber)
-                .map((version) => (
-                  <div
-                    key={version.id}
-                    className={`flex items-center justify-between p-4 rounded-lg border ${
-                      version.isCurrent ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      {version.isCurrent && (
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                      )}
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {t('workflow.document.version', 'Version')} {version.versionNumber}
-                          {version.isCurrent && ` (${t('workflow.document.current', 'Current')})`}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {version.uploadedBy?.name || version.uploadedBy?.firstName || '-'} • 
-                          {formatQatarDate(new Date(version.createdAt), 'MMM d, yyyy HH:mm')}
-                        </p>
-                        {version.changeNote && (
-                          <p className="text-sm text-gray-600 mt-1">{version.changeNote}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm text-gray-500">
-                        {(version.size / 1024).toFixed(2)} KB
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDownload(document.file.id, `${document.file.name}_v${version.versionNumber}`)}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        {t('workflow.document.download', 'Download')}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Comments */}
-      {document.comments && document.comments.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              {t('workflow.document.comments', 'Comments')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {document.comments.map((comment) => (
-                <div key={comment.id} className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-gray-400" />
-                      <span className="font-medium text-gray-900">
-                        {comment.author?.name || comment.author?.firstName || '-'}
-                      </span>
-                    </div>
-                    <span className="text-sm text-gray-500">
-                      {formatQatarDate(new Date(comment.createdAt), 'MMM d, yyyy HH:mm')}
-                    </span>
-                  </div>
-                  <p className="text-gray-700">{comment.comment}</p>
-                  {comment.action && (
-                    <Badge variant="outline" className="mt-2">
-                      {comment.action}
-                    </Badge>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Status History */}
-      {document.statusHistory && document.statusHistory.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <History className="h-5 w-5" />
-              {t('workflow.document.statusHistory', 'Status History')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {document.statusHistory
-                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                .map((history) => (
-                  <div key={history.id} className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                      <User className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-gray-900">
-                          {history.actor?.name || history.actor?.firstName || '-'}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          {formatQatarDate(new Date(history.createdAt), 'MMM d, yyyy HH:mm')}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        {history.fromStatus ? (
-                          <span className="line-through text-gray-400">{history.fromStatus}</span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}{' '}
-                        →{' '}
-                        <span className="font-medium text-gray-900">{history.toStatus}</span>
-                      </p>
-                      {history.reason && (
-                        <p className="text-sm text-gray-500 mt-1">{history.reason}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Version History */}
-      {document.fileId && (
-        <Card>
-          <CardHeader>
-            <CardTitle 
-              className="flex items-center gap-2 cursor-pointer"
-              onClick={handleToggleVersionHistory}
+      {/* Two-column layout for desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left column - Primary content (2/3) */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* File Download & Version History */}
+          {document.file && (
+            <CollapsibleDashboardSection
+              title={t('workflow.document.file', 'Attached File')}
+              icon={getThemedIcon('ui', 'file', 20)}
+              sectionId="file-download"
+              color="#10b981"
             >
-              <History className="h-5 w-5" />
-              {t('workflow.document.versionHistory', 'Version History')}
-              <span className="text-sm font-normal text-gray-500">
-                ({showVersionHistory ? 'Hide' : 'Show'})
-              </span>
-            </CardTitle>
-          </CardHeader>
-          {showVersionHistory && (
-            <CardContent>
-              {versionsLoading ? (
-                <SimpleLoading />
-              ) : versions && versions.length > 0 ? (
-                <div className="space-y-3">
-                  {versions
-                    .sort((a, b) => b.versionNumber - a.versionNumber)
-                    .map((version, index) => (
-                      <div 
-                        key={version.id} 
-                        className={`p-4 border rounded-lg ${
-                          version.isCurrent ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Badge variant={version.isCurrent ? 'default' : 'outline'}>
-                              v{version.versionNumber}
-                              {version.isCurrent && ' (Current)'}
-                            </Badge>
-                            <span className="text-sm text-gray-600">
-                              {formatQatarDate(new Date(version.createdAt), 'MMM d, yyyy HH:mm')}
-                            </span>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownloadVersion(version.id, document.file?.name)}
-                          >
-                            <Download className="h-4 w-4 mr-2" />
-                            Download
-                          </Button>
-                        </div>
-                        <div className="text-sm text-gray-600 mb-1">
-                          <span className="font-medium">Uploaded by:</span>{' '}
-                          {version.uploadedBy?.name || version.uploadedBy?.firstName || '-'}
-                        </div>
-                        <div className="text-sm text-gray-600 mb-1">
-                          <span className="font-medium">File size:</span>{' '}
-                          {(version.size / 1024).toFixed(2)} KB
-                        </div>
-                        {version.changeNote && (
-                          <div className="text-sm text-gray-600">
-                            <span className="font-medium">Note:</span>{' '}
-                            {version.changeNote}
-                          </div>
-                        )}
-                        {index < versions.length - 1 && (
-                          <div className="mt-3 pt-3 border-t border-gray-200">
-                            <span className="text-xs text-gray-500">
-                              Diff from previous version:
-                            </span>
-                            <div className="text-xs text-gray-600 mt-1">
-                              {(() => {
-                                const prevVersion = versions[index + 1];
-                                const sizeDiff = version.size - prevVersion.size;
-                                return (
-                                  <span>
-                                    Size: {sizeDiff > 0 ? '+' : ''}{(sizeDiff / 1024).toFixed(2)} KB
-                                    {version.uploadedBy?.id !== prevVersion.uploadedBy?.id && (
-                                      <span className="ml-2">
-                                        • Uploader changed
-                                      </span>
-                                    )}
-                                  </span>
-                                );
-                              })()}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-sm">No version history available</p>
-              )}
-            </CardContent>
+              <WorkflowAttachments file={document.file} onDownload={handleDownload} onPreview={handlePreview} />
+            </CollapsibleDashboardSection>
           )}
-        </Card>
-      )}
+        </div>
 
-      {/* Action Modals */}
+        {/* Right column - Secondary info (1/3) */}
+        <div className="lg:col-span-1 space-y-8">
+          {/* Comments */}
+          <CollapsibleDashboardSection
+            title={t('workflow.document.comments', 'Comments')}
+            icon={getThemedIcon('ui', 'message', 20)}
+            sectionId="comments"
+            color="#8b5cf6"
+          >
+            <WorkflowCommentsTab workflowId={documentId} />
+          </CollapsibleDashboardSection>
+
+          {/* Status History */}
+          {document.statusHistory && document.statusHistory.length > 0 && (
+            <CollapsibleDashboardSection
+              title={t('workflow.document.statusHistory', 'Status History')}
+              icon={getThemedIcon('ui', 'clock', 20)}
+              sectionId="status-history"
+              color="#ec4899"
+              count={document.statusHistory.length}
+            >
+              <WorkflowHistory statusHistory={document.statusHistory} />
+            </CollapsibleDashboardSection>
+          )}
+        </div>
+      </div>
+
+      {/* Step Details Modal */}
       {actionModal && (
         <Modal
           isOpen={!!actionModal}
@@ -1047,7 +879,7 @@ const WorkflowDocumentDetailPage = () => {
                 }}
                 disabled={actionLoading}
               >
-                <X className="h-4 w-4 mr-2" />
+                {getThemedIcon('ui', 'x', 16)}
                 {t('common.cancel', 'Cancel')}
               </Button>
               <Button
@@ -1112,7 +944,7 @@ const WorkflowDocumentDetailPage = () => {
                   {t('workflow.document.currentAssignee', 'Current Assignee')}
                 </label>
                 <p className="text-gray-900 flex items-center gap-2">
-                  <User className="h-4 w-4" />
+                  {getThemedIcon('ui', 'user', 16)}
                   {document.currentAssignee?.name || document.currentAssignee?.firstName || '-'}
                 </p>
               </div>
@@ -1122,18 +954,30 @@ const WorkflowDocumentDetailPage = () => {
                 {t('workflow.document.submittedAt', 'Submitted At')}
               </label>
               <p className="text-gray-900 flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                {formatQatarDate(document.submittedAt, 'MMM d, yyyy HH:mm')}
+                {getThemedIcon('ui', 'calendar', 16)}
+                {formatQatarDate(document.createdAt, 'MMM d, yyyy HH:mm')}
               </p>
             </div>
             <div className="pt-4 border-t">
               <p className="text-sm text-gray-500">
-                {t('workflow.document.stepHistoryNote', 'Full status history will be available in future enhancements.')}
+                {t('workflow.document.historyNotePlaceholder', 'Full status history will be available in future enhancements.')}
               </p>
             </div>
           </div>
         </Modal>
       )}
+
+      {/* File Preview Modal */}
+      {previewFile && (
+        <FileDetailsModal
+          file={previewFile}
+          initialTab="details"
+          userCanEdit={false}
+          onClose={() => setPreviewFile(null)}
+          onDownload={handleDownload}
+        />
+      )}
+      </div>
     </div>
   );
 };

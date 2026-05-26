@@ -152,18 +152,22 @@ export async function createLink(input, actor) {
 export async function listLinksForFile(fileId, actor) {
   try {
     if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
+    console.log('[publicLinkService.listLinksForFile] Fetching links for fileId:', fileId, 'actor.userId:', actor.userId);
     const file = await prisma.file.findUnique({
       where: { id: fileId },
       select: { ownerId: true, isDeleted: true },
     });
+    console.log('[publicLinkService.listLinksForFile] File found:', file);
     if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');
     if (file.ownerId !== actor.userId && !(actor.roles || []).includes('super_admin')) {
+      console.log('[publicLinkService.listLinksForFile] Access denied: file.ownerId:', file.ownerId, 'actor.userId:', actor.userId, 'roles:', actor.roles);
       return err('ACCESS_DENIED', 'Only owner can see public links');
     }
     const links = await prisma.publicLink.findMany({
       where: { fileId },
       orderBy: { createdAt: 'desc' },
     });
+    console.log('[publicLinkService.listLinksForFile] Found', links.length, 'links');
     const sanitised = links.map((l) => ({
       id: l.id,
       token: l.token,

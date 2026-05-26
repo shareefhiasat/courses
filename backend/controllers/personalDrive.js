@@ -232,7 +232,7 @@ export const addCommentController = async (req, res) => {
       });
     }
 
-    const result = await fileService.addComment(fileId, comment, req.user.id);
+    const result = await fileService.addComment(fileId, comment, req.user.dbId);
 
     if (result.success) {
       return res.status(200).json({

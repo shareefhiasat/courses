@@ -303,7 +303,7 @@ const getAttendanceByDate = async (date, params = {}) => {
   }
 };
 
-const getAttendanceStats = async (params = {}) => {
+export const getAttendanceStats = async (params = {}) => {
   try {
     info(`${serviceName}:getAttendanceStats`, { params });
     

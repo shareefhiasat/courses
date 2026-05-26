@@ -7,6 +7,8 @@ const getDbService = async () => {
   return dbService.default || dbService;
 };
 
+import api from '@api';
+
 export const getActivityById = async (id) => {
   try {
     const service = await getDbService();
@@ -101,6 +103,38 @@ export const deleteLoginLogsByType = async (type, user = null) => {
   }
 };
 
+export const getActivitiesByClasses = async (classIds = []) => {
+  try {
+    if (!Array.isArray(classIds) || classIds.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    // Use existing backend endpoint for each class
+    const promises = classIds.map(classId => 
+      api.get(`/activities/class/${classId}`)
+    );
+    
+    const results = await Promise.allSettled(promises);
+    
+    // Aggregate results from all classes
+    const allActivities = [];
+    results.forEach(result => {
+      if (result.status === 'fulfilled' && result.value?.data) {
+        allActivities.push(...(result.value.data || []));
+      }
+    });
+    
+    return {
+      success: true,
+      data: allActivities,
+      total: allActivities.length
+    };
+  } catch (error) {
+    console.error('activitiesService:getActivitiesByClasses error:', error);
+    return { success: false, error: error.message, data: [] };
+  }
+};
+
 export default {
   getActivityById,
   getActivities,
@@ -111,4 +145,5 @@ export default {
   getLoginLogs,
   deleteAllLoginLogs,
   deleteLoginLogsByType,
+  getActivitiesByClasses,
 };

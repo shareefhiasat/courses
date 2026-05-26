@@ -33,7 +33,7 @@ async function shareFileWithUser(req, res) {
       targetUserId: parseInt(targetUserId),
       permissions,
       expiresAt: expiresAt ? new Date(expiresAt) : null,
-      sharedById: currentUser.id
+      sharedById: currentUser.dbId
     });
 
     if (!result.success) {
@@ -58,15 +58,21 @@ async function shareFileWithUser(req, res) {
 async function getFileShares(req, res) {
   try {
     const { fileId } = req.params;
+    const { subjectType } = req.query;
     const currentUser = req.user;
+
+    console.log('[driveSharingController] getFileShares called:', { fileId, subjectType, userId: currentUser.id, dbId: currentUser.dbId });
 
     // Decode URL-encoded fileId
     const decodedFileId = decodeURIComponent(fileId);
 
     const result = await driveSharingService.getFileShares({
       fileId: decodedFileId,
-      userId: currentUser.id
+      userId: currentUser.dbId || currentUser.id,
+      subjectType
     });
+
+    console.log('[driveSharingController] Service result:', result);
 
     if (!result.success) {
       return res.status(400).json(result);

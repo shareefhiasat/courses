@@ -89,7 +89,7 @@ export default function ActivityTab({ fileId }) {
       case 'UPLOAD': return 'upload';
       case 'DOWNLOAD': return 'download';
       case 'SHARE': return 'share';
-      case 'DELETE': return 'trash2';
+      case 'DELETE': return 'trash';
       case 'RENAME': return 'edit';
       case 'EDIT': return 'edit';
       case 'STAR': return 'star';

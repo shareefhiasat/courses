@@ -30,6 +30,7 @@ class ActivityDbService {
       if (params.programId) queryParams.append('programId', params.programId);
       if (params.instructorId) queryParams.append('instructorId', params.instructorId);
       if (params.includeParticipation) queryParams.append('includeParticipation', params.includeParticipation);
+      if (params.classId) queryParams.append('classId', params.classId);
 
       const url = `/activities?${queryParams.toString()}`;
       const result = await api.get(url);
@@ -88,6 +89,33 @@ class ActivityDbService {
    */
   async getWithParticipationCount(params = {}) {
     return this.getAll({ ...params, includeParticipation: true });
+  }
+
+  /**
+   * Get activities by multiple class IDs
+   */
+  async getByClasses(classIds = []) {
+    try {
+      if (!Array.isArray(classIds) || classIds.length === 0) {
+        return { success: true, data: [], total: 0 };
+      }
+
+      // Build query with classIds parameter
+      const queryParams = new URLSearchParams();
+      classIds.forEach(id => queryParams.append('classIds', id));
+      
+      const url = `/activities/by-classes?${queryParams.toString()}`;
+      const result = await api.get(url);
+      
+      return {
+        success: result.success,
+        data: result.data || [],
+        total: result.total || 0
+      };
+    } catch (error) {
+      console.error(`[${this.serviceName}] ❌ Error getting activities by classes:`, error);
+      return { success: false, error: error.message, data: [], total: 0 };
+    }
   }
 
   /**

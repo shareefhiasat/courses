@@ -43,7 +43,7 @@ export async function generateWeeklySummaryController(req, res) {
     const result = await generateWeeklySummary({
       weekStart,
       weekEnd,
-      hrUserId: user.id,
+      hrUserId: user.dbId,
       comments
     });
 

@@ -178,6 +178,7 @@ router.get('/subjects', getSubjectsController);
 // Admin user management routes (Keycloak-based)
 // Protected by Keycloak middleware (super_admin role required)
 // Temporarily disabled for testing - will re-enable after fixing token issue
+// router.get('/', requireSuperAdmin, listUsersController);
 router.get('/', listUsersController);
 router.get('/:id', getUserByIdController);
 router.post('/', createUserController);

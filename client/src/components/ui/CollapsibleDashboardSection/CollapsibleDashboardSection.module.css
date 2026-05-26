@@ -443,12 +443,18 @@
   color: white;
 }
 
-/* Minimize Section */
+/* Minimize Section Container */
 .minimizeSection {
   position: fixed;
   bottom: 1rem;
   right: 1rem;
   z-index: 1000;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-end;
+  justify-content: flex-end;
+  max-width: calc(100vw - 2rem);
 }
 
 .restoreButton {
@@ -466,6 +472,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
   animation: pulse 2s infinite;
+  white-space: nowrap;
 }
 
 .restoreButton:hover {

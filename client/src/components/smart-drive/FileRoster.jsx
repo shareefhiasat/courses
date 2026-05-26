@@ -140,7 +140,9 @@ export default function FileRoster({
     if (!date) return '—';
     const d = new Date(date);
     if (Number.isNaN(d.getTime())) return '—';
-    return d.toLocaleString();
+    const dateStr = d.toLocaleDateString();
+    const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `${dateStr}\n${timeStr}`;
   };
 
   const getFileIconName = (file) => {
@@ -565,6 +567,8 @@ export default function FileRoster({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: isRTL ? 'flex-start' : 'flex-end',
+                  whiteSpace: 'pre-line',
+                  lineHeight: 1.2,
                 }}
               >
                 {formatDateTime(folder.createdAt)}
@@ -641,15 +645,13 @@ export default function FileRoster({
                   {[
                     ...(isTrashView
                       ? [
-                          { key: 'restore', label: t('drive.restore') || 'Restore', icon: 'refresh_ccw', color: '#059669' },
+                          { key: 'restore', label: t('drive.restore') || 'Restore', icon: 'info', color: '#059669' },
                           { key: 'permanent-delete', label: t('drive.permanentDelete') || 'Delete permanently', icon: 'trash', danger: true },
                         ]
                       : [
-                          { key: 'open', label: t('open') || 'Open', icon: 'external_link' },
-                          { key: 'download', label: t('download') || 'Download', icon: 'download' },
-                          { key: 'share', label: t('share') || 'Share', icon: 'send' },
-                          { key: 'rename', label: t('rename') || 'Rename', icon: 'edit' },
-                          { key: 'delete', label: t('delete') || 'Delete', icon: 'trash', danger: true },
+                          { key: 'open', label: t('drive.open') || 'Open', icon: 'external_link' },
+                          { key: 'download', label: t('drive.download') || 'Download', icon: 'download' },
+                          { key: 'rename', label: t('drive.rename') || 'Rename', icon: 'edit' },
                         ]),
                   ].map((action) => (
                     <button
@@ -689,7 +691,7 @@ export default function FileRoster({
                         e.currentTarget.style.background = 'transparent';
                       }}
                     >
-                      {getThemedIcon('ui', action.icon, 16, action.danger ? 'error' : theme)}
+                      {getThemedIcon('ui', action.icon, 16, action.danger ? '#dc2626' : action.color || theme)}
                       {action.label}
                     </button>
                   ))}
@@ -867,6 +869,8 @@ export default function FileRoster({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: isRTL ? 'flex-start' : 'flex-end',
+                    whiteSpace: 'pre-line',
+                    lineHeight: 1.2,
                   }}
                 >
                   {formatDateTime(file.createdAt)}
@@ -948,16 +952,16 @@ export default function FileRoster({
                         {[
                           ...(isTrashView
                             ? [
-                                { key: 'restore', label: t('drive.restore') || 'Restore', icon: 'refresh_ccw', color: '#059669' },
+                                { key: 'restore', label: t('drive.restore') || 'Restore', icon: 'info', color: '#059669' },
                                 { key: 'permanent-delete', label: t('drive.permanentDelete') || 'Delete permanently', icon: 'trash', danger: true },
                               ]
                             : [
-                                ...(isPreviewable(file) ? [{ key: 'open', label: t('open') || 'Open', icon: 'external_link' }] : []),
-                                { key: 'download', label: t('download') || 'Download', icon: 'download' },
-                                { key: 'share', label: t('share') || 'Share', icon: 'send' },
-                                { key: 'create-workflow', label: t('drive.workflow') || 'Workflow', icon: 'git_branch', color: '#ea580c' },
-                                { key: 'rename', label: t('rename') || 'Rename', icon: 'edit' },
-                                { key: 'delete', label: t('delete') || 'Delete', icon: 'trash', danger: true },
+                                ...(isPreviewable(file) ? [{ key: 'open', label: t('drive.open') || 'Open', icon: 'external_link' }] : []),
+                                { key: 'download', label: t('drive.download') || 'Download', icon: 'download' },
+                                { key: 'share', label: t('drive.share') || 'Share', icon: 'send' },
+                                { key: 'create-workflow', label: t('drive.workflow') || 'Workflow', icon: 'workflow', color: '#8b5cf6' },
+                                { key: 'rename', label: t('drive.rename') || 'Rename', icon: 'edit' },
+                                { key: 'delete', label: t('drive.delete') || 'Delete', icon: 'trash', danger: true },
                               ]),
                         ].map((action) => (
                           <button
@@ -996,7 +1000,7 @@ export default function FileRoster({
                             }}
                           >
                             <div style={{ fontSize: '16px' }}>
-                              {getThemedIcon('ui', action.icon, 16, theme)}
+                              {getThemedIcon('ui', action.icon, 16, action.danger ? '#dc2626' : action.color || theme)}
                             </div>
                             <span>{action.label}</span>
                           </button>

@@ -142,12 +142,13 @@ export const isUserDisabledAtUserLevel = (user) => {
 export const getAllUsers = async (params = {}) => {
   try {
     info(`${serviceName}:getAllUsers`, { params });
-    
+
     const queryParams = new URLSearchParams();
     if (params.search) queryParams.append('search', params.search);
     if (params.first !== undefined) queryParams.append('first', params.first);
     if (params.max !== undefined) queryParams.append('max', params.max);
     if (params.studentsOnly) queryParams.append('studentsOnly', 'true');
+    if (params.excludeStudents) queryParams.append('excludeStudents', 'true');
 
     const response = await fetch(`${API_BASE}/v1/users?${queryParams.toString()}`, {
       method: 'GET',
@@ -156,15 +157,15 @@ export const getAllUsers = async (params = {}) => {
         'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
       }
     });
-    
+
     const result = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(result.error || 'Failed to retrieve users');
     }
-    
+
     let filteredData = result.data || [];
-    
+
     // If studentsOnly is true, filter client-side as well (backup)
     if (params.studentsOnly && filteredData.length > 0) {
       filteredData = filteredData.filter(user => {
@@ -172,7 +173,15 @@ export const getAllUsers = async (params = {}) => {
         return roles.includes('student') && !roles.includes('instructor') && !roles.includes('admin') && !roles.includes('super_admin') && !roles.includes('hr');
       });
     }
-    
+
+    // If excludeStudents is true, filter client-side to exclude students
+    if (params.excludeStudents && filteredData.length > 0) {
+      filteredData = filteredData.filter(user => {
+        const roles = getUserRoles(user);
+        return !roles.includes('student');
+      });
+    }
+
     return {
       success: true,
       data: filteredData,
