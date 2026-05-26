@@ -16,6 +16,13 @@ import {
   rejectInstance,
   getInstanceHistory,
   getMyTasks,
+  submitInstance,
+  sendForReview,
+  sendForApproval,
+  approveInstanceSimplified,
+  rejectInstanceSimplified,
+  reviseInstance,
+  cancelInstance,
 } from '../controllers/workflowController.js';
 
 const router = Router();
@@ -39,6 +46,17 @@ router.get('/instances/:instanceId', getInstance);
 router.post('/instances/:instanceId/approve', approveInstance);
 router.post('/instances/:instanceId/reject', rejectInstance);
 router.get('/instances/:instanceId/history', getInstanceHistory);
+
+// --------------------------------------------------------------------------
+// Simplified Single-Stage Workflow Actions
+// --------------------------------------------------------------------------
+router.post('/instances/:instanceId/submit', submitInstance);
+router.post('/instances/:instanceId/send-for-review', sendForReview);
+router.post('/instances/:instanceId/send-for-approval', sendForApproval);
+router.post('/instances/:instanceId/approve-simplified', approveInstanceSimplified);
+router.post('/instances/:instanceId/reject-simplified', rejectInstanceSimplified);
+router.post('/instances/:instanceId/revise', reviseInstance);
+router.post('/instances/:instanceId/cancel', cancelInstance);
 
 // --------------------------------------------------------------------------
 // My Tasks (pending approvals for current user)

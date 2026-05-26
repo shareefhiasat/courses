@@ -765,18 +765,25 @@ export async function createCustomWorkflowDocument(data) {
     let currentAssigneeId = null;
     if (reviewers && reviewers.length > 0) {
       // For now, assign to first reviewer (could be enhanced with role-based assignment)
-      const reviewerUsers = await byRole(reviewers[0]);
-      if (reviewerUsers.length > 0) {
-        currentAssigneeId = reviewerUsers[0].userId;
+      try {
+        const reviewerUsers = await byRole(reviewers[0]);
+        if (reviewerUsers.length > 0) {
+          currentAssigneeId = reviewerUsers[0].userId;
+        }
+      } catch (error) {
+        console.error('[createCustomWorkflowDocument] Error getting reviewer users:', error);
+        // Continue without assignee if role lookup fails
       }
     }
 
-    // Create WorkflowDocument
+    // Create WorkflowDocument with DRAFT status if no reviewers, SUBMITTED if reviewers provided
+    const documentStatus = (reviewers && reviewers.length > 0) ? 'SUBMITTED' : 'DRAFT';
+    
     const documentResult = await createWorkflowDocument({
       workflowType,
       title,
       description,
-      status: 'SUBMITTED',
+      status: documentStatus,
       submitterId,
       currentAssigneeId,
       fileId: originalFileId || fileId, // Use original file ID if provided, otherwise use copied file ID

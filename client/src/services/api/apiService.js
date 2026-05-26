@@ -375,7 +375,17 @@ export const apiService = {
       throw error;
     }
   },
-  
+
+  patch: async (url, data, config) => {
+    try {
+      const response = await apiClient.patch(url, data, config);
+      return response.data;
+    } catch (error) {
+      console.error('API PATCH Error:', error);
+      throw error;
+    }
+  },
+
   delete: async (url, config) => {
     try {
       const response = await apiClient.delete(url, config);

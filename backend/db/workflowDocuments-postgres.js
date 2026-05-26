@@ -688,6 +688,16 @@ export async function deleteWorkflowDocument(id) {
 
     // Delete in transaction to ensure consistency
     await prisma.$transaction(async (tx) => {
+      // Check if file is used by other documents BEFORE deleting this document
+      let shouldDeleteFile = false;
+      if (existing.fileId) {
+        const fileUsageCount = await tx.workflowDocument.count({
+          where: { fileId: existing.fileId }
+        });
+        // Only delete file if this is the ONLY document using it (count === 1 means only this document)
+        shouldDeleteFile = fileUsageCount === 1;
+      }
+
       // Delete status history
       await tx.workflowStatusHistory.deleteMany({
         where: { workflowDocumentId: id }
@@ -703,18 +713,8 @@ export async function deleteWorkflowDocument(id) {
         where: { id }
       });
 
-      // Delete associated file if it exists and is not used by other documents
-      if (existing.fileId) {
-        const fileUsageCount = await tx.workflowDocument.count({
-          where: { fileId: existing.fileId }
-        });
-
-        if (fileUsageCount === 0) {
-          await tx.file.delete({
-            where: { id: existing.fileId }
-          });
-        }
-      }
+      // Never delete the file - it should remain in Smart Drive
+      // The file belongs to the user, not the workflow
     });
 
     return { success: true, data: { id } };

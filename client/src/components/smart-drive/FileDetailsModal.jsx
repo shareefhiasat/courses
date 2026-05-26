@@ -427,7 +427,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
         {activeTab === 'versions' && <VersionsTab fileId={file.id} />}
         {activeTab === 'comments' && <CommentsTab fileId={file.id} />}
         {activeTab === 'activity' && <ActivityTab fileId={file.id} />}
-        {activeTab === 'workflow' && <WorkflowTab fileId={file.id} />}
+        {activeTab === 'workflow' && <WorkflowTab fileId={file.id} onRefresh={onRefresh} />}
         {activeTab === 'share' && <ShareTab fileId={file.id} onShare={onShare} onGenerateLink={onGenerateLink} />}
       </div>
     </Modal>

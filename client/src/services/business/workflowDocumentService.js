@@ -156,17 +156,18 @@ export const createCustomWorkflow = async (file, workflowData) => {
       console.error('❌ [workflowDocumentService] Missing title');
       throw new Error('Workflow title is required');
     }
-    if (!workflowData.reviewers || workflowData.reviewers.length === 0) {
-      console.error('❌ [workflowDocumentService] Missing reviewers');
-      throw new Error('At least one reviewer is required');
-    }
+    // Reviewers are no longer required - workflows are created as DRAFT and assigned later
+    // if (!workflowData.reviewers || workflowData.reviewers.length === 0) {
+    //   console.error('❌ [workflowDocumentService] Missing reviewers');
+    //   throw new Error('At least one reviewer is required');
+    // }
 
     // Prepare API payload
     const payload = {
       workflowType: workflowData.workflowType || 'GENERAL',
       title: workflowData.title,
       description: workflowData.description || '',
-      reviewers: workflowData.reviewers,
+      reviewers: workflowData.reviewers || [], // Default to empty array
       attachFile: workflowData.attachFile !== false, // Default to true
       sourceBucket: 'lms-private',
       sourcePath: file?.path || file?.filePath,

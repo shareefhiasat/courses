@@ -8,9 +8,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
  * Select Component
- * 
+ *
  * Enhanced select dropdown with autocomplete/search capability.
- * 
+ *
  * @param {Object} props
  * @param {string} props.label - Select label
  * @param {Array} props.options - Array of {value, label} objects
@@ -47,7 +47,7 @@ const Select = forwardRef(({
   ...rest
 }, ref) => {
   const { t } = useLang();
-  
+
   // Localize placeholder inside component body
   const localizedPlaceholder = placeholder === 'Select an option' ? (t('select_an_option') || 'Select an option') : (placeholder || t('select_an_option') || 'Select an option');
   const [isOpen, setIsOpen] = useState(false);
@@ -58,6 +58,7 @@ const Select = forwardRef(({
   const searchInputRef = useRef(null);
   const dropdownRef = useRef(null);
   const positionUpdateRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
 
   // Get theme-aware styles
   const themeStyles = getComponentStyles(theme, 'select', 'default', size);
@@ -69,13 +70,13 @@ const Select = forwardRef(({
   const handleClickOutside = useCallback((event) => {
     // console.log('🔵 [Select] handleClickOutside triggered');
     // console.log('🔵 [Select] Event target:', event.target);
-    
+
     // Don't close if clicking on the select itself or its children
     if (containerRef.current && !containerRef.current.contains(event.target)) {
       // Check if the click is on a dropdown option or inside the dropdown portal
-      const isOptionClick = event.target.closest(`.${styles.option}`) || 
+      const isOptionClick = event.target.closest(`.${styles.option}`) ||
                            (dropdownRef.current && dropdownRef.current.contains(event.target));
-      
+
       if (!isOptionClick) {
         // console.log('🔵 [Select] Click outside detected, closing dropdown');
         setIsOpen(false);
@@ -85,6 +86,33 @@ const Select = forwardRef(({
         // console.log('🔵 [Select] Click on option/dropdown, keeping dropdown open');
       }
     }
+  }, []);
+
+  // Debounced search handler to prevent focus loss
+  const handleSearchChange = useCallback((e) => {
+    const v = e.target.value || '';
+    setSearchTerm(v);
+
+    // Clear any existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Debounce the onSearchChange call
+    if (onSearchChange) {
+      searchTimeoutRef.current = setTimeout(() => {
+        onSearchChange(v);
+      }, 300);
+    }
+  }, [onSearchChange]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Add/remove click outside listener
@@ -154,7 +182,12 @@ const Select = forwardRef(({
   useEffect(() => {
     if (isOpen) {
       if (searchable && searchInputRef.current) {
-        searchInputRef.current.focus();
+        // Small delay to ensure the dropdown is rendered
+        setTimeout(() => {
+          if (searchInputRef.current) {
+            searchInputRef.current.focus();
+          }
+        }, 50);
       }
     }
   }, [isOpen, searchable]);
@@ -374,12 +407,8 @@ const Select = forwardRef(({
                   className={styles.searchInput}
                   placeholder={searchPlaceholder || t('search') || 'Search...'}
                   value={searchTerm}
-                  onChange={(e) => {
-                    const v = e.target.value || '';
-                    setSearchTerm(v);
-                    if (onSearchChange) onSearchChange(v);
-                  }}
-                    onClick={(e) => e.stopPropagation()}
+                  onChange={handleSearchChange}
+                  onClick={(e) => e.stopPropagation()}
                   style={{ width: '100%', padding: '8px 12px' }}
                 />
               </div>

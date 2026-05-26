@@ -694,7 +694,7 @@ export const softDeleteFile = async (req, res) => {
     const file = await prisma.file.findUnique({
       where: { id: fileId },
       include: {
-        user: { select: { displayName: true, firstName: true, lastName: true } }
+        owner: { select: { displayName: true, firstName: true, lastName: true } }
       }
     });
 
@@ -713,14 +713,14 @@ export const softDeleteFile = async (req, res) => {
           select: { sharedWithId: true }
         });
 
-        const recipientIds = [file.userId, ...shares.map(s => s.sharedWithId)].filter(id => id !== userId);
+        const recipientIds = [file.ownerId, ...shares.map(s => s.sharedWithId)].filter(id => id !== userId);
 
         if (recipientIds.length > 0) {
           await notificationGateway.emit(
             EVENTS.DRIVE_FILE_DELETED,
             {
               fileName: file.name,
-              deletedBy: file.user?.displayName || `${file.user?.firstName} ${file.user?.lastName}`
+              deletedBy: file.owner?.displayName || `${file.owner?.firstName} ${file.owner?.lastName}`
             },
             req.user,
             { userIds: recipientIds }

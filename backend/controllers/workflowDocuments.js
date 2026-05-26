@@ -867,13 +867,7 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
       });
     }
 
-    // Validate reviewers is required
-    if (!reviewers || reviewers.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'At least one reviewer is required'
-      });
-    }
+    // Reviewers are now optional - can be assigned later from file details tab
 
     // If attaching existing file, validate ownership (disable workflow on shared files)
     if (attachFile && fileId) {
@@ -881,7 +875,7 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
       const prisma = new PrismaClient();
       
       const file = await prisma.file.findUnique({
-        where: { id: parseInt(fileId) },
+        where: { id: fileId },
         select: { ownerId: true, isDeleted: true }
       });
 

@@ -557,31 +557,475 @@ export async function getWorkflowHistory(instanceId) {
  */
 export async function getMyPendingTasks(actor) {
   try {
-    if (!actor?.userId || !actor.roles?.length) {
-      return err('NO_ACTOR', 'Authenticated actor with roles required');
+    if (!actor?.userId) {
+      return err('NO_ACTOR', 'Authenticated actor required');
     }
 
     const instances = await prisma.workflowInstance.findMany({
-      where: { status: 'PENDING' },
+      where: { status: 'IN_REVIEW' },
       include: {
         definition: true,
         currentStage: true,
-        steps: { where: { status: 'PENDING' }, orderBy: { enteredAt: 'asc' } },
         initiatedBy: { select: { id: true, displayName: true } },
       },
     });
 
     const myTasks = instances.filter((inst) => {
-      const step = inst.steps[0];
-      if (!step) return false;
-      // Check if actor has any of the required roles.
-      return step.assignedRoles.some((r) => actor.roles.includes(r));
+      // Check if actor is assigned user
+      if (inst.assignedUserId === actor.userId) return true;
+      // Check if actor has assigned role (only if roles are available)
+      if (inst.assignedRole && actor.roles?.length && actor.roles.includes(inst.assignedRole)) return true;
+      return false;
     });
 
     return ok(myTasks);
   } catch (error) {
     console.error('[workflowEngine.getMyPendingTasks]', error);
     return err('GET_TASKS_FAILED', error.message);
+  }
+}
+
+// --------------------------------------------------------------------------
+// Simplified Single-Stage Workflow Actions
+// --------------------------------------------------------------------------
+
+/**
+ * Submit workflow (Draft → Submitted)
+ */
+export async function submitWorkflow(instanceId, actor) {
+  try {
+    if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
+
+    const instance = await prisma.workflowInstance.findUnique({
+      where: { id: instanceId },
+      include: { initiatedBy: true, definition: true },
+    });
+    if (!instance) return err('NOT_FOUND', 'Workflow instance not found');
+    if (instance.status !== 'DRAFT') {
+      return err('INVALID_STATE', `Workflow is ${instance.status}, cannot submit`);
+    }
+
+    await prisma.workflowInstance.update({
+      where: { id: instanceId },
+      data: { status: 'SUBMITTED' },
+    });
+
+    await prisma.workflowHistory.create({
+      data: {
+        instanceId,
+        eventType: 'SUBMITTED',
+        actorId: actor.userId,
+        payload: { previousStatus: 'DRAFT', newStatus: 'SUBMITTED' },
+      },
+    });
+
+    // Notify initiator
+    await notificationGateway.emit(EVENTS.WORKFLOW_SUBMITTED, {
+      instanceId: instance.id,
+      workflowName: instance.definition?.name,
+    }, { userId: instance.initiatedBy.id, email: instance.initiatedBy.email, name: instance.initiatedBy.displayName }, actor);
+
+    const updated = await prisma.workflowInstance.findUnique({
+      where: { id: instanceId },
+      include: { definition: true, initiatedBy: true },
+    });
+    return ok(updated);
+  } catch (error) {
+    console.error('[workflowEngine.submitWorkflow]', error);
+    return err('SUBMIT_FAILED', error.message);
+  }
+}
+
+/**
+ * Send for review (Submitted → In Review)
+ */
+export async function sendForReview(instanceId, { assignedUserId, assignedRole, comment }, actor) {
+  try {
+    if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
+    if (!assignedUserId && !assignedRole) {
+      return err('INVALID_INPUT', 'Must assign to user or role');
+    }
+
+    const instance = await prisma.workflowInstance.findUnique({
+      where: { id: instanceId },
+      include: { initiatedBy: true, definition: true },
+    });
+    if (!instance) return err('NOT_FOUND', 'Workflow instance not found');
+    if (instance.status !== 'SUBMITTED') {
+      return err('INVALID_STATE', `Workflow is ${instance.status}, cannot send for review`);
+    }
+
+    await prisma.workflowInstance.update({
+      where: { id: instanceId },
+      data: {
+        status: 'IN_REVIEW',
+        assignedUserId,
+        assignedRole,
+      },
+    });
+
+    await prisma.workflowHistory.create({
+      data: {
+        instanceId,
+        eventType: 'SENT_FOR_REVIEW',
+        actorId: actor.userId,
+        comment,
+        payload: { assignedUserId, assignedRole, previousStatus: 'SUBMITTED', newStatus: 'IN_REVIEW' },
+      },
+    });
+
+    // Notify assignee
+    if (assignedUserId) {
+      const assignee = await prisma.user.findUnique({ where: { id: assignedUserId } });
+      if (assignee) {
+        await notificationGateway.emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
+          instanceId: instance.id,
+          workflowName: instance.definition?.name,
+          senderName: actor.name || 'Unknown',
+          comment,
+        }, { userId: assignee.id, email: assignee.email, name: assignee.displayName }, actor);
+      }
+    } else if (assignedRole) {
+      // Notify all users with the role
+      const assignees = await prisma.user.findMany({
+        where: { roleAssignments: { some: { role: { code: assignedRole } } } },
+      });
+      for (const assignee of assignees) {
+        await notificationGateway.emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
+          instanceId: instance.id,
+          workflowName: instance.definition?.name,
+          senderName: actor.name || 'Unknown',
+          comment,
+        }, { userId: assignee.id, email: assignee.email, name: assignee.displayName }, actor);
+      }
+    }
+
+    const updated = await prisma.workflowInstance.findUnique({
+      where: { id: instanceId },
+      include: { definition: true, initiatedBy: true, assignedUser: true },
+    });
+    return ok(updated);
+  } catch (error) {
+    console.error('[workflowEngine.sendForReview]', error);
+    return err('SEND_FOR_REVIEW_FAILED', error.message);
+  }
+}
+
+/**
+ * Send for approval (In Review → Approval stage with new assignee)
+ */
+export async function sendForApproval(instanceId, { assignedUserId, assignedRole, comment }, actor) {
+  try {
+    if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
+    if (!assignedUserId && !assignedRole) {
+      return err('INVALID_INPUT', 'Must assign to user or role');
+    }
+
+    const instance = await prisma.workflowInstance.findUnique({
+      where: { id: instanceId },
+      include: { initiatedBy: true, definition: true },
+    });
+    if (!instance) return err('NOT_FOUND', 'Workflow instance not found');
+    if (instance.status !== 'IN_REVIEW') {
+      return err('INVALID_STATE', `Workflow is ${instance.status}, cannot send for approval`);
+    }
+
+    await prisma.workflowInstance.update({
+      where: { id: instanceId },
+      data: {
+        assignedUserId,
+        assignedRole,
+      },
+    });
+
+    await prisma.workflowHistory.create({
+      data: {
+        instanceId,
+        eventType: 'SENT_FOR_APPROVAL',
+        actorId: actor.userId,
+        comment,
+        payload: { assignedUserId, assignedRole },
+      },
+    });
+
+    // Notify new assignee
+    if (assignedUserId) {
+      const assignee = await prisma.user.findUnique({ where: { id: assignedUserId } });
+      if (assignee) {
+        await notificationGateway.emit(EVENTS.WORKFLOW_SENT_FOR_APPROVAL, {
+          instanceId: instance.id,
+          workflowName: instance.definition?.name,
+          senderName: actor.name || 'Unknown',
+          comment,
+        }, { userId: assignee.id, email: assignee.email, name: assignee.displayName }, actor);
+      }
+    } else if (assignedRole) {
+      const assignees = await prisma.user.findMany({
+        where: { roleAssignments: { some: { role: { code: assignedRole } } } },
+      });
+      for (const assignee of assignees) {
+        await notificationGateway.emit(EVENTS.WORKFLOW_SENT_FOR_APPROVAL, {
+          instanceId: instance.id,
+          workflowName: instance.definition?.name,
+          senderName: actor.name || 'Unknown',
+          comment,
+        }, { userId: assignee.id, email: assignee.email, name: assignee.displayName }, actor);
+      }
+    }
+
+    const updated = await prisma.workflowInstance.findUnique({
+      where: { id: instanceId },
+      include: { definition: true, initiatedBy: true, assignedUser: true },
+    });
+    return ok(updated);
+  } catch (error) {
+    console.error('[workflowEngine.sendForApproval]', error);
+    return err('SEND_FOR_APPROVAL_FAILED', error.message);
+  }
+}
+
+/**
+ * Approve workflow (In Review → Approved)
+ */
+export async function approveWorkflow(instanceId, { comment }, actor) {
+  try {
+    if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
+
+    const instance = await prisma.workflowInstance.findUnique({
+      where: { id: instanceId },
+      include: { initiatedBy: true, definition: true },
+    });
+    if (!instance) return err('NOT_FOUND', 'Workflow instance not found');
+    if (instance.status !== 'IN_REVIEW') {
+      return err('INVALID_STATE', `Workflow is ${instance.status}, cannot approve`);
+    }
+
+    // Check if actor is assigned user or has assigned role
+    const isAssignedUser = instance.assignedUserId === actor.userId;
+    const hasAssignedRole = instance.assignedRole && actor.roles?.includes(instance.assignedRole);
+    const isAdmin = actor.roles?.includes('super_admin') || actor.roles?.includes('admin');
+    
+    if (!isAssignedUser && !hasAssignedRole && !isAdmin) {
+      return err('ACCESS_DENIED', 'You are not assigned to this workflow');
+    }
+
+    await prisma.workflowInstance.update({
+      where: { id: instanceId },
+      data: {
+        status: 'APPROVED',
+        completedAt: new Date(),
+      },
+    });
+
+    await prisma.workflowHistory.create({
+      data: {
+        instanceId,
+        eventType: 'APPROVED',
+        actorId: actor.userId,
+        comment,
+        payload: { previousStatus: 'IN_REVIEW', newStatus: 'APPROVED' },
+      },
+    });
+
+    // Notify initiator
+    await notificationGateway.emit(EVENTS.WORKFLOW_APPROVED, {
+      instanceId: instance.id,
+      workflowName: instance.definition?.name,
+      approverName: actor.name || 'Unknown',
+    }, { userId: instance.initiatedBy.id, email: instance.initiatedBy.email, name: instance.initiatedBy.displayName }, actor);
+    
+    await notificationGateway.emit(EVENTS.WORKFLOW_COMPLETED, {
+      instanceId: instance.id,
+      workflowName: instance.definition?.name,
+    }, { userId: instance.initiatedBy.id, email: instance.initiatedBy.email, name: instance.initiatedBy.displayName }, actor);
+
+    const updated = await prisma.workflowInstance.findUnique({
+      where: { id: instanceId },
+      include: { definition: true, initiatedBy: true },
+    });
+    return ok(updated);
+  } catch (error) {
+    console.error('[workflowEngine.approveWorkflow]', error);
+    return err('APPROVE_FAILED', error.message);
+  }
+}
+
+/**
+ * Reject workflow (In Review → Rejected)
+ */
+export async function rejectWorkflow(instanceId, { comment, reason }, actor) {
+  try {
+    if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
+    if (!reason) return err('INVALID_INPUT', 'Rejection reason is required');
+
+    const instance = await prisma.workflowInstance.findUnique({
+      where: { id: instanceId },
+      include: { initiatedBy: true, definition: true },
+    });
+    if (!instance) return err('NOT_FOUND', 'Workflow instance not found');
+    if (instance.status !== 'IN_REVIEW') {
+      return err('INVALID_STATE', `Workflow is ${instance.status}, cannot reject`);
+    }
+
+    // Check if actor is assigned user or has assigned role
+    const isAssignedUser = instance.assignedUserId === actor.userId;
+    const hasAssignedRole = instance.assignedRole && actor.roles?.includes(instance.assignedRole);
+    const isAdmin = actor.roles?.includes('super_admin') || actor.roles?.includes('admin');
+    
+    if (!isAssignedUser && !hasAssignedRole && !isAdmin) {
+      return err('ACCESS_DENIED', 'You are not assigned to this workflow');
+    }
+
+    await prisma.workflowInstance.update({
+      where: { id: instanceId },
+      data: {
+        status: 'REJECTED',
+        rejectionReason: reason,
+      },
+    });
+
+    await prisma.workflowHistory.create({
+      data: {
+        instanceId,
+        eventType: 'REJECTED',
+        actorId: actor.userId,
+        comment,
+        payload: { reason, previousStatus: 'IN_REVIEW', newStatus: 'REJECTED' },
+      },
+    });
+
+    // Notify initiator
+    await notificationGateway.emit(EVENTS.WORKFLOW_REJECTED, {
+      instanceId: instance.id,
+      workflowName: instance.definition?.name,
+      rejecterName: actor.name || 'Unknown',
+      reason,
+    }, { userId: instance.initiatedBy.id, email: instance.initiatedBy.email, name: instance.initiatedBy.displayName }, actor);
+
+    const updated = await prisma.workflowInstance.findUnique({
+      where: { id: instanceId },
+      include: { definition: true, initiatedBy: true },
+    });
+    return ok(updated);
+  } catch (error) {
+    console.error('[workflowEngine.rejectWorkflow]', error);
+    return err('REJECT_FAILED', error.message);
+  }
+}
+
+/**
+ * Revise workflow (Rejected → Draft)
+ */
+export async function reviseWorkflow(instanceId, { comment }, actor) {
+  try {
+    if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
+
+    const instance = await prisma.workflowInstance.findUnique({
+      where: { id: instanceId },
+      include: { initiatedBy: true, definition: true },
+    });
+    if (!instance) return err('NOT_FOUND', 'Workflow instance not found');
+    if (instance.status !== 'REJECTED') {
+      return err('INVALID_STATE', `Workflow is ${instance.status}, cannot revise`);
+    }
+    if (instance.revisionCount >= 20) {
+      return err('REVISION_LIMIT', 'Maximum revision limit (20) reached');
+    }
+
+    await prisma.workflowInstance.update({
+      where: { id: instanceId },
+      data: {
+        status: 'DRAFT',
+        revisionCount: { increment: 1 },
+        lastRevisedAt: new Date(),
+        assignedUserId: null,
+        assignedRole: null,
+        rejectionReason: null,
+      },
+    });
+
+    await prisma.workflowHistory.create({
+      data: {
+        instanceId,
+        eventType: 'REVISED',
+        actorId: actor.userId,
+        comment,
+        payload: { 
+          revisionCount: instance.revisionCount + 1,
+          previousStatus: 'REJECTED', 
+          newStatus: 'DRAFT' 
+        },
+      },
+    });
+
+    // Notify initiator
+    await notificationGateway.emit(EVENTS.WORKFLOW_REVISED, {
+      instanceId: instance.id,
+      workflowName: instance.definition?.name,
+      revisionCount: instance.revisionCount + 1,
+      comment,
+    }, { userId: instance.initiatedBy.id, email: instance.initiatedBy.email, name: instance.initiatedBy.displayName }, actor);
+
+    const updated = await prisma.workflowInstance.findUnique({
+      where: { id: instanceId },
+      include: { definition: true, initiatedBy: true },
+    });
+    return ok(updated);
+  } catch (error) {
+    console.error('[workflowEngine.reviseWorkflow]', error);
+    return err('REVISE_FAILED', error.message);
+  }
+}
+
+/**
+ * Cancel workflow (Any active state → Cancelled)
+ */
+export async function cancelWorkflow(instanceId, { comment }, actor) {
+  try {
+    if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
+
+    const instance = await prisma.workflowInstance.findUnique({
+      where: { id: instanceId },
+      include: { initiatedBy: true, definition: true },
+    });
+    if (!instance) return err('NOT_FOUND', 'Workflow instance not found');
+    if (instance.status === 'APPROVED' || instance.status === 'CANCELLED') {
+      return err('INVALID_STATE', `Workflow is ${instance.status}, cannot cancel`);
+    }
+
+    await prisma.workflowInstance.update({
+      where: { id: instanceId },
+      data: {
+        status: 'CANCELLED',
+        completedAt: new Date(),
+      },
+    });
+
+    await prisma.workflowHistory.create({
+      data: {
+        instanceId,
+        eventType: 'CANCELLED',
+        actorId: actor.userId,
+        comment,
+        payload: { previousStatus: instance.status, newStatus: 'CANCELLED' },
+      },
+    });
+
+    // Notify initiator
+    await notificationGateway.emit(EVENTS.WORKFLOW_CANCELLED, {
+      instanceId: instance.id,
+      workflowName: instance.definition?.name,
+      comment,
+    }, { userId: instance.initiatedBy.id, email: instance.initiatedBy.email, name: instance.initiatedBy.displayName }, actor);
+
+    const updated = await prisma.workflowInstance.findUnique({
+      where: { id: instanceId },
+      include: { definition: true, initiatedBy: true },
+    });
+    return ok(updated);
+  } catch (error) {
+    console.error('[workflowEngine.cancelWorkflow]', error);
+    return err('CANCEL_FAILED', error.message);
   }
 }
 
@@ -596,4 +1040,11 @@ export default {
   listWorkflowInstances,
   getWorkflowHistory,
   getMyPendingTasks,
+  submitWorkflow,
+  sendForReview,
+  sendForApproval,
+  approveWorkflow,
+  rejectWorkflow,
+  reviseWorkflow,
+  cancelWorkflow,
 };

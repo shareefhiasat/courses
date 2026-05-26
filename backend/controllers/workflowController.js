@@ -101,6 +101,74 @@ export async function getMyTasks(req, res) {
   return res.json(result);
 }
 
+// --------------------------------------------------------------------------
+// Simplified Single-Stage Workflow Actions
+// --------------------------------------------------------------------------
+
+export async function submitInstance(req, res) {
+  const { instanceId } = req.params;
+  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
+  const result = await workflowEngine.submitWorkflow(instanceId, actor);
+  if (!result.success) return res.status(400).json(result);
+  return res.json(result);
+}
+
+export async function sendForReview(req, res) {
+  const { instanceId } = req.params;
+  const { assignedUserId, assignedRole, comment } = req.body;
+  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
+  const result = await workflowEngine.sendForReview(instanceId, { assignedUserId, assignedRole, comment }, actor);
+  if (!result.success) return res.status(400).json(result);
+  return res.json(result);
+}
+
+export async function sendForApproval(req, res) {
+  const { instanceId } = req.params;
+  const { assignedUserId, assignedRole, comment } = req.body;
+  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
+  const result = await workflowEngine.sendForApproval(instanceId, { assignedUserId, assignedRole, comment }, actor);
+  if (!result.success) return res.status(400).json(result);
+  return res.json(result);
+}
+
+export async function approveInstanceSimplified(req, res) {
+  const { instanceId } = req.params;
+  const { comment } = req.body;
+  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
+  const result = await workflowEngine.approveWorkflow(instanceId, { comment }, actor);
+  if (!result.success) return res.status(400).json(result);
+  return res.json(result);
+}
+
+export async function rejectInstanceSimplified(req, res) {
+  const { instanceId } = req.params;
+  const { comment, reason } = req.body;
+  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
+  const result = await workflowEngine.rejectWorkflow(instanceId, { comment, reason }, actor);
+  if (!result.success) return res.status(400).json(result);
+  return res.json(result);
+}
+
+export async function reviseInstance(req, res) {
+  const { instanceId } = req.params;
+  const { comment } = req.body;
+  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
+  const result = await workflowEngine.reviseWorkflow(instanceId, { comment }, actor);
+  if (!result.success) return res.status(400).json(result);
+  return res.json(result);
+}
+
+export async function cancelInstance(req, res) {
+  const { instanceId } = req.params;
+  const { comment } = req.body;
+  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
+  console.log('[cancelInstance] Request received:', { instanceId, comment, actor });
+  const result = await workflowEngine.cancelWorkflow(instanceId, { comment }, actor);
+  console.log('[cancelInstance] Result:', result);
+  if (!result.success) return res.status(400).json(result);
+  return res.json(result);
+}
+
 export default {
   createDefinition,
   getDefinition,
@@ -112,4 +180,11 @@ export default {
   rejectInstance,
   getInstanceHistory,
   getMyTasks,
+  submitInstance,
+  sendForReview,
+  sendForApproval,
+  approveInstanceSimplified,
+  rejectInstanceSimplified,
+  reviseInstance,
+  cancelInstance,
 };

@@ -36,6 +36,9 @@ export default function FileRoster({
   const [openMenuId, setOpenMenuId] = useState(null);
   const [openFolderMenuId, setOpenFolderMenuId] = useState(null);
   const [showFolders, setShowFolders] = useState(true);
+  const [showVersion, setShowVersion] = useState(false);
+  const [showSize, setShowSize] = useState(false);
+  const [showOwner, setShowOwner] = useState(false);
   const [menuPositionAbove, setMenuPositionAbove] = useState(false);
   const folderMenuRef = useRef(null);
   const fileMenuRef = useRef(null);
@@ -397,28 +400,84 @@ export default function FileRoster({
               onChange={(checked) => onSelectAll?.(checked)}
               style={{ width: 16, height: 16 }}
             />
-            <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ width: 40, display: 'flex', justifyContent: 'center', borderRight: '1px solid var(--border, #e5e7eb)' }}>
               {getThemedIcon('ui', 'star', 14, 'muted')}
             </div>
-            <div style={{ flex: 2, textAlign: isRTL ? 'right' : 'left' }}>{t('drive.name') || 'Name'}</div>
-            <div style={{ flex: 1, textAlign: isRTL ? 'right' : 'left' }}>{t('drive.owner') || 'Owner'}</div>
-            <div style={{ flex: 1, textAlign: isRTL ? 'right' : 'left' }}>{t('drive.location') || 'Location'}</div>
-            <div style={{ width: 180, textAlign: isRTL ? 'right' : 'left' }}>
+            <div style={{ flex: 1.2, textAlign: isRTL ? 'right' : 'left', borderRight: '1px solid var(--border, #e5e7eb)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <span>{t('drive.name') || 'Name'}</span>
+                <button
+                  onClick={() => setShowFolders(!showFolders)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    padding: 2,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    opacity: showFolders ? 1 : 0.4,
+                  }}
+                  title={showFolders ? t('drive.hideFolder') || 'Hide folders' : t('drive.showFolder') || 'Show folders'}
+                >
+                  {getThemedIcon('ui', showFolders ? 'folder' : 'folder_open', 14, showFolders ? 'primary' : 'muted')}
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowOwner(!showOwner)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: 4,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                opacity: showOwner ? 1 : 0.4,
+              }}
+              title={showOwner ? t('drive.hideOwner') || 'Hide owner' : t('drive.showOwner') || 'Show owner'}
+            >
+              {getThemedIcon('ui', 'user', 14, showOwner ? 'primary' : 'muted')}
+            </button>
+            <div style={{ width: 280, textAlign: isRTL ? 'right' : 'left', borderRight: '1px solid var(--border, #e5e7eb)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
               {t('drive.status') || 'Status'}
             </div>
-            <div style={{ width: 80, textAlign: isRTL ? 'right' : 'left' }}>
-              {t('drive.version') || 'Version'}
-            </div>
-            <div style={{ width: 160, textAlign: isRTL ? 'left' : 'right' }}>
+            <button
+              onClick={() => setShowVersion(!showVersion)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: 4,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                opacity: showVersion ? 1 : 0.4,
+              }}
+              title={showVersion ? t('drive.hideVersion') || 'Hide version' : t('drive.showVersion') || 'Show version'}
+            >
+              {getThemedIcon('ui', 'tag', 14, showVersion ? 'primary' : 'muted')}
+            </button>
+            <div style={{ width: 80, textAlign: isRTL ? 'left' : 'right', borderRight: '1px solid var(--border, #e5e7eb)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
               {t('drive.created') || 'Created'}
             </div>
-            <div style={{ width: 80, textAlign: isRTL ? 'left' : 'right' }}>
-              {t('drive.size') || 'Size'}
-            </div>
+            <button
+              onClick={() => setShowSize(!showSize)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: 4,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                opacity: showSize ? 1 : 0.4,
+              }}
+              title={showSize ? t('drive.hideSize') || 'Hide size' : t('drive.showSize') || 'Show size'}
+            >
+              {getThemedIcon('ui', 'hard_drive', 14, showSize ? 'primary' : 'muted')}
+            </button>
             <div style={{ width: 40 }}></div>
           </div>
 
-          {filteredFolders.length > 0 && (
+          {showFolders && filteredFolders.length > 0 && (
             <div
               style={{
                 padding: '0.5rem 1rem',
@@ -435,7 +494,7 @@ export default function FileRoster({
             </div>
           )}
 
-          {filteredFolders.map((folder) => (
+          {showFolders && filteredFolders.map((folder) => (
             <React.Fragment key={`folder-${folder.id}`}>
               <div
                 onMouseEnter={() => setHoveredId(folder.id)}
@@ -468,7 +527,7 @@ export default function FileRoster({
                 onClick={(e) => e.stopPropagation()}
                 style={{ width: 16, height: 16 }}
               />
-              <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
+              <div style={{ width: 40, display: 'flex', justifyContent: 'center', borderRight: '1px solid var(--border, #e5e7eb)' }}>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -492,7 +551,7 @@ export default function FileRoster({
                   }
                 </button>
               </div>
-              <div style={{ flex: 2, display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+              <div style={{ flex: 1.2, display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, borderRight: '1px solid var(--border, #e5e7eb)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
                 <div
                   style={{
                     width: 40,
@@ -519,48 +578,55 @@ export default function FileRoster({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {folder.name}
+                    {folder.name.length > 80 ? `${folder.name.substring(0, 80)}...` : folder.name}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
                     {t('drive.folder') || 'Folder'}
                   </div>
                 </div>
               </div>
-              <div style={{ flex: 1, fontSize: '0.875rem', color: 'var(--text-secondary, #374151)' }}>
-                {formatOwnerName(folder.owner)}
-              </div>
-              <div style={{ flex: 1, fontSize: '0.875rem', color: 'var(--text-secondary, #374151)' }}>
-                {folder.path || '—'}
-              </div>
+              {showOwner && (
+                <div style={{ width: 100, fontSize: '0.875rem', color: 'var(--text-secondary, #374151)', borderRight: '1px solid var(--border, #e5e7eb)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+                  {formatOwnerName(folder.owner)}
+                </div>
+              )}
               <div
                 style={{
-                  width: 120,
+                  width: 280,
                   textAlign: isRTL ? 'right' : 'left',
                   fontSize: '0.875rem',
                   color: 'var(--text-muted, #6b7280)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: isRTL ? 'flex-end' : 'flex-start',
+                  borderRight: '1px solid var(--border, #e5e7eb)',
+                  paddingRight: isRTL ? 0 : '0.5rem',
+                  paddingLeft: isRTL ? '0.5rem' : 0,
                 }}
               >
                 —
               </div>
+              {showVersion && (
+                <div
+                  style={{
+                    width: 80,
+                    textAlign: isRTL ? 'right' : 'left',
+                    fontSize: '0.875rem',
+                    color: 'var(--text-muted, #6b7280)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: isRTL ? 'flex-end' : 'flex-start',
+                    borderRight: '1px solid var(--border, #e5e7eb)',
+                    paddingRight: isRTL ? 0 : '0.5rem',
+                    paddingLeft: isRTL ? '0.5rem' : 0,
+                  }}
+                >
+                  —
+                </div>
+              )}
               <div
                 style={{
                   width: 80,
-                  textAlign: isRTL ? 'right' : 'left',
-                  fontSize: '0.875rem',
-                  color: 'var(--text-muted, #6b7280)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: isRTL ? 'flex-end' : 'flex-start',
-                }}
-              >
-                —
-              </div>
-              <div
-                style={{
-                  width: 160,
                   textAlign: isRTL ? 'left' : 'right',
                   fontSize: '0.875rem',
                   color: 'var(--text-muted, #6b7280)',
@@ -569,23 +635,31 @@ export default function FileRoster({
                   justifyContent: isRTL ? 'flex-start' : 'flex-end',
                   whiteSpace: 'pre-line',
                   lineHeight: 1.2,
+                  borderRight: '1px solid var(--border, #e5e7eb)',
+                  paddingRight: isRTL ? 0 : '0.5rem',
+                  paddingLeft: isRTL ? '0.5rem' : 0,
                 }}
               >
                 {formatDateTime(folder.createdAt)}
               </div>
-              <div
-                style={{
-                  width: 80,
-                  textAlign: isRTL ? 'left' : 'right',
-                  fontSize: '0.875rem',
-                  color: 'var(--text-muted, #6b7280)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: isRTL ? 'flex-start' : 'flex-end',
-                }}
-              >
-                —
-              </div>
+              {showSize && (
+                <div
+                  style={{
+                    width: 70,
+                    textAlign: isRTL ? 'left' : 'right',
+                    fontSize: '0.875rem',
+                    color: 'var(--text-muted, #6b7280)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: isRTL ? 'flex-start' : 'flex-end',
+                    borderRight: '1px solid var(--border, #e5e7eb)',
+                    paddingRight: isRTL ? 0 : '0.5rem',
+                    paddingLeft: isRTL ? '0.5rem' : 0,
+                  }}
+                >
+                  —
+                </div>
+              )}
               <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
                 <button
                   onClick={(e) => {
@@ -757,7 +831,7 @@ export default function FileRoster({
                   onClick={(e) => e.stopPropagation()}
                   style={{ width: 16, height: 16 }}
                 />
-                <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
+                <div style={{ width: 40, display: 'flex', justifyContent: 'center', borderRight: '1px solid var(--border, #e5e7eb)' }}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -781,7 +855,7 @@ export default function FileRoster({
                     }
                   </button>
                 </div>
-                <div style={{ flex: 2, display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                <div style={{ flex: 1.2, display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, borderRight: '1px solid var(--border, #e5e7eb)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
                   <div
                     style={{
                       width: 36,
@@ -824,45 +898,53 @@ export default function FileRoster({
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {file.name}
+                      {file.name.length > 80 ? `${file.name.substring(0, 80)}...` : file.name}
                     </div>
                   </div>
                 </div>
-                <div style={{ flex: 1, fontSize: '0.875rem', color: 'var(--text-secondary, #374151)' }}>
-                  {formatOwnerName(file.owner)}
-                </div>
-                <div style={{ flex: 1, fontSize: '0.875rem', color: 'var(--text-secondary, #374151)' }}>
-                  {file.location || '—'}
-                </div>
+                {showOwner && (
+                  <div style={{ width: 100, fontSize: '0.875rem', color: 'var(--text-secondary, #374151)', borderRight: '1px solid var(--border, #e5e7eb)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+                    {formatOwnerName(file.owner)}
+                  </div>
+                )}
                 <div
                   style={{
-                    width: 120,
+                    width: 280,
                     textAlign: isRTL ? 'right' : 'left',
                     fontSize: '0.875rem',
                     color: 'var(--text-muted, #6b7280)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: isRTL ? 'flex-end' : 'flex-start',
+                    borderRight: '1px solid var(--border, #e5e7eb)',
+                    paddingRight: isRTL ? 0 : '0.5rem',
+                    paddingLeft: isRTL ? '0.5rem' : 0,
                   }}
                 >
                   <StatusColumn file={file} onClick={() => onFileOpen?.(file)} />
                 </div>
+                {showVersion && (
+                  <div
+                    style={{
+                      width: 'auto',
+                      minWidth: 60,
+                      textAlign: isRTL ? 'right' : 'left',
+                      fontSize: '0.875rem',
+                      color: 'var(--text-muted, #6b7280)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: isRTL ? 'flex-end' : 'flex-start',
+                      borderRight: '1px solid var(--border, #e5e7eb)',
+                      paddingRight: isRTL ? 0 : '0.5rem',
+                      paddingLeft: isRTL ? '0.5rem' : 0,
+                    }}
+                  >
+                    {file.versionCount > 1 ? `${file.versionNumber || 1}/${file.versionCount}` : `${file.versionNumber || 1}`}
+                  </div>
+                )}
                 <div
                   style={{
                     width: 80,
-                    textAlign: isRTL ? 'right' : 'left',
-                    fontSize: '0.875rem',
-                    color: 'var(--text-muted, #6b7280)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: isRTL ? 'flex-end' : 'flex-start',
-                  }}
-                >
-                  {file.versionCount > 1 ? `${file.versionNumber || 1}/${file.versionCount}` : `${file.versionNumber || 1}`}
-                </div>
-                <div
-                  style={{
-                    width: 160,
                     textAlign: isRTL ? 'left' : 'right',
                     fontSize: '0.875rem',
                     color: 'var(--text-muted, #6b7280)',
@@ -871,23 +953,31 @@ export default function FileRoster({
                     justifyContent: isRTL ? 'flex-start' : 'flex-end',
                     whiteSpace: 'pre-line',
                     lineHeight: 1.2,
+                    borderRight: '1px solid var(--border, #e5e7eb)',
+                    paddingRight: isRTL ? 0 : '0.5rem',
+                    paddingLeft: isRTL ? '0.5rem' : 0,
                   }}
                 >
                   {formatDateTime(file.createdAt)}
                 </div>
-                <div
-                  style={{
-                    width: 80,
-                    textAlign: isRTL ? 'left' : 'right',
-                    fontSize: '0.875rem',
-                    color: 'var(--text-muted, #6b7280)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: isRTL ? 'flex-start' : 'flex-end',
-                  }}
-                >
-                  {formatSize(file.size)}
-                </div>
+                {showSize && (
+                  <div
+                    style={{
+                      width: 70,
+                      textAlign: isRTL ? 'left' : 'right',
+                      fontSize: '0.875rem',
+                      color: 'var(--text-muted, #6b7280)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: isRTL ? 'flex-start' : 'flex-end',
+                      borderRight: '1px solid var(--border, #e5e7eb)',
+                      paddingRight: isRTL ? 0 : '0.5rem',
+                      paddingLeft: isRTL ? '0.5rem' : 0,
+                    }}
+                  >
+                    {formatSize(file.size)}
+                  </div>
+                )}
                 <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
                     <button
                       onClick={(e) => {

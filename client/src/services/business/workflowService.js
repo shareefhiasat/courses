@@ -135,8 +135,8 @@ export const getWorkflowDocumentById = async (documentId) => {
 export const sendWorkflowDocument = async (documentId, sendData) => {
   try {
     console.log(`[${serviceName}] Sending workflow document:`, { documentId, sendData });
-    
-    const response = await apiService.post(`/workflow/documents/${documentId}/send`, sendData);
+
+    const response = await apiService.post(`/workflow-documents/${documentId}/send`, sendData);
     
     if (response.success) {
       console.log(`[${serviceName}] ✅ Document sent successfully`);

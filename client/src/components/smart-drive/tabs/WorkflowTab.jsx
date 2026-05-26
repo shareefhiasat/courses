@@ -1,10 +1,17 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
-import { getIcon, getIconWithColor } from '@constants/iconTypes';
+import { getIcon, getIconWithColor, getThemedIcon } from '@constants/iconTypes';
 import { apiService } from '@services/api/apiService';
 import workflowService from '@services/business/workflowService';
+import { updateWorkflowDocumentStatus, withdrawWorkflowDocument } from '@services/api/workflow-documents-api';
+import { WORKFLOW_STATUS_CONFIG } from '@constants/driveConstants';
+import { ROLE_STRINGS } from '@utils/userUtils';
 import Modal from '@ui/Modal/Modal';
+import Select from '@ui/Select/Select';
+import Tabs from '@ui/Tabs/Tabs';
+import { getAllUsers } from '@services/business/userService';
+import { handleFilePreview } from '@utils/fileUtils';
 
 const formatDateHeader = (dateStr, t) => {
   const date = new Date(dateStr);
@@ -30,71 +37,45 @@ const formatSize = (bytes) => {
   return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
 };
 
-const STATUS_STYLES = {
-  SUBMITTED: {
-    color: '#2563eb',
-    bg: 'rgba(37, 99, 235, 0.1)',
-    borderColor: '#93c5fd',
-  },
-  IN_PROGRESS: {
-    color: '#d97706',
-    bg: 'rgba(217, 119, 6, 0.1)',
-    borderColor: '#fcd34d',
-  },
-  APPROVED: {
-    color: '#16a34a',
-    bg: 'rgba(22, 163, 74, 0.1)',
-    borderColor: '#86efac',
-  },
-  COMPLETED: {
-    color: '#16a34a',
-    bg: 'rgba(22, 163, 74, 0.1)',
-    borderColor: '#86efac',
-  },
-  REJECTED: {
-    color: '#dc2626',
-    bg: 'rgba(220, 38, 38, 0.1)',
-    borderColor: '#fca5a5',
-  },
-  WITHDRAWN: {
-    color: '#6b7280',
-    bg: 'rgba(107, 114, 128, 0.1)',
-    borderColor: '#d1d5db',
-  },
+// Workflow action constants
+const WORKFLOW_ACTIONS = {
+  SUBMIT: 'submit',
+  SEND_FOR_REVIEW: 'send_for_review',
+  SEND_FOR_APPROVAL: 'send_for_approval',
+  APPROVE: 'approve',
+  REJECT: 'reject',
+  REVISE: 'revise',
+  CANCEL: 'cancel'
 };
 
-const WORKFLOW_TYPE_STYLES = {
-  ATTENDANCE_DAILY: {
-    color: '#7c3aed',
-    bg: 'rgba(124, 58, 237, 0.1)',
-  },
-  ATTENDANCE_WEEKLY: {
-    color: '#db2777',
-    bg: 'rgba(219, 39, 119, 0.1)',
-  },
-  GENERAL: {
-    color: '#0891b2',
-    bg: 'rgba(8, 145, 178, 0.1)',
-  },
+// Action icon mapping
+const ACTION_ICONS = {
+  [WORKFLOW_ACTIONS.SUBMIT]: 'send',
+  [WORKFLOW_ACTIONS.APPROVE]: 'check_circle',
+  [WORKFLOW_ACTIONS.REJECT]: 'x_circle',
+  [WORKFLOW_ACTIONS.CANCEL]: 'alert_circle',
+  [WORKFLOW_ACTIONS.REVISE]: 'edit'
 };
 
-const DEFAULT_STATUS = {
-  color: 'var(--text-muted, #6b7280)',
-  bg: 'var(--background-secondary, #f3f4f6)',
-  borderColor: 'var(--border, #e5e7eb)',
+// Action color mapping
+const ACTION_COLORS = {
+  [WORKFLOW_ACTIONS.SUBMIT]: '#3b82f6', // Blue
+  [WORKFLOW_ACTIONS.APPROVE]: '#8b5cf6', // Purple
+  [WORKFLOW_ACTIONS.REJECT]: '#dc2626', // Red
+  [WORKFLOW_ACTIONS.CANCEL]: '#dc2626', // Red
+  [WORKFLOW_ACTIONS.REVISE]: '#8b5cf6', // Purple
+  [WORKFLOW_ACTIONS.SEND_FOR_REVIEW]: '#6b7280', // Gray
+  [WORKFLOW_ACTIONS.SEND_FOR_APPROVAL]: '#8b5cf6' // Purple
 };
 
-function getStatusStyle(status) {
-  return STATUS_STYLES[status?.toUpperCase()] || {
-    color: '#6b7280',
-    bg: 'rgba(107, 114, 128, 0.1)',
-    borderColor: '#d1d5db',
-  };
-}
+// Assignee type constants
+const ASSIGNEE_TYPES = {
+  USER: 'user',
+  ROLE: 'role'
+};
 
-function getWorkflowTypeStyle(type) {
-  return WORKFLOW_TYPE_STYLES[type] || WORKFLOW_TYPE_STYLES.GENERAL;
-}
+const getActionColor = (action) => ACTION_COLORS[action] || '#8b5cf6';
+const getActionIcon = (action) => ACTION_ICONS[action] || 'edit';
 
 function getRelativeTime(date) {
   if (!date) return '\u2014';
@@ -115,31 +96,39 @@ function getRelativeTime(date) {
 }
 
 function getStepBadgeStyle(status) {
-  if (status === 'COMPLETED' || status === 'APPROVED') {
+  const config = WORKFLOW_STATUS_CONFIG[status?.toLowerCase()];
+  if (!config) {
     return {
-      color: 'var(--status-approved, #16a34a)',
-      bg: 'var(--status-approved-bg, rgba(22, 163, 74, 0.1))',
-    };
-  }
-  if (status === 'IN_PROGRESS' || status === 'PENDING') {
-    return {
-      color: 'var(--status-pending, #d97706)',
-      bg: 'var(--status-pending-bg, rgba(217, 119, 6, 0.1))',
-    };
-  }
-  if (status === 'REJECTED') {
-    return {
-      color: 'var(--status-rejected, #dc2626)',
-      bg: 'var(--status-rejected-bg, rgba(220, 38, 38, 0.1))',
+      color: 'var(--text-muted, #6b7280)',
+      bg: 'var(--background-secondary, #f3f4f6)',
     };
   }
   return {
-    color: 'var(--text-muted, #6b7280)',
-    bg: 'var(--background-secondary, #f3f4f6)',
+    color: config.color,
+    bg: config.bg,
   };
 }
 
-export default function WorkflowTab({ fileId }) {
+const WORKFLOW_TYPE_STYLES = {
+  ATTENDANCE_DAILY: {
+    color: '#7c3aed',
+    bg: 'rgba(124, 58, 237, 0.1)',
+  },
+  ATTENDANCE_WEEKLY: {
+    color: '#db2777',
+    bg: 'rgba(219, 39, 119, 0.1)',
+  },
+  GENERAL: {
+    color: '#0891b2',
+    bg: 'rgba(8, 145, 178, 0.1)',
+  },
+};
+
+function getWorkflowTypeStyle(type) {
+  return WORKFLOW_TYPE_STYLES[type] || WORKFLOW_TYPE_STYLES.GENERAL;
+}
+
+export default function WorkflowTab({ fileId, onRefresh }) {
   const { t } = useLang();
   const navigate = useNavigate();
   const [workflows, setWorkflows] = useState([]);
@@ -152,6 +141,34 @@ export default function WorkflowTab({ fileId }) {
   const [selectedDate, setSelectedDate] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, workflowId: null });
   const [rejectModal, setRejectModal] = useState({ isOpen: false, workflowId: null, reason: '' });
+  const [actionModal, setActionModal] = useState({ isOpen: false, workflowId: null, action: null, comment: '', assignedUserId: null, assignedRole: null, assigneeType: ASSIGNEE_TYPES.USER });
+  const [users, setUsers] = useState([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const commentRef = useRef('');
+
+  const fetchUsers = useCallback(async (searchQuery = '') => {
+    console.log('[WorkflowTab] fetchUsers called with searchQuery:', searchQuery);
+    setSearchingUsers(true);
+    try {
+      const result = await getAllUsers({ search: searchQuery, limit: 50 });
+      console.log('[WorkflowTab] fetchUsers result:', result);
+      if (result.success) {
+        const userList = result.data?.users || result.data || [];
+        console.log('[WorkflowTab] Setting users:', userList.length, 'users');
+        setUsers(userList);
+      }
+    } catch (error) {
+      console.error('[WorkflowTab] Failed to fetch users:', error);
+    } finally {
+      setSearchingUsers(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (actionModal.isOpen && (actionModal.action === 'send_for_review' || actionModal.action === 'send_for_approval' || actionModal.action === 'submit')) {
+      fetchUsers();
+    }
+  }, [actionModal.isOpen, actionModal.action, fetchUsers]);
 
   const fetchWorkflow = useCallback(async () => {
     if (!fileId) return;
@@ -180,33 +197,13 @@ export default function WorkflowTab({ fileId }) {
   }, [fetchWorkflow]);
 
   const getStatusIcon = (status) => {
-    const normalizedStatus = status?.toUpperCase();
-    switch (normalizedStatus) {
-      case 'COMPLETED':
-      case 'APPROVED': return 'check_circle';
-      case 'REJECTED': return 'x_circle';
-      case 'PENDING':
-      case 'IN_PROGRESS':
-      case 'SUBMITTED': return 'clock';
-      case 'WITHDRAWN': return 'alert_circle';
-      default: return 'workflow';
-    }
+    const config = WORKFLOW_STATUS_CONFIG[status?.toLowerCase()];
+    return config?.icon || 'workflow';
   };
 
   const getStatusDescription = (status) => {
-    const normalizedStatus = status?.toUpperCase();
-    switch (normalizedStatus) {
-      case 'DRAFT': return t('workflow.status.draft.desc', 'Workflow is being prepared');
-      case 'SUBMITTED': return t('workflow.status.submitted.desc', 'Submitted for review');
-      case 'PENDING': return t('workflow.status.pending.desc', 'Awaiting review');
-      case 'IN_PROGRESS': return t('workflow.status.inProgress.desc', 'Currently being reviewed');
-      case 'COMPLETED': return t('workflow.status.completed.desc', 'Workflow completed successfully');
-      case 'APPROVED': return t('workflow.status.approved.desc', 'Approved and finalized');
-      case 'REJECTED': return t('workflow.status.rejected.desc', 'Rejected and requires changes');
-      case 'WITHDRAWN': return t('workflow.status.withdrawn.desc', 'Withdrawn by submitter');
-      case 'NEEDS_FEEDBACK': return t('workflow.status.needsFeedback.desc', 'Additional information required');
-      default: return t('workflow.status.unknown.desc', 'Unknown status');
-    }
+    const config = WORKFLOW_STATUS_CONFIG[status?.toLowerCase()];
+    return t(`${config?.labelKey}.desc`, config?.labelKey || 'Unknown status');
   };
 
   const statusCounts = useMemo(() => {
@@ -217,105 +214,9 @@ export default function WorkflowTab({ fileId }) {
     }, {});
   }, [workflows]);
 
-  const getFileType = (file) => {
-    if (!file || !file.mimeType) return 'unknown';
-    const mt = file.mimeType.toLowerCase();
-    const name = (file.name || '').toLowerCase();
-
-    if (mt.startsWith('image/')) return 'image';
-    if (mt.includes('pdf') || name.endsWith('.pdf')) return 'pdf';
-    if (mt.includes('word') || mt.includes('document') || name.endsWith('.doc') || name.endsWith('.docx')) return 'document';
-    if (mt.includes('presentation') || mt.includes('powerpoint') || name.endsWith('.ppt') || name.endsWith('.pptx')) return 'presentation';
-    if (mt.includes('sheet') || mt.includes('excel') || name.endsWith('.xls') || name.endsWith('.xlsx')) return 'spreadsheet';
-    return 'unknown';
-  };
-
   const handleViewSnapshot = async (file, fileVersionId = null) => {
     console.log('🔍 [WorkflowTab] handleViewSnapshot called', { file, fileId: file.id, fileName: file.name, mimeType: file.mimeType, fileVersionId });
-    const fileType = getFileType(file);
-    console.log('🔍 [WorkflowTab] Detected file type:', fileType);
-
-    // For images, use preview endpoint to get inline URL with version support
-    if (fileType === 'image') {
-      try {
-        console.log('🔍 [WorkflowTab] Fetching preview for image');
-        const url = fileVersionId
-          ? `/api/v1/drive/files/${file.id}/preview?versionId=${fileVersionId}`
-          : `/api/v1/drive/files/${file.id}/preview`;
-        const response = await fetch(url);
-        const data = await response.json();
-        console.log('🔍 [WorkflowTab] Image preview response:', data);
-
-        if (data.success && data.payload.url) {
-          console.log('🔍 [WorkflowTab] Opening image preview URL:', data.payload.url);
-          window.open(data.payload.url, '_blank');
-        } else {
-          // Fallback to download if preview fails
-          console.log('🔍 [WorkflowTab] Image preview failed, falling back to download');
-          const downloadUrl = fileVersionId
-            ? `/api/v1/drive/files/${file.id}/download?versionId=${fileVersionId}`
-            : `/api/v1/drive/files/${file.id}/download`;
-          window.open(downloadUrl, '_blank');
-        }
-      } catch (error) {
-        console.error('❌ [WorkflowTab] Failed to get image preview URL:', error);
-        const downloadUrl = fileVersionId
-          ? `/api/v1/drive/files/${file.id}/download?versionId=${fileVersionId}`
-          : `/api/v1/drive/files/${file.id}/download`;
-        window.open(downloadUrl, '_blank');
-      }
-      return;
-    }
-
-    // For PDFs, use the download endpoint (now supports inline for PDFs) with version support
-    if (fileType === 'pdf') {
-      const url = fileVersionId
-        ? `/api/v1/drive/files/${file.id}/download?versionId=${fileVersionId}`
-        : `/api/v1/drive/files/${file.id}/download`;
-      console.log('🔍 [WorkflowTab] Opening PDF in new tab:', url);
-      window.open(url, '_blank');
-      return;
-    }
-
-    // For Office documents, use Collabora in read-only mode with version support
-    if (fileType === 'document' || fileType === 'presentation' || fileType === 'spreadsheet') {
-      try {
-        console.log('🔍 [WorkflowTab] Fetching preview for Office document');
-        const url = fileVersionId
-          ? `/api/v1/drive/files/${file.id}/preview?versionId=${fileVersionId}`
-          : `/api/v1/drive/files/${file.id}/preview`;
-        const response = await fetch(url);
-        const data = await response.json();
-        console.log('🔍 [WorkflowTab] Preview response:', data);
-
-        if (data.success && data.payload.wopiToken) {
-          const collaboraUrl = `https://localhost:9980/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${data.payload.wopiToken}&permission=readonly`;
-          console.log('🔍 [WorkflowTab] Opening Collabora URL:', collaboraUrl);
-          window.open(collaboraUrl, '_blank', 'noopener,noreferrer');
-        } else {
-          // Fallback to download if preview fails
-          console.log('🔍 [WorkflowTab] Preview failed, falling back to download');
-          const downloadUrl = fileVersionId
-            ? `/api/v1/drive/files/${file.id}/download?versionId=${fileVersionId}`
-            : `/api/v1/drive/files/${file.id}/download`;
-          window.open(downloadUrl, '_blank');
-        }
-      } catch (error) {
-        console.error('❌ [WorkflowTab] Failed to get preview URL:', error);
-        const downloadUrl = fileVersionId
-          ? `/api/v1/drive/files/${file.id}/download?versionId=${fileVersionId}`
-          : `/api/v1/drive/files/${file.id}/download`;
-        window.open(downloadUrl, '_blank');
-      }
-      return;
-    }
-
-    // For other file types, just download with version support
-    console.log('🔍 [WorkflowTab] Unknown file type, downloading');
-    const downloadUrl = fileVersionId
-      ? `/api/v1/drive/files/${file.id}/download?versionId=${fileVersionId}`
-      : `/api/v1/drive/files/${file.id}/download`;
-    window.open(downloadUrl, '_blank');
+    await handleFilePreview(file, fileVersionId);
   };
 
   const handleViewWorkflowDetails = useCallback((workflowId) => {
@@ -329,13 +230,14 @@ export default function WorkflowTab({ fileId }) {
       if (result.success) {
         setDeleteModal({ isOpen: false, workflowId: null });
         fetchWorkflow();
+        if (onRefresh) onRefresh();
       } else {
         console.error('Failed to delete workflow:', result.error);
       }
     } catch (error) {
       console.error('Error deleting workflow:', error);
     }
-  }, [deleteModal.workflowId, fetchWorkflow]);
+  }, [deleteModal.workflowId, fetchWorkflow, onRefresh]);
 
   const handleRejectWorkflow = useCallback(async () => {
     if (!rejectModal.workflowId || !rejectModal.reason.trim()) return;
@@ -351,6 +253,78 @@ export default function WorkflowTab({ fileId }) {
       console.error('Error rejecting workflow:', error);
     }
   }, [rejectModal.workflowId, rejectModal.reason, fetchWorkflow]);
+
+  const handleWorkflowAction = useCallback(async () => {
+    if (!actionModal.workflowId || !actionModal.action) return;
+    
+    try {
+      let result;
+      const { workflowId, action, assignedUserId, assignedRole } = actionModal;
+      const comment = commentRef.current || actionModal.comment;
+      
+      switch (action) {
+        case WORKFLOW_ACTIONS.SUBMIT:
+          result = await updateWorkflowDocumentStatus(workflowId, { status: 'SUBMITTED', reason: comment });
+          break;
+        case WORKFLOW_ACTIONS.SEND_FOR_APPROVAL:
+          result = await workflowService.sendWorkflowDocument(workflowId, { assignedUserId, assignedRole, comment });
+          break;
+        case WORKFLOW_ACTIONS.APPROVE:
+          result = await workflowService.approveWorkflowDocument(workflowId, { comment });
+          break;
+        case WORKFLOW_ACTIONS.REJECT:
+          result = await workflowService.rejectWorkflowDocument(workflowId, { comment, reason: comment });
+          break;
+        case WORKFLOW_ACTIONS.REVISE:
+          result = await workflowService.returnWorkflowDocument(workflowId, { comment });
+          break;
+        case WORKFLOW_ACTIONS.CANCEL:
+          result = await withdrawWorkflowDocument(workflowId, { comment });
+          break;
+        default:
+          console.error('Unknown action:', action);
+          return;
+      }
+      
+      if (result.success) {
+        setActionModal({ isOpen: false, workflowId: null, action: null, comment: '', assignedUserId: null, assignedRole: null, assigneeType: ASSIGNEE_TYPES.USER });
+        commentRef.current = '';
+        fetchWorkflow();
+      } else {
+        console.error('Failed to perform workflow action:', result.error);
+      }
+    } catch (error) {
+      console.error('Error performing workflow action:', error);
+    }
+  }, [actionModal, fetchWorkflow]);
+
+  const getAvailableActions = (status, currentUser, workflow) => {
+    const normalizedStatus = status?.toUpperCase();
+    const isInitiator = workflow?.initiatedById === currentUser?.id;
+    const isAssigned = workflow?.assignedUserId === currentUser?.id;
+    const hasAssignedRole = workflow?.assignedRole && currentUser?.roles?.includes(workflow.assignedRole);
+    const isAdmin = currentUser?.roles?.includes('super_admin') || currentUser?.roles?.includes('admin');
+    
+    switch (normalizedStatus) {
+      case 'DRAFT':
+        return ['submit', 'cancel'];
+      case 'SUBMITTED':
+        return ['cancel'];
+      case 'IN_REVIEW':
+        if (isAssigned || hasAssignedRole || isAdmin) {
+          return ['approve', 'reject', 'send_for_approval'];
+        }
+        return ['cancel'];
+      case 'REJECTED':
+        // REJECTED is a final state - no actions available
+        return [];
+      case 'APPROVED':
+      case 'CANCELLED':
+        return [];
+      default:
+        return [];
+    }
+  };
 
   const filteredAndSortedWorkflows = useMemo(() => {
     let filtered = workflows;
@@ -586,11 +560,11 @@ export default function WorkflowTab({ fileId }) {
       }}>
         {Object.entries(statusCounts).map(([status, count]) => {
           const statusIcon = getStatusIcon(status);
-          const statusStyle = getStatusStyle(status);
+          const config = WORKFLOW_STATUS_CONFIG[status?.toLowerCase()];
+          const statusStyle = config ? { color: config.color, bg: config.bg } : { color: '#6b7280', bg: 'rgba(107, 114, 128, 0.1)' };
           return (
             <div
               key={status}
-              title={getStatusDescription(status)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -705,7 +679,8 @@ export default function WorkflowTab({ fileId }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {filteredAndSortedWorkflows.map((workflow) => {
                   const statusIcon = getStatusIcon(workflow.status);
-                  const statusStyle = getStatusStyle(workflow.status);
+                  const config = WORKFLOW_STATUS_CONFIG[workflow.status?.toLowerCase()];
+                  const statusStyle = config ? { color: config.color, bg: config.bg } : { color: '#6b7280', bg: 'rgba(107, 114, 128, 0.1)' };
                   const typeStyle = getWorkflowTypeStyle(workflow.workflowType);
 
                   return (
@@ -826,7 +801,7 @@ export default function WorkflowTab({ fileId }) {
                             handleViewWorkflowDetails(workflow.id);
                           }}
                           style={{
-                            color: 'var(--text-muted, #6b7280)',
+                            color: '#8b5cf6',
                             textDecoration: 'none',
                             whiteSpace: 'nowrap',
                             background: 'none',
@@ -840,46 +815,56 @@ export default function WorkflowTab({ fileId }) {
                             justifyContent: 'center',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = 'var(--color-primary, #3b82f6)';
-                            e.currentTarget.style.color = 'var(--color-primary, #3b82f6)';
+                            e.currentTarget.style.borderColor = '#8b5cf6';
+                            e.currentTarget.style.color = '#8b5cf6';
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
-                            e.currentTarget.style.color = 'var(--text-muted, #6b7280)';
+                            e.currentTarget.style.color = '#8b5cf6';
                           }}
                         >
                           {getIcon('ui', 'workflow', 16, '#8b5cf6')}
                         </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setRejectModal({ isOpen: true, workflowId: workflow.id, reason: '' });
-                          }}
-                          style={{
-                            color: '#dc2626',
-                            textDecoration: 'none',
-                            whiteSpace: 'nowrap',
-                            background: 'none',
-                            border: '1px solid var(--border, #e5e7eb)',
-                            cursor: 'pointer',
-                            padding: '0.375rem',
-                            borderRadius: '0.375rem',
-                            transition: 'all 0.15s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = '#dc2626';
-                            e.currentTarget.style.background = 'rgba(220, 38, 38, 0.1)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
-                            e.currentTarget.style.background = 'transparent';
-                          }}
-                        >
-                          {getIcon('ui', 'x_circle', 16, '#dc2626')}
-                        </button>
+                        
+                        {/* Dynamic Action Buttons */}
+                        {getAvailableActions(workflow.status, { id: 1, roles: ['instructor'] }, workflow).map((action) => (
+                          <button
+                            key={action}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActionModal({ 
+                                isOpen: true, 
+                                workflowId: workflow.id, 
+                                action, 
+                                comment: '', 
+                                assignedUserId: null, 
+                                assignedRole: null 
+                              });
+                            }}
+                            style={{
+                              color: getActionColor(action),
+                              textDecoration: 'none',
+                              whiteSpace: 'nowrap',
+                              background: 'none',
+                              border: '1px solid var(--border, #e5e7eb)',
+                              cursor: 'pointer',
+                              padding: '0.375rem',
+                              borderRadius: '0.375rem',
+                              transition: 'all 0.15s ease',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = getActionColor(action);
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
+                            }}
+                          >
+                            {getIcon('ui', getActionIcon(action), 16, getActionColor(action))}
+                          </button>
+                        ))}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -927,7 +912,8 @@ export default function WorkflowTab({ fileId }) {
           {filteredAndSortedWorkflows.map((workflow) => {
             const statusIcon = getStatusIcon(workflow.status);
             const StatusIcon = statusIcon;
-            const statusStyle = getStatusStyle(workflow.status);
+            const config = WORKFLOW_STATUS_CONFIG[workflow.status?.toLowerCase()];
+            const statusStyle = config ? { color: config.color, bg: config.bg } : { color: '#6b7280', bg: 'rgba(107, 114, 128, 0.1)' };
             const typeStyle = getWorkflowTypeStyle(workflow.workflowType);
 
             return (
@@ -1078,7 +1064,7 @@ export default function WorkflowTab({ fileId }) {
                         <button
                           onClick={() => handleViewWorkflowDetails(workflow.id)}
                           style={{
-                            color: 'var(--text-muted, #6b7280)',
+                            color: '#8b5cf6',
                             textDecoration: 'none',
                             whiteSpace: 'nowrap',
                             background: 'none',
@@ -1092,12 +1078,12 @@ export default function WorkflowTab({ fileId }) {
                             justifyContent: 'center',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = 'var(--color-primary, #3b82f6)';
-                            e.currentTarget.style.color = 'var(--color-primary, #3b82f6)';
+                            e.currentTarget.style.borderColor = '#8b5cf6';
+                            e.currentTarget.style.color = '#8b5cf6';
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
-                            e.currentTarget.style.color = 'var(--text-muted, #6b7280)';
+                            e.currentTarget.style.color = '#8b5cf6';
                           }}
                         >
                           {getIcon('ui', 'workflow', 16, '#8b5cf6')}
@@ -1230,6 +1216,148 @@ export default function WorkflowTab({ fileId }) {
               }}
             >
               {t('drive.reject', 'Reject')}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Workflow Action Modal */}
+      <Modal
+        isOpen={actionModal.isOpen}
+        onClose={() => setActionModal({ isOpen: false, workflowId: null, action: null, comment: '', assignedUserId: null, assignedRole: null, assigneeType: ASSIGNEE_TYPES.USER })}
+        title={actionModal.action ? actionModal.action.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Workflow Action'}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {(actionModal.action === 'send_for_review' || actionModal.action === 'send_for_approval' || actionModal.action === 'submit') && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <Tabs
+                tabs={[
+                  { value: 'user', label: t('drive.people'), icon: getThemedIcon('ui', 'users', 16, 'light') },
+                  { value: 'role', label: t('drive.roles'), icon: getThemedIcon('ui', 'shield', 16, 'light') }
+                ]}
+                activeTab={actionModal.assigneeType}
+                onTabChange={(tab) => setActionModal({ ...actionModal, assigneeType: tab, assignedUserId: null, assignedRole: null })}
+              />
+
+              {actionModal.assigneeType === 'user' && (
+                <div>
+                  <Select
+                    label={t('drive.selectUser')}
+                    options={users.map(u => {
+                      const role = u.roles?.[0] || '';
+                      let roleIcon = null;
+                      if (role === ROLE_STRINGS.ADMIN || role === ROLE_STRINGS.SUPER_ADMIN) {
+                        roleIcon = getThemedIcon('ui', 'shield', 16, 'light');
+                      } else if (role === ROLE_STRINGS.INSTRUCTOR) {
+                        roleIcon = getThemedIcon('ui', 'graduation_cap', 16, 'light');
+                      } else if (role === ROLE_STRINGS.HR) {
+                        roleIcon = getThemedIcon('ui', 'users', 16, 'light');
+                      }
+                      return {
+                        value: u.id,
+                        label: u.displayName || u.email || u.name,
+                        icon: roleIcon
+                      };
+                    })}
+                    value={actionModal.assignedUserId}
+                    onChange={(e) => setActionModal({ ...actionModal, assignedUserId: parseInt(e.target.value), assignedRole: null })}
+                    placeholder={t('drive.searchUsers')}
+                    searchPlaceholder={t('drive.searchUsers')}
+                    disabled={searchingUsers}
+                    onSearchChange={fetchUsers}
+                  />
+                </div>
+              )}
+
+              {actionModal.assigneeType === 'role' && (
+                <div>
+                  <Select
+                    label={t('drive.selectRole') || 'Select Role'}
+                    options={[
+                      { value: ROLE_STRINGS.HR, label: t('roles.hr') },
+                      { value: ROLE_STRINGS.ADMIN, label: t('roles.admin') },
+                      { value: ROLE_STRINGS.INSTRUCTOR, label: t('roles.instructor') }
+                    ]}
+                    value={actionModal.assignedRole}
+                    onChange={(e) => setActionModal({ ...actionModal, assignedRole: e.target.value, assignedUserId: null })}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          
+          <div>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #374151)', marginBottom: '0.5rem' }}>
+              {actionModal.action === 'reject' ? 'Reason (required)' : 'Comment (optional)'}
+            </label>
+            <textarea
+              key={`comment-${actionModal.workflowId}-${actionModal.action}`}
+              defaultValue={actionModal.comment}
+              ref={commentRef}
+              onChange={(e) => {
+                console.log('[WorkflowTab] textarea onChange:', e.target.value);
+                commentRef.current = e.target.value;
+              }}
+              onFocus={(e) => {
+                console.log('[WorkflowTab] textarea onFocus:', actionModal.action);
+              }}
+              onBlur={(e) => {
+                console.log('[WorkflowTab] textarea onBlur:', actionModal.action, 'value:', e.target.value);
+                setActionModal({ ...actionModal, comment: e.target.value });
+              }}
+              placeholder={actionModal.action === 'reject' ? 'Please provide a reason...' : 'Add a comment...'}
+              style={{
+                width: '100%',
+                minHeight: '100px',
+                padding: '0.625rem',
+                borderRadius: '0.5rem',
+                border: '1px solid var(--border, #e5e7eb)',
+                fontSize: '0.875rem',
+                resize: 'vertical',
+              }}
+            />
+          </div>
+          
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <button
+              onClick={() => setActionModal({ isOpen: false, workflowId: null, action: null, comment: '', assignedUserId: null, assignedRole: null })}
+              style={{
+                padding: '0.625rem 1.25rem',
+                borderRadius: '0.5rem',
+                border: '1px solid var(--border, #e5e7eb)',
+                background: 'var(--panel, white)',
+                color: 'var(--text, #374151)',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
+              {t('cancel', 'Cancel')}
+            </button>
+            <button
+              onClick={handleWorkflowAction}
+              disabled={
+                (actionModal.action === 'reject' && !actionModal.comment.trim()) ||
+                ((actionModal.action === 'send_for_review' || actionModal.action === 'send_for_approval') && !actionModal.assignedUserId && !actionModal.assignedRole)
+              }
+              style={{
+                padding: '0.625rem 1.25rem',
+                borderRadius: '0.5rem',
+                border: 'none',
+                background: (
+                  (actionModal.action === 'reject' && !actionModal.comment.trim()) ||
+                  ((actionModal.action === 'send_for_review' || actionModal.action === 'send_for_approval') && !actionModal.assignedUserId && !actionModal.assignedRole)
+                ) ? '#9ca3af' : '#3b82f6',
+                color: 'white',
+                cursor: (
+                  (actionModal.action === 'reject' && !actionModal.comment.trim()) ||
+                  ((actionModal.action === 'send_for_review' || actionModal.action === 'send_for_approval') && !actionModal.assignedUserId && !actionModal.assignedRole)
+                ) ? 'not-allowed' : 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
+              {actionModal.action ? actionModal.action.replace('_', ' ').toUpperCase() : 'Confirm'}
             </button>
           </div>
         </div>

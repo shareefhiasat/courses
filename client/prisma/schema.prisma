@@ -156,10 +156,11 @@ enum ShareSubjectType {
 }
 
 enum WorkflowInstanceStatus {
-  PENDING
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
   APPROVED
   REJECTED
-  REVISED
   CANCELLED
 }
 
@@ -621,6 +622,7 @@ model User {
   fileSharesUserTarget           FileShare[]               @relation("FileShareUserTarget")
   publicLinksCreated             PublicLink[]              @relation("PublicLinkCreator")
   workflowInstancesInitiated     WorkflowInstance[]        @relation("WorkflowInstanceInitiator")
+  workflowInstancesAssigned      WorkflowInstance[]        @relation("WorkflowInstanceAssignedUser")
   workflowStepsAssigned          WorkflowStep[]            @relation("WorkflowStepAssignee")
   workflowStepsActed             WorkflowStep[]            @relation("WorkflowStepActor")
   workflowHistoryActed           WorkflowHistory[]         @relation("WorkflowHistoryActor")
@@ -1597,8 +1599,13 @@ model WorkflowInstance {
   definitionId   String
   fileId         String?
   context        Json                    @default("{}")  // {termId, classId, ...} free-form
-  status         WorkflowInstanceStatus  @default(PENDING)
+  status         WorkflowInstanceStatus  @default(DRAFT)
   currentStageId String?
+  assignedUserId Int?                     // Direct user assignment
+  assignedRole   String?                  // Role-based assignment
+  rejectionReason String?                // Store rejection reason
+  revisionCount  Int     @default(0)      // Track revision cycles
+  lastRevisedAt  DateTime?               // Last revision timestamp
   initiatedById  Int
   completedAt    DateTime?
   createdAt      DateTime                @default(now())
@@ -1608,6 +1615,7 @@ model WorkflowInstance {
   file           File?              @relation(fields: [fileId], references: [id], onDelete: Cascade)
   currentStage   WorkflowStage?     @relation("CurrentStage", fields: [currentStageId], references: [id])
   initiatedBy    User               @relation("WorkflowInstanceInitiator", fields: [initiatedById], references: [id])
+  assignedUser   User?              @relation("WorkflowInstanceAssignedUser", fields: [assignedUserId], references: [id])
   steps          WorkflowStep[]
   history        WorkflowHistory[]
 
@@ -1615,6 +1623,7 @@ model WorkflowInstance {
   @@index([fileId])
   @@index([currentStageId])
   @@index([initiatedById])
+  @@index([assignedUserId])
   @@map("workflow_instances")
 }
 
@@ -1652,6 +1661,7 @@ model WorkflowHistory {
   stepId      String?
   eventType   String   // INITIATED | STAGE_ENTERED | APPROVED | REJECTED | REVISED | FILE_VERSIONED | CANCELLED
   payload     Json     @default("{}")
+  comment     String?  // Optional comment for action
   actorId     Int?
   createdAt   DateTime @default(now())
 

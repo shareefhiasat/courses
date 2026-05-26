@@ -81,12 +81,7 @@ const WORKFLOW_RULES = {
     hr_review: {
       description: { en: 'HR reviewing document', ar: 'مراجعة الموارد البشرية للمستند' },
       roles: { en: 'HR', ar: 'الموارد البشرية' },
-      transitions: { en: ['Filed'], ar: ['مودع'] }
-    },
-    hr_filed: {
-      description: { en: 'Document filed and completed', ar: 'تم أرشفة المستند وإتمامه' },
-      roles: { en: 'HR', ar: 'الموارد البشرية' },
-      transitions: { en: [], ar: [] }
+      transitions: { en: ['Approved', 'Rejected'], ar: ['موافق عليه', 'مرفوض'] }
     }
   }
 };
@@ -111,7 +106,8 @@ const WORKFLOW_STAGES = {
   GENERAL: [
     { id: 'admin_submit', label: { en: 'Admin Submit', ar: 'تقديم الإدارة' }, status: 'SUBMITTED' },
     { id: 'hr_review', label: { en: 'HR Review', ar: 'مراجعة الموارد البشرية' }, status: 'UNDER_HR_REVIEW' },
-    { id: 'hr_filed', label: { en: 'Filed', ar: 'مودع' }, status: 'APPROVED' }
+    { id: 'approved', label: { en: 'Approved', ar: 'موافق عليه' }, status: 'APPROVED' },
+    { id: 'rejected', label: { en: 'Rejected', ar: 'مرفوض' }, status: 'REJECTED' }
   ]
 };
 

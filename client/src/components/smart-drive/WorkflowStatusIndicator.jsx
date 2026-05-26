@@ -10,35 +10,7 @@ import React from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { WORKFLOW_STATUS_MAP, DEFAULT_WORKFLOW_COUNTS } from '@constants/driveConstants';
-
-const statusConfig = {
-  pending: {
-    icon: 'clock',
-    color: '#f59e0b', // amber-500
-    labelKey: 'workflow.status.pending',
-  },
-  in_progress: {
-    icon: 'refresh_cw',
-    color: '#3b82f6', // blue-500
-    labelKey: 'workflow.status.in_progress',
-  },
-  completed: {
-    icon: 'check_circle',
-    color: '#10b981', // green-500
-    labelKey: 'workflow.status.completed',
-  },
-  rejected: {
-    icon: 'x_circle',
-    color: '#ef4444', // red-500
-    labelKey: 'workflow.status.rejected',
-  },
-  needs_feedback: {
-    icon: 'message_circle',
-    color: '#8b5cf6', // violet-500
-    labelKey: 'workflow.status.needs_feedback',
-  },
-};
+import { WORKFLOW_STATUS_CONFIG, DEFAULT_WORKFLOW_COUNTS } from '@constants/driveConstants';
 
 export default function WorkflowStatusIndicator({ workflowCounts = {}, onClick, showTooltip = false }) {
   const { theme } = useTheme();
@@ -47,7 +19,7 @@ export default function WorkflowStatusIndicator({ workflowCounts = {}, onClick, 
   // Filter out statuses with zero count
   const activeStatuses = Object.entries(workflowCounts)
     .filter(([_, count]) => count > 0)
-    .map(([status, count]) => ({ status, count, config: statusConfig[status] || statusConfig.pending }));
+    .map(([status, count]) => ({ status, count, config: WORKFLOW_STATUS_CONFIG[status] || WORKFLOW_STATUS_CONFIG.draft }));
 
   if (activeStatuses.length === 0) return null;
 

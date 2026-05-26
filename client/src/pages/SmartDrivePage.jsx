@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DEFAULT_STORAGE_LIMIT } from '@constants/driveConstants';
+import { DEFAULT_STORAGE_LIMIT, DRIVE_SPACES, getRefreshHandler } from '@constants/driveConstants';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -94,7 +94,6 @@ export default function SmartDrivePage() {
     renameFolder,
     renameFile,
     deleteFolder,
-    downloadFolder,
     shareFolder,
   } = useDriveFiles(activeSpace, currentFolderId);
 
@@ -383,13 +382,11 @@ export default function SmartDrivePage() {
       }));
     } else if (action === 'download') {
       await Promise.all(items.map((item) => {
-        if (item.path !== undefined) {
-          // It's a folder
-          return downloadFolder(item.id);
-        } else {
-          // It's a file
+        // Only download files, not folders
+        if (item.path === undefined) {
           return downloadFile(item.id);
         }
+        return Promise.resolve();
       }));
     } else if (action === 'share') {
       if (items.length === 1) {
@@ -423,11 +420,6 @@ export default function SmartDrivePage() {
     } else if (action === 'rename') {
       setNewName(folder.name);
       setRenameTarget(folder);
-    } else if (action === 'download') {
-      const result = await downloadFolder(folder.id);
-      if (!result.success) {
-        error(t('drive.downloadFolderFailed'));
-      }
     } else if (action === 'share') {
       // Folders don't have share tab yet - show toast
       info(t('drive.folderShareNotAvailable') || 'Folder sharing not available');
@@ -866,7 +858,7 @@ export default function SmartDrivePage() {
         {/* Sidebar */}
         <aside
           style={{
-            width: isMobile ? '100%' : sidebarMinimized ? '72px' : '20%',
+            width: isMobile ? '100%' : sidebarMinimized ? '72px' : '15%',
             flexShrink: 0,
             transition: 'width 0.3s ease',
           }}
@@ -893,7 +885,7 @@ export default function SmartDrivePage() {
               ? '100%'
               : sidebarMinimized
               ? 'calc(100% - 72px - 1.5rem)'
-              : '80%',
+              : '85%',
             transition: 'width 0.3s ease',
             display: 'flex',
             flexDirection: 'column',
@@ -1222,10 +1214,12 @@ export default function SmartDrivePage() {
           onStar={starFile}
           onTrash={trashFile}
           onRefresh={() => {
-            // Refresh files when version is updated
-            if (currentSpace === 'private') loadPrivateFiles();
-            else if (currentSpace === 'shared') loadSharedFiles();
-            else if (currentSpace === 'workflow') loadWorkflowFiles();
+            const refreshHandler = getRefreshHandler(activeSpace, {
+              loadPrivateFiles,
+              loadSharedFiles,
+              loadWorkflowFiles
+            });
+            if (refreshHandler) refreshHandler();
           }}
         />
       )}

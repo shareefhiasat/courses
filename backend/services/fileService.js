@@ -406,21 +406,23 @@ export async function listFiles(keycloakUser, {
     workflowInstances.forEach(instance => {
       if (!workflowCountsMap[instance.fileId]) {
         workflowCountsMap[instance.fileId] = {
-          pending: 0,
-          in_progress: 0,
-          completed: 0,
+          draft: 0,
+          submitted: 0,
+          in_review: 0,
+          approved: 0,
           rejected: 0,
-          needs_feedback: 0,
+          cancelled: 0,
         };
       }
       const statusMap = {
-        PENDING: 'pending',
-        IN_PROGRESS: 'in_progress',
-        COMPLETED: 'completed',
+        DRAFT: 'draft',
+        SUBMITTED: 'submitted',
+        IN_REVIEW: 'in_review',
+        APPROVED: 'approved',
         REJECTED: 'rejected',
-        NEEDS_FEEDBACK: 'needs_feedback',
+        CANCELLED: 'cancelled',
       };
-      const mappedStatus = statusMap[instance.status] || 'pending';
+      const mappedStatus = statusMap[instance.status] || 'draft';
       workflowCountsMap[instance.fileId][mappedStatus]++;
     });
 
@@ -428,22 +430,24 @@ export async function listFiles(keycloakUser, {
     workflowDocuments.forEach(doc => {
       if (!workflowCountsMap[doc.fileId]) {
         workflowCountsMap[doc.fileId] = {
-          pending: 0,
-          in_progress: 0,
-          completed: 0,
+          draft: 0,
+          submitted: 0,
+          in_review: 0,
+          approved: 0,
           rejected: 0,
-          needs_feedback: 0,
+          cancelled: 0,
         };
       }
       const statusMap = {
-        DRAFT: 'pending',
-        SUBMITTED: 'in_progress',
-        UNDER_REVIEW: 'in_progress',
-        APPROVED: 'completed',
+        DRAFT: 'draft',
+        SUBMITTED: 'submitted',
+        UNDER_REVIEW: 'in_review',
+        APPROVED: 'approved',
         REJECTED: 'rejected',
-        NEEDS_REVISION: 'needs_feedback',
+        NEEDS_REVISION: 'draft',
+        WITHDRAWN: 'cancelled',
       };
-      const mappedStatus = statusMap[doc.status] || 'pending';
+      const mappedStatus = statusMap[doc.status] || 'draft';
       workflowCountsMap[doc.fileId][mappedStatus]++;
       
       // Store the captured version ID for this file
@@ -511,11 +515,12 @@ export async function listFiles(keycloakUser, {
     // Attach workflow and share counts to each file
     const filesWithCounts = files.map(file => {
       const counts = workflowCountsMap[file.id] || {
-        pending: 0,
-        in_progress: 0,
-        completed: 0,
+        draft: 0,
+        submitted: 0,
+        in_review: 0,
+        approved: 0,
         rejected: 0,
-        needs_feedback: 0,
+        cancelled: 0,
       };
       const shares = shareCountsMap[file.id] || {
         people: 0,

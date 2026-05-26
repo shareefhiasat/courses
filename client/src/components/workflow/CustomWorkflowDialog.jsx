@@ -4,8 +4,9 @@ import { Modal, Button, Select, Checkbox } from '@ui';
 
 /**
  * CustomWorkflowDialog Component
- * 
- * Dialog for creating custom workflows with type, title, description, reviewers, and file attachment
+ *
+ * Dialog for creating custom workflows with type, title, description, and file attachment
+ * Workflows are created as DRAFT and can be submitted later with reviewer assignment
  */
 const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
   const { t } = useLang();
@@ -13,7 +14,6 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
   const [workflowType, setWorkflowType] = useState('GENERAL');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [reviewers, setReviewers] = useState([]);
   const [attachFile, setAttachFile] = useState(!!file);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,19 +58,15 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!workflowType) {
       newErrors.workflowType = t('workflow.dialog.errors.workflowTypeRequired', 'Workflow type is required');
     }
-    
+
     if (!title.trim()) {
       newErrors.title = t('workflow.dialog.errors.titleRequired', 'Title is required');
     }
-    
-    if (reviewers.length === 0) {
-      newErrors.reviewers = t('workflow.dialog.errors.reviewersRequired', 'At least one reviewer role is required');
-    }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -89,18 +85,17 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
         workflowType,
         title: title.trim(),
         description: description.trim(),
-        reviewers,
+        reviewers: [], // Always empty - will be assigned when submitting
         attachFile,
         file: attachFile ? file : null
       };
 
       await onSubmit(workflowData);
-      
+
       // Reset form
       setWorkflowType('GENERAL');
       setTitle('');
       setDescription('');
-      setReviewers([]);
       setAttachFile(!!file);
       setErrors({});
       
@@ -118,20 +113,11 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
     setWorkflowType('GENERAL');
     setTitle('');
     setDescription('');
-    setReviewers([]);
     setAttachFile(!!file);
     setErrors({});
-    
+
     onClose();
   };
-
-  const handleReviewerToggle = useCallback((role) => {
-    setReviewers(prev => 
-      prev.includes(role) 
-        ? prev.filter(r => r !== role)
-        : [...prev, role]
-    );
-  }, []);
 
   return (
     <Modal
@@ -195,30 +181,6 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
             rows={3}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
-        </div>
-
-        {/* Reviewers */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('workflow.dialog.reviewers', 'Reviewers')}
-            <span className="text-red-500 ml-1">*</span>
-          </label>
-          <div className={`space-y-2 p-3 rounded-lg ${
-            errors.reviewers ? 'bg-red-50' : ''
-          }`}>
-            {reviewerRoles.map(role => (
-              <label key={role.value} className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={reviewers.includes(role.value)}
-                  onChange={() => handleReviewerToggle(role.value)}
-                />
-                <span className="text-sm text-gray-700">{role.label.en}</span>
-              </label>
-            ))}
-          </div>
-          {errors.reviewers && (
-            <p className="text-red-500 text-sm mt-1">{errors.reviewers}</p>
-          )}
         </div>
 
         {/* File Attachment */}

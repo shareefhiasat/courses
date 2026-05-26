@@ -11,6 +11,7 @@ import React, { useState } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import { WORKFLOW_STATUS_CONFIG } from '@constants/driveConstants';
 import WorkflowStatusIndicator from './WorkflowStatusIndicator';
 
 export default function StatusColumn({ file, onClick }) {
@@ -193,13 +194,7 @@ export default function StatusColumn({ file, onClick }) {
                 {Object.entries(workflowCounts)
                   .filter(([_, count]) => count > 0)
                   .map(([status, count]) => {
-                    const statusConfig = {
-                      pending: { icon: 'clock', color: '#f59e0b', label: t('workflow.status.pending') || 'Pending' },
-                      in_progress: { icon: 'refresh_cw', color: '#3b82f6', label: t('workflow.status.in_progress') || 'In Progress' },
-                      completed: { icon: 'check_circle', color: '#10b981', label: t('workflow.status.completed') || 'Completed' },
-                      rejected: { icon: 'x_circle', color: '#ef4444', label: t('workflow.status.rejected') || 'Rejected' },
-                      needs_feedback: { icon: 'message_circle', color: '#8b5cf6', label: t('workflow.status.needs_feedback') || 'Needs Feedback' },
-                    }[status] || { icon: 'clock', color: '#f59e0b', label: status };
+                    const config = WORKFLOW_STATUS_CONFIG[status] || WORKFLOW_STATUS_CONFIG.draft;
                     return (
                       <div
                         key={status}
@@ -207,14 +202,14 @@ export default function StatusColumn({ file, onClick }) {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.375rem',
-                          color: statusConfig.color,
+                          color: config.color,
                         }}
                       >
                         <span style={{ fontSize: '0.875rem' }}>
-                          {getThemedIcon('ui', statusConfig.icon, 12, statusConfig.color)}
+                          {getThemedIcon('ui', config.icon, 12, config.color)}
                         </span>
                         <span style={{ fontWeight: 600 }}>{count}</span>
-                        <span>{statusConfig.label}</span>
+                        <span>{t(config.labelKey) || status}</span>
                       </div>
                     );
                   })}

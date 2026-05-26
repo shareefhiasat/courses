@@ -358,16 +358,6 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
     }
   }, [fetchFolders, refreshFiles]);
 
-  const downloadFolder = useCallback(async (folderId) => {
-    try {
-      window.open(`${API_BASE}/folders/${folderId}/download`, '_blank');
-      return { success: true };
-    } catch (err) {
-      console.error('[useDriveFiles] download folder failed:', err);
-      return { success: false, error: err.message };
-    }
-  }, []);
-
   const shareFolder = useCallback(async (folderId, shareData) => {
     try {
       const payload = {
@@ -410,7 +400,6 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
     renameFolder,
     renameFile,
     deleteFolder,
-    downloadFolder,
     shareFolder,
   };
 }

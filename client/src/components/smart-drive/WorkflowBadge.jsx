@@ -8,44 +8,14 @@
 import React from 'react';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
-
-const statusConfig = {
-  pending: {
-    labelKey: 'workflow.status.pending',
-    icon: 'clock',
-    bgClass: 'bg-yellow-50',
-    textClass: 'text-yellow-800',
-    borderClass: 'border-0',
-  },
-  in_progress: {
-    labelKey: 'workflow.status.review',
-    icon: 'refresh_cw',
-    bgClass: 'bg-blue-100 dark:bg-blue-900/30',
-    textClass: 'text-blue-700 dark:text-blue-400',
-    borderClass: 'border-blue-300 dark:border-blue-700',
-  },
-  completed: {
-    labelKey: 'workflow.status.approved',
-    icon: 'check_circle',
-    bgClass: 'bg-green-100 dark:bg-green-900/30',
-    textClass: 'text-green-700 dark:text-green-400',
-    borderClass: 'border-green-300 dark:border-green-700',
-  },
-  rejected: {
-    labelKey: 'workflow.status.rejected',
-    icon: 'x_circle',
-    bgClass: 'bg-red-100 dark:bg-red-900/30',
-    textClass: 'text-red-700 dark:text-red-400',
-    borderClass: 'border-red-300 dark:border-red-700',
-  },
-};
+import { WORKFLOW_STATUS_CONFIG } from '@constants/driveConstants';
 
 export default function WorkflowBadge({ status, currentStage, compact = false }) {
   const { t } = useLang();
 
   if (!status || status === 'none') return null;
 
-  const config = statusConfig[status] || statusConfig.pending;
+  const config = WORKFLOW_STATUS_CONFIG[status] || WORKFLOW_STATUS_CONFIG.draft;
   const icon = getThemedIcon('ui', config.icon, compact ? 12 : 16, 'light');
   const label = t(config.labelKey);
 
