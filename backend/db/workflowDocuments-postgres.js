@@ -346,6 +346,48 @@ export async function addWorkflowComment(data) {
 }
 
 /**
+ * Get comments for workflow document
+ */
+export async function getCommentsByWorkflowDocument(workflowDocumentId) {
+  try {
+    const comments = await prisma.workflowComment.findMany({
+      where: {
+        workflowDocumentId
+      },
+      include: {
+        author: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    return { success: true, data: comments };
+  } catch (error) {
+    console.error('Error getting workflow comments:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Delete workflow comment
+ */
+export async function deleteWorkflowComment(commentId) {
+  try {
+    const deletedComment = await prisma.workflowComment.delete({
+      where: {
+        id: parseInt(commentId)
+      }
+    });
+
+    return { success: true, data: deletedComment };
+  } catch (error) {
+    console.error('Error deleting workflow comment:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Resubmit workflow document with new file
  */
 export async function resubmitWorkflowDocument(data) {
@@ -733,6 +775,8 @@ export default {
   getWorkflowDocumentsByAssignee,
   updateWorkflowDocumentStatus,
   addWorkflowComment,
+  getCommentsByWorkflowDocument,
+  deleteWorkflowComment,
   resubmitWorkflowDocument,
   getComplianceData,
   getAnalyticsData,

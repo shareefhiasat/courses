@@ -67,6 +67,7 @@ export const ICON_TYPES = {
     admin: <Shield size={16} />,
     instructor: <GraduationCap size={16} />,
     hr: <Users size={16} />,
+    owner: <Star size={16} />,
     student: <User size={16} />
   },
   
@@ -637,6 +638,20 @@ export const getUserStatusIcon = (status) => {
 
 export const getUserRoleIcon = (role) => {
   return getIcon('user_role', role);
+};
+
+// Role color configuration
+export const ROLE_COLORS = {
+  super_admin: '#f59e0b',
+  admin: '#4f46e5',
+  instructor: '#0ea5e9',
+  hr: '#8b5cf6',
+  owner: '#f59e0b',
+  student: '#16a34a'
+};
+
+export const getUserRoleColor = (role) => {
+  return ROLE_COLORS[role] || '#6b7280';
 };
 
 // Color-aware icon functions

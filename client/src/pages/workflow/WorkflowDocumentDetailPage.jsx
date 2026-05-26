@@ -16,13 +16,11 @@ import { useLang } from '@contexts/LangContext';
 import { Button, useToast } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from '@ui';
 import { SimpleLoading, EmptyState, Modal, Textarea } from '@ui';
-import { approveWorkflowDocument, rejectWorkflowDocument, returnWorkflowDocument, resubmitWorkflowDocument, uploadSignedDocument, withdrawWorkflowDocument, listFileVersions, downloadFileVersion } from '@services/api/workflow-documents-api.js';
+import { approveWorkflowDocument, rejectWorkflowDocument, returnWorkflowDocument, resubmitWorkflowDocument, uploadSignedDocument, withdrawWorkflowDocument } from '@services/api/workflow-documents-api.js';
 import WorkflowDiagram from '@components/workflow/WorkflowDiagram.jsx';
-import WorkflowAttachments from '@components/workflow/WorkflowAttachments.jsx';
 import WorkflowHistory from '@components/workflow/WorkflowHistory.jsx';
 import WorkflowCommentsTab from '@components/workflow/WorkflowCommentsTab.jsx';
 import CollapsibleDashboardSection from '@components/ui/CollapsibleDashboardSection/CollapsibleDashboardSection.jsx';
-import FileDetailsModal from '@components/smart-drive/FileDetailsModal.jsx';
 import { getThemedIcon } from '@constants/iconTypes';
 
 const WorkflowDocumentDetailPage = () => {
@@ -40,12 +38,8 @@ const WorkflowDocumentDetailPage = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [resubmitFile, setResubmitFile] = useState(null);
   const [signedFile, setSignedFile] = useState(null);
-  const [previewFile, setPreviewFile] = useState(null);
-  const [showVersionHistory, setShowVersionHistory] = useState(false);
-  const [versions, setVersions] = useState(null);
-  const [versionsLoading, setVersionsLoading] = useState(false);
-  const [selectedStep, setSelectedStep] = useState(null);
-  const [stepDetailsModal, setStepDetailsModal] = useState(false);
+  const [fileVersions, setFileVersions] = useState([]);
+  const [loadingVersions, setLoadingVersions] = useState(false);
 
   // Polling for real-time status updates
   useEffect(() => {
@@ -81,10 +75,26 @@ const WorkflowDocumentDetailPage = () => {
     return () => clearInterval(intervalId);
   }, [document, documentId, t, toast]);
 
-  // Handle workflow diagram node click
-  const handleNodeClick = (node) => {
-    setSelectedStep(node);
-    setStepDetailsModal(true);
+  // Status badge variants
+  const getStatusVariant = (status) => {
+    switch (status) {
+      case 'DRAFT':
+        return 'secondary';
+      case 'SUBMITTED':
+        return 'warning';
+      case 'UNDER_REVIEW':
+        return 'info';
+      case 'APPROVED':
+        return 'success';
+      case 'REJECTED':
+        return 'destructive';
+      case 'AMENDED':
+        return 'warning';
+      case 'CLOSED':
+        return 'outline';
+      default:
+        return 'secondary';
+    }
   };
 
   // Fetch document details
@@ -112,110 +122,28 @@ const WorkflowDocumentDetailPage = () => {
     fetchDocument();
   }, [fetchDocument]);
 
-  // Fetch file versions
-  const fetchVersions = useCallback(async () => {
-    if (!document?.fileId) return;
-    
-    try {
-      setVersionsLoading(true);
-      const response = await listFileVersions(document.fileId);
-      
-      if (response.success) {
-        setVersions(response.data.versions);
-      } else {
-        toast.error(response.error || 'Failed to fetch versions');
-      }
-    } catch (err) {
-      toast.error('Failed to fetch versions');
-    } finally {
-      setVersionsLoading(false);
-    }
-  }, [document?.fileId, toast]);
+  // Fetch file versions when document is loaded
+  useEffect(() => {
+    const fetchFileVersions = async () => {
+      if (!document?.file?.id) return;
 
-  // Handle version history toggle
-  const handleToggleVersionHistory = () => {
-    if (!showVersionHistory && !versions) {
-      fetchVersions();
-    }
-    setShowVersionHistory(!showVersionHistory);
-  };
-
-  // Handle version download
-  const handleDownloadVersion = async (versionId, fileName) => {
-    try {
-      const response = await downloadFileVersion(document.fileId, versionId);
-      
-      // Create download link
-      const url = window.URL.createObjectURL(new Blob([response]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      
-      toast.success('Version downloaded successfully');
-    } catch (err) {
-      toast.error('Failed to download version');
-    }
-  };
-
-  // Status badge variants
-  const getStatusVariant = (status) => {
-    switch (status) {
-      case 'DRAFT':
-        return 'secondary';
-      case 'SUBMITTED':
-        return 'warning';
-      case 'UNDER_REVIEW':
-        return 'info';
-      case 'APPROVED':
-        return 'success';
-      case 'REJECTED':
-        return 'destructive';
-      case 'AMENDED':
-        return 'warning';
-      case 'CLOSED':
-        return 'outline';
-      default:
-        return 'secondary';
-    }
-  };
-
-  // Handle file download
-  const handleDownload = async (fileId, fileName) => {
-    try {
-      const response = await fetch(`/api/v1/files/${fileId}/download`, {
-        headers: {
-          'Authorization': `Bearer ${window.keycloak?.token}`
+      setLoadingVersions(true);
+      try {
+        // Use the drive versions API with the file ID
+        const response = await apiService.get(`/drive/files/${document.file.id}/versions`);
+        if (response.success) {
+          setFileVersions(response.data || []);
         }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to download file');
+      } catch (err) {
+        console.warn('File versions endpoint not available:', err.message);
+        setFileVersions([]);
+      } finally {
+        setLoadingVersions(false);
       }
+    };
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName || 'document';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast.success(t('workflow.document.downloadSuccess', 'File downloaded successfully'));
-    } catch (err) {
-      toast.error(t('workflow.document.downloadError', 'Failed to download file'));
-    }
-  };
-
-  // Handle preview
-  const handlePreview = (file) => {
-    setPreviewFile(file);
-  };
+    fetchFileVersions();
+  }, [document?.file?.id]);
 
   // Check if user can perform review actions
   const canReview = () => {
@@ -577,225 +505,157 @@ const WorkflowDocumentDetailPage = () => {
         />
       </CollapsibleDashboardSection>
 
-      {/* Workflow Details - Full Width */}
-      <CollapsibleDashboardSection
-        title={t('workflow.document.details', 'Workflow Details')}
-        icon={getThemedIcon('ui', 'info', 20)}
-        sectionId="document-details"
-        color="#3b82f6"
-      >
-        {/* Title and Description */}
-        <div className="grid grid-cols-2 gap-6">
-          <div className="min-h-[60px]">
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                {t('workflow.document.title', 'Title')}
-              </label>
-              <p className="text-gray-900 text-sm">{document.title}</p>
-            </div>
-          </div>
-          <div className="min-h-[60px]">
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                {t('workflow.document.description', 'Description')}
-              </label>
-              <p className="text-gray-900 text-sm">{document.description}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="my-6 border-t border-gray-200"></div>
-
-        {/* Program, Subject, Class */}
-        <div className="grid grid-cols-3 gap-6">
-          <div className="min-h-[60px]">
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                {t('workflow.document.program', 'Program')}
-              </label>
-              <p className="text-gray-900 text-sm flex items-center gap-2">
-                {getThemedIcon('ui', 'book', 16)}
-                {document.program || '-'}
-              </p>
-            </div>
-          </div>
-          <div className="min-h-[60px]">
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                {t('workflow.document.class', 'Class')}
-              </label>
-              <p className="text-gray-900 text-sm flex items-center gap-2">
-                {getThemedIcon('ui', 'users', 16)}
-                {document.class?.name || '-'}
-              </p>
-            </div>
-          </div>
-          <div className="min-h-[60px]">
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                {t('workflow.document.subject', 'Subject')}
-              </label>
-              <p className="text-gray-900 text-sm flex items-center gap-2">
-                {getThemedIcon('ui', 'file_text', 16)}
-                {document.subject || '-'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="my-6 border-t border-gray-200"></div>
-
-        {/* Rest of the fields */}
-        <div className="grid grid-cols-4 gap-6">
-          <div className="min-h-[60px]">
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                {t('workflow.document.workflowType', 'Workflow Type')}
-              </label>
-              <p className="text-gray-900 text-sm flex items-center gap-2">
-                {getThemedIcon('ui', 'workflow', 16)}
-                {document.workflowType}
-              </p>
-            </div>
-          </div>
-          <div className="min-h-[60px]">
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                {t('workflow.document.submitter', 'Submitter')}
-              </label>
-              <p className="text-gray-900 text-sm flex items-center gap-2">
-                {getThemedIcon('ui', 'user', 16)}
-                {document.submitter?.name || document.submitter?.firstName || '-'}
-              </p>
-            </div>
-          </div>
-          <div className="min-h-[60px]">
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                {t('workflow.document.currentAssignee', 'Current Assignee')}
-              </label>
-              <p className="text-gray-900 text-sm flex items-center gap-2">
-                {getThemedIcon('ui', 'user', 16)}
-                {document.currentAssignee?.name || document.currentAssignee?.firstName || '-'}
-              </p>
-            </div>
-          </div>
-          <div className="min-h-[60px]">
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                {t('workflow.document.submittedAt', 'Submitted At')}
-              </label>
-              <p className="text-gray-900 text-sm flex items-center gap-2">
-                {getThemedIcon('ui', 'calendar', 16)}
-                {formatQatarDate(document.createdAt, 'MMM d, yyyy HH:mm')}
-              </p>
-            </div>
-          </div>
-          <div className="min-h-[60px]">
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                {t('workflow.document.sla', 'SLA Status')}
-              </label>
-              <div className="flex items-center gap-2">
-                {(() => {
-                  const slaInfo = getSlaInfo(document.createdAt);
-                  return (
-                    <div className="flex flex-col gap-1">
-                      <Badge variant={slaInfo.badgeVariant} className="text-xs w-fit">
-                        {slaInfo.timeElapsed}
-                      </Badge>
-                      {slaInfo.isOverdue && (
-                        <span className="text-xs text-red-600 font-medium">
-                          {t('workflow.document.overdue', 'Overdue')}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
-          <div className="min-h-[60px]">
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                {t('workflow.document.date', 'Date')}
-              </label>
-              <p className="text-gray-900 text-sm flex items-center gap-2">
-                {getThemedIcon('ui', 'calendar', 16)}
-                {document.date ? formatQatarDate(new Date(document.date), 'MMM d, yyyy') : '-'}
-              </p>
-            </div>
-          </div>
-          <div className="min-h-[60px]">
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                {t('workflow.document.reviewCycleCount', 'Review Cycles')}
-              </label>
-              <p className="text-gray-900 text-sm flex items-center gap-2">
-                {getThemedIcon('ui', 'refresh', 16)}
-                {document.reviewCycleCount || 0}
-              </p>
-            </div>
-          </div>
-          <div className="min-h-[60px]">
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                {t('workflow.document.createdAt', 'Created')}
-              </label>
-              <p className="text-gray-900 text-sm flex items-center gap-2">
-                {getThemedIcon('ui', 'clock', 16)}
-                {formatQatarDate(new Date(document.createdAt), 'MMM d, yyyy HH:mm')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </CollapsibleDashboardSection>
-
-      {/* Two-column layout for desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left column - Primary content (2/3) */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* File Download & Version History */}
-          {document.file && (
-            <CollapsibleDashboardSection
-              title={t('workflow.document.file', 'Attached File')}
-              icon={getThemedIcon('ui', 'file', 20)}
-              sectionId="file-download"
-              color="#10b981"
-            >
-              <WorkflowAttachments file={document.file} onDownload={handleDownload} onPreview={handlePreview} />
-            </CollapsibleDashboardSection>
-          )}
-        </div>
-
-        {/* Right column - Secondary info (1/3) */}
-        <div className="lg:col-span-1 space-y-8">
-          {/* Comments */}
+      {/* Two-column layout for Status History and Attachments */}
+      <div className="grid grid-cols-1 lg:grid-cols-[50%_50%] gap-6">
+        {/* Left column - Status History */}
+        {document.statusHistory && document.statusHistory.length > 0 && (
           <CollapsibleDashboardSection
-            title={t('workflow.document.comments', 'Comments')}
-            icon={getThemedIcon('ui', 'message', 20)}
-            sectionId="comments"
-            color="#8b5cf6"
+            title={t('workflow.document.statusHistory', 'Status History')}
+            icon={getThemedIcon('ui', 'clock', 20)}
+            sectionId="status-history"
+            color="#ec4899"
+            count={document.statusHistory.length}
           >
-            <WorkflowCommentsTab workflowId={documentId} />
+            <WorkflowHistory statusHistory={document.statusHistory} />
           </CollapsibleDashboardSection>
+        )}
 
-          {/* Status History */}
-          {document.statusHistory && document.statusHistory.length > 0 && (
-            <CollapsibleDashboardSection
-              title={t('workflow.document.statusHistory', 'Status History')}
-              icon={getThemedIcon('ui', 'clock', 20)}
-              sectionId="status-history"
-              color="#ec4899"
-              count={document.statusHistory.length}
-            >
-              <WorkflowHistory statusHistory={document.statusHistory} />
-            </CollapsibleDashboardSection>
-          )}
-        </div>
+        {/* Right column - Attached Document and Versions */}
+        {document.file && (
+          <CollapsibleDashboardSection
+            title={t('workflow.document.attachments', 'Attached Document & Versions')}
+            icon={getThemedIcon('ui', 'paperclip', 20)}
+            sectionId="attachments"
+            color="#f59e0b"
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {/* Current file */}
+            <div style={{
+              padding: '1rem',
+              borderRadius: '0.5rem',
+              border: '1px solid var(--border, #e5e7eb)',
+              background: 'var(--panel, white)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+            }}>
+              <div style={{
+                width: '3rem',
+                height: '3rem',
+                borderRadius: '0.5rem',
+                background: 'var(--color-primary-alpha, rgba(37,99,235,0.1))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--color-primary, #3b82f6)',
+              }}>
+                {getThemedIcon('ui', 'file', 24)}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text, #111827)' }}>
+                  {document.file.name}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+                  {document.file.mimeType} • {(document.file.size / 1024).toFixed(1)} KB
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(`/api/v1/files/${document.fileId}/download`, '_blank')}
+                style={{ padding: '0.5rem' }}
+              >
+                {getThemedIcon('ui', 'download', 16)}
+              </Button>
+            </div>
+
+            {/* Versions list */}
+            {fileVersions.length > 0 && (
+              <div>
+                <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)' }}>
+                  {t('workflow.document.versions', 'Versions')} ({fileVersions.length})
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {fileVersions.map((version) => (
+                    <div
+                      key={version.id}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        borderRadius: '0.375rem',
+                        border: version.isCurrent ? '1px solid var(--color-primary, #3b82f6)' : '1px solid var(--border, #e5e7eb)',
+                        background: version.isCurrent ? 'var(--color-primary-alpha, rgba(37,99,235,0.05))' : 'var(--panel, white)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                      }}
+                    >
+                      <div style={{
+                        width: '2rem',
+                        height: '2rem',
+                        borderRadius: '9999px',
+                        background: version.isCurrent ? 'var(--color-primary, #3b82f6)' : 'var(--text-muted, #6b7280)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                      }}>
+                        v{version.versionNumber}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
+                          {version.changeNote || t('workflow.document.version', 'Version')} {version.versionNumber}
+                          {version.isCurrent && (
+                            <span style={{
+                              marginLeft: '0.5rem',
+                              padding: '0.125rem 0.5rem',
+                              borderRadius: '9999px',
+                              background: 'var(--color-primary, #3b82f6)',
+                              color: 'white',
+                              fontSize: '0.625rem',
+                              fontWeight: 600,
+                            }}>
+                              {t('common.current', 'Current')}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+                          {version.uploadedBy?.displayName || version.uploadedBy?.email || 'Unknown'} • {new Date(version.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(`/api/v1/workflow-documents/${document.fileId}/versions/${version.id}/download`, '_blank')}
+                      >
+                        {getThemedIcon('ui', 'download', 16)}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {loadingVersions && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', color: 'var(--text-muted, #6b7280)' }}>
+                {t('common.loading', 'Loading')}...
+              </div>
+            )}
+          </div>
+        </CollapsibleDashboardSection>
+        )}
       </div>
+
+      {/* Comments section - full width below */}
+      <CollapsibleDashboardSection
+        title={t('workflow.document.comments', 'Comments')}
+        icon={getThemedIcon('ui', 'message', 20)}
+        sectionId="comments"
+        color="#8b5cf6"
+      >
+        <WorkflowCommentsTab workflowId={documentId} />
+      </CollapsibleDashboardSection>
 
       {/* Step Details Modal */}
       {actionModal && (
@@ -911,71 +771,6 @@ const WorkflowDocumentDetailPage = () => {
             </div>
           </div>
         </Modal>
-      )}
-
-      {/* Step Details Modal */}
-      {stepDetailsModal && selectedStep && (
-        <Modal
-          isOpen={stepDetailsModal}
-          onClose={() => {
-            setStepDetailsModal(false);
-            setSelectedStep(null);
-          }}
-          title={t('workflow.document.stepDetails', 'Step Details')}
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('workflow.document.stepName', 'Step Name')}
-              </label>
-              <p className="text-gray-900">{selectedStep.data.label.props.children[1]}</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('workflow.document.stepStatus', 'Status')}
-              </label>
-              <Badge variant={getStatusVariant(document.status)}>
-                {document.status}
-              </Badge>
-            </div>
-            {document.currentAssignee && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('workflow.document.currentAssignee', 'Current Assignee')}
-                </label>
-                <p className="text-gray-900 flex items-center gap-2">
-                  {getThemedIcon('ui', 'user', 16)}
-                  {document.currentAssignee?.name || document.currentAssignee?.firstName || '-'}
-                </p>
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('workflow.document.submittedAt', 'Submitted At')}
-              </label>
-              <p className="text-gray-900 flex items-center gap-2">
-                {getThemedIcon('ui', 'calendar', 16)}
-                {formatQatarDate(document.createdAt, 'MMM d, yyyy HH:mm')}
-              </p>
-            </div>
-            <div className="pt-4 border-t">
-              <p className="text-sm text-gray-500">
-                {t('workflow.document.historyNotePlaceholder', 'Full status history will be available in future enhancements.')}
-              </p>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* File Preview Modal */}
-      {previewFile && (
-        <FileDetailsModal
-          file={previewFile}
-          initialTab="details"
-          userCanEdit={false}
-          onClose={() => setPreviewFile(null)}
-          onDownload={handleDownload}
-        />
       )}
       </div>
     </div>

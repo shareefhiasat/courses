@@ -14,6 +14,8 @@ import {
   getWorkflowDocumentsByAssignee,
   updateWorkflowDocumentStatus,
   addWorkflowComment,
+  getCommentsByWorkflowDocument as getCommentsByWorkflowDocumentFromDB,
+  deleteWorkflowComment as deleteWorkflowCommentFromDB,
   resubmitWorkflowDocument as resubmitWorkflowDocumentDB,
   getComplianceData as getComplianceDataDB,
   getAnalyticsData as getAnalyticsDataDB,
@@ -240,6 +242,20 @@ export async function updateStatus(id, status, actorId, reason) {
  */
 export async function addComment(data) {
   return await addWorkflowComment(data);
+}
+
+/**
+ * Get comments for workflow document
+ */
+export async function getCommentsByWorkflowDocument(workflowDocumentId) {
+  return await getCommentsByWorkflowDocumentFromDB(workflowDocumentId);
+}
+
+/**
+ * Delete workflow comment
+ */
+export async function deleteComment(commentId) {
+  return await deleteWorkflowCommentFromDB(commentId);
 }
 
 /**
@@ -873,6 +889,8 @@ export default {
   getDocumentsByFileId,
   updateStatus,
   addComment,
+  getCommentsByWorkflowDocument,
+  deleteComment,
   resubmitWorkflowDocument,
   uploadSignedDocument,
   withdrawWorkflowDocument,

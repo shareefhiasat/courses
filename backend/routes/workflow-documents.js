@@ -11,7 +11,9 @@ import {
   getWorkflowDocumentController,
   getWorkflowDocumentsController,
   updateWorkflowDocumentStatusController,
+  getWorkflowCommentsController,
   addWorkflowCommentController,
+  deleteWorkflowCommentController,
   approveWorkflowDocumentController,
   rejectWorkflowDocumentController,
   returnWorkflowDocumentController,
@@ -304,6 +306,31 @@ router.patch('/:id/status', updateWorkflowDocumentStatusController);
 /**
  * @swagger
  * /api/v1/workflow-documents/{id}/comments:
+ *   get:
+ *     summary: Get comments for workflow document
+ *     tags: [Workflow Documents]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Workflow document ID
+ *     responses:
+ *       200:
+ *         description: Comments retrieved successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/:id/comments', getWorkflowCommentsController);
+
+/**
+ * @swagger
+ * /api/v1/workflow-documents/{id}/comments:
  *   post:
  *     summary: Add comment to workflow document
  *     tags: [Workflow Documents]
@@ -340,6 +367,37 @@ router.patch('/:id/status', updateWorkflowDocumentStatusController);
  *         description: Internal server error
  */
 router.post('/:id/comments', addWorkflowCommentController);
+
+/**
+ * @swagger
+ * /api/v1/workflow-documents/{id}/comments/{commentId}:
+ *   delete:
+ *     summary: Delete comment from workflow document
+ *     tags: [Workflow Documents]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Workflow document ID
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Comment ID
+ *     responses:
+ *       200:
+ *         description: Comment deleted successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+router.delete('/:id/comments/:commentId', deleteWorkflowCommentController);
 
 /**
  * @swagger

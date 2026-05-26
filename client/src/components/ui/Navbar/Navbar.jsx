@@ -6,7 +6,7 @@ import { useLang } from '@contexts/LangContext';
 import { getUsers, updateUser, getUserDisplayName, getUserById } from '@services/business/userService';
 import { getAllUserImages } from '@services/business/userImageService';
 import './Navbar.css';
-import { getThemedIcon, getWhiteIcon, getIconWithColor } from '@constants/iconTypes';
+import { getThemedIcon, getWhiteIcon, getIconWithColor, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
 import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
@@ -478,29 +478,29 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 <div style={{ position:'absolute', right:-8, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {isSuperAdmin && (
                     <PortalTooltip content={t('super_admin')} position="left">
-                    <div style={{ background:'#f59e0b', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getThemedIcon('ui', 'crown', 10, theme === 'light' ? 'white' : theme)}
+                    <div style={{ background: getUserRoleColor('super_admin'), color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                      {getUserRoleIcon('super_admin')}
                     </div>
                     </PortalTooltip>
                   )}
                   {isAdmin && !isSuperAdmin && (
                     <PortalTooltip content={t('admin')} position="left">
-                    <div style={{ background:'#4f46e5', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getThemedIcon('ui', 'shield', 10, theme === 'light' ? 'white' : theme)}
+                    <div style={{ background: getUserRoleColor('admin'), color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                      {getUserRoleIcon('admin')}
                     </div>
                     </PortalTooltip>
                   )}
                   {isInstructor && (
                     <PortalTooltip content={t('instructor')} position="left">
-                    <div style={{ background:'#0ea5e9', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getThemedIcon('ui', 'book_open', 10, theme === 'light' ? 'white' : theme)}
+                    <div style={{ background: getUserRoleColor('instructor'), color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                      {getUserRoleIcon('instructor')}
                     </div>
                     </PortalTooltip>
                   )}
                   {isHR && (
                     <PortalTooltip content={t('hr')} position="left">
-                    <div style={{ background:'#8b5cf6', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getThemedIcon('ui', 'users', 10, theme === 'light' ? 'white' : theme)}
+                    <div style={{ background: getUserRoleColor('hr'), color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                      {getUserRoleIcon('hr')}
                     </div>
                     </PortalTooltip>
                   )}
@@ -521,27 +521,27 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       )}
                       <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems:'center' }}>
                         {isSuperAdmin && (
-                          <span style={{ color: '#f59e0b', border: '1.5px solid #f59e0b', background: 'rgba(245, 158, 11, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getIconWithColor('ui', 'crown', 14, '#f59e0b')} {t('super_admin') || 'Super Admin'}
+                          <span style={{ color: getUserRoleColor('super_admin'), border: `1.5px solid ${getUserRoleColor('super_admin')}`, background: `${getUserRoleColor('super_admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            {getUserRoleIcon('super_admin')} {t('super_admin') || 'Super Admin'}
                           </span>
                         )}
                         {isAdmin && !isSuperAdmin && (
-                          <span style={{ color: '#4f46e5', border: '1.5px solid #4f46e5', background: 'rgba(79, 70, 229, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getIconWithColor('ui', 'shield', 14, '#4f46e5')} {t('admin') || 'Admin'}
+                          <span style={{ color: getUserRoleColor('admin'), border: `1.5px solid ${getUserRoleColor('admin')}`, background: `${getUserRoleColor('admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            {getUserRoleIcon('admin')} {t('admin') || 'Admin'}
                           </span>
                         )}
                         {isInstructor && (
-                          <span style={{ color: '#0ea5e9', border: '1.5px solid #0ea5e9', background: 'rgba(14, 165, 233, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getIconWithColor('ui', 'book_open', 14, '#0ea5e9')} {t('instructor') || 'Instructor'}
+                          <span style={{ color: getUserRoleColor('instructor'), border: `1.5px solid ${getUserRoleColor('instructor')}`, background: `${getUserRoleColor('instructor')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            {getUserRoleIcon('instructor')} {t('instructor') || 'Instructor'}
                           </span>
                         )}
                         {isHR && (
-                          <span style={{ color: '#8b5cf6', border: '1.5px solid #8b5cf6', background: 'rgba(139, 92, 246, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getIconWithColor('ui', 'users', 14, '#8b5cf6')} {t('hr') || 'HR'}
+                          <span style={{ color: getUserRoleColor('hr'), border: `1.5px solid ${getUserRoleColor('hr')}`, background: `${getUserRoleColor('hr')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            {getUserRoleIcon('hr')} {t('hr') || 'HR'}
                           </span>
                         )}
                         {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
-                          <span style={{ color: '#16a34a', border: '1.5px solid #16a34a', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student') || 'Student'}</span>
+                          <span style={{ color: getUserRoleColor('student'), border: `1.5px solid ${getUserRoleColor('student')}`, background: `${getUserRoleColor('student')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student') || 'Student'}</span>
                         )}
                       </div>
                     </div>
@@ -629,27 +629,27 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       )}
                       <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems:'center' }}>
                         {isSuperAdmin && (
-                          <span style={{ color: '#f59e0b', border: '1.5px solid #f59e0b', background: 'rgba(245, 158, 11, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getIconWithColor('ui', 'crown', 14, '#f59e0b')} {t('super_admin') || 'Super Admin'}
+                          <span style={{ color: getUserRoleColor('super_admin'), border: `1.5px solid ${getUserRoleColor('super_admin')}`, background: `${getUserRoleColor('super_admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            {getUserRoleIcon('super_admin')} {t('super_admin') || 'Super Admin'}
                           </span>
                         )}
                         {isAdmin && !isSuperAdmin && (
-                          <span style={{ color: '#4f46e5', border: '1.5px solid #4f46e5', background: 'rgba(79, 70, 229, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getIconWithColor('ui', 'shield', 14, '#4f46e5')} {t('admin') || 'Admin'}
+                          <span style={{ color: getUserRoleColor('admin'), border: `1.5px solid ${getUserRoleColor('admin')}`, background: `${getUserRoleColor('admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            {getUserRoleIcon('admin')} {t('admin') || 'Admin'}
                           </span>
                         )}
                         {isInstructor && (
-                          <span style={{ color: '#0ea5e9', border: '1.5px solid #0ea5e9', background: 'rgba(14, 165, 233, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getIconWithColor('ui', 'book_open', 14, '#0ea5e9')} {t('instructor') || 'Instructor'}
+                          <span style={{ color: getUserRoleColor('instructor'), border: `1.5px solid ${getUserRoleColor('instructor')}`, background: `${getUserRoleColor('instructor')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            {getUserRoleIcon('instructor')} {t('instructor') || 'Instructor'}
                           </span>
                         )}
                         {isHR && (
-                          <span style={{ color: '#8b5cf6', border: '1.5px solid #8b5cf6', background: 'rgba(139, 92, 246, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getIconWithColor('ui', 'users', 14, '#8b5cf6')} {t('hr') || 'HR'}
+                          <span style={{ color: getUserRoleColor('hr'), border: `1.5px solid ${getUserRoleColor('hr')}`, background: `${getUserRoleColor('hr')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            {getUserRoleIcon('hr')} {t('hr') || 'HR'}
                           </span>
                         )}
                         {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
-                          <span style={{ color: '#16a34a', border: '1.5px solid #16a34a', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student') || 'Student'}</span>
+                          <span style={{ color: getUserRoleColor('student'), border: `1.5px solid ${getUserRoleColor('student')}`, background: `${getUserRoleColor('student')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student') || 'Student'}</span>
                         )}
                       </div>
                     </div>

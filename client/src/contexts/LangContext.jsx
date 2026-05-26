@@ -3916,6 +3916,12 @@ const DICT = {
     'workflow.create.sent': 'Document created and sent successfully',
     'workflow.create.sentError': 'Document created but sending failed',
 
+    'workflow.sendComment': 'Send Comment',
+    'workflow.addCommentPlaceholder': 'Add a comment...',
+    'workflow.searchComments': 'Search comments...',
+    'workflow.noSearchResults': 'No comments match your search',
+    'workflow.deleteCommentConfirm': 'Are you sure you want to delete this comment?',
+
     'workflow.inbox.workspace': 'Private Workspace',
     'workflow.inbox.viewMode': 'View',
     'workflow.inbox.viewAll': 'All (Inbox + Sent)',
@@ -3988,6 +3994,8 @@ const DICT = {
     'workflow.document.view': 'View',
     'workflow.document.file': 'Attached File',
     'workflow.document.comments': 'Comments',
+    'workflow.document.attachments': 'Attached Document & Versions',
+    'workflow.document.versions': 'Versions',
     'workflow.document.show': 'Show',
     'workflow.document.hide': 'Hide',
     'workflow.document.noVersionHistory': 'No version history available',
@@ -4206,6 +4214,7 @@ const DICT = {
     'drive.ready': 'Ready',
     'drive.actions': 'Actions',
     'drive.deleteComment': 'Delete comment',
+    'drive.deleteCommentConfirm': 'Are you sure you want to delete this comment?',
     'drive.filterComments': 'Search comments...',
     'drive.sort.newest': 'Newest first',
     'drive.sort.oldest': 'Oldest first',
@@ -4318,6 +4327,7 @@ const DICT = {
     'common.back': 'Back',
     'common.submit': 'Submit',
     'common.loading': 'Loading',
+    'common.delete': 'Delete',
 
     // Smart Drive additional labels
     'drive.addMore': 'Add More',
@@ -8569,6 +8579,12 @@ const DICT = {
     'workflow.create.sent': 'تم إنشاء المستند وإرساله بنجاح',
     'workflow.create.sentError': 'تم إنشاء المستند لكن فشل الإرسال',
 
+    'workflow.sendComment': 'إرسال التعليق',
+    'workflow.addCommentPlaceholder': 'أضف تعليقاً...',
+    'workflow.searchComments': 'البحث في التعليقات...',
+    'workflow.noSearchResults': 'لا توجد تعليقات تطابق بحثك',
+    'workflow.deleteCommentConfirm': 'هل أنت متأكد من حذف هذا التعليق؟',
+
     'workflow.inbox.workspace': 'المساحة الخاصة',
     'workflow.inbox.viewMode': 'العرض',
     'workflow.inbox.viewAll': 'الكل (وارد + صادر)',
@@ -8652,6 +8668,8 @@ const DICT = {
     'workflow.document.view': 'عرض',
     'workflow.document.file': 'الملف المرفق',
     'workflow.document.comments': 'التعليقات',
+    'workflow.document.attachments': 'المستند المرفق والإصدارات',
+    'workflow.document.versions': 'الإصدارات',
     'workflow.document.show': 'عرض',
     'workflow.document.hide': 'إخفاء',
     'workflow.document.noVersionHistory': 'لا يوجد سجل إصدارات متاح',
@@ -9003,6 +9021,7 @@ const DICT = {
     'drive.ready': 'جاهز',
     'drive.actions': 'الإجراءات',
     'drive.deleteComment': 'حذف التعليق',
+    'drive.deleteCommentConfirm': 'هل أنت متأكد من حذف هذا التعليق؟',
     'drive.filterComments': 'البحث في التعليقات...',
     'drive.sort.newest': 'الأحدث أولاً',
     'drive.sort.oldest': 'الأقدم أولاً',
@@ -9107,6 +9126,7 @@ const DICT = {
     'common.back': 'رجوع',
     'common.submit': 'إرسال',
     'common.loading': 'جاري التحميل',
+    'common.delete': 'حذف',
 
     // Smart Drive additional labels
     'drive.addFilter': 'إضافة فلتر',

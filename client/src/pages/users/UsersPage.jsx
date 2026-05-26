@@ -6,7 +6,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getUserRoleIcon } from '@constants/iconTypes';
 import MultiSelect from '@components/ui/MultiSelect';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
@@ -800,11 +800,11 @@ const UsersPage = ({ isDashboardTab = false }) => {
         }
         
         const roleIcons = {
-          [ROLE_STRINGS.SUPER_ADMIN]: getThemedIcon('ui', 'crown', 14, theme),
-          [ROLE_STRINGS.ADMIN]: getThemedIcon('ui', 'shield', 14, theme),
-          [ROLE_STRINGS.INSTRUCTOR]: getThemedIcon('ui', 'book_open', 14, theme),
-          [ROLE_STRINGS.HR]: getThemedIcon('ui', 'users', 14, theme),
-          [ROLE_STRINGS.STUDENT]: getThemedIcon('ui', 'user', 14, theme)
+          [ROLE_STRINGS.SUPER_ADMIN]: getUserRoleIcon('super_admin'),
+          [ROLE_STRINGS.ADMIN]: getUserRoleIcon('admin'),
+          [ROLE_STRINGS.INSTRUCTOR]: getUserRoleIcon('instructor'),
+          [ROLE_STRINGS.HR]: getUserRoleIcon('hr'),
+          [ROLE_STRINGS.STUDENT]: getUserRoleIcon('student')
         };
         
         const roleColors = {
@@ -1138,11 +1138,11 @@ const UsersPage = ({ isDashboardTab = false }) => {
   // Helper function to get role icon using getThemedIcon
   const getRoleIconThemed = (role) => {
     const roleIconMap = {
-      [ROLE_STRINGS.STUDENT]: getThemedIcon('ui', 'user', 16, theme),
-      [ROLE_STRINGS.INSTRUCTOR]: getThemedIcon('ui', 'book_open', 16, theme),
-      [ROLE_STRINGS.HR]: getThemedIcon('ui', 'users', 16, theme),
-      [ROLE_STRINGS.ADMIN]: getThemedIcon('ui', 'shield', 16, theme),
-      [ROLE_STRINGS.SUPER_ADMIN]: getThemedIcon('ui', 'crown', 16, theme),
+      [ROLE_STRINGS.STUDENT]: getUserRoleIcon('student'),
+      [ROLE_STRINGS.INSTRUCTOR]: getUserRoleIcon('instructor'),
+      [ROLE_STRINGS.HR]: getUserRoleIcon('hr'),
+      [ROLE_STRINGS.ADMIN]: getUserRoleIcon('admin'),
+      [ROLE_STRINGS.SUPER_ADMIN]: getUserRoleIcon('super_admin'),
     };
     return roleIconMap[role] || roleIconMap[ROLE_STRINGS.STUDENT];
   };

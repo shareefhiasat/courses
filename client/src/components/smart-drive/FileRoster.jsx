@@ -318,7 +318,6 @@ export default function FileRoster({
                 fontSize: '0.8125rem',
                 fontWeight: 500,
               }}
-              title={showFolders ? (t('drive.hideFolders') || 'Hide folders') : (t('drive.showFolders') || 'Show folders')}
             >
               {getThemedIcon('ui', 'folder', 14, showFolders ? 'white' : 'muted')}
               {showFolders ? (t('drive.folders') || 'Folders') : (t('drive.folders') || 'Folders')}
@@ -400,10 +399,10 @@ export default function FileRoster({
               onChange={(checked) => onSelectAll?.(checked)}
               style={{ width: 16, height: 16 }}
             />
-            <div style={{ width: 40, display: 'flex', justifyContent: 'center', borderRight: '1px solid var(--border, #e5e7eb)' }}>
+            <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
               {getThemedIcon('ui', 'star', 14, 'muted')}
             </div>
-            <div style={{ flex: 1.2, textAlign: isRTL ? 'right' : 'left', borderRight: '1px solid var(--border, #e5e7eb)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+            <div style={{ flex: 1.2, textAlign: isRTL ? 'right' : 'left', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <span>{t('drive.name') || 'Name'}</span>
                 <button
@@ -417,11 +416,13 @@ export default function FileRoster({
                     alignItems: 'center',
                     opacity: showFolders ? 1 : 0.4,
                   }}
-                  title={showFolders ? t('drive.hideFolder') || 'Hide folders' : t('drive.showFolder') || 'Show folders'}
                 >
                   {getThemedIcon('ui', showFolders ? 'folder' : 'folder_open', 14, showFolders ? 'primary' : 'muted')}
                 </button>
               </div>
+            </div>
+            <div style={{ width: 60, textAlign: isRTL ? 'left' : 'right', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+              {t('drive.status') || 'Status'}
             </div>
             <button
               onClick={() => setShowOwner(!showOwner)}
@@ -434,29 +435,10 @@ export default function FileRoster({
                 alignItems: 'center',
                 opacity: showOwner ? 1 : 0.4,
               }}
-              title={showOwner ? t('drive.hideOwner') || 'Hide owner' : t('drive.showOwner') || 'Show owner'}
             >
               {getThemedIcon('ui', 'user', 14, showOwner ? 'primary' : 'muted')}
             </button>
-            <div style={{ width: 280, textAlign: isRTL ? 'right' : 'left', borderRight: '1px solid var(--border, #e5e7eb)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
-              {t('drive.status') || 'Status'}
-            </div>
-            <button
-              onClick={() => setShowVersion(!showVersion)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                padding: 4,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                opacity: showVersion ? 1 : 0.4,
-              }}
-              title={showVersion ? t('drive.hideVersion') || 'Hide version' : t('drive.showVersion') || 'Show version'}
-            >
-              {getThemedIcon('ui', 'tag', 14, showVersion ? 'primary' : 'muted')}
-            </button>
-            <div style={{ width: 80, textAlign: isRTL ? 'left' : 'right', borderRight: '1px solid var(--border, #e5e7eb)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+            <div style={{ width: 80, textAlign: isRTL ? 'left' : 'right', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
               {t('drive.created') || 'Created'}
             </div>
             <button
@@ -470,9 +452,22 @@ export default function FileRoster({
                 alignItems: 'center',
                 opacity: showSize ? 1 : 0.4,
               }}
-              title={showSize ? t('drive.hideSize') || 'Hide size' : t('drive.showSize') || 'Show size'}
             >
               {getThemedIcon('ui', 'hard_drive', 14, showSize ? 'primary' : 'muted')}
+            </button>
+            <button
+              onClick={() => setShowVersion(!showVersion)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: 4,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                opacity: showVersion ? 1 : 0.4,
+              }}
+            >
+              {getThemedIcon('ui', 'tag', 14, showVersion ? 'primary' : 'muted')}
             </button>
             <div style={{ width: 40 }}></div>
           </div>
@@ -527,7 +522,7 @@ export default function FileRoster({
                 onClick={(e) => e.stopPropagation()}
                 style={{ width: 16, height: 16 }}
               />
-              <div style={{ width: 40, display: 'flex', justifyContent: 'center', borderRight: '1px solid var(--border, #e5e7eb)' }}>
+              <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -551,7 +546,7 @@ export default function FileRoster({
                   }
                 </button>
               </div>
-              <div style={{ flex: 1.2, display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, borderRight: '1px solid var(--border, #e5e7eb)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+              <div style={{ flex: 1.2, display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
                 <div
                   style={{
                     width: 40,
@@ -585,43 +580,12 @@ export default function FileRoster({
                   </div>
                 </div>
               </div>
-              {showOwner && (
-                <div style={{ width: 100, fontSize: '0.875rem', color: 'var(--text-secondary, #374151)', borderRight: '1px solid var(--border, #e5e7eb)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
-                  {formatOwnerName(folder.owner)}
-                </div>
-              )}
-              <div
-                style={{
-                  width: 280,
-                  textAlign: isRTL ? 'right' : 'left',
-                  fontSize: '0.875rem',
-                  color: 'var(--text-muted, #6b7280)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: isRTL ? 'flex-end' : 'flex-start',
-                  borderRight: '1px solid var(--border, #e5e7eb)',
-                  paddingRight: isRTL ? 0 : '0.5rem',
-                  paddingLeft: isRTL ? '0.5rem' : 0,
-                }}
-              >
+              <div style={{ width: 60, paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
                 —
               </div>
-              {showVersion && (
-                <div
-                  style={{
-                    width: 80,
-                    textAlign: isRTL ? 'right' : 'left',
-                    fontSize: '0.875rem',
-                    color: 'var(--text-muted, #6b7280)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: isRTL ? 'flex-end' : 'flex-start',
-                    borderRight: '1px solid var(--border, #e5e7eb)',
-                    paddingRight: isRTL ? 0 : '0.5rem',
-                    paddingLeft: isRTL ? '0.5rem' : 0,
-                  }}
-                >
-                  —
+              {showOwner && (
+                <div style={{ width: 100, fontSize: '0.875rem', color: 'var(--text-secondary, #374151)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+                  {formatOwnerName(folder.owner)}
                 </div>
               )}
               <div
@@ -635,7 +599,6 @@ export default function FileRoster({
                   justifyContent: isRTL ? 'flex-start' : 'flex-end',
                   whiteSpace: 'pre-line',
                   lineHeight: 1.2,
-                  borderRight: '1px solid var(--border, #e5e7eb)',
                   paddingRight: isRTL ? 0 : '0.5rem',
                   paddingLeft: isRTL ? '0.5rem' : 0,
                 }}
@@ -652,11 +615,15 @@ export default function FileRoster({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: isRTL ? 'flex-start' : 'flex-end',
-                    borderRight: '1px solid var(--border, #e5e7eb)',
                     paddingRight: isRTL ? 0 : '0.5rem',
                     paddingLeft: isRTL ? '0.5rem' : 0,
                   }}
                 >
+                  —
+                </div>
+              )}
+              {showVersion && (
+                <div style={{ width: 60, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                   —
                 </div>
               )}
@@ -831,7 +798,7 @@ export default function FileRoster({
                   onClick={(e) => e.stopPropagation()}
                   style={{ width: 16, height: 16 }}
                 />
-                <div style={{ width: 40, display: 'flex', justifyContent: 'center', borderRight: '1px solid var(--border, #e5e7eb)' }}>
+                <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -855,7 +822,7 @@ export default function FileRoster({
                     }
                   </button>
                 </div>
-                <div style={{ flex: 1.2, display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, borderRight: '1px solid var(--border, #e5e7eb)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+                <div style={{ flex: 1.2, display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
                   <div
                     style={{
                       width: 36,
@@ -902,44 +869,12 @@ export default function FileRoster({
                     </div>
                   </div>
                 </div>
-                {showOwner && (
-                  <div style={{ width: 100, fontSize: '0.875rem', color: 'var(--text-secondary, #374151)', borderRight: '1px solid var(--border, #e5e7eb)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
-                    {formatOwnerName(file.owner)}
-                  </div>
-                )}
-                <div
-                  style={{
-                    width: 280,
-                    textAlign: isRTL ? 'right' : 'left',
-                    fontSize: '0.875rem',
-                    color: 'var(--text-muted, #6b7280)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: isRTL ? 'flex-end' : 'flex-start',
-                    borderRight: '1px solid var(--border, #e5e7eb)',
-                    paddingRight: isRTL ? 0 : '0.5rem',
-                    paddingLeft: isRTL ? '0.5rem' : 0,
-                  }}
-                >
+                <div style={{ width: 60, paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
                   <StatusColumn file={file} onClick={() => onFileOpen?.(file)} />
                 </div>
-                {showVersion && (
-                  <div
-                    style={{
-                      width: 'auto',
-                      minWidth: 60,
-                      textAlign: isRTL ? 'right' : 'left',
-                      fontSize: '0.875rem',
-                      color: 'var(--text-muted, #6b7280)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: isRTL ? 'flex-end' : 'flex-start',
-                      borderRight: '1px solid var(--border, #e5e7eb)',
-                      paddingRight: isRTL ? 0 : '0.5rem',
-                      paddingLeft: isRTL ? '0.5rem' : 0,
-                    }}
-                  >
-                    {file.versionCount > 1 ? `${file.versionNumber || 1}/${file.versionCount}` : `${file.versionNumber || 1}`}
+                {showOwner && (
+                  <div style={{ width: 100, fontSize: '0.875rem', color: 'var(--text-secondary, #374151)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+                    {formatOwnerName(file.owner)}
                   </div>
                 )}
                 <div
@@ -953,7 +888,6 @@ export default function FileRoster({
                     justifyContent: isRTL ? 'flex-start' : 'flex-end',
                     whiteSpace: 'pre-line',
                     lineHeight: 1.2,
-                    borderRight: '1px solid var(--border, #e5e7eb)',
                     paddingRight: isRTL ? 0 : '0.5rem',
                     paddingLeft: isRTL ? '0.5rem' : 0,
                   }}
@@ -970,12 +904,31 @@ export default function FileRoster({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: isRTL ? 'flex-start' : 'flex-end',
-                      borderRight: '1px solid var(--border, #e5e7eb)',
                       paddingRight: isRTL ? 0 : '0.5rem',
                       paddingLeft: isRTL ? '0.5rem' : 0,
                     }}
                   >
                     {formatSize(file.size)}
+                  </div>
+                )}
+                {showVersion && (
+                  <div style={{ width: 60, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    {file.version ? (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        padding: '0.125rem 0.5rem',
+                        background: 'var(--color-primary-tint, #eff6ff)',
+                        color: 'var(--color-primary, #3b82f6)',
+                        borderRadius: '0.25rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                      }}>
+                        {getThemedIcon('ui', 'tag', 12, 'primary')}
+                        {file.version}
+                      </div>
+                    ) : '—'}
                   </div>
                 )}
                 <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from '@contexts/ThemeContext';
-import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
+import { getThemedIcon, getColoredIcon, getUserRoleIcon } from '@constants/iconTypes';
 
 import { info, error, warn, debug } from '@services/utils/logger.js';import {
   FileText, Link, Video, Globe, Edit, Trash, 
@@ -327,11 +327,11 @@ const getRoleColor = (role) => {
 const getRoleIcon = (role) => {
   // This will be imported from @constants/userRoles
   const roleIcons = {
-    superadmin: <Crown size={16} />,
-    admin: <Shield size={16} />,
-    instructor: getThemedIcon('ui', 'book_open', 16, 'light'),
-    hr: <Users size={16} />,
-    student: <User size={16} />
+    superadmin: getUserRoleIcon('super_admin'),
+    admin: getUserRoleIcon('admin'),
+    instructor: getUserRoleIcon('instructor'),
+    hr: getUserRoleIcon('hr'),
+    student: getUserRoleIcon('student')
   };
   return roleIcons[role] || <User size={16} />;
 };

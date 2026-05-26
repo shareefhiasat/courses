@@ -14,6 +14,8 @@ import {
   getDocumentsByFileId,
   updateStatus,
   addComment,
+  getCommentsByWorkflowDocument,
+  deleteComment,
   resubmitWorkflowDocument,
   uploadSignedDocument,
   withdrawWorkflowDocument,
@@ -253,6 +255,36 @@ export const updateWorkflowDocumentStatusController = async (req, res) => {
 };
 
 /**
+ * GET /api/v1/workflow-documents/:id/comments
+ * Get comments for workflow document
+ */
+export const getWorkflowCommentsController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await getCommentsByWorkflowDocument(parseInt(id));
+
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        data: result.data
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Error in getWorkflowCommentsController:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+};
+
+/**
  * POST /api/v1/workflow-documents/:id/comments
  * Add comment to workflow document
  */
@@ -289,6 +321,36 @@ export const addWorkflowCommentController = async (req, res) => {
     }
   } catch (error) {
     console.error('Error in addWorkflowCommentController:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+};
+
+/**
+ * DELETE /api/v1/workflow-documents/:id/comments/:commentId
+ * Delete comment from workflow document
+ */
+export const deleteWorkflowCommentController = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+
+    const result = await deleteComment(commentId);
+
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        data: result.data
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Error in deleteWorkflowCommentController:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'

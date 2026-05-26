@@ -6,7 +6,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { Navigate } from 'react-router-dom';
 import { getUserProfile, updateUser } from '@services/business/userService';
 import { getAllUserImages } from '@services/business/userImageService';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getUserRoleColor } from '@constants/iconTypes';
 import { Container, Card, CardBody, Button, Input, Spinner, useToast } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { ToggleSwitch } from '@ui';
@@ -300,27 +300,27 @@ const ProfileSettingsPage = () => {
               <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>{t('profile_your_role')}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
                 {isSuperAdmin && (
-                  <span style={{ color: '#f59e0b', border: '1.5px solid #f59e0b', background: 'rgba(245, 158, 11, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
+                  <span style={{ color: getUserRoleColor('super_admin'), border: `1.5px solid ${getUserRoleColor('super_admin')}`, background: `${getUserRoleColor('super_admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
                     {getThemedIcon('user_role', 'super_admin', 14, theme)} {t('profile_super_admin')}
                   </span>
                 )}
                 {isAdmin && !isSuperAdmin && (
-                  <span style={{ color: '#4f46e5', border: '1.5px solid #4f46e5', background: 'rgba(79, 70, 229, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
+                  <span style={{ color: getUserRoleColor('admin'), border: `1.5px solid ${getUserRoleColor('admin')}`, background: `${getUserRoleColor('admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
                     {getThemedIcon('user_role', 'admin', 14, theme)} {t('profile_admin')}
                   </span>
                 )}
                 {isInstructor && (
-                  <span style={{ color: '#0ea5e9', border: '1.5px solid #0ea5e9', background: 'rgba(14, 165, 233, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
+                  <span style={{ color: getUserRoleColor('instructor'), border: `1.5px solid ${getUserRoleColor('instructor')}`, background: `${getUserRoleColor('instructor')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
                     {getThemedIcon('user_role', 'instructor', 14, theme)} {t('profile_instructor')}
                   </span>
                 )}
                 {isHR && (
-                  <span style={{ color: '#8b5cf6', border: '1.5px solid #8b5cf6', background: 'rgba(139, 92, 246, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
+                  <span style={{ color: getUserRoleColor('hr'), border: `1.5px solid ${getUserRoleColor('hr')}`, background: `${getUserRoleColor('hr')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
                     {getThemedIcon('user_role', 'hr', 14, theme)} {t('profile_hr')}
                   </span>
                 )}
                 {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
-                  <span style={{ color: '#16a34a', border: '1.5px solid #16a34a', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>{t('profile_student')}</span>
+                  <span style={{ color: getUserRoleColor('student'), border: `1.5px solid ${getUserRoleColor('student')}`, background: `${getUserRoleColor('student')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>{t('profile_student')}</span>
                 )}
               </div>
             </div>

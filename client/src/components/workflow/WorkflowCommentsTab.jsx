@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
 import { getIcon } from '@constants/iconTypes';
+import { Button } from '@ui';
+import Modal from '@ui/Modal/Modal';
 import workflowService from '@services/business/workflowService';
 
 export default function WorkflowCommentsTab({ workflowId }) {
@@ -12,6 +14,9 @@ export default function WorkflowCommentsTab({ workflowId }) {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [filterText, setFilterText] = useState('');
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const fetchComments = useCallback(async () => {
     if (!workflowId) return;
@@ -58,7 +63,7 @@ export default function WorkflowCommentsTab({ workflowId }) {
     setSubmitting(true);
     try {
       const result = await workflowService.addWorkflowComment(workflowId, {
-        content: newComment.trim(),
+        comment: newComment.trim(),
       });
       if (result.success) {
         setNewComment('');
@@ -74,13 +79,20 @@ export default function WorkflowCommentsTab({ workflowId }) {
   };
 
   const handleDeleteComment = async (commentId) => {
+    setDeleteConfirm(commentId);
+  };
+
+  const confirmDeleteComment = async () => {
+    if (!deleteConfirm) return;
     try {
-      const result = await workflowService.deleteWorkflowComment(workflowId, commentId);
+      const result = await workflowService.deleteWorkflowComment(workflowId, deleteConfirm);
       if (result.success) {
-        setComments(prev => prev.filter(c => c.id !== commentId));
+        setComments(prev => prev.filter(c => c.id !== deleteConfirm));
       }
     } catch (err) {
       console.error('[WorkflowCommentsTab] delete comment failed:', err);
+    } finally {
+      setDeleteConfirm(null);
     }
   };
 
@@ -118,6 +130,25 @@ export default function WorkflowCommentsTab({ workflowId }) {
 
   const sortedDates = Object.keys(groupedComments).sort((a, b) => new Date(b) - new Date(a));
 
+  const filteredAndSortedComments = useMemo(() => {
+    let filtered = selectedDate ? groupedComments[selectedDate] || [] : comments;
+    if (filterText.trim()) {
+      const searchLower = filterText.toLowerCase();
+      filtered = filtered.filter(comment =>
+        comment.comment?.toLowerCase().includes(searchLower) ||
+        comment.author?.displayName?.toLowerCase().includes(searchLower) ||
+        comment.author?.email?.toLowerCase().includes(searchLower)
+      );
+    }
+    // Always sort by newest first
+    const sorted = [...filtered].sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateB - dateA;
+    });
+    return sorted;
+  }, [comments, filterText, selectedDate, groupedComments]);
+
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }} role="status">
@@ -127,161 +158,282 @@ export default function WorkflowCommentsTab({ workflowId }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
       {/* Add comment form */}
-      <form onSubmit={handleAddComment} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <textarea
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder={t('drive.addCommentPlaceholder', 'Add a comment...')}
-          disabled={submitting}
-          style={{
-            width: '100%',
-            minHeight: '80px',
-            padding: '0.75rem',
-            borderRadius: '0.5rem',
-            border: '1px solid var(--border, #e5e7eb)',
-            fontSize: '0.875rem',
-            resize: 'vertical',
-            fontFamily: 'inherit',
-          }}
-        />
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <form onSubmit={handleAddComment}>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <input
+            type="text"
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder={t('workflow.addCommentPlaceholder', 'Add a comment...')}
+            style={{
+              flex: 1,
+              padding: '0.625rem 1rem',
+              border: '1px solid var(--border, #d1d5db)',
+              borderRadius: '0.5rem',
+              background: 'var(--panel, white)',
+              color: 'var(--text, #111827)',
+              fontSize: '0.875rem',
+              outline: 'none',
+            }}
+            aria-label={t('workflow.addCommentPlaceholder', 'Add a comment...')}
+          />
           <button
             type="submit"
             disabled={!newComment.trim() || submitting}
             style={{
               padding: '0.625rem 1.25rem',
-              borderRadius: '0.5rem',
-              border: 'none',
-              background: !newComment.trim() || submitting ? 'var(--text-muted, #6b7280)' : 'var(--color-primary, #3b82f6)',
+              background: 'var(--color-primary, #2563eb)',
               color: 'white',
-              cursor: !newComment.trim() || submitting ? 'not-allowed' : 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: 500,
+              border: 'none',
+              borderRadius: '0.5rem',
+              cursor: submitting || !newComment.trim() ? 'not-allowed' : 'pointer',
+              opacity: submitting || !newComment.trim() ? 0.5 : 1,
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              minHeight: '2.75rem',
+              transition: 'background 0.15s',
             }}
+            onMouseEnter={(e) => {
+              if (!submitting && newComment.trim())
+                e.currentTarget.style.background = 'var(--color-primary-dark, #1d4ed8)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--color-primary, #2563eb)';
+            }}
+            aria-label={submitting ? t('common.sending', 'Sending...') : t('workflow.sendComment', 'Send Comment')}
           >
-            {submitting ? (
-              <>
-                {getIcon('ui', 'loader', 16)}
-                {t('common.sending', 'Sending...')}
-              </>
-            ) : (
-              <>
-                {getIcon('ui', 'send', 16)}
-                {t('drive.sendComment', 'Send Comment')}
-              </>
-            )}
+            <span style={{ color: '#ffffff' }}>{getIcon('ui', 'send', 16)}</span>
+            <span>{submitting ? t('common.sending', 'Sending...') : t('workflow.sendComment', 'Send Comment')}</span>
           </button>
         </div>
       </form>
 
-      {/* Comments list */}
-      {error && (
-        <div style={{ padding: '0.75rem', background: 'var(--error-bg, #fef2f2)', border: '1px solid var(--error-border, #fecaca)', borderRadius: '0.5rem', color: 'var(--error-text, #dc2626)', fontSize: '0.875rem' }} role="alert">
-          {error}
-        </div>
-      )}
-
-      {sortedDates.length === 0 && !loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem', color: 'var(--text-muted, #6b7280)', fontSize: '0.875rem' }}>
-          {getIcon('ui', 'comment', 48)}
-          <p style={{ marginTop: '1rem', margin: 0 }}>{t('drive.noComments', 'No comments yet')}</p>
+      {/* Timeline and comments */}
+      {filteredAndSortedComments.length === 0 && !filterText ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+          {getIcon('ui', 'message', 40)}
+          {t('drive.noComments', 'No comments yet')}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {sortedDates.map((date) => (
-            <div key={date} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <h4 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {formatDateHeader(date)}
-              </h4>
+        <div style={{ display: 'flex', gap: '1rem', height: '100%' }}>
+          {/* Left sidebar - Date timeline */}
+          <div style={{ 
+            width: '200px', 
+            flexShrink: 0, 
+            borderRight: '1px solid var(--border, #e5e7eb)', 
+            paddingInlineEnd: '1rem',
+            overflowY: 'auto',
+            maxHeight: '500px'
+          }}>
+            <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {getIcon('ui', 'clock', 16)}
+              {t('drive.timeline', 'Timeline')}
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <button
+                onClick={() => setSelectedDate(null)}
+                style={{
+                  padding: '0.5rem',
+                  textAlign: 'start',
+                  background: !selectedDate ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  color: !selectedDate ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
+                  cursor: 'pointer',
+                  fontWeight: !selectedDate ? 600 : 400,
+                }}
+              >
+                {t('drive.allComments', 'All Comments')} ({comments.length})
+              </button>
+              {sortedDates.map((date) => (
+                <button
+                  key={date}
+                  onClick={() => setSelectedDate(date)}
+                  style={{
+                    padding: '0.5rem',
+                    textAlign: 'start',
+                    background: selectedDate === date ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.875rem',
+                    color: selectedDate === date ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
+                    cursor: 'pointer',
+                    fontWeight: selectedDate === date ? 600 : 400,
+                  }}
+                >
+                  {formatDateHeader(date)} ({groupedComments[date].length})
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Right content - Comments */}
+          <div style={{ flex: 1, overflowY: 'auto', maxHeight: '500px' }}>
+            {/* Search filter */}
+            <div style={{ position: 'relative', marginBottom: '1rem' }}>
+              <input
+                type="text"
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+                placeholder={t('drive.filterComments', 'Filter comments...')}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem 0.75rem',
+                  border: '1px solid var(--border, #d1d5db)',
+                  borderRadius: '0.5rem',
+                  background: 'var(--panel, white)',
+                  color: 'var(--text, #111827)',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                }}
+                aria-label={t('drive.filterComments', 'Filter comments...')}
+              />
+              {filterText && (
+                <button
+                  onClick={() => setFilterText('')}
+                  style={{
+                    position: 'absolute',
+                    right: '0.75rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--text-muted, #6b7280)',
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    padding: '0.25rem',
+                    borderRadius: '0.25rem',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text, #111827)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted, #6b7280)'}
+                  aria-label={t('common.clear', 'Clear')}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
+              {selectedDate ? formatDateHeader(selectedDate) : t('workflow.document.comments', 'Comments')} ({filteredAndSortedComments.length})
+            </h3>
+
+            {filteredAndSortedComments.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+                {getIcon('ui', 'message', 40)}
+                {t('drive.noMatchingComments', 'No matching comments')}
+              </div>
+            ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {groupedComments[date].map((comment) => (
-                  <div
+                {filteredAndSortedComments.map((comment) => (
+                  <article
                     key={comment.id}
                     style={{
                       padding: '1rem',
+                      background: 'var(--panel, white)',
                       borderRadius: '0.75rem',
                       border: '1px solid var(--border, #e5e7eb)',
-                      background: 'var(--panel, white)',
-                      display: 'flex',
-                      gap: '0.75rem',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                     }}
                   >
-                    {/* Avatar */}
-                    <div style={{
-                      flexShrink: 0,
-                      width: '2.5rem',
-                      height: '2.5rem',
-                      borderRadius: '9999px',
-                      background: 'var(--color-primary-alpha, rgba(37,99,235,0.1))',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--color-primary, #3b82f6)',
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                    }}>
-                      {comment.author?.displayName?.[0] || comment.author?.email?.[0] || '?'}
-                    </div>
-
-                    {/* Content */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text, #111827)' }}>
-                          {comment.author?.displayName || comment.author?.email || 'Unknown'}
-                        </span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          flexShrink: 0,
+                          width: '2rem',
+                          height: '2rem',
+                          borderRadius: '9999px',
+                          background: 'var(--color-primary-alpha, rgba(37, 99, 235, 0.1))',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--color-primary, #3b82f6)',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                        }}>
+                          {comment.author?.displayName?.[0] || comment.author?.email?.[0] || '?'}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
+                              {comment.author?.displayName || comment.author?.email || t('drive.unknownUser', 'Unknown')}
+                            </span>
+                          </div>
+                          <p style={{ fontSize: '0.875rem', color: 'var(--text, #374151)', margin: 0, wordBreak: 'break-word' }}>
+                            {comment.comment}
+                          </p>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                           {formatDateTime(comment.createdAt)}
                         </span>
-                        {comment.isEdited && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', fontStyle: 'italic' }}>
-                            ({t('common.edited', 'edited')})
-                          </span>
-                        )}
+                        <button
+                          onClick={() => handleDeleteComment(comment.id)}
+                          style={{
+                            padding: '0.375rem',
+                            border: 'none',
+                            background: 'transparent',
+                            color: 'var(--text-muted, #6b7280)',
+                            cursor: 'pointer',
+                            borderRadius: '0.5rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: '2.25rem',
+                            minHeight: '2.25rem',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = '#dc2626';
+                            e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = 'var(--text-muted, #6b7280)';
+                            e.currentTarget.style.background = 'transparent';
+                          }}
+                        >
+                          {getIcon('ui', 'trash', 16, '#dc2626')}
+                        </button>
                       </div>
-                      <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text, #374151)', lineHeight: 1.5, wordBreak: 'break-word' }}>
-                        {comment.content}
-                      </p>
                     </div>
-
-                    {/* Actions */}
-                    {(comment.authorId === user?.id || user?.roles?.includes('super_admin')) && (
-                      <button
-                        onClick={() => handleDeleteComment(comment.id)}
-                        style={{
-                          flexShrink: 0,
-                          padding: '0.375rem',
-                          borderRadius: '0.375rem',
-                          border: 'none',
-                          background: 'transparent',
-                          color: 'var(--text-muted, #6b7280)',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'var(--error-bg, #fef2f2)';
-                          e.currentTarget.style.color = 'var(--error-text, #dc2626)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'transparent';
-                          e.currentTarget.style.color = 'var(--text-muted, #6b7280)';
-                        }}
-                        title={t('common.delete', 'Delete')}
-                      >
-                        {getIcon('ui', 'trash', 16)}
-                      </button>
-                    )}
-                  </div>
+                  </article>
                 ))}
               </div>
-            </div>
-          ))}
+            )}
+          </div>
         </div>
       )}
-    </div>
+      </div>
+
+      {/* Delete confirmation modal */}
+      <Modal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title={t('common.delete', 'Delete')}
+      >
+        <p style={{ marginBottom: '1rem' }}>
+          {t('workflow.deleteCommentConfirm', 'Are you sure you want to delete this comment?')}
+        </p>
+        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+          <Button
+            variant="outline"
+            onClick={() => setDeleteConfirm(null)}
+          >
+            {t('common.cancel', 'Cancel')}
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={confirmDeleteComment}
+          >
+            {t('common.delete', 'Delete')}
+          </Button>
+        </div>
+      </Modal>
+    </>
   );
 }
