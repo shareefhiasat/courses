@@ -490,6 +490,7 @@ const DICT = {
     loading: 'Loading',
     common: {
       loading: 'Loading',
+      downloadFailed: 'Download failed',
     },
     participation_details: 'Participation Details',
     behavior_details: 'Behavior Details',
@@ -5170,6 +5171,10 @@ const DICT = {
 
         // QR Scanner Page
     loading: 'جاري التحميل...',
+    common: {
+      loading: 'جاري التحميل...',
+      downloadFailed: 'فشل التحميل',
+    },
     to: 'إلى',
     clear: 'مسح',
     all_status: 'كل الحالات',

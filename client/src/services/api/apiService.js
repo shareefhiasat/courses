@@ -346,31 +346,37 @@ export { apiClient };
 export const apiService = {
   get: async (url, config) => {
     try {
-      // Check cache for GET requests
+      // Check cache for GET requests (skip for blob responses)
+      const isBlobRequest = config?.responseType === 'blob';
       const cacheKey = url;
       const now = Date.now();
       const cached = requestCache.get(cacheKey);
-      
-      if (cached && now - cached.timestamp < CACHE_TTL) {
+
+      if (!isBlobRequest && cached && now - cached.timestamp < CACHE_TTL) {
         debug('[API Service] Cache hit for:', url);
         return cached.data;
       }
-      
+
       const response = await apiClient.get(url, config);
       const data = response.data;
-      
+
+      // For blob responses, return the full response with the blob
+      if (isBlobRequest) {
+        return { success: true, data: response.data };
+      }
+
       // Cache the response
       requestCache.set(cacheKey, {
         data,
         timestamp: now
       });
-      
+
       // Clear old cache entries if cache is too large
       if (requestCache.size > 100) {
         const firstKey = requestCache.keys().next().value;
         requestCache.delete(firstKey);
       }
-      
+
       return data;
     } catch (error) {
       // Suppress 404 errors for standup-attendance endpoints (expected when no data exists)

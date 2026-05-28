@@ -68,45 +68,38 @@ export const handleFilePreview = async (file, fileVersionId = null) => {
   const fileType = getFileType(file);
   console.log('🔍 [fileUtils] handleFilePreview called', { fileType, fileName: file.name, fileVersionId });
 
+  // Import apiService dynamically to avoid circular dependency
+  const { apiService } = await import('@services/api/apiService.js');
+
   // For images, use preview endpoint to get inline URL with version support
   if (fileType === 'image') {
     try {
       console.log('🔍 [fileUtils] Fetching preview for image');
       const url = fileVersionId
-        ? `/api/v1/drive/files/${file.id}/preview?versionId=${fileVersionId}`
-        : `/api/v1/drive/files/${file.id}/preview`;
-      const response = await fetch(url);
-      const data = await response.json();
-      console.log('🔍 [fileUtils] Image preview response:', data);
+        ? `/drive/files/${file.id}/preview?versionId=${fileVersionId}`
+        : `/drive/files/${file.id}/preview`;
+      const response = await apiService.get(url);
+      console.log('🔍 [fileUtils] Image preview response:', response);
 
-      if (data.success && data.payload.url) {
-        console.log('🔍 [fileUtils] Opening image preview URL:', data.payload.url);
-        window.open(data.payload.url, '_blank');
+      if (response.success && response.payload.url) {
+        console.log('🔍 [fileUtils] Opening image preview URL:', response.payload.url);
+        window.open(response.payload.url, '_blank');
       } else {
         // Fallback to download if preview fails
         console.log('🔍 [fileUtils] Image preview failed, falling back to download');
-        const downloadUrl = fileVersionId
-          ? `/api/v1/drive/files/${file.id}/download?versionId=${fileVersionId}`
-          : `/api/v1/drive/files/${file.id}/download`;
-        window.open(downloadUrl, '_blank');
+        await downloadFileWithAuth(file.id, fileVersionId);
       }
     } catch (error) {
       console.error('❌ [fileUtils] Failed to get image preview URL:', error);
-      const downloadUrl = fileVersionId
-        ? `/api/v1/drive/files/${file.id}/download?versionId=${fileVersionId}`
-        : `/api/v1/drive/files/${file.id}/download`;
-      window.open(downloadUrl, '_blank');
+      await downloadFileWithAuth(file.id, fileVersionId);
     }
     return;
   }
 
   // For PDFs, use the download endpoint (now supports inline for PDFs) with version support
   if (fileType === 'pdf') {
-    const url = fileVersionId
-      ? `/api/v1/drive/files/${file.id}/download?versionId=${fileVersionId}`
-      : `/api/v1/drive/files/${file.id}/download`;
-    console.log('🔍 [fileUtils] Opening PDF in new tab:', url);
-    window.open(url, '_blank');
+    console.log('🔍 [fileUtils] Opening PDF');
+    await downloadFileWithAuth(file.id, fileVersionId);
     return;
   }
 
@@ -115,38 +108,68 @@ export const handleFilePreview = async (file, fileVersionId = null) => {
     try {
       console.log('🔍 [fileUtils] Fetching preview for Office document');
       const url = fileVersionId
-        ? `/api/v1/drive/files/${file.id}/preview?versionId=${fileVersionId}`
-        : `/api/v1/drive/files/${file.id}/preview`;
-      const response = await fetch(url);
-      const data = await response.json();
-      console.log('🔍 [fileUtils] Preview response:', data);
+        ? `/drive/files/${file.id}/preview?versionId=${fileVersionId}`
+        : `/drive/files/${file.id}/preview`;
+      const response = await apiService.get(url);
+      console.log('🔍 [fileUtils] Preview response:', response);
 
-      if (data.success && data.payload.wopiToken) {
-        const collaboraUrl = `https://localhost:9980/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${data.payload.wopiToken}&permission=readonly`;
+      if (response.success && response.payload.wopiToken) {
+        const collaboraUrl = `https://localhost:9980/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${response.payload.wopiToken}&permission=readonly`;
         console.log('🔍 [fileUtils] Opening Collabora URL:', collaboraUrl);
         window.open(collaboraUrl, '_blank', 'noopener,noreferrer');
       } else {
         // Fallback to download if preview fails
         console.log('🔍 [fileUtils] Preview failed, falling back to download');
-        const downloadUrl = fileVersionId
-          ? `/api/v1/drive/files/${file.id}/download?versionId=${fileVersionId}`
-          : `/api/v1/drive/files/${file.id}/download`;
-        window.open(downloadUrl, '_blank');
+        await downloadFileWithAuth(file.id, fileVersionId);
       }
     } catch (error) {
       console.error('❌ [fileUtils] Failed to get preview URL:', error);
-      const downloadUrl = fileVersionId
-        ? `/api/v1/drive/files/${file.id}/download?versionId=${fileVersionId}`
-        : `/api/v1/drive/files/${file.id}/download`;
-      window.open(downloadUrl, '_blank');
+      await downloadFileWithAuth(file.id, fileVersionId);
     }
     return;
   }
 
   // For other file types, just download with version support
   console.log('🔍 [fileUtils] Unknown file type, downloading');
-  const downloadUrl = fileVersionId
-    ? `/api/v1/drive/files/${file.id}/download?versionId=${fileVersionId}`
-    : `/api/v1/drive/files/${file.id}/download`;
-  window.open(downloadUrl, '_blank');
+  await downloadFileWithAuth(file.id, fileVersionId);
 };
+
+/**
+ * Download file with authentication using apiService
+ * @param {string} fileId - File ID
+ * @param {string|null} fileVersionId - Optional file version ID
+ * @returns {Promise<void>}
+ */
+async function downloadFileWithAuth(fileId, fileVersionId = null) {
+  try {
+    const { apiService } = await import('@services/api/apiService.js');
+    const url = fileVersionId
+      ? `/drive/files/${fileId}/download?versionId=${fileVersionId}`
+      : `/drive/files/${fileId}/download`;
+
+    const response = await apiService.get(url, {
+      responseType: 'blob'
+    });
+
+    if (!response.success && !response.data) {
+      throw new Error(response.error || 'Download failed');
+    }
+
+    const blob = response.data || response;
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    // Create a hidden anchor tag to trigger download from blob
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = ''; // Let browser determine filename from Content-Disposition
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Clean up blob URL
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (error) {
+    console.error('❌ [fileUtils] Download failed:', error);
+    throw error;
+  }
+}

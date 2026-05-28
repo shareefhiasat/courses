@@ -767,10 +767,49 @@ export async function getPreviewUrl(fileId, actorUserId, fileVersionId = null) {
     console.log('[fileService.getPreviewUrl] File found:', file ? { id: file.id, name: file.name, isDeleted: file.isDeleted, s3Key: file.s3Key } : null);
     if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');
 
-    // Check if file has a placeholder key (incomplete upload)
-    if (file.s3Key && file.s3Key.includes('/placeholder')) {
-      console.log('[fileService.getPreviewUrl] File has placeholder key, upload not complete');
-      return err('FILE_NOT_READY', 'File upload not completed');
+    // Check if file has a placeholder key (incomplete upload) - try to find actual object
+    let actualS3Key = file.s3Key;
+    if (file.s3Key && (file.s3Key === 'placeholder' || file.s3Key.includes('/placeholder'))) {
+      console.log('[fileService.getPreviewUrl] File has placeholder key, attempting to find actual object');
+      const { minioClient } = await import('./minioService.js');
+      const bucketReal = resolveBucket(file.bucket);
+      
+      try {
+        // Try with file owner ID first
+        const prefix = `${file.bucket}/${file.ownerId}/${file.id}/`;
+        console.log('[fileService.getPreviewUrl] Listing objects with prefix:', prefix);
+        const objectsStream = minioClient.listObjects(bucketReal, prefix, true);
+        const objects = [];
+        for await (const obj of objectsStream) {
+          objects.push(obj);
+        }
+        console.log('[fileService.getPreviewUrl] Found objects:', objects.length);
+
+        // If not found with owner ID, try extracting user ID from s3Key itself
+        if (objects.length === 0) {
+          // Try all possible user IDs by listing all objects with the file ID
+          const allPrefix = `${file.bucket}/`;
+          console.log('[fileService.getPreviewUrl] Listing all objects in bucket to find file:', allPrefix);
+          const allObjectsStream = minioClient.listObjects(bucketReal, allPrefix, true);
+          for await (const obj of allObjectsStream) {
+            if (obj.name.includes(file.id) && !obj.name.includes('placeholder')) {
+              objects.push(obj);
+              console.log('[fileService.getPreviewUrl] Found matching object:', obj.name);
+            }
+          }
+        }
+
+        if (objects.length > 0) {
+          actualS3Key = objects[0].name;
+          console.log('[fileService.getPreviewUrl] Using found s3Key:', actualS3Key);
+        } else {
+          console.log('[fileService.getPreviewUrl] No actual object found for file');
+          return err('FILE_NOT_READY', 'File upload not completed');
+        }
+      } catch (listError) {
+        console.error('[fileService.getPreviewUrl] Failed to list objects:', listError);
+        return err('FILE_NOT_READY', 'File upload not completed');
+      }
     }
 
     // Check if file has no versions
@@ -854,15 +893,23 @@ export async function streamFile({ fileId, req, res, actorUserId, versionId = nu
   const owns = file.ownerId === actorUserId;
   console.log('[streamFile] Ownership check:', { owns, ownerId: file.ownerId, actorUserId });
   if (!owns) {
+    // Get user roles for role-based share check
+    const user = await prisma.user.findUnique({
+      where: { id: actorUserId },
+      select: { roles: true }
+    });
+    const userRoles = user?.roles || [];
+
     const share = await prisma.fileShareV2.findFirst({
       where: {
         fileId,
         OR: [
           { subjectType: 'USER', subjectUserId: actorUserId },
+          { subjectType: 'ROLE', subjectRole: { in: userRoles } },
         ],
       },
     });
-    console.log('[streamFile] Share check:', share ? { id: share.id, subjectType: share.subjectType } : null);
+    console.log('[streamFile] Share check:', share ? { id: share.id, subjectType: share.subjectType, subjectRole: share.subjectRole } : null, 'userRoles:', userRoles);
     if (!share) return res.status(403).json(err('ACCESS_DENIED', 'Access denied'));
   }
 
@@ -876,9 +923,14 @@ export async function streamFile({ fileId, req, res, actorUserId, versionId = nu
       where: { id: versionId }
     });
     if (fileVersion && fileVersion.fileId === fileId) {
-      s3Key = fileVersion.s3Key;
-      bucketName = file.bucket;
-      console.log('[streamFile] Using version s3Key:', s3Key);
+      // Skip placeholder s3Key
+      if (fileVersion.s3Key && fileVersion.s3Key !== 'placeholder') {
+        s3Key = fileVersion.s3Key;
+        bucketName = file.bucket;
+        console.log('[streamFile] Using version s3Key:', s3Key);
+      } else {
+        console.log('[streamFile] Version s3Key is placeholder, will fall back to current');
+      }
     } else {
       console.warn('[streamFile] File version not found or mismatch, falling back to current');
     }
@@ -892,22 +944,65 @@ export async function streamFile({ fileId, req, res, actorUserId, versionId = nu
     });
     console.log('[streamFile] Latest version:', latestVersion ? { id: latestVersion.id, versionNumber: latestVersion.versionNumber, s3Key: latestVersion.s3Key } : null);
 
-    if (latestVersion && latestVersion.s3Key) {
+    if (latestVersion && latestVersion.s3Key && latestVersion.s3Key !== 'placeholder' && !latestVersion.s3Key.includes('/placeholder')) {
       s3Key = latestVersion.s3Key;
       bucketName = file.bucket;
       console.log('[streamFile] Using version s3Key:', s3Key);
-    } else if (file.s3Key) {
+    } else if (file.s3Key && file.s3Key !== 'placeholder' && !file.s3Key.includes('/placeholder')) {
       s3Key = file.s3Key;
       bucketName = file.bucket;
       console.log('[streamFile] Using file s3Key:', s3Key);
     } else {
-      console.log('[streamFile] No s3Key found in version or file');
-      return res.status(404).json(err('FILE_NOT_FOUND', 'No file content available'));
+      console.log('[streamFile] No valid s3Key found in version or file (placeholder only), will search MinIO');
+      // Don't return error yet - let the placeholder search logic handle it
     }
   }
 
-  const bucketReal = resolveBucket(bucketName);
+  const bucketReal = resolveBucket(bucketName || file.bucket);
   console.log('[streamFile] Bucket mapping:', { bucketName, bucketReal });
+
+  // Check if s3Key is placeholder or missing - if so, try to find actual object
+  if (!s3Key || s3Key === 'placeholder' || s3Key.endsWith('/placeholder')) {
+    console.log('[streamFile] s3Key is placeholder or missing, attempting to find actual object');
+    const { minioClient } = await import('./minioService.js');
+    try {
+      // Try with file owner ID first
+      const prefix = `${file.bucket}/${file.ownerId}/${file.id}/`;
+      console.log('[streamFile] Listing objects with prefix:', prefix);
+      const objectsStream = minioClient.listObjects(bucketReal, prefix, true);
+      const objects = [];
+      for await (const obj of objectsStream) {
+        objects.push(obj);
+      }
+      console.log('[streamFile] Found objects:', objects.length);
+
+      // If not found with owner ID, try extracting user ID from s3Key itself
+      if (objects.length === 0) {
+        // Try all possible user IDs by listing all objects with the file ID
+        const allPrefix = `${file.bucket}/`;
+        console.log('[streamFile] Listing all objects in bucket to find file:', allPrefix);
+        const allObjectsStream = minioClient.listObjects(bucketReal, allPrefix, true);
+        for await (const obj of allObjectsStream) {
+          if (obj.name.includes(file.id) && !obj.name.includes('placeholder')) {
+            objects.push(obj);
+            console.log('[streamFile] Found matching object:', obj.name);
+          }
+        }
+      }
+
+      if (objects.length > 0) {
+        // Use the first object found
+        s3Key = objects[0].name;
+        console.log('[streamFile] Using found s3Key:', s3Key);
+      } else {
+        console.log('[streamFile] No actual object found for file');
+        return res.status(404).json(err('FILE_NOT_FOUND', 'No file content available'));
+      }
+    } catch (listError) {
+      console.error('[streamFile] Failed to list objects:', listError);
+      return res.status(404).json(err('FILE_NOT_FOUND', 'No file content available'));
+    }
+  }
 
   await prisma.fileActivity.create({
     data: { fileId, userId: actorUserId, action: 'DOWNLOAD' },
@@ -931,6 +1026,7 @@ export async function streamFile({ fileId, req, res, actorUserId, versionId = nu
       console.log('[streamFile] Object not found, attempting to find by listing bucket');
       const { minioClient } = await import('./minioService.js');
       try {
+        // Try with file owner ID first
         const prefix = `${file.bucket}/${file.ownerId}/${file.id}/`;
         console.log('[streamFile] Listing objects with prefix:', prefix);
         const objectsStream = minioClient.listObjects(bucketReal, prefix, true);
@@ -939,6 +1035,22 @@ export async function streamFile({ fileId, req, res, actorUserId, versionId = nu
           objects.push(obj);
         }
         console.log('[streamFile] Found objects:', objects.length);
+
+        // If not found with owner ID, try extracting user ID from s3Key itself
+        if (objects.length === 0 && s3Key.includes('/')) {
+          const parts = s3Key.split('/');
+          if (parts.length >= 3) {
+            const userIdFromKey = parts[1];
+            const fallbackPrefix = `${file.bucket}/${userIdFromKey}/${file.id}/`;
+            console.log('[streamFile] Trying fallback prefix from s3Key:', fallbackPrefix);
+            const fallbackStream = minioClient.listObjects(bucketReal, fallbackPrefix, true);
+            for await (const obj of fallbackStream) {
+              objects.push(obj);
+            }
+            console.log('[streamFile] Found objects with fallback prefix:', objects.length);
+          }
+        }
+
         if (objects.length > 0) {
           // Use the first object found
           const fallbackKey = objects[0].name;

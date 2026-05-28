@@ -48,11 +48,19 @@ export async function listVersions(fileId, actorUserId) {
       // Owner or someone with a share sees versions.
       const owns = file.ownerId === actorUserId;
       if (!owns) {
+        // Get user roles for role-based share check
+        const user = await prisma.user.findUnique({
+          where: { id: actorUserId },
+          select: { roles: true }
+        });
+        const userRoles = user?.roles || [];
+
         const share = await prisma.fileShareV2.findFirst({
           where: {
             fileId,
             OR: [
               { subjectType: 'USER', subjectUserId: actorUserId },
+              { subjectType: 'ROLE', subjectRole: { in: userRoles } },
             ],
           },
         });

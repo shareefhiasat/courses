@@ -11,6 +11,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { Tooltip } from '@ui';
+import { Send } from 'lucide-react';
 
 // Define workflow rules outside component to avoid React Flow warning
 const WORKFLOW_RULES = {
@@ -74,8 +75,13 @@ const WORKFLOW_RULES = {
     }
   },
   GENERAL: {
-    owner_submit: {
-      description: { en: 'Owner submits document', ar: 'تقديم المستند من قبل المالك' },
+    draft: {
+      description: { en: 'Create and edit document', ar: 'إنشاء وتحرير المستند' },
+      roles: { en: 'Owner', ar: 'المالك' },
+      transitions: { en: ['Submit'], ar: ['تقديم'] }
+    },
+    submit: {
+      description: { en: 'Submit document for HR review', ar: 'تقديم المستند لمراجعة الموارد البشرية' },
       roles: { en: 'Owner', ar: 'المالك' },
       transitions: { en: ['HR Review'], ar: ['مراجعة الموارد البشرية'] }
     },
@@ -105,14 +111,15 @@ const WORKFLOW_STAGES = {
     { id: 'rejected', label: { en: 'Rejected', ar: 'مرفوض' }, status: 'REJECTED' }
   ],
   GENERAL: [
-    { id: 'owner_submit', label: { en: 'Owner Submit', ar: 'تقديم المالك' }, status: 'SUBMITTED' },
+    { id: 'draft', label: { en: 'Draft', ar: 'مسودة' }, status: 'DRAFT' },
+    { id: 'submit', label: { en: 'Submit', ar: 'تقديم' }, status: 'SUBMITTED' },
     { id: 'hr_review', label: { en: 'HR Review', ar: 'مراجعة الموارد البشرية' }, status: 'UNDER_HR_REVIEW' },
     { id: 'approved', label: { en: 'Approved', ar: 'موافق عليه' }, status: 'APPROVED' },
     { id: 'rejected', label: { en: 'Rejected', ar: 'مرفوض' }, status: 'REJECTED' }
   ]
 };
 
-const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document }) => {
+const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document, currentAssignee }) => {
   const { lang, t } = useLang();
   const { theme } = useTheme();
   const [viewMode, setViewMode] = useState('flow'); // 'flow' or 'timeline'
@@ -231,23 +238,31 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document 
         position: { x, y },
         data: {
           label: (
-            <div 
+            <div
               className="flex flex-col h-full justify-between"
               title={description}
               style={{ position: 'relative' }}
             >
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-lg" style={{ color: borderColor }}>{stage.label[lang]}</span>
+                  <div className="flex items-center gap-2">
+                    {getRoleIcon(workflowRules[stage.id]?.roles[lang])}
+                    {stage.id === 'submitted' || stage.id === 'submit' ? (
+                      <Send size={20} color={index === currentStageIndex ? '#3b82f6' : '#10b981'} />
+                    ) : index < currentStageIndex ? (
+                      getThemedIcon('ui', 'check_circle', 20, '#10b981')
+                    ) : index === currentStageIndex ? (
+                      getThemedIcon('ui', 'clock', 20, '#3b82f6')
+                    ) : (
+                      getThemedIcon('ui', 'hourglass', 20, '#6b7280')
+                    )}
+                    <span className="font-bold text-lg" style={{ color: borderColor }}>{stage.label[lang]}</span>
+                  </div>
                   {duration && index < currentStageIndex && (
                     <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ background: '#e0f2fe', color: '#0369a1' }}>
                       {duration}
                     </span>
                   )}
-                </div>
-                <div className="flex items-center gap-2 text-sm font-medium" style={{ color: '#374151' }}>
-                  {getRoleIcon(workflowRules[stage.id]?.roles[lang])}
-                  <span>{workflowRules[stage.id]?.roles[lang] || '-'}</span>
                 </div>
               </div>
               {historyEntry && (
@@ -358,24 +373,74 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document 
             box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.3), 0 6px 16px rgba(0,0,0,0.2);
           }
         }
+        .workflow-scrollbar::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        .workflow-scrollbar::-webkit-scrollbar-track {
+          background: var(--scrollbar-track, #f1f5f9);
+          border-radius: 4px;
+        }
+        .workflow-scrollbar::-webkit-scrollbar-thumb {
+          background: var(--scrollbar-thumb, #cbd5e1);
+          border-radius: 4px;
+        }
+        .workflow-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: var(--scrollbar-thumb-hover, #94a3b8);
+        }
       `}</style>
-      
-      {/* Header with progress and controls */}
+
+      {/* Header with progress, legend and controls */}
       <div className="flex items-center justify-between mb-4 px-4">
         <div className="flex items-center gap-4">
-          <h3 className="text-lg font-semibold" style={{ color: 'var(--text, #111827)' }}>
-            {t('workflow.document.workflowProgress', 'Workflow Progress')}
-          </h3>
           <div className="flex items-center gap-2">
             <div className="text-sm font-medium" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-              {progressPercentage}% {t('common.complete', 'Complete')}
+              {progressPercentage}%
             </div>
             <div style={{ width: 120, height: 8, background: '#e5e7eb', borderRadius: 4, overflow: 'hidden' }}>
               <div style={{ width: `${progressPercentage}%`, height: '100%', background: '#10b981', transition: 'width 0.3s ease' }} />
             </div>
           </div>
+          {/* Legend */}
+          <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-2">
+              <div style={{ width: 16, height: 16, background: '#d1fae5', border: '2px solid #10b981', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {getThemedIcon('ui', 'check_circle', 12, '#10b981')}
+              </div>
+              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.legend.completed', 'Completed')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div style={{ width: 16, height: 16, background: '#3b82f6', border: '2px solid #3b82f6', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 8, height: 8, background: 'white', borderRadius: '50%' }} />
+              </div>
+              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.legend.current', 'Current')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div style={{ width: 16, height: 16, background: '#f3f4f6', border: '2px solid #d1d5db', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {getThemedIcon('ui', 'hourglass', 12, '#6b7280')}
+              </div>
+              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.legend.pending', 'Pending')}</span>
+            </div>
+            <div style={{ width: 1, height: 16, background: '#e5e7eb' }}></div>
+            <div className="flex items-center gap-2">
+              {getRoleIcon('Owner')}
+              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('owner', 'Owner')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {getRoleIcon('HR')}
+              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('roles.hr', 'HR')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {getRoleIcon('Admin')}
+              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('roles.admin', 'Admin')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {getRoleIcon('Instructor')}
+              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('roles.instructor', 'Instructor')}</span>
+            </div>
+          </div>
         </div>
-        
+
         {/* View mode toggle */}
         <div className="flex items-center gap-2">
           <button
@@ -415,30 +480,8 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document 
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-6 mb-4 px-4 text-sm">
-        <div className="flex items-center gap-2">
-          <div style={{ width: 16, height: 16, background: '#d1fae5', border: '2px solid #10b981', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {getThemedIcon('ui', 'check_circle', 12, '#10b981')}
-          </div>
-          <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.legend.completed', 'Completed')}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div style={{ width: 16, height: 16, background: '#dbeafe', border: '2px solid #3b82f6', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {getThemedIcon('ui', 'clock', 12, '#3b82f6')}
-          </div>
-          <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.legend.current', 'Current')}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div style={{ width: 16, height: 16, background: '#f3f4f6', border: '2px solid #d1d5db', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {getThemedIcon('ui', 'hourglass', 12, '#6b7280')}
-          </div>
-          <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.legend.pending', 'Pending')}</span>
-        </div>
-      </div>
-
       {viewMode === 'flow' ? (
-        <div className="w-full h-64 md:h-80 lg:h-96">
+        <div className="w-full h-64 md:h-80 lg:h-96 workflow-scrollbar overflow-auto">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -449,7 +492,7 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document 
             nodesConnectable={false}
             elementsSelectable={true}
             zoomOnScroll={true}
-            panOnScroll={true}
+            panOnScroll={false}
             panOnDrag={true}
           >
             <Background
@@ -462,7 +505,7 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document 
           </ReactFlow>
         </div>
       ) : (
-        <div className="px-4">
+        <div className="px-4 workflow-scrollbar" style={{ maxHeight: '500px', overflowY: 'auto' }}>
           <div className="relative" style={{ paddingLeft: lang === 'ar' ? 0 : '2rem', paddingRight: lang === 'ar' ? '2rem' : 0 }}>
             {/* Timeline line */}
             <div style={{
@@ -485,12 +528,13 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document 
               const isCurrent = index === currentStageIndex;
               
               return (
-                <div key={stage.id} className="relative mb-6" style={{ [lang === 'ar' ? 'paddingRight' : 'paddingLeft']: '2rem' }}>
+                <div key={stage.id} className="relative mb-3" style={{ [lang === 'ar' ? 'paddingRight' : 'paddingLeft']: '2rem' }}>
                   {/* Timeline dot */}
                   <div style={{
                     position: 'absolute',
                     [lang === 'ar' ? 'right' : 'left']: 0,
-                    top: '0.5rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
                     width: 12,
                     height: 12,
                     borderRadius: '50%',
@@ -508,41 +552,38 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document 
                     borderRadius: '0.5rem',
                     boxShadow: isCurrent ? '0 0 0 4px rgba(59, 130, 246, 0.1)' : 'none'
                   }}>
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {isCompleted && getThemedIcon('ui', 'check_circle', 18, '#10b981')}
-                        {isCurrent && getThemedIcon('ui', 'clock', 18, '#3b82f6')}
-                        {!isCompleted && !isCurrent && getThemedIcon('ui', 'hourglass', 18, '#6b7280')}
-                        <span className="font-bold text-base" style={{ color: isCompleted ? '#10b981' : (isCurrent ? '#3b82f6' : '#6b7280') }}>
-                          {stage.label[lang]}
+                    <div className="flex items-center gap-2 mb-2">
+                      {getRoleIcon(workflowRules[stage.id]?.roles[lang])}
+                      {stage.id === 'submitted' || stage.id === 'submit' ? (
+                        <Send size={18} color={isCurrent ? '#3b82f6' : '#10b981'} />
+                      ) : isCompleted ? (
+                        getThemedIcon('ui', 'check_circle', 18, '#10b981')
+                      ) : isCurrent ? (
+                        getThemedIcon('ui', 'clock', 18, '#3b82f6')
+                      ) : (
+                        getThemedIcon('ui', 'hourglass', 18, '#6b7280')
+                      )}
+                      <span className="font-bold text-base" style={{ color: isCompleted ? '#10b981' : (isCurrent ? '#3b82f6' : '#6b7280') }}>
+                        {stage.label[lang]}
+                      </span>
+                      {historyEntry && (
+                        <>
+                          <span className="font-semibold text-sm" style={{ color: '#374151' }}>{actorName}</span>
+                          <span className="text-xs" style={{ color: '#6b7280' }}>{entryDate}</span>
+                        </>
+                      )}
+                      {duration && isCompleted && (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ background: '#e0f2fe', color: '#0369a1' }}>
+                          {duration}
                         </span>
-                        {duration && isCompleted && (
-                          <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ background: '#e0f2fe', color: '#0369a1' }}>
-                            {duration}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm" style={{ color: '#6b7280' }}>
-                        {getRoleIcon(workflowRules[stage.id]?.roles[lang])}
-                        <span>{workflowRules[stage.id]?.roles[lang]}</span>
-                      </div>
+                      )}
                     </div>
-                    
-                    {historyEntry && (
+
+                    {historyEntry && comment && (
                       <div className="text-sm" style={{ color: '#374151' }}>
-                        <div className="font-semibold">{actorName}</div>
-                        <div className="text-xs" style={{ color: '#6b7280' }}>{entryDate}</div>
-                        {comment && (
-                          <div className="mt-2 p-2 rounded" style={{ background: '#f9fafb', fontStyle: 'italic', color: '#6b7280' }}>
-                            "{comment}"
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    {!historyEntry && !isCurrent && (
-                      <div className="text-sm" style={{ color: '#9ca3af' }}>
-                        {t('workflow.pending', 'Pending')}
+                        <div className="mt-1 p-2 rounded" style={{ background: '#f9fafb', fontStyle: 'italic', color: '#6b7280' }}>
+                          "{comment}"
+                        </div>
                       </div>
                     )}
                   </div>

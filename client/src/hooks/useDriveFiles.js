@@ -44,7 +44,8 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
       let endpoint = `${API_BASE}/files`;
       const params = {
         page: 1,
-        pageSize: 50,
+        pageSize: 500,
+        _t: Date.now(), // Cache buster
         ...filterParams,
       };
 
@@ -102,6 +103,7 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
         return;
       }
       if (folderId) params.append('parentId', folderId);
+      params.append('_t', Date.now()); // Cache buster
 
       const url = `${API_BASE}/folders?${params.toString()}`;
       console.log('[useDriveFiles] fetching folders from:', url);
@@ -246,8 +248,31 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
 
   const downloadFile = useCallback(async (fileId) => {
     try {
-      // Use proxy download endpoint for secure streaming.
-      window.open(`${API_BASE}/files/${fileId}/download`, '_blank');
+      // Use apiService to get auth headers automatically
+      const response = await apiService.get(`${API_BASE}/files/${fileId}/download`, {
+        responseType: 'blob'
+      });
+
+      console.log('[useDriveFiles] Download response:', { success: response.success, hasData: !!response.data, error: response.error, responseType: typeof response });
+
+      if (!response.success && !response.data) {
+        throw new Error(response.error || 'Download failed');
+      }
+
+      const blob = response.data || response;
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      // Create a hidden anchor tag to trigger download from blob
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = ''; // Let browser determine filename from Content-Disposition
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up blob URL
+      window.URL.revokeObjectURL(blobUrl);
+
       return { success: true };
     } catch (err) {
       console.error('[useDriveFiles] download failed:', err);

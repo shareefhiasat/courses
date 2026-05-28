@@ -21,6 +21,7 @@ import ToastContainer from '@components/smart-drive/ToastContainer';
 import CustomWorkflowDialog from '@components/workflow/CustomWorkflowDialog';
 import { createCustomWorkflow } from '@services/business/workflowDocumentService';
 import { info, error as logError } from '@services/utils/logger';
+import { apiService } from '@services/api/apiService';
 import useDriveFiles from '@hooks/useDriveFiles';
 import useWorkflowTasks from '@hooks/useWorkflowTasks';
 import useUpload from '@hooks/useUpload';
@@ -516,6 +517,7 @@ export default function SmartDrivePage() {
     handleClearSelection();
     setDeleteConfirmOpen(false);
     setItemsToDelete([]);
+    refreshFiles();
     success(t('drive.deleteSuccess') || 'Items moved to trash');
   };
 

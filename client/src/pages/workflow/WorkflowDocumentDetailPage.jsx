@@ -19,8 +19,9 @@ import { SimpleLoading, EmptyState, Modal, Textarea } from '@ui';
 import { approveWorkflowDocument, rejectWorkflowDocument, returnWorkflowDocument, resubmitWorkflowDocument, uploadSignedDocument, withdrawWorkflowDocument } from '@services/api/workflow-documents-api.js';
 import WorkflowDiagram from '@components/workflow/WorkflowDiagram.jsx';
 import WorkflowHistory from '@components/workflow/WorkflowHistory.jsx';
-import WorkflowCommentsTab from '@components/workflow/WorkflowCommentsTab.jsx';
 import CollapsibleDashboardSection from '@components/ui/CollapsibleDashboardSection/CollapsibleDashboardSection.jsx';
+import VersionsTab from '@components/smart-drive/tabs/VersionsTab.jsx';
+import CommentsTab from '@components/smart-drive/tabs/CommentsTab.jsx';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getStatusVariant, WORKFLOW_STATUS } from '@constants/workflowStatusTypes';
 import { getWorkflowDocument } from '@services/api/workflow-documents-api.js';
@@ -40,8 +41,6 @@ const WorkflowDocumentDetailPage = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [resubmitFile, setResubmitFile] = useState(null);
   const [signedFile, setSignedFile] = useState(null);
-  const [fileVersions, setFileVersions] = useState([]);
-  const [loadingVersions, setLoadingVersions] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
 
   // Handle visibility change
@@ -103,29 +102,6 @@ const WorkflowDocumentDetailPage = () => {
   useEffect(() => {
     fetchDocument();
   }, [fetchDocument]);
-
-  // Fetch file versions when document is loaded
-  useEffect(() => {
-    const fetchFileVersions = async () => {
-      if (!document?.file?.id) return;
-
-      setLoadingVersions(true);
-      try {
-        // Use the drive versions API with the file ID
-        const response = await apiService.get(`/drive/files/${document.file.id}/versions`);
-        if (response.success) {
-          setFileVersions(response.data || []);
-        }
-      } catch (err) {
-        console.warn('File versions endpoint not available:', err.message);
-        setFileVersions([]);
-      } finally {
-        setLoadingVersions(false);
-      }
-    };
-
-    fetchFileVersions();
-  }, [document?.file?.id]);
 
   // Check if user can perform review actions
   const canReview = () => {
@@ -387,15 +363,6 @@ const WorkflowDocumentDetailPage = () => {
               icon={getThemedIcon('ui', 'file_text', 64)}
               title={t('workflow.document.notFound', 'Document not found')}
               description={t('workflow.document.notFoundDesc', 'The requested document could not be found.')}
-              action={
-                <Button
-                  onClick={() => navigate('/workflow/inbox')}
-                  className="mt-4"
-                >
-                  {getThemedIcon('ui', 'arrow_left', 16)}
-                  {t('workflow.document.backToInbox', 'Back to Inbox')}
-                </Button>
-              }
             />
           </CardContent>
         </Card>
@@ -406,110 +373,135 @@ const WorkflowDocumentDetailPage = () => {
   return (
     <div className="flex justify-center px-4 py-6">
       <div className="w-full space-y-8" style={{ maxWidth: '1400px' }}>
-      {/* Workflow Progress - Full Width */}
-      <CollapsibleDashboardSection
-        title={t('workflow.document.workflowProgress', 'Workflow Progress')}
-        icon={getThemedIcon('ui', 'workflow', 20)}
-        sectionId="workflow-diagram"
-        color="#6366f1"
-        headerRight={
-          <div className="flex items-center gap-2">
-            <Badge variant={getStatusVariant(document.status)}>
-              {document.status}
-            </Badge>
-            {canReview() && isReviewable() && (
-              <>
-                <Button
-                  variant="success"
-                  size="sm"
-                  onClick={() => setActionModal('approve')}
-                >
-                  {getThemedIcon('ui', 'thumbs_up', 16)}
-                  {t('workflow.document.approve', 'Approve')}
-                </Button>
-                {canReject() && (
+
+      {/* Top row: Workflow Progress and Status History */}
+      <div className="grid grid-cols-1 lg:grid-cols-[75%_25%]">
+        {/* Workflow Progress */}
+        <div style={{
+          background: 'var(--panel, white)',
+          borderRadius: '0.75rem',
+          border: '1px solid var(--border, #e5e7eb)',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+          padding: '1.5rem',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {getThemedIcon('ui', 'workflow', 20)}
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0 }}>
+                {t('workflow.document.workflowProgress', 'Workflow Progress')}
+              </h3>
+            </div>
+            <div className="flex items-center gap-2">
+              {canReview() && isReviewable() && (
+                <>
                   <Button
-                    variant="destructive"
+                    variant="success"
                     size="sm"
-                    onClick={() => setActionModal('reject')}
+                    onClick={() => setActionModal('approve')}
                   >
-                    {getThemedIcon('ui', 'thumbs_down', 16)}
-                    {t('workflow.document.reject', 'Reject')}
+                    {getThemedIcon('ui', 'thumbs_up', 16)}
+                    {t('workflow.document.approve', 'Approve')}
                   </Button>
-                )}
+                  {canReject() && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setActionModal('reject')}
+                    >
+                      {getThemedIcon('ui', 'thumbs_down', 16)}
+                      {t('workflow.document.reject', 'Reject')}
+                    </Button>
+                  )}
+                  <Button
+                    variant="warning"
+                    size="sm"
+                    onClick={() => setActionModal('return')}
+                  >
+                    {getThemedIcon('ui', 'rotate_ccw', 16)}
+                    {t('workflow.document.return', 'Return')}
+                  </Button>
+                </>
+              )}
+              {canResubmit() && (
                 <Button
-                  variant="warning"
+                  variant="info"
                   size="sm"
-                  onClick={() => setActionModal('return')}
+                  onClick={() => setActionModal('resubmit')}
+                >
+                  {getThemedIcon('ui', 'upload', 16)}
+                  {t('workflow.document.resubmit', 'Resubmit')}
+                </Button>
+              )}
+              {canUploadSigned() && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setActionModal('upload-signed')}
+                >
+                  {getThemedIcon('ui', 'upload', 16)}
+                  {t('workflow.document.uploadSigned', 'Upload Signed')}
+                </Button>
+              )}
+              {canWithdraw() && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActionModal('withdraw')}
                 >
                   {getThemedIcon('ui', 'rotate_ccw', 16)}
-                  {t('workflow.document.return', 'Return')}
+                  {t('workflow.document.withdraw', 'Withdraw')}
                 </Button>
-              </>
-            )}
-            {canResubmit() && (
-              <Button
-                variant="info"
-                size="sm"
-                onClick={() => setActionModal('resubmit')}
-              >
-                {getThemedIcon('ui', 'upload', 16)}
-                {t('workflow.document.resubmit', 'Resubmit')}
-              </Button>
-            )}
-            {canUploadSigned() && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setActionModal('upload-signed')}
-              >
-                {getThemedIcon('ui', 'upload', 16)}
-                {t('workflow.document.uploadSigned', 'Upload Signed')}
-              </Button>
-            )}
-            {canWithdraw() && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setActionModal('withdraw')}
-              >
-                {getThemedIcon('ui', 'rotate_ccw', 16)}
-                {t('workflow.document.withdraw', 'Withdraw')}
-              </Button>
-            )}
+              )}
+            </div>
           </div>
-        }
-      >
-        <WorkflowDiagram
-          status={document.status}
-          workflowType={document.workflowType}
-          document={document}
-        />
-      </CollapsibleDashboardSection>
+          <WorkflowDiagram
+            status={document.status}
+            workflowType={document.workflowType}
+            document={document}
+            currentAssignee={document.currentAssignee}
+          />
+        </div>
 
-      {/* Two-column layout for Status History and Attachments */}
-      <div className="grid grid-cols-1 lg:grid-cols-[50%_50%] gap-6">
-        {/* Left column - Status History */}
+        {/* Status History */}
         {document.statusHistory && document.statusHistory.length > 0 && (
-          <CollapsibleDashboardSection
-            title={t('workflow.document.statusHistory', 'Status History')}
-            icon={getThemedIcon('ui', 'clock', 20)}
-            sectionId="status-history"
-            color="#ec4899"
-            count={document.statusHistory.length}
-          >
+          <div style={{
+            background: 'var(--panel, white)',
+            borderRadius: '0.75rem',
+            border: '1px solid var(--border, #e5e7eb)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            padding: '1.5rem',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              {getThemedIcon('ui', 'clock', 20)}
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0 }}>
+                {t('workflow.document.statusHistory', 'Status History')}
+              </h3>
+              <Badge variant="secondary" style={{ marginLeft: 'auto' }}>
+                {document.statusHistory.length}
+              </Badge>
+            </div>
             <WorkflowHistory statusHistory={document.statusHistory} />
-          </CollapsibleDashboardSection>
+          </div>
         )}
+      </div>
 
-        {/* Right column - Attached Document and Versions */}
+      {/* Bottom row: Attachments and Comments */}
+      <div className="grid grid-cols-1 lg:grid-cols-[50%_50%]">
+        {/* Attached Document and Versions */}
         {document.file && (
-          <CollapsibleDashboardSection
-            title={t('workflow.document.attachments', 'Attached Document & Versions')}
-            icon={getThemedIcon('ui', 'paperclip', 20)}
-            sectionId="attachments"
-            color="#f59e0b"
-          >
+          <div style={{
+            background: 'var(--panel, white)',
+            borderRadius: '0.75rem',
+            border: '1px solid var(--border, #e5e7eb)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            padding: '1.5rem',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              {getThemedIcon('ui', 'paperclip', 20)}
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0 }}>
+                {t('workflow.document.attachments', 'Attached Document & Versions')}
+              </h3>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* Current file */}
             <div style={{
@@ -544,100 +536,63 @@ const WorkflowDocumentDetailPage = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.open(`/api/v1/files/${document.fileId}/download`, '_blank')}
+                onClick={async () => {
+                  try {
+                    const { apiService } = await import('@services/api/apiService.js');
+                    const response = await apiService.get(`/drive/files/${document.fileId}/download`, {
+                      responseType: 'blob'
+                    });
+
+                    if (!response.success && !response.data) {
+                      throw new Error(response.error || t('common.downloadFailed', 'Download failed'));
+                    }
+
+                    const blob = response.data || response;
+                    const blobUrl = window.URL.createObjectURL(blob);
+
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = '';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(blobUrl);
+                  } catch (error) {
+                    console.error('Download failed:', error);
+                    toast.error(error.message || t('common.downloadFailed', 'Download failed'));
+                  }
+                }}
                 style={{ padding: '0.5rem' }}
               >
                 {getThemedIcon('ui', 'download', 16)}
               </Button>
             </div>
 
-            {/* Versions list */}
-            {fileVersions.length > 0 && (
-              <div>
-                <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)' }}>
-                  {t('workflow.document.versions', 'Versions')} ({fileVersions.length})
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {fileVersions.map((version) => (
-                    <div
-                      key={version.id}
-                      style={{
-                        padding: '0.75rem 1rem',
-                        borderRadius: '0.375rem',
-                        border: version.isCurrent ? '1px solid var(--color-primary, #3b82f6)' : '1px solid var(--border, #e5e7eb)',
-                        background: version.isCurrent ? 'var(--color-primary-alpha, rgba(37,99,235,0.05))' : 'var(--panel, white)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                      }}
-                    >
-                      <div style={{
-                        width: '2rem',
-                        height: '2rem',
-                        borderRadius: '9999px',
-                        background: version.isCurrent ? 'var(--color-primary, #3b82f6)' : 'var(--text-muted, #6b7280)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                      }}>
-                        v{version.versionNumber}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
-                          {version.changeNote || t('workflow.document.version', 'Version')} {version.versionNumber}
-                          {version.isCurrent && (
-                            <span style={{
-                              marginLeft: '0.5rem',
-                              padding: '0.125rem 0.5rem',
-                              borderRadius: '9999px',
-                              background: 'var(--color-primary, #3b82f6)',
-                              color: 'white',
-                              fontSize: '0.625rem',
-                              fontWeight: 600,
-                            }}>
-                              {t('common.current', 'Current')}
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-                          {version.uploadedBy?.displayName || version.uploadedBy?.email || 'Unknown'} • {new Date(version.createdAt).toLocaleString()}
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => window.open(`/api/v1/workflow-documents/${document.fileId}/versions/${version.id}/download`, '_blank')}
-                      >
-                        {getThemedIcon('ui', 'download', 16)}
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {loadingVersions && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', color: 'var(--text-muted, #6b7280)' }}>
-                {t('common.loading', 'Loading')}...
-              </div>
-            )}
+            {/* Versions list using VersionsTab component */}
+            <div style={{ height: '500px' }}>
+              <VersionsTab fileId={document.file.id} />
+            </div>
           </div>
-        </CollapsibleDashboardSection>
+        </div>
         )}
-      </div>
 
-      {/* Comments section - full width below */}
-      <CollapsibleDashboardSection
-        title={t('workflow.document.comments', 'Comments')}
-        icon={getThemedIcon('ui', 'message', 20)}
-        sectionId="comments"
-        color="#8b5cf6"
-      >
-        <WorkflowCommentsTab workflowId={documentId} />
-      </CollapsibleDashboardSection>
+        {/* Comments */}
+        <div style={{
+          background: 'var(--panel, white)',
+          borderRadius: '0.75rem',
+          border: '1px solid var(--border, #e5e7eb)',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+          padding: '1.5rem',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+            {getThemedIcon('ui', 'message', 20)}
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0 }}>
+              {t('workflow.document.comments', 'Comments')}
+            </h3>
+          </div>
+          {document.file && <CommentsTab fileId={document.file.id} />}
+        </div>
+      </div>
 
       {/* Step Details Modal */}
       {actionModal && (
