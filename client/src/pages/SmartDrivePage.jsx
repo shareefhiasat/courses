@@ -5,8 +5,8 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import { getSmartDriveWorkflowStatusIcon, getSmartDriveWorkflowStatusStyle, getSmartDriveWorkflowStatusDescription } from '@constants/workflowStatusTypes';
 import { Input, Button } from '@ui';
-import { Clock, CheckCircle, XCircle, AlertCircle, GitBranch } from 'lucide-react';
 import DriveSpacesSidebar from '@components/smart-drive/DriveSpacesSidebar';
 import FileRoster from '@components/smart-drive/FileRoster';
 import InboxDrawer from '@components/smart-drive/InboxDrawer';
@@ -215,61 +215,15 @@ export default function SmartDrivePage() {
   }, [visibleFiles]);
 
   const getWorkflowStatusIcon = (status) => {
-    switch (status) {
-      case 'completed': return CheckCircle;
-      case 'rejected': return XCircle;
-      case 'pending':
-      case 'in_progress': return Clock;
-      case 'needs_feedback': return AlertCircle;
-      default: return GitBranch;
-    }
+    return getSmartDriveWorkflowStatusIcon(status);
   };
 
   const getWorkflowStatusStyle = (status) => {
-    switch (status) {
-      case 'completed':
-        return {
-          bg: 'rgba(34, 197, 94, 0.1)',
-          color: '#16a34a',
-          borderColor: '#22c55e',
-        };
-      case 'rejected':
-        return {
-          bg: 'rgba(239, 68, 68, 0.1)',
-          color: '#dc2626',
-          borderColor: '#ef4444',
-        };
-      case 'in_progress':
-        return {
-          bg: 'rgba(59, 130, 246, 0.1)',
-          color: '#2563eb',
-          borderColor: '#3b82f6',
-        };
-      case 'needs_feedback':
-        return {
-          bg: 'rgba(234, 179, 8, 0.1)',
-          color: '#ca8a04',
-          borderColor: '#eab308',
-        };
-      case 'pending':
-      default:
-        return {
-          bg: 'rgba(107, 114, 128, 0.1)',
-          color: '#6b7280',
-          borderColor: '#9ca3af',
-        };
-    }
+    return getSmartDriveWorkflowStatusStyle(status);
   };
 
   const getWorkflowStatusDescription = (status) => {
-    switch (status) {
-      case 'pending': return t('workflow.status.pending.desc', 'Awaiting review');
-      case 'in_progress': return t('workflow.status.inProgress.desc', 'Currently being reviewed');
-      case 'completed': return t('workflow.status.completed.desc', 'Workflow completed successfully');
-      case 'rejected': return t('workflow.status.rejected.desc', 'Rejected and requires changes');
-      case 'needs_feedback': return t('workflow.status.needsFeedback.desc', 'Additional information required');
-      default: return t('workflow.status.unknown.desc', 'Unknown status');
-    }
+    return getSmartDriveWorkflowStatusDescription(status, t);
   };
 
   const visibleFolders = useMemo(() => {
@@ -460,8 +414,7 @@ export default function SmartDrivePage() {
   const handleFileOpen = async (file) => {
     // Fetch fresh file data to get latest version info
     try {
-      const response = await fetch(`/api/v1/drive/files/${file.id}`);
-      const data = await response.json();
+      const data = await apiService.get(`/drive/files/${file.id}`);
       if (data.success && data.payload) {
         setDetailsModalFile(data.payload);
       } else {
@@ -502,6 +455,7 @@ export default function SmartDrivePage() {
         success(t('drive.workflowCreated', 'Workflow created successfully'));
         setShowWorkflowDialog(false);
         setSelectedFileForWorkflow(null);
+        refreshFiles();
 
         // Navigate to workflow document detail page
         const docId = result.data?.document?.id;
@@ -522,7 +476,7 @@ export default function SmartDrivePage() {
       });
       error(t('drive.workflowCreationError', 'Error creating workflow'));
     }
-  }, [t, success, error, selectedFileForWorkflow]);
+  }, [t, success, error, selectedFileForWorkflow, refreshFiles]);
 
   const handleAddFilesToQueue = (files) => {
     addToQueue(files, activeSpace === 'my-drive' ? currentFolderId : null);
@@ -1213,14 +1167,7 @@ export default function SmartDrivePage() {
           onGenerateLink={handleGeneratePublicLink}
           onStar={starFile}
           onTrash={trashFile}
-          onRefresh={() => {
-            const refreshHandler = getRefreshHandler(activeSpace, {
-              loadPrivateFiles,
-              loadSharedFiles,
-              loadWorkflowFiles
-            });
-            if (refreshHandler) refreshHandler();
-          }}
+          onRefresh={refreshFiles}
         />
       )}
 

@@ -20,10 +20,10 @@ export default function StatusColumn({ file, onClick }) {
   const [hovered, setHovered] = useState(false);
   const [hoverDelay, setHoverDelay] = useState(null);
 
-  const { shareCounts = { people: 0, groups: 0 }, workflowCounts = {}, publicLinksCount = 0 } = file;
+  const { shareCounts = { people: 0, roles: 0 }, workflowCounts = {}, publicLinksCount = 0 } = file;
 
   // Calculate total shares
-  const totalShares = shareCounts.people + shareCounts.groups;
+  const totalShares = shareCounts.people + shareCounts.roles;
   const hasShares = totalShares > 0;
 
   // Check if has any active workflow (non-zero counts)
@@ -57,12 +57,15 @@ export default function StatusColumn({ file, onClick }) {
       style={{
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: '0.5rem',
         cursor: onClick ? 'pointer' : 'default',
         padding: '0.25rem 0.5rem',
         borderRadius: '0.375rem',
         transition: 'background 0.15s ease',
         position: 'relative',
+        flexWrap: 'wrap',
+        maxWidth: '100px',
       }}
     >
       {/* Share count indicator */}
@@ -71,9 +74,12 @@ export default function StatusColumn({ file, onClick }) {
           style={{
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: '0.25rem',
             fontSize: '0.75rem',
             fontWeight: 500,
+            flexWrap: 'wrap',
+            maxWidth: '80px',
           }}
         >
           {shareCounts.people > 0 && (
@@ -91,7 +97,7 @@ export default function StatusColumn({ file, onClick }) {
               <span>{shareCounts.people}</span>
             </div>
           )}
-          {shareCounts.groups > 0 && (
+          {shareCounts.roles > 0 && (
             <div
               style={{
                 display: 'flex',
@@ -101,9 +107,9 @@ export default function StatusColumn({ file, onClick }) {
               }}
             >
               <span style={{ fontSize: '0.875rem' }}>
-                {getThemedIcon('ui', 'users', 14, '#8b5cf6')}
+                {getThemedIcon('ui', 'shield', 14, '#8b5cf6')}
               </span>
-              <span>{shareCounts.groups}</span>
+              <span>{shareCounts.roles}</span>
             </div>
           )}
         </div>
@@ -175,9 +181,9 @@ export default function StatusColumn({ file, onClick }) {
                     {getThemedIcon('ui', 'user', 12, '#f97316')} {shareCounts.people} {t('drive.people') || 'people'}
                   </span>
                 )}
-                {shareCounts.groups > 0 && (
+                {shareCounts.roles > 0 && (
                   <span style={{ color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    {getThemedIcon('ui', 'users', 12, '#8b5cf6')} {shareCounts.groups} {t('drive.groups') || 'groups'}
+                    {getThemedIcon('ui', 'shield', 12, '#8b5cf6')} {shareCounts.roles} {t('drive.roles') || 'roles'}
                   </span>
                 )}
               </div>

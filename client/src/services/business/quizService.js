@@ -3,6 +3,7 @@
 // ARCHITECTURE: Frontend → API Routes → Controllers → Business Services → DB Services → PostgreSQL
 
 import { appConfig } from '@services/config/apiConfig.js';
+import { getAuthToken } from '@utils/authHelpers';
 
 /**
  * Helper function to make API requests
@@ -37,7 +38,7 @@ async function apiRequest(endpoint, options = {}) {
   };
 
   // Add auth token if available
-  const token = localStorage.getItem('keycloak_token');
+  const token = getAuthToken();
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }

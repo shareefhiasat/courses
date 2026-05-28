@@ -94,6 +94,10 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Simple in-memory cache for GET requests
+const requestCache = new Map();
+const CACHE_TTL = 300000; // 5 minutes in milliseconds
+
 // Mock data storage for development
 const mockData = {
   programs: [],
@@ -342,8 +346,32 @@ export { apiClient };
 export const apiService = {
   get: async (url, config) => {
     try {
+      // Check cache for GET requests
+      const cacheKey = url;
+      const now = Date.now();
+      const cached = requestCache.get(cacheKey);
+      
+      if (cached && now - cached.timestamp < CACHE_TTL) {
+        debug('[API Service] Cache hit for:', url);
+        return cached.data;
+      }
+      
       const response = await apiClient.get(url, config);
-      return response.data;
+      const data = response.data;
+      
+      // Cache the response
+      requestCache.set(cacheKey, {
+        data,
+        timestamp: now
+      });
+      
+      // Clear old cache entries if cache is too large
+      if (requestCache.size > 100) {
+        const firstKey = requestCache.keys().next().value;
+        requestCache.delete(firstKey);
+      }
+      
+      return data;
     } catch (error) {
       // Suppress 404 errors for standup-attendance endpoints (expected when no data exists)
       if (error.response?.status === 404 && String(url || '').includes('standup-attendance')) {
@@ -394,6 +422,24 @@ export const apiService = {
       console.error('API DELETE Error:', error);
       throw error;
     }
+  },
+  
+  /**
+   * Clear the request cache
+   * Useful for invalidating cache after mutations
+   */
+  clearCache: () => {
+    requestCache.clear();
+    debug('[API Service] Cache cleared');
+  },
+  
+  /**
+   * Clear specific cache entry
+   * @param {string} url - The URL to clear from cache
+   */
+  clearCacheEntry: (url) => {
+    requestCache.delete(url);
+    debug('[API Service] Cache entry cleared for:', url);
   }
 };
 

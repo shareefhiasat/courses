@@ -212,7 +212,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
       footer={footer}
       titleStyle={{ fontSize: '1.25rem', fontWeight: '600' }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '2rem', marginBottom: '1rem' }}>
         <Tabs
           tabs={tabs}
           activeTab={activeTab}
@@ -427,7 +427,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
         {activeTab === 'versions' && <VersionsTab fileId={file.id} />}
         {activeTab === 'comments' && <CommentsTab fileId={file.id} />}
         {activeTab === 'activity' && <ActivityTab fileId={file.id} />}
-        {activeTab === 'workflow' && <WorkflowTab fileId={file.id} onRefresh={onRefresh} />}
+        {activeTab === 'workflow' && <WorkflowTab key={file.id} fileId={file.id} onRefresh={onRefresh} isActive={activeTab === 'workflow'} />}
         {activeTab === 'share' && <ShareTab fileId={file.id} onShare={onShare} onGenerateLink={onGenerateLink} />}
       </div>
     </Modal>

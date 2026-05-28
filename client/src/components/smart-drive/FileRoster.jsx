@@ -39,11 +39,19 @@ export default function FileRoster({
   const [showVersion, setShowVersion] = useState(false);
   const [showSize, setShowSize] = useState(false);
   const [showOwner, setShowOwner] = useState(false);
-  const [showStatus, setShowStatus] = useState(false);
+  const [showStatus, setShowStatus] = useState(() => {
+    const saved = localStorage.getItem('drive_showStatus');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
   const [showCreated, setShowCreated] = useState(true);
   const [menuPositionAbove, setMenuPositionAbove] = useState(false);
   const folderMenuRef = useRef(null);
   const fileMenuRef = useRef(null);
+
+  // Persist showStatus preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('drive_showStatus', JSON.stringify(showStatus));
+  }, [showStatus]);
 
   // Calculate menu position to prevent cut-off at bottom
   useEffect(() => {

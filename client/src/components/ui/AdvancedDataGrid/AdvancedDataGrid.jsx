@@ -359,6 +359,19 @@ const AdvancedDataGrid = ({
         '& .MuiDataGrid-columnHeader[data-field="actions"]': {
           direction: 'ltr'
         },
+        // Checkbox styling to use theme colors instead of default blue
+        '& .MuiCheckbox-root': {
+          color: isDarkMode ? '#9ca3af' : '#9ca3af',
+          '&.Mui-checked': {
+            color: isDarkMode ? '#10b981' : '#10b981'
+          },
+          '&.MuiCheckbox-indeterminate': {
+            color: isDarkMode ? '#10b981' : '#10b981'
+          },
+          '&:hover': {
+            backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.04)' : 'rgba(16, 185, 129, 0.04)'
+          }
+        },
         ...sx 
       }}>
       {showExportButton && (

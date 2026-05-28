@@ -1,5 +1,6 @@
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import { getStatusColorClasses } from '@constants/workflowStatusTypes';
 
 /**
  * WorkflowHistory Component
@@ -23,18 +24,7 @@ export default function WorkflowHistory({ history = [], onClose }) {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
-      case 'REVIEW':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'APPROVED':
-        return 'bg-green-100 text-green-800';
-      case 'REJECTED':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    return getStatusColorClasses(status);
   };
 
   return (

@@ -3866,6 +3866,16 @@ const DICT = {
     'workflow.inbox.closed': 'Closed',
     'workflow.inbox.total': 'Total',
     'workflow.inbox.createFirst': 'Create Workflow',
+    'workflow.inbox.urgent': 'Urgent',
+    'workflow.inbox.pending': 'Pending',
+    'workflow.inbox.completed': 'Completed',
+    'workflow.inbox.waiting': 'Waiting',
+    'workflow.inbox.all': 'All',
+    'workflow.inbox.sla': 'SLA',
+    'workflow.inbox.overdue': 'Overdue',
+    'workflow.inbox.viewDetails': 'View Details',
+    'workflow.inbox.viewWorkflow': 'View Workflow',
+    'workflow.inbox.assignedTo': 'Assigned To',
     
     'workflow.actions.review': 'Review',
     'workflow.actions.approve': 'Approve',
@@ -4274,6 +4284,7 @@ const DICT = {
 
     // Share Dialog
     'drive.shareFile': 'Share File',
+    'drive.shares': 'Shares',
     'drive.sharing': 'Sharing',
     'drive.people': 'People',
     'drive.roles': 'Roles',
@@ -8536,6 +8547,7 @@ const DICT = {
     'workflow.inbox.emptyDescription': 'ليس لديك عناصر سير عمل في صندوق الوارد',
     'workflow.inbox.sortBySla': 'ترتيب حسب SLA',
     'workflow.inbox.unknown': 'غير معروف',
+    'workflow.inbox.statistics': 'الإحصائيات',
 
     'workflow.actions.review': 'مراجعة',
     'workflow.actions.approve': 'موافقة',
@@ -8623,6 +8635,16 @@ const DICT = {
     'workflow.inbox.closed': 'مغلق',
     'workflow.inbox.total': 'المجموع',
     'workflow.inbox.createFirst': 'إنشاء مستند سير عمل',
+    'workflow.inbox.urgent': 'عاجل',
+    'workflow.inbox.pending': 'قيد الانتظار',
+    'workflow.inbox.completed': 'مكتمل',
+    'workflow.inbox.waiting': 'في الانتظار',
+    'workflow.inbox.all': 'الكل',
+    'workflow.inbox.sla': 'SLA',
+    'workflow.inbox.overdue': 'متأخر',
+    'workflow.inbox.viewDetails': 'عرض التفاصيل',
+    'workflow.inbox.viewWorkflow': 'عرض سير العمل',
+    'workflow.inbox.assignedTo': 'مكلّف إلى',
 
     'workflow.detail.roleAll': 'كل الأدوار',
     'workflow.detail.roleAdmin': 'مشرف + مشرف عام',
@@ -9083,6 +9105,7 @@ const DICT = {
     'drive.addMore': 'إضافة المزيد',
 
     // Share Dialog
+    'drive.shares': 'المشاركات',
     'drive.roles': 'الأدوار',
     'drive.shareSuccess': 'تمت المشاركة بنجاح',
     'drive.expiry': 'انتهاء الصلاحية',

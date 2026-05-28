@@ -22,6 +22,8 @@ import WorkflowHistory from '@components/workflow/WorkflowHistory.jsx';
 import WorkflowCommentsTab from '@components/workflow/WorkflowCommentsTab.jsx';
 import CollapsibleDashboardSection from '@components/ui/CollapsibleDashboardSection/CollapsibleDashboardSection.jsx';
 import { getThemedIcon } from '@constants/iconTypes';
+import { getStatusVariant, WORKFLOW_STATUS } from '@constants/workflowStatusTypes';
+import { getWorkflowDocument } from '@services/api/workflow-documents-api.js';
 
 const WorkflowDocumentDetailPage = () => {
   const { t } = useLang();
@@ -40,31 +42,31 @@ const WorkflowDocumentDetailPage = () => {
   const [signedFile, setSignedFile] = useState(null);
   const [fileVersions, setFileVersions] = useState([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+
+  // Handle visibility change
+  useEffect(() => {
+    const handleVisibility = () => setIsVisible(!window.document.hidden);
+    window.document.addEventListener('visibilitychange', handleVisibility);
+    return () => window.document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
 
   // Polling for real-time status updates
   useEffect(() => {
     const pollInterval = 30000; // 30 seconds
 
     const pollStatus = async () => {
-      if (!document || document.status === 'APPROVED' || document.status === 'REJECTED') {
-        return; // Don't poll for terminal states
+      // Don't poll if tab is hidden or document is in terminal state
+      if (!isVisible || !document || document.status === WORKFLOW_STATUS.APPROVED || document.status === WORKFLOW_STATUS.REJECTED) {
+        return;
       }
 
       try {
-        const token = localStorage.getItem('keycloak_token');
-        const response = await fetch(`/api/v1/workflow-documents/${documentId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data.status !== document.status) {
-            // Status changed, update document
-            setDocument(data.data);
-            toast.info(t('workflow.document.statusUpdated', 'Document status has been updated'));
-          }
+        const data = await getWorkflowDocument(documentId);
+        if (data.success && data.data.status !== document.status) {
+          // Status changed, update document
+          setDocument(data.data);
+          toast.info(t('workflow.document.statusUpdated', 'Document status has been updated'));
         }
       } catch (err) {
         console.error('Error polling status:', err);
@@ -74,29 +76,8 @@ const WorkflowDocumentDetailPage = () => {
     const intervalId = setInterval(pollStatus, pollInterval);
 
     return () => clearInterval(intervalId);
-  }, [document, documentId, t, toast]);
+  }, [document, documentId, t, toast, isVisible]);
 
-  // Status badge variants
-  const getStatusVariant = (status) => {
-    switch (status) {
-      case 'DRAFT':
-        return 'secondary';
-      case 'SUBMITTED':
-        return 'warning';
-      case 'UNDER_REVIEW':
-        return 'info';
-      case 'APPROVED':
-        return 'success';
-      case 'REJECTED':
-        return 'destructive';
-      case 'AMENDED':
-        return 'warning';
-      case 'CLOSED':
-        return 'outline';
-      default:
-        return 'secondary';
-    }
-  };
 
   // Fetch document details
   const fetchDocument = useCallback(async () => {
@@ -180,7 +161,7 @@ const WorkflowDocumentDetailPage = () => {
   // Check if document is in reviewable status
   const isReviewable = () => {
     if (!document) return false;
-    return document.status === 'SUBMITTED' || document.status === 'UNDER_REVIEW';
+    return document.status === WORKFLOW_STATUS.SUBMITTED || document.status === WORKFLOW_STATUS.UNDER_REVIEW;
   };
 
   // Handle approve action
@@ -294,7 +275,7 @@ const WorkflowDocumentDetailPage = () => {
   const canResubmit = () => {
     if (!document || !user) return false;
     const isSubmitter = document.submitterId === user.id;
-    const isRejected = document.status === 'REJECTED';
+    const isRejected = document.status === WORKFLOW_STATUS.REJECTED;
     return isSubmitter && isRejected;
   };
 
@@ -303,7 +284,7 @@ const WorkflowDocumentDetailPage = () => {
     if (!document || !user) return false;
     const isAdmin = user.roles && user.roles.includes('admin');
     const isWeeklySummary = document.workflowType === 'ATTENDANCE_WEEKLY';
-    const isUnderAdminReview = document.status === 'SUBMITTED' || document.status === 'UNDER_ADMIN_REVIEW';
+    const isUnderAdminReview = document.status === WORKFLOW_STATUS.SUBMITTED || document.status === WORKFLOW_STATUS.UNDER_ADMIN_REVIEW;
     return isAdmin && isWeeklySummary && isUnderAdminReview;
   };
 
@@ -311,7 +292,7 @@ const WorkflowDocumentDetailPage = () => {
   const canWithdraw = () => {
     if (!document || !user) return false;
     const isSubmitter = document.submitterId === user.id;
-    const isSubmitted = document.status === 'SUBMITTED';
+    const isSubmitted = document.status === WORKFLOW_STATUS.SUBMITTED;
     return isSubmitter && isSubmitted;
   };
 

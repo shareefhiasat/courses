@@ -1,6 +1,7 @@
 import { useMemo, useEffect, useState } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { ROLES } from '@constants/permissionConfig';
+import { getAuthToken } from '@utils/authHelpers';
 
 // Role hierarchy - higher index = higher precedence
 const ROLE_HIERARCHY = ['student', 'instructor', 'hr', 'admin', 'super_admin'];
@@ -49,7 +50,7 @@ export const usePermissions = () => {
       }
 
       try {
-        const token = localStorage.getItem('keycloak_token');
+        const token = getAuthToken();
         // console.log('[usePermissions] Fetching permissions for roles:', roleCodes);
         
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:8001/api/v1'}/permissions`, {

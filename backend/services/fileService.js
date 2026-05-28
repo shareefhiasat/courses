@@ -474,13 +474,13 @@ export async function listFiles(keycloakUser, {
       if (!shareCountsMap[share.fileId]) {
         shareCountsMap[share.fileId] = {
           people: 0,
-          groups: 0,
+          roles: 0,
         };
       }
       if (share.subjectType === 'USER') {
         shareCountsMap[share.fileId].people++;
-      } else if (share.subjectType === 'GROUP') {
-        shareCountsMap[share.fileId].groups++;
+      } else if (share.subjectType === 'ROLE') {
+        shareCountsMap[share.fileId].roles++;
       }
     });
 
@@ -524,7 +524,7 @@ export async function listFiles(keycloakUser, {
       };
       const shares = shareCountsMap[file.id] || {
         people: 0,
-        groups: 0,
+        roles: 0,
       };
       const publicLinksCount = publicLinkCountsMap[file.id] || 0;
       

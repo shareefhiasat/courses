@@ -42,14 +42,19 @@ export default function CommentsTab({ fileId }) {
   const handleAddComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim() || submitting) return;
+    console.log('[CommentsTab] Sending comment:', newComment.trim(), 'for file:', fileId);
     setSubmitting(true);
     try {
       const response = await axios.post(`/api/v1/drive/files/${fileId}/comments`, {
         content: newComment.trim(),
       });
+      console.log('[CommentsTab] Comment result:', response.data);
       if (response.data.success) {
+        console.log('[CommentsTab] Comment added successfully');
         setNewComment('');
         fetchComments();
+      } else {
+        console.error('[CommentsTab] Comment add failed:', response.data.error);
       }
     } catch (err) {
       console.error('[CommentsTab] add comment failed:', err);
@@ -336,7 +341,6 @@ export default function CommentsTab({ fileId }) {
                             width: '2rem',
                             height: '2rem',
                             borderRadius: '9999px',
-                            background: 'var(--color-primary-alpha, rgba(37, 99, 235, 0.1))',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -361,24 +365,25 @@ export default function CommentsTab({ fileId }) {
                           <button
                             onClick={() => handleDeleteComment(comment.id)}
                             style={{
-                              padding: '0.375rem',
-                              border: 'none',
-                              background: 'transparent',
-                              color: 'var(--text-muted, #6b7280)',
+                              color: '#dc2626',
+                              textDecoration: 'none',
+                              whiteSpace: 'nowrap',
+                              background: 'none',
+                              border: '1px solid var(--border, #e5e7eb)',
                               cursor: 'pointer',
-                              borderRadius: '0.5rem',
+                              padding: '0.375rem',
+                              borderRadius: '0.375rem',
+                              transition: 'all 0.15s ease',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              minWidth: '2.25rem',
-                              minHeight: '2.25rem',
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.color = '#dc2626';
-                              e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)';
+                              e.currentTarget.style.borderColor = '#dc2626';
+                              e.currentTarget.style.background = 'rgba(220, 38, 38, 0.1)';
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.color = 'var(--text-muted, #6b7280)';
+                              e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
                               e.currentTarget.style.background = 'transparent';
                             }}
                           >

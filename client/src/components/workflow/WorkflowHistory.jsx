@@ -1,6 +1,7 @@
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatQatarDate } from '@utils/timezone';
+import React from 'react';
 
 // Status color and icon mapping
 const STATUS_CONFIG = {
@@ -36,7 +37,7 @@ const STATUS_CONFIG = {
   }
 };
 
-export default function WorkflowHistory({ statusHistory }) {
+function WorkflowHistory({ statusHistory }) {
   const { t } = useLang();
 
   if (!statusHistory || statusHistory.length === 0) return null;
@@ -92,3 +93,7 @@ export default function WorkflowHistory({ statusHistory }) {
     </div>
   );
 }
+
+const WorkflowHistoryMemo = React.memo(WorkflowHistory);
+
+export default WorkflowHistoryMemo;

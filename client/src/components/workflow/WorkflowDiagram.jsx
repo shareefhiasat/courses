@@ -556,4 +556,6 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document 
   );
 };
 
-export default WorkflowDiagram;
+const WorkflowDiagramMemo = React.memo(WorkflowDiagram);
+
+export default WorkflowDiagramMemo;

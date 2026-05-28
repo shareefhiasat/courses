@@ -1,7 +1,7 @@
 ---
 project_name: 'courses'
 user_name: 'Shareef'
-date: '2026-05-19'
+date: '2026-05-26'
 sections_completed:
   - technology_stack
   - language_rules
@@ -10,8 +10,9 @@ sections_completed:
   - code_quality
   - workflow_rules
   - dont_miss_rules
+  - recent_work
 status: 'complete'
-rule_count: 42
+rule_count: 45
 optimized_for_llm: true
 ---
 
@@ -143,6 +144,47 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ---
 
+## Recent Work (Last 10 Commits - May 2026)
+
+### Major Feature: Quizzes System
+- **Backend**: Complete quiz management system with `backend/controllers/quizzes.js`, `backend/db/quizzes-postgres.js`, and `backend/routes/quizzes.js`
+- **Database**: Updated Prisma schema with quiz-related models, added 608 lines of quiz database operations
+- **Frontend**: Enhanced quiz pages (`QuizzesPage.jsx`, `QuizPreviewPage.jsx`, `StudentQuizPage.jsx`) with improved UI and functionality
+- **Services**: Added `quizService.js` and `studentProgressService.js` for business logic
+
+### Backend Services Expansion
+- **File Management**: Added `fileController.js`, `fileShareController.js`, `folderController.js` for file operations
+- **Marks System**: New `marks.js` controller for grade management
+- **Enrollments**: Enhanced enrollment service with 158 lines of new functionality
+- **Activities**: Expanded activities service with 62 lines of new code
+- **Notifications**: Complete notification system with SMS adapter, templates, and notification gateway (494 lines of templates)
+- **Behaviors/Participations/Penalties**: Enhanced services with improved business logic
+
+### UI/UX Improvements
+- **SideDrawer**: Major refactoring of `SideDrawer.jsx` (442 lines) for better navigation
+- **Quiz Pages**: Improved styling and functionality for quiz builder, management, and preview pages
+- **Language Toggle**: Updated language toggle component
+- **Icons**: Added 20 new icon types to `iconTypes.jsx`
+- **Loading Components**: Enhanced loading progress and simple loading components
+
+### Keycloak Configuration
+- **Realm Setup**: Complete Keycloak realm configuration in `military-lms-realm.json` (2042 lines)
+- **Authentication**: Updated authentication flow and user management
+
+### Database Schema Updates
+- **Prisma Schema**: Major updates to support quizzes, activities, and workflow features
+- **PostgreSQL Operations**: Enhanced database operations for activities, dashboard, and quizzes
+
+### Current Focus: Workflow System
+- **Workflow Inbox**: Main development focus - `/workflow/inbox` page for document workflow management
+- **Workflow Diagram**: Component for visualizing workflow processes
+- **Workflow Document Detail**: Page for viewing and managing workflow documents
+- **Smart Drive Integration**: Workflow tab integration with smart drive functionality
+
+---
+
+
+
 ## Usage Guidelines
 
 **For AI Agents:**
@@ -157,4 +199,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review quarterly for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-05-19
+Last Updated: 2026-05-26

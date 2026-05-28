@@ -97,16 +97,18 @@ export const getTimeElapsed = (submittedAt) => {
 /**
  * Get SLA info object for a document
  * @param {string|Date} submittedAt - Submission timestamp
- * @returns {Object} SLA info with status, variant, hoursElapsed, timeElapsed
+ * @returns {Object} SLA info with status, variant, hoursElapsed, timeElapsed, hoursRemaining
  */
 export const getSlaInfo = (submittedAt) => {
   const hoursElapsed = calculateHoursElapsed(submittedAt);
   const slaStatus = getSlaStatus(hoursElapsed);
   const badgeVariant = getSlaBadgeVariant(slaStatus);
   const timeElapsed = getTimeElapsed(submittedAt);
+  const hoursRemaining = Math.max(0, 72 - hoursElapsed); // SLA is 72 hours
   
   return {
     hoursElapsed,
+    hoursRemaining,
     slaStatus,
     badgeVariant,
     timeElapsed,

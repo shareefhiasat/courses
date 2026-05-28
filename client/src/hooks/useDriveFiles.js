@@ -269,6 +269,7 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
 
       const response = await apiService.post(`${API_BASE}/shares`, payload);
       if (response.success) {
+        refreshFiles();
         return { success: true, payload: response.data?.payload };
       }
       return { success: false, error: response.error };
@@ -276,7 +277,7 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
       console.error('[useDriveFiles] share failed:', err);
       return { success: false, error: err.message };
     }
-  }, []);
+  }, [refreshFiles]);
 
   const createPublicLink = useCallback(async (fileId, linkData) => {
     try {

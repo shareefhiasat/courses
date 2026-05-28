@@ -1,15 +1,22 @@
 /**
  * Workflow Inbox Hook
  * 
- * PURPOSE: Hook for managing workflow inbox operations
+ * PURPOSE: Hook for managing workflow document inbox operations
  * ARCHITECTURE: UI Components → Hooks → Business Services → Backend API
+ * 
+ * REFACTOR: Unified to use WorkflowDocument as single source of truth
+ * - Removed legacy WorkflowInboxItem concept
+ * - Simplified to use only WorkflowDocument model
+ * - Aligned with SmartDrive and WorkflowDocumentDetailPage
+ * - Added SLA urgency notifications
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { getWorkflowInbox, getWorkflowDocuments, markWorkflowInboxItemAsRead } from '@services/business/workflowService';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { getWorkflowDocuments } from '@services/business/workflowService';
+import { getSlaInfo, sortBySlaUrgency } from '@utils/sla.js';
 
-const useWorkflowInbox = (initialParams = {}) => {
-  const [inboxItems, setInboxItems] = useState([]);
+const useWorkflowInbox = (initialParams = {}, onNotification = null) => {
+  const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({
@@ -19,187 +26,211 @@ const useWorkflowInbox = (initialParams = {}) => {
     totalPages: 0
   });
   const [filters, setFilters] = useState({
-    viewMode: 'all',
-    isRead: null,
-    action: '',
-    recipientId: '',
-    sortBy: 'createdAt',
-    sortOrder: 'desc',
+    viewMode: 'all', // 'all', 'needs_action', 'waiting', 'completed'
+    status: '',
+    workflowType: '',
+    search: '',
+    sortBy: 'sla', // 'sla', 'createdAt', 'updatedAt'
+    sortOrder: 'asc', // 'asc' for SLA (urgent first), 'desc' for dates
     ...initialParams
   });
 
+  // Track previous document states for change detection
+  const previousDocumentsRef = useRef([]);
+  const previousStatsRef = useRef({ urgent: 0, pending: 0, completed: 0 });
+
   /**
-   * Fetch inbox items with current filters
+   * Calculate statistics from documents
    */
-  const fetchInboxItems = useCallback(async () => {
+  const calculateStats = useCallback((docs) => {
+    const now = new Date();
+    
+    return docs.reduce((stats, doc) => {
+      const submittedAt = doc.submittedAt || doc.createdAt;
+      const slaInfo = getSlaInfo(submittedAt);
+      const isUrgent = slaInfo.isOverdue || slaInfo.hoursRemaining < 4;
+      const isPending = !['APPROVED', 'REJECTED', 'CLOSED'].includes(doc.status);
+      const isCompleted = ['APPROVED', 'CLOSED'].includes(doc.status);
+      
+      if (isUrgent && isPending) {
+        stats.urgent++;
+      } else if (isPending) {
+        stats.pending++;
+      } else if (isCompleted) {
+        stats.completed++;
+      }
+      
+      return stats;
+    }, { urgent: 0, pending: 0, completed: 0 });
+  }, []);
+
+  const [stats, setStats] = useState({ urgent: 0, pending: 0, completed: 0 });
+
+  /**
+   * Check for SLA urgency changes and trigger notifications
+   */
+  const checkSlaUrgency = useCallback((currentDocs, previousDocs) => {
+    if (!onNotification) return;
+
+    currentDocs.forEach(currentDoc => {
+      const previousDoc = previousDocs.find(d => d.id === currentDoc.id);
+      const currentSubmittedAt = currentDoc.submittedAt || currentDoc.createdAt;
+      
+      if (!previousDoc) {
+        // New document assigned
+        const slaInfo = getSlaInfo(currentSubmittedAt);
+        if (slaInfo.isOverdue) {
+          onNotification('warning', 'Overdue Document', `"${currentDoc.title}" is overdue by ${Math.abs(slaInfo.hoursRemaining - 72).toFixed(1)} hours`);
+        } else if (slaInfo.hoursRemaining < 4) {
+          onNotification('warning', 'Urgent Document', `"${currentDoc.title}" needs attention - only ${slaInfo.hoursRemaining.toFixed(1)} hours remaining`);
+        }
+      } else {
+        // Check if status changed
+        if (previousDoc.status !== currentDoc.status) {
+          if (currentDoc.status === 'APPROVED') {
+            onNotification('success', 'Document Approved', `"${currentDoc.title}" has been approved`);
+          } else if (currentDoc.status === 'REJECTED') {
+            onNotification('error', 'Document Rejected', `"${currentDoc.title}" has been rejected`);
+          } else if (currentDoc.status === 'UNDER_HR_REVIEW' || currentDoc.status === 'UNDER_ADMIN_REVIEW') {
+            onNotification('info', 'Document Under Review', `"${currentDoc.title}" is now under review`);
+          }
+        }
+        
+        // Check if SLA became urgent
+        const previousSubmittedAt = previousDoc.submittedAt || previousDoc.createdAt;
+        const currentSla = getSlaInfo(currentSubmittedAt);
+        const previousSla = getSlaInfo(previousSubmittedAt);
+        
+        if (!previousSla.isOverdue && currentSla.isOverdue) {
+          onNotification('error', 'SLA Overdue', `"${currentDoc.title}" has exceeded the 72-hour SLA deadline`);
+        } else if (previousSla.hoursRemaining >= 4 && currentSla.hoursRemaining < 4 && !currentSla.isOverdue) {
+          onNotification('warning', 'SLA Warning', `"${currentDoc.title}" is approaching deadline - ${currentSla.hoursRemaining.toFixed(1)} hours remaining`);
+        }
+      }
+    });
+  }, [onNotification]);
+
+  /**
+   * Fetch workflow documents with current filters
+   */
+  const fetchDocuments = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const mode = filters.viewMode || 'all';
-      const inboxParams = {
-        page: pagination.page,
-        limit: pagination.limit,
-        isRead: filters.isRead,
-        action: filters.action,
-        sortBy: filters.sortBy,
-        sortOrder: filters.sortOrder
+      // Build API params - only use supported params
+      const apiParams = {
+        limit: 200, // Fetch more for client-side filtering
+        offset: 0
       };
-
-      const sentParams = {
-        page: pagination.page,
-        limit: pagination.limit,
-        createdBy: 'me',
-        sortBy: filters.sortBy,
-        sortOrder: filters.sortOrder
-      };
-
-      if (filters.recipientId) {
-        sentParams.currentAssigneeId = filters.recipientId;
+      
+      // Add status filter if specified
+      if (filters.status) {
+        apiParams.status = filters.status;
       }
-
-      if (mode === 'received') {
-        const result = await getWorkflowInbox(inboxParams);
-        if (result.success) {
-          const receivedRows = (result.data || []).map((item) => ({
-            ...item,
-            rowType: 'received'
-          }));
-
-          const searchTerm = String(filters.search || '').trim().toLowerCase();
-          const filteredReceivedRows = receivedRows.filter((row) => {
-            if (!searchTerm) return true;
-            return (row.document?.title || '').toLowerCase().includes(searchTerm)
-              || (row.document?.description || '').toLowerCase().includes(searchTerm);
+      
+      // Add workflow type filter if specified
+      if (filters.workflowType) {
+        apiParams.workflowType = filters.workflowType;
+      }
+      
+      const result = await getWorkflowDocuments(apiParams);
+      
+      if (result.success) {
+        let filteredDocs = result.data || [];
+        
+        // Client-side filtering for view mode
+        if (filters.viewMode === 'needs_action') {
+          // Documents assigned to current user that need action
+          filteredDocs = filteredDocs.filter(doc => {
+            const needsAction = ['SUBMITTED', 'UNDER_HR_REVIEW', 'UNDER_ADMIN_REVIEW'].includes(doc.status);
+            return needsAction;
           });
-
-          setInboxItems(filteredReceivedRows);
-          setPagination((prev) => ({
-            ...prev,
-            total: filteredReceivedRows.length,
-            totalPages: Math.max(1, Math.ceil(filteredReceivedRows.length / pagination.limit))
-          }));
-        } else {
-          setError(result.error || 'Failed to fetch inbox items');
-          setInboxItems([]);
-        }
-      } else if (mode === 'sent') {
-        const result = await getWorkflowDocuments(sentParams);
-        if (result.success) {
-          const sentRows = (result.data || []).map((doc) => ({
-            id: `sent-${doc.id}`,
-            rowType: 'sent',
-            isRead: true,
-            action: 'sent',
-            createdAt: doc.updatedAt || doc.createdAt,
-            documentId: doc.id,
-            document: doc
-          }));
-
-          const searchTerm = String(filters.search || '').trim().toLowerCase();
-          const filteredSentRows = sentRows.filter((row) => {
-            const matchesSearch = !searchTerm ||
-              (row.document?.title || '').toLowerCase().includes(searchTerm) ||
-              (row.document?.description || '').toLowerCase().includes(searchTerm);
-            const matchesAction = !filters.action || filters.action === 'sent';
-            const matchesRead = filters.isRead === null || filters.isRead === true || filters.isRead === 'true';
-            return matchesSearch && matchesAction && matchesRead;
+        } else if (filters.viewMode === 'waiting') {
+          // Documents submitted by current user waiting for review
+          filteredDocs = filteredDocs.filter(doc => {
+            const isWaiting = ['SUBMITTED', 'UNDER_HR_REVIEW', 'UNDER_ADMIN_REVIEW'].includes(doc.status);
+            return isWaiting;
           });
-
-          setInboxItems(filteredSentRows);
-          setPagination((prev) => ({
-            ...prev,
-            total: filteredSentRows.length,
-            totalPages: Math.max(1, Math.ceil(filteredSentRows.length / pagination.limit))
-          }));
-        } else {
-          setError(result.error || 'Failed to fetch sent workflow items');
-          setInboxItems([]);
+        } else if (filters.viewMode === 'completed') {
+          // Completed documents
+          filteredDocs = filteredDocs.filter(doc => {
+            const isCompleted = ['APPROVED', 'REJECTED', 'CLOSED'].includes(doc.status);
+            return isCompleted;
+          });
         }
-      } else {
-        const [inboxResult, sentResult] = await Promise.all([
-          getWorkflowInbox({ ...inboxParams, page: 1, limit: 200 }),
-          getWorkflowDocuments({ ...sentParams, page: 1, limit: 200 })
-        ]);
-
-        if (!inboxResult.success && !sentResult.success) {
-          setError(inboxResult.error || sentResult.error || 'Failed to fetch workflow items');
-          setInboxItems([]);
-          return;
+        
+        // Search filter
+        if (filters.search) {
+          const searchTerm = String(filters.search).trim().toLowerCase();
+          filteredDocs = filteredDocs.filter(doc => {
+            return (doc.title || '').toLowerCase().includes(searchTerm) ||
+                   (doc.description || '').toLowerCase().includes(searchTerm) ||
+                   (doc.submitter?.displayName || '').toLowerCase().includes(searchTerm);
+          });
         }
-
-        const receivedRows = inboxResult.success
-          ? (inboxResult.data || []).map((item) => ({ ...item, rowType: 'received' }))
-          : [];
-
-        const sentRows = sentResult.success
-          ? (sentResult.data || []).map((doc) => ({
-            id: `sent-${doc.id}`,
-            rowType: 'sent',
-            isRead: true,
-            action: 'sent',
-            createdAt: doc.updatedAt || doc.createdAt,
-            documentId: doc.id,
-            document: doc
-          }))
-          : [];
-
-        const searchTerm = String(filters.search || '').trim().toLowerCase();
-        const mergedRows = [...receivedRows, ...sentRows]
-          .filter((row) => {
-            const matchesSearch = !searchTerm ||
-              (row.document?.title || '').toLowerCase().includes(searchTerm) ||
-              (row.document?.description || '').toLowerCase().includes(searchTerm);
-            const matchesAction = !filters.action || row.action === filters.action;
-            const matchesRead = filters.isRead === null || row.isRead === (filters.isRead === true || filters.isRead === 'true');
-            return matchesSearch && matchesAction && matchesRead;
-          })
-          .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-
+        
+        // Sort by SLA urgency (default) or date
+        if (filters.sortBy === 'sla') {
+          filteredDocs = sortBySlaUrgency(filteredDocs);
+        } else if (filters.sortBy === 'createdAt') {
+          filteredDocs.sort((a, b) => {
+            const dateA = new Date(a.createdAt || 0).getTime();
+            const dateB = new Date(b.createdAt || 0).getTime();
+            return filters.sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+          });
+        } else if (filters.sortBy === 'updatedAt') {
+          filteredDocs.sort((a, b) => {
+            const dateA = new Date(a.updatedAt || 0).getTime();
+            const dateB = new Date(b.updatedAt || 0).getTime();
+            return filters.sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+          });
+        }
+        
+        // Check for SLA urgency changes (only on refresh, not initial load)
+        if (previousDocumentsRef.current.length > 0) {
+          checkSlaUrgency(filteredDocs, previousDocumentsRef.current);
+        }
+        
+        // Store current documents for next comparison
+        previousDocumentsRef.current = filteredDocs;
+        
+        // Calculate stats
+        const newStats = calculateStats(filteredDocs);
+        
+        // Check for stats changes
+        if (previousStatsRef.current.urgent !== newStats.urgent && onNotification) {
+          if (newStats.urgent > previousStatsRef.current.urgent) {
+            onNotification('warning', 'Urgent Documents', `${newStats.urgent} documents now require urgent attention`);
+          }
+        }
+        previousStatsRef.current = newStats;
+        
+        // Client-side pagination
         const startIndex = (pagination.page - 1) * pagination.limit;
         const endIndex = startIndex + pagination.limit;
-
-        setInboxItems(mergedRows.slice(startIndex, endIndex));
+        const paginatedDocs = filteredDocs.slice(startIndex, endIndex);
+        
+        setDocuments(paginatedDocs);
+        setStats(newStats);
         setPagination((prev) => ({
           ...prev,
-          total: mergedRows.length,
-          totalPages: Math.max(1, Math.ceil(mergedRows.length / pagination.limit))
+          total: filteredDocs.length,
+          totalPages: Math.max(1, Math.ceil(filteredDocs.length / pagination.limit))
         }));
+      } else {
+        setError(result.error || 'Failed to fetch workflow documents');
+        setDocuments([]);
+        setStats({ urgent: 0, pending: 0, completed: 0 });
       }
     } catch (err) {
       setError(err.message || 'An unexpected error occurred');
-      setInboxItems([]);
+      setDocuments([]);
+      setStats({ urgent: 0, pending: 0, completed: 0 });
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.limit, filters]);
-
-  /**
-   * Mark inbox item as read
-   */
-  const markAsRead = useCallback(async (inboxItemId) => {
-    try {
-      const result = await markWorkflowInboxItemAsRead(inboxItemId);
-      
-      if (result.success) {
-        // Update local state
-        setInboxItems(prev => 
-          prev.map(item => 
-            item.id === inboxItemId 
-              ? { ...item, isRead: true, readAt: new Date().toISOString() }
-              : item
-          )
-        );
-      } else {
-        setError(result.error || 'Failed to mark item as read');
-      }
-      
-      return result;
-    } catch (err) {
-      setError(err.message || 'Failed to mark item as read');
-      return { success: false, error: err.message };
-    }
-  }, []);
+  }, [pagination.page, pagination.limit, filters, calculateStats, checkSlaUrgency, onNotification]);
 
   /**
    * Update filters
@@ -217,68 +248,53 @@ const useWorkflowInbox = (initialParams = {}) => {
   }, []);
 
   /**
-   * Refresh inbox
+   * Refresh documents
    */
   const refresh = useCallback(() => {
-    fetchInboxItems();
-  }, [fetchInboxItems]);
+    fetchDocuments();
+  }, [fetchDocuments]);
 
   /**
-   * Get unread count
+   * Get documents by status
    */
-  const getUnreadCount = useCallback(() => {
-    return inboxItems.filter(item => !item.isRead).length;
-  }, [inboxItems]);
-
-  /**
-   * Get items by action type
-   */
-  const getItemsByAction = useCallback((action) => {
-    return inboxItems.filter(item => item.action === action);
-  }, [inboxItems]);
-
-  /**
-   * Bulk mark as read
-   */
-  const bulkMarkAsRead = useCallback(async (itemIds) => {
-    const results = await Promise.allSettled(
-      itemIds.map(id => markAsRead(id))
-    );
-    
-    const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
-    const failed = results.filter(r => r.status === 'rejected' || !r.value.success).length;
-    
-    if (failed > 0) {
-      setError(`Failed to mark ${failed} item(s) as read`);
-    }
-    
-    return { successful, failed };
-  }, [markAsRead]);
+  const getDocumentsByStatus = useCallback((status) => {
+    return documents.filter(doc => doc.status === status);
+  }, [documents]);
 
   // Auto-refresh on filter/pagination changes
   useEffect(() => {
-    fetchInboxItems();
-  }, [fetchInboxItems]);
+    fetchDocuments();
+  }, [fetchDocuments]);
+
+  // Optional: Poll for updates every 30 seconds (can be enabled if needed)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!loading) {
+        fetchDocuments();
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [fetchDocuments, loading]);
 
   return {
     // Data
-    inboxItems,
+    documents, // Renamed from inboxItems for clarity
     loading,
     error,
     pagination,
     filters,
+    stats, // New: statistics for UI
     
     // Computed
-    unreadCount: getUnreadCount(),
+    unreadCount: stats.urgent + stats.pending, // Simplified
     
     // Actions
-    fetchInboxItems,
-    markAsRead,
+    fetchDocuments,
     updateFilters,
     updatePagination,
     refresh,
-    getItemsByAction,
-    bulkMarkAsRead
+    getDocumentsByStatus
   };
 };
 

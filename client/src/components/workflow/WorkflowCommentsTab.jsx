@@ -60,16 +60,21 @@ export default function WorkflowCommentsTab({ workflowId }) {
   const handleAddComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim() || submitting) return;
+    console.log('[WorkflowCommentsTab] Sending comment:', newComment.trim(), 'for workflow:', workflowId);
     setSubmitting(true);
     try {
       const result = await workflowService.addWorkflowComment(workflowId, {
         comment: newComment.trim(),
       });
+      console.log('[WorkflowCommentsTab] Comment result:', result);
       if (result.success) {
+        console.log('[WorkflowCommentsTab] Comment added successfully');
         setNewComment('');
         fetchComments();
         // Trigger notification for other users (in real app, this would be via socket)
         triggerNotification({ content: newComment.trim() }, 'comment');
+      } else {
+        console.error('[WorkflowCommentsTab] Comment add failed:', result.error);
       }
     } catch (err) {
       console.error('[WorkflowCommentsTab] add comment failed:', err);
@@ -348,7 +353,6 @@ export default function WorkflowCommentsTab({ workflowId }) {
                           width: '2rem',
                           height: '2rem',
                           borderRadius: '9999px',
-                          background: 'var(--color-primary-alpha, rgba(37, 99, 235, 0.1))',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -376,24 +380,25 @@ export default function WorkflowCommentsTab({ workflowId }) {
                         <button
                           onClick={() => handleDeleteComment(comment.id)}
                           style={{
-                            padding: '0.375rem',
-                            border: 'none',
-                            background: 'transparent',
-                            color: 'var(--text-muted, #6b7280)',
+                            color: '#dc2626',
+                            textDecoration: 'none',
+                            whiteSpace: 'nowrap',
+                            background: 'none',
+                            border: '1px solid var(--border, #e5e7eb)',
                             cursor: 'pointer',
-                            borderRadius: '0.5rem',
+                            padding: '0.375rem',
+                            borderRadius: '0.375rem',
+                            transition: 'all 0.15s ease',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            minWidth: '2.25rem',
-                            minHeight: '2.25rem',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.color = '#dc2626';
-                            e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)';
+                            e.currentTarget.style.borderColor = '#dc2626';
+                            e.currentTarget.style.background = 'rgba(220, 38, 38, 0.1)';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.color = 'var(--text-muted, #6b7280)';
+                            e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
                             e.currentTarget.style.background = 'transparent';
                           }}
                         >

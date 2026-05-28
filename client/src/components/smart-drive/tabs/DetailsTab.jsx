@@ -1,8 +1,92 @@
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import { getSmartDriveWorkflowStatusStyle } from '@constants/workflowStatusTypes';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 export default function DetailsTab({ file }) {
   const { t } = useLang();
+  const [workflowCounts, setWorkflowCounts] = useState(null);
+  const [workflows, setWorkflows] = useState(null);
+  const [shareCounts, setShareCounts] = useState(null);
+  const [commentCount, setCommentCount] = useState(null);
+  const [activityCount, setActivityCount] = useState(null);
+  const [versionCount, setVersionCount] = useState(null);
+
+  useEffect(() => {
+    const fetchAdditionalDetails = async () => {
+      try {
+        // Fetch workflow documents for this file
+        const workflowRes = await axios.get(`/api/v1/workflow-documents?fileId=${file.id}`);
+        console.log('[DetailsTab] Workflow response:', workflowRes.data);
+        if (workflowRes.data.success) {
+          const workflows = workflowRes.data.data || [];
+          const counts = {
+            total: workflows.length,
+            byType: workflows.reduce((acc, w) => {
+              acc[w.workflowType] = (acc[w.workflowType] || 0) + 1;
+              return acc;
+            }, {})
+          };
+          setWorkflowCounts(counts);
+          setWorkflows(workflows);
+        }
+
+        // Fetch shares for this file
+        const shareRes = await axios.get(`/api/v1/drive/files/${file.id}/shares`);
+        console.log('[DetailsTab] Share response:', shareRes.data);
+        if (shareRes.data.success) {
+          const shares = shareRes.data.data || shareRes.data.payload || [];
+          console.log('[DetailsTab] Shares array:', shares);
+          console.log('[DetailsTab] Shares subjectTypes:', shares.map(s => s.subjectType));
+          const counts = {
+            total: shares.length,
+            people: shares.filter(s => s.subjectType === 'USER').length,
+            roles: shares.filter(s => s.subjectType === 'ROLE').length
+          };
+          console.log('[DetailsTab] Calculated counts:', counts);
+          setShareCounts(counts);
+        }
+
+        // Fetch comments for this file
+        const commentRes = await axios.get(`/api/v1/drive/files/${file.id}/comments`);
+        console.log('[DetailsTab] Comment response:', commentRes.data);
+        if (commentRes.data.success) {
+          setCommentCount((commentRes.data.payload || []).length);
+        }
+
+        // Fetch activity for this file
+        try {
+          const activityRes = await axios.get(`/api/v1/drive/files/${file.id}/activities`);
+          console.log('[DetailsTab] Activity response:', activityRes.data);
+          if (activityRes.data.success) {
+            setActivityCount((activityRes.data.payload || []).length);
+          }
+        } catch (err) {
+          console.error('[DetailsTab] Error fetching activity:', err);
+          setActivityCount(0);
+        }
+
+        // Fetch versions for this file
+        try {
+          const versionRes = await axios.get(`/api/v1/drive/files/${file.id}/versions`);
+          console.log('[DetailsTab] Version response:', versionRes.data);
+          if (versionRes.data.success) {
+            setVersionCount((versionRes.data.payload || []).length);
+          }
+        } catch (err) {
+          console.error('[DetailsTab] Error fetching versions:', err);
+          setVersionCount(0);
+        }
+      } catch (error) {
+        console.error('[DetailsTab] Error fetching additional details:', error);
+      }
+    };
+
+    if (file?.id) {
+      fetchAdditionalDetails();
+    }
+  }, [file?.id]);
 
   const formatSize = (bytes) => {
     if (!bytes && bytes !== 0) return '\u2014';
@@ -56,11 +140,68 @@ export default function DetailsTab({ file }) {
       label: t('drive.modified'),
       value: formatDate(file.updatedAt),
     },
+    {
+      icon: 'workflow',
+      label: t('drive.workflows'),
+      value: workflowCounts ? (
+        <span style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <span>{workflowCounts.total} total</span>
+          {workflows && workflows.slice(0, 3).map((w, idx) => {
+            const statusStyle = getSmartDriveWorkflowStatusStyle(w.status);
+            return (
+              <span key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}>
+                <span style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: statusStyle.color,
+                  border: `1px solid ${statusStyle.borderColor}`
+                }} />
+                {w.workflowType}: {w.status}
+              </span>
+            );
+          })}
+          {workflowCounts.total > 3 && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>+{workflowCounts.total - 3} more</span>}
+        </span>
+      ) : '\u2014',
+    },
+    {
+      icon: 'share',
+      label: t('drive.shares'),
+      value: shareCounts ? (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
+          {shareCounts.total} (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
+            {getThemedIcon('ui', 'user', 12, '#eab308')} {t('drive.people')}: {shareCounts.people}
+          </span>
+          ,
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
+            {getThemedIcon('ui', 'shield', 12, '#8b5cf6')} {t('drive.roles')}: {shareCounts.roles}
+          </span>
+          )
+        </span>
+      ) : '\u2014',
+    },
+    {
+      icon: 'message',
+      label: t('drive.comments'),
+      value: commentCount !== null ? commentCount : '\u2014',
+    },
+    {
+      icon: 'activity',
+      label: t('drive.activity'),
+      value: activityCount !== null ? activityCount : '\u2014',
+    },
+    {
+      icon: 'clock',
+      label: t('drive.versions'),
+      value: versionCount !== null ? versionCount : '\u2014',
+    },
   ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
         {details.map(({ icon, label, value }, idx) => (
           <div
             key={idx}

@@ -8,179 +8,110 @@
 import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  FileText, 
-  Send, 
   CheckCircle, 
   AlertCircle, 
   Clock, 
   User,
   Filter,
   RefreshCw,
-  Eye,
-  EyeOff,
   Search,
-  ArrowLeft,
   X,
-  Plus,
-  ChevronDown,
-  ChevronUp
+  FileText,
+  Eye,
+  Workflow,
+  XCircle,
+  GitBranch
 } from 'lucide-react';
 import { format } from "date-fns";
-import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
-import { getSlaInfo, sortBySlaUrgency } from '@utils/sla.js';
-import { info, error, warn, debug } from '@services/utils/logger.js';
-import { getThemedIcon } from '@constants/iconTypes';
-import { useAuth } from "@contexts/AuthContext";
+import { formatQatarDate } from '@utils/timezone';
+import { getSlaInfo } from '@utils/sla.js';
+import { getStatusVariant as getActionVariant, getStatusColorClasses } from '@constants/workflowStatusTypes';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import useNotifications from '@hooks/useNotifications';
 import useWorkflowInbox from "@hooks/useWorkflowInbox";
-import useNotifications from "@hooks/useNotifications";
-import { getUsers } from '@services/business/userService';
 import { Button, useToast } from '@ui';
-import { Card, CardContent, CardHeader, CardTitle, Badge, Input, Select, SimpleLoading, EmptyState, AdvancedDataGrid } from '@ui';
-import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
-import CollapsibleDashboardSection from '@components/ui/CollapsibleDashboardSection/CollapsibleDashboardSection.jsx';
+import { Card, CardContent, CardHeader, CardTitle, Badge, Input, SimpleLoading, EmptyState, AdvancedDataGrid } from '@ui';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import WorkflowDiagram from '@components/workflow/WorkflowDiagram';
 
 const WorkflowInboxPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { t } = useLang();
   const { theme } = useTheme();
   const { triggerNotification } = useNotifications();
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
   
-  // Collapsible states
-  const [isStatsCollapsed, setIsStatsCollapsed] = useState(false);
-  const [isFiltersCollapsed, setIsFiltersCollapsed] = useState(false);
-  const [sortBySla, setSortBySla] = useState(true); // Default to SLA sorting
   const [selectedDocumentForWorkflow, setSelectedDocumentForWorkflow] = useState(null);
   const [showWorkflowDiagram, setShowWorkflowDiagram] = useState(false);
   
   const {
-    inboxItems,
+    documents,
     loading,
     error,
     pagination,
     filters,
+    stats,
     unreadCount,
-    markAsRead,
     updateFilters,
     updatePagination,
-    refresh,
-    bulkMarkAsRead
-  } = useWorkflowInbox();
+    refresh
+  } = useWorkflowInbox({}, triggerNotification);
 
-  const [recipientOptions, setRecipientOptions] = useState([{ value: '', label: t('workflow.inbox.allRecipients', 'All Recipients') }]);
 
-  useEffect(() => {
-    const loadRecipients = async () => {
-      try {
-        const result = await getUsers({ max: 500 });
-        if (!result?.success || !Array.isArray(result.data)) {
-          setRecipientOptions([{ value: '', label: t('workflow.inbox.allRecipients', 'All Recipients') }]);
-          return;
-        }
-
-        const options = [
-          { value: '', label: t('workflow.inbox.allRecipients', 'All Recipients') },
-          ...result.data.map((u) => {
-            const displayName = u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || `User ${u.id}`;
-            return {
-              value: String(u.id),
-              label: `${displayName}${u.email ? ` (${u.email})` : ''}`
-            };
-          })
-        ];
-
-        setRecipientOptions(options);
-      } catch {
-        setRecipientOptions([{ value: '', label: t('workflow.inbox.allRecipients', 'All Recipients') }]);
-      }
-    };
-
-    loadRecipients();
-  }, [t]);
-
-  // Action type options - will be populated from lookup table
-  const actionOptions = useMemo(() => [
-    { value: '', label: t('workflow.inbox.allActions', 'All Actions') },
-    { value: 'sent', label: t('workflow.actions.sent', 'Sent') },
-    { value: 'review', label: t('workflow.actions.review', 'Review') },
-    { value: 'approve', label: t('workflow.actions.approve', 'Approve') },
-    { value: 'revise', label: t('workflow.actions.revise', 'Revise') },
-    { value: 'approved', label: t('workflow.actions.approved', 'Approved') },
-    { value: 'return', label: t('workflow.actions.return', 'Return') },
-    { value: 'close', label: t('workflow.actions.close', 'Close') },
-    { value: 'send', label: t('workflow.actions.send', 'Send') }
-  ], [t]);
-
-  // Apply SLA sorting to inbox items
-  const sortedInboxItems = useMemo(() => {
-    if (sortBySla) {
-      return sortBySlaUrgency(inboxItems);
-    }
-    return inboxItems;
-  }, [inboxItems, sortBySla]);
-
-  // Status badge variants
-  const getStatusVariant = (action) => {
-    switch (action) {
-      case 'sent':
-        return 'default';
-      case 'review':
-        return 'warning';
-      case 'approve':
-        return 'info';
-      case 'revise':
-        return 'destructive';
-      case 'approved':
-        return 'success';
-      case 'return':
-        return 'secondary';
-      case 'close':
-        return 'outline';
-      case 'send':
-        return 'default';
-      default:
-        return 'secondary';
-    }
+  // Status badge variants - using centralized status constants
+  const getStatusVariant = (status) => {
+    return getActionVariant(status);
   };
 
-  // Action icons
-  const getActionIcon = (action) => {
-    switch (action) {
-      case 'sent':
-        return <Send className="h-4 w-4" />;
-      case 'review':
-        return <Eye className="h-4 w-4" />;
-      case 'approve':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'revise':
+  // Get status icon
+  const getStatusIcon = (status) => {
+    const statusUpper = status?.toUpperCase();
+    switch (statusUpper) {
+      case 'DRAFT':
+        return <Clock className="h-4 w-4" />;
+      case 'SUBMITTED':
+        return <Clock className="h-4 w-4" />;
+      case 'UNDER_REVIEW':
+      case 'UNDER_ADMIN_REVIEW':
         return <AlertCircle className="h-4 w-4" />;
-      case 'approved':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'return':
-        return <ArrowLeft className="h-4 w-4" />;
-      case 'close':
-        return <X className="h-4 w-4" />;
-      case 'send':
-        return <Send className="h-4 w-4" />;
+      case 'APPROVED':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'REJECTED':
+        return <XCircle className="h-4 w-4" />;
+      case 'AMENDED':
+        return <GitBranch className="h-4 w-4" />;
+      case 'CLOSED':
+        return <CheckCircle className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
     }
   };
 
-  // Handle mark as read
-  const handleMarkAsRead = useCallback(async (inboxItemId) => {
-    const result = await markAsRead(inboxItemId);
-    if (result.success) {
-      triggerNotification('success', t('workflow.inbox.markedAsRead', 'Item marked as read'));
-    } else {
-      triggerNotification('error', result.error || t('workflow.inbox.markReadError', 'Failed to mark as read'));
+  // Get status color
+  const getStatusColor = (status) => {
+    const statusUpper = status?.toUpperCase();
+    switch (statusUpper) {
+      case 'DRAFT':
+        return '#6b7280';
+      case 'SUBMITTED':
+        return '#f59e0b';
+      case 'UNDER_REVIEW':
+      case 'UNDER_ADMIN_REVIEW':
+        return '#3b82f6';
+      case 'APPROVED':
+        return '#10b981';
+      case 'REJECTED':
+        return '#ef4444';
+      case 'AMENDED':
+        return '#f59e0b';
+      case 'CLOSED':
+        return '#6b7280';
+      default:
+        return '#6b7280';
     }
-  }, [t, triggerNotification, markAsRead]);
+  };
 
   // Handle show workflow diagram
   const handleShowWorkflowDiagram = useCallback((document) => {
@@ -188,66 +119,74 @@ const WorkflowInboxPage = () => {
     setShowWorkflowDiagram(true);
   }, []);
 
-  // Grid columns
+  // Grid columns - Updated for WorkflowDocument model
   const columns = useMemo(() => [
     {
-      field: 'document',
+      field: 'title',
       headerName: t('workflow.inbox.document', 'Document'),
       flex: 1,
       renderCell: (params) => (
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0">
-            {getActionIcon(params.row.action)}
+            <FileText className="h-5 w-5 text-gray-400" />
           </div>
           <div>
             <div className="font-medium text-gray-900">
-              {params.row.document?.title}
+              {params.row.title}
             </div>
             <div className="text-sm text-gray-500">
-              {params.row.document?.description}
+              {params.row.description}
             </div>
           </div>
         </div>
       )
     },
     {
-      field: 'action',
-      headerName: t('workflow.inbox.action', 'Action'),
-      width: 120,
-      renderCell: (params) => (
-        <Badge variant={getStatusVariant(params.value)}>
-          {t(`workflow.actions.${params.value}`, params.value)}
-        </Badge>
-      )
-    },
-    {
-      field: 'isRead',
+      field: 'status',
       headerName: t('workflow.inbox.status', 'Status'),
-      width: 100,
+      width: 160,
       renderCell: (params) => (
         <div className="flex items-center gap-2">
-          {params.value ? (
-            <EyeOff className="h-4 w-4 text-gray-400" />
-          ) : (
-            <Eye className="h-4 w-4 text-blue-500" />
-          )}
-          <span className="text-sm">
-            {params.value ? t('workflow.inbox.read', 'Read') : t('workflow.inbox.unread', 'Unread')}
+          <div 
+            className="flex items-center justify-center rounded-full"
+            style={{ 
+              backgroundColor: getStatusColor(params.value),
+              width: '24px',
+              height: '24px'
+            }}
+          >
+            <span style={{ color: '#ffffff' }} className="text-xs">
+              {getStatusIcon(params.value)}
+            </span>
+          </div>
+          <span className="text-sm font-medium">
+            {params.value}
           </span>
         </div>
       )
     },
     {
-      field: 'document.creator',
+      field: 'submitter',
       headerName: t('workflow.inbox.from', 'From'),
-      width: 150,
+      width: 180,
       renderCell: (params) => (
         <div className="flex items-center gap-2">
           <User className="h-4 w-4 text-gray-400" />
           <span className="text-sm">
-            {params.row.rowType === 'sent'
-              ? (params.row.document?.currentAssignee?.displayName || params.row.document?.currentAssignee?.firstName || t('workflow.inbox.unassigned', 'Unassigned'))
-              : (params.row.document?.creator?.displayName || params.row.document?.creator?.firstName || t('workflow.inbox.unknown', 'Unknown'))}
+            {params.row.submitter?.displayName || params.row.submitter?.firstName || params.row.submitter?.lastName || t('workflow.inbox.unknown', 'Unknown')}
+          </span>
+        </div>
+      )
+    },
+    {
+      field: 'currentAssignee',
+      headerName: t('workflow.inbox.assignedTo', 'Assigned To'),
+      width: 180,
+      renderCell: (params) => (
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4 text-gray-400" />
+          <span className="text-sm">
+            {params.row.currentAssignee?.displayName || params.row.currentAssignee?.firstName || params.row.currentAssignee?.lastName || t('workflow.inbox.unassigned', 'Unassigned')}
           </span>
         </div>
       )
@@ -256,18 +195,24 @@ const WorkflowInboxPage = () => {
       field: 'createdAt',
       headerName: t('workflow.inbox.received', 'Received'),
       width: 120,
-      renderCell: (params) => (
-        <div className="text-sm text-gray-500">
-          {formatQatarDate(new Date(params.value), 'MMM d, yyyy')}
-        </div>
-      )
+      renderCell: (params) => {
+        const date = params.value ? new Date(params.value) : null;
+        const isValidDate = date && !isNaN(date.getTime());
+        
+        return (
+          <div className="text-sm text-gray-500">
+            {isValidDate ? formatQatarDate(date, 'MMM d, yyyy') : 'N/A'}
+          </div>
+        );
+      }
     },
     {
       field: 'sla',
       headerName: t('workflow.inbox.sla', 'SLA'),
       width: 100,
       renderCell: (params) => {
-        const slaInfo = getSlaInfo(params.row.document?.submittedAt);
+        const submittedAt = params.row.submittedAt || params.row.createdAt;
+        const slaInfo = getSlaInfo(submittedAt);
         return (
           <div className="flex flex-col gap-1">
             <Badge variant={slaInfo.badgeVariant} className="text-xs">
@@ -285,68 +230,36 @@ const WorkflowInboxPage = () => {
     {
       field: 'actions',
       headerName: t('workflow.inbox.actions', 'Actions'),
-      width: 220,
+      width: 240,
       renderCell: (params) => (
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
+            variant="primary"
             size="sm"
-            onClick={() => navigate(`/workflow-documents/${params.row.documentId || params.row.document?.id}`)}
+            onClick={() => navigate(`/workflow-documents/${params.row.id}`)}
+            className="h-8 px-3"
           >
-            {t('workflow.inbox.open', 'Open')}
+            <Eye className="h-4 w-4" />
           </Button>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            onClick={() => handleShowWorkflowDiagram(params.row.document)}
+            onClick={() => handleShowWorkflowDiagram(params.row)}
+            className="h-8 px-3"
           >
-            {t('workflow.inbox.workflow', 'Workflow')}
+            <Workflow className="h-4 w-4" />
           </Button>
-          {!params.row.isRead && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleMarkAsRead(params.row.id)}
-            >
-              {t('workflow.inbox.markRead', 'Mark Read')}
-            </Button>
-          )}
         </div>
       )
     }
-  ], [t, handleMarkAsRead, theme, navigate]);
-
-  // Handle bulk mark as read
-  const handleBulkMarkAsRead = async () => {
-    const unreadItems = inboxItems.filter(item => !item.isRead);
-    if (unreadItems.length === 0) return;
-
-    const itemIds = unreadItems.map(item => item.id);
-    const result = await bulkMarkAsRead(itemIds);
-    
-    if (result.failed === 0) {
-      triggerNotification('success', t('workflow.inbox.allMarkedAsRead', 'All items marked as read'));
-    } else {
-      triggerNotification('warning', t('workflow.inbox.someMarkedAsRead', 'Some items marked as read'));
-    }
-  };
-
-  // Handle search
-  const handleSearch = (searchTerm) => {
-    updateFilters({ search: searchTerm });
-  };
-
-  // Handle filter change
-  const handleFilterChange = (filterName, value) => {
-    updateFilters({ [filterName]: value });
-  };
+  ], [t, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle page change
   const handlePageChange = (newPage) => {
     updatePagination({ page: newPage });
   };
 
-  if (loading && inboxItems.length === 0) {
+  if (loading && documents.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <SimpleLoading />
@@ -355,327 +268,149 @@ const WorkflowInboxPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      {/* Collapsible Header */}
-      <Card className="shadow-sm border-gray-200">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+    <div className="flex justify-center px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl w-full space-y-6">
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="border-l-4 border-l-red-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-center gap-3">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-6 w-6 text-red-500" />
+              </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {t('workflow.inbox.title', 'Workflow Inbox')}
-                </h1>
-                <p className="text-gray-600 text-sm mt-1">
-                  {t('workflow.inbox.description', 'Manage your workflow documents and approvals')}
-                </p>
+                <div className="text-2xl font-bold text-gray-900">
+                  {stats.urgent}
+                </div>
+                <div className="text-xs text-gray-600">
+                  {t('workflow.inbox.urgent', 'Urgent')}
+                </div>
               </div>
             </div>
-            
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-center gap-3">
+              <div className="flex-shrink-0">
+                <Clock className="h-6 w-6 text-orange-500" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {stats.pending}
+                </div>
+                <div className="text-xs text-gray-600">
+                  {t('workflow.inbox.pending', 'Pending')}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-green-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-center gap-3">
+              <div className="flex-shrink-0">
+                <CheckCircle className="h-6 w-6 text-green-500" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {stats.completed}
+                </div>
+                <div className="text-xs text-gray-600">
+                  {t('workflow.inbox.completed', 'Completed')}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card className="shadow-sm border-gray-200">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* Search - always visible */}
+            <div className="relative flex-1 min-w-[200px] max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder={t('workflow.inbox.searchPlaceholder', 'Search documents...')}
+                value={filters.search || ''}
+                onChange={(e) => updateFilters({ search: e.target.value })}
+                className="pl-10"
+              />
+            </div>
+
+            {/* View Filters - compact */}
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/drive')}
-                className="p-2"
-                title={t('workflow.inbox.workspace', 'Workspace')}
+              <span className="text-sm font-medium text-gray-600">{t('workflow.inbox.view', 'View')}:</span>
+              <div className="flex gap-1">
+                {[
+                  { value: 'all', label: t('workflow.inbox.all', 'All') },
+                  { value: 'needs_action', label: t('workflow.inbox.needsAction', 'Action') },
+                  { value: 'waiting', label: t('workflow.inbox.waiting', 'Waiting') },
+                  { value: 'completed', label: t('workflow.inbox.completed', 'Done') }
+                ].map((item) => (
+                  <Button
+                    key={item.value}
+                    variant={filters.viewMode === item.value ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => updateFilters({ viewMode: item.value })}
+                    className="h-8 px-3"
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Status Filter - dropdown style */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-600">{t('workflow.inbox.status', 'Status')}:</span>
+              <select
+                value={filters.status || ''}
+                onChange={(e) => updateFilters({ status: e.target.value })}
+                className="h-8 px-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <FileText className="h-4 w-4" />
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => navigate('/workflow/create')}
-                className="p-2"
-                title={t('workflow.inbox.createDocument', 'Create Document')}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={refresh}
-                disabled={loading}
-                className="p-2"
-                title={t('workflow.inbox.refresh', 'Refresh')}
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
-              {unreadCount > 0 && (
-                <Button
-                  size="sm"
-                  onClick={handleBulkMarkAsRead}
-                  disabled={loading}
-                  className="p-2 bg-blue-600 hover:bg-blue-700 text-white"
-                  title={t('workflow.inbox.markAllRead', 'Mark All Read')}
-                >
-                  <CheckCircle className="h-4 w-4" />
-                </Button>
-              )}
+                <option value="">{t('workflow.inbox.all', 'All')}</option>
+                {['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'UNDER_ADMIN_REVIEW', 'APPROVED', 'REJECTED', 'AMENDED', 'CLOSED'].map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 ml-auto">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsStatsCollapsed(!isStatsCollapsed)}
-                className="p-2"
-                title={isStatsCollapsed ? 'Show Stats' : 'Hide Stats'}
+                onClick={() => {
+                  updateFilters({
+                    viewMode: 'all',
+                    search: '',
+                    status: '',
+                    workflowType: ''
+                  });
+                }}
+                title={t('workflow.inbox.clearFilters', 'Clear filters')}
               >
-                {isStatsCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                <X className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={refresh}
+                disabled={loading}
+                title={t('workflow.inbox.refresh', 'Refresh')}
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
-
-      {/* Collapsible Stats Dashboard */}
-      <CollapsibleDashboardSection
-        title={t('workflow.inbox.statistics', 'Statistics')}
-        icon={<FileText className="h-4 w-4" />}
-        sectionId="workflow-stats"
-        defaultMode="full"
-        color="#6366f1"
-        count={inboxItems.length}
-        headerRight={
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsStatsCollapsed(!isStatsCollapsed)}
-            className="p-2"
-            title={isStatsCollapsed ? 'Show Stats' : 'Hide Stats'}
-          >
-            {isStatsCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-          </Button>
-        }
-      >
-        <div className="p-4">
-          {/* Main Stats Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0">
-                    <Send className="h-6 w-6 text-blue-500" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {inboxItems.filter(item => item.action === 'sent' || item.action === 'send').length}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {t('workflow.inbox.sent', 'Sent')}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0">
-                    <Eye className="h-6 w-6 text-orange-500" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {inboxItems.filter(item => item.action === 'review').length}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {t('workflow.inbox.pendingReview', 'Pending Review')}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-green-500 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0">
-                    <CheckCircle className="h-6 w-6 text-green-500" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {inboxItems.filter(item => item.action === 'approved' || item.action === 'approve').length}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {t('workflow.inbox.approved', 'Approved')}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-red-500 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0">
-                    <AlertCircle className="h-6 w-6 text-red-500" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {inboxItems.filter(item => item.action === 'revise' || item.action === 'return').length}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {t('workflow.inbox.needsAction', 'Needs Action')}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Additional Stats Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="border-l-4 border-l-purple-500 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0">
-                    <Eye className="h-6 w-6 text-purple-500" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {unreadCount}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {t('workflow.inbox.unread', 'Unread')}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-gray-500 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0">
-                    <Clock className="h-6 w-6 text-gray-500" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {inboxItems.filter(item => item.action === 'close').length}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {t('workflow.inbox.closed', 'Closed')}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-indigo-500 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0">
-                    <FileText className="h-6 w-6 text-indigo-500" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {inboxItems.length}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {t('workflow.inbox.total', 'Total Items')}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </CollapsibleDashboardSection>
-
-      {/* Collapsible Filters */}
-      <CollapsibleDashboardSection
-        title={t('workflow.inbox.filters', 'Filters')}
-        icon={<Filter className="h-4 w-4" />}
-        sectionId="workflow-filters"
-        defaultMode="full"
-        color="#3b82f6"
-        count={Object.values(filters).filter(v => v !== null && v !== '' && v !== 'all').length}
-        inlineFilters={
-          <div className="flex items-center gap-2">
-            <Select
-              value={filters.viewMode || 'all'}
-              onChange={(valueOrEvent) => {
-                const value = valueOrEvent?.target?.value ?? valueOrEvent;
-                updateFilters({ viewMode: value });
-              }}
-              options={[
-                { value: 'all', label: t('workflow.inbox.viewAll', 'All') },
-                { value: 'received', label: t('workflow.inbox.viewReceived', 'Received') },
-                { value: 'sent', label: t('workflow.inbox.viewSent', 'Sent') }
-              ]}
-              className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              placeholder={t('workflow.inbox.viewPlaceholder', 'View')}
-            />
-            <Button
-              variant={sortBySla ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSortBySla(!sortBySla)}
-              className="flex items-center gap-2"
-            >
-              <Clock className="h-4 w-4" />
-              {t('workflow.inbox.sortBySla', 'Sort by SLA')}
-            </Button>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder={t('workflow.inbox.searchPlaceholder', 'Search...')}
-                value={filters.search || ''}
-                onChange={(e) => updateFilters({ search: e.target.value })}
-                className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <Select
-              value={filters.action || ''}
-              onChange={(valueOrEvent) => updateFilters({ action: valueOrEvent?.target?.value ?? valueOrEvent })}
-              options={actionOptions}
-              className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              placeholder={t('workflow.inbox.actionPlaceholder', 'Action')}
-            />
-            <Select
-              value={filters.isRead !== null ? filters.isRead.toString() : ''}
-              onChange={(valueOrEvent) => {
-                const value = valueOrEvent?.target?.value ?? valueOrEvent;
-                updateFilters({ 
-                  isRead: value === '' ? null : value === 'true' 
-                });
-              }}
-              options={[
-                { value: '', label: t('workflow.inbox.allStatus', 'All Status') },
-                { value: 'false', label: t('workflow.inbox.unread', 'Unread') },
-                { value: 'true', label: t('workflow.inbox.read', 'Read') }
-              ]}
-              className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              placeholder={t('workflow.inbox.statusPlaceholder', 'Status')}
-            />
-            <Select
-              value={filters.recipientId || ''}
-              onChange={(valueOrEvent) => {
-                const value = valueOrEvent?.target?.value ?? valueOrEvent;
-                updateFilters({ recipientId: value });
-              }}
-              options={recipientOptions}
-              className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              placeholder={t('workflow.inbox.recipientPlaceholder', 'Recipient')}
-            />
-            <Button
-              variant="outline"
-              onClick={() => {
-                updateFilters({
-                  viewMode: 'all',
-                  search: '',
-                  action: '',
-                  isRead: null,
-                  recipientId: ''
-                });
-              }}
-              className="border-gray-300 hover:border-blue-500"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        }
-      >
-        <div className="p-4">
-          {/* Filters content is now inline in header */}
-        </div>
-      </CollapsibleDashboardSection>
 
       {/* Error */}
       {error && (
@@ -690,11 +425,11 @@ const WorkflowInboxPage = () => {
       )}
 
       {/* Data Grid */}
-      {sortedInboxItems.length > 0 ? (
+      {documents.length > 0 ? (
         <Card className="shadow-sm border-gray-200">
           <CardContent className="p-0">
             <AdvancedDataGrid
-              rows={sortedInboxItems}
+              rows={documents}
               columns={columns}
               pagination={pagination}
               onPageChange={handlePageChange}
@@ -709,18 +444,9 @@ const WorkflowInboxPage = () => {
         <Card className="shadow-sm border-gray-200">
           <CardContent className="p-12 text-center">
             <EmptyState
-              icon={<FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />}
+              icon={<CheckCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />}
               title={t('workflow.inbox.emptyTitle', 'No workflow items found')}
-              description={t('workflow.inbox.emptyDescription', 'Create your first workflow document or adjust your filters to see existing items.')}
-              action={
-                <Button
-                  onClick={() => navigate('/workflow/create')}
-                  className="mt-4 bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t('workflow.inbox.createFirst', 'Create Workflow Document')}
-                </Button>
-              }
+              description={t('workflow.inbox.emptyDescription', 'Adjust your filters to see existing items.')}
             />
           </CardContent>
         </Card>
@@ -729,7 +455,7 @@ const WorkflowInboxPage = () => {
       {/* Workflow Diagram Modal */}
       {showWorkflowDiagram && selectedDocumentForWorkflow && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded-lg shadow-xl w-full h-full overflow-hidden">
             <div className="p-4 border-b flex items-center justify-between">
               <h3 className="text-lg font-semibold">
                 {t('workflow.inbox.workflowProgress', 'Workflow Progress')}: {selectedDocumentForWorkflow.title}
@@ -742,7 +468,7 @@ const WorkflowInboxPage = () => {
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <div className="p-4 overflow-auto" style={{ height: 'calc(90vh - 60px)' }}>
+            <div className="p-4 overflow-auto" style={{ height: 'calc(100vh - 60px)' }}>
               <WorkflowDiagram
                 status={selectedDocumentForWorkflow.status}
                 workflowType={selectedDocumentForWorkflow.workflowType || 'ATTENDANCE_REPORT'}
@@ -752,6 +478,7 @@ const WorkflowInboxPage = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

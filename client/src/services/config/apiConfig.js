@@ -98,6 +98,31 @@ class AppConfig {
       GUEST: 'guest'
     };
     
+    // Error Messages (user-friendly)
+    this.errorMessages = {
+      400: 'Invalid request. Please check your input.',
+      401: 'Session expired. Please login again.',
+      403: 'You do not have permission to perform this action.',
+      404: 'The requested resource was not found.',
+      409: 'This resource already exists or conflicts with existing data.',
+      422: 'Validation error. Please check your input.',
+      429: 'Too many requests. Please wait and try again.',
+      500: 'Server error. Please try again later.',
+      502: 'Service unavailable. Please try again later.',
+      503: 'Service temporarily unavailable. Please try again later.',
+      NETWORK_ERROR: 'Network error. Please check your connection.',
+      UNKNOWN: 'An unexpected error occurred. Please try again.'
+    };
+    
+    /**
+     * Get user-friendly error message for HTTP status code
+     * @param {number} status - HTTP status code
+     * @returns {string} User-friendly error message
+     */
+    this.getErrorMessage = (status) => {
+      return this.errorMessages[status] || this.errorMessages.UNKNOWN;
+    };
+    
     // Cache for frequently used URLs
     this.urlCache = new Map();
     

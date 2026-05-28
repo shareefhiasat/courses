@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
 import { getIcon, getIconWithColor, getThemedIcon } from '@constants/iconTypes';
+import { WORKFLOW_STATUS } from '@constants/workflowStatusTypes';
 import { apiService } from '@services/api/apiService';
 import workflowService from '@services/business/workflowService';
 import { updateWorkflowDocumentStatus, withdrawWorkflowDocument } from '@services/api/workflow-documents-api';
@@ -128,7 +129,7 @@ function getWorkflowTypeStyle(type) {
   return WORKFLOW_TYPE_STYLES[type] || WORKFLOW_TYPE_STYLES.GENERAL;
 }
 
-export default function WorkflowTab({ fileId, onRefresh }) {
+export default function WorkflowTab({ fileId, onRefresh, isActive = true }) {
   const { t } = useLang();
   const navigate = useNavigate();
   const [workflows, setWorkflows] = useState([]);
@@ -140,6 +141,7 @@ export default function WorkflowTab({ fileId, onRefresh }) {
   const [viewMode, setViewMode] = useState('list');
   const [selectedDate, setSelectedDate] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, workflowId: null });
+  const [isDeleting, setIsDeleting] = useState(false);
   const [rejectModal, setRejectModal] = useState({ isOpen: false, workflowId: null, reason: '' });
   const [actionModal, setActionModal] = useState({ isOpen: false, workflowId: null, action: null, comment: '', assignedUserId: null, assignedRole: null, assigneeType: ASSIGNEE_TYPES.USER });
   const [users, setUsers] = useState([]);
@@ -175,11 +177,18 @@ export default function WorkflowTab({ fileId, onRefresh }) {
     setLoading(true);
     setError(null);
     try {
+      const cacheBuster = Math.random().toString(36).substring(7);
       const response = await apiService.get('/workflow-documents', {
-        params: { fileId: fileId }
+        params: { fileId: fileId, _nocache: cacheBuster },
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
       });
+      console.log('[WorkflowTab] fetchWorkflow response:', response);
       if (response.success) {
         const workflows = response.data || response.payload || [];
+        console.log('[WorkflowTab] workflows after fetch:', workflows);
         setWorkflows(workflows);
       } else {
         setError(response.error?.message || 'Failed to fetch workflow');
@@ -195,6 +204,13 @@ export default function WorkflowTab({ fileId, onRefresh }) {
   useEffect(() => {
     fetchWorkflow();
   }, [fetchWorkflow]);
+
+  // Refresh when tab becomes active (e.g., after navigating back from workflow detail page)
+  useEffect(() => {
+    if (isActive) {
+      fetchWorkflow();
+    }
+  }, [isActive, fetchWorkflow]);
 
   const getStatusIcon = (status) => {
     const config = WORKFLOW_STATUS_CONFIG[status?.toLowerCase()];
@@ -224,35 +240,55 @@ export default function WorkflowTab({ fileId, onRefresh }) {
   }, []);
 
   const handleDeleteWorkflow = useCallback(async () => {
-    if (!deleteModal.workflowId) return;
+    if (!deleteModal.workflowId || isDeleting) return;
+    setIsDeleting(true);
     try {
       const result = await workflowService.deleteWorkflowDocument(deleteModal.workflowId);
       if (result.success) {
+        // Remove from local state immediately - don't refetch since backend returns stale data
+        setWorkflows(prev => prev.filter(w => w.id !== deleteModal.workflowId));
         setDeleteModal({ isOpen: false, workflowId: null });
-        fetchWorkflow();
-        if (onRefresh) onRefresh();
       } else {
-        console.error('Failed to delete workflow:', result.error);
+        // If document is already deleted (404), treat as success
+        if (result.error?.includes('not found') || result.status === 404) {
+          setWorkflows(prev => prev.filter(w => w.id !== deleteModal.workflowId));
+          setDeleteModal({ isOpen: false, workflowId: null });
+        } else {
+          console.error('Failed to delete workflow:', result.error);
+        }
       }
     } catch (error) {
       console.error('Error deleting workflow:', error);
+      // If error is 404 (already deleted), treat as success
+      if (error.response?.status === 404 || error.message?.includes('not found')) {
+        setWorkflows(prev => prev.filter(w => w.id !== deleteModal.workflowId));
+        setDeleteModal({ isOpen: false, workflowId: null });
+      }
+    } finally {
+      setIsDeleting(false);
     }
-  }, [deleteModal.workflowId, fetchWorkflow, onRefresh]);
+  }, [deleteModal.workflowId, isDeleting]);
 
   const handleRejectWorkflow = useCallback(async () => {
     if (!rejectModal.workflowId || !rejectModal.reason.trim()) return;
     try {
       const result = await workflowService.rejectWorkflowDocument(rejectModal.workflowId, { comment: rejectModal.reason.trim() });
       if (result.success) {
+        // Update local state immediately to reflect status change
+        setWorkflows(prev => prev.map(w => 
+          w.id === rejectModal.workflowId 
+            ? { ...w, status: 'REJECTED' }
+            : w
+        ));
         setRejectModal({ isOpen: false, workflowId: null, reason: '' });
-        fetchWorkflow();
+        // Don't call fetchWorkflow - backend returns stale data, local state update is sufficient
       } else {
         console.error('Failed to reject workflow:', result.error);
       }
     } catch (error) {
       console.error('Error rejecting workflow:', error);
     }
-  }, [rejectModal.workflowId, rejectModal.reason, fetchWorkflow]);
+  }, [rejectModal.workflowId, rejectModal.reason]);
 
   const handleWorkflowAction = useCallback(async () => {
     if (!actionModal.workflowId || !actionModal.action) return;
@@ -280,6 +316,7 @@ export default function WorkflowTab({ fileId, onRefresh }) {
           break;
         case WORKFLOW_ACTIONS.CANCEL:
           result = await withdrawWorkflowDocument(workflowId, { comment });
+          console.log('[WorkflowTab] Cancel result:', result);
           break;
         default:
           console.error('Unknown action:', action);
@@ -287,9 +324,45 @@ export default function WorkflowTab({ fileId, onRefresh }) {
       }
       
       if (result.success) {
+        // Update local state immediately to reflect status change
+        let newStatus;
+        switch (action) {
+          case WORKFLOW_ACTIONS.SUBMIT:
+            newStatus = 'SUBMITTED';
+            break;
+          case WORKFLOW_ACTIONS.APPROVE:
+            newStatus = 'APPROVED';
+            break;
+          case WORKFLOW_ACTIONS.REJECT:
+            newStatus = 'REJECTED';
+            break;
+          case WORKFLOW_ACTIONS.CANCEL:
+            newStatus = 'DRAFT';
+            break;
+          case WORKFLOW_ACTIONS.REVISE:
+            newStatus = 'NEEDS_REVISION';
+            break;
+          default:
+            newStatus = null;
+        }
+        
+        console.log('[WorkflowTab] Updating workflow status:', workflowId, 'to', newStatus);
+        
+        if (newStatus) {
+          setWorkflows(prev => {
+            const updated = prev.map(w => 
+              w.id === workflowId 
+                ? { ...w, status: newStatus }
+                : w
+            );
+            console.log('[WorkflowTab] Updated workflows:', updated);
+            return updated;
+          });
+        }
+        
         setActionModal({ isOpen: false, workflowId: null, action: null, comment: '', assignedUserId: null, assignedRole: null, assigneeType: ASSIGNEE_TYPES.USER });
         commentRef.current = '';
-        fetchWorkflow();
+        // Don't call fetchWorkflow - backend returns stale data, local state update is sufficient
       } else {
         console.error('Failed to perform workflow action:', result.error);
       }
@@ -306,19 +379,19 @@ export default function WorkflowTab({ fileId, onRefresh }) {
     const isAdmin = currentUser?.roles?.includes('super_admin') || currentUser?.roles?.includes('admin');
     
     switch (normalizedStatus) {
-      case 'DRAFT':
+      case WORKFLOW_STATUS.DRAFT:
         return ['submit', 'cancel'];
-      case 'SUBMITTED':
+      case WORKFLOW_STATUS.SUBMITTED:
         return ['cancel'];
       case 'IN_REVIEW':
         if (isAssigned || hasAssignedRole || isAdmin) {
           return ['approve', 'reject', 'send_for_approval'];
         }
         return ['cancel'];
-      case 'REJECTED':
+      case WORKFLOW_STATUS.REJECTED:
         // REJECTED is a final state - no actions available
         return [];
-      case 'APPROVED':
+      case WORKFLOW_STATUS.APPROVED:
       case 'CANCELLED':
         return [];
       default:
@@ -454,6 +527,25 @@ export default function WorkflowTab({ fileId, onRefresh }) {
           />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => fetchWorkflow()}
+            disabled={loading}
+            style={{
+              padding: '0.625rem 0.875rem',
+              borderRadius: '0.5rem',
+              border: '1px solid var(--border, #e5e7eb)',
+              background: 'var(--panel, white)',
+              color: 'var(--text, #374151)',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontSize: '0.875rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              opacity: loading ? 0.6 : 1,
+            }}            
+          >
+            {getIcon('ui', 'refresh', 16, 'var(--text, #374151)')}
+          </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <span style={{ 

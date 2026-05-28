@@ -27,6 +27,7 @@ import { format } from 'date-fns';
 import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getThemedIcon } from '@constants/iconTypes';
+import { getLegacyStatusVariant, LEGACY_WORKFLOW_STATUS } from '@constants/workflowStatusTypes';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -178,23 +179,9 @@ const WorkflowDetailPage = () => {
     });
   }, [recipientOptions, recipientRoleFilter]);
 
-  // Status badge variants
+  // Status badge variants - using centralized legacy workflow status constants
   const getStatusVariant = (status) => {
-    switch (status) {
-      case 'draft':
-        return 'secondary';
-      case 'sent':
-        return 'warning';
-      case 'returned':
-      case 'revise_needed':
-        return 'destructive';
-      case 'approved':
-        return 'success';
-      case 'closed':
-        return 'outline';
-      default:
-        return 'secondary';
-    }
+    return getLegacyStatusVariant(status);
   };
 
   // Action icons

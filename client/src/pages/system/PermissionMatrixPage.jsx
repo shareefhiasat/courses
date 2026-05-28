@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { getAuthToken } from '@utils/authHelpers';
 
 /**
  * Permission Matrix Visualization Page (Editable)
@@ -66,7 +67,7 @@ const PermissionMatrixPage = () => {
   const fetchPermissions = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('keycloak_token');
+      const token = getAuthToken();
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:8001/api/v1'}/permissions`, {
         headers: {
           'Accept-Language': lang,

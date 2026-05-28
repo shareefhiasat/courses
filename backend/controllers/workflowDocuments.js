@@ -696,6 +696,8 @@ export const withdrawWorkflowDocumentController = async (req, res) => {
     const { user } = req;
     const { comment } = req.body;
 
+    console.log('[withdrawWorkflowDocumentController] Document ID:', id, 'User DB ID:', user.dbId, 'Comment:', comment);
+
     // Withdraw document
     const result = await withdrawWorkflowDocument({
       documentId: parseInt(id),
@@ -703,6 +705,8 @@ export const withdrawWorkflowDocumentController = async (req, res) => {
       comment,
       updatedBy: user.dbId
     });
+
+    console.log('[withdrawWorkflowDocumentController] Result:', result);
 
     if (result.success) {
       res.status(200).json({
