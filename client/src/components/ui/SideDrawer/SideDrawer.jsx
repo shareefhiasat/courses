@@ -6,6 +6,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { normalizeHexColor, DEFAULT_ACCENT, hexToRgbString } from '@utils/color';
+import { ROLE_STRINGS } from '@utils/userUtils';
 import { getThemedIcon } from '@constants/iconTypes';
 import { TimerStopwatch } from '@ui';
 import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
@@ -189,6 +190,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
   };
 
   const isActive = (path, hash = null) => {
+    if (!path) return false;
     if (hash) {
       return location.pathname === path && location.hash === hash;
     }
@@ -591,6 +593,15 @@ const SideDrawer = ({ isOpen, onClose }) => {
       ]
     },
     {
+      id: 'drive',
+      label: t('drive') || 'DRIVE',
+      icon: getThemedIcon('ui', 'hard_drive', 18, theme),
+      children: [
+        { id: 'smart-drive-hr', path: '/smart-drive', icon: getThemedIcon('ui', 'hard_drive', 18, theme), label: (t('smart_drive') || 'Smart Drive').toUpperCase() },
+        { id: 'workflow-inbox-hr', path: '/workflow/inbox', icon: getThemedIcon('ui', 'list', 18, theme), label: (t('workflow_inbox') || 'Workflow Inbox').toUpperCase() },
+      ]
+    },
+    {
       id: 'community',
       label: t('community') || 'COMMUNITY',
       icon: getThemedIcon('ui', 'message_square', 18, theme),
@@ -627,7 +638,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
             id: 'permission-matrix',
             path: '/permission-matrix',
             icon: getThemedIcon('ui', 'shield', 18, theme),
-            label: t('permission_matrix') || 'Permission Matrix'
+            label: (t('permission_matrix') || 'Permission Matrix').toUpperCase()
           });
         }
       }
@@ -640,7 +651,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
   const filterMenuItems = (items) => {
     return items.filter(item => {
       // Super admin sees all items
-      if (roleCode === 'super_admin') return true;
+      if (roleCode === ROLE_STRINGS.SUPER_ADMIN) return true;
       
       // Items with 'key' instead of 'path' are not checked against permissions
       if (item.key && !item.path) return true;
@@ -666,11 +677,11 @@ const SideDrawer = ({ isOpen, onClose }) => {
   };
 
   // Apply filtering to links (unless super admin who sees all)
-  if (roleCode !== 'super_admin') {
+  if (roleCode !== ROLE_STRINGS.SUPER_ADMIN) {
     links = filterMenuSections(links);
   }
   useEffect(() => {
-    if (!user || !roleCode || roleCode === 'super_admin') return;
+    if (!user || !roleCode || roleCode === ROLE_STRINGS.SUPER_ADMIN) return;
 
     // Count total menu items across all sections
     let totalItems = 0;
@@ -1125,9 +1136,29 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           onClick={() => setShowTimerPanel(v=>!v)}
                           title={link.label}
                           style={{
-                            display:'flex', alignItems:'center', gap:'0.85rem', padding:'0.7rem 1rem', borderRadius:8,
-                            color: theme==='light' ? '#111827' : 'rgba(255,255,255,0.85)', background:'transparent',
-                            border: 'none', cursor:'pointer', flex:1
+                            display:'flex', alignItems:'center', justifyContent: collapsed ? 'center' : 'flex-start', gap:'0.85rem', padding: collapsed ? '0.7rem' : '0.7rem 1rem', borderRadius:'8px',
+                            color: isActive(link.path, link.hash)
+                              ? userAccentColor
+                              : (theme==='light' ? '#111827' : 'rgba(255,255,255,0.85)'),
+                            background: isActive(link.path, link.hash)
+                              ? (theme==='light' ? `rgba(${hexToRgbString(userAccentColor)}, 0.15)` : `rgba(${hexToRgbString(userAccentColor)}, 0.15)`)
+                              : 'transparent',
+                            cursor:'pointer', flex:1,
+                            transition: 'all 0.2s',
+                            fontWeight: isActive(link.path, link.hash) ? 600 : 400,
+                            fontSize: lang === 'ar' ? '0.9rem' : '0.85rem',
+                            boxSizing: 'border-box',
+                            height: '37.5px'
+                          }}
+                          onMouseEnter={(e) => {
+                          if (!isActive(link.path, link.hash)) {
+                            e.currentTarget.style.background = theme==='light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
+                          }
+                          }}
+                          onMouseLeave={(e) => {
+                          if (!isActive(link.path, link.hash)) {
+                            e.currentTarget.style.background = 'transparent';
+                          }
                           }}
                         >
                           <span style={{ 
@@ -1135,14 +1166,18 @@ const SideDrawer = ({ isOpen, onClose }) => {
                             display: 'flex', 
                             alignItems: 'center', 
                             justifyContent: 'center',
-                            color: theme==='light' ? '#6b7280' : '#9ca3af'
+                            color: isActive(link.path, link.hash)
+                              ? userAccentColor
+                              : (theme==='light' ? '#6b7280' : '#9ca3af')
                           }}>
                             {React.cloneElement(link.icon, { 
                               size: 18, 
-                              color: theme==='light' ? '#6b7280' : '#9ca3af'
+                              color: isActive(link.path, link.hash)
+                                ? userAccentColor
+                                : (theme==='light' ? '#6b7280' : '#9ca3af')
                             })}
                           </span>
-                          <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>{link.label}</span>
+                          {!collapsed && <span style={{ display:'inline-flex', alignItems:'center', gap:6, whiteSpace: 'nowrap' }}>{link.label}</span>}
                         </button>
                       ) : (
                         <Link

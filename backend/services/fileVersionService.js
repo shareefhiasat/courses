@@ -38,7 +38,7 @@ function resolveBucket(input) {
 /**
  * List every version of a file (newest first).
  */
-export async function listVersions(fileId, actorUserId) {
+export async function listVersions(fileId, actorUserId, actorRoles = []) {
   try {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
     if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');
@@ -48,14 +48,24 @@ export async function listVersions(fileId, actorUserId) {
       // Owner or someone with a share sees versions.
       const owns = file.ownerId === actorUserId;
       if (!owns) {
-        // Get user roles for role-based share check
-        const user = await prisma.user.findUnique({
-          where: { id: actorUserId },
-          select: { roles: true }
-        });
-        const userRoles = user?.roles || [];
+        // Get user roles if not provided
+        let userRoles = actorRoles;
+        if (!userRoles || userRoles.length === 0) {
+          const user = await prisma.user.findUnique({
+            where: { id: actorUserId },
+            include: { roleAssignments: true }
+          });
+          
+          // Fetch role codes separately since UserRoleAssignment doesn't have role relation
+          const roleIds = user?.roleAssignments?.map(ra => ra.roleId) || [];
+          const roles = await prisma.userRoles.findMany({
+            where: { id: { in: roleIds } },
+            select: { code: true }
+          });
+          userRoles = roles.map(r => r.code.toLowerCase());
+        }
 
-        const share = await prisma.fileShareV2.findFirst({
+        const share = await prisma.fileShare.findFirst({
           where: {
             fileId,
             OR: [

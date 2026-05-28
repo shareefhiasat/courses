@@ -40,8 +40,8 @@ export default function DriveSpacesSidebar({
 
   const spaces = [
     { id: 'my-drive', label: t('drive.myDrive') || 'My Drive', icon: 'folder' },
-    { id: 'shared', label: t('drive.sharedWithMe') || 'Shared with me', icon: 'users' },
-    { id: 'shared-by-me', label: t('drive.sharedByMe') || 'Shared by me', icon: 'share' },
+    { id: 'shared', label: t('drive.sharedWithMe') || 'Inbox', icon: 'users' },
+    { id: 'shared-by-me', label: t('drive.sharedByMe') || 'Outbox', icon: 'share' },
     { id: 'recent', label: t('drive.recent') || 'Recent', icon: 'clock' },
     { id: 'starred', label: t('drive.starred') || 'Starred', icon: 'star' },
     { id: 'trash', label: t('drive.trash') || 'Trash', icon: 'trash' },

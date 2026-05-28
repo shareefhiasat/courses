@@ -345,7 +345,11 @@ export const SCREEN_ROLE_ACCESS = {
   scheduledReports: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
   smtpConfig: [ROLES.SUPER_ADMIN],
   notifications: [ROLES.SUPER_ADMIN],
-  
+
+  // Drive & Workflow screens
+  drive: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR],
+  workflow: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR],
+
   // Settings screens
   profile: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR, ROLES.STUDENT],
   roleAccess: [ROLES.SUPER_ADMIN] // REMOVED from UI - kept for reference only

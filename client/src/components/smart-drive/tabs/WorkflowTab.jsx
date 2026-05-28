@@ -129,7 +129,7 @@ function getWorkflowTypeStyle(type) {
   return WORKFLOW_TYPE_STYLES[type] || WORKFLOW_TYPE_STYLES.GENERAL;
 }
 
-export default function WorkflowTab({ fileId, onRefresh, isActive = true }) {
+export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwnedByUser = true }) {
   const { t } = useLang();
   const navigate = useNavigate();
   const [workflows, setWorkflows] = useState([]);
@@ -378,16 +378,19 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true }) {
     const hasAssignedRole = workflow?.assignedRole && currentUser?.roles?.includes(workflow.assignedRole);
     const isAdmin = currentUser?.roles?.includes('super_admin') || currentUser?.roles?.includes('admin');
     
+    // If file is not owned by user (shared with them), don't allow cancel
+    const allowCancel = isOwnedByUser;
+    
     switch (normalizedStatus) {
       case WORKFLOW_STATUS.DRAFT:
-        return ['submit', 'cancel'];
+        return allowCancel ? ['submit', 'cancel'] : ['submit'];
       case WORKFLOW_STATUS.SUBMITTED:
-        return ['cancel'];
+        return allowCancel ? ['cancel'] : [];
       case 'IN_REVIEW':
         if (isAssigned || hasAssignedRole || isAdmin) {
           return ['approve', 'reject', 'send_for_approval'];
         }
-        return ['cancel'];
+        return allowCancel ? ['cancel'] : [];
       case WORKFLOW_STATUS.REJECTED:
         // REJECTED is a final state - no actions available
         return [];
@@ -957,26 +960,27 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true }) {
                             {getIcon('ui', getActionIcon(action), 16, getActionColor(action))}
                           </button>
                         ))}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteModal({ isOpen: true, workflowId: workflow.id });
-                          }}
-                          style={{
-                            color: '#dc2626',
-                            textDecoration: 'none',
-                            whiteSpace: 'nowrap',
-                            background: 'none',
-                            border: '1px solid var(--border, #e5e7eb)',
-                            cursor: 'pointer',
-                            padding: '0.375rem',
-                            borderRadius: '0.375rem',
-                            transition: 'all 0.15s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                          onMouseEnter={(e) => {
+                        {isOwnedByUser && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteModal({ isOpen: true, workflowId: workflow.id });
+                            }}
+                            style={{
+                              color: '#dc2626',
+                              textDecoration: 'none',
+                              whiteSpace: 'nowrap',
+                              background: 'none',
+                              border: '1px solid var(--border, #e5e7eb)',
+                              cursor: 'pointer',
+                              padding: '0.375rem',
+                              borderRadius: '0.375rem',
+                              transition: 'all 0.15s ease',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                            onMouseEnter={(e) => {
                             e.currentTarget.style.borderColor = '#dc2626';
                             e.currentTarget.style.background = 'rgba(220, 38, 38, 0.1)';
                           }}
@@ -987,6 +991,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true }) {
                         >
                           {getIcon('ui', 'trash', 16, '#dc2626')}
                         </button>
+                        )}
                       </div>
                     </div>
                   );

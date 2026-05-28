@@ -178,6 +178,7 @@ export const getWorkflowDocumentsController = async (req, res) => {
       result = await getDocumentsByFileId(fileId);
     } else if (role === 'assignee' && (user.roles?.includes(LMS_ROLES.HR) || user.roles?.includes(LMS_ROLES.ADMIN))) {
       // Get documents assigned to this user (HR/Admin inbox)
+      // Also include documents with null currentAssigneeId for HR/Admin to see unassigned submissions
       result = await getAssigneeDocuments(user.dbId, {
         status,
         workflowType,

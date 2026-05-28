@@ -397,10 +397,21 @@ router.get('/files/:fileId/collabora/edit', async (req, res) => {
     }
 
     // Get database user ID from Keycloak ID
-    const user = await prisma.user.findUnique({ where: { keycloakId: actorUserId } });
+    const user = await prisma.user.findUnique({ 
+      where: { keycloakId: actorUserId },
+      include: { roleAssignments: true }
+    });
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
+
+    // Get user's application roles
+    const roleIds = user?.roleAssignments?.map(ra => ra.roleId) || [];
+    const roles = await prisma.userRoles.findMany({
+      where: { id: { in: roleIds } },
+      select: { code: true }
+    });
+    const userRoles = roles.map(r => r.code.toLowerCase());
 
     // Get file
     const file = await prisma.file.findUnique({ where: { id: fileId } });
@@ -410,11 +421,11 @@ router.get('/files/:fileId/collabora/edit', async (req, res) => {
 
     // Check edit permission - owners always have edit permission
     const { canAccessFile } = await import('../services/permissionService.js');
-    const permissionResult = await canAccessFile(fileId, { userId: user.id });
+    const permissionResult = await canAccessFile(fileId, { userId: user.id, roles: userRoles });
     
     // Owner always has edit permission
     const isOwner = file.ownerId === user.id;
-    const hasEditPermission = isOwner || (permissionResult.allowed && permissionResult.granted === 'EDIT');
+    const hasEditPermission = isOwner || (permissionResult.allowed && permissionResult.permission === 'EDIT');
     
     if (!hasEditPermission) {
       return res.status(403).json({ success: false, error: 'No edit permission' });
@@ -450,9 +461,9 @@ router.get('/files/:fileId/download', async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
-    // Check download permission
+    // Check download permission (VIEW is sufficient for download)
     const { requireFilePermission } = await import('../services/permissionService.js');
-    await requireFilePermission(fileId, { userId: user.id, roles: req.user?.roles || [] }, 'DOWNLOAD');
+    await requireFilePermission(fileId, { userId: user.id, roles: req.user?.roles || [] }, 'VIEW');
 
     // Permission granted, proceed with download
     next();

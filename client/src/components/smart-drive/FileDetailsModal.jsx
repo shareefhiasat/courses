@@ -180,6 +180,9 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
     setIsFullscreen(!isFullscreen);
   };
 
+  // Check if file is owned by current user or shared with them
+  const isOwnedByUser = file.canDelete !== false; // If canDelete is false, it's a shared file
+  
   const tabs = [
     ...(isPreviewable ? [{ value: 'preview', label: t('drive.preview'), icon: getIcon('ui', 'eye') }] : []),
     ...(canShowEditTab ? [{ value: 'edit', label: t('drive.edit'), icon: getIcon('ui', 'edit') }] : []),
@@ -188,7 +191,8 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
     { value: 'comments', label: t('drive.comments'), icon: getIcon('ui', 'message') },
     { value: 'activity', label: t('drive.activity'), icon: getIcon('ui', 'activity') },
     { value: 'workflow', label: t('drive.workflow'), icon: getIcon('ui', 'workflow', 16, '#8b5cf6') },
-    { value: 'share', label: t('drive.share'), icon: getIcon('ui', 'share') },
+    // Only show share tab if user owns the file
+    ...(isOwnedByUser ? [{ value: 'share', label: t('drive.share'), icon: getIcon('ui', 'share') }] : []),
   ];
 
   const footer = (
@@ -205,7 +209,12 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
     <Modal
       isOpen={true}
       onClose={onClose}
-      title={file.name}
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {getIcon('drive', fileType)}
+          <span>{file.name}</span>
+        </div>
+      }
       size="large"
       showCloseButton={true}
       closeOnEscape={false}
@@ -451,9 +460,9 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
         )}
         {activeTab === 'details' && <DetailsTab file={file} />}
         {activeTab === 'versions' && <VersionsTab fileId={file.id} />}
-        {activeTab === 'comments' && <CommentsTab fileId={file.id} />}
+        {activeTab === 'comments' && <CommentsTab fileId={file.id} isOwnedByUser={isOwnedByUser} />}
         {activeTab === 'activity' && <ActivityTab fileId={file.id} />}
-        {activeTab === 'workflow' && <WorkflowTab key={file.id} fileId={file.id} onRefresh={onRefresh} isActive={activeTab === 'workflow'} />}
+        {activeTab === 'workflow' && <WorkflowTab key={file.id} fileId={file.id} onRefresh={onRefresh} isActive={activeTab === 'workflow'} isOwnedByUser={isOwnedByUser} />}
         {activeTab === 'share' && <ShareTab fileId={file.id} onShare={onShare} onGenerateLink={onGenerateLink} />}
       </div>
     </Modal>

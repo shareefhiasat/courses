@@ -1159,7 +1159,13 @@ export default function SmartDrivePage() {
         <FileDetailsModal
           file={detailsModalFile}
           initialTab={detailsModalInitialTab || 'details'}
-          userCanEdit={detailsModalFile?.owner?.keycloakId === user?.id}
+          userCanEdit={(() => {
+            const isOwner = detailsModalFile?.owner?.keycloakId === user?.id;
+            const hasEditPermission = detailsModalFile?.permission === 'EDIT';
+            const result = isOwner || hasEditPermission;
+            console.log('[SmartDrivePage] userCanEdit check:', { isOwner, hasEditPermission, result, permission: detailsModalFile?.permission, ownerId: detailsModalFile?.owner?.keycloakId, userId: user?.id });
+            return result;
+          })()}
           onClose={() => {
             setDetailsModalFile(null);
             setDetailsModalInitialTab(null);

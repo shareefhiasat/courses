@@ -11,6 +11,52 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 /**
+ * Auto-create user in database if not found (sync from Keycloak)
+ */
+const autoCreateUser = async (keycloakId, email, firstName, lastName, displayName) => {
+  console.log('[userResolver] User not found in database, creating sync from Keycloak:', keycloakId);
+  try {
+    // Check if user exists by email (might have different keycloakId)
+    if (email) {
+      const existingByEmail = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true, keycloakId: true }
+      });
+      if (existingByEmail) {
+        // Update keycloakId if different
+        if (existingByEmail.keycloakId !== keycloakId) {
+          console.log('[userResolver] User exists by email, updating keycloakId:', existingByEmail.id);
+          await prisma.user.update({
+            where: { id: existingByEmail.id },
+            data: { keycloakId }
+          });
+        }
+        console.log('[userResolver] Returning existing user ID:', existingByEmail.id);
+        return existingByEmail.id;
+      }
+    }
+
+    // Create new user
+    const user = await prisma.user.create({
+      data: {
+        keycloakId,
+        email: email || 'pending@example.com',
+        firstName: firstName || 'Pending',
+        lastName: lastName || 'Sync',
+        displayName: displayName || null,
+        isActive: true
+      },
+      select: { id: true }
+    });
+    console.log('[userResolver] Auto-created user with ID:', user.id);
+    return user.id;
+  } catch (err) {
+    console.error('[userResolver] Failed to auto-create user:', err);
+    return null;
+  }
+};
+
+/**
  * Resolve a DB user id from:
  *   - a raw Keycloak UUID string
  *   - an email string
@@ -35,7 +81,10 @@ export const getDatabaseUserId = async (user) => {
         where: { email: user },
         select: { id: true },
       });
-      return byEmail ? byEmail.id : null;
+      if (byEmail) return byEmail.id;
+
+      // Auto-create if not found
+      return await autoCreateUser(user, null, null, null, null);
     }
 
     // Object input — keycloak id lives on different fields depending on caller.
@@ -46,6 +95,9 @@ export const getDatabaseUserId = async (user) => {
         select: { id: true },
       });
       if (byKc) return byKc.id;
+
+      // Auto-create if not found
+      return await autoCreateUser(kcId, user.email, user.firstName, user.lastName, user.displayName);
     }
 
     if (user.email) {

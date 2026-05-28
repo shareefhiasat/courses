@@ -236,16 +236,24 @@ export async function getWorkflowDocumentsByFileId(fileId) {
 
 /**
  * Get workflow documents by assignee (for HR/Admin inbox)
+ * Includes documents assigned to the user AND unassigned documents (currentAssigneeId is null)
  */
 export async function getWorkflowDocumentsByAssignee(assigneeId, filters = {}) {
   try {
     const { status, workflowType, limit = 50, offset = 0 } = filters;
 
+    console.log('[getWorkflowDocumentsByAssignee] assigneeId:', assigneeId, 'filters:', filters);
+
     const where = {
-      currentAssigneeId: assigneeId,
+      OR: [
+        { currentAssigneeId: assigneeId },
+        { currentAssigneeId: null }
+      ],
       ...(status && { status }),
       ...(workflowType && { workflowType })
     };
+
+    console.log('[getWorkflowDocumentsByAssignee] where clause:', JSON.stringify(where, null, 2));
 
     const documents = await prisma.workflowDocument.findMany({
       where,
@@ -264,6 +272,9 @@ export async function getWorkflowDocumentsByAssignee(assigneeId, filters = {}) {
     });
 
     const total = await prisma.workflowDocument.count({ where });
+
+    console.log('[getWorkflowDocumentsByAssignee] Documents returned:', documents.length, 'Total:', total);
+    console.log('[getWorkflowDocumentsByAssignee] Document IDs:', documents.map(d => ({ id: d.id, title: d.title, status: d.status, currentAssigneeId: d.currentAssigneeId })));
 
     // Add fileVersionNumber and fileVersionAlias to each document
     const documentsWithVersionNumber = documents.map(doc => ({

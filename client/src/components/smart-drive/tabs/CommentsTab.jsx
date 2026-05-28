@@ -5,7 +5,7 @@ import { Button } from '@ui';
 import Modal from '@ui/Modal/Modal';
 import axios from 'axios';
 
-export default function CommentsTab({ fileId }) {
+export default function CommentsTab({ fileId, isOwnedByUser = true }) {
   const { t } = useLang();
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
@@ -362,11 +362,12 @@ export default function CommentsTab({ fileId }) {
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                             {formatDateTime(comment.createdAt)}
                           </span>
-                          <button
-                            onClick={() => handleDeleteComment(comment.id)}
-                            style={{
-                              color: '#dc2626',
-                              textDecoration: 'none',
+                          {isOwnedByUser && (
+                            <button
+                              onClick={() => handleDeleteComment(comment.id)}
+                              style={{
+                                color: '#dc2626',
+                                textDecoration: 'none',
                               whiteSpace: 'nowrap',
                               background: 'none',
                               border: '1px solid var(--border, #e5e7eb)',
@@ -389,6 +390,7 @@ export default function CommentsTab({ fileId }) {
                           >
                             {getIcon('ui', 'trash', 16, '#dc2626')}
                           </button>
+                          )}
                         </div>
                       </div>
                     </article>

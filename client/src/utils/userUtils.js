@@ -62,6 +62,14 @@ export const hasScreenAccess = (userRole, screenName) => {
 export const getUserRoleDisplay = (userOrRole, t, lang) => {
   // Handle user object with role property
   if (typeof userOrRole === 'object' && userOrRole !== null) {
+    // Check boolean flags first (from AuthContext)
+    if (userOrRole.isSuperAdmin) return ROLE_DISPLAY_NAMES.SUPER_ADMIN;
+    if (userOrRole.isAdmin) return ROLE_DISPLAY_NAMES.ADMIN;
+    if (userOrRole.isHR) return ROLE_DISPLAY_NAMES.HR;
+    if (userOrRole.isInstructor) return ROLE_DISPLAY_NAMES.INSTRUCTOR;
+    if (userOrRole.isStudent) return ROLE_DISPLAY_NAMES.STUDENT;
+    
+    // Check role property
     const role = userOrRole.role || userOrRole.roles?.[0];
     return ROLE_DISPLAY_NAMES[role] || 'Unknown';
   }

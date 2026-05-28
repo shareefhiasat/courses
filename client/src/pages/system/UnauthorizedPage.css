@@ -92,7 +92,6 @@
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   background: var(--bg-primary, #ffffff);
-  border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 8px;
   font-size: 0.875rem;
   color: var(--text-primary, #111827);
@@ -101,7 +100,6 @@
 
 .role-badge[data-theme="dark"] {
   background: var(--bg-primary, #0f172a);
-  border-color: var(--border-color, #334155);
   color: var(--text-primary, #f8fafc);
 }
 

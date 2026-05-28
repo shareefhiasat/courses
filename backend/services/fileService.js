@@ -252,7 +252,7 @@ export async function completeUpload(fileId, versionId, meta = {}) {
 // Read / list
 // ============================================================================
 
-export async function getFileById(fileId, actorUserId) {
+export async function getFileById(fileId, actorUserId, actorRoles = []) {
   try {
     const file = await prisma.file.findUnique({
       where: { id: fileId },
@@ -265,25 +265,42 @@ export async function getFileById(fileId, actorUserId) {
     });
     if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');
 
-    // NOTE: permission service will take over this check in PR #5. For now,
-    // require owner or a legacy v1 share row.
+    // Check ownership
     const owns = file.ownerId === actorUserId;
-    const hasLegacyShare = !owns
-      ? await prisma.fileShare.findFirst({ where: { fileId, sharedWithId: actorUserId } })
-      : null;
-    const hasV2Share = !owns
-      ? await prisma.fileShareV2.findFirst({
-          where: {
-            fileId,
-            OR: [
-              { subjectType: 'USER', subjectUserId: actorUserId },
-            ],
-          },
-        })
-      : null;
-    if (!owns && !hasLegacyShare && !hasV2Share) return err('ACCESS_DENIED', 'Access denied');
+    if (owns) return ok({ ...file, permission: 'EDIT' });
 
-    return ok(file);
+    // Get user roles if not provided
+    let userRoles = actorRoles;
+    if (!userRoles || userRoles.length === 0) {
+      const user = await prisma.user.findUnique({
+        where: { id: actorUserId },
+        include: { roleAssignments: true }
+      });
+      
+      // Fetch role codes separately since UserRoleAssignment doesn't have role relation
+      const roleIds = user?.roleAssignments?.map(ra => ra.roleId) || [];
+      const roles = await prisma.userRoles.findMany({
+        where: { id: { in: roleIds } },
+        select: { code: true }
+      });
+      userRoles = roles.map(r => r.code.toLowerCase());
+    }
+
+    // Check for shares (user or role-based) and get the permission
+    const share = await prisma.fileShare.findFirst({
+      where: {
+        fileId,
+        OR: [
+          { subjectType: 'USER', subjectUserId: actorUserId },
+          { subjectType: 'ROLE', subjectRole: { in: userRoles } },
+        ],
+      },
+    });
+
+    if (!share) return err('ACCESS_DENIED', 'Access denied');
+
+    // Include the permission from the share record
+    return ok({ ...file, permission: share.permission });
   } catch (error) {
     console.error('[fileService.getFileById]', error);
     return err('GET_FILE_FAILED', error.message);
@@ -316,22 +333,45 @@ export async function listFiles(keycloakUser, {
     const userId = await getDatabaseUserId(keycloakUser);
     if (!userId) return err('USER_NOT_FOUND', 'User not found');
 
+    console.log('[fileService.listFiles] userId:', userId, 'ownedOnly:', ownedOnly, 'sharedOnly:', sharedOnly);
+
     const where = {
       isDeleted: deletedOnly ? true : includeDeleted ? undefined : false,
     };
+
+    // Get user roles for role-based share filtering
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { roleAssignments: true }
+    });
+    
+    // Fetch role codes separately since UserRoleAssignment doesn't have role relation
+    const roleIds = user?.roleAssignments?.map(ra => ra.roleId) || [];
+    const roles = await prisma.userRoles.findMany({
+      where: { id: { in: roleIds } },
+      select: { code: true }
+    });
+    const userRoles = roles.map(r => r.code.toLowerCase());
+    console.log('[fileService.listFiles] userRoles:', userRoles);
 
     // Ownership filter
     if (ownedOnly) {
       where.ownerId = userId;
     } else if (sharedOnly) {
       where.ownerId = { not: userId };
-      where.shares = { some: { subjectType: 'USER', subjectUserId: userId } };
+      where.OR = [
+        { shares: { some: { subjectType: 'USER', subjectUserId: userId } } },
+        { shares: { some: { subjectType: 'ROLE', subjectRole: { in: userRoles } } } },
+      ];
     } else {
       where.OR = [
         { ownerId: userId },
         { shares: { some: { subjectType: 'USER', subjectUserId: userId } } },
+        { shares: { some: { subjectType: 'ROLE', subjectRole: { in: userRoles } } } },
       ];
     }
+
+    console.log('[fileService.listFiles] where clause:', JSON.stringify(where, null, 2));
 
     if (folderId !== undefined && folderId !== null && folderId !== '') {
       where.folderId = folderId;
@@ -379,6 +419,9 @@ export async function listFiles(keycloakUser, {
       }),
       prisma.file.count({ where }),
     ]);
+
+    console.log('[fileService.listFiles] Files returned:', files.length, 'Total:', total);
+    console.log('[fileService.listFiles] File IDs:', files.map(f => ({ id: f.id, name: f.name, ownerId: f.ownerId })));
 
     // Add workflow counts for each file
     const fileIds = files.map(f => f.id);
@@ -896,11 +939,18 @@ export async function streamFile({ fileId, req, res, actorUserId, versionId = nu
     // Get user roles for role-based share check
     const user = await prisma.user.findUnique({
       where: { id: actorUserId },
-      select: { roles: true }
+      include: { roleAssignments: true }
     });
-    const userRoles = user?.roles || [];
+    
+    // Fetch role codes separately since UserRoleAssignment doesn't have role relation
+    const roleIds = user?.roleAssignments?.map(ra => ra.roleId) || [];
+    const roles = await prisma.userRoles.findMany({
+      where: { id: { in: roleIds } },
+      select: { code: true }
+    });
+    const userRoles = roles.map(r => r.code.toLowerCase());
 
-    const share = await prisma.fileShareV2.findFirst({
+    const share = await prisma.fileShare.findFirst({
       where: {
         fileId,
         OR: [

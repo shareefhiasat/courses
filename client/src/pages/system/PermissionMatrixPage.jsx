@@ -26,11 +26,11 @@ const PermissionMatrixPage = () => {
 
   // Role display names
   const roleDisplayNames = {
-    super_admin: 'Super Admin',
-    admin: 'Admin',
+    super_admin: 'SUPER ADMIN',
+    admin: 'ADMIN',
     hr: 'HR',
-    instructor: 'Instructor',
-    student: 'Student'
+    instructor: 'INSTRUCTOR',
+    student: 'STUDENT'
   };
 
   const allRoles = useMemo(() => ['super_admin', 'admin', 'hr', 'instructor', 'student'], []);

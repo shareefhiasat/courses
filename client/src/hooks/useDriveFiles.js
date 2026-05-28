@@ -11,8 +11,12 @@ import { apiService } from '@services/api/apiService';
 const API_BASE = '/drive';
 
 const normalizeFilesPayload = (payload) => {
+  // Handle direct array response (from /drive/shared endpoint)
   if (Array.isArray(payload)) return payload;
+  // Handle object with files property
   if (Array.isArray(payload?.files)) return payload.files;
+  // Handle response.data being an array
+  if (payload?.data && Array.isArray(payload.data)) return payload.data;
   return [];
 };
 
@@ -23,11 +27,22 @@ const normalizeFoldersPayload = (payload) => {
 
 const normalizeDriveFile = (item) => {
   const file = item?.file || item;
+  // For shared files, preserve the permission from the share record
+  const permission = item?.permission || file?.permission;
+  console.log('[normalizeDriveFile] item.permission:', item?.permission, 'file.permission:', file?.permission, 'final permission:', permission);
   // Map backend isStarred to frontend starred
   if (file && file.isStarred !== undefined) {
     const normalized = { ...file, starred: file.isStarred };
+    if (permission) normalized.permission = permission;
+    console.log('[normalizeDriveFile] normalized file with permission:', normalized.permission);
     return normalized;
   }
+  if (permission) {
+    const result = { ...file, permission };
+    console.log('[normalizeDriveFile] file with permission added:', result.permission);
+    return result;
+  }
+  console.log('[normalizeDriveFile] returning file without permission');
   return file;
 };
 
@@ -53,26 +68,36 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
         params.folderId = folderId;
       }
 
+      // Space-specific defaults (only if not overridden by filters)
       if (activeSpace === 'my-drive') {
-        if (!params.sharedOnly) params.ownedOnly = 'true';
+        // Only set ownedOnly if not already set by filters
+        if (!params.sharedOnly && !params.ownedOnly) params.ownedOnly = 'true';
         if (!folderId) params.rootOnly = 'true';
       } else if (activeSpace === 'starred') {
-        params.starredOnly = 'true';
+        // Only set starredOnly if not already set by filters
+        if (!params.starredOnly) params.starredOnly = 'true';
       } else if (activeSpace === 'shared') {
         endpoint = `${API_BASE}/shared`;
       } else if (activeSpace === 'shared-by-me') {
         endpoint = `${API_BASE}/shared-by-me`;
       } else if (activeSpace === 'trash') {
-        params.deletedOnly = 'true';
+        // Only set deletedOnly if not already set by filters
+        if (!params.deletedOnly) params.deletedOnly = 'true';
       } else if (activeSpace === 'recent') {
-        params.sortField = 'updatedAt';
-        params.sortOrder = 'desc';
+        // Only set sort if not already set by filters
+        if (!params.sortField) params.sortField = 'updatedAt';
+        if (!params.sortOrder) params.sortOrder = 'desc';
       }
 
+      console.log('[useDriveFiles] fetchFiles endpoint:', endpoint, 'params:', params);
       const response = await apiService.get(endpoint, { params });
+      console.log('[useDriveFiles] fetchFiles response:', response);
       if (response.success) {
-        const payload = response.payload;
+        // For shared endpoints, data might be in response.data instead of response.payload
+        const payload = response.payload || response.data;
+        console.log('[useDriveFiles] payload:', payload);
         const files = normalizeFilesPayload(payload).map(normalizeDriveFile).filter(Boolean);
+        console.log('[useDriveFiles] normalized files:', files);
         const folders = normalizeFoldersPayload(payload).map(f => ({ ...f, starred: f.isStarred || false })).filter(Boolean);
         // Deduplicate by ID to prevent duplicate key errors
         const uniqueFiles = Array.from(new Map(files.map(f => [f.id, f])).values());
@@ -163,6 +188,7 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
   }, []);
 
   useEffect(() => {
+    console.log('[useDriveFiles] useEffect triggered, activeSpace:', activeSpace, 'folderId:', folderId);
     fetchFiles();
     fetchFolders();
   }, [fetchFiles, fetchFolders]);

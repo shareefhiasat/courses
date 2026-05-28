@@ -57,15 +57,15 @@ export async function canAccessFile(fileId, actor) {
   if (file.ownerId === actor.userId) return ok('EDIT');
   if ((actor.roles || []).includes(SUPER_ADMIN_ROLE)) return ok('EDIT');
 
-  // Check if user is a workflow participant (initiatedBy, assignee, or reviewer)
+  // Check if user is a workflow participant (initiatedBy, assignee, or actor)
   const workflowInstance = await prisma.workflowInstance.findFirst({
     where: { fileId },
     select: {
       initiatedById: true,
-      workflowSteps: {
+      steps: {
         select: {
-          assigneeId: true,
-          reviewerId: true,
+          assignedUserId: true,
+          actedById: true,
         },
       },
     },
@@ -73,10 +73,10 @@ export async function canAccessFile(fileId, actor) {
 
   if (workflowInstance) {
     const isInitiator = workflowInstance.initiatedById === actor.userId;
-    const isAssignee = workflowInstance.workflowSteps.some(step => step.assigneeId === actor.userId);
-    const isReviewer = workflowInstance.workflowSteps.some(step => step.reviewerId === actor.userId);
+    const isAssignee = workflowInstance.steps.some(step => step.assignedUserId === actor.userId);
+    const isActor = workflowInstance.steps.some(step => step.actedById === actor.userId);
     
-    if (isInitiator || isAssignee || isReviewer) {
+    if (isInitiator || isAssignee || isActor) {
       return ok('VIEW'); // Workflow participants get VIEW access by default
     }
   }
@@ -84,7 +84,7 @@ export async function canAccessFile(fileId, actor) {
   const now = new Date();
 
   // Direct file shares (user OR role).
-  const direct = await prisma.fileShareV2.findMany({
+  const direct = await prisma.fileShare.findMany({
     where: {
       fileId,
       OR: [
@@ -107,7 +107,7 @@ export async function canAccessFile(fileId, actor) {
   if (file.folderId) {
     const ancestors = await getAncestorIds(file.folderId);
     if (ancestors.length > 0) {
-      const folderShares = await prisma.fileShareV2.findMany({
+      const folderShares = await prisma.fileShare.findMany({
         where: {
           folderId: { in: ancestors },
           OR: [

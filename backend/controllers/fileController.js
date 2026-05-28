@@ -165,7 +165,7 @@ export const getFile = async (req, res) => {
     const roles = req.user?.roles || [];
     const { fileId } = req.params;
 
-    const result = await fileService.getFileById(fileId, userId);
+    const result = await fileService.getFileById(fileId, userId, roles);
 
     if (!result.success) {
       return res.status(result.error.code === 'FILE_NOT_FOUND' ? 404 : 403).json(result);
@@ -343,9 +343,10 @@ export const uploadNewVersion = async (req, res) => {
 export const getVersions = async (req, res) => {
   try {
     const userId = req.user?.dbId;
+    const roles = req.user?.roles || [];
     const { fileId } = req.params;
 
-    const result = await fileVersionService.getFileVersions(fileId, userId);
+    const result = await fileVersionService.getFileVersions(fileId, userId, roles);
 
     if (!result.success) {
       return res.status(403).json(result);
@@ -510,10 +511,15 @@ export const getSharedFiles = async (req, res) => {
 export const addComment = async (req, res) => {
   try {
     const userId = req.user?.dbId;
+    const roles = req.user?.roles || [];
     const { fileId } = req.params;
     const { comment, content } = req.body;
 
     console.log('💬 [ADD COMMENT]', { userId, fileId, comment: comment || content });
+
+    // Check COMMENT permission before allowing comment
+    const { requireFilePermission } = await import('../services/permissionService.js');
+    await requireFilePermission(fileId, { userId, roles }, 'COMMENT');
 
     const result = await addFileComment({ fileId, userId, comment: comment || content });
 

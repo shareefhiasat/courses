@@ -30,7 +30,7 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
   const [shareType, setShareType] = useState(SHARE_TYPES.PEOPLE);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [selectedRole, setSelectedRole] = useState('');
-  const [permission, setPermission] = useState(PERMISSIONS.VIEW);
+  const [selectedPermissions, setSelectedPermissions] = useState([PERMISSIONS.VIEW]);
   const [expiryDays, setExpiryDays] = useState(null);
   const [publicLink, setPublicLink] = useState('');
   const [loading, setLoading] = useState(false);
@@ -77,12 +77,21 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
   const canShare = isSuperAdmin || hasPermission('drive.share');
   const canPublicLink = isSuperAdmin || hasPermission('drive.public-link');
 
+  const getHighestPermission = (permissions) => {
+    const hierarchy = [PERMISSIONS.VIEW, PERMISSIONS.DOWNLOAD, PERMISSIONS.COMMENT, PERMISSIONS.EDIT];
+    for (let i = hierarchy.length - 1; i >= 0; i--) {
+      if (permissions.includes(hierarchy[i])) return hierarchy[i];
+    }
+    return PERMISSIONS.VIEW;
+  };
+
   const handleShareWithUser = async () => {
     if (selectedUserIds.length === 0 || !canShare) return;
     setLoading(true);
     setShareSuccess(false);
     try {
       const expiresAt = expiryDays ? new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString() : null;
+      const permission = getHighestPermission(selectedPermissions);
       for (const userId of selectedUserIds) {
         await onShare?.({
           fileId, subjectType: 'USER', subjectId: userId,
@@ -92,7 +101,7 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
       setShareSuccess(true);
       setSelectedUserIds([]);
       setExpiryDays(null);
-      setPermission(PERMISSIONS.VIEW);
+      setSelectedPermissions([PERMISSIONS.VIEW]);
       setSharesListKey(prev => prev + 1);
     } catch (error) {
       console.error('Share error:', error);
@@ -107,6 +116,7 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
     setShareSuccess(false);
     try {
       const expiresAt = expiryDays ? new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString() : null;
+      const permission = getHighestPermission(selectedPermissions);
       await onShare?.({
         fileId, subjectType: 'ROLE', subjectId: selectedRole,
         permission, expiresAt,
@@ -114,7 +124,7 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
       setShareSuccess(true);
       setSelectedRole('');
       setExpiryDays(null);
-      setPermission(PERMISSIONS.VIEW);
+      setSelectedPermissions([PERMISSIONS.VIEW]);
       setSharesListKey(prev => prev + 1);
     } catch (error) {
       console.error('Share role error:', error);
@@ -242,48 +252,87 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1rem' }}>
-              <Select
-                label={t('drive.selectUser')}
-                options={userOptions}
-                value={selectedUserIds}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setSelectedUserIds(Array.isArray(value) ? value : (value ? [value] : []));
-                }}
-                placeholder={t('drive.searchUsers')}
-                searchPlaceholder={t('drive.searchUsers')}
-                disabled={loading}
-                onSearchChange={searchUsers}
-                multiple
-              />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <Select
+                  label={t('drive.selectUser')}
+                  options={userOptions}
+                  value={selectedUserIds}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSelectedUserIds(Array.isArray(value) ? value : (value ? [value] : []));
+                  }}
+                  placeholder={t('drive.searchUsers')}
+                  searchPlaceholder={t('drive.searchUsers')}
+                  disabled={loading}
+                  onSearchChange={searchUsers}
+                  multiple
+                />
 
-              <Select
-                label={t('drive.selectPermission') || 'Select Permission'}
-                options={[
-                  { value: PERMISSIONS.VIEW, label: t('drive.permission.view') },
-                  { value: PERMISSIONS.DOWNLOAD, label: t('drive.permission.download') },
-                  { value: PERMISSIONS.COMMENT, label: t('drive.permission.comment') },
-                  { value: PERMISSIONS.EDIT, label: t('drive.permission.edit') }
-                ]}
-                value={permission}
-                onChange={(e) => setPermission(e.target.value)}
-                disabled={loading}
-              />
+                <Select
+                  label={`${t('drive.expiry')} (${t('common.optional')})`}
+                  options={[
+                    { value: '', label: t('drive.noExpiry') },
+                    { value: 1, label: `1 ${t('common.day')}` },
+                    { value: 7, label: `7 ${t('common.days')}` },
+                    { value: 30, label: `30 ${t('common.days')}` },
+                    { value: 90, label: `90 ${t('common.days')}` }
+                  ]}
+                  value={expiryDays || ''}
+                  onChange={(e) => setExpiryDays(e.target.value ? parseInt(e.target.value) : null)}
+                  disabled={loading}
+                />
+              </div>
 
-              <Select
-                label={`${t('drive.expiry')} (${t('common.optional')})`}
-                options={[
-                  { value: '', label: t('drive.noExpiry') },
-                  { value: 1, label: `1 ${t('common.day')}` },
-                  { value: 7, label: `7 ${t('common.days')}` },
-                  { value: 30, label: `30 ${t('common.days')}` },
-                  { value: 90, label: `90 ${t('common.days')}` }
-                ]}
-                value={expiryDays || ''}
-                onChange={(e) => setExpiryDays(e.target.value ? parseInt(e.target.value) : null)}
-                disabled={loading}
-              />
+              <div>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem', background: 'var(--bg-secondary)' }}>
+                  {[
+                    { value: PERMISSIONS.VIEW, label: t('drive.permission.view') || 'View' },
+                    { value: PERMISSIONS.DOWNLOAD, label: t('drive.permission.download') || 'Download' },
+                    { value: PERMISSIONS.COMMENT, label: t('drive.permission.comment') || 'Comment' },
+                    { value: PERMISSIONS.EDIT, label: t('drive.permission.edit') || 'Edit' }
+                  ].map(perm => (
+                    <div key={perm.value} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={selectedPermissions.includes(perm.value)}
+                        onClick={() => {
+                          // Single-select: only one permission at a time
+                          setSelectedPermissions([perm.value]);
+                        }}
+                        disabled={loading}
+                        style={{
+                          position: 'relative',
+                          width: '2.75rem',
+                          height: '1.5rem',
+                          borderRadius: '9999px',
+                          border: 'none',
+                          cursor: loading ? 'not-allowed' : 'pointer',
+                          transition: 'background-color 0.2s',
+                          backgroundColor: selectedPermissions.includes(perm.value) ? 'var(--color-primary, #8b5cf6)' : '#d1d5db',
+                          opacity: loading ? 0.5 : 1,
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: '0.125rem',
+                            left: selectedPermissions.includes(perm.value) ? '1.375rem' : '0.125rem',
+                            width: '1.25rem',
+                            height: '1.25rem',
+                            borderRadius: '9999px',
+                            backgroundColor: 'white',
+                            transition: 'left 0.2s',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                          }}
+                        />
+                      </button>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>{perm.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {searchingUsers && (
@@ -315,45 +364,84 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-              <Select
-                label={t('drive.selectRole') || 'Select Role'}
-                options={[
-                  { value: ROLE_STRINGS.HR, label: t('roles.hr') },
-                  { value: ROLE_STRINGS.ADMIN, label: t('roles.admin') },
-                  { value: ROLE_STRINGS.INSTRUCTOR, label: t('roles.instructor') }
-                ]}
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
-                disabled={loading}
-              />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <Select
+                  label={t('drive.selectRole') || 'Select Role'}
+                  options={[
+                    { value: ROLE_STRINGS.HR, label: t('roles.hr') },
+                    { value: ROLE_STRINGS.ADMIN, label: t('roles.admin') },
+                    { value: ROLE_STRINGS.INSTRUCTOR, label: t('roles.instructor') }
+                  ]}
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  disabled={loading}
+                />
 
-              <Select
-                label={t('drive.selectPermission') || 'Select Permission'}
-                options={[
-                  { value: PERMISSIONS.VIEW, label: t('drive.permission.view') },
-                  { value: PERMISSIONS.DOWNLOAD, label: t('drive.permission.download') },
-                  { value: PERMISSIONS.COMMENT, label: t('drive.permission.comment') },
-                  { value: PERMISSIONS.EDIT, label: t('drive.permission.edit') }
-                ]}
-                value={permission}
-                onChange={(e) => setPermission(e.target.value)}
-                disabled={loading}
-              />
+                <Select
+                  label={`${t('drive.expiry')} (${t('common.optional')})`}
+                  options={[
+                    { value: '', label: t('drive.noExpiry') },
+                    { value: 1, label: `1 ${t('common.day')}` },
+                    { value: 7, label: `7 ${t('common.days')}` },
+                    { value: 30, label: `30 ${t('common.days')}` },
+                    { value: 90, label: `90 ${t('common.days')}` }
+                  ]}
+                  value={expiryDays || ''}
+                  onChange={(e) => setExpiryDays(e.target.value ? parseInt(e.target.value) : null)}
+                  disabled={loading}
+                />
+              </div>
 
-              <Select
-                label={`${t('drive.expiry')} (${t('common.optional')})`}
-                options={[
-                  { value: '', label: t('drive.noExpiry') },
-                  { value: 1, label: `1 ${t('common.day')}` },
-                  { value: 7, label: `7 ${t('common.days')}` },
-                  { value: 30, label: `30 ${t('common.days')}` },
-                  { value: 90, label: `90 ${t('common.days')}` }
-                ]}
-                value={expiryDays || ''}
-                onChange={(e) => setExpiryDays(e.target.value ? parseInt(e.target.value) : null)}
-                disabled={loading}
-              />
+              <div>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem', background: 'var(--bg-secondary)' }}>
+                  {[
+                    { value: PERMISSIONS.VIEW, label: t('drive.permission.view') || 'View' },
+                    { value: PERMISSIONS.DOWNLOAD, label: t('drive.permission.download') || 'Download' },
+                    { value: PERMISSIONS.COMMENT, label: t('drive.permission.comment') || 'Comment' },
+                    { value: PERMISSIONS.EDIT, label: t('drive.permission.edit') || 'Edit' }
+                  ].map(perm => (
+                    <div key={perm.value} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={selectedPermissions.includes(perm.value)}
+                        onClick={() => {
+                          // Single-select: only one permission at a time
+                          setSelectedPermissions([perm.value]);
+                        }}
+                        disabled={loading}
+                        style={{
+                          position: 'relative',
+                          width: '2.75rem',
+                          height: '1.5rem',
+                          borderRadius: '9999px',
+                          border: 'none',
+                          cursor: loading ? 'not-allowed' : 'pointer',
+                          transition: 'background-color 0.2s',
+                          backgroundColor: selectedPermissions.includes(perm.value) ? 'var(--color-primary, #8b5cf6)' : '#d1d5db',
+                          opacity: loading ? 0.5 : 1,
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: '0.125rem',
+                            left: selectedPermissions.includes(perm.value) ? '1.375rem' : '0.125rem',
+                            width: '1.25rem',
+                            height: '1.25rem',
+                            borderRadius: '9999px',
+                            backgroundColor: 'white',
+                            transition: 'left 0.2s',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                          }}
+                        />
+                      </button>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>{perm.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <Button

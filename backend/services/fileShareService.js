@@ -180,6 +180,21 @@ export async function listFileShares(fileId, actor, subjectType = null) {
   try {
     console.log('[fileShareService] listFileShares called:', { fileId, subjectType, userId: actor?.userId, roles: actor?.roles });
     
+    // Get user's application roles from database
+    const user = await prisma.user.findUnique({
+      where: { id: actor?.userId },
+      include: { roleAssignments: true }
+    });
+    
+    const roleIds = user?.roleAssignments?.map(ra => ra.roleId) || [];
+    const roles = await prisma.userRoles.findMany({
+      where: { id: { in: roleIds } },
+      select: { code: true }
+    });
+    const userRoles = roles.map(r => r.code.toLowerCase());
+    
+    console.log('[fileShareService] User application roles:', userRoles);
+    
     const where = { fileId };
     
     // Add subjectType filter if provided
@@ -208,7 +223,7 @@ export async function listFileShares(fileId, actor, subjectType = null) {
           if (share.subjectType !== 'USER') return false;
           if (share.subjectUserId === actor?.userId) return true;
           if (share.grantedById === actor?.userId) return true;
-          const isAdmin = actor?.roles?.includes('SUPER_ADMIN') || actor?.roles?.includes('ADMIN');
+          const isAdmin = userRoles.includes('super_admin') || userRoles.includes('admin');
           if (isAdmin) return true;
           return false;
         }
@@ -216,11 +231,11 @@ export async function listFileShares(fileId, actor, subjectType = null) {
         // For ROLE shares: only show if user has the role or is granter
         if (subjectType === 'ROLE') {
           if (share.subjectType !== 'ROLE') return false;
-          const hasRole = actor?.roles?.some(role => role.toLowerCase() === share.subjectRole?.toLowerCase());
-          console.log('[fileShareService] ROLE share check:', { shareRole: share.subjectRole, userRoles: actor?.roles, hasRole });
+          const hasRole = userRoles.some(role => role === share.subjectRole?.toLowerCase());
+          console.log('[fileShareService] ROLE share check:', { shareRole: share.subjectRole, userRoles, hasRole });
           if (hasRole) return true;
           if (share.grantedById === actor?.userId) return true;
-          const isAdmin = actor?.roles?.includes('SUPER_ADMIN') || actor?.roles?.includes('ADMIN');
+          const isAdmin = userRoles.includes('super_admin') || userRoles.includes('admin');
           if (isAdmin) return true;
           return false;
         }
@@ -263,13 +278,29 @@ export async function listSharedWithMe(actor) {
   try {
     if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
 
+    // Get user's application roles from database
+    const user = await prisma.user.findUnique({
+      where: { id: actor.userId },
+      include: { roleAssignments: true }
+    });
+    
+    const roleIds = user?.roleAssignments?.map(ra => ra.roleId) || [];
+    const roles = await prisma.userRoles.findMany({
+      where: { id: { in: roleIds } },
+      select: { code: true }
+    });
+    const userRoles = roles.map(r => r.code.toLowerCase());
+    
+    console.log('[listSharedWithMe] actor:', actor);
+    console.log('[listSharedWithMe] user application roles:', userRoles);
+
     const now = new Date();
     const v2FileShares = await prisma.fileShare.findMany({
       where: {
         fileId: { not: null },
         OR: [
           { subjectType: 'USER', subjectUserId: actor.userId },
-          { subjectType: 'ROLE', subjectRole: { in: actor.roles || [] } },
+          { subjectType: 'ROLE', subjectRole: { in: userRoles } },
         ],
         AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
       },
@@ -287,7 +318,7 @@ export async function listSharedWithMe(actor) {
         folderId: { not: null },
         OR: [
           { subjectType: 'USER', subjectUserId: actor.userId },
-          { subjectType: 'ROLE', subjectRole: { in: actor.roles || [] } },
+          { subjectType: 'ROLE', subjectRole: { in: userRoles } },
         ],
         AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
       },

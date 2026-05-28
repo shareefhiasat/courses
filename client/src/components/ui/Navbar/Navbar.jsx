@@ -418,7 +418,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               </div>
 
               {/* Profile Avatar with Super Admin badge and dropdown */}
-              <div ref={menuRef} style={{ position: 'relative' }}>
+              <div ref={menuRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
                 <div
                   onClick={() => setShowDropdown(v=>!v)}
                   style={{
@@ -438,7 +438,8 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     border: '2px solid rgba(255,255,255,0.6)',
                     transition: 'transform 0.2s, background 0.3s',
                     overflow: 'hidden',
-                    position: 'relative'
+                    position: 'relative',
+                    flexShrink: 0
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
                   onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
@@ -508,12 +509,12 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 {showDropdown && (
                   <div className="dropdown-menu" style={{ right: 0, top: 48, zIndex: 9999 }}>
                     <div className="dropdown-item user-info" style={{ padding: '10px 12px' }}>
-                      <div className="user-email" style={{ fontWeight: 600, marginBottom: 4 }}>{user.email}</div>
-                      {displayName && displayName !== user.email && (
-                        <div className="display-name" style={{ fontSize: '0.9rem', color: '#333', marginBottom: 4 }}>
-                          {t('display_name') || 'Display Name'}: {displayName}
-                        </div>
-                      )}
+                      <div className="user-name" style={{ fontWeight: 600, marginBottom: 4, fontSize: '1rem' }}>
+                        {displayName || user?.displayName || user?.email?.split('@')[0] || 'User'}
+                      </div>
+                      <div className="user-email" style={{ fontSize: '0.85rem', color: '#666', marginBottom: 4 }}>
+                        {user?.email || ''}
+                      </div>
                       {studentNumber && (
                         <div className="student-number" style={{ fontSize: '0.8rem', color: '#666', marginBottom: 8 }}>
                           {t('student_number') || 'Student Number'}: {studentNumber}
@@ -521,27 +522,27 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       )}
                       <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems:'center' }}>
                         {isSuperAdmin && (
-                          <span style={{ color: getUserRoleColor('super_admin'), border: `1.5px solid ${getUserRoleColor('super_admin')}`, background: `${getUserRoleColor('super_admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                          <span style={{ color: getUserRoleColor('super_admin'), background: `${getUserRoleColor('super_admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
                             {getUserRoleIcon('super_admin')} {t('super_admin') || 'Super Admin'}
                           </span>
                         )}
                         {isAdmin && !isSuperAdmin && (
-                          <span style={{ color: getUserRoleColor('admin'), border: `1.5px solid ${getUserRoleColor('admin')}`, background: `${getUserRoleColor('admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                          <span style={{ color: getUserRoleColor('admin'), background: `${getUserRoleColor('admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
                             {getUserRoleIcon('admin')} {t('admin') || 'Admin'}
                           </span>
                         )}
                         {isInstructor && (
-                          <span style={{ color: getUserRoleColor('instructor'), border: `1.5px solid ${getUserRoleColor('instructor')}`, background: `${getUserRoleColor('instructor')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                          <span style={{ color: getUserRoleColor('instructor'), background: `${getUserRoleColor('instructor')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
                             {getUserRoleIcon('instructor')} {t('instructor') || 'Instructor'}
                           </span>
                         )}
                         {isHR && (
-                          <span style={{ color: getUserRoleColor('hr'), border: `1.5px solid ${getUserRoleColor('hr')}`, background: `${getUserRoleColor('hr')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                          <span style={{ color: getUserRoleColor('hr'), background: `${getUserRoleColor('hr')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
                             {getUserRoleIcon('hr')} {t('hr') || 'HR'}
                           </span>
                         )}
                         {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
-                          <span style={{ color: getUserRoleColor('student'), border: `1.5px solid ${getUserRoleColor('student')}`, background: `${getUserRoleColor('student')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student') || 'Student'}</span>
+                          <span style={{ color: getUserRoleColor('student'), background: `${getUserRoleColor('student')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student') || 'Student'}</span>
                         )}
                       </div>
                     </div>
@@ -629,27 +630,27 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       )}
                       <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems:'center' }}>
                         {isSuperAdmin && (
-                          <span style={{ color: getUserRoleColor('super_admin'), border: `1.5px solid ${getUserRoleColor('super_admin')}`, background: `${getUserRoleColor('super_admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                          <span style={{ color: getUserRoleColor('super_admin'), background: `${getUserRoleColor('super_admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
                             {getUserRoleIcon('super_admin')} {t('super_admin') || 'Super Admin'}
                           </span>
                         )}
                         {isAdmin && !isSuperAdmin && (
-                          <span style={{ color: getUserRoleColor('admin'), border: `1.5px solid ${getUserRoleColor('admin')}`, background: `${getUserRoleColor('admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                          <span style={{ color: getUserRoleColor('admin'), background: `${getUserRoleColor('admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
                             {getUserRoleIcon('admin')} {t('admin') || 'Admin'}
                           </span>
                         )}
                         {isInstructor && (
-                          <span style={{ color: getUserRoleColor('instructor'), border: `1.5px solid ${getUserRoleColor('instructor')}`, background: `${getUserRoleColor('instructor')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                          <span style={{ color: getUserRoleColor('instructor'), background: `${getUserRoleColor('instructor')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
                             {getUserRoleIcon('instructor')} {t('instructor') || 'Instructor'}
                           </span>
                         )}
                         {isHR && (
-                          <span style={{ color: getUserRoleColor('hr'), border: `1.5px solid ${getUserRoleColor('hr')}`, background: `${getUserRoleColor('hr')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                          <span style={{ color: getUserRoleColor('hr'), background: `${getUserRoleColor('hr')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
                             {getUserRoleIcon('hr')} {t('hr') || 'HR'}
                           </span>
                         )}
                         {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
-                          <span style={{ color: getUserRoleColor('student'), border: `1.5px solid ${getUserRoleColor('student')}`, background: `${getUserRoleColor('student')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student') || 'Student'}</span>
+                          <span style={{ color: getUserRoleColor('student'), background: `${getUserRoleColor('student')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student') || 'Student'}</span>
                         )}
                       </div>
                     </div>
