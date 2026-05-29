@@ -171,54 +171,40 @@ export default function DriveSpacesSidebar({
             />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {folders.length === 0 ? (
-                <p
+              {folders.length > 0 && folders.slice(0, 8).map((folder) => (
+                <button
+                  key={folder.id || folder.path || folder.name}
+                  onClick={() => onFolderSelect?.(folder)}
                   style={{
-                    margin: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
                     padding: '0.5rem 0.75rem',
-                    fontSize: '0.75rem',
-                    color: 'var(--text-muted, #9ca3af)',
-                    fontStyle: 'italic',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: 'pointer',
+                    fontSize: '0.8125rem',
+                    color: 'var(--text-secondary, #374151)',
+                    textAlign: isRTL ? 'right' : 'left',
                   }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)')
+                  }
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  {t('drive.noFolders') || 'No folders yet'}
-                </p>
-              ) : (
-                folders.slice(0, 8).map((folder) => (
-                  <button
-                    key={folder.id || folder.path || folder.name}
-                    onClick={() => onFolderSelect?.(folder)}
+                  {getThemedIcon('ui', 'folder', 14, theme)}
+                  <span
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.5rem 0.75rem',
-                      background: 'transparent',
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      cursor: 'pointer',
-                      fontSize: '0.8125rem',
-                      color: 'var(--text-secondary, #374151)',
-                      textAlign: isRTL ? 'right' : 'left',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
                     }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = 'var(--background-secondary, #f3f4f6)')
-                    }
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
-                    {getThemedIcon('ui', 'folder', 14, theme)}
-                    <span
-                      style={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {folder.name}
-                    </span>
-                  </button>
-                ))
-              )}
+                    {folder.name}
+                  </span>
+                </button>
+              ))}
             </div>
           )}
         </div>

@@ -13,7 +13,7 @@ import { formatQatarDate } from '@utils/timezone';
 import { getSlaInfo } from '@utils/sla.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { Button, useToast } from '@ui';
+import { Button, useToast, CountdownLoading } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from '@ui';
 import { SimpleLoading, EmptyState, Modal, Textarea } from '@ui';
 import { approveWorkflowDocument, rejectWorkflowDocument, returnWorkflowDocument, resubmitWorkflowDocument, uploadSignedDocument, withdrawWorkflowDocument } from '@services/api/workflow-documents-api.js';
@@ -455,38 +455,17 @@ const WorkflowDocumentDetailPage = () => {
     <div className="flex justify-center px-4 py-6">
       <div className="w-full space-y-8" style={{ maxWidth: '1400px' }}>
 
-      {/* Status Legend */}
-      <Card className="shadow-sm">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-6 text-sm flex-wrap">
-            {/* Status Legend */}
-            <div className="flex items-center gap-2">
-              {getThemedIcon('ui', 'file_text', 16, '#6b7280')}
-              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.status.draft', 'Draft')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {getThemedIcon('ui', 'send', 16, '#3b82f6')}
-              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.status.submitted', 'Submitted')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {getThemedIcon('ui', 'alert_triangle', 16, '#3b82f6')}
-              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.status.underReview', 'Under Review')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {getThemedIcon('ui', 'alert_triangle', 16, '#8b5cf6')}
-              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.status.underAdminReview', 'Under Admin Review')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {getThemedIcon('ui', 'check_circle', 16, '#10b981')}
-              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.status.approved', 'Approved')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {getThemedIcon('ui', 'x_circle', 16, '#ef4444')}
-              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.status.rejected', 'Rejected')}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Auto-refresh countdown indicator */}
+      {document && document.status !== WORKFLOW_STATUS.APPROVED && document.status !== WORKFLOW_STATUS.REJECTED && (
+        <CountdownLoading 
+          duration={30}
+          onComplete={() => {
+            // Trigger manual refresh when countdown completes
+            fetchDocument();
+          }}
+          isActive={isVisible}
+        />
+      )}
 
       {/* Document Title and Description */}
       <Card className="shadow-sm">
@@ -504,8 +483,8 @@ const WorkflowDocumentDetailPage = () => {
         </CardContent>
       </Card>
 
-      {/* Top row: Workflow Progress and Status History */}
-      <div className="grid grid-cols-1 lg:grid-cols-[75%_25%]">
+      {/* Top row: Workflow Progress (full width) */}
+      <div>
         {/* Workflow Progress */}
         <div style={{
           background: 'var(--panel, white)',
@@ -555,10 +534,10 @@ const WorkflowDocumentDetailPage = () => {
                       variant="info"
                       size="sm"
                       onClick={() => setActionModal('reupload')}
-                  >
-                    {getThemedIcon('ui', 'upload', 16)}
-                    {t('workflow.document.reupload', 'Re-upload')}
-                  </Button>
+                    >
+                      {getThemedIcon('ui', 'upload', 16)}
+                      {t('workflow.document.reupload', 'Re-upload')}
+                    </Button>
                   )}
                 </>
               )}
@@ -601,32 +580,10 @@ const WorkflowDocumentDetailPage = () => {
             currentAssignee={document.currentAssignee}
           />
         </div>
-
-        {/* Status History */}
-        {document.statusHistory && document.statusHistory.length > 0 && (
-          <div style={{
-            background: 'var(--panel, white)',
-            borderRadius: '0.75rem',
-            border: '1px solid var(--border, #e5e7eb)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            padding: '1.5rem',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              {getThemedIcon('ui', 'clock', 20)}
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0 }}>
-                {t('workflow.document.statusHistory', 'Status History')}
-              </h3>
-              <Badge variant="secondary" style={{ marginLeft: 'auto' }}>
-                {document.statusHistory.length}
-              </Badge>
-            </div>
-            <WorkflowHistory statusHistory={document.statusHistory} />
-          </div>
-        )}
       </div>
 
-      {/* Bottom row: Attachments and Comments */}
-      <div className="grid grid-cols-1 lg:grid-cols-[50%_50%]">
+      {/* Bottom row: Attachments, Comments, and Status History */}
+      <div className="grid grid-cols-1 lg:grid-cols-[40%_40%_20%]">
         {/* Attached Document and Versions */}
         {document.file && (
           <div style={{
@@ -732,6 +689,28 @@ const WorkflowDocumentDetailPage = () => {
           </div>
           <WorkflowCommentsTab workflowId={documentId} />
         </div>
+
+        {/* Status History */}
+        {document.statusHistory && document.statusHistory.length > 0 && (
+          <div style={{
+            background: 'var(--panel, white)',
+            borderRadius: '0.75rem',
+            border: '1px solid var(--border, #e5e7eb)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            padding: '1.5rem',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              {getThemedIcon('ui', 'clock', 20)}
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0 }}>
+                {t('workflow.document.statusHistory', 'Status History')}
+              </h3>
+              <Badge variant="secondary" style={{ marginLeft: 'auto' }}>
+                {document.statusHistory.length}
+              </Badge>
+            </div>
+            <WorkflowHistory statusHistory={document.statusHistory} />
+          </div>
+        )}
       </div>
 
       {/* Step Details Modal */}

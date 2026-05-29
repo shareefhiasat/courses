@@ -198,6 +198,7 @@ const useWorkflowInbox = (initialParams = {}, onNotification = null) => {
             const titleMatch = (doc.title || '').toLowerCase().includes(searchTerm);
             const descriptionMatch = (doc.description || '').toLowerCase().includes(searchTerm);
             const statusMatch = (doc.status || '').toLowerCase().includes(searchTerm);
+            const nextStatusMatch = (doc.nextStatus || '').toLowerCase().includes(searchTerm);
             const workflowTypeMatch = (doc.workflowType || '').toLowerCase().includes(searchTerm);
             const programMatch = (doc.program || '').toLowerCase().includes(searchTerm);
             const subjectMatch = (doc.subject || '').toLowerCase().includes(searchTerm);
@@ -216,6 +217,15 @@ const useWorkflowInbox = (initialParams = {}, onNotification = null) => {
               (doc.currentAssignee?.lastName || '').toLowerCase().includes(searchTerm) ||
               (doc.currentAssignee?.email || '').toLowerCase().includes(searchTerm);
             
+            // Search in role-based assignments (when assigneeId is null)
+            const roleAssignmentMatch = 
+              doc.currentAssigneeId === null && (
+                (doc.workflowType === 'GENERAL' && 'hr'.includes(searchTerm)) ||
+                (doc.workflowType === 'ATTENDANCE_WEEKLY' && 'admin'.includes(searchTerm)) ||
+                (doc.workflowType === 'GENERAL' && 'hr review'.includes(searchTerm)) ||
+                (doc.workflowType === 'ATTENDANCE_WEEKLY' && 'admin review'.includes(searchTerm))
+              );
+            
             // Search in class
             const classMatch = (doc.class?.name || '').toLowerCase().includes(searchTerm);
             
@@ -226,8 +236,8 @@ const useWorkflowInbox = (initialParams = {}, onNotification = null) => {
               (doc.instructor?.lastName || '').toLowerCase().includes(searchTerm) ||
               (doc.instructor?.email || '').toLowerCase().includes(searchTerm);
             
-            return titleMatch || descriptionMatch || statusMatch || workflowTypeMatch || 
-                   programMatch || subjectMatch || submitterMatch || assigneeMatch || 
+            return titleMatch || descriptionMatch || statusMatch || nextStatusMatch || workflowTypeMatch || 
+                   programMatch || subjectMatch || submitterMatch || assigneeMatch || roleAssignmentMatch ||
                    classMatch || instructorMatch;
           });
         }

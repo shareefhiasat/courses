@@ -685,7 +685,18 @@ export async function listFileVersions(fileId) {
       where: { id: fileId },
       include: {
         versions: {
-          orderBy: { versionNumber: 'desc' }
+          orderBy: { versionNumber: 'desc' },
+          include: {
+            uploadedBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                displayName: true,
+                email: true
+              }
+            }
+          }
         }
       }
     });
@@ -701,7 +712,18 @@ export async function listFileVersions(fileId) {
           file: {
             include: {
               versions: {
-                orderBy: { versionNumber: 'desc' }
+                orderBy: { versionNumber: 'desc' },
+                include: {
+                  uploadedBy: {
+                    select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                      displayName: true,
+                      email: true
+                    }
+                  }
+                }
               }
             }
           }

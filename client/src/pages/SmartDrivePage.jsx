@@ -366,11 +366,23 @@ export default function SmartDrivePage() {
 
   const handleFolderAction = async (folder, action) => {
     if (action === 'delete') {
-      const result = await deleteFolder(folder.id);
-      if (result.success) {
-        success(t('drive.folderDeleted'));
+      // Check if folder has children (files or subfolders)
+      const hasChildren = files.some(f => f.folderId === folder.id) || 
+                          folders.some(f => f.parentId === folder.id);
+      
+      if (hasChildren) {
+        // Show warning that folder contains items
+        error(t('drive.folderNotEmpty') || 'This folder contains items. Please delete them first.');
       } else {
-        error(t('drive.deleteFolderFailed'));
+        // Empty folder - allow deletion with confirmation
+        if (window.confirm(t('drive.confirmDeleteFolder') || 'Are you sure you want to delete this folder?')) {
+          const result = await deleteFolder(folder.id);
+          if (result.success) {
+            success(t('drive.folderDeleted') || 'Folder deleted successfully');
+          } else {
+            error(t('drive.deleteFolderFailed') || 'Failed to delete folder');
+          }
+        }
       }
     } else if (action === 'rename') {
       setNewName(folder.name);
@@ -719,7 +731,7 @@ export default function SmartDrivePage() {
 
           {/* Inbox/Notifications */}
           <button
-            onClick={() => setInboxOpen(true)}
+            onClick={() => navigate('/workflow/inbox')}
             style={{
               position: 'relative',
               padding: '0.65rem',
@@ -760,45 +772,49 @@ export default function SmartDrivePage() {
           </button>
 
           {/* Action buttons */}
-          <button
-            onClick={handleUpload}
-            style={{
-              ...gradientBtn,
-              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-              boxShadow: '0 2px 4px rgba(37, 99, 235, 0.25)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.35)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 4px rgba(37, 99, 235, 0.25)';
-            }}
-          >
-            {getThemedIcon('ui', 'upload', 16, 'white')}
-            {t('drive.upload') || 'Upload'}
-          </button>
+          {activeSpace === 'my-drive' && (
+            <>
+              <button
+                onClick={handleUpload}
+                style={{
+                  ...gradientBtn,
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                  boxShadow: '0 2px 4px rgba(37, 99, 235, 0.25)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.35)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(37, 99, 235, 0.25)';
+                }}
+              >
+                {getThemedIcon('ui', 'upload', 16, 'white')}
+                {t('drive.upload') || 'Upload'}
+              </button>
 
-          <button
-            onClick={() => handleFileAction('new-folder', [])}
-            style={{
-              ...gradientBtn,
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-              boxShadow: '0 2px 4px rgba(139, 92, 246, 0.25)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.35)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 4px rgba(139, 92, 246, 0.25)';
-            }}
-          >
-            {getThemedIcon('ui', 'folder', 16, 'white')}
-            {t('drive.newFolder') || 'New Folder'}
-          </button>
+              <button
+                onClick={() => handleFileAction('new-folder', [])}
+                style={{
+                  ...gradientBtn,
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                  boxShadow: '0 2px 4px rgba(139, 92, 246, 0.25)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.35)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(139, 92, 246, 0.25)';
+                }}
+              >
+                {getThemedIcon('ui', 'folder', 16, 'white')}
+                {t('drive.newFolder') || 'New Folder'}
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -1107,8 +1123,8 @@ export default function SmartDrivePage() {
           ) : visibleFiles.length === 0 && visibleFolders.length === 0 ? (
             <EmptyState
               type={searchQuery || filters.length > 0 ? 'no-results' : activeSpace === 'trash' ? 'trash-empty' : activeSpace === 'shared' ? 'shared-empty' : 'no-files'}
-              onUpload={handleUpload}
-              onCreateFolder={() => setCreateFolderModalOpen(true)}
+              onUpload={activeSpace === 'my-drive' ? handleUpload : undefined}
+              onCreateFolder={activeSpace === 'my-drive' ? () => setCreateFolderModalOpen(true) : undefined}
             />
           ) : (
             <FileRoster

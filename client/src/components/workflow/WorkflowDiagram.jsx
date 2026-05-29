@@ -507,7 +507,7 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document,
           </ReactFlow>
         </div>
       ) : (
-        <div className="px-4 workflow-scrollbar" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+        <div className="px-4 workflow-scrollbar" style={{ maxHeight: '700px', overflowY: 'auto' }}>
           <div className="relative" style={{ paddingLeft: lang === 'ar' ? 0 : '2rem', paddingRight: lang === 'ar' ? '2rem' : 0 }}>
             {/* Timeline line */}
             <div style={{

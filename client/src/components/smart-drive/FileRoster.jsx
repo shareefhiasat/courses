@@ -524,20 +524,6 @@ export default function FileRoster({
             </div>
           )}
 
-          {showFolders && filteredFolders.length === 0 && (
-            <div
-              style={{
-                padding: '2rem 1rem',
-                textAlign: 'center',
-                color: 'var(--text-muted, #9ca3af)',
-                fontSize: '0.875rem',
-                fontStyle: 'italic',
-              }}
-            >
-              {t('drive.noFolders') || 'No folders yet'}
-            </div>
-          )}
-
           {showFolders && filteredFolders.map((folder) => (
             <React.Fragment key={`folder-${folder.id}`}>
               <div
@@ -746,6 +732,7 @@ export default function FileRoster({
                           { key: 'open', label: t('drive.open') || 'Open', icon: 'external_link' },
                           { key: 'download', label: t('drive.download') || 'Download', icon: 'download' },
                           { key: 'rename', label: t('drive.rename') || 'Rename', icon: 'edit' },
+                          { key: 'delete', label: t('drive.delete') || 'Delete', icon: 'trash', danger: true },
                         ]),
                   ].map((action) => (
                     <button

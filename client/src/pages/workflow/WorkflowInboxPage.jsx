@@ -95,8 +95,8 @@ const WorkflowInboxPage = () => {
       width: 80,
       renderCell: (params) => {
         return (
-          <div className="text-sm text-gray-900 font-mono">
-            #{params.value}
+          <div className="text-base font-bold text-black">
+            {params.value}
           </div>
         );
       }
@@ -127,7 +127,7 @@ const WorkflowInboxPage = () => {
       width: 200,
       renderCell: (params) => {
         return (
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-black truncate" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {params.row.description || '-'}
           </div>
         );
@@ -190,7 +190,7 @@ const WorkflowInboxPage = () => {
             iconColor = '#3b82f6';
             break;
           case 'SUBMITTED':
-            nextStatus = t('workflow.inbox.nextStatusUnderReview', 'HR Review');
+            nextStatus = t('workflow.inbox.nextStatusUnderHrReview', 'HR Review');
             NextStatusIcon = getWorkflowStatusIcon('UNDER_REVIEW');
             iconColor = '#3b82f6';
             break;
@@ -586,7 +586,8 @@ const WorkflowInboxPage = () => {
               loading={loading}
               getRowId={(row) => row.id}
               className="border-none"
-              pageSizeOptions={[10, 25, 50, 100]}
+              pageSizeOptions={[25, 50, 100]}
+              pageSize={50}
             />
           </CardContent>
         </Card>

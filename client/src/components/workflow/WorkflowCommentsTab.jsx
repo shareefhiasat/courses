@@ -360,12 +360,50 @@ export default function WorkflowCommentsTab({ workflowId }) {
                           fontSize: '0.875rem',
                           fontWeight: 600,
                         }}>
-                          {comment.author?.displayName?.[0] || comment.author?.email?.[0] || '?'}
+                          {(() => {
+                            const firstName = comment.author?.firstName || '';
+                            const lastName = comment.author?.lastName || '';
+                            const displayName = comment.author?.displayName || '';
+                            const email = comment.author?.email || '';
+                            
+                            // Try to get initials from firstName + lastName
+                            if (firstName && lastName) {
+                              return (firstName[0] + lastName[0]).toUpperCase();
+                            }
+                            // Fall back to displayName
+                            if (displayName && displayName !== '-') {
+                              return displayName[0].toUpperCase();
+                            }
+                            // Fall back to email
+                            if (email) {
+                              return email[0].toUpperCase();
+                            }
+                            return '?';
+                          })()}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                             <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
-                              {comment.author?.displayName || comment.author?.email || t('drive.unknownUser', 'Unknown')}
+                              {(() => {
+                                const firstName = comment.author?.firstName || '';
+                                const lastName = comment.author?.lastName || '';
+                                const displayName = comment.author?.displayName || '';
+                                const email = comment.author?.email || '';
+                                
+                                // Try to use firstName + lastName
+                                if (firstName && lastName) {
+                                  return `${firstName} ${lastName}`;
+                                }
+                                // Fall back to displayName (but not if it's just a hyphen)
+                                if (displayName && displayName !== '-') {
+                                  return displayName;
+                                }
+                                // Fall back to email
+                                if (email) {
+                                  return email;
+                                }
+                                return t('drive.unknownUser', 'Unknown');
+                              })()}
                             </span>
                           </div>
                           <p style={{ fontSize: '0.875rem', color: 'var(--text, #374151)', margin: 0, wordBreak: 'break-word' }}>

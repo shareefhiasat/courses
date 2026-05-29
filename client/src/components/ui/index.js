@@ -66,6 +66,7 @@ export { default as Tag } from './Tag';
 export { default as EmptyState } from './EmptyState';
 export { default as Skeleton } from './Skeleton';
 export { default as SimpleLoading, default as LoadingSpinner } from './SimpleLoading';
+export { default as CountdownLoading } from './CountdownLoading';
 export { default as AdvancedDataGrid } from './AdvancedDataGrid';
 export { default as ExpandablePanel } from './ExpandablePanel';
 export { default as CollapsibleDashboardSection } from './CollapsibleDashboardSection';
