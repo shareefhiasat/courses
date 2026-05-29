@@ -42,9 +42,13 @@ const LoginPage = () => {
       }
     }
     
-    // Role-based redirect: admin/HR/super-admin go to SummaryDashboard
-    if (isAdmin || isHR || isSuperAdmin) {
+    // Role-based redirect: admin/super-admin go to SummaryDashboard, HR goes to workflow inbox
+    if (isSuperAdmin || isAdmin) {
       return <Navigate to="/summary-dashboard" replace />;
+    }
+    
+    if (isHR) {
+      return <Navigate to="/workflow/inbox" replace />;
     }
     
     // Fallback to default redirect
@@ -156,8 +160,18 @@ const LoginPage = () => {
     return <GlobalLoadingFallback />;
   }
 
+  // If user is already authenticated, redirect to intended page or default
+  // But check if this is a genuine login (not a redirect loop from ProtectedRoute)
   if (user) {
-    console.log('✅ User authenticated, redirecting...');
+    // Check if user was redirected from a protected route
+    const fromProtectedRoute = location.state?.from;
+    
+    if (fromProtectedRoute) {
+      console.log('✅ User authenticated, redirecting to intended page:', fromProtectedRoute);
+      return <Navigate to={fromProtectedRoute} replace />;
+    }
+    
+    console.log('✅ User authenticated, redirecting to role-based default...');
     info('👤 User info:', user);
     info('🎭 Roles:', user.roles);
     return handlePostLoginRedirect();

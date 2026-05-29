@@ -249,6 +249,8 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document,
                     {getRoleIcon(workflowRules[stage.id]?.roles[lang])}
                     {stage.id === 'submitted' || stage.id === 'submit' ? (
                       <Send size={20} color={index === currentStageIndex ? '#3b82f6' : '#10b981'} />
+                    ) : stage.id === 'draft' ? (
+                      getThemedIcon('ui', 'file_text', 20, index === currentStageIndex ? '#3b82f6' : '#6b7280')
                     ) : index < currentStageIndex ? (
                       getThemedIcon('ui', 'check_circle', 20, '#10b981')
                     ) : index === currentStageIndex ? (
@@ -556,6 +558,8 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document,
                       {getRoleIcon(workflowRules[stage.id]?.roles[lang])}
                       {stage.id === 'submitted' || stage.id === 'submit' ? (
                         <Send size={18} color={isCurrent ? '#3b82f6' : '#10b981'} />
+                      ) : stage.id === 'draft' ? (
+                        getThemedIcon('ui', 'file_text', 18, isCurrent ? '#3b82f6' : '#6b7280')
                       ) : isCompleted ? (
                         getThemedIcon('ui', 'check_circle', 18, '#10b981')
                       ) : isCurrent ? (

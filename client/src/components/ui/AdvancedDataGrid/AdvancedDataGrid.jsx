@@ -363,13 +363,13 @@ const AdvancedDataGrid = ({
         '& .MuiCheckbox-root': {
           color: isDarkMode ? '#9ca3af' : '#9ca3af',
           '&.Mui-checked': {
-            color: isDarkMode ? '#10b981' : '#10b981'
+            color: isDarkMode ? '#3b82f6' : '#3b82f6'
           },
           '&.MuiCheckbox-indeterminate': {
-            color: isDarkMode ? '#10b981' : '#10b981'
+            color: isDarkMode ? '#3b82f6' : '#3b82f6'
           },
           '&:hover': {
-            backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.04)' : 'rgba(16, 185, 129, 0.04)'
+            backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.04)' : 'rgba(59, 130, 246, 0.04)'
           }
         },
         ...sx 

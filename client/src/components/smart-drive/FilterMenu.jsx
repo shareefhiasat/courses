@@ -36,11 +36,14 @@ export default function FilterMenu({ onAddFilter }) {
       label: t('drive.filter.fileType'),
       icon: 'file_text',
       options: [
-        { value: 'images', label: t('drive.filter.type.images'), icon: 'image' },
-        { value: 'documents', label: t('drive.filter.type.documents'), icon: 'file_text' },
-        { value: 'videos', label: t('drive.filter.type.videos'), icon: 'video' },
+        { value: 'image', label: t('drive.filter.type.images'), icon: 'image' },
+        { value: 'spreadsheet', label: t('drive.filter.type.spreadsheets'), icon: 'table' },
+        { value: 'presentation', label: t('drive.filter.type.presentations'), icon: 'presentation' },
+        { value: 'document', label: t('drive.filter.type.documents'), icon: 'file_text' },
+        { value: 'video', label: t('drive.filter.type.videos'), icon: 'video' },
         { value: 'audio', label: t('drive.filter.type.audio'), icon: 'music' },
-        { value: 'archives', label: t('drive.filter.type.archives'), icon: 'archive' },
+        { value: 'archive', label: t('drive.filter.type.archives'), icon: 'archive' },
+        { value: 'has-workflow', label: t('drive.filter.type.hasWorkflow'), icon: 'workflow', color: '#8b5cf6' },
       ],
     },
     {

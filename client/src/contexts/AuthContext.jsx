@@ -501,22 +501,48 @@ export const AuthProvider = ({ children }) => {
         refreshToken: keycloak.refreshToken
       };
 
-      // Set role flags (matching database user_roles table codes)
-      setIsAdmin(normalizedRoles.includes(ROLES.ADMIN));
-      setIsHR(normalizedRoles.includes(ROLES.HR));
-      setIsInstructor(normalizedRoles.includes(ROLES.INSTRUCTOR));
-      setIsStudent(normalizedRoles.includes(ROLES.STUDENT));
-      setIsSuperAdmin(normalizedRoles.includes(ROLES.SUPER_ADMIN));
+      // Fetch database ID from backend (non-blocking - failure doesn't prevent login)
+      const fetchDbId = async () => {
+        try {
+          const response = await fetch('/api/v1/users/me', {
+            headers: {
+              'Authorization': `Bearer ${keycloak.token}`
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+              userObj.dbId = data.data.id;
+              console.log('[AuthContext] Fetched dbId:', userObj.dbId);
+            } else {
+              console.warn('[AuthContext] /users/me returned non-success:', data);
+            }
+          } else {
+            console.warn('[AuthContext] /users/me failed with status:', response.status, '- continuing without dbId');
+          }
+        } catch (error) {
+          console.warn('[AuthContext] Failed to fetch dbId:', error, '- continuing without dbId');
+        }
+      };
 
-      // Set role code
-      if (normalizedRoles.includes(ROLES.SUPER_ADMIN)) setRole(ROLES.SUPER_ADMIN);
-      else if (normalizedRoles.includes(ROLES.ADMIN)) setRole(ROLES.ADMIN);
-      else if (normalizedRoles.includes(ROLES.HR)) setRole(ROLES.HR);
-      else if (normalizedRoles.includes(ROLES.INSTRUCTOR)) setRole(ROLES.INSTRUCTOR);
-      else if (normalizedRoles.includes(ROLES.STUDENT)) setRole(ROLES.STUDENT);
-      else setRole(null);
+      fetchDbId().then(() => {
+        // Set role flags (matching database user_roles table codes)
+        setIsAdmin(normalizedRoles.includes(ROLES.ADMIN));
+        setIsHR(normalizedRoles.includes(ROLES.HR));
+        setIsInstructor(normalizedRoles.includes(ROLES.INSTRUCTOR));
+        setIsStudent(normalizedRoles.includes(ROLES.STUDENT));
+        setIsSuperAdmin(normalizedRoles.includes(ROLES.SUPER_ADMIN));
 
-      setUser(userObj);
+        // Set role code
+        if (normalizedRoles.includes(ROLES.SUPER_ADMIN)) setRole(ROLES.SUPER_ADMIN);
+        else if (normalizedRoles.includes(ROLES.ADMIN)) setRole(ROLES.ADMIN);
+        else if (normalizedRoles.includes(ROLES.HR)) setRole(ROLES.HR);
+        else if (normalizedRoles.includes(ROLES.INSTRUCTOR)) setRole(ROLES.INSTRUCTOR);
+        else if (normalizedRoles.includes(ROLES.STUDENT)) setRole(ROLES.STUDENT);
+        else setRole(null);
+
+        setUser(userObj);
+      });
       setLoading(false);
       
       // Save token to localStorage for API calls and cookie for image proxy

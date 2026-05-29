@@ -48,13 +48,6 @@ const ProtectedRoute = ({
 }) => {
   const { keycloak, initialized } = useKeycloak();
 
-  // Add logging for debugging
-  // console.log('🛡️ ProtectedRoute - Keycloak State:', {
-  //   initialized,
-  //   authenticated: keycloak?.authenticated,
-  //   hasToken: !!keycloak?.token
-  // });
-
   // Show loading while Keycloak is initializing
   if (!initialized) {
     info('🔄 ProtectedRoute - Keycloak initializing...');
@@ -65,9 +58,23 @@ const ProtectedRoute = ({
   }
 
   // If not authenticated and auth is required, redirect to login
-  if (!keycloak.authenticated && !allowPublic) {
+  // Use Keycloak as the primary source of truth for authentication
+  // But also check if there's a valid token (handles timing issues during refresh)
+  const hasValidToken = keycloak.token && !keycloak.tokenExpired;
+  if (!keycloak.authenticated && !hasValidToken && !allowPublic) {
     info('🚫 ProtectedRoute - Not authenticated, redirecting to login...');
-    return <Navigate to="/login" replace />;
+    // Pass the current location to LoginPage so it can redirect back after login
+    return <Navigate to="/login" state={{ from: window.location.pathname }} replace />;
+  }
+
+  // If Keycloak is not authenticated but has a valid token, wait a moment
+  // This handles the timing issue during refresh when authenticated might be temporarily false
+  if (!keycloak.authenticated && hasValidToken) {
+    info('⏳ ProtectedRoute - Keycloak not authenticated but has valid token, waiting...');
+    if (loadingComponent) {
+      return loadingComponent;
+    }
+    return <GlobalLoadingFallback />;
   }
 
   info('✅ ProtectedRoute - User authenticated, proceeding...');

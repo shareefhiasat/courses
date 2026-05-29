@@ -7,25 +7,11 @@
 
 import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  CheckCircle, 
-  AlertCircle, 
-  Clock, 
-  User,
-  Filter,
-  RefreshCw,
-  Search,
-  X,
-  FileText,
-  Eye,
-  Workflow,
-  XCircle,
-  GitBranch
-} from 'lucide-react';
 import { format } from "date-fns";
 import { formatQatarDate } from '@utils/timezone';
 import { getSlaInfo } from '@utils/sla.js';
-import { getStatusVariant as getActionVariant, getStatusColorClasses } from '@constants/workflowStatusTypes';
+import { getStatusVariant as getActionVariant, getStatusColorClasses, getWorkflowStatusIcon } from '@constants/workflowStatusTypes';
+import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import useNotifications from '@hooks/useNotifications';
@@ -33,7 +19,7 @@ import useWorkflowInbox from "@hooks/useWorkflowInbox";
 import { Button, useToast } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Input, SimpleLoading, EmptyState, AdvancedDataGrid } from '@ui';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
-import WorkflowDiagram from '@components/workflow/WorkflowDiagram';
+import { AlertCircle } from 'lucide-react';
 
 const WorkflowInboxPage = () => {
   const navigate = useNavigate();
@@ -42,9 +28,20 @@ const WorkflowInboxPage = () => {
   const { triggerNotification } = useNotifications();
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
-  
-  const [selectedDocumentForWorkflow, setSelectedDocumentForWorkflow] = useState(null);
-  const [showWorkflowDiagram, setShowWorkflowDiagram] = useState(false);
+
+  // Helper to get file type icon based on mimeType
+  const getFileIconName = (mimeType) => {
+    if (!mimeType) return 'file';
+    if (mimeType.startsWith('image/')) return 'image';
+    if (mimeType.startsWith('video/')) return 'video';
+    if (mimeType.startsWith('audio/')) return 'music';
+    if (mimeType.includes('pdf')) return 'file_text';
+    if (mimeType.includes('zip') || mimeType.includes('rar')) return 'archive';
+    if (mimeType.includes('sheet') || mimeType.includes('excel')) return 'table';
+    if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return 'presentation';
+    if (mimeType.includes('word') || mimeType.includes('document')) return 'file_text';
+    return 'file';
+  };
   
   const {
     documents,
@@ -65,30 +62,6 @@ const WorkflowInboxPage = () => {
     return getActionVariant(status);
   };
 
-  // Get status icon
-  const getStatusIcon = (status) => {
-    const statusUpper = status?.toUpperCase();
-    switch (statusUpper) {
-      case 'DRAFT':
-        return <Clock className="h-4 w-4" />;
-      case 'SUBMITTED':
-        return <Clock className="h-4 w-4" />;
-      case 'UNDER_REVIEW':
-      case 'UNDER_ADMIN_REVIEW':
-        return <AlertCircle className="h-4 w-4" />;
-      case 'APPROVED':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'REJECTED':
-        return <XCircle className="h-4 w-4" />;
-      case 'AMENDED':
-        return <GitBranch className="h-4 w-4" />;
-      case 'CLOSED':
-        return <CheckCircle className="h-4 w-4" />;
-      default:
-        return <Clock className="h-4 w-4" />;
-    }
-  };
-
   // Get status color
   const getStatusColor = (status) => {
     const statusUpper = status?.toUpperCase();
@@ -96,10 +69,11 @@ const WorkflowInboxPage = () => {
       case 'DRAFT':
         return '#6b7280';
       case 'SUBMITTED':
-        return '#f59e0b';
-      case 'UNDER_REVIEW':
-      case 'UNDER_ADMIN_REVIEW':
         return '#3b82f6';
+      case 'UNDER_REVIEW':
+        return '#3b82f6';
+      case 'UNDER_ADMIN_REVIEW':
+        return '#8b5cf6';
       case 'APPROVED':
         return '#10b981';
       case 'REJECTED':
@@ -113,83 +87,304 @@ const WorkflowInboxPage = () => {
     }
   };
 
-  // Handle show workflow diagram
-  const handleShowWorkflowDiagram = useCallback((document) => {
-    setSelectedDocumentForWorkflow(document);
-    setShowWorkflowDiagram(true);
-  }, []);
-
   // Grid columns - Updated for WorkflowDocument model
   const columns = useMemo(() => [
     {
+      field: 'id',
+      headerName: 'ID',
+      width: 80,
+      renderCell: (params) => {
+        return (
+          <div className="text-sm text-gray-900 font-mono">
+            #{params.value}
+          </div>
+        );
+      }
+    },
+    {
       field: 'title',
       headerName: t('workflow.inbox.document', 'Document'),
-      flex: 1,
-      renderCell: (params) => (
-        <div className="flex items-center gap-3">
-          <div className="flex-shrink-0">
-            <FileText className="h-5 w-5 text-gray-400" />
-          </div>
-          <div>
+      width: 250,
+      renderCell: (params) => {
+        const mimeType = params.row.file?.mimeType;
+        const icon = getThemedIcon('ui', getFileIconName(mimeType), 20, theme);
+        
+        return (
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0 flex items-center">
+              {icon}
+            </div>
             <div className="font-medium text-gray-900">
               {params.row.title}
             </div>
-            <div className="text-sm text-gray-500">
-              {params.row.description}
-            </div>
           </div>
-        </div>
-      )
+        );
+      }
+    },
+    {
+      field: 'description',
+      headerName: t('workflow.inbox.description', 'Description'),
+      width: 200,
+      renderCell: (params) => {
+        return (
+          <div className="text-sm text-gray-500">
+            {params.row.description || '-'}
+          </div>
+        );
+      }
     },
     {
       field: 'status',
       headerName: t('workflow.inbox.status', 'Status'),
-      width: 160,
-      renderCell: (params) => (
-        <div className="flex items-center gap-2">
-          <div 
-            className="flex items-center justify-center rounded-full"
-            style={{ 
-              backgroundColor: getStatusColor(params.value),
-              width: '24px',
-              height: '24px'
-            }}
-          >
-            <span style={{ color: '#ffffff' }} className="text-xs">
-              {getStatusIcon(params.value)}
+      width: 80,
+      renderCell: (params) => {
+        const statusUpper = params.value?.toUpperCase();
+        let iconColor = '#6b7280';
+        
+        switch (statusUpper) {
+          case 'DRAFT':
+            iconColor = '#6b7280';
+            break;
+          case 'SUBMITTED':
+            iconColor = '#3b82f6';
+            break;
+          case 'UNDER_REVIEW':
+            iconColor = '#3b82f6';
+            break;
+          case 'UNDER_ADMIN_REVIEW':
+            iconColor = '#8b5cf6';
+            break;
+          case 'APPROVED':
+            iconColor = '#10b981';
+            break;
+          case 'REJECTED':
+            iconColor = '#ef4444';
+            break;
+          default:
+            iconColor = '#6b7280';
+        }
+        
+        const StatusIcon = getWorkflowStatusIcon(params.value);
+        
+        return (
+          <div className="flex items-center justify-center" title={params.value}>
+            <StatusIcon className="h-5 w-5" style={{ color: iconColor }} />
+          </div>
+        );
+      }
+    },
+    {
+      field: 'nextStatus',
+      headerName: t('workflow.inbox.nextStatus', 'Next Status'),
+      width: 150,
+      renderCell: (params) => {
+        const currentStatus = params.row.status?.toUpperCase();
+        let nextStatus = '-';
+        let NextStatusIcon = null;
+        let iconColor = '#6b7280';
+        
+        switch (currentStatus) {
+          case 'DRAFT':
+            nextStatus = t('workflow.inbox.nextStatusSubmitted', 'Submitted');
+            NextStatusIcon = getWorkflowStatusIcon('SUBMITTED');
+            iconColor = '#3b82f6';
+            break;
+          case 'SUBMITTED':
+            nextStatus = t('workflow.inbox.nextStatusUnderReview', 'HR Review');
+            NextStatusIcon = getWorkflowStatusIcon('UNDER_REVIEW');
+            iconColor = '#3b82f6';
+            break;
+          case 'UNDER_REVIEW':
+            nextStatus = t('workflow.inbox.nextStatusAdminReview', 'Admin Review');
+            NextStatusIcon = getWorkflowStatusIcon('UNDER_ADMIN_REVIEW');
+            iconColor = '#8b5cf6';
+            break;
+          case 'UNDER_ADMIN_REVIEW':
+            nextStatus = t('workflow.inbox.nextStatusApproved', 'Approved');
+            NextStatusIcon = getWorkflowStatusIcon('APPROVED');
+            iconColor = '#10b981';
+            break;
+          case 'APPROVED':
+            nextStatus = t('workflow.inbox.nextStatusCompleted', 'Completed');
+            NextStatusIcon = getWorkflowStatusIcon('APPROVED');
+            iconColor = '#10b981';
+            break;
+          case 'REJECTED':
+            nextStatus = t('workflow.inbox.nextStatusResubmit', 'Resubmit');
+            NextStatusIcon = getWorkflowStatusIcon('SUBMITTED');
+            iconColor = '#3b82f6';
+            break;
+          default:
+            nextStatus = '-';
+        }
+        
+        return (
+          <div className="flex items-center gap-2">
+            {NextStatusIcon && (
+              <NextStatusIcon className="h-4 w-4" style={{ color: iconColor }} />
+            )}
+            <span className="text-sm" style={{ color: iconColor }}>
+              {nextStatus}
             </span>
           </div>
-          <span className="text-sm font-medium">
-            {params.value}
-          </span>
-        </div>
-      )
+        );
+      }
     },
     {
       field: 'submitter',
       headerName: t('workflow.inbox.from', 'From'),
-      width: 180,
-      renderCell: (params) => (
-        <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-gray-400" />
-          <span className="text-sm">
-            {params.row.submitter?.displayName || params.row.submitter?.firstName || params.row.submitter?.lastName || t('workflow.inbox.unknown', 'Unknown')}
-          </span>
-        </div>
-      )
+      width: 150,
+      renderCell: (params) => {
+        const submitter = params.row.submitter;
+        
+        console.log('[WorkflowInbox] From Debug - Detailed:', {
+          submitter,
+          submitterId: params.row.submitterId,
+          submitterKeys: submitter ? Object.keys(submitter) : 'null',
+          submitterDisplayName: submitter?.displayName,
+          submitterFirstName: submitter?.firstName,
+          submitterLastName: submitter?.lastName,
+          submitterEmail: submitter?.email,
+          submitterRoleAssignments: submitter?.roleAssignments,
+          row: params.row
+        });
+        
+        const displayName = submitter?.displayName || 
+                          (submitter?.firstName && submitter?.lastName ? `${submitter.firstName} ${submitter.lastName}` : null) ||
+                          submitter?.email ||
+                          t('workflow.inbox.unknown', 'Unknown');
+        
+        // Get role type from role assignments
+        const roleAssignments = submitter?.roleAssignments || [];
+        const primaryRole = roleAssignments.length > 0 ? roleAssignments[0].role : null;
+        
+        const getRoleType = (roleCode) => {
+          if (!roleCode) return null;
+          const code = roleCode.toLowerCase();
+          if (code.includes('super_admin') || code.includes('superadmin')) return 'super_admin';
+          if (code.includes('owner') || code.includes('مالك')) return 'owner';
+          if (code.includes('hr') || code.includes('موارد')) return 'hr';
+          if (code.includes('admin') || code.includes('إدارة')) return 'admin';
+          if (code.includes('instructor') || code.includes('معلم')) return 'instructor';
+          if (code.includes('student') || code.includes('طالب')) return 'student';
+          return null;
+        };
+        
+        const roleType = getRoleType(primaryRole?.code);
+        
+        return (
+          <div className="flex items-center gap-2">
+            {roleType ? (
+              React.cloneElement(getUserRoleIcon(roleType), { 
+                color: getUserRoleColor(roleType), 
+                size: 16 
+              })
+            ) : (
+              getThemedIcon('ui', 'user', 16, theme)
+            )}
+            <span className="text-sm">
+              {displayName}
+            </span>
+          </div>
+        );
+      }
     },
     {
       field: 'currentAssignee',
       headerName: t('workflow.inbox.assignedTo', 'Assigned To'),
       width: 180,
-      renderCell: (params) => (
-        <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-gray-400" />
-          <span className="text-sm">
-            {params.row.currentAssignee?.displayName || params.row.currentAssignee?.firstName || params.row.currentAssignee?.lastName || t('workflow.inbox.unassigned', 'Unassigned')}
-          </span>
-        </div>
-      )
+      renderCell: (params) => {
+        const assignee = params.row.currentAssignee;
+        
+        console.log('[WorkflowInbox] Assigned To Debug - Detailed:', {
+          assignee,
+          assigneeId: params.row.currentAssigneeId,
+          assigneeKeys: assignee ? Object.keys(assignee) : 'null',
+          assigneeDisplayName: assignee?.displayName,
+          assigneeFirstName: assignee?.firstName,
+          assigneeLastName: assignee?.lastName,
+          assigneeEmail: assignee?.email,
+          assigneeRoleAssignments: assignee?.roleAssignments,
+          submitterId: params.row.submitterId,
+          status: params.row.status,
+          row: params.row
+        });
+        
+        // If no assignee, show role based on workflow type
+        if (!assignee) {
+          const workflowType = params.row.workflowType;
+          let roleLabel = t('workflow.inbox.unassigned', 'Unassigned');
+          let roleIcon = getThemedIcon('ui', 'user', 16, theme);
+          
+          if (workflowType === 'ATTENDANCE_WEEKLY') {
+            roleLabel = t('roles.admin', 'Admin');
+            roleIcon = React.cloneElement(getUserRoleIcon('admin'), { color: getUserRoleColor('admin'), size: 16 });
+          } else if (workflowType === 'GENERAL') {
+            roleLabel = t('roles.hr', 'HR');
+            roleIcon = React.cloneElement(getUserRoleIcon('hr'), { color: getUserRoleColor('hr'), size: 16 });
+          }
+          
+          return (
+            <div className="flex items-center gap-2">
+              {roleIcon}
+              <span className="text-sm">
+                {roleLabel}
+              </span>
+            </div>
+          );
+        }
+
+        // Check if assignee has role assignments
+        const roleAssignments = assignee.roleAssignments || [];
+        const primaryRole = roleAssignments.length > 0 ? roleAssignments[0].role : null;
+        
+        console.log('[WorkflowInbox] Role assignments:', {
+          roleAssignments,
+          primaryRole,
+          roleCount: roleAssignments.length
+        });
+        
+        // Get role type from role code
+        const getRoleType = (roleCode) => {
+          if (!roleCode) return null;
+          const code = roleCode.toLowerCase();
+          if (code.includes('super_admin') || code.includes('superadmin')) return 'super_admin';
+          if (code.includes('owner') || code.includes('مالك')) return 'owner';
+          if (code.includes('hr') || code.includes('موارد')) return 'hr';
+          if (code.includes('admin') || code.includes('إدارة')) return 'admin';
+          if (code.includes('instructor') || code.includes('معلم')) return 'instructor';
+          if (code.includes('student') || code.includes('طالب')) return 'student';
+          return null;
+        };
+
+        const roleType = getRoleType(primaryRole?.code);
+        const displayName = assignee?.displayName || 
+                          (assignee?.firstName && assignee?.lastName ? `${assignee.firstName} ${assignee.lastName}` : null) ||
+                          assignee?.email ||
+                          t('workflow.inbox.unknown', 'Unknown');
+        
+        console.log('[WorkflowInbox] Final display:', {
+          roleType,
+          displayName,
+          primaryRoleCode: primaryRole?.code
+        });
+        
+        return (
+          <div className="flex items-center gap-2">
+            {roleType ? (
+              React.cloneElement(getUserRoleIcon(roleType), { 
+                color: getUserRoleColor(roleType), 
+                size: 16 
+              })
+            ) : (
+              getThemedIcon('ui', 'user', 16, theme)
+            )}
+            <span className="text-sm">
+              {displayName}
+            </span>
+          </div>
+        );
+      }
     },
     {
       field: 'createdAt',
@@ -214,12 +409,12 @@ const WorkflowInboxPage = () => {
         const submittedAt = params.row.submittedAt || params.row.createdAt;
         const slaInfo = getSlaInfo(submittedAt);
         return (
-          <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1">
             <Badge variant={slaInfo.badgeVariant} className="text-xs">
               {slaInfo.timeElapsed}
             </Badge>
             {slaInfo.isOverdue && (
-              <span className="text-xs text-red-600 font-medium">
+              <span className="text-xs text-red-600 font-medium whitespace-nowrap">
                 {t('workflow.inbox.overdue', 'Overdue')}
               </span>
             )}
@@ -230,24 +425,16 @@ const WorkflowInboxPage = () => {
     {
       field: 'actions',
       headerName: t('workflow.inbox.actions', 'Actions'),
-      width: 240,
+      width: 120,
       renderCell: (params) => (
         <div className="flex items-center gap-2">
           <Button
             variant="primary"
             size="sm"
-            onClick={() => navigate(`/workflow-documents/${params.row.id}`)}
+            onClick={() => window.open(`/workflow-documents/${params.row.id}`, '_blank')}
             className="h-8 px-3"
           >
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleShowWorkflowDiagram(params.row)}
-            className="h-8 px-3"
-          >
-            <Workflow className="h-4 w-4" />
+            {getThemedIcon('ui', 'eye', 16, 'white')}
           </Button>
         </div>
       )
@@ -269,64 +456,7 @@ const WorkflowInboxPage = () => {
 
   return (
     <div className="flex justify-center px-4 sm:px-6 lg:px-8 py-6">
-      <div className="max-w-7xl w-full space-y-6">
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-l-4 border-l-red-500 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-center gap-3">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-6 w-6 text-red-500" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {stats.urgent}
-                </div>
-                <div className="text-xs text-gray-600">
-                  {t('workflow.inbox.urgent', 'Urgent')}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-center gap-3">
-              <div className="flex-shrink-0">
-                <Clock className="h-6 w-6 text-orange-500" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {stats.pending}
-                </div>
-                <div className="text-xs text-gray-600">
-                  {t('workflow.inbox.pending', 'Pending')}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-green-500 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-center gap-3">
-              <div className="flex-shrink-0">
-                <CheckCircle className="h-6 w-6 text-green-500" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {stats.completed}
-                </div>
-                <div className="text-xs text-gray-600">
-                  {t('workflow.inbox.completed', 'Completed')}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <div className="max-w-[1600px] w-full space-y-6">
 
       {/* Filters */}
       <Card className="shadow-sm border-gray-200">
@@ -334,7 +464,9 @@ const WorkflowInboxPage = () => {
           <div className="flex items-center gap-4 flex-wrap">
             {/* Search - always visible */}
             <div className="relative flex-1 min-w-[200px] max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                {getThemedIcon('ui', 'search', 16, '#9ca3af')}
+              </div>
               <Input
                 placeholder={t('workflow.inbox.searchPlaceholder', 'Search documents...')}
                 value={filters.search || ''}
@@ -343,42 +475,59 @@ const WorkflowInboxPage = () => {
               />
             </div>
 
-            {/* View Filters - compact */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-600">{t('workflow.inbox.view', 'View')}:</span>
-              <div className="flex gap-1">
-                {[
-                  { value: 'all', label: t('workflow.inbox.all', 'All') },
-                  { value: 'needs_action', label: t('workflow.inbox.needsAction', 'Action') },
-                  { value: 'waiting', label: t('workflow.inbox.waiting', 'Waiting') },
-                  { value: 'completed', label: t('workflow.inbox.completed', 'Done') }
-                ].map((item) => (
-                  <Button
-                    key={item.value}
-                    variant={filters.viewMode === item.value ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => updateFilters({ viewMode: item.value })}
-                    className="h-8 px-3"
+            {/* Status Filter - badge toggles */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {[
+                { value: 'DRAFT', label: 'Draft', color: '#6b7280', icon: 'file_text' },
+                { value: 'SUBMITTED', label: 'Submitted', color: '#3b82f6', icon: 'send' },
+                { value: 'UNDER_REVIEW', label: 'HR Review', color: '#3b82f6', icon: 'alert_triangle' },
+                { value: 'UNDER_ADMIN_REVIEW', label: 'Admin Review', color: '#8b5cf6', icon: 'alert_triangle' },
+                { value: 'APPROVED', label: 'Approved', color: '#10b981', icon: 'check_circle' },
+                { value: 'REJECTED', label: 'Rejected', color: '#ef4444', icon: 'x_circle' }
+              ].map((status) => {
+                const isSelected = filters.status === status.value;
+                return (
+                  <button
+                    key={status.value}
+                    onClick={() => updateFilters({ status: isSelected ? '' : status.value })}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                    style={{
+                      backgroundColor: isSelected ? status.color : 'transparent',
+                      color: isSelected ? 'white' : status.color,
+                      border: `1px solid ${isSelected ? status.color : status.color}20`
+                    }}
                   >
-                    {item.label}
-                  </Button>
-                ))}
-              </div>
+                    {getThemedIcon('ui', status.icon, 14, isSelected ? 'white' : status.color)}
+                    {status.label}
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Status Filter - dropdown style */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-600">{t('workflow.inbox.status', 'Status')}:</span>
-              <select
-                value={filters.status || ''}
-                onChange={(e) => updateFilters({ status: e.target.value })}
-                className="h-8 px-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">{t('workflow.inbox.all', 'All')}</option>
-                {['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'UNDER_ADMIN_REVIEW', 'APPROVED', 'REJECTED', 'AMENDED', 'CLOSED'].map((status) => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
+            {/* Assignment Filter */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {[
+                { value: 'assigned_to_me', label: 'Me', color: '#8b5cf6', icon: 'user' },
+                { value: 'assigned_to_my_role', label: 'My Role', color: '#8b5cf6', icon: 'users' },
+                { value: 'i_own', label: 'I Own', color: '#10b981', icon: 'user_check' }
+              ].map((assignment) => {
+                const isSelected = filters.assignment === assignment.value;
+                return (
+                  <button
+                    key={assignment.value}
+                    onClick={() => updateFilters({ assignment: isSelected ? '' : assignment.value })}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                    style={{
+                      backgroundColor: isSelected ? assignment.color : 'transparent',
+                      color: isSelected ? 'white' : assignment.color,
+                      border: `1px solid ${isSelected ? assignment.color : assignment.color}20`
+                    }}
+                  >
+                    {getThemedIcon('ui', assignment.icon, 14, isSelected ? 'white' : assignment.color)}
+                    {assignment.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Action Buttons */}
@@ -391,12 +540,13 @@ const WorkflowInboxPage = () => {
                     viewMode: 'all',
                     search: '',
                     status: '',
-                    workflowType: ''
+                    workflowType: '',
+                    assignment: ''
                   });
                 }}
                 title={t('workflow.inbox.clearFilters', 'Clear filters')}
               >
-                <X className="h-4 w-4" />
+                {getThemedIcon('ui', 'x', 16, theme)}
               </Button>
               <Button
                 variant="ghost"
@@ -405,7 +555,7 @@ const WorkflowInboxPage = () => {
                 disabled={loading}
                 title={t('workflow.inbox.refresh', 'Refresh')}
               >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                {getThemedIcon('ui', 'refresh_cw', 16, theme)}
               </Button>
             </div>
           </div>
@@ -444,39 +594,12 @@ const WorkflowInboxPage = () => {
         <Card className="shadow-sm border-gray-200">
           <CardContent className="p-12 text-center">
             <EmptyState
-              icon={<CheckCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />}
+              icon={getThemedIcon('ui', 'check_circle', 64, '#d1d5db')}
               title={t('workflow.inbox.emptyTitle', 'No workflow items found')}
               description={t('workflow.inbox.emptyDescription', 'Adjust your filters to see existing items.')}
             />
           </CardContent>
         </Card>
-      )}
-
-      {/* Workflow Diagram Modal */}
-      {showWorkflowDiagram && selectedDocumentForWorkflow && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full h-full overflow-hidden">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="text-lg font-semibold">
-                {t('workflow.inbox.workflowProgress', 'Workflow Progress')}: {selectedDocumentForWorkflow.title}
-              </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowWorkflowDiagram(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="p-4 overflow-auto" style={{ height: 'calc(100vh - 60px)' }}>
-              <WorkflowDiagram
-                status={selectedDocumentForWorkflow.status}
-                workflowType={selectedDocumentForWorkflow.workflowType || 'ATTENDANCE_REPORT'}
-                onNodeClick={(nodeId) => console.log('Node clicked:', nodeId)}
-              />
-            </div>
-          </div>
-        </div>
       )}
       </div>
     </div>

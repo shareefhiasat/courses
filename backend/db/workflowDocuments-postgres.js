@@ -153,11 +153,15 @@ export async function getWorkflowDocumentsBySubmitter(submitterId, filters = {})
   try {
     const { status, workflowType, limit = 50, offset = 0 } = filters;
 
+    console.log('[getWorkflowDocumentsBySubmitter] submitterId:', submitterId, 'filters:', filters);
+
     const where = {
       submitterId,
       ...(status && { status }),
       ...(workflowType && { workflowType })
     };
+
+    console.log('[getWorkflowDocumentsBySubmitter] where clause:', JSON.stringify(where, null, 2));
 
     const documents = await prisma.workflowDocument.findMany({
       where,
@@ -167,7 +171,24 @@ export async function getWorkflowDocumentsBySubmitter(submitterId, filters = {})
             currentVersion: true
           }
         },
-        currentAssignee: true,
+        submitter: {
+          include: {
+            roleAssignments: {
+              include: {
+                role: true
+              }
+            }
+          }
+        },
+        currentAssignee: {
+          include: {
+            roleAssignments: {
+              include: {
+                role: true
+              }
+            }
+          }
+        },
         class: true
       },
       orderBy: { createdAt: 'desc' },
@@ -176,6 +197,17 @@ export async function getWorkflowDocumentsBySubmitter(submitterId, filters = {})
     });
 
     const total = await prisma.workflowDocument.count({ where });
+
+    console.log('[getWorkflowDocumentsBySubmitter] Documents returned:', documents.length, 'Total:', total);
+    console.log('[getWorkflowDocumentsBySubmitter] Document IDs:', documents.map(d => ({ 
+      id: d.id, 
+      title: d.title, 
+      status: d.status, 
+      submitterId: d.submitterId,
+      currentAssigneeId: d.currentAssigneeId,
+      submitter: d.submitter ? { id: d.submitter.id, displayName: d.submitter.displayName } : null,
+      currentAssignee: d.currentAssignee ? { id: d.currentAssignee.id, displayName: d.currentAssignee.displayName } : null
+    })));
 
     // Add fileVersionNumber and fileVersionAlias to each document
     const documentsWithVersionNumber = documents.map(doc => ({
@@ -248,10 +280,18 @@ export async function getWorkflowDocumentsByAssignee(assigneeId, filters = {}) {
       OR: [
         { currentAssigneeId: assigneeId },
         { currentAssigneeId: null }
-      ],
-      ...(status && { status }),
-      ...(workflowType && { workflowType })
+      ]
     };
+
+    // Add status filter if provided
+    if (status) {
+      where.status = status;
+    }
+
+    // Add workflowType filter if provided
+    if (workflowType) {
+      where.workflowType = workflowType;
+    }
 
     console.log('[getWorkflowDocumentsByAssignee] where clause:', JSON.stringify(where, null, 2));
 
@@ -263,7 +303,24 @@ export async function getWorkflowDocumentsByAssignee(assigneeId, filters = {}) {
             currentVersion: true
           }
         },
-        submitter: true,
+        submitter: {
+          include: {
+            roleAssignments: {
+              include: {
+                role: true
+              }
+            }
+          }
+        },
+        currentAssignee: {
+          include: {
+            roleAssignments: {
+              include: {
+                role: true
+              }
+            }
+          }
+        },
         class: true
       },
       orderBy: { createdAt: 'desc' },
@@ -365,7 +422,11 @@ export async function getCommentsByWorkflowDocument(workflowDocumentId) {
       where: {
         workflowDocumentId
       },
-      include: {
+      select: {
+        id: true,
+        comment: true,
+        authorId: true,
+        createdAt: true,
         author: true
       },
       orderBy: {

@@ -5,7 +5,7 @@
  * ARCHITECTURE: Centralized constants → Used across all workflow components
  */
 
-import { CheckCircle, XCircle, Clock, AlertCircle, GitBranch } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, AlertCircle, AlertTriangle, GitBranch, Send, FileText } from 'lucide-react';
 
 /**
  * Workflow Document Status Values
@@ -16,9 +16,7 @@ export const WORKFLOW_STATUS = {
   UNDER_REVIEW: 'UNDER_REVIEW',
   UNDER_ADMIN_REVIEW: 'UNDER_ADMIN_REVIEW',
   APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED',
-  AMENDED: 'AMENDED',
-  CLOSED: 'CLOSED'
+  REJECTED: 'REJECTED'
 };
 
 /**
@@ -31,9 +29,7 @@ export const WORKFLOW_STATUS_VARIANTS = {
   [WORKFLOW_STATUS.UNDER_REVIEW]: 'info',
   [WORKFLOW_STATUS.UNDER_ADMIN_REVIEW]: 'info',
   [WORKFLOW_STATUS.APPROVED]: 'success',
-  [WORKFLOW_STATUS.REJECTED]: 'destructive',
-  [WORKFLOW_STATUS.AMENDED]: 'warning',
-  [WORKFLOW_STATUS.CLOSED]: 'outline'
+  [WORKFLOW_STATUS.REJECTED]: 'destructive'
 };
 
 /**
@@ -111,13 +107,11 @@ export const getActionVariant = (action) => {
  */
 export const WORKFLOW_STATUS_COLOR_CLASSES = {
   [WORKFLOW_STATUS.DRAFT]: 'bg-gray-100 text-gray-800',
-  [WORKFLOW_STATUS.SUBMITTED]: 'bg-yellow-100 text-yellow-800',
+  [WORKFLOW_STATUS.SUBMITTED]: 'bg-blue-100 text-blue-800',
   [WORKFLOW_STATUS.UNDER_REVIEW]: 'bg-blue-100 text-blue-800',
   [WORKFLOW_STATUS.UNDER_ADMIN_REVIEW]: 'bg-blue-100 text-blue-800',
   [WORKFLOW_STATUS.APPROVED]: 'bg-green-100 text-green-800',
   [WORKFLOW_STATUS.REJECTED]: 'bg-red-100 text-red-800',
-  [WORKFLOW_STATUS.AMENDED]: 'bg-orange-100 text-orange-800',
-  [WORKFLOW_STATUS.CLOSED]: 'bg-gray-100 text-gray-800',
   // Legacy status support
   'REVIEW': 'bg-yellow-100 text-yellow-800'
 };
@@ -129,6 +123,29 @@ export const WORKFLOW_STATUS_COLOR_CLASSES = {
  */
 export const getStatusColorClasses = (status) => {
   return WORKFLOW_STATUS_COLOR_CLASSES[status] || 'bg-gray-100 text-gray-800';
+};
+
+/**
+ * Workflow Document Status Icons
+ * Centralized icon mapping for workflow document statuses
+ */
+export const WORKFLOW_STATUS_ICONS = {
+  [WORKFLOW_STATUS.DRAFT]: FileText,
+  [WORKFLOW_STATUS.SUBMITTED]: Send,
+  [WORKFLOW_STATUS.UNDER_REVIEW]: AlertTriangle,
+  [WORKFLOW_STATUS.UNDER_ADMIN_REVIEW]: AlertTriangle,
+  [WORKFLOW_STATUS.APPROVED]: CheckCircle,
+  [WORKFLOW_STATUS.REJECTED]: XCircle,
+  default: FileText
+};
+
+/**
+ * Get icon for workflow document status
+ * @param {string} status - The workflow status
+ * @returns {Component} The icon component
+ */
+export const getWorkflowStatusIcon = (status) => {
+  return WORKFLOW_STATUS_ICONS[status] || WORKFLOW_STATUS_ICONS.default;
 };
 
 /**
@@ -237,6 +254,8 @@ export default {
   getActionVariant,
   WORKFLOW_STATUS_COLOR_CLASSES,
   getStatusColorClasses,
+  WORKFLOW_STATUS_ICONS,
+  getWorkflowStatusIcon,
   SMARTDRIVE_WORKFLOW_STATUS,
   SMARTDRIVE_WORKFLOW_STATUS_ICONS,
   getSmartDriveWorkflowStatusIcon,

@@ -9,6 +9,7 @@ import {
   deleteFilePrivate
 } from '../services/business/driveService';
 import { createCustomWorkflow } from '../services/business/workflowDocumentService';
+import { getWorkflowDocuments } from '../services/api/workflow-documents-api.js';
 import CustomWorkflowDialog from '../components/workflow/CustomWorkflowDialog.jsx';
 import { info, error as logError } from '../services/utils/logger';
 
@@ -43,15 +44,44 @@ export default function DrivePage() {
           setError(result.error || 'Failed to load private files');
         }
       } else {
-        // Shared files not implemented yet
-        setSharedFiles([]);
+        // Load workflow documents for shared tab (documents assigned to user by role)
+        const userRoles = user?.roles || [];
+        const isHR = userRoles.includes('hr');
+        const isAdmin = userRoles.includes('admin');
+        
+        if (isHR || isAdmin) {
+          // Fetch workflow documents assigned to this role
+          const result = await getWorkflowDocuments({ role: 'assignee' });
+          if (result.success) {
+            // Transform workflow documents to match file structure
+            const workflowFiles = (result.data || []).map(doc => ({
+              id: doc.file?.id,
+              name: doc.title,
+              path: doc.file?.path || `/workflow/${doc.id}`,
+              mimeType: doc.file?.mimeType,
+              size: doc.file?.size || 0,
+              createdAt: doc.createdAt,
+              workflowId: doc.id,
+              status: doc.status,
+              submitter: doc.submitter?.displayName || doc.submitter?.email,
+              isWorkflow: true
+            }));
+            setSharedFiles(workflowFiles);
+          } else {
+            setError(result.error || 'Failed to load workflow documents');
+            setSharedFiles([]);
+          }
+        } else {
+          // Non-HR/Admin users don't have shared workflow documents
+          setSharedFiles([]);
+        }
       }
     } catch (err) {
       setError(err.message || 'Failed to load files');
     } finally {
       setLoading(false);
     }
-  }, [activeTab, user?.keycloakId]);
+  }, [activeTab, user?.keycloakId, user?.roles]);
 
   useEffect(() => {
     loadFiles();
@@ -284,31 +314,53 @@ export default function DrivePage() {
               <div key={file.path || file.name} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                 <div className="flex items-center gap-3 flex-1">
                   <FileText className="w-5 h-5 text-gray-400" />
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {file.name}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {file.size && `${(file.size / 1024).toFixed(2)} KB`}
-                    </p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                      {file.isWorkflow && file.status && (
+                        <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
+                          {file.status}
+                        </span>
+                      )}
+                      {file.isWorkflow && file.submitter && (
+                        <span>From: {file.submitter}</span>
+                      )}
+                      {file.size && !file.isWorkflow && `${(file.size / 1024).toFixed(2)} KB`}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {user?.roles?.includes('instructor') || user?.roles?.includes('hr') || user?.roles?.includes('admin') || user?.roles?.includes('super_admin') ? (
+                  {file.isWorkflow ? (
+                    // Workflow document - open detail page
                     <button
-                      onClick={() => handleCreateWorkflow(file)}
-                      className="p-2 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
-                      title={t('drive.actions.createWorkflow', 'Create Workflow')}
+                      onClick={() => navigate(`/workflow-documents/${file.workflowId}`)}
+                      className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                      title={t('drive.actions.viewWorkflow', 'View Workflow')}
                     >
-                      <GitBranch className="w-4 h-4" />
+                      <FileText className="w-4 h-4" />
                     </button>
-                  ) : null}
-                  <button
-                    onClick={() => handleDelete(file.path || file.filePath)}
-                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  ) : (
+                    // Regular file - show create workflow and delete buttons
+                    <>
+                      {user?.roles?.includes('instructor') || user?.roles?.includes('hr') || user?.roles?.includes('admin') || user?.roles?.includes('super_admin') ? (
+                        <button
+                          onClick={() => handleCreateWorkflow(file)}
+                          className="p-2 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+                          title={t('drive.actions.createWorkflow', 'Create Workflow')}
+                        >
+                          <GitBranch className="w-4 h-4" />
+                        </button>
+                      ) : null}
+                      <button
+                        onClick={() => handleDelete(file.path || file.filePath)}
+                        className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}

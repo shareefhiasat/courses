@@ -124,13 +124,22 @@ export function useFilters() {
       switch (filter.type) {
         case 'type': {
           const map = {
-            images: 'image/',
-            documents: 'application/',
-            videos: 'video/',
+            image: 'image/',
+            spreadsheet: 'application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            presentation: 'application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            document: 'application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf',
+            video: 'video/',
             audio: 'audio/',
-            archives: 'application/zip,application/x-rar,application/gzip,application/x-7z,application/x-tar,application/x-tgz',
+            archive: 'application/zip,application/x-rar,application/gzip,application/x-7z,application/x-tar,application/x-tgz',
+            'has-workflow': 'HAS_WORKFLOW',
           };
-          if (map[filter.value]) mimePrefixes.push(map[filter.value]);
+          if (map[filter.value]) {
+            if (filter.value === 'has-workflow') {
+              params.hasWorkflow = 'true';
+            } else {
+              mimePrefixes.push(map[filter.value]);
+            }
+          }
           break;
         }
         case 'date': {
@@ -144,12 +153,12 @@ export function useFilters() {
           break;
         }
         case 'owner':
-          if (filter.value === 'me') params.ownedOnly = true;
-          else if (filter.value === 'shared') params.sharedOnly = true;
+          if (filter.value === 'me') params.ownedOnly = 'true';
+          else if (filter.value === 'shared') params.sharedOnly = 'true';
           break;
         case 'status':
-          if (filter.value === 'starred') params.starredOnly = true;
-          else if (filter.value === 'trash') params.deletedOnly = true;
+          if (filter.value === 'starred') params.starredOnly = 'true';
+          else if (filter.value === 'trash') params.deletedOnly = 'true';
           else if (filter.value === 'recent') { params.sortField = 'updatedAt'; params.sortOrder = 'desc'; }
           break;
       }

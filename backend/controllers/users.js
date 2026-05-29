@@ -6,8 +6,50 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { getDatabaseUserId } from '../utils/userResolver.js';
 
 const prisma = new PrismaClient();
+
+/**
+ * GET /api/v1/users/me
+ * Get current user profile (lightweight - uses middleware-resolved data)
+ */
+export const getCurrentUserController = async (req, res) => {
+  try {
+    console.log('[getCurrentUserController] req.user:', req.user);
+    const user = req.user;
+    
+    if (!user) {
+      console.log('[getCurrentUserController] No user in request');
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized'
+      });
+    }
+
+    // Return the user object already resolved by middleware
+    // dbId is already resolved by keycloakAuth middleware
+    console.log('[getCurrentUserController] Returning user data:', { dbId: user.dbId, email: user.email });
+    return res.json({
+      success: true,
+      data: {
+        id: user.dbId,
+        keycloakId: user.keycloakId,
+        email: user.email,
+        displayName: user.displayName,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        dbId: user.dbId
+      }
+    });
+  } catch (error) {
+    console.error('[getCurrentUserController] Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+};
 
 /**
  * GET /api/v1/users

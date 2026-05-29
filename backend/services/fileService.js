@@ -328,6 +328,7 @@ export async function listFiles(keycloakUser, {
   rootOnly = false,
   ownedOnly = false,
   sharedOnly = false,
+  hasWorkflow = false,
 } = {}) {
   try {
     const userId = await getDatabaseUserId(keycloakUser);
@@ -499,6 +500,19 @@ export async function listFiles(keycloakUser, {
       }
     });
 
+    // Filter by hasWorkflow if requested
+    let filteredFiles = files;
+    if (hasWorkflow === 'true' || hasWorkflow === true) {
+      filteredFiles = files.filter(file => {
+        const counts = workflowCountsMap[file.id];
+        if (!counts) return false;
+        // Check if file has any active workflow (non-zero counts excluding cancelled)
+        return Object.entries(counts).some(([status, count]) => 
+          status !== 'cancelled' && count > 0
+        );
+      });
+    }
+
     // Add share counts for each file (people + groups)
     let fileShares = [];
     try {
@@ -556,7 +570,7 @@ export async function listFiles(keycloakUser, {
     });
 
     // Attach workflow and share counts to each file
-    const filesWithCounts = files.map(file => {
+    const filesWithCounts = filteredFiles.map(file => {
       const counts = workflowCountsMap[file.id] || {
         draft: 0,
         submitted: 0,

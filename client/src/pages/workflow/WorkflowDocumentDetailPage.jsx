@@ -21,7 +21,7 @@ import WorkflowDiagram from '@components/workflow/WorkflowDiagram.jsx';
 import WorkflowHistory from '@components/workflow/WorkflowHistory.jsx';
 import CollapsibleDashboardSection from '@components/ui/CollapsibleDashboardSection/CollapsibleDashboardSection.jsx';
 import VersionsTab from '@components/smart-drive/tabs/VersionsTab.jsx';
-import CommentsTab from '@components/smart-drive/tabs/CommentsTab.jsx';
+import WorkflowCommentsTab from '@components/workflow/WorkflowCommentsTab.jsx';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getStatusVariant, WORKFLOW_STATUS } from '@constants/workflowStatusTypes';
 import { getWorkflowDocument } from '@services/api/workflow-documents-api.js';
@@ -50,11 +50,11 @@ const WorkflowDocumentDetailPage = () => {
     return () => window.document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
-  // Polling for real-time status updates
+  // Polling for real-time updates (comments, revisions, status, history)
   useEffect(() => {
-    const pollInterval = 30000; // 30 seconds
+    const pollInterval = 10000; // 10 seconds
 
-    const pollStatus = async () => {
+    const pollUpdates = async () => {
       // Don't poll if tab is hidden or document is in terminal state
       if (!isVisible || !document || document.status === WORKFLOW_STATUS.APPROVED || document.status === WORKFLOW_STATUS.REJECTED) {
         return;
@@ -62,17 +62,21 @@ const WorkflowDocumentDetailPage = () => {
 
       try {
         const data = await getWorkflowDocument(documentId);
-        if (data.success && data.data.status !== document.status) {
-          // Status changed, update document
+        if (data.success) {
+          // Always update document to refresh comments, revisions, status, and history
           setDocument(data.data);
-          toast.info(t('workflow.document.statusUpdated', 'Document status has been updated'));
+          
+          // Show toast only if status changed
+          if (data.data.status !== document.status) {
+            toast.info(t('workflow.document.statusUpdated', 'Document status has been updated'));
+          }
         }
       } catch (err) {
-        console.error('Error polling status:', err);
+        console.error('Error polling updates:', err);
       }
     };
 
-    const intervalId = setInterval(pollStatus, pollInterval);
+    const intervalId = setInterval(pollUpdates, pollInterval);
 
     return () => clearInterval(intervalId);
   }, [document, documentId, t, toast, isVisible]);
@@ -116,8 +120,21 @@ const WorkflowDocumentDetailPage = () => {
     // Super Admin can review any document
     if (isSuperAdmin) return true;
     
-    // HR or Admin can review if they are the current assignee
-    return (isHR || isAdmin) && isCurrentAssignee && !isSubmitter;
+    // HR or Admin can review if:
+    // 1. They are the current assignee (specific user assignment)
+    // 2. OR the document is assigned to their role (role-based assignment)
+    if (isHR || isAdmin) {
+      if (isCurrentAssignee && !isSubmitter) return true;
+      
+      // Check role-based assignment
+      if (!document.currentAssigneeId) {
+        // Document is role-based assigned
+        if (isHR && document.workflowType === 'GENERAL') return true;
+        if (isAdmin && document.workflowType === 'ATTENDANCE_WEEKLY') return true;
+      }
+    }
+    
+    return false;
   };
 
   // Check if user can reject (only owner or super admin)
@@ -264,7 +281,71 @@ const WorkflowDocumentDetailPage = () => {
     return isAdmin && isWeeklySummary && isUnderAdminReview;
   };
 
-  // Check if user can withdraw document (only submitter, only SUBMITTED status)
+  // Check if user can re-upload document (HR/Admin during review)
+  const canReupload = () => {
+    if (!document || !user) return false;
+    const userRoles = user.roles || [];
+    const isHR = userRoles.includes('hr');
+    const isAdmin = userRoles.includes('admin');
+    const isSuperAdmin = userRoles.includes('super_admin');
+    const isSubmitter = document.submitterId === user.dbId;
+    const isCurrentAssignee = document.currentAssigneeId === user.dbId;
+    
+    // Super Admin can re-upload any document
+    if (isSuperAdmin) return true;
+    
+    // HR or Admin can re-upload if they can review the document
+    if (isHR || isAdmin) {
+      if (isCurrentAssignee && !isSubmitter) return true;
+      
+      // Check role-based assignment
+      if (!document.currentAssigneeId) {
+        if (isHR && document.workflowType === 'GENERAL') return true;
+        if (isAdmin && document.workflowType === 'ATTENDANCE_WEEKLY') return true;
+      }
+    }
+    
+    return false;
+  };
+
+  // Handle document re-upload
+  const handleReupload = async () => {
+    if (!resubmitFile) {
+      toast.error(t('workflow.document.fileRequired', 'File is required for re-upload'));
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const fileData = e.target.result.split(',')[1]; // Get base64 data
+        const result = await resubmitWorkflowDocument(documentId, {
+          fileData,
+          fileName: resubmitFile.name,
+          fileType: resubmitFile.type,
+          comment
+        });
+        if (result.success) {
+          toast.success(t('workflow.document.reuploaded', 'Document re-uploaded successfully'));
+          setActionModal(null);
+          setComment('');
+          setResubmitFile(null);
+          fetchDocument(); // Refresh document data
+        } else {
+          toast.error(result.error || t('workflow.document.reuploadError', 'Failed to re-upload document'));
+        }
+        setActionLoading(false);
+      };
+      reader.onerror = () => {
+        toast.error(t('workflow.document.fileReadError', 'Failed to read file'));
+        setActionLoading(false);
+      };
+      reader.readAsDataURL(resubmitFile);
+    } catch (err) {
+      toast.error(t('workflow.document.reuploadError', 'Failed to re-upload document'));
+      setActionLoading(false);
+    }
+  };
   const canWithdraw = () => {
     if (!document || !user) return false;
     const isSubmitter = document.submitterId === user.id;
@@ -374,6 +455,55 @@ const WorkflowDocumentDetailPage = () => {
     <div className="flex justify-center px-4 py-6">
       <div className="w-full space-y-8" style={{ maxWidth: '1400px' }}>
 
+      {/* Status Legend */}
+      <Card className="shadow-sm">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-6 text-sm flex-wrap">
+            {/* Status Legend */}
+            <div className="flex items-center gap-2">
+              {getThemedIcon('ui', 'file_text', 16, '#6b7280')}
+              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.status.draft', 'Draft')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {getThemedIcon('ui', 'send', 16, '#3b82f6')}
+              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.status.submitted', 'Submitted')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {getThemedIcon('ui', 'alert_triangle', 16, '#3b82f6')}
+              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.status.underReview', 'Under Review')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {getThemedIcon('ui', 'alert_triangle', 16, '#8b5cf6')}
+              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.status.underAdminReview', 'Under Admin Review')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {getThemedIcon('ui', 'check_circle', 16, '#10b981')}
+              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.status.approved', 'Approved')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {getThemedIcon('ui', 'x_circle', 16, '#ef4444')}
+              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.status.rejected', 'Rejected')}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Document Title and Description */}
+      <Card className="shadow-sm">
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">{document?.title || '-'}</h2>
+            </div>
+            {document?.description && (
+              <div>
+                <p className="text-gray-600">{document.description}</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Top row: Workflow Progress and Status History */}
       <div className="grid grid-cols-1 lg:grid-cols-[75%_25%]">
         {/* Workflow Progress */}
@@ -420,6 +550,16 @@ const WorkflowDocumentDetailPage = () => {
                     {getThemedIcon('ui', 'rotate_ccw', 16)}
                     {t('workflow.document.return', 'Return')}
                   </Button>
+                  {canReupload() && (
+                    <Button
+                      variant="info"
+                      size="sm"
+                      onClick={() => setActionModal('reupload')}
+                  >
+                    {getThemedIcon('ui', 'upload', 16)}
+                    {t('workflow.document.reupload', 'Re-upload')}
+                  </Button>
+                  )}
                 </>
               )}
               {canResubmit() && (
@@ -550,12 +690,12 @@ const WorkflowDocumentDetailPage = () => {
                     const blob = response.data || response;
                     const blobUrl = window.URL.createObjectURL(blob);
 
-                    const link = document.createElement('a');
+                    const link = window.document.createElement('a');
                     link.href = blobUrl;
                     link.download = '';
-                    document.body.appendChild(link);
+                    window.document.body.appendChild(link);
                     link.click();
-                    document.body.removeChild(link);
+                    window.document.body.removeChild(link);
                     window.URL.revokeObjectURL(blobUrl);
                   } catch (error) {
                     console.error('Download failed:', error);
@@ -570,7 +710,7 @@ const WorkflowDocumentDetailPage = () => {
 
             {/* Versions list using VersionsTab component */}
             <div style={{ height: '500px' }}>
-              <VersionsTab fileId={document.file.id} />
+              <VersionsTab fileId={document.file.id} useWorkflowEndpoint={true} />
             </div>
           </div>
         </div>
@@ -590,7 +730,7 @@ const WorkflowDocumentDetailPage = () => {
               {t('workflow.document.comments', 'Comments')}
             </h3>
           </div>
-          {document.file && <CommentsTab fileId={document.file.id} />}
+          <WorkflowCommentsTab workflowId={documentId} />
         </div>
       </div>
 
@@ -613,6 +753,8 @@ const WorkflowDocumentDetailPage = () => {
               ? t('workflow.document.returnTitle', 'Return Document')
               : actionModal === 'resubmit'
               ? t('workflow.document.resubmitTitle', 'Resubmit Document')
+              : actionModal === 'reupload'
+              ? t('workflow.document.reuploadTitle', 'Re-upload Document')
               : actionModal === 'upload-signed'
               ? t('workflow.document.uploadSignedTitle', 'Upload Signed Document')
               : t('workflow.document.withdrawTitle', 'Withdraw Document')
@@ -628,11 +770,13 @@ const WorkflowDocumentDetailPage = () => {
                 ? t('workflow.document.returnConfirm', 'Are you sure you want to return this document for revision? A comment is required.')
                 : actionModal === 'resubmit'
                 ? t('workflow.document.resubmitConfirm', 'Upload a new file to resubmit this document for review.')
+                : actionModal === 'reupload'
+                ? t('workflow.document.reuploadConfirm', 'Upload a modified file to replace the current document. This will keep the document in the same workflow stage.')
                 : actionModal === 'upload-signed'
                 ? t('workflow.document.uploadSignedConfirm', 'Upload the signed document after student signatures. This will reassign the document to HR for final review.')
                 : t('workflow.document.withdrawConfirm', 'Are you sure you want to withdraw this document? It will be reverted to DRAFT status and you can resubmit it after making corrections.')}
             </p>
-            {(actionModal === 'resubmit' || actionModal === 'upload-signed') && (
+            {(actionModal === 'resubmit' || actionModal === 'reupload' || actionModal === 'upload-signed') && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t('workflow.document.selectFile', 'Select File')}
@@ -640,7 +784,7 @@ const WorkflowDocumentDetailPage = () => {
                 <input
                   type="file"
                   onChange={(e) => {
-                    if (actionModal === 'resubmit') {
+                    if (actionModal === 'resubmit' || actionModal === 'reupload') {
                       setResubmitFile(e.target.files[0]);
                     } else {
                       setSignedFile(e.target.files[0]);
@@ -648,9 +792,9 @@ const WorkflowDocumentDetailPage = () => {
                   }}
                   className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
-                {(actionModal === 'resubmit' ? resubmitFile : signedFile) && (
+                {(actionModal === 'resubmit' || actionModal === 'reupload' ? resubmitFile : signedFile) && (
                   <p className="text-sm text-gray-600 mt-2">
-                    {t('workflow.document.selectedFile', 'Selected:')} {actionModal === 'resubmit' ? resubmitFile.name : signedFile.name}
+                    {t('workflow.document.selectedFile', 'Selected:')} {actionModal === 'resubmit' || actionModal === 'reupload' ? resubmitFile.name : signedFile.name}
                   </p>
                 )}
               </div>
@@ -686,6 +830,7 @@ const WorkflowDocumentDetailPage = () => {
                   else if (actionModal === 'reject') handleReject();
                   else if (actionModal === 'return') handleReturn();
                   else if (actionModal === 'resubmit') handleResubmit();
+                  else if (actionModal === 'reupload') handleReupload();
                   else if (actionModal === 'upload-signed') handleUploadSigned();
                   else if (actionModal === 'withdraw') handleWithdraw();
                 }}
@@ -701,6 +846,8 @@ const WorkflowDocumentDetailPage = () => {
                   ? t('workflow.document.return', 'Return')
                   : actionModal === 'resubmit'
                   ? t('workflow.document.resubmit', 'Resubmit')
+                  : actionModal === 'reupload'
+                  ? t('workflow.document.reupload', 'Re-upload')
                   : actionModal === 'upload-signed'
                   ? t('workflow.document.uploadSigned', 'Upload Signed')
                   : t('workflow.document.withdraw', 'Withdraw')}

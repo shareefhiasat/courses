@@ -64,7 +64,8 @@ const RoleGuard = ({
   if (!authorized) {
     warn(`[RoleGuard] Access denied to screen: ${screenId}`, {
       userRoles: user.roles,
-      screenId
+      screenId,
+      isSuperAdmin
     });
     
     // Redirect to unauthorized page with context

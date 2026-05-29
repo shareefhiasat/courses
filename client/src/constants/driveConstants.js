@@ -40,7 +40,7 @@ export const WORKFLOW_STATUS_MAP = {
  */
 export const WORKFLOW_STATUS_CONFIG = {
   draft: {
-    icon: 'edit',
+    icon: 'file_text',
     color: '#6b7280', // gray-500
     bg: 'rgba(107, 114, 128, 0.1)',
     borderColor: '#d1d5db',

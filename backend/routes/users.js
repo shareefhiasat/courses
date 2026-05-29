@@ -16,7 +16,8 @@ import {
   updateUserController,
   setPasswordController,
   setEnabledController,
-  deleteUserController
+  deleteUserController,
+  getCurrentUserController
 } from '../controllers/users.js';
 import { requireSuperAdmin } from '../middleware/keycloakAuth.js';
 
@@ -180,11 +181,56 @@ router.get('/subjects', getSubjectsController);
 // Temporarily disabled for testing - will re-enable after fixing token issue
 // router.get('/', requireSuperAdmin, listUsersController);
 router.get('/', listUsersController);
+router.get('/me', getCurrentUserController);
 router.get('/:id', getUserByIdController);
 router.post('/', createUserController);
 router.put('/:id', updateUserController);
 router.put('/:id/password', setPasswordController);
 router.put('/:id/enabled', setEnabledController);
 router.delete('/:id', deleteUserController);
+
+/**
+ * @swagger
+ * /users/me:
+ *   get:
+ *     summary: Get current user profile
+ *     description: Get the current authenticated user's profile including database ID
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     keycloakId:
+ *                       type: string
+ *                       example: "79d3cc1c-1257-4b94-8b39-10ee509cfb9e"
+ *                     displayName:
+ *                       type: string
+ *                       example: "Shareef Hiasat"
+ *                     email:
+ *                       type: string
+ *                       example: "shareef@example.com"
+ *                     firstName:
+ *                       type: string
+ *                       example: "Shareef"
+ *                     lastName:
+ *                       type: string
+ *                       example: "Hiasat"
+ */
+router.get('/me', getCurrentUserController);
 
 export default router;

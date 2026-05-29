@@ -12,10 +12,12 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useAuth } from '@contexts/AuthContext';
 import { getWorkflowDocuments } from '@services/business/workflowService';
 import { getSlaInfo, sortBySlaUrgency } from '@utils/sla.js';
 
 const useWorkflowInbox = (initialParams = {}, onNotification = null) => {
+  const { user } = useAuth();
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -30,6 +32,7 @@ const useWorkflowInbox = (initialParams = {}, onNotification = null) => {
     status: '',
     workflowType: '',
     search: '',
+    assignment: '', // 'assigned_to_me', 'assigned_to_my_role'
     sortBy: 'sla', // 'sla', 'createdAt', 'updatedAt'
     sortOrder: 'asc', // 'asc' for SLA (urgent first), 'desc' for dates
     ...initialParams
@@ -92,7 +95,7 @@ const useWorkflowInbox = (initialParams = {}, onNotification = null) => {
           } else if (currentDoc.status === 'REJECTED') {
             onNotification('error', 'Document Rejected', `"${currentDoc.title}" has been rejected`);
           } else if (currentDoc.status === 'UNDER_HR_REVIEW' || currentDoc.status === 'UNDER_ADMIN_REVIEW') {
-            onNotification('info', 'Document Under Review', `"${currentDoc.title}" is now under review`);
+            onNotification('info', 'Document Under Review', `"${currentDoc.title}" is now under HR review`);
           }
         }
         
@@ -124,9 +127,17 @@ const useWorkflowInbox = (initialParams = {}, onNotification = null) => {
         offset: 0
       };
       
+      // Add role parameter for HR/Admin users to see assignee inbox
+      const userRoles = user?.roles || [];
+      if (userRoles.includes('HR') || userRoles.includes('ADMIN') || userRoles.includes('SUPER_ADMIN')) {
+        apiParams.role = 'assignee';
+        console.log('[WorkflowInbox] User is HR/Admin, using role=assignee');
+      }
+      
       // Add status filter if specified
       if (filters.status) {
         apiParams.status = filters.status;
+        console.log('[WorkflowInbox] Status filter applied:', filters.status);
       }
       
       // Add workflow type filter if specified
@@ -136,21 +147,40 @@ const useWorkflowInbox = (initialParams = {}, onNotification = null) => {
       
       const result = await getWorkflowDocuments(apiParams);
       
+      console.log('[WorkflowInbox] API Result:', {
+        success: result.success,
+        dataCount: result.data?.length,
+        apiParams,
+        userDbId: result.userDbId
+      });
+      
       if (result.success) {
         let filteredDocs = result.data || [];
+        
+        // Use userDbId from API response if available, otherwise fall back to context
+        const currentUserDbId = result.userDbId || user?.dbId;
+        
+        console.log('[WorkflowInbox] Using userDbId:', currentUserDbId, {
+          fromApi: !!result.userDbId,
+          fromContext: !!user?.dbId
+        });
+        
+        console.log('[WorkflowInbox] Initial documents count:', filteredDocs.length);
         
         // Client-side filtering for view mode
         if (filters.viewMode === 'needs_action') {
           // Documents assigned to current user that need action
           filteredDocs = filteredDocs.filter(doc => {
-            const needsAction = ['SUBMITTED', 'UNDER_HR_REVIEW', 'UNDER_ADMIN_REVIEW'].includes(doc.status);
-            return needsAction;
+            const needsAction = ['SUBMITTED', 'UNDER_REVIEW', 'UNDER_ADMIN_REVIEW'].includes(doc.status);
+            const isAssignedToMe = doc.currentAssigneeId === user?.id;
+            return needsAction && isAssignedToMe;
           });
         } else if (filters.viewMode === 'waiting') {
           // Documents submitted by current user waiting for review
           filteredDocs = filteredDocs.filter(doc => {
-            const isWaiting = ['SUBMITTED', 'UNDER_HR_REVIEW', 'UNDER_ADMIN_REVIEW'].includes(doc.status);
-            return isWaiting;
+            const isWaiting = ['SUBMITTED', 'UNDER_REVIEW', 'UNDER_ADMIN_REVIEW'].includes(doc.status);
+            const isSubmittedByMe = doc.submitterId === user?.id;
+            return isWaiting && isSubmittedByMe;
           });
         } else if (filters.viewMode === 'completed') {
           // Completed documents
@@ -160,14 +190,116 @@ const useWorkflowInbox = (initialParams = {}, onNotification = null) => {
           });
         }
         
-        // Search filter
+        // Search filter - search all columns
         if (filters.search) {
           const searchTerm = String(filters.search).trim().toLowerCase();
           filteredDocs = filteredDocs.filter(doc => {
-            return (doc.title || '').toLowerCase().includes(searchTerm) ||
-                   (doc.description || '').toLowerCase().includes(searchTerm) ||
-                   (doc.submitter?.displayName || '').toLowerCase().includes(searchTerm);
+            // Search in document fields
+            const titleMatch = (doc.title || '').toLowerCase().includes(searchTerm);
+            const descriptionMatch = (doc.description || '').toLowerCase().includes(searchTerm);
+            const statusMatch = (doc.status || '').toLowerCase().includes(searchTerm);
+            const workflowTypeMatch = (doc.workflowType || '').toLowerCase().includes(searchTerm);
+            const programMatch = (doc.program || '').toLowerCase().includes(searchTerm);
+            const subjectMatch = (doc.subject || '').toLowerCase().includes(searchTerm);
+            
+            // Search in submitter
+            const submitterMatch = 
+              (doc.submitter?.displayName || '').toLowerCase().includes(searchTerm) ||
+              (doc.submitter?.firstName || '').toLowerCase().includes(searchTerm) ||
+              (doc.submitter?.lastName || '').toLowerCase().includes(searchTerm) ||
+              (doc.submitter?.email || '').toLowerCase().includes(searchTerm);
+            
+            // Search in assignee
+            const assigneeMatch = 
+              (doc.currentAssignee?.displayName || '').toLowerCase().includes(searchTerm) ||
+              (doc.currentAssignee?.firstName || '').toLowerCase().includes(searchTerm) ||
+              (doc.currentAssignee?.lastName || '').toLowerCase().includes(searchTerm) ||
+              (doc.currentAssignee?.email || '').toLowerCase().includes(searchTerm);
+            
+            // Search in class
+            const classMatch = (doc.class?.name || '').toLowerCase().includes(searchTerm);
+            
+            // Search in instructor
+            const instructorMatch = 
+              (doc.instructor?.displayName || '').toLowerCase().includes(searchTerm) ||
+              (doc.instructor?.firstName || '').toLowerCase().includes(searchTerm) ||
+              (doc.instructor?.lastName || '').toLowerCase().includes(searchTerm) ||
+              (doc.instructor?.email || '').toLowerCase().includes(searchTerm);
+            
+            return titleMatch || descriptionMatch || statusMatch || workflowTypeMatch || 
+                   programMatch || subjectMatch || submitterMatch || assigneeMatch || 
+                   classMatch || instructorMatch;
           });
+        }
+        
+        // Assignment filter
+        if (filters.assignment === 'assigned_to_me') {
+          console.log('[WorkflowInbox] Assignment filter: assigned_to_me', {
+            userId: user?.id,
+            currentAssigneeIds: filteredDocs.map(d => ({ id: d.id, assigneeId: d.currentAssigneeId }))
+          });
+          filteredDocs = filteredDocs.filter(doc => doc.currentAssigneeId === user?.id);
+          console.log('[WorkflowInbox] After assigned_to_me filter:', filteredDocs.length);
+        } else if (filters.assignment === 'assigned_to_my_role') {
+          // Get user's roles from AuthContext (uppercase strings like 'HR', 'ADMIN')
+          const userRoles = user?.roles || [];
+          console.log('[WorkflowInbox] Assignment filter: assigned_to_my_role', {
+            userRoles,
+            userId: user?.id
+          });
+          filteredDocs = filteredDocs.filter(doc => {
+            // For role-based assignments (currentAssigneeId is null), check workflowType
+            if (doc.currentAssigneeId === null) {
+              const isHR = userRoles.includes('HR');
+              const isAdmin = userRoles.includes('ADMIN') || userRoles.includes('SUPER_ADMIN');
+              
+              // HR can see GENERAL workflow documents
+              if (isHR && doc.workflowType === 'GENERAL') {
+                console.log('[WorkflowInbox] Document matches HR role filter (role-based):', {
+                  docId: doc.id,
+                  workflowType: doc.workflowType
+                });
+                return true;
+              }
+              
+              // Admin can see ATTENDANCE_WEEKLY workflow documents
+              if (isAdmin && doc.workflowType === 'ATTENDANCE_WEEKLY') {
+                console.log('[WorkflowInbox] Document matches Admin role filter (role-based):', {
+                  docId: doc.id,
+                  workflowType: doc.workflowType
+                });
+                return true;
+              }
+              
+              return false;
+            }
+            
+            // For specific user assignments, check if assignee has user's roles
+            const assigneeRoleCodes = doc.currentAssignee?.roleAssignments?.map(ra => ra.role?.code) || [];
+            const matches = assigneeRoleCodes.some(code => userRoles.includes(code));
+            if (matches) {
+              console.log('[WorkflowInbox] Document matches role filter (user assignment):', {
+                docId: doc.id,
+                assigneeRoleCodes,
+                userRoles
+              });
+            }
+            return matches;
+          });
+          console.log('[WorkflowInbox] After assigned_to_my_role filter:', filteredDocs.length);
+        } else if (filters.assignment === 'i_own') {
+          console.log('[WorkflowInbox] Assignment filter: i_own', {
+            userId: user?.id,
+            submitterKeycloakIds: filteredDocs.map(d => ({ id: d.id, submitterKeycloakId: d.submitter?.keycloakId }))
+          });
+          
+          if (!user?.id) {
+            console.warn('[WorkflowInbox] user.id is undefined, cannot filter by i_own.');
+            filteredDocs = [];
+          } else {
+            filteredDocs = filteredDocs.filter(doc => doc.submitter?.keycloakId === user?.id);
+          }
+          console.log('[WorkflowInbox] After i_own filter:', filteredDocs.length);
         }
         
         // Sort by SLA urgency (default) or date

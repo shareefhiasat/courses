@@ -248,11 +248,15 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
         // Remove from local state immediately - don't refetch since backend returns stale data
         setWorkflows(prev => prev.filter(w => w.id !== deleteModal.workflowId));
         setDeleteModal({ isOpen: false, workflowId: null });
+        // Refresh parent grid
+        if (onRefresh) onRefresh();
       } else {
         // If document is already deleted (404), treat as success
         if (result.error?.includes('not found') || result.status === 404) {
           setWorkflows(prev => prev.filter(w => w.id !== deleteModal.workflowId));
           setDeleteModal({ isOpen: false, workflowId: null });
+          // Refresh parent grid
+          if (onRefresh) onRefresh();
         } else {
           console.error('Failed to delete workflow:', result.error);
         }
@@ -263,11 +267,13 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
       if (error.response?.status === 404 || error.message?.includes('not found')) {
         setWorkflows(prev => prev.filter(w => w.id !== deleteModal.workflowId));
         setDeleteModal({ isOpen: false, workflowId: null });
+        // Refresh parent grid
+        if (onRefresh) onRefresh();
       }
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteModal.workflowId, isDeleting]);
+  }, [deleteModal.workflowId, isDeleting, onRefresh]);
 
   const handleRejectWorkflow = useCallback(async () => {
     if (!rejectModal.workflowId || !rejectModal.reason.trim()) return;
@@ -362,6 +368,8 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
         
         setActionModal({ isOpen: false, workflowId: null, action: null, comment: '', assignedUserId: null, assignedRole: null, assigneeType: ASSIGNEE_TYPES.USER });
         commentRef.current = '';
+        // Refresh parent grid after workflow action
+        if (onRefresh) onRefresh();
         // Don't call fetchWorkflow - backend returns stale data, local state update is sufficient
       } else {
         console.error('Failed to perform workflow action:', result.error);
@@ -369,7 +377,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
     } catch (error) {
       console.error('Error performing workflow action:', error);
     }
-  }, [actionModal, fetchWorkflow]);
+  }, [actionModal, fetchWorkflow, onRefresh]);
 
   const getAvailableActions = (status, currentUser, workflow) => {
     const normalizedStatus = status?.toUpperCase();

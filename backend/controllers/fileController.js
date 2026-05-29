@@ -206,6 +206,7 @@ export const listFiles = async (req, res) => {
       rootOnly = false,
       ownedOnly = false,
       sharedOnly = false,
+      hasWorkflow = false,
     } = req.query;
 
     const result = await fileService.listFiles(req.user, {
@@ -225,6 +226,7 @@ export const listFiles = async (req, res) => {
       rootOnly: rootOnly === 'true',
       ownedOnly: ownedOnly === 'true',
       sharedOnly: sharedOnly === 'true',
+      hasWorkflow: hasWorkflow === 'true',
     });
 
     if (!result.success) {

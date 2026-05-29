@@ -3,7 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { getIcon } from '@constants/iconTypes';
 import axios from 'axios';
 
-export default function VersionsTab({ fileId }) {
+export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
   const { t } = useLang();
   const [versions, setVersions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -17,13 +17,33 @@ export default function VersionsTab({ fileId }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`/api/v1/drive/files/${fileId}/versions`);
+      // Use workflow endpoint for workflow documents (no permission restrictions)
+      // Use drive endpoint for regular files (has permission checks)
+      const endpoint = useWorkflowEndpoint 
+        ? `/api/v1/workflow-documents/${fileId}/versions`
+        : `/api/v1/drive/files/${fileId}/versions`;
+      
+      const response = await axios.get(endpoint);
       if (response.data.success) {
-        setVersions(response.data.payload || []);
-        // Also fetch file info to check if it's a Collabora file
-        const fileResponse = await axios.get(`/api/v1/drive/files/${fileId}`);
-        if (fileResponse.data.success) {
-          setFileInfo(fileResponse.data.payload);
+        // Workflow endpoint returns { data: { file, versions, minioVersions } }
+        // Drive endpoint returns { payload: [...versions] }
+        const data = response.data.data;
+        if (useWorkflowEndpoint && data && data.versions) {
+          setVersions(data.versions);
+          setFileInfo(data.file);
+        } else {
+          setVersions(response.data.payload || data || []);
+          // Only fetch file info from drive endpoint for non-workflow files
+          if (!useWorkflowEndpoint) {
+            try {
+              const fileResponse = await axios.get(`/api/v1/drive/files/${fileId}`);
+              if (fileResponse.data.success) {
+                setFileInfo(fileResponse.data.payload);
+              }
+            } catch {
+              // ignore file info fetch failure
+            }
+          }
         }
       } else {
         setError(response.data.error?.message || 'Failed to fetch versions');
@@ -34,7 +54,7 @@ export default function VersionsTab({ fileId }) {
     } finally {
       setLoading(false);
     }
-  }, [fileId]);
+  }, [fileId, useWorkflowEndpoint]);
 
   useEffect(() => {
     fetchVersions();

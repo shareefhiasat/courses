@@ -178,7 +178,7 @@ export const keycloakAuth = (requiredRoles = []) => {
       
       // Normalize role names
       const normalizedRoles = userRoles.map(role => {
-        if (role === 'super-admin' || role === 'superadmin') return LMS_ROLES.SUPER_ADMIN;
+        if (role === 'super-admin' || role === 'superadmin' || role === 'super_admin') return ROLES.SUPER_ADMIN;
         return role.toLowerCase();
       });
       

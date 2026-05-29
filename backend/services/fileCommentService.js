@@ -73,7 +73,12 @@ export const getFileComments = async ({ fileId, userId }) => {
 
     const comments = await prisma.fileComment.findMany({
       where: { fileId },
-      include: {
+      select: {
+        id: true,
+        content: true,
+        userId: true,
+        createdAt: true,
+        updatedAt: true,
         user: {
           select: { id: true, email: true, displayName: true }
         }
@@ -150,11 +155,11 @@ export const deleteFileComment = async ({ commentId, userId }) => {
     }
 
     const roles = user.roleAssignments.map(ra => ra.role.code);
-    const isAdmin = roles.includes('SUPER_ADMIN') || roles.includes('ADMIN');
+    const isAdmin = roles.includes('SUPER_ADMIN') || roles.includes('ADMIN') || roles.includes('HR');
 
     console.log('[fileCommentService] User roles:', roles, 'isAdmin:', isAdmin);
 
-    // Only comment owner, file owner, or admin can delete
+    // Only comment owner, file owner, admin, or HR can delete
     if (comment.userId !== userId && comment.file.ownerId !== userId && !isAdmin) {
       console.log('[fileCommentService] Insufficient permissions');
       return {

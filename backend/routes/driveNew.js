@@ -451,6 +451,8 @@ router.get('/files/:fileId/download', async (req, res, next) => {
     const { fileId } = req.params;
     const actorUserId = req.user?.keycloakId;
 
+    console.log('[driveNew.js] Download request:', { fileId, actorUserId, userRoles: req.user?.roles });
+
     if (!actorUserId) {
       return res.status(401).json({ success: false, error: 'User not authenticated' });
     }
@@ -459,6 +461,66 @@ router.get('/files/:fileId/download', async (req, res, next) => {
     const user = await prisma.user.findUnique({ where: { keycloakId: actorUserId } });
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    console.log('[driveNew.js] User found:', { userId: user.id, email: user.email });
+
+    // Check if file is part of a workflow document
+    const workflowDoc = await prisma.workflowDocument.findFirst({
+      where: { fileId },
+      select: {
+        id: true,
+        submitterId: true,
+        currentAssigneeId: true,
+        workflowType: true,
+        status: true
+      }
+    });
+
+    console.log('[driveNew.js] Workflow document lookup:', { workflowDoc });
+
+    // If file is part of a workflow, check if user is a participant
+    if (workflowDoc) {
+      const userRoles = req.user?.roles || [];
+      const isHR = userRoles.includes('hr') || userRoles.includes('HR');
+      const isAdmin = userRoles.includes('admin') || userRoles.includes('ADMIN');
+      const isSuperAdmin = userRoles.includes('super_admin') || userRoles.includes('SUPER_ADMIN');
+      const isSubmitter = workflowDoc.submitterId === user.id;
+      const isAssignee = workflowDoc.currentAssigneeId === user.id;
+
+      console.log('[driveNew.js] Workflow permission check:', {
+        userRoles,
+        isHR,
+        isAdmin,
+        isSuperAdmin,
+        isSubmitter,
+        isAssignee,
+        workflowType: workflowDoc.workflowType
+      });
+
+      // Allow download if user is:
+      // - Submitter
+      // - Current assignee
+      // - HR (for GENERAL workflows)
+      // - Admin (for ATTENDANCE_WEEKLY workflows)
+      // - Super Admin (any workflow)
+      if (isSubmitter || isAssignee || isSuperAdmin) {
+        console.log('[driveNew.js] Workflow participant allowed download:', { fileId, userId: user.id, reason: 'participant' });
+        return next();
+      }
+
+      if (isHR && workflowDoc.workflowType === 'GENERAL') {
+        console.log('[driveNew.js] HR allowed download for GENERAL workflow:', { fileId, userId: user.id });
+        return next();
+      }
+
+      if (isAdmin && workflowDoc.workflowType === 'ATTENDANCE_WEEKLY') {
+        console.log('[driveNew.js] Admin allowed download for ATTENDANCE_WEEKLY workflow:', { fileId, userId: user.id });
+        return next();
+      }
+
+      console.log('[driveNew.js] Workflow participant denied download:', { fileId, userId: user.id, userRoles, workflowType: workflowDoc.workflowType });
+      return res.status(403).json({ success: false, error: 'No workflow access permission' });
     }
 
     // Check download permission (VIEW is sufficient for download)

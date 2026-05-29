@@ -195,11 +195,18 @@ export const getWorkflowDocumentsController = async (req, res) => {
       });
     }
 
+    console.log('[getWorkflowDocumentsController] user.dbId:', user.dbId, 'role:', role, 'status:', status, 'user.roles:', user.roles);
+    console.log('[getWorkflowDocumentsController] result:', result.success ? `success, ${result.data?.length} docs` : 'failed');
+    if (result.success && result.data) {
+      console.log('[getWorkflowDocumentsController] document statuses:', result.data.map(d => ({ id: d.id, status: d.status })));
+    }
+
     if (result.success) {
       res.status(200).json({
         success: true,
         data: result.data,
-        total: result.total
+        total: result.total,
+        userDbId: user.dbId  // Include user's database ID for frontend filtering
       });
     } else {
       res.status(400).json({
@@ -336,8 +343,10 @@ export const addWorkflowCommentController = async (req, res) => {
 export const deleteWorkflowCommentController = async (req, res) => {
   try {
     const { commentId } = req.params;
+    const userId = req.user?.dbId;
+    const userRoles = req.user?.roles || [];
 
-    const result = await deleteComment(commentId);
+    const result = await deleteComment(commentId, userId, userRoles);
 
     if (result.success) {
       res.status(200).json({

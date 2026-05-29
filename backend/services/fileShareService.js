@@ -331,8 +331,66 @@ export async function listSharedWithMe(actor) {
       },
     });
 
+    // Add workflow counts for shared files
+    const fileIds = v2FileShares.map(share => share.fileId);
+    let workflowInstances = [];
+    let workflowDocuments = [];
+    try {
+      workflowInstances = await prisma.workflowInstance.findMany({
+        where: { fileId: { in: fileIds } },
+        select: { fileId: true, status: true },
+      });
+      workflowDocuments = await prisma.workflowDocument.findMany({
+        where: { fileId: { in: fileIds } },
+        select: { fileId: true, status: true },
+      });
+    } catch (error) {
+      console.error('[listSharedWithMe] Failed to fetch workflow counts:', error);
+    }
+
+    // Aggregate workflow counts by file
+    const workflowCountsMap = {};
+    workflowInstances.forEach(instance => {
+      if (!workflowCountsMap[instance.fileId]) {
+        workflowCountsMap[instance.fileId] = {
+          draft: 0, submitted: 0, in_review: 0, approved: 0, rejected: 0, cancelled: 0,
+        };
+      }
+      const statusMap = {
+        DRAFT: 'draft', SUBMITTED: 'submitted', IN_REVIEW: 'in_review',
+        APPROVED: 'approved', REJECTED: 'rejected', CANCELLED: 'cancelled',
+      };
+      const mappedStatus = statusMap[instance.status] || 'draft';
+      workflowCountsMap[instance.fileId][mappedStatus]++;
+    });
+
+    workflowDocuments.forEach(doc => {
+      if (!workflowCountsMap[doc.fileId]) {
+        workflowCountsMap[doc.fileId] = {
+          draft: 0, submitted: 0, in_review: 0, approved: 0, rejected: 0, cancelled: 0,
+        };
+      }
+      const statusMap = {
+        DRAFT: 'draft', SUBMITTED: 'submitted', UNDER_REVIEW: 'in_review',
+        APPROVED: 'approved', REJECTED: 'rejected', NEEDS_REVISION: 'draft', WITHDRAWN: 'cancelled',
+      };
+      const mappedStatus = statusMap[doc.status] || 'draft';
+      workflowCountsMap[doc.fileId][mappedStatus]++;
+    });
+
+    // Attach workflow counts to file shares
+    const filesWithCounts = v2FileShares.map(share => ({
+      ...share,
+      file: {
+        ...share.file,
+        workflowCounts: workflowCountsMap[share.fileId] || {
+          draft: 0, submitted: 0, in_review: 0, approved: 0, rejected: 0, cancelled: 0,
+        },
+      },
+    }));
+
     return ok({
-      files: v2FileShares,
+      files: filesWithCounts,
       folders: v2FolderShares,
     });
   } catch (error) {
@@ -386,8 +444,66 @@ export async function listSharedByMe(actor) {
       },
     });
 
+    // Add workflow counts for shared files
+    const fileIds = v2FileShares.map(share => share.fileId);
+    let workflowInstances = [];
+    let workflowDocuments = [];
+    try {
+      workflowInstances = await prisma.workflowInstance.findMany({
+        where: { fileId: { in: fileIds } },
+        select: { fileId: true, status: true },
+      });
+      workflowDocuments = await prisma.workflowDocument.findMany({
+        where: { fileId: { in: fileIds } },
+        select: { fileId: true, status: true },
+      });
+    } catch (error) {
+      console.error('[listSharedByMe] Failed to fetch workflow counts:', error);
+    }
+
+    // Aggregate workflow counts by file
+    const workflowCountsMap = {};
+    workflowInstances.forEach(instance => {
+      if (!workflowCountsMap[instance.fileId]) {
+        workflowCountsMap[instance.fileId] = {
+          draft: 0, submitted: 0, in_review: 0, approved: 0, rejected: 0, cancelled: 0,
+        };
+      }
+      const statusMap = {
+        DRAFT: 'draft', SUBMITTED: 'submitted', IN_REVIEW: 'in_review',
+        APPROVED: 'approved', REJECTED: 'rejected', CANCELLED: 'cancelled',
+      };
+      const mappedStatus = statusMap[instance.status] || 'draft';
+      workflowCountsMap[instance.fileId][mappedStatus]++;
+    });
+
+    workflowDocuments.forEach(doc => {
+      if (!workflowCountsMap[doc.fileId]) {
+        workflowCountsMap[doc.fileId] = {
+          draft: 0, submitted: 0, in_review: 0, approved: 0, rejected: 0, cancelled: 0,
+        };
+      }
+      const statusMap = {
+        DRAFT: 'draft', SUBMITTED: 'submitted', UNDER_REVIEW: 'in_review',
+        APPROVED: 'approved', REJECTED: 'rejected', NEEDS_REVISION: 'draft', WITHDRAWN: 'cancelled',
+      };
+      const mappedStatus = statusMap[doc.status] || 'draft';
+      workflowCountsMap[doc.fileId][mappedStatus]++;
+    });
+
+    // Attach workflow counts to file shares
+    const filesWithCounts = v2FileShares.map(share => ({
+      ...share,
+      file: {
+        ...share.file,
+        workflowCounts: workflowCountsMap[share.fileId] || {
+          draft: 0, submitted: 0, in_review: 0, approved: 0, rejected: 0, cancelled: 0,
+        },
+      },
+    }));
+
     return ok({
-      files: v2FileShares,
+      files: filesWithCounts,
       folders: v2FolderShares,
     });
   } catch (error) {

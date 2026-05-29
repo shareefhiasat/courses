@@ -57,15 +57,39 @@ export async function canAccessFile(fileId, actor) {
   if (file.ownerId === actor.userId) return ok('EDIT');
   if ((actor.roles || []).includes(SUPER_ADMIN_ROLE)) return ok('EDIT');
 
-  // Check if user is a workflow participant (initiatedBy, assignee, or actor)
+  // Check if user is a workflow participant via WorkflowDocument (simple workflow system)
+  const workflowDoc = await prisma.workflowDocument.findFirst({
+    where: { fileId },
+    select: {
+      submitterId: true,
+      currentAssigneeId: true,
+    },
+  });
+
+  if (workflowDoc) {
+    const isSubmitter = workflowDoc.submitterId === actor.userId;
+    const isAssignee = workflowDoc.currentAssigneeId === actor.userId;
+    // HR/Admin roles are always workflow participants in the simple document system
+    const actorRolesUpper = (actor.roles || []).map(r => r.toUpperCase());
+    const isHRorAdmin = actorRolesUpper.includes('HR') || actorRolesUpper.includes('ADMIN') || actorRolesUpper.includes('SUPER_ADMIN');
+
+    if (isSubmitter || isAssignee || isHRorAdmin) {
+      return ok('COMMENT'); // Workflow participants get COMMENT access (includes VIEW + DOWNLOAD + COMMENT)
+    }
+  }
+
+  // Check if user is a workflow participant via WorkflowInstance (engine-based workflow)
   const workflowInstance = await prisma.workflowInstance.findFirst({
     where: { fileId },
     select: {
       initiatedById: true,
+      assignedUserId: true,
+      assignedRole: true,
       steps: {
         select: {
           assignedUserId: true,
           actedById: true,
+          assignedRoles: true,
         },
       },
     },
@@ -73,11 +97,18 @@ export async function canAccessFile(fileId, actor) {
 
   if (workflowInstance) {
     const isInitiator = workflowInstance.initiatedById === actor.userId;
-    const isAssignee = workflowInstance.steps.some(step => step.assignedUserId === actor.userId);
+    const isDirectAssignee = workflowInstance.assignedUserId === actor.userId;
+    const actorRolesUpper = (actor.roles || []).map(r => r.toUpperCase());
+    const instanceRoleUpper = workflowInstance.assignedRole?.toUpperCase();
+    const isRoleAssignee = instanceRoleUpper && actorRolesUpper.includes(instanceRoleUpper);
+    const isStepAssignee = workflowInstance.steps.some(step => step.assignedUserId === actor.userId);
+    const isStepRoleAssignee = workflowInstance.steps.some(step =>
+      (step.assignedRoles || []).some(r => actorRolesUpper.includes(r?.toUpperCase()))
+    );
     const isActor = workflowInstance.steps.some(step => step.actedById === actor.userId);
-    
-    if (isInitiator || isAssignee || isActor) {
-      return ok('VIEW'); // Workflow participants get VIEW access by default
+
+    if (isInitiator || isDirectAssignee || isRoleAssignee || isStepAssignee || isStepRoleAssignee || isActor) {
+      return ok('COMMENT'); // Workflow participants get COMMENT access (includes VIEW + DOWNLOAD + COMMENT)
     }
   }
 

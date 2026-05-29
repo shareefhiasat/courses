@@ -31,6 +31,7 @@ const prisma = new PrismaClient();
 /**
  * Get appropriate assignee based on workflow type
  * ATTENDANCE_WEEKLY → Admin user
+ * GENERAL → HR user
  * Other types → HR user (or null for manual assignment)
  */
 async function getAssigneeForWorkflowType(workflowType) {
@@ -42,7 +43,15 @@ async function getAssigneeForWorkflowType(workflowType) {
       return adminUsers[0].userId;
     }
   }
-  // For other types, return null (will be assigned to HR role via notification)
+  
+  // For GENERAL and other types, assign to HR
+  const hrUsers = await byRole('hr');
+  if (hrUsers.length > 0) {
+    // Return first HR user (could be enhanced with round-robin or workload-based selection)
+    return hrUsers[0].userId;
+  }
+  
+  // Fallback: return null if no HR users found
   return null;
 }
 
@@ -254,8 +263,44 @@ export async function getCommentsByWorkflowDocument(workflowDocumentId) {
 /**
  * Delete workflow comment
  */
-export async function deleteComment(commentId) {
-  return await deleteWorkflowCommentFromDB(commentId);
+export async function deleteComment(commentId, userId, userRoles) {
+  try {
+    console.log('[deleteComment] Called with:', { commentId, userId, userRoles });
+
+    // Get the comment to check ownership
+    const comment = await prisma.workflowComment.findUnique({
+      where: { id: parseInt(commentId) },
+      select: {
+        id: true,
+        authorId: true,
+        workflowDocument: {
+          select: {
+            submitterId: true
+          }
+        }
+      }
+    });
+
+    console.log('[deleteComment] Comment found:', comment);
+
+    if (!comment) {
+      return { success: false, error: 'Comment not found' };
+    }
+
+    // Check if user is Super Admin
+    const isSuperAdmin = userRoles.includes('super_admin');
+    console.log('[deleteComment] Permission check:', { commentAuthorId: comment.authorId, userId, isSuperAdmin, userRoles });
+
+    // Only comment author or Super Admin can delete
+    if (comment.authorId !== userId && !isSuperAdmin) {
+      return { success: false, error: 'Insufficient permissions to delete comment' };
+    }
+
+    return await deleteWorkflowCommentFromDB(commentId);
+  } catch (error) {
+    console.error('Error in deleteComment:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 /**
@@ -633,8 +678,10 @@ export async function getAnalyticsData(filters) {
  */
 export async function listFileVersions(fileId) {
   try {
-    // Get file record
-    const file = await prisma.file.findUnique({
+    console.log('[listFileVersions] Called with fileId:', fileId);
+
+    // Get file record — fileId may be the File UUID or a WorkflowDocument ID
+    let file = await prisma.file.findUnique({
       where: { id: fileId },
       include: {
         versions: {
@@ -643,12 +690,48 @@ export async function listFileVersions(fileId) {
       }
     });
 
+    console.log('[listFileVersions] File lookup result:', file ? 'Found' : 'Not found');
+
+    // If not found directly, try looking up via WorkflowDocument.fileId
     if (!file) {
+      console.log('[listFileVersions] Trying to find via WorkflowDocument.fileId');
+      const wdoc = await prisma.workflowDocument.findFirst({
+        where: { fileId },
+        include: {
+          file: {
+            include: {
+              versions: {
+                orderBy: { versionNumber: 'desc' }
+              }
+            }
+          }
+        }
+      });
+
+      console.log('[listFileVersions] WorkflowDocument lookup result:', wdoc ? 'Found' : 'Not found');
+
+      if (wdoc?.file) {
+        file = wdoc.file;
+      }
+    }
+
+    if (!file) {
+      console.error('[listFileVersions] File not found for fileId:', fileId);
       return { success: false, error: 'File not found' };
     }
 
-    // Get MinIO versions
-    const minioVersions = await listObjectVersions(file.bucket, file.s3Key);
+    // Get MinIO versions - handle invalid bucket names
+    let minioVersions = [];
+    try {
+      minioVersions = await listObjectVersions(file.bucket, file.s3Key);
+    } catch (error) {
+      if (error.message && error.message.includes('Invalid bucket name')) {
+        console.warn('[listFileVersions] Invalid bucket name, skipping MinIO versions:', file.bucket);
+        // Continue without MinIO versions
+      } else {
+        throw error;
+      }
+    }
 
     return {
       success: true,

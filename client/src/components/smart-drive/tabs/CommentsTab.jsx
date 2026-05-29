@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
+import { useAuth } from '@contexts/AuthContext';
 import { getIcon } from '@constants/iconTypes';
 import { Button } from '@ui';
 import Modal from '@ui/Modal/Modal';
@@ -7,6 +8,7 @@ import axios from 'axios';
 
 export default function CommentsTab({ fileId, isOwnedByUser = true }) {
   const { t } = useLang();
+  const { user } = useAuth();
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
@@ -362,7 +364,19 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                             {formatDateTime(comment.createdAt)}
                           </span>
-                          {isOwnedByUser && (
+                          {(() => {
+                            const isAuthor = comment.userId === user?.dbId;
+                            const isSuperAdmin = user?.roles?.includes('SUPER_ADMIN');
+                            console.log('[CommentsTab Delete Check]', {
+                              commentUserId: comment.userId,
+                              userDbId: user?.dbId,
+                              isAuthor,
+                              userRoles: user?.roles,
+                              isSuperAdmin,
+                              canDelete: isAuthor || isSuperAdmin
+                            });
+                            return isAuthor || isSuperAdmin;
+                          })() && (
                             <button
                               onClick={() => handleDeleteComment(comment.id)}
                               style={{

@@ -63,7 +63,7 @@ const router = Router();
  *           example: "Attendance for Mathematics class"
  *         status:
  *           type: string
- *           enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, AMENDED, CLOSED]
+ *           enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, AMENDED]
  *           description: Document status
  *           example: SUBMITTED
  *         fileId:
@@ -181,7 +181,7 @@ router.post('/', createWorkflowDocumentController);
  *         name: status
  *         schema:
  *           type: string
- *           enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, AMENDED, CLOSED]
+ *           enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, AMENDED]
  *         description: Filter by status
  *       - in: query
  *         name: workflowType
@@ -289,7 +289,7 @@ router.delete('/:id', deleteWorkflowDocumentController);
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, AMENDED, CLOSED]
+ *                 enum: [DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, AMENDED]
  *               reason:
  *                 type: string
  *                 description: Reason for status change

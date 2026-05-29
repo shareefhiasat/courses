@@ -377,33 +377,48 @@ export default function WorkflowCommentsTab({ workflowId }) {
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                           {formatDateTime(comment.createdAt)}
                         </span>
-                        <button
-                          onClick={() => handleDeleteComment(comment.id)}
-                          style={{
-                            color: '#dc2626',
-                            textDecoration: 'none',
-                            whiteSpace: 'nowrap',
-                            background: 'none',
-                            border: '1px solid var(--border, #e5e7eb)',
-                            cursor: 'pointer',
-                            padding: '0.375rem',
-                            borderRadius: '0.375rem',
-                            transition: 'all 0.15s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = '#dc2626';
-                            e.currentTarget.style.background = 'rgba(220, 38, 38, 0.1)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
-                            e.currentTarget.style.background = 'transparent';
-                          }}
-                        >
-                          {getIcon('ui', 'trash', 16, '#dc2626')}
-                        </button>
+                        {/* Only show delete button for comment author or Super Admin */}
+                        {(() => {
+                          const isAuthor = comment.authorId === user?.dbId;
+                          const isSuperAdmin = user?.roles?.includes('SUPER_ADMIN');
+                          console.log('[WorkflowCommentsTab Delete Check]', {
+                            commentAuthorId: comment.authorId,
+                            userDbId: user?.dbId,
+                            isAuthor,
+                            userRoles: user?.roles,
+                            isSuperAdmin,
+                            canDelete: isAuthor || isSuperAdmin
+                          });
+                          return isAuthor || isSuperAdmin;
+                        })() && (
+                          <button
+                            onClick={() => handleDeleteComment(comment.id)}
+                            style={{
+                              color: '#dc2626',
+                              textDecoration: 'none',
+                              whiteSpace: 'nowrap',
+                              background: 'none',
+                              border: '1px solid var(--border, #e5e7eb)',
+                              cursor: 'pointer',
+                              padding: '0.375rem',
+                              borderRadius: '0.375rem',
+                              transition: 'all 0.15s ease',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = '#dc2626';
+                              e.currentTarget.style.background = 'rgba(220, 38, 38, 0.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
+                              e.currentTarget.style.background = 'transparent';
+                            }}
+                          >
+                            {getIcon('ui', 'trash', 16, '#dc2626')}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </article>
