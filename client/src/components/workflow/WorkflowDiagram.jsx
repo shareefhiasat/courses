@@ -1,17 +1,34 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
   MarkerType,
-  BackgroundVariant
+  BackgroundVariant,
+  applyNodeChanges
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import dagre from 'dagre';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { Tooltip } from '@ui';
-import { Send } from 'lucide-react';
+import { Send, RotateCcw, Download, Layout, Minimize2, Maximize2, X } from 'lucide-react';
+
+// Create Dagre graph instance
+const dagreGraph = new dagre.graphlib.Graph();
+dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+// Custom node component with tooltip
+const WorkflowNode = ({ data }) => {
+  const { historyEntry, actorName, entryDate, comment, description } = data;
+  
+  return (
+    <div className="w-full h-full">
+      {data.label}
+    </div>
+  );
+};
 
 // Define workflow rules outside component to avoid React Flow warning
 const WORKFLOW_RULES = {
@@ -123,6 +140,10 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document,
   const { lang, t } = useLang();
   const { theme } = useTheme();
   const [viewMode, setViewMode] = useState('flow'); // 'flow' or 'timeline'
+  const [layoutMode, setLayoutMode] = useState('default'); // 'default', 'hierarchical', 'compact'
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const reactFlowInstance = useRef(null);
+  const [nodes, setNodes] = useState([]);
 
   // Helper function to get role icon with color
   const getRoleIcon = (roleName) => {
@@ -179,21 +200,68 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document,
     return '<1h';
   };
 
-  // Generate nodes
-  const nodes = useMemo(() => {
+  // Dagre layout function for auto-arranging nodes
+  const getLayoutedElements = (nodes, edges, direction = 'LR') => {
     const isRTL = lang === 'ar';
-    const nodeWidth = 260;
-    const nodeHeight = 160;
-    const gap = 80;
-    const startX = isRTL ? 900 : 50;
-    const direction = isRTL ? -1 : 1;
+    let nodeWidth = 200;
+    let nodeHeight = 120;
+    let ranksep = 100;
+    let nodesep = 100;
+
+    // Adjust based on layout mode
+    if (layoutMode === 'compact') {
+      nodeWidth = 160;
+      nodeHeight = 100;
+      ranksep = 50;
+      nodesep = 50;
+    } else if (layoutMode === 'hierarchical') {
+      nodeWidth = 220;
+      nodeHeight = 140;
+      ranksep = 150;
+      nodesep = 120;
+    }
+
+    dagreGraph.setGraph({ 
+      rankdir: isRTL ? 'RL' : direction,
+      ranksep,
+      nodesep
+    });
+
+    nodes.forEach((node) => {
+      dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+    });
+
+    edges.forEach((edge) => {
+      dagreGraph.setEdge(edge.source, edge.target);
+    });
+
+    dagre.layout(dagreGraph);
+
+    const layoutedNodes = nodes.map((node) => {
+      const nodeWithPosition = dagreGraph.node(node.id);
+      return {
+        ...node,
+        sourcePosition: isRTL ? 'left' : 'right',
+        targetPosition: isRTL ? 'right' : 'left',
+        position: {
+          x: nodeWithPosition.x - nodeWidth / 2,
+          y: nodeWithPosition.y - nodeHeight / 2,
+        },
+      };
+    });
+
+    return { nodes: layoutedNodes, edges };
+  };
+
+  // Generate nodes
+  const initialNodes = useMemo(() => {
+    const nodeWidth = 200;
+    const nodeHeight = 120;
 
     // Get status history for dates and actors
     const statusHistory = document?.statusHistory || [];
 
-    return workflowStages.map((stage, index) => {
-      const x = startX + (index * (nodeWidth + gap) * direction);
-      const y = 100;
+    const generatedNodes = workflowStages.map((stage, index) => {
 
       // Determine node style based on status
       let backgroundColor = '#f9fafb';
@@ -227,40 +295,52 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document,
       // Find the status history entry for this stage
       const historyEntry = statusHistory.find(h => h.toStatus === stage.status);
       const nextEntry = statusHistory[statusHistory.findIndex(h => h.toStatus === stage.status) + 1];
-      const actorName = historyEntry?.actor?.name || historyEntry?.actor?.firstName || '-';
-      const entryDate = historyEntry?.createdAt ? new Date(historyEntry.createdAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+      
+      // For draft stage, use document owner and creation date if no history entry
+      let actorName = historyEntry?.actor?.name || historyEntry?.actor?.firstName || '-';
+      let entryDate = historyEntry?.createdAt ? new Date(historyEntry.createdAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+      
+      if (stage.id === 'draft' && !historyEntry && document) {
+        actorName = document.owner?.name || document.owner?.firstName || '-';
+        entryDate = document.createdAt ? new Date(document.createdAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+      }
+      
       const duration = calculateDuration(historyEntry, nextEntry);
       const comment = historyEntry?.comment || '';
       const description = workflowRules[stage.id]?.description[lang] || '';
 
+      // Get status-specific icon and color from workflow inbox filter definitions
+      const getStatusIcon = (stageId) => {
+        const statusMap = {
+          'draft': { icon: 'file_text', color: '#6b7280' },
+          'submitted': { icon: 'send', color: '#3b82f6' },
+          'submit': { icon: 'send', color: '#3b82f6' },
+          'hr_review': { icon: 'alert_triangle', color: '#3b82f6' },
+          'admin_review': { icon: 'alert_triangle', color: '#8b5cf6' },
+          'approved': { icon: 'check_circle', color: '#10b981' },
+          'rejected': { icon: 'x_circle', color: '#ef4444' }
+        };
+        return statusMap[stageId] || { icon: 'file_text', color: '#6b7280' };
+      };
+
+      const statusIcon = getStatusIcon(stage.id);
+
       return {
         id: stage.id,
-        position: { x, y },
         data: {
           label: (
             <div
               className="flex flex-col h-full justify-between"
-              title={description}
               style={{ position: 'relative' }}
             >
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {getRoleIcon(workflowRules[stage.id]?.roles[lang])}
-                    {stage.id === 'submitted' || stage.id === 'submit' ? (
-                      <Send size={20} color={index === currentStageIndex ? '#3b82f6' : '#10b981'} />
-                    ) : stage.id === 'draft' ? (
-                      getThemedIcon('ui', 'file_text', 20, index === currentStageIndex ? '#3b82f6' : '#6b7280')
-                    ) : index < currentStageIndex ? (
-                      getThemedIcon('ui', 'check_circle', 20, '#10b981')
-                    ) : index === currentStageIndex ? (
-                      getThemedIcon('ui', 'clock', 20, '#3b82f6')
-                    ) : (
-                      getThemedIcon('ui', 'hourglass', 20, '#6b7280')
-                    )}
+                    {getThemedIcon('ui', statusIcon.icon, 20, statusIcon.color)}
                     <span className="font-bold text-lg" style={{ color: borderColor }}>{stage.label[lang]}</span>
                   </div>
-                  {duration && index < currentStageIndex && (
+                  {duration && (
                     <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ background: '#e0f2fe', color: '#0369a1' }}>
                       {duration}
                     </span>
@@ -307,6 +387,9 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document,
         className: index === currentStageIndex ? 'workflow-current-stage' : ''
       };
     });
+
+    // Apply Dagre layout will be done after edges are generated
+    return generatedNodes;
   }, [workflowStages, currentStageIndex, status, lang, workflowRules, theme, document]);
 
   // Generate edges based on WORKFLOW_RULES transitions
@@ -356,6 +439,17 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document,
     return edges;
   }, [workflowStages, currentStageIndex, status, lang, workflowRules]);
 
+  // Initialize nodes state with layouted nodes
+  useEffect(() => {
+    const { nodes: layoutedNodes } = getLayoutedElements(initialNodes, edges);
+    setNodes(layoutedNodes);
+  }, [initialNodes, edges, layoutMode]);
+
+  // Handle node position changes
+  const onNodesChange = useCallback((changes) => {
+    setNodes((nds) => applyNodeChanges(changes, nds));
+  }, []);
+
   // Theme styles - always use white background
   const themeStyles = useMemo(() => {
     return {
@@ -363,6 +457,41 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document,
       textColor: '#111827'
     };
   }, []);
+
+  // Reset node positions to Dagre layout
+  const handleResetLayout = useCallback(() => {
+    if (reactFlowInstance.current) {
+      const { nodes: layoutedNodes } = getLayoutedElements(initialNodes, edges);
+      reactFlowInstance.current.setNodes(layoutedNodes);
+      reactFlowInstance.current.fitView({ padding: 0.2 });
+    }
+  }, [initialNodes, edges, layoutMode]);
+
+  // Export diagram as image
+  const handleExport = useCallback(() => {
+    if (reactFlowInstance.current) {
+      reactFlowInstance.current.fitView({ padding: 0.2 });
+      setTimeout(() => {
+        const { width, height } = reactFlowInstance.current.getBoundingClientRect();
+        const element = window.document.querySelector('.react-flow__viewport');
+        if (element) {
+          // Use html2canvas or similar library for better export
+          // For now, create a canvas and draw the SVG
+          const svg = element.querySelector('svg');
+          if (svg) {
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = window.document.createElement('a');
+            link.href = url;
+            link.download = `workflow-diagram-${document?.id || 'export'}.svg`;
+            link.click();
+            URL.revokeObjectURL(url);
+          }
+        }
+      }, 100);
+    }
+  }, [document?.id]);
 
   return (
     <div className="w-full py-4">
@@ -406,22 +535,16 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document,
           {/* Legend */}
           <div className="flex items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
-              <div style={{ width: 16, height: 16, background: '#d1fae5', border: '2px solid #10b981', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {getThemedIcon('ui', 'check_circle', 12, '#10b981')}
-              </div>
-              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.legend.completed', 'Completed')}</span>
+              <div style={{ width: 16, height: 16, background: '#10b981', borderRadius: 4 }} />
+              <span style={{ color: '#10b981', fontWeight: 500 }}>{t('workflow.legend.completed', 'Completed')}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div style={{ width: 16, height: 16, background: '#3b82f6', border: '2px solid #3b82f6', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ width: 8, height: 8, background: 'white', borderRadius: '50%' }} />
-              </div>
-              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.legend.current', 'Current')}</span>
+              <div style={{ width: 16, height: 16, background: '#3b82f6', borderRadius: 4 }} />
+              <span style={{ color: '#3b82f6', fontWeight: 500 }}>{t('workflow.legend.current', 'Current')}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div style={{ width: 16, height: 16, background: '#f3f4f6', border: '2px solid #d1d5db', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {getThemedIcon('ui', 'hourglass', 12, '#6b7280')}
-              </div>
-              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('workflow.legend.pending', 'Pending')}</span>
+              <div style={{ width: 16, height: 16, background: '#6b7280', borderRadius: 4 }} />
+              <span style={{ color: '#6b7280', fontWeight: 500 }}>{t('workflow.legend.pending', 'Pending')}</span>
             </div>
             <div style={{ width: 1, height: 16, background: '#e5e7eb' }}></div>
             <div className="flex items-center gap-2">
@@ -477,17 +600,132 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document,
               justifyContent: 'center'
             }}
           >
-            {getThemedIcon('ui', 'calendar', 18, viewMode === 'timeline' ? 'white' : 'primary')}
+            {getThemedIcon('ui', 'clock', 18, viewMode === 'timeline' ? 'white' : 'primary')}
           </button>
+          <div style={{ width: 1, height: 24, background: 'var(--border, #d1d5db)', margin: '0 0.5rem' }} />
+          <Tooltip content="Default Layout">
+            <button
+              onClick={() => setLayoutMode('default')}
+              style={{
+                padding: '0.5rem',
+                background: layoutMode === 'default' ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                color: layoutMode === 'default' ? 'white' : 'var(--text, #111827)',
+                border: '1px solid var(--border, #d1d5db)',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Layout size={18} />
+            </button>
+          </Tooltip>
+          <Tooltip content="Compact Layout">
+            <button
+              onClick={() => setLayoutMode('compact')}
+              style={{
+                padding: '0.5rem',
+                background: layoutMode === 'compact' ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                color: layoutMode === 'compact' ? 'white' : 'var(--text, #111827)',
+                border: '1px solid var(--border, #d1d5db)',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Minimize2 size={18} />
+            </button>
+          </Tooltip>
+          <Tooltip content="Hierarchical Layout">
+            <button
+              onClick={() => setLayoutMode('hierarchical')}
+              style={{
+                padding: '0.5rem',
+                background: layoutMode === 'hierarchical' ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                color: layoutMode === 'hierarchical' ? 'white' : 'var(--text, #111827)',
+                border: '1px solid var(--border, #d1d5db)',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Layout size={18} />
+            </button>
+          </Tooltip>
+          <div style={{ width: 1, height: 24, background: 'var(--border, #d1d5db)', margin: '0 0.5rem' }} />
+          <Tooltip content="Reset Layout">
+            <button
+              onClick={handleResetLayout}
+              style={{
+                padding: '0.5rem',
+                background: 'transparent',
+                color: 'var(--text, #111827)',
+                border: '1px solid var(--border, #d1d5db)',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <RotateCcw size={18} />
+            </button>
+          </Tooltip>
+          <Tooltip content="Export as SVG">
+            <button
+              onClick={handleExport}
+              style={{
+                padding: '0.5rem',
+                background: 'transparent',
+                color: 'var(--text, #111827)',
+                border: '1px solid var(--border, #d1d5db)',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Download size={18} />
+            </button>
+          </Tooltip>
+          <Tooltip content="Fullscreen">
+            <button
+              onClick={() => setIsFullscreen(true)}
+              style={{
+                padding: '0.5rem',
+                background: 'transparent',
+                color: 'var(--text, #111827)',
+                border: '1px solid var(--border, #d1d5db)',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Maximize2 size={18} />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
       {viewMode === 'flow' ? (
-        <div className="w-full h-64 md:h-80 lg:h-96 workflow-scrollbar overflow-auto">
+        <div className="w-full h-80 md:h-96 lg:h-[500px] workflow-scrollbar overflow-auto">
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            fitView
             attributionPosition="hidden"
             style={{ background: themeStyles.background }}
             nodesDraggable={true}
@@ -496,6 +734,11 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document,
             zoomOnScroll={true}
             panOnScroll={false}
             panOnDrag={true}
+            onNodesChange={onNodesChange}
+            onInit={(instance) => {
+              reactFlowInstance.current = instance;
+              instance.fitView({ padding: 0.2 });
+            }}
           >
             <Background
               variant={BackgroundVariant.Dots}
@@ -507,7 +750,7 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document,
           </ReactFlow>
         </div>
       ) : (
-        <div className="px-4 workflow-scrollbar" style={{ maxHeight: '700px', overflowY: 'auto' }}>
+        <div className="px-4 workflow-scrollbar" style={{ maxHeight: '800px', overflowY: 'auto' }}>
           <div className="relative" style={{ paddingLeft: lang === 'ar' ? 0 : '2rem', paddingRight: lang === 'ar' ? '2rem' : 0 }}>
             {/* Timeline line */}
             <div style={{
@@ -594,6 +837,174 @@ const WorkflowDiagram = ({ status, workflowType = 'ATTENDANCE_REPORT', document,
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Modal */}
+      {isFullscreen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'white',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '1rem'
+        }}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold" style={{ color: '#111827' }}>
+              {t('workflow.diagram', 'Workflow Diagram')}
+            </h2>
+            <button
+              onClick={() => setIsFullscreen(false)}
+              style={{
+                padding: '0.5rem',
+                background: 'transparent',
+                color: '#111827',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <X size={20} />
+            </button>
+          </div>
+          
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            {viewMode === 'flow' ? (
+              <div style={{ width: '100%', height: '100%' }}>
+                <ReactFlow
+                  nodes={nodes}
+                  edges={edges}
+                  attributionPosition="hidden"
+                  style={{ background: themeStyles.background, height: 'calc(100vh - 100px)' }}
+                  nodesDraggable={true}
+                  nodesConnectable={false}
+                  elementsSelectable={true}
+                  zoomOnScroll={true}
+                  panOnScroll={false}
+                  panOnDrag={true}
+                  onNodesChange={onNodesChange}
+                  onInit={(instance) => {
+                    reactFlowInstance.current = instance;
+                    instance.fitView({ padding: 0.2 });
+                  }}
+                >
+                  <Background
+                    variant={BackgroundVariant.Dots}
+                    gap={12}
+                    size={1}
+                    color={theme === 'dark' ? '#374151' : '#e5e7eb'}
+                  />
+                  <Controls />
+                </ReactFlow>
+              </div>
+            ) : (
+              <div className="px-4" style={{ maxHeight: 'calc(100vh - 100px)', overflowY: 'auto' }}>
+                <div className="relative" style={{ paddingLeft: lang === 'ar' ? 0 : '2rem', paddingRight: lang === 'ar' ? '2rem' : 0 }}>
+                  {/* Timeline line */}
+                  <div style={{
+                    position: 'absolute',
+                    [lang === 'ar' ? 'right' : 'left']: '0.5rem',
+                    top: 0,
+                    bottom: 0,
+                    width: 2,
+                    background: '#e5e7eb'
+                  }} />
+                  
+                  {workflowStages.map((stage, index) => {
+                    const isCompleted = index < currentStageIndex;
+                    const isCurrent = index === currentStageIndex;
+                    const historyEntry = statusHistory.find(h => h.toStatus === stage.status);
+                    const nextEntry = statusHistory[statusHistory.findIndex(h => h.toStatus === stage.status) + 1];
+                    
+                    let actorName = historyEntry?.actor?.name || historyEntry?.actor?.firstName || '-';
+                    let entryDate = historyEntry?.createdAt ? new Date(historyEntry.createdAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+                    
+                    if (stage.id === 'draft' && !historyEntry && document) {
+                      actorName = document.owner?.name || document.owner?.firstName || '-';
+                      entryDate = document.createdAt ? new Date(document.createdAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+                    }
+                    
+                    const duration = calculateDuration(historyEntry, nextEntry);
+                    const comment = historyEntry?.comment || '';
+                    
+                    return (
+                      <div key={stage.id} className="relative mb-6" style={{ marginLeft: lang === 'ar' ? 0 : '2rem', marginRight: lang === 'ar' ? '2rem' : 0 }}>
+                        {/* Timeline dot */}
+                        <div style={{
+                          position: 'absolute',
+                          [lang === 'ar' ? 'right' : 'left']: 0,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          background: isCompleted ? '#10b981' : (isCurrent ? '#3b82f6' : '#d1d5db'),
+                          border: '2px solid white',
+                          boxShadow: isCurrent ? '0 0 0 4px rgba(59, 130, 246, 0.2)' : 'none',
+                          animation: isCurrent ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'
+                        }} />
+                        
+                        {/* Timeline content */}
+                        <div style={{
+                          padding: '1rem',
+                          background: 'white',
+                          border: `2px solid ${isCompleted ? '#10b981' : (isCurrent ? '#3b82f6' : '#e5e7eb')}`,
+                          borderRadius: '0.5rem',
+                          boxShadow: isCurrent ? '0 0 0 4px rgba(59, 130, 246, 0.1)' : 'none'
+                        }}>
+                          <div className="flex items-center gap-2 mb-2">
+                            {getRoleIcon(workflowRules[stage.id]?.roles[lang])}
+                            {stage.id === 'submitted' || stage.id === 'submit' ? (
+                              <Send size={18} color={isCurrent ? '#3b82f6' : '#10b981'} />
+                            ) : stage.id === 'draft' ? (
+                              getThemedIcon('ui', 'file_text', 18, isCurrent ? '#3b82f6' : '#6b7280')
+                            ) : isCompleted ? (
+                              getThemedIcon('ui', 'check_circle', 18, '#10b981')
+                            ) : isCurrent ? (
+                              getThemedIcon('ui', 'clock', 18, '#3b82f6')
+                            ) : (
+                              getThemedIcon('ui', 'hourglass', 18, '#6b7280')
+                            )}
+                            <span className="font-bold text-base" style={{ color: isCompleted ? '#10b981' : (isCurrent ? '#3b82f6' : '#6b7280') }}>
+                              {stage.label[lang]}
+                            </span>
+                            {historyEntry && (
+                              <>
+                                <span className="font-semibold text-sm" style={{ color: '#374151' }}>{actorName}</span>
+                                <span className="text-xs" style={{ color: '#6b7280' }}>{entryDate}</span>
+                              </>
+                            )}
+                            {duration && isCompleted && (
+                              <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ background: '#e0f2fe', color: '#0369a1' }}>
+                                {duration}
+                              </span>
+                            )}
+                          </div>
+
+                          {historyEntry && comment && (
+                            <div className="text-sm" style={{ color: '#374151' }}>
+                              <div className="mt-1 p-2 rounded" style={{ background: '#f9fafb', fontStyle: 'italic', color: '#6b7280' }}>
+                                "{comment}"
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

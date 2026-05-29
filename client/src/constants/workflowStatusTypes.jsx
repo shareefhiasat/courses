@@ -5,7 +5,7 @@
  * ARCHITECTURE: Centralized constants → Used across all workflow components
  */
 
-import { CheckCircle, XCircle, Clock, AlertCircle, AlertTriangle, GitBranch, Send, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, AlertCircle, AlertTriangle, GitBranch, Send, FileText, CircleCheckBig } from 'lucide-react';
 
 /**
  * Workflow Document Status Values
@@ -109,7 +109,7 @@ export const WORKFLOW_STATUS_COLOR_CLASSES = {
   [WORKFLOW_STATUS.DRAFT]: 'bg-gray-100 text-gray-800',
   [WORKFLOW_STATUS.SUBMITTED]: 'bg-blue-100 text-blue-800',
   [WORKFLOW_STATUS.UNDER_REVIEW]: 'bg-blue-100 text-blue-800',
-  [WORKFLOW_STATUS.UNDER_ADMIN_REVIEW]: 'bg-blue-100 text-blue-800',
+  [WORKFLOW_STATUS.UNDER_ADMIN_REVIEW]: 'bg-purple-100 text-purple-800',
   [WORKFLOW_STATUS.APPROVED]: 'bg-green-100 text-green-800',
   [WORKFLOW_STATUS.REJECTED]: 'bg-red-100 text-red-800',
   // Legacy status support
@@ -134,7 +134,7 @@ export const WORKFLOW_STATUS_ICONS = {
   [WORKFLOW_STATUS.SUBMITTED]: Send,
   [WORKFLOW_STATUS.UNDER_REVIEW]: AlertTriangle,
   [WORKFLOW_STATUS.UNDER_ADMIN_REVIEW]: AlertTriangle,
-  [WORKFLOW_STATUS.APPROVED]: CheckCircle,
+  [WORKFLOW_STATUS.APPROVED]: CircleCheckBig,
   [WORKFLOW_STATUS.REJECTED]: XCircle,
   default: FileText
 };

@@ -136,29 +136,36 @@ const WorkflowInboxPage = () => {
     {
       field: 'status',
       headerName: t('workflow.inbox.status', 'Status'),
-      width: 80,
+      width: 120,
       renderCell: (params) => {
         const statusUpper = params.value?.toUpperCase();
         let iconColor = '#6b7280';
+        let statusText = params.value;
         
         switch (statusUpper) {
           case 'DRAFT':
             iconColor = '#6b7280';
+            statusText = t('workflow.inbox.statusDraft', 'Draft');
             break;
           case 'SUBMITTED':
             iconColor = '#3b82f6';
+            statusText = t('workflow.inbox.statusSubmitted', 'Submitted');
             break;
           case 'UNDER_REVIEW':
             iconColor = '#3b82f6';
+            statusText = t('workflow.inbox.statusUnderHrReview', 'HR Review');
             break;
           case 'UNDER_ADMIN_REVIEW':
             iconColor = '#8b5cf6';
+            statusText = t('workflow.inbox.statusUnderAdminReview', 'Admin Review');
             break;
           case 'APPROVED':
             iconColor = '#10b981';
+            statusText = t('workflow.inbox.statusCompleted', 'Completed');
             break;
           case 'REJECTED':
             iconColor = '#ef4444';
+            statusText = t('workflow.inbox.statusRejected', 'Rejected');
             break;
           default:
             iconColor = '#6b7280';
@@ -167,8 +174,11 @@ const WorkflowInboxPage = () => {
         const StatusIcon = getWorkflowStatusIcon(params.value);
         
         return (
-          <div className="flex items-center justify-center" title={params.value}>
-            <StatusIcon className="h-5 w-5" style={{ color: iconColor }} />
+          <div className="flex items-center gap-2">
+            <StatusIcon className="h-4 w-4" style={{ color: iconColor }} />
+            <span className="text-sm" style={{ color: iconColor }}>
+              {statusText}
+            </span>
           </div>
         );
       }
@@ -271,18 +281,19 @@ const WorkflowInboxPage = () => {
         };
         
         const roleType = getRoleType(primaryRole?.code);
+        const roleColor = roleType ? getUserRoleColor(roleType) : theme;
         
         return (
           <div className="flex items-center gap-2">
             {roleType ? (
               React.cloneElement(getUserRoleIcon(roleType), { 
-                color: getUserRoleColor(roleType), 
+                color: roleColor, 
                 size: 16 
               })
             ) : (
               getThemedIcon('ui', 'user', 16, theme)
             )}
-            <span className="text-sm">
+            <span className="text-sm" style={{ color: roleColor }}>
               {displayName}
             </span>
           </div>
@@ -315,19 +326,22 @@ const WorkflowInboxPage = () => {
           const workflowType = params.row.workflowType;
           let roleLabel = t('workflow.inbox.unassigned', 'Unassigned');
           let roleIcon = getThemedIcon('ui', 'user', 16, theme);
+          let roleColor = theme;
           
           if (workflowType === 'ATTENDANCE_WEEKLY') {
             roleLabel = t('roles.admin', 'Admin');
-            roleIcon = React.cloneElement(getUserRoleIcon('admin'), { color: getUserRoleColor('admin'), size: 16 });
+            roleColor = getUserRoleColor('admin');
+            roleIcon = React.cloneElement(getUserRoleIcon('admin'), { color: roleColor, size: 16 });
           } else if (workflowType === 'GENERAL') {
             roleLabel = t('roles.hr', 'HR');
-            roleIcon = React.cloneElement(getUserRoleIcon('hr'), { color: getUserRoleColor('hr'), size: 16 });
+            roleColor = getUserRoleColor('hr');
+            roleIcon = React.cloneElement(getUserRoleIcon('hr'), { color: roleColor, size: 16 });
           }
           
           return (
             <div className="flex items-center gap-2">
               {roleIcon}
-              <span className="text-sm">
+              <span className="text-sm" style={{ color: roleColor }}>
                 {roleLabel}
               </span>
             </div>
@@ -358,6 +372,7 @@ const WorkflowInboxPage = () => {
         };
 
         const roleType = getRoleType(primaryRole?.code);
+        const roleColor = roleType ? getUserRoleColor(roleType) : theme;
         const displayName = assignee?.displayName || 
                           (assignee?.firstName && assignee?.lastName ? `${assignee.firstName} ${assignee.lastName}` : null) ||
                           assignee?.email ||
@@ -373,13 +388,13 @@ const WorkflowInboxPage = () => {
           <div className="flex items-center gap-2">
             {roleType ? (
               React.cloneElement(getUserRoleIcon(roleType), { 
-                color: getUserRoleColor(roleType), 
+                color: roleColor, 
                 size: 16 
               })
             ) : (
               getThemedIcon('ui', 'user', 16, theme)
             )}
-            <span className="text-sm">
+            <span className="text-sm" style={{ color: roleColor }}>
               {displayName}
             </span>
           </div>
@@ -482,7 +497,7 @@ const WorkflowInboxPage = () => {
                 { value: 'SUBMITTED', label: 'Submitted', color: '#3b82f6', icon: 'send' },
                 { value: 'UNDER_REVIEW', label: 'HR Review', color: '#3b82f6', icon: 'alert_triangle' },
                 { value: 'UNDER_ADMIN_REVIEW', label: 'Admin Review', color: '#8b5cf6', icon: 'alert_triangle' },
-                { value: 'APPROVED', label: 'Approved', color: '#10b981', icon: 'check_circle' },
+                { value: 'APPROVED', label: 'Completed', color: '#10b981', icon: 'check_circle' },
                 { value: 'REJECTED', label: 'Rejected', color: '#ef4444', icon: 'x_circle' }
               ].map((status) => {
                 const isSelected = filters.status === status.value;

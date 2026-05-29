@@ -55,8 +55,8 @@ const WorkflowDocumentDetailPage = () => {
     const pollInterval = 10000; // 10 seconds
 
     const pollUpdates = async () => {
-      // Don't poll if tab is hidden or document is in terminal state
-      if (!isVisible || !document || document.status === WORKFLOW_STATUS.APPROVED || document.status === WORKFLOW_STATUS.REJECTED) {
+      // Don't poll if tab is hidden
+      if (!isVisible || !document) {
         return;
       }
 
@@ -79,7 +79,7 @@ const WorkflowDocumentDetailPage = () => {
     const intervalId = setInterval(pollUpdates, pollInterval);
 
     return () => clearInterval(intervalId);
-  }, [document, documentId, t, toast, isVisible]);
+  }, [documentId, t, toast, isVisible]);
 
 
   // Fetch document details
@@ -88,7 +88,7 @@ const WorkflowDocumentDetailPage = () => {
       setLoading(true);
       setError(null);
 
-      const response = await apiService.get(`/workflow-documents/${documentId}`);
+      const response = await getWorkflowDocument(documentId);
 
       if (response.success) {
         setDocument(response.data);
@@ -110,7 +110,7 @@ const WorkflowDocumentDetailPage = () => {
   // Check if user can perform review actions
   const canReview = () => {
     if (!document || !user) return false;
-    const userRoles = user.roles || [];
+    const userRoles = (user.roles || []).map(r => r.toLowerCase());
     const isHR = userRoles.includes('hr');
     const isAdmin = userRoles.includes('admin');
     const isSuperAdmin = userRoles.includes('super_admin');
@@ -140,7 +140,7 @@ const WorkflowDocumentDetailPage = () => {
   // Check if user can reject (only owner or super admin)
   const canReject = () => {
     if (!document || !user) return false;
-    const userRoles = user.roles || [];
+    const userRoles = (user.roles || []).map(r => r.toLowerCase());
     const isSuperAdmin = userRoles.includes('super_admin');
     const isOwner = document.submitterId === user.id;
     
@@ -164,9 +164,10 @@ const WorkflowDocumentDetailPage = () => {
       const result = await approveWorkflowDocument(documentId, { comment });
       if (result.success) {
         toast.success(t('workflow.document.approved', 'Document approved successfully'));
+        // Force immediate refresh before closing modal
+        await fetchDocument();
         setActionModal(null);
         setComment('');
-        fetchDocument(); // Refresh document data
       } else {
         toast.error(result.error || t('workflow.document.approveError', 'Failed to approve document'));
       }
@@ -188,9 +189,10 @@ const WorkflowDocumentDetailPage = () => {
       const result = await rejectWorkflowDocument(documentId, { comment });
       if (result.success) {
         toast.success(t('workflow.document.rejected', 'Document rejected successfully'));
+        // Force immediate refresh before closing modal
+        await fetchDocument();
         setActionModal(null);
         setComment('');
-        fetchDocument(); // Refresh document data
       } else {
         toast.error(result.error || t('workflow.document.rejectError', 'Failed to reject document'));
       }
@@ -212,9 +214,10 @@ const WorkflowDocumentDetailPage = () => {
       const result = await returnWorkflowDocument(documentId, { comment });
       if (result.success) {
         toast.success(t('workflow.document.returned', 'Document returned successfully'));
+        // Force immediate refresh before closing modal
+        await fetchDocument();
         setActionModal(null);
         setComment('');
-        fetchDocument(); // Refresh document data
       } else {
         toast.error(result.error || t('workflow.document.returnError', 'Failed to return document'));
       }
@@ -244,10 +247,11 @@ const WorkflowDocumentDetailPage = () => {
         });
         if (result.success) {
           toast.success(t('workflow.document.resubmitted', 'Document resubmitted successfully'));
+          // Force immediate refresh before closing modal
+          await fetchDocument();
           setActionModal(null);
           setComment('');
           setResubmitFile(null);
-          fetchDocument(); // Refresh document data
         } else {
           toast.error(result.error || t('workflow.document.resubmitError', 'Failed to resubmit document'));
         }
@@ -275,7 +279,8 @@ const WorkflowDocumentDetailPage = () => {
   // Check if user can upload signed document (Admin only for weekly summaries)
   const canUploadSigned = () => {
     if (!document || !user) return false;
-    const isAdmin = user.roles && user.roles.includes('admin');
+    const userRoles = (user.roles || []).map(r => r.toLowerCase());
+    const isAdmin = userRoles.includes('admin');
     const isWeeklySummary = document.workflowType === 'ATTENDANCE_WEEKLY';
     const isUnderAdminReview = document.status === WORKFLOW_STATUS.SUBMITTED || document.status === WORKFLOW_STATUS.UNDER_ADMIN_REVIEW;
     return isAdmin && isWeeklySummary && isUnderAdminReview;
@@ -284,7 +289,7 @@ const WorkflowDocumentDetailPage = () => {
   // Check if user can re-upload document (HR/Admin during review)
   const canReupload = () => {
     if (!document || !user) return false;
-    const userRoles = user.roles || [];
+    const userRoles = (user.roles || []).map(r => r.toLowerCase());
     const isHR = userRoles.includes('hr');
     const isAdmin = userRoles.includes('admin');
     const isSuperAdmin = userRoles.includes('super_admin');
@@ -327,10 +332,11 @@ const WorkflowDocumentDetailPage = () => {
         });
         if (result.success) {
           toast.success(t('workflow.document.reuploaded', 'Document re-uploaded successfully'));
+          // Force immediate refresh before closing modal
+          await fetchDocument();
           setActionModal(null);
           setComment('');
           setResubmitFile(null);
-          fetchDocument(); // Refresh document data
         } else {
           toast.error(result.error || t('workflow.document.reuploadError', 'Failed to re-upload document'));
         }
@@ -372,10 +378,11 @@ const WorkflowDocumentDetailPage = () => {
         });
         if (result.success) {
           toast.success(t('workflow.document.signedUploaded', 'Signed document uploaded successfully'));
+          // Force immediate refresh before closing modal
+          await fetchDocument();
           setActionModal(null);
           setComment('');
           setSignedFile(null);
-          fetchDocument(); // Refresh document data
         } else {
           toast.error(result.error || t('workflow.document.uploadError', 'Failed to upload signed document'));
         }
@@ -399,9 +406,10 @@ const WorkflowDocumentDetailPage = () => {
       const result = await withdrawWorkflowDocument(documentId, { comment });
       if (result.success) {
         toast.success(t('workflow.document.withdrawn', 'Document withdrawn successfully'));
+        // Force immediate refresh before closing modal
+        await fetchDocument();
         setActionModal(null);
         setComment('');
-        fetchDocument(); // Refresh document data
       } else {
         toast.error(result.error || t('workflow.document.withdrawError', 'Failed to withdraw document'));
       }
@@ -500,13 +508,14 @@ const WorkflowDocumentDetailPage = () => {
                 {t('workflow.document.workflowProgress', 'Workflow Progress')}
               </h3>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-nowrap">
               {canReview() && isReviewable() && (
                 <>
                   <Button
                     variant="success"
                     size="sm"
                     onClick={() => setActionModal('approve')}
+                    className="flex items-center gap-2 whitespace-nowrap"
                   >
                     {getThemedIcon('ui', 'thumbs_up', 16)}
                     {t('workflow.document.approve', 'Approve')}
@@ -516,6 +525,7 @@ const WorkflowDocumentDetailPage = () => {
                       variant="destructive"
                       size="sm"
                       onClick={() => setActionModal('reject')}
+                      className="flex items-center gap-2 whitespace-nowrap"
                     >
                       {getThemedIcon('ui', 'thumbs_down', 16)}
                       {t('workflow.document.reject', 'Reject')}
@@ -525,6 +535,7 @@ const WorkflowDocumentDetailPage = () => {
                     variant="warning"
                     size="sm"
                     onClick={() => setActionModal('return')}
+                    className="flex items-center gap-2 whitespace-nowrap"
                   >
                     {getThemedIcon('ui', 'rotate_ccw', 16)}
                     {t('workflow.document.return', 'Return')}
@@ -534,6 +545,7 @@ const WorkflowDocumentDetailPage = () => {
                       variant="info"
                       size="sm"
                       onClick={() => setActionModal('reupload')}
+                      className="flex items-center gap-2 whitespace-nowrap"
                     >
                       {getThemedIcon('ui', 'upload', 16)}
                       {t('workflow.document.reupload', 'Re-upload')}
@@ -546,6 +558,7 @@ const WorkflowDocumentDetailPage = () => {
                   variant="info"
                   size="sm"
                   onClick={() => setActionModal('resubmit')}
+                  className="flex items-center gap-2 whitespace-nowrap"
                 >
                   {getThemedIcon('ui', 'upload', 16)}
                   {t('workflow.document.resubmit', 'Resubmit')}
@@ -556,6 +569,7 @@ const WorkflowDocumentDetailPage = () => {
                   variant="secondary"
                   size="sm"
                   onClick={() => setActionModal('upload-signed')}
+                  className="flex items-center gap-2 whitespace-nowrap"
                 >
                   {getThemedIcon('ui', 'upload', 16)}
                   {t('workflow.document.uploadSigned', 'Upload Signed')}
@@ -566,6 +580,7 @@ const WorkflowDocumentDetailPage = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setActionModal('withdraw')}
+                  className="flex items-center gap-2 whitespace-nowrap"
                 >
                   {getThemedIcon('ui', 'rotate_ccw', 16)}
                   {t('workflow.document.withdraw', 'Withdraw')}
@@ -573,6 +588,28 @@ const WorkflowDocumentDetailPage = () => {
               )}
             </div>
           </div>
+
+          {/* Status Legend */}
+          <div style={{ marginBottom: '1rem' }}>
+            <div className="flex items-center gap-4 flex-wrap">
+              {[
+                { label: 'Draft', color: '#6b7280', icon: 'file_text' },
+                { label: 'Submitted', color: '#3b82f6', icon: 'send' },
+                { label: 'HR Review', color: '#3b82f6', icon: 'alert_triangle' },
+                { label: 'Admin Review', color: '#8b5cf6', icon: 'alert_triangle' },
+                { label: 'Completed', color: '#10b981', icon: 'check_circle' },
+                { label: 'Rejected', color: '#ef4444', icon: 'x_circle' }
+              ].map((status) => (
+                <div key={status.label} className="flex items-center gap-2">
+                  {getThemedIcon('ui', status.icon, 16, status.color)}
+                  <span className="text-sm" style={{ color: status.color }}>
+                    {status.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <WorkflowDiagram
             status={document.status}
             workflowType={document.workflowType}
