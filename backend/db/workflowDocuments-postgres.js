@@ -436,6 +436,7 @@ export async function getCommentsByWorkflowDocument(workflowDocumentId) {
       select: {
         id: true,
         comment: true,
+        action: true,
         authorId: true,
         createdAt: true,
         author: true

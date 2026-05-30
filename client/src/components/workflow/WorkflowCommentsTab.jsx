@@ -6,7 +6,7 @@ import { Button } from '@ui';
 import Modal from '@ui/Modal/Modal';
 import workflowService from '@services/business/workflowService';
 
-export default function WorkflowCommentsTab({ workflowId }) {
+export default function WorkflowCommentsTab({ workflowId, selectedStage, onStageFilterChange }) {
   const { t } = useLang();
   const { user } = useAuth();
   const [comments, setComments] = useState([]);
@@ -17,6 +17,19 @@ export default function WorkflowCommentsTab({ workflowId }) {
   const [filterText, setFilterText] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  // Helper to get stage icon based on action field
+  const getStageIcon = (action) => {
+    const statusMap = {
+      'DRAFT': { icon: 'file_text', color: '#6b7280' },
+      'SUBMITTED': { icon: 'send', color: '#3b82f6' },
+      'UNDER_HR_REVIEW': { icon: 'alert_triangle', color: '#8b5cf6' },
+      'UNDER_ADMIN_REVIEW': { icon: 'alert_triangle', color: '#8b5cf6' },
+      'APPROVED': { icon: 'check_circle', color: '#10b981' },
+      'REJECTED': { icon: 'x_circle', color: '#ef4444' }
+    };
+    return statusMap[action] || { icon: 'file_text', color: '#6b7280' };
+  };
 
   const fetchComments = useCallback(async () => {
     if (!workflowId) return;
@@ -136,9 +149,16 @@ export default function WorkflowCommentsTab({ workflowId }) {
   const sortedDates = Object.keys(groupedComments).sort((a, b) => new Date(b) - new Date(a));
 
   const filteredAndSortedComments = useMemo(() => {
-    console.log('[WorkflowCommentsTab] Filtering comments:', { commentsCount: comments.length, selectedDate, filterText });
+    console.log('[WorkflowCommentsTab] Filtering comments:', { commentsCount: comments.length, selectedDate, filterText, selectedStage });
     let filtered = selectedDate ? groupedComments[selectedDate] || [] : comments;
     console.log('[WorkflowCommentsTab] After date filter:', { filteredCount: filtered.length });
+    
+    // Filter by stage/action if selected
+    if (selectedStage) {
+      filtered = filtered.filter(comment => comment.action === selectedStage);
+      console.log('[WorkflowCommentsTab] After stage filter:', { filteredCount: filtered.length, selectedStage });
+    }
+    
     if (filterText.trim()) {
       const searchLower = filterText.toLowerCase();
       filtered = filtered.filter(comment =>
@@ -156,7 +176,23 @@ export default function WorkflowCommentsTab({ workflowId }) {
     });
     console.log('[WorkflowCommentsTab] Final filtered comments:', sorted.length);
     return sorted;
-  }, [comments, filterText, selectedDate, groupedComments]);
+  }, [comments, filterText, selectedDate, groupedComments, selectedStage]);
+
+  const filteredCount = useMemo(() => {
+    let count = comments.length;
+    if (selectedStage) {
+      count = comments.filter(c => c.action === selectedStage).length;
+    }
+    if (filterText.trim()) {
+      const searchLower = filterText.toLowerCase();
+      count = comments.filter(c =>
+        c.comment?.toLowerCase().includes(searchLower) ||
+        c.author?.displayName?.toLowerCase().includes(searchLower) ||
+        c.author?.email?.toLowerCase().includes(searchLower)
+      ).length;
+    }
+    return count;
+  }, [comments, selectedStage, filterText]);
 
   if (loading) {
     return (
@@ -169,6 +205,37 @@ export default function WorkflowCommentsTab({ workflowId }) {
   return (
     <>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
+      {/* Stage filter indicator */}
+      {selectedStage && (
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          padding: '0.5rem 0.75rem',
+          background: '#e0f2fe',
+          borderRadius: '0.5rem',
+          fontSize: '0.875rem',
+          color: '#0369a1',
+          border: '1px solid #bae6fd'
+        }}>
+          <span>Filtering by stage: <strong>{selectedStage}</strong></span>
+          <button
+            onClick={() => onStageFilterChange?.(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#0369a1',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              textDecoration: 'underline',
+              fontWeight: 500
+            }}
+          >
+            Clear filter
+          </button>
+        </div>
+      )}
+      
       {/* Add comment form */}
       <form onSubmit={handleAddComment}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -259,7 +326,7 @@ export default function WorkflowCommentsTab({ workflowId }) {
                   fontWeight: !selectedDate ? 600 : 400,
                 }}
               >
-                {t('drive.allComments', 'All Comments')} ({comments.length})
+                {t('drive.allComments', 'All Comments')} ({filteredCount})
               </button>
               {sortedDates.map((date) => (
                 <button
@@ -329,7 +396,7 @@ export default function WorkflowCommentsTab({ workflowId }) {
             </div>
 
             <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
-              {selectedDate ? formatDateHeader(selectedDate) : t('workflow.document.comments', 'Comments')} ({filteredAndSortedComments.length})
+              {selectedDate ? formatDateHeader(selectedDate) : t('workflow.document.comments', 'Comments')} ({filteredCount})
             </h3>
 
             {filteredAndSortedComments.length === 0 ? (
@@ -360,30 +427,41 @@ export default function WorkflowCommentsTab({ workflowId }) {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: 'var(--color-primary, #3b82f6)',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
                         }}>
-                          {(() => {
-                            const firstName = comment.author?.firstName || '';
-                            const lastName = comment.author?.lastName || '';
-                            const displayName = comment.author?.displayName || '';
-                            const email = comment.author?.email || '';
-                            
-                            // Try to get initials from firstName + lastName
-                            if (firstName && lastName) {
-                              return (firstName[0] + lastName[0]).toUpperCase();
-                            }
-                            // Fall back to displayName
-                            if (displayName && displayName !== '-') {
-                              return displayName[0].toUpperCase();
-                            }
-                            // Fall back to email
-                            if (email) {
-                              return email[0].toUpperCase();
-                            }
-                            return '?';
-                          })()}
+                          {comment.action ? (
+                            // Show stage icon if comment has an action (stage)
+                            <div style={{ color: getStageIcon(comment.action).color }}>
+                              {getIcon('ui', getStageIcon(comment.action).icon, 20)}
+                            </div>
+                          ) : (
+                            // Show author initials otherwise
+                            <div style={{
+                              color: 'var(--color-primary, #3b82f6)',
+                              fontSize: '0.875rem',
+                              fontWeight: 600,
+                            }}>
+                              {(() => {
+                                const firstName = comment.author?.firstName || '';
+                                const lastName = comment.author?.lastName || '';
+                                const displayName = comment.author?.displayName || '';
+                                const email = comment.author?.email || '';
+                                
+                                // Try to get initials from firstName + lastName
+                                if (firstName && lastName) {
+                                  return (firstName[0] + lastName[0]).toUpperCase();
+                                }
+                                // Fall back to displayName
+                                if (displayName && displayName !== '-') {
+                                  return displayName[0].toUpperCase();
+                                }
+                                // Fall back to email
+                                if (email) {
+                                  return email[0].toUpperCase();
+                                }
+                                return '?';
+                              })()}
+                            </div>
+                          )}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>

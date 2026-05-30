@@ -15,7 +15,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { Tooltip } from '@ui';
-import { Send, RotateCcw, Download, Layout, Minimize, Maximize, X, Check, ArrowLeft, ArrowRight, Trash2, Eye, XCircle, List, GitBranch } from 'lucide-react';
+import { Send, RotateCcw, Download, Layout, Minimize, Maximize, X, Check, ArrowLeft, ArrowRight, Trash2, Eye, XCircle, List, GitBranch, MessageSquare } from 'lucide-react';
 
 // Create Dagre graph instance
 const dagreGraph = new dagre.graphlib.Graph();
@@ -23,7 +23,22 @@ dagreGraph.setDefaultEdgeLabel(() => ({}));
 
 // Custom node component with tooltip
 const WorkflowNode = ({ data }) => {
-  const { historyEntry, actorName, entryDate, comment, description } = data;
+  const { historyEntry, actorName, entryDate, comment, description, historyEntries } = data;
+  const [commentIndex, setCommentIndex] = useState(0);
+  
+  // Cycle through comments when clicked
+  const handleCommentClick = (e) => {
+    e.stopPropagation();
+    if (historyEntries && historyEntries.length > 1) {
+      setCommentIndex((prev) => (prev + 1) % historyEntries.length);
+    }
+  };
+  
+  const currentComment = historyEntries && historyEntries.length > 0 
+    ? historyEntries[commentIndex]?.reason || ''
+    : comment;
+  
+  const commentCount = historyEntries?.length || 0;
   
   return (
     <div className="w-full h-full">
@@ -188,7 +203,7 @@ const WORKFLOW_STAGES = {
   ]
 };
 
-const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, currentAssignee, onApprove, onReturn, onReject, onSubmit, onSendToNext, onDelete, onRefresh }) => {
+const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, currentAssignee, onApprove, onReturn, onReject, onSubmit, onSendToNext, onDelete, onRefresh, onStageFilterChange }) => {
   const { lang, t } = useLang();
   const { theme } = useTheme();
   const { user } = useAuth();
@@ -586,7 +601,9 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
 
       // Find the status history entry for this stage
       // The comment is stored in the history entry where we transitioned TO this stage
-      const historyEntry = statusHistory.find(h => h.toStatus === stage.status);
+      // Get all entries for this stage to show cycling behavior
+      const historyEntries = statusHistory.filter(h => h.toStatus === stage.status);
+      const historyEntry = historyEntries[historyEntries.length - 1]; // Use most recent for main display
       const nextEntry = statusHistory[statusHistory.findIndex(h => h.fromStatus === stage.status) + 1];
       
       // For draft stage, use document owner and creation date if no history entry
@@ -651,15 +668,28 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
                 <div className="text-xs" style={{ color: '#6b7280' }}>
                   {entryDate}
                 </div>
-                {comment && (
-                  <div className="text-xs italic mt-0.5" style={{ color: '#6b7280', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={comment}>
-                    {comment}
+                {historyEntries && historyEntries.length > 0 && (
+                  <div 
+                    className="text-xs mt-0.5 font-medium cursor-pointer hover:underline flex items-center gap-1" 
+                    style={{ color: '#4b5563', lineHeight: '1.2' }} 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Pass stage.status to match comment.action values (e.g., SUBMITTED vs submitted)
+                      onStageFilterChange?.(stage.status);
+                    }}
+                  >
+                    <MessageSquare size={12} />
+                    <span>Comments</span>
+                    <span className="text-xs px-1 rounded" style={{ background: '#e5e7eb', color: '#6b7280' }}>
+                      {historyEntries.length}
+                    </span>
                   </div>
                 )}
               </div>
             </div>
           ),
           comment,
+          historyEntries,
           stage,
           stageId: stage.id,
           isCurrent: index === currentStageIndex,
@@ -1189,22 +1219,6 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
         >
           {contextMenu.type === 'node' && selectedNode ? (
             <>
-              {console.log('[WorkflowDiagram] Context menu opened for node:', selectedNode.data.stageId, 'comment:', selectedNode.data.comment)}
-              {/* Show transition comment if exists */}
-              {selectedNode.data.comment && (
-                <>
-                  <div style={{
-                    padding: '0.5rem 1rem',
-                    borderBottom: '1px solid var(--border, #e5e7eb)',
-                    marginBottom: '0.5rem',
-                    fontSize: '0.875rem',
-                    color: 'var(--text-secondary, #6b7280)',
-                    fontStyle: 'italic'
-                  }}>
-                    {selectedNode.data.comment}
-                  </div>
-                </>
-              )}
               {/* Node context menu - stage-specific actions */}
               {selectedNode.data.isCurrent && selectedNode.data.stageId !== 'draft' && selectedNode.data.stageId !== 'submitted' && (isHR || isAdmin || isSuperAdmin) && (
                 <>

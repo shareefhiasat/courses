@@ -1,0 +1,457 @@
+
+
+
+QATAR ARMED FORCES
+Signal Corps – Signal & IT School
+سلاح الإشارة الأميري القطري
+
+Software Requirements Specification
+EduSchedule QAF
+Scheduling Management System for Training Courses
+
+
+Document Ref:  QAF-SC-SRS-001
+Version:  1.0
+Status:  Released
+Date:  April 2026
+Developed by:  Claude AI (Anthropic) – directed by QAF Signal Corps
+Classification:  RESTRICTED – Internal Use Only
+
+
+RESTRICTED
+ 
+Table of Contents
+Table of Contents	2
+1. Introduction	4
+1.1 Purpose	4
+1.2 Scope	4
+1.3 Intended Audience	4
+1.4 Document Conventions	4
+2. Overall Description	5
+2.1 Product Perspective	5
+2.2 Product Functions Summary	5
+2.3 User Classes	5
+2.4 Operating Environment	5
+2.5 Constraints	5
+3. Functional Requirements	7
+3.1 Authentication	7
+3.2 Course & Category Management	7
+3.3 Master Data – Teachers	7
+3.4 Master Data – Subjects	8
+3.5 Master Data – Classrooms	8
+3.6 Master Data – Time Slots	8
+3.7 Master Data – Holidays / Vacations	9
+3.8 Schedule Management	9
+3.9 Calendar & Views	10
+3.10 Print & Export	10
+3.11 Backup & Restore	10
+3.12 Bilingual Interface	11
+3.13 Dashboard	11
+4. Non-Functional Requirements	13
+4.1 Performance	13
+4.2 Usability	13
+4.3 Reliability	13
+4.4 Security	13
+4.5 Maintainability	14
+5. Data Architecture	15
+5.1 Storage Strategy	15
+5.2 Core Entities	15
+5.2.1 Teacher	15
+5.2.2 Subject	15
+5.2.3 Schedule Session	15
+5.3 Full Backup Format	16
+6. Future Development Roadmap	17
+6.1 Phase 2 – Python Flask Migration	17
+6.2 Planned Features	17
+6.3 Deployment Script Deliverable	17
+7. Business Rules	19
+7.1 Scheduling Rules	19
+7.2 Data Integrity Rules	19
+7.3 Print Rules	19
+8. Appendix	20
+8.1 Default Course Structure	20
+8.2 Default Time Slots	20
+8.3 Glossary	20
+8.4 Development Methodology	21
+
+ 
+1. Introduction
+
+1.1 Purpose
+This Software Requirements Specification (SRS) document describes the functional and non-functional requirements for EduSchedule QAF, a bilingual scheduling management system developed for the Qatar Armed Forces Signal Corps – Signal & IT School. The document serves as the authoritative reference for the system's capabilities, constraints, and design decisions.
+1.2 Scope
+EduSchedule QAF is a scheduling management application for training courses. It manages sessions across multiple courses, teachers, classrooms, and time periods. The system is designed for standalone deployment on a local machine, requiring no internet connection or server infrastructure.
+
+The system supports:
+•	Multiple training courses organised in a hierarchical category structure
+•	Shared teacher and subject pools across all courses
+•	Per-course independent schedules, classrooms, time slots, and holidays
+•	Bilingual interface in Arabic (RTL) and English (LTR)
+•	Official QAF-format print output for weekly schedules
+1.3 Intended Audience
+Audience	Role	Usage
+Course Administrator	Primary user	Manage all data, enter schedules, print reports
+IT Officer	Deployment	Install, backup, distribute updates
+Management	Viewer	Review printed schedules and reports
+Development Team	Maintenance	Future Flask/Python migration reference
+1.4 Document Conventions
+•	SHALL – mandatory requirement
+•	SHOULD – recommended requirement
+•	MAY – optional feature
+•	FR – Functional Requirement
+•	NFR – Non-Functional Requirement
+ 
+2. Overall Description
+
+2.1 Product Perspective
+EduSchedule QAF was developed from scratch to meet the specific operational needs of the Qatar Armed Forces Signal Corps. It replaces manual scheduling processes and provides a structured, bilingual environment for managing complex multi-course, multi-teacher schedules aligned with the QAF working week (Sunday to Thursday).
+2.2 Product Functions Summary
+Module	Core Function	Key Features
+Authentication	Password-protected access	Login screen, password change, session management
+Course Management	Hierarchical course selection	Categories, sub-categories, add/delete courses
+Master Data	Shared reference data	Teachers (bilingual), Subjects, Classrooms, Time Slots
+Schedule Management	Session scheduling	Conflict detection, holiday blocking, weekend blocking
+Calendar Views	Visual schedule display	Table, Week, Day views with navigation
+Print & Export	Official QAF output	Weekly schedule in QAF format, CSV export
+Backup & Restore	Data safety	Full backup (all courses), per-course backup, restore
+Bilingual UI	Language switching	Arabic RTL / English LTR toggle on all screens
+2.3 User Classes
+The system is designed for a single administrative user per installation. There is currently one user role (Administrator) with full access to all features. Future versions should implement role-based access control (see Section 6.2).
+2.4 Operating Environment
+•	Operating System: Windows 10/11 (recommended), Windows 8.1 or later
+•	No internet connection required
+•	Minimum screen resolution: 1280 × 768
+•	Accessible from other devices on the same local network
+2.5 Constraints
+•	Data is stored locally on the host machine
+•	Data is not shared across devices in real time in the current version
+•	No audit logging in the current version
+•	Single-user access model in the current version
+ 
+3. Functional Requirements
+
+3.1 Authentication
+Req ID	Requirement
+FR-AUTH-01	The system SHALL display a password-protected login screen before granting access
+FR-AUTH-02	The login screen SHALL provide a language toggle (Arabic/English) before login
+FR-AUTH-03	The system SHALL support changing the password from the login screen
+FR-AUTH-04	Passwords SHALL be stored as a secure hash – never plain text
+FR-AUTH-05	The system SHALL maintain session state and not require re-login on page refresh
+FR-AUTH-06	The system SHALL provide a logout function from the main interface
+3.2 Course & Category Management
+Req ID	Requirement
+FR-CRS-01	The system SHALL support a hierarchical course structure: Category → Sub-category → Course
+FR-CRS-02	Default course structure SHALL include: Officers (Foundation, Advance), Females › Officers (Foundation, Advanced), Females › Other Ranks (Preparatory, Foundation), Other Ranks (Preparatory, Foundation)
+FR-CRS-03	The course selection dropdown SHALL display courses grouped by category using optgroup elements
+FR-CRS-04	The system SHALL allow adding new categories with English and Arabic names
+FR-CRS-05	The system SHALL allow deleting empty categories (categories with courses cannot be deleted)
+FR-CRS-06	The system SHALL allow adding new courses with English name, Arabic name, and category assignment
+FR-CRS-07	The system SHALL allow deleting courses that are not currently active
+FR-CRS-08	Deleting a course SHALL permanently remove all its associated schedule data
+FR-CRS-09	The course selection screen SHALL provide a language toggle button
+FR-CRS-10	The Manage Courses & Categories panel SHALL be accessible from the course selection screen
+3.3 Master Data – Teachers
+Req ID	Requirement
+FR-TEA-01	Teachers SHALL be stored in shared storage and accessible across all courses
+FR-TEA-02	Each teacher record SHALL contain: Full Name (English), Full Name (Arabic), Contact/Phone, Email, Status, Available Days, Mapped Subjects
+FR-TEA-03	Teacher status options SHALL be: Active, On Leave, Inactive
+FR-TEA-04	Available days SHALL be selectable from Sunday to Saturday with checkboxes
+FR-TEA-05	Teachers SHALL be mapped to one or more subjects via a visual chip selector
+FR-TEA-06	The teacher table SHALL display subject names in the active language (Arabic/English)
+FR-TEA-07	Teacher status badges SHALL translate when the UI language is switched
+FR-TEA-08	Teacher names SHALL display in Arabic when the interface is in Arabic mode
+3.4 Master Data – Subjects
+Req ID	Requirement
+FR-SUB-01	Subjects SHALL be stored in shared storage and accessible across all courses
+FR-SUB-02	Each subject SHALL have: Name (English), Name (Arabic), Category, Duration (minutes)
+FR-SUB-03	Subject names SHALL display in the active language throughout the application
+FR-SUB-04	Subject categories SHALL include: Science, Mathematics, Language, Arts, Social Studies, Technology, Physical Education, Islamic Studies, Other
+3.5 Master Data – Classrooms
+Req ID	Requirement
+FR-RM-01	Classrooms SHALL be stored per course (each course has independent classrooms)
+FR-RM-02	Each classroom SHALL have: Name, Capacity, Available Days, Status
+FR-RM-03	Classroom status SHALL be: Available, Under Maintenance, Closed
+FR-RM-04	Classroom status badges SHALL translate when the UI language is switched
+3.6 Master Data – Time Slots
+Req ID	Requirement
+FR-TS-01	Time slots SHALL be stored per course
+FR-TS-02	Each time slot SHALL have: Label (bilingual EN/AR), Start Time, End Time
+FR-TS-03	The default time slot configuration SHALL include 7 teaching periods and 2 break slots (Tea Break: 09:40–10:00, Prayer Break: 11:45–12:00)
+FR-TS-04	Break slots SHALL be displayed in a separate rotated sidebar column in the print view
+FR-TS-05	Break slots SHALL NOT appear in the main schedule grid as schedulable periods
+3.7 Master Data – Holidays / Vacations
+Req ID	Requirement
+FR-HOL-01	Holidays SHALL be stored per course
+FR-HOL-02	Each holiday SHALL have: Description (English), Description (Arabic), Type, From Date, To Date
+FR-HOL-03	Holiday types SHALL include: Public Holiday, National Day, Semester Break, Summer Vacation, Winter Break, Other
+FR-HOL-04	The system SHALL prevent scheduling sessions on holiday dates
+FR-HOL-05	The calendar and print views SHALL highlight holiday dates visually
+3.8 Schedule Management
+Req ID	Requirement
+FR-SCH-01	Each schedule session SHALL contain: Date, Time Slot, Subject, Teacher, Classroom, Notes
+FR-SCH-02	The system SHALL prevent scheduling on Friday or Saturday (QAF weekend)
+FR-SCH-03	The system SHALL prevent scheduling on holiday dates
+FR-SCH-04	The system SHALL detect and block teacher conflicts (same teacher, same time slot, same date)
+FR-SCH-05	The system SHALL detect and block classroom conflicts (same classroom, same time slot, same date)
+FR-SCH-06	The system SHALL enforce a maximum of 3 sessions per teacher per day
+FR-SCH-07	When a teacher is selected in the session form, the system SHALL display a colour-coded hint showing the teacher's mapped subjects
+FR-SCH-08	The Teacher dropdown in the session form SHALL display names in the active language
+FR-SCH-09	When opening a new session form, all fields SHALL reset to blank defaults
+FR-SCH-10	The schedule table SHALL support filtering by Teacher, Subject, Classroom, and Date
+FR-SCH-11	Schedule data SHALL be stored independently per course
+3.9 Calendar & Views
+Req ID	Requirement
+FR-VW-01	The schedule page SHALL provide three views: Table View, Week View, Day View
+FR-VW-02	The Week View SHALL display Sunday to Thursday only (5 working days)
+FR-VW-03	The Week View SHALL colour-code sessions by teacher's primary subject colour
+FR-VW-04	The Day View SHALL allow navigation to previous/next working day, skipping weekends
+FR-VW-05	The Calendar page SHALL display a monthly grid with session count badges per day
+FR-VW-06	The Calendar page SHALL display upcoming holidays in a sidebar panel
+FR-VW-07	Clicking a day in the calendar SHALL show a detail popup with that day's sessions
+3.10 Print & Export
+Req ID	Requirement
+FR-PRT-01	The print view SHALL produce an official QAF-format weekly schedule
+FR-PRT-02	The print header SHALL include: QAF logo, RESTRICTED stamp, organisation name, issue date, period dates
+FR-PRT-03	The print footer SHALL include signature lines for Captain and Brigadier General
+FR-PRT-04	Weekly print columns SHALL always display Sunday to Thursday regardless of the selected From date
+FR-PRT-05	The From date SHALL be automatically snapped to the Sunday of the selected week
+FR-PRT-06	All date calculations SHALL use local timezone (Qatar UTC+3) to avoid UTC offset errors
+FR-PRT-07	Break time slots SHALL appear in a rotated sidebar column on the right of the print grid
+FR-PRT-08	Holiday dates in the print grid SHALL be highlighted in red with the holiday name
+FR-PRT-09	The system SHALL support printing by: Weekly Schedule, Monthly Schedule, By Teacher, By Subject, By Classroom
+FR-PRT-10	The system SHALL support CSV export of filtered schedule data
+3.11 Backup & Restore
+Req ID	Requirement
+FR-BAK-01	Full Backup SHALL export all courses, shared teachers/subjects, categories, and course list in a single JSON file named QAF-FullBackup-DATE.json
+FR-BAK-02	Course Backup SHALL export the currently active course data only
+FR-BAK-03	Full Restore SHALL validate the backup file type before importing
+FR-BAK-04	Full Restore SHALL prompt the user for confirmation before overwriting all data
+FR-BAK-05	Full Restore SHALL restore all courses, categories, teachers, subjects, and set the active course
+FR-BAK-06	The system SHALL display a Thursday backup reminder to encourage regular backups
+FR-BAK-07	Backup files SHALL be in a standard format and portable across different machines
+3.12 Bilingual Interface
+Req ID	Requirement
+FR-LANG-01	The system SHALL support Arabic (RTL) and English (LTR) as interface languages
+FR-LANG-02	Language selection SHALL be persistent across sessions
+FR-LANG-03	A language toggle button SHALL be present on: Login screen, Course selection screen, Manage Courses panel, Main application topbar
+FR-LANG-04	Switching language SHALL translate all UI labels, buttons, navigation, modals, and status badges
+FR-LANG-05	Arabic mode SHALL use IBM Plex Sans Arabic font and RTL document direction
+FR-LANG-06	Arabic-Indic numerals SHALL be used in Arabic mode for numbers and dates
+FR-LANG-07	Teacher names SHALL display in Arabic when an Arabic name has been entered and Arabic mode is active
+FR-LANG-08	Subject names SHALL display in Arabic when an Arabic name has been entered and Arabic mode is active
+FR-LANG-09	Day names, month names, and date formats SHALL use Arabic equivalents in Arabic mode
+FR-LANG-10	User-entered data (teacher names, subject names) SHALL display in whichever language it was entered if no translation is available
+3.13 Dashboard
+Req ID	Requirement
+FR-DASH-01	The dashboard SHALL display summary statistics: Total Teachers, Subjects, Classrooms, Sessions This Week, Sessions This Month
+FR-DASH-02	The dashboard SHALL display today's schedule with current date
+FR-DASH-03	The dashboard SHALL display upcoming holidays with date and duration
+FR-DASH-04	The dashboard SHALL display Teacher Load chart for the current month
+FR-DASH-05	The dashboard SHALL display Subject Sessions chart for the current month
+FR-DASH-06	The dashboard page title SHALL include the active course name
+ 
+4. Non-Functional Requirements
+
+4.1 Performance
+Req ID	Requirement
+NFR-PERF-01	The application SHALL load fully within 3 seconds on a modern computer
+NFR-PERF-02	Schedule filtering and view switching SHALL respond within 500ms
+NFR-PERF-03	Print preview generation SHALL complete within 2 seconds for a full week's schedule
+NFR-PERF-04	The application SHALL handle up to 500 schedule sessions per course without performance degradation
+4.2 Usability
+Req ID	Requirement
+NFR-USE-01	The application SHALL operate without any installation or technical setup by the end user
+NFR-USE-02	All user-facing text SHALL be available in both Arabic and English
+NFR-USE-03	Form validation SHALL display clear, translated error messages
+NFR-USE-04	Auto-save SHALL occur on every data change with a visible toast notification
+NFR-USE-05	Destructive actions (delete course, delete teacher, full restore) SHALL require confirmation
+NFR-USE-06	The interface SHALL be responsive and usable on screen widths from 768px to 2560px
+4.3 Reliability
+Req ID	Requirement
+NFR-REL-01	Data SHALL be auto-saved after every change to prevent loss
+NFR-REL-02	The application SHALL start with seed data if no previous data is found
+NFR-REL-03	Migration functions SHALL automatically upgrade data from older versions on startup
+NFR-REL-04	The application SHALL handle corrupt stored data gracefully by falling back to defaults
+4.4 Security
+Req ID	Requirement
+NFR-SEC-01	The login password SHALL be stored as a hash, not plain text
+NFR-SEC-02	The print header SHALL include a RESTRICTED classification stamp
+NFR-SEC-03	The application SHALL not make any external network requests (fully offline)
+NFR-SEC-04	No user data SHALL be transmitted to any external service
+4.5 Maintainability
+Req ID	Requirement
+NFR-MNT-01	Application updates SHALL be deliverable without data loss
+NFR-MNT-02	Existing data SHALL be preserved when the application is updated
+NFR-MNT-03	The application SHALL include data migration functions to handle schema changes between versions
+NFR-MNT-04	The Full Backup format SHALL be versioned to support forward compatibility
+ 
+5. Data Architecture
+
+5.1 Storage Strategy
+Application data is split into two layers for efficient storage and sharing:
+
+Data Layer	Contents
+Shared data	Teachers and Subjects — accessible across ALL courses
+Course data	Per-course: Classrooms, Time Slots, Holidays, Schedule
+Configuration	Courses list, Categories list, Active course selection
+Preferences	Language setting, Password (hashed), Reminder state
+5.2 Core Entities
+5.2.1 Teacher
+Field	Description
+id	Unique integer identifier
+name	Full name in English
+nameAr	Full name in Arabic
+contact	Phone number
+email	Email address
+status	Active | On Leave | Inactive
+days	Array of available days (Sun–Sat)
+subjectIds	Array of mapped subject IDs
+subjects	Comma-separated subject names (legacy text field)
+
+5.2.2 Subject
+Field	Description
+id	Unique integer identifier
+name	Subject name in English
+nameAr	Subject name in Arabic
+category	Subject category (Science, Mathematics, etc.)
+duration	Session duration in minutes
+
+5.2.3 Schedule Session
+Field	Description
+id	Unique integer identifier
+date	ISO date string (YYYY-MM-DD)
+timeslotId	Foreign key to Time Slot
+subjectId	Foreign key to Subject
+teacherId	Foreign key to Teacher
+classroomId	Foreign key to Classroom
+notes	Optional free-text notes
+5.3 Full Backup Format
+The Full Backup JSON structure:
+
+Field	Description
+_type	"QAF_FULL_BACKUP" – validation marker
+_version	Format version string (e.g., "2.0")
+_date	Backup creation date
+shared	Object containing teachers[] and subjects[]
+coursesList	Array of all course definitions
+categoriesList	Array of all category definitions
+currentCourse	ID of the active course at backup time
+courses	Object keyed by course ID, each containing classrooms, timeslots, holidays, schedule
+ 
+6. Future Development Roadmap
+
+6.1 Phase 2 – Python Flask Migration
+When the system needs to support multiple simultaneous users with shared real-time data, the recommended migration path is:
+
+Component	Current (v1)	Phase 2 (Flask)
+Runtime	Desktop application	Network server on Windows PC
+Database	Local file storage (per device)	Central database (SQLite → PostgreSQL)
+Access	File copy (flash drive)	Browser URL on WiFi network
+Multi-user	Not supported	Role-based (Admin, Viewer, Reporter)
+Data sync	Manual via backup/restore	Real-time, automatic
+Audit trail	Not available	Full change log with user and timestamp
+Deployment	Copy .html file	Run INSTALL.bat once on host PC
+6.2 Planned Features
+•	Role-based access control: Administrator, Viewer, Reporter
+•	Audit log: record every data change with user identity and timestamp
+•	Notification system: email alerts for schedule changes
+•	Student timetable view: per-student schedule generation
+•	Room utilisation reports: occupancy statistics by classroom
+•	Teacher workload analytics: session count trends over time
+•	Academic year planning: multi-term schedule management
+•	Integration with HR system for teacher availability
+6.3 Deployment Script Deliverable
+When Phase 2 is initiated, the following files will be delivered on a flash drive:
+
+File	Purpose
+INSTALL.bat	One-click installer: Python, Flask, database setup, Desktop shortcut
+START.bat	Daily launch: starts server, opens browser automatically
+STOP.bat	Clean server shutdown
+app.py	Flask application server with all API routes
+database.py	SQLAlchemy models matching current data structure
+migrate.py	One-time import of existing JSON backup into database
+static/app.js	Existing frontend JS modified to call REST API
+templates/index.html	Application frontend, unchanged visually
+
+Management interaction required: double-click INSTALL.bat once. All subsequent use is via a Desktop shortcut. No command line knowledge needed.
+ 
+7. Business Rules
+
+7.1 Scheduling Rules
+Rule ID	Rule Description
+BR-01	Working week is Sunday to Thursday. Friday and Saturday are weekend days and cannot be scheduled
+BR-02	Maximum 3 sessions per teacher per day
+BR-03	A teacher cannot be scheduled in two sessions at the same time on the same day
+BR-04	A classroom cannot be used in two sessions at the same time on the same day
+BR-05	Sessions cannot be scheduled on dates that fall within a holiday period
+BR-06	Break slots (Tea Break, Prayer Break) cannot have sessions assigned to them
+7.2 Data Integrity Rules
+Rule ID	Rule Description
+BR-07	A category cannot be deleted if it contains courses
+BR-08	The currently active course cannot be deleted
+BR-09	Teachers and subjects are shared across all courses – deleting a teacher removes them from all course schedules
+BR-10	Course data (schedule, classrooms, time slots, holidays) is independent per course
+BR-11	All date arithmetic uses local device time (Qatar UTC+3) – never UTC-based toISOString()
+7.3 Print Rules
+Rule ID	Rule Description
+BR-12	Print week columns always show Sunday to Thursday regardless of selected From date
+BR-13	Selected From date is automatically snapped backward to the Sunday of that week
+BR-14	Weeks are grouped by calendar week (7-day), not working-week (5-day) intervals
+BR-15	All printed documents carry the RESTRICTED classification and QAF header/footer
+ 
+8. Appendix
+
+8.1 Default Course Structure
+Category	Sub-Category	Course Name
+Officers	—	Foundation Course
+Officers	—	Advance Course
+Females	Officers	Foundation Course
+Females	Officers	Advanced Course
+Females	Other Ranks	Preparatory Course
+Females	Other Ranks	Foundation Course
+Other Ranks	—	Preparatory Course
+Other Ranks	—	Foundation Course
+8.2 Default Time Slots
+Label	Start	End
+Period 1 / الحصة 1	07:00	07:50
+Period 2 / الحصة 2	07:55	08:45
+Period 3 / الحصة 3	08:50	09:40
+Tea Break / استراحة شاي	09:40	10:00
+Period 4 / الحصة 4	10:00	10:50
+Period 5 / الحصة 5	10:55	11:45
+Prayer Break / استراحة صلاة	11:45	12:00
+Period 6 / الحصة 6	12:00	12:50
+Period 7 / الحصة 7	12:55	13:45
+8.3 Glossary
+Term	Definition
+QAF	Qatar Armed Forces
+SRS	Software Requirements Specification
+RTL	Right-to-Left text direction (used for Arabic)
+LTR	Left-to-Right text direction (used for English)
+Local storage	Application data stored on the host machine, persists between sessions
+Session	A single scheduled teaching period for a subject, teacher, classroom, and date
+Course	A training programme with its own independent schedule and classroom configuration
+Category	A grouping of related courses (e.g., Officers, Females › Officers)
+Shared data	Teachers and subjects stored once and accessible to all courses
+Full Backup	A single JSON file containing all courses, shared data, and configuration
+Flask	A lightweight Python web framework used for the planned Phase 2 migration
+SQLite	A serverless, file-based SQL database used in the Phase 2 plan
+8.4 Development Methodology
+EduSchedule QAF was developed using an iterative, requirement-driven approach:
+
+1.	Initial requirements gathered from QAF Signal Corps operational needs
+2.	Core scheduling framework built: data model, CRUD operations, basic UI
+3.	Bilingual support added: Arabic RTL, IBM Plex Sans Arabic, language toggle
+4.	Course hierarchy implemented: categories, sub-categories, independent data per course
+5.	Print system built to QAF official format with RESTRICTED stamp and signature lines
+6.	Shared teachers/subjects architecture implemented across all courses
+7.	Timezone bug identified and fixed (Qatar UTC+3 offset affecting all date calculations)
+8.	Iterative bug fixes and refinements based on user testing feedback
+
+Development: Requirements-driven iterative development with domain direction and quality control by QAF Signal Corps personnel.
+
+
+
+
+End of Document
+QAF-SC-SRS-001 v1.0 – April 2026 – RESTRICTED

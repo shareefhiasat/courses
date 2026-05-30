@@ -15,7 +15,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Button, useToast, CountdownLoading } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from '@ui';
-import { SimpleLoading, EmptyState, Modal, Textarea } from '@ui';
+import { SimpleLoading, EmptyState, Modal, Textarea, Input } from '@ui';
 import { approveWorkflowDocument, rejectWorkflowDocument, returnWorkflowDocument, resubmitWorkflowDocument, uploadSignedDocument, withdrawWorkflowDocument, updateWorkflowDocumentStatus } from '@services/api/workflow-documents-api.js';
 import WorkflowDiagram from '@components/workflow/WorkflowDiagram.jsx';
 import WorkflowHistory from '@components/workflow/WorkflowHistory.jsx';
@@ -50,6 +50,7 @@ const WorkflowDocumentDetailPage = () => {
   const [signedFile, setSignedFile] = useState(null);
   const [isVisible, setIsVisible] = useState(true);
   const [diagramKey, setDiagramKey] = useState(0);
+  const [selectedStage, setSelectedStage] = useState(null);
   const commentInputRef = useRef(null);
 
   // Handle visibility change
@@ -166,7 +167,8 @@ const WorkflowDocumentDetailPage = () => {
   const handleApprove = async () => {
     setActionLoading(true);
     try {
-      const result = await approveWorkflowDocument(documentId, { comment });
+      const commentValue = commentInputRef.current?.value || '';
+      const result = await approveWorkflowDocument(documentId, { comment: commentValue });
       if (result.success) {
         toast.success(t('workflow.document.approved', 'Document approved successfully'));
         // Force immediate refresh before closing modal
@@ -187,14 +189,15 @@ const WorkflowDocumentDetailPage = () => {
 
   // Handle reject action
   const handleReject = async () => {
-    console.log('[REJECT ACTION] Starting reject action', { documentId, currentStatus: document?.status, comment });
-    if (!comment.trim()) {
+    const commentValue = commentInputRef.current?.value || '';
+    console.log('[REJECT ACTION] Starting reject action', { documentId, currentStatus: document?.status, comment: commentValue });
+    if (!commentValue.trim()) {
       toast.error(t('workflow.document.commentRequired', 'Comment is required for rejection'));
       return;
     }
     setActionLoading(true);
     try {
-      const result = await rejectWorkflowDocument(documentId, { comment });
+      const result = await rejectWorkflowDocument(documentId, { comment: commentValue });
       console.log('[REJECT ACTION] API response', result);
       if (result.success) {
         toast.success(t('workflow.document.rejected', 'Document rejected successfully'));
@@ -217,14 +220,15 @@ const WorkflowDocumentDetailPage = () => {
 
   // Handle return action
   const handleReturn = async () => {
-    console.log('[RETURN ACTION] Starting return action', { documentId, currentStatus: document?.status, comment });
-    if (!comment.trim()) {
+    const commentValue = commentInputRef.current?.value || '';
+    console.log('[RETURN ACTION] Starting return action', { documentId, currentStatus: document?.status, comment: commentValue });
+    if (!commentValue.trim()) {
       toast.error(t('workflow.document.commentRequired', 'Comment is required for return'));
       return;
     }
     setActionLoading(true);
     try {
-      const result = await returnWorkflowDocument(documentId, { comment });
+      const result = await returnWorkflowDocument(documentId, { comment: commentValue });
       console.log('[RETURN ACTION] API response', result);
       if (result.success) {
         toast.success(t('workflow.document.returned', 'Document returned successfully'));
@@ -233,7 +237,7 @@ const WorkflowDocumentDetailPage = () => {
         await fetchDocument();
         setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
         setActionModal(null);
-        window.location.reload(); // Full page refresh to ensure UI updates
+        setComment('');
       } else {
       }
     } catch (err) {
@@ -266,8 +270,6 @@ const WorkflowDocumentDetailPage = () => {
           await fetchDocument();
           setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
           setActionModal(null);
-        window.location.reload(); // Full page refresh to ensure UI updates
-        window.location.reload(); // Full page refresh to ensure UI updates
           setComment('');
           setResubmitFile(null);
         } else {
@@ -354,8 +356,6 @@ const WorkflowDocumentDetailPage = () => {
           await fetchDocument();
           setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
           setActionModal(null);
-        window.location.reload(); // Full page refresh to ensure UI updates
-        window.location.reload(); // Full page refresh to ensure UI updates
           setComment('');
           setResubmitFile(null);
         } else {
@@ -403,8 +403,6 @@ const WorkflowDocumentDetailPage = () => {
           await fetchDocument();
           setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
           setActionModal(null);
-        window.location.reload(); // Full page refresh to ensure UI updates
-        window.location.reload(); // Full page refresh to ensure UI updates
           setComment('');
           setSignedFile(null);
         } else {
@@ -433,10 +431,8 @@ const WorkflowDocumentDetailPage = () => {
         await fetchDocument();
         setDiagramKey(prev => prev + 1);
         setActionModal(null);
-        window.location.reload(); // Full page refresh to ensure UI updates
-        window.location.reload(); // Full page refresh to ensure UI updates
         setComment('');
-        // Full page refresh
+        // Full page refresh for submit
         window.location.reload();
       } else {
         toast.error(result.error || t('workflow.document.submitError', 'Failed to submit document'));
@@ -476,10 +472,7 @@ const WorkflowDocumentDetailPage = () => {
         await fetchDocument();
         setDiagramKey(prev => prev + 1);
         setActionModal(null);
-        window.location.reload(); // Full page refresh to ensure UI updates
-        window.location.reload(); // Full page refresh to ensure UI updates
         setComment('');
-        window.location.reload();
       } else {
         toast.error(result.error || t('workflow.document.sendToNextError', 'Failed to send to next step'));
       }
@@ -492,17 +485,16 @@ const WorkflowDocumentDetailPage = () => {
 
   // Handle document withdrawal
   const handleWithdraw = async () => {
+    const commentValue = commentInputRef.current?.value || '';
     setActionLoading(true);
     try {
-      const result = await withdrawWorkflowDocument(documentId, { comment });
+      const result = await withdrawWorkflowDocument(documentId, { comment: commentValue });
       if (result.success) {
         toast.success(t('workflow.document.withdrawn', 'Document withdrawn successfully'));
         // Force immediate refresh before closing modal
         await fetchDocument();
         setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
         setActionModal(null);
-        window.location.reload(); // Full page refresh to ensure UI updates
-        window.location.reload(); // Full page refresh to ensure UI updates
         setComment('');
       } else {
         toast.error(result.error || t('workflow.document.withdrawError', 'Failed to withdraw document'));
@@ -716,6 +708,7 @@ const WorkflowDocumentDetailPage = () => {
             onSendToNext={() => setActionModal('sendToNext')}
             onDelete={() => setActionModal('withdraw')}
             onRefresh={fetchDocument}
+            onStageFilterChange={setSelectedStage}
           />
         </div>
       </div>
@@ -825,7 +818,11 @@ const WorkflowDocumentDetailPage = () => {
               {t('workflow.document.comments', 'Comments')}
             </h3>
           </div>
-          <WorkflowCommentsTab workflowId={documentId} />
+          <WorkflowCommentsTab 
+            workflowId={documentId} 
+            selectedStage={selectedStage}
+            onStageFilterChange={setSelectedStage}
+          />
         </div>
 
         {/* Status History */}
@@ -846,7 +843,9 @@ const WorkflowDocumentDetailPage = () => {
                 {document.statusHistory.length}
               </Badge>
             </div>
-            <WorkflowHistory statusHistory={document.statusHistory} />
+            <div style={{ height: '500px', overflowY: 'auto' }}>
+              <WorkflowHistory statusHistory={document.statusHistory} />
+            </div>
           </div>
         )}
       </div>
@@ -855,10 +854,11 @@ const WorkflowDocumentDetailPage = () => {
       {actionModal && (
         <Modal
           isOpen={!!actionModal}
+          size="small"
+          showCloseButton={false}
+          className="compact-modal"
           onClose={() => {
             setActionModal(null);
-        window.location.reload(); // Full page refresh to ensure UI updates
-        window.location.reload(); // Full page refresh to ensure UI updates
             setComment('');
             setResubmitFile(null);
             setSignedFile(null);
@@ -928,13 +928,6 @@ const WorkflowDocumentDetailPage = () => {
             )}
             <Input
               ref={commentInputRef}
-              value={comment}
-              onChange={(e) => {
-                console.log('[Comment Input] onChange:', e.target.value);
-                setComment(e.target.value);
-              }}
-              onFocus={() => console.log('[Comment Input] onFocus')}
-              onBlur={() => console.log('[Comment Input] onBlur')}
               placeholder={
                 actionModal === 'approve' || actionModal === 'withdraw'
                   ? t('workflow.document.optionalComment', 'Add optional comment...')

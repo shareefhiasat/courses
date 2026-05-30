@@ -21,17 +21,6 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
   const titleInputRef = useRef(null);
   const descriptionInputRef = useRef(null);
 
-  const handleTitleChange = useCallback((e) => {
-    console.log('[CustomWorkflowDialog] Title change:', e.target.value);
-    const value = e.target.value;
-    setTitle(value);
-  }, []);
-  const handleDescriptionChange = useCallback((e) => {
-    console.log('[CustomWorkflowDialog] Description change:', e.target.value);
-    const value = e.target.value;
-    setDescription(value);
-  }, []);
-
   const workflowTypes = [
     { value: 'GENERAL_HR', label: { en: 'General HR', ar: 'عام - الموارد البشرية' } },
     { value: 'GENERAL_ADMIN', label: { en: 'General Admin', ar: 'عام - الإدارة' } },
@@ -52,7 +41,8 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
       newErrors.workflowType = t('workflow.dialog.errors.workflowTypeRequired', 'Workflow type is required');
     }
 
-    if (!title.trim()) {
+    const titleValue = titleInputRef.current?.value || '';
+    if (!titleValue.trim()) {
       newErrors.title = t('workflow.dialog.errors.titleRequired', 'Title is required');
     }
 
@@ -70,10 +60,13 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
     setIsSubmitting(true);
     
     try {
+      const titleValue = titleInputRef.current?.value || '';
+      const descriptionValue = descriptionInputRef.current?.value || '';
+      
       const workflowData = {
         workflowType,
-        title: title.trim(),
-        description: description.trim(),
+        title: titleValue.trim(),
+        description: descriptionValue.trim(),
         reviewers: [], // Always empty - will be assigned when submitting
         attachFile,
         file: attachFile ? file : null
@@ -111,6 +104,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
   return (
     <Modal
       isOpen={isOpen}
+      size="sm"
       onClose={handleCancel}
       title={t('workflow.dialog.title', 'Create Custom Workflow')}
     >
@@ -145,8 +139,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
           <input
             ref={titleInputRef}
             type="text"
-            value={title}
-            onChange={handleTitleChange}
+            defaultValue={title}
             placeholder={t('workflow.dialog.titlePlaceholder', 'Enter workflow title')}
             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white ${
               errors.title ? 'border-red-500' : 'border-gray-300'
@@ -164,8 +157,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
           </label>
           <textarea
             ref={descriptionInputRef}
-            value={description}
-            onChange={handleDescriptionChange}
+            defaultValue={description}
             placeholder={t('workflow.dialog.descriptionPlaceholder', 'Enter workflow description')}
             rows={3}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
