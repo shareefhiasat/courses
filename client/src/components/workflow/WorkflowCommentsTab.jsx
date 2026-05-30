@@ -5,6 +5,7 @@ import { getIcon } from '@constants/iconTypes';
 import { Button } from '@ui';
 import Modal from '@ui/Modal/Modal';
 import workflowService from '@services/business/workflowService';
+import { Star, Shield, ShieldCheck } from 'lucide-react';
 
 export default function WorkflowCommentsTab({ workflowId, selectedStage, onStageFilterChange }) {
   const { t } = useLang();
@@ -465,6 +466,22 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                            {/* Role icon */}
+                            {(() => {
+                              const roles = comment.author?.roleAssignments || [];
+                              const roleCodes = roles.map(r => r.role?.code).filter(Boolean);
+                              
+                              if (roleCodes.includes('SUPER_ADMIN') || roleCodes.includes('super_admin')) {
+                                return <Star size={14} color="#f59e0b" />;
+                              }
+                              if (roleCodes.includes('HR') || roleCodes.includes('hr')) {
+                                return <Shield size={14} color="#8b5cf6" />;
+                              }
+                              if (roleCodes.includes('ADMIN') || roleCodes.includes('admin')) {
+                                return <ShieldCheck size={14} color="#3b82f6" />;
+                              }
+                              return null;
+                            })()}
                             <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
                               {(() => {
                                 const firstName = comment.author?.firstName || '';
@@ -494,7 +511,7 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
                         </div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>
                           {formatDateTime(comment.createdAt)}
                         </span>
                         {/* Only show delete button for comment author or Super Admin */}
