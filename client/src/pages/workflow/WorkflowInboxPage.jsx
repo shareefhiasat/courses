@@ -19,7 +19,9 @@ import useWorkflowInbox from "@hooks/useWorkflowInbox";
 import { Button, useToast } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Input, SimpleLoading, EmptyState, AdvancedDataGrid } from '@ui';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Trash2 } from 'lucide-react';
+import { deleteWorkflowDocument } from '@services/business/workflowService';
+import { useAuth } from '@contexts/AuthContext';
 
 const WorkflowInboxPage = () => {
   const navigate = useNavigate();
@@ -28,6 +30,45 @@ const WorkflowInboxPage = () => {
   const { triggerNotification } = useNotifications();
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
+  const { user } = useAuth();
+
+  // Check if user is super admin
+  const isSuperAdmin = user?.roleAssignments?.some(ra => 
+    ra.role?.code?.toLowerCase().includes('super_admin') || 
+    ra.role?.code?.toLowerCase().includes('superadmin')
+  );
+
+  // Handle nuclear delete
+  const handleNuclearDelete = async (documentId) => {
+    if (!isSuperAdmin) {
+      toast.error('Only Super Admin can perform nuclear delete');
+      return;
+    }
+
+    if (!window.confirm('⚠️ NUCLEAR DELETE WARNING ⚠️\n\nThis will PERMANENTLY delete this workflow document and ALL associated data (comments, history, files).\n\nThis action CANNOT be undone.\n\nAre you absolutely sure you want to proceed?')) {
+      return;
+    }
+
+    if (!window.confirm('FINAL CONFIRMATION\n\nType "DELETE" to confirm this nuclear delete action.')) {
+      return;
+    }
+
+    try {
+      startLoading();
+      const result = await deleteWorkflowDocument(documentId);
+      if (result.success) {
+        toast.success('Document nuked successfully');
+        refresh();
+      } else {
+        toast.error(result.error || 'Failed to delete document');
+      }
+    } catch (error) {
+      console.error('Nuclear delete error:', error);
+      toast.error('Failed to delete document');
+    } finally {
+      startLoading(false);
+    }
+  };
 
   // Helper to get file type icon based on mimeType
   const getFileIconName = (mimeType) => {
@@ -103,19 +144,32 @@ const WorkflowInboxPage = () => {
     },
     {
       field: 'title',
+      headerName: t('workflow.inbox.workflowTitle', 'Workflow Title'),
+      width: 200,
+      renderCell: (params) => {
+        return (
+          <div className="font-medium text-gray-900">
+            {params.row.title}
+          </div>
+        );
+      }
+    },
+    {
+      field: 'originalFileName',
       headerName: t('workflow.inbox.document', 'Document'),
       width: 250,
       renderCell: (params) => {
         const mimeType = params.row.file?.mimeType;
         const icon = getThemedIcon('ui', getFileIconName(mimeType), 20, theme);
+        const originalFileName = params.row.file?.name || params.row.file?.originalName || '-';
         
         return (
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0 flex items-center">
               {icon}
             </div>
-            <div className="font-medium text-gray-900">
-              {params.row.title}
+            <div className="font-medium text-gray-900 truncate" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {originalFileName}
             </div>
           </div>
         );
@@ -440,7 +494,7 @@ const WorkflowInboxPage = () => {
     {
       field: 'actions',
       headerName: t('workflow.inbox.actions', 'Actions'),
-      width: 120,
+      width: 150,
       renderCell: (params) => (
         <div className="flex items-center gap-2">
           <Button
@@ -451,6 +505,17 @@ const WorkflowInboxPage = () => {
           >
             {getThemedIcon('ui', 'eye', 16, 'white')}
           </Button>
+          {isSuperAdmin && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => handleNuclearDelete(params.row.id)}
+              className="h-8 px-3"
+              title="Nuclear Delete"
+            >
+              <Trash2 size={16} />
+            </Button>
+          )}
         </div>
       )
     }
@@ -495,7 +560,7 @@ const WorkflowInboxPage = () => {
               {[
                 { value: 'DRAFT', label: 'Draft', color: '#6b7280', icon: 'file_text' },
                 { value: 'SUBMITTED', label: 'Submitted', color: '#3b82f6', icon: 'send' },
-                { value: 'UNDER_REVIEW', label: 'HR Review', color: '#3b82f6', icon: 'alert_triangle' },
+                { value: 'UNDER_REVIEW', label: 'HR Review', color: '#8b5cf6', icon: 'alert_triangle' },
                 { value: 'UNDER_ADMIN_REVIEW', label: 'Admin Review', color: '#8b5cf6', icon: 'alert_triangle' },
                 { value: 'APPROVED', label: 'Completed', color: '#10b981', icon: 'check_circle' },
                 { value: 'REJECTED', label: 'Rejected', color: '#ef4444', icon: 'x_circle' }

@@ -11,7 +11,7 @@ import { Modal, Button, Select, Checkbox } from '@ui';
 const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
   const { t } = useLang();
   
-  const [workflowType, setWorkflowType] = useState('GENERAL');
+  const [workflowType, setWorkflowType] = useState('GENERAL_HR');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [attachFile, setAttachFile] = useState(!!file);
@@ -25,29 +25,18 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
     console.log('[CustomWorkflowDialog] Title change:', e.target.value);
     const value = e.target.value;
     setTitle(value);
-    // Restore focus after state update
-    setTimeout(() => {
-      if (titleInputRef.current && document.activeElement !== titleInputRef.current) {
-        titleInputRef.current.focus();
-      }
-    }, 0);
   }, []);
   const handleDescriptionChange = useCallback((e) => {
     console.log('[CustomWorkflowDialog] Description change:', e.target.value);
     const value = e.target.value;
     setDescription(value);
-    // Restore focus after state update
-    setTimeout(() => {
-      if (descriptionInputRef.current && document.activeElement !== descriptionInputRef.current) {
-        descriptionInputRef.current.focus();
-      }
-    }, 0);
   }, []);
 
   const workflowTypes = [
-    { value: 'GENERAL', label: { en: 'General Workflow', ar: 'سير عمل عام' } },
-    { value: 'ATTENDANCE_DAILY', label: { en: 'Daily Attendance', ar: 'الحضور اليومي' } },
-    { value: 'ATTENDANCE_WEEKLY', label: { en: 'Weekly Attendance', ar: 'الحضور الأسبوعي' } }
+    { value: 'GENERAL_HR', label: { en: 'General HR', ar: 'عام - الموارد البشرية' } },
+    { value: 'GENERAL_ADMIN', label: { en: 'General Admin', ar: 'عام - الإدارة' } },
+    { value: 'GENERAL_MIXED_HR_ADMIN', label: { en: 'General Mixed (HR → Admin)', ar: 'عام مختلط (الموارد البشرية → الإدارة)' } },
+    { value: 'GENERAL_MIXED_ADMIN_HR', label: { en: 'General Mixed (Admin → HR)', ar: 'عام مختلط (الإدارة → الموارد البشرية)' } }
   ];
 
   const reviewerRoles = [
@@ -93,7 +82,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
       await onSubmit(workflowData);
 
       // Reset form
-      setWorkflowType('GENERAL');
+      setWorkflowType('GENERAL_HR');
       setTitle('');
       setDescription('');
       setAttachFile(!!file);
@@ -110,7 +99,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
 
   const handleCancel = () => {
     // Reset form
-    setWorkflowType('GENERAL');
+    setWorkflowType('GENERAL_HR');
     setTitle('');
     setDescription('');
     setAttachFile(!!file);
@@ -134,7 +123,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
           </label>
           <Select
             value={workflowType}
-            onChange={setWorkflowType}
+            onChange={(e) => setWorkflowType(e.value || e.target.value)}
             options={workflowTypes.map(type => ({
               value: type.value,
               label: type.label.en

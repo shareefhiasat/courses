@@ -136,7 +136,9 @@ export default function WorkflowCommentsTab({ workflowId }) {
   const sortedDates = Object.keys(groupedComments).sort((a, b) => new Date(b) - new Date(a));
 
   const filteredAndSortedComments = useMemo(() => {
+    console.log('[WorkflowCommentsTab] Filtering comments:', { commentsCount: comments.length, selectedDate, filterText });
     let filtered = selectedDate ? groupedComments[selectedDate] || [] : comments;
+    console.log('[WorkflowCommentsTab] After date filter:', { filteredCount: filtered.length });
     if (filterText.trim()) {
       const searchLower = filterText.toLowerCase();
       filtered = filtered.filter(comment =>
@@ -144,6 +146,7 @@ export default function WorkflowCommentsTab({ workflowId }) {
         comment.author?.displayName?.toLowerCase().includes(searchLower) ||
         comment.author?.email?.toLowerCase().includes(searchLower)
       );
+      console.log('[WorkflowCommentsTab] After text filter:', { filteredCount: filtered.length });
     }
     // Always sort by newest first
     const sorted = [...filtered].sort((a, b) => {
@@ -151,6 +154,7 @@ export default function WorkflowCommentsTab({ workflowId }) {
       const dateB = new Date(b.createdAt).getTime();
       return dateB - dateA;
     });
+    console.log('[WorkflowCommentsTab] Final filtered comments:', sorted.length);
     return sorted;
   }, [comments, filterText, selectedDate, groupedComments]);
 
@@ -189,7 +193,7 @@ export default function WorkflowCommentsTab({ workflowId }) {
             type="submit"
             disabled={!newComment.trim() || submitting}
             style={{
-              padding: '0.625rem 1.25rem',
+              padding: '0.625rem',
               background: 'var(--color-primary, #2563eb)',
               color: 'white',
               border: 'none',
@@ -198,10 +202,11 @@ export default function WorkflowCommentsTab({ workflowId }) {
               opacity: submitting || !newComment.trim() ? 0.5 : 1,
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem',
+              justifyContent: 'center',
               fontSize: '0.875rem',
               fontWeight: 500,
               minHeight: '2.75rem',
+              minWidth: '2.75rem',
               transition: 'background 0.15s',
             }}
             onMouseEnter={(e) => {
@@ -214,7 +219,6 @@ export default function WorkflowCommentsTab({ workflowId }) {
             aria-label={submitting ? t('common.sending', 'Sending...') : t('workflow.sendComment', 'Send Comment')}
           >
             <span style={{ color: '#ffffff' }}>{getIcon('ui', 'send', 16)}</span>
-            <span>{submitting ? t('common.sending', 'Sending...') : t('workflow.sendComment', 'Send Comment')}</span>
           </button>
         </div>
       </form>

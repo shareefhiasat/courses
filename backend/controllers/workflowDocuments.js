@@ -5,7 +5,11 @@
  * ARCHITECTURE: HTTP Requests → Controllers → Business Services → DB Services → PostgreSQL
  */
 
+import { PrismaClient } from '@prisma/client';
 import { LMS_ROLES } from '../services/keycloakAdminService.js';
+import { approveWorkflow, rejectWorkflow, returnWorkflow, submitWorkflow, resubmitWorkflow } from '../workflows/workflowService.js';
+
+const prisma = new PrismaClient();
 import {
   createWorkflowDocumentWithUpload,
   getWorkflowDocument,
@@ -394,8 +398,57 @@ export const approveWorkflowDocumentController = async (req, res) => {
       });
     }
 
-    // Update status to APPROVED
-    const result = await updateStatus(parseInt(id), 'APPROVED', user.dbId, comment);
+    // Get current document to determine workflow type and status
+    const document = await prisma.workflowDocument.findUnique({
+      where: { id: parseInt(id) },
+      select: { workflowType: true, status: true, updatedBy: true }
+    });
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        error: 'Document not found'
+      });
+    }
+
+    // Prevent approval if document is already approved
+    if (document.status === 'APPROVED') {
+      return res.status(400).json({
+        success: false,
+        error: 'This document has already been approved.'
+      });
+    }
+
+    // Prevent duplicate approval by the same user on the same status
+    // Super Admin can override this to simulate all workflow steps
+    if (!isSuperAdmin && document.updatedBy === user.dbId && document.status !== 'SUBMITTED') {
+      return res.status(400).json({
+        success: false,
+        error: 'You have already approved this document at this stage.'
+      });
+    }
+
+    // Use XState workflow service to determine next status
+    const { workflowType, status } = document;
+    let nextStatus;
+    
+    try {
+      nextStatus = approveWorkflow(workflowType, status);
+      console.log('[approveWorkflowDocumentController] XState transition:', {
+        workflowType,
+        currentStatus: status,
+        nextStatus
+      });
+    } catch (error) {
+      console.error('[approveWorkflowDocumentController] Invalid transition:', error.message);
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+
+    // Update status
+    const result = await updateStatus(parseInt(id), nextStatus, user.dbId, comment);
 
     if (result.success) {
       // Emit notification to submitter
@@ -474,8 +527,25 @@ export const rejectWorkflowDocumentController = async (req, res) => {
       });
     }
 
+    // Use XState workflow service to determine next status
+    let nextStatus;
+    try {
+      nextStatus = rejectWorkflow(document.workflowType, document.status);
+      console.log('[rejectWorkflowDocumentController] XState transition:', {
+        workflowType: document.workflowType,
+        currentStatus: document.status,
+        nextStatus
+      });
+    } catch (error) {
+      console.error('[rejectWorkflowDocumentController] Invalid transition:', error.message);
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+
     // Update status to REJECTED
-    const result = await updateStatus(parseInt(id), 'REJECTED', user.dbId, comment);
+    const result = await updateStatus(parseInt(id), nextStatus, user.dbId, comment);
 
     if (result.success) {
       // Emit notification to submitter
@@ -542,18 +612,56 @@ export const returnWorkflowDocumentController = async (req, res) => {
       });
     }
 
-    // Update status to REJECTED (same as reject, but with different target)
-    const result = await updateStatus(parseInt(id), 'REJECTED', user.dbId, comment);
+    // Get current document to determine previous stage
+    const document = await getWorkflowDocument(parseInt(id));
+    if (!document.success) {
+      return res.status(404).json({
+        success: false,
+        error: 'Document not found'
+      });
+    }
+
+    const currentStatus = document.data.status;
+    const workflowType = document.data.workflowType;
+
+    // Prevent return if document is already approved
+    if (currentStatus === 'APPROVED') {
+      return res.status(400).json({
+        success: false,
+        error: 'This document has already been approved and cannot be returned.'
+      });
+    }
+    
+    // Use XState workflow service to determine previous status
+    let previousStatus;
+    try {
+      previousStatus = returnWorkflow(workflowType, currentStatus);
+      console.log('[returnWorkflowDocumentController] XState transition:', {
+        workflowType,
+        currentStatus,
+        previousStatus
+      });
+    } catch (error) {
+      console.error('[returnWorkflowDocumentController] Invalid transition:', error.message);
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+
+    // Update status to previous stage
+    const result = await updateStatus(parseInt(id), previousStatus, user.dbId, comment);
 
     if (result.success) {
-      // Emit notification to target user (submitter or specified target)
+      // Emit notification to submitter
       try {
-        const targetId = targetUserId || result.data.submitterId;
         await emit(EVENTS.WORKFLOW_RETURNED, {
           workflowName: result.data.title,
           documentId: result.data.id,
-          feedback: comment
-        }, user, { userId: targetId });
+          feedback: comment,
+          previousStatus: currentStatus,
+          newStatus: previousStatus
+        }, user, { userId: result.data.submitterId });
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
       }

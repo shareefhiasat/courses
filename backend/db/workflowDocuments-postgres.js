@@ -380,6 +380,16 @@ export async function updateWorkflowDocumentStatus(id, status, actorId, reason) 
       reason
     });
 
+    // If a reason/comment is provided, also create a comment entry
+    if (reason && reason.trim()) {
+      await addWorkflowComment({
+        workflowDocumentId: id,
+        authorId: actorId,
+        comment: reason,
+        action: status // Store the action (APPROVED, REJECTED, etc.)
+      });
+    }
+
     return { success: true, data: updated };
   } catch (error) {
     console.error('Error updating workflow document status:', error);
@@ -418,6 +428,7 @@ export async function addWorkflowComment(data) {
  */
 export async function getCommentsByWorkflowDocument(workflowDocumentId) {
   try {
+    console.log('[getCommentsByWorkflowDocument] Fetching comments for workflowDocumentId:', workflowDocumentId);
     const comments = await prisma.workflowComment.findMany({
       where: {
         workflowDocumentId
@@ -433,6 +444,7 @@ export async function getCommentsByWorkflowDocument(workflowDocumentId) {
         createdAt: 'desc'
       }
     });
+    console.log('[getCommentsByWorkflowDocument] Found comments:', comments.length);
 
     return { success: true, data: comments };
   } catch (error) {

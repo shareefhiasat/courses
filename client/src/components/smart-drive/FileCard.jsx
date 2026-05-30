@@ -133,7 +133,7 @@ export default function FileCard({ file, onDownload, onShare, onDelete, onVersio
       {file.workflowStatus && (
         <div className="mt-2">
           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-            ${file.workflowStatus === 'APPROVED' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' : ''}
+            ${file.workflowStatus === 'APPROVED' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400' : ''}
             ${file.workflowStatus === 'DRAFT' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400' : ''}
             ${file.workflowStatus === 'REVIEW' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' : ''}
             ${file.workflowStatus === 'REJECTED' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' : ''}

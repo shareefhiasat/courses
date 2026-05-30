@@ -6,7 +6,7 @@
  * NOTE: This is for WorkflowDocument system (Epic 1), not the existing Workflow system
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiService } from '@services/api/apiService';
 import { formatQatarDate } from '@utils/timezone';
@@ -16,7 +16,7 @@ import { useLang } from '@contexts/LangContext';
 import { Button, useToast, CountdownLoading } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from '@ui';
 import { SimpleLoading, EmptyState, Modal, Textarea } from '@ui';
-import { approveWorkflowDocument, rejectWorkflowDocument, returnWorkflowDocument, resubmitWorkflowDocument, uploadSignedDocument, withdrawWorkflowDocument } from '@services/api/workflow-documents-api.js';
+import { approveWorkflowDocument, rejectWorkflowDocument, returnWorkflowDocument, resubmitWorkflowDocument, uploadSignedDocument, withdrawWorkflowDocument, updateWorkflowDocumentStatus } from '@services/api/workflow-documents-api.js';
 import WorkflowDiagram from '@components/workflow/WorkflowDiagram.jsx';
 import WorkflowHistory from '@components/workflow/WorkflowHistory.jsx';
 import CollapsibleDashboardSection from '@components/ui/CollapsibleDashboardSection/CollapsibleDashboardSection.jsx';
@@ -30,18 +30,27 @@ const WorkflowDocumentDetailPage = () => {
   const { t } = useLang();
   const { documentId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const auth = useAuth();
   const toast = useToast();
+
+  // Handle AuthContext not being available during lazy load
+  if (!auth || auth.loading) {
+    return <SimpleLoading />;
+  }
+
+  const { user } = auth;
 
   const [document, setDocument] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [actionModal, setActionModal] = useState(null); // 'approve', 'reject', 'return', 'resubmit', 'upload-signed', 'withdraw'
+  const [actionModal, setActionModal] = useState(null); // 'approve', 'reject', 'return', 'submit', 'sendToNext', 'resubmit', 'upload-signed', 'withdraw'
   const [comment, setComment] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [resubmitFile, setResubmitFile] = useState(null);
   const [signedFile, setSignedFile] = useState(null);
   const [isVisible, setIsVisible] = useState(true);
+  const [diagramKey, setDiagramKey] = useState(0);
+  const commentInputRef = useRef(null);
 
   // Handle visibility change
   useEffect(() => {
@@ -49,37 +58,6 @@ const WorkflowDocumentDetailPage = () => {
     window.document.addEventListener('visibilitychange', handleVisibility);
     return () => window.document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
-
-  // Polling for real-time updates (comments, revisions, status, history)
-  useEffect(() => {
-    const pollInterval = 10000; // 10 seconds
-
-    const pollUpdates = async () => {
-      // Don't poll if tab is hidden
-      if (!isVisible || !document) {
-        return;
-      }
-
-      try {
-        const data = await getWorkflowDocument(documentId);
-        if (data.success) {
-          // Always update document to refresh comments, revisions, status, and history
-          setDocument(data.data);
-          
-          // Show toast only if status changed
-          if (data.data.status !== document.status) {
-            toast.info(t('workflow.document.statusUpdated', 'Document status has been updated'));
-          }
-        }
-      } catch (err) {
-        console.error('Error polling updates:', err);
-      }
-    };
-
-    const intervalId = setInterval(pollUpdates, pollInterval);
-
-    return () => clearInterval(intervalId);
-  }, [documentId, t, toast, isVisible]);
 
 
   // Fetch document details
@@ -137,6 +115,33 @@ const WorkflowDocumentDetailPage = () => {
     return false;
   };
 
+  // Check if user can return (any participant can return if not completed/rejected)
+  const canReturn = () => {
+    if (!document || !user) return false;
+    // Cannot return if already in terminal states
+    if (document.status === WORKFLOW_STATUS.APPROVED || document.status === WORKFLOW_STATUS.REJECTED) {
+      return false;
+    }
+    // Cannot return if in draft state (nothing to return from)
+    if (document.status === WORKFLOW_STATUS.DRAFT) {
+      return false;
+    }
+    // Any participant (submitter, assignee, HR, Admin) can return
+    const userRoles = (user.roles || []).map(r => r.toLowerCase());
+    const isHR = userRoles.includes('hr');
+    const isAdmin = userRoles.includes('admin');
+    const isSuperAdmin = userRoles.includes('super_admin');
+    const isSubmitter = document.submitterId === user.id;
+    const isCurrentAssignee = document.currentAssigneeId === user.id;
+    
+    if (isSuperAdmin) return true;
+    if (isSubmitter) return true;
+    if (isCurrentAssignee) return true;
+    if (isHR || isAdmin) return true;
+    
+    return false;
+  };
+
   // Check if user can reject (only owner or super admin)
   const canReject = () => {
     if (!document || !user) return false;
@@ -166,7 +171,9 @@ const WorkflowDocumentDetailPage = () => {
         toast.success(t('workflow.document.approved', 'Document approved successfully'));
         // Force immediate refresh before closing modal
         await fetchDocument();
+        setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
         setActionModal(null);
+        window.location.reload(); // Full page refresh to ensure UI updates
         setComment('');
       } else {
         toast.error(result.error || t('workflow.document.approveError', 'Failed to approve document'));
@@ -180,6 +187,7 @@ const WorkflowDocumentDetailPage = () => {
 
   // Handle reject action
   const handleReject = async () => {
+    console.log('[REJECT ACTION] Starting reject action', { documentId, currentStatus: document?.status, comment });
     if (!comment.trim()) {
       toast.error(t('workflow.document.commentRequired', 'Comment is required for rejection'));
       return;
@@ -187,16 +195,20 @@ const WorkflowDocumentDetailPage = () => {
     setActionLoading(true);
     try {
       const result = await rejectWorkflowDocument(documentId, { comment });
+      console.log('[REJECT ACTION] API response', result);
       if (result.success) {
         toast.success(t('workflow.document.rejected', 'Document rejected successfully'));
+        console.log('[REJECT ACTION] Reject successful, new status:', result.data?.status);
         // Force immediate refresh before closing modal
         await fetchDocument();
+        setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
         setActionModal(null);
-        setComment('');
+        window.location.reload(); // Full page refresh to ensure UI updates
       } else {
         toast.error(result.error || t('workflow.document.rejectError', 'Failed to reject document'));
       }
     } catch (err) {
+      console.error('[REJECT ACTION] Error:', err);
       toast.error(t('workflow.document.rejectError', 'Failed to reject document'));
     } finally {
       setActionLoading(false);
@@ -205,6 +217,7 @@ const WorkflowDocumentDetailPage = () => {
 
   // Handle return action
   const handleReturn = async () => {
+    console.log('[RETURN ACTION] Starting return action', { documentId, currentStatus: document?.status, comment });
     if (!comment.trim()) {
       toast.error(t('workflow.document.commentRequired', 'Comment is required for return'));
       return;
@@ -212,14 +225,16 @@ const WorkflowDocumentDetailPage = () => {
     setActionLoading(true);
     try {
       const result = await returnWorkflowDocument(documentId, { comment });
+      console.log('[RETURN ACTION] API response', result);
       if (result.success) {
         toast.success(t('workflow.document.returned', 'Document returned successfully'));
+        console.log('[RETURN ACTION] Return successful, new status:', result.data?.status);
         // Force immediate refresh before closing modal
         await fetchDocument();
+        setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
         setActionModal(null);
-        setComment('');
+        window.location.reload(); // Full page refresh to ensure UI updates
       } else {
-        toast.error(result.error || t('workflow.document.returnError', 'Failed to return document'));
       }
     } catch (err) {
       toast.error(t('workflow.document.returnError', 'Failed to return document'));
@@ -249,7 +264,10 @@ const WorkflowDocumentDetailPage = () => {
           toast.success(t('workflow.document.resubmitted', 'Document resubmitted successfully'));
           // Force immediate refresh before closing modal
           await fetchDocument();
+          setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
           setActionModal(null);
+        window.location.reload(); // Full page refresh to ensure UI updates
+        window.location.reload(); // Full page refresh to ensure UI updates
           setComment('');
           setResubmitFile(null);
         } else {
@@ -334,7 +352,10 @@ const WorkflowDocumentDetailPage = () => {
           toast.success(t('workflow.document.reuploaded', 'Document re-uploaded successfully'));
           // Force immediate refresh before closing modal
           await fetchDocument();
+          setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
           setActionModal(null);
+        window.location.reload(); // Full page refresh to ensure UI updates
+        window.location.reload(); // Full page refresh to ensure UI updates
           setComment('');
           setResubmitFile(null);
         } else {
@@ -380,7 +401,10 @@ const WorkflowDocumentDetailPage = () => {
           toast.success(t('workflow.document.signedUploaded', 'Signed document uploaded successfully'));
           // Force immediate refresh before closing modal
           await fetchDocument();
+          setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
           setActionModal(null);
+        window.location.reload(); // Full page refresh to ensure UI updates
+        window.location.reload(); // Full page refresh to ensure UI updates
           setComment('');
           setSignedFile(null);
         } else {
@@ -399,6 +423,73 @@ const WorkflowDocumentDetailPage = () => {
     }
   };
 
+  // Handle submit action (move from draft to submitted)
+  const handleSubmit = async () => {
+    setActionLoading(true);
+    try {
+      const result = await updateWorkflowDocumentStatus(documentId, { status: 'SUBMITTED', reason: comment || 'Document submitted for review' });
+      if (result.success) {
+        toast.success(t('workflow.document.submitted', 'Document submitted successfully'));
+        await fetchDocument();
+        setDiagramKey(prev => prev + 1);
+        setActionModal(null);
+        window.location.reload(); // Full page refresh to ensure UI updates
+        window.location.reload(); // Full page refresh to ensure UI updates
+        setComment('');
+        // Full page refresh
+        window.location.reload();
+      } else {
+        toast.error(result.error || t('workflow.document.submitError', 'Failed to submit document'));
+      }
+    } catch (err) {
+      toast.error(t('workflow.document.submitError', 'Failed to submit document'));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle send to next step action
+  const handleSendToNext = async () => {
+    setActionLoading(true);
+    try {
+      // Determine next status based on workflow type
+      // GENERAL_HR: SUBMITTED → UNDER_HR_REVIEW → APPROVED
+      // GENERAL_ADMIN: SUBMITTED → UNDER_ADMIN_REVIEW → APPROVED
+      // GENERAL_MIXED_HR_ADMIN: SUBMITTED → UNDER_HR_REVIEW → UNDER_ADMIN_REVIEW → APPROVED
+      // GENERAL_MIXED_ADMIN_HR: SUBMITTED → UNDER_ADMIN_REVIEW → UNDER_HR_REVIEW → APPROVED
+      let nextStatus;
+      if (document.workflowType === 'GENERAL_HR') {
+        nextStatus = 'UNDER_HR_REVIEW';
+      } else if (document.workflowType === 'GENERAL_ADMIN') {
+        nextStatus = 'UNDER_ADMIN_REVIEW';
+      } else if (document.workflowType === 'GENERAL_MIXED_HR_ADMIN') {
+        nextStatus = 'UNDER_HR_REVIEW';
+      } else if (document.workflowType === 'GENERAL_MIXED_ADMIN_HR') {
+        nextStatus = 'UNDER_ADMIN_REVIEW';
+      } else {
+        nextStatus = 'UNDER_HR_REVIEW'; // default
+      }
+      
+      const result = await updateWorkflowDocumentStatus(documentId, { status: nextStatus, reason: comment || 'Sent to next step' });
+      if (result.success) {
+        toast.success(t('workflow.document.sentToNext', 'Document sent to next step successfully'));
+        await fetchDocument();
+        setDiagramKey(prev => prev + 1);
+        setActionModal(null);
+        window.location.reload(); // Full page refresh to ensure UI updates
+        window.location.reload(); // Full page refresh to ensure UI updates
+        setComment('');
+        window.location.reload();
+      } else {
+        toast.error(result.error || t('workflow.document.sendToNextError', 'Failed to send to next step'));
+      }
+    } catch (err) {
+      toast.error(t('workflow.document.sendToNextError', 'Failed to send to next step'));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Handle document withdrawal
   const handleWithdraw = async () => {
     setActionLoading(true);
@@ -408,7 +499,10 @@ const WorkflowDocumentDetailPage = () => {
         toast.success(t('workflow.document.withdrawn', 'Document withdrawn successfully'));
         // Force immediate refresh before closing modal
         await fetchDocument();
+        setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
         setActionModal(null);
+        window.location.reload(); // Full page refresh to ensure UI updates
+        window.location.reload(); // Full page refresh to ensure UI updates
         setComment('');
       } else {
         toast.error(result.error || t('workflow.document.withdrawError', 'Failed to withdraw document'));
@@ -466,11 +560,7 @@ const WorkflowDocumentDetailPage = () => {
       {/* Auto-refresh countdown indicator */}
       {document && document.status !== WORKFLOW_STATUS.APPROVED && document.status !== WORKFLOW_STATUS.REJECTED && (
         <CountdownLoading 
-          duration={30}
-          onComplete={() => {
-            // Trigger manual refresh when countdown completes
-            fetchDocument();
-          }}
+          duration={10}
           isActive={isVisible}
         />
       )}
@@ -509,7 +599,8 @@ const WorkflowDocumentDetailPage = () => {
               </h3>
             </div>
             <div className="flex items-center gap-2 flex-nowrap">
-              {canReview() && isReviewable() && (
+              {/* Action buttons removed - use context menu on workflow diagram instead */}
+              {/* {canReview() && isReviewable() && (
                 <>
                   <Button
                     variant="success"
@@ -527,19 +618,21 @@ const WorkflowDocumentDetailPage = () => {
                       onClick={() => setActionModal('reject')}
                       className="flex items-center gap-2 whitespace-nowrap"
                     >
-                      {getThemedIcon('ui', 'thumbs_down', 16)}
+                      <XCircle size={16} />
                       {t('workflow.document.reject', 'Reject')}
                     </Button>
                   )}
-                  <Button
-                    variant="warning"
-                    size="sm"
-                    onClick={() => setActionModal('return')}
-                    className="flex items-center gap-2 whitespace-nowrap"
-                  >
-                    {getThemedIcon('ui', 'rotate_ccw', 16)}
-                    {t('workflow.document.return', 'Return')}
-                  </Button>
+                  {canReturn() && (
+                    <Button
+                      variant="warning"
+                      size="sm"
+                      onClick={() => setActionModal('return')}
+                      className="flex items-center gap-2 whitespace-nowrap"
+                    >
+                      {getThemedIcon('ui', 'rotate_ccw', 16)}
+                      {t('workflow.document.return', 'Return')}
+                    </Button>
+                  )}
                   {canReupload() && (
                     <Button
                       variant="info"
@@ -552,7 +645,7 @@ const WorkflowDocumentDetailPage = () => {
                     </Button>
                   )}
                 </>
-              )}
+              )} */}
               {canResubmit() && (
                 <Button
                   variant="info"
@@ -595,7 +688,7 @@ const WorkflowDocumentDetailPage = () => {
               {[
                 { label: 'Draft', color: '#6b7280', icon: 'file_text' },
                 { label: 'Submitted', color: '#3b82f6', icon: 'send' },
-                { label: 'HR Review', color: '#3b82f6', icon: 'alert_triangle' },
+                { label: 'HR Review', color: '#8b5cf6', icon: 'alert_triangle' },
                 { label: 'Admin Review', color: '#8b5cf6', icon: 'alert_triangle' },
                 { label: 'Completed', color: '#10b981', icon: 'check_circle' },
                 { label: 'Rejected', color: '#ef4444', icon: 'x_circle' }
@@ -611,10 +704,18 @@ const WorkflowDocumentDetailPage = () => {
           </div>
 
           <WorkflowDiagram
+            key={diagramKey} // Force re-render on actions
             status={document.status}
             workflowType={document.workflowType}
             document={document}
             currentAssignee={document.currentAssignee}
+            onApprove={() => setActionModal('approve')}
+            onReturn={() => setActionModal('return')}
+            onReject={() => setActionModal('reject')}
+            onSubmit={() => setActionModal('submit')}
+            onSendToNext={() => setActionModal('sendToNext')}
+            onDelete={() => setActionModal('withdraw')}
+            onRefresh={fetchDocument}
           />
         </div>
       </div>
@@ -756,6 +857,8 @@ const WorkflowDocumentDetailPage = () => {
           isOpen={!!actionModal}
           onClose={() => {
             setActionModal(null);
+        window.location.reload(); // Full page refresh to ensure UI updates
+        window.location.reload(); // Full page refresh to ensure UI updates
             setComment('');
             setResubmitFile(null);
             setSignedFile(null);
@@ -767,6 +870,10 @@ const WorkflowDocumentDetailPage = () => {
               ? t('workflow.document.rejectTitle', 'Reject Document')
               : actionModal === 'return'
               ? t('workflow.document.returnTitle', 'Return Document')
+              : actionModal === 'submit'
+              ? t('workflow.document.submitTitle', 'Submit Document')
+              : actionModal === 'sendToNext'
+              ? t('workflow.document.sendToNextTitle', 'Send to Next Step')
               : actionModal === 'resubmit'
               ? t('workflow.document.resubmitTitle', 'Resubmit Document')
               : actionModal === 'reupload'
@@ -784,6 +891,10 @@ const WorkflowDocumentDetailPage = () => {
                 ? t('workflow.document.rejectConfirm', 'Are you sure you want to reject this document? A comment is required.')
                 : actionModal === 'return'
                 ? t('workflow.document.returnConfirm', 'Are you sure you want to return this document for revision? A comment is required.')
+                : actionModal === 'submit'
+                ? t('workflow.document.submitConfirm', 'Submit this document for review. The file can be edited separately from Smart Drive.')
+                : actionModal === 'sendToNext'
+                ? t('workflow.document.sendToNextConfirm', 'Send this document to the next review step.')
                 : actionModal === 'resubmit'
                 ? t('workflow.document.resubmitConfirm', 'Upload a new file to resubmit this document for review.')
                 : actionModal === 'reupload'
@@ -815,22 +926,27 @@ const WorkflowDocumentDetailPage = () => {
                 )}
               </div>
             )}
-            <Textarea
+            <Input
+              ref={commentInputRef}
               value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              onChange={(e) => {
+                console.log('[Comment Input] onChange:', e.target.value);
+                setComment(e.target.value);
+              }}
+              onFocus={() => console.log('[Comment Input] onFocus')}
+              onBlur={() => console.log('[Comment Input] onBlur')}
               placeholder={
                 actionModal === 'approve' || actionModal === 'withdraw'
                   ? t('workflow.document.optionalComment', 'Add optional comment...')
                   : t('workflow.document.requiredComment', 'Add required comment...')
               }
-              rows={4}
+              autoFocus
             />
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
                 onClick={() => {
                   setActionModal(null);
-                  setComment('');
                   setResubmitFile(null);
                   setSignedFile(null);
                 }}
@@ -845,6 +961,8 @@ const WorkflowDocumentDetailPage = () => {
                   if (actionModal === 'approve') handleApprove();
                   else if (actionModal === 'reject') handleReject();
                   else if (actionModal === 'return') handleReturn();
+                  else if (actionModal === 'submit') handleSubmit();
+                  else if (actionModal === 'sendToNext') handleSendToNext();
                   else if (actionModal === 'resubmit') handleResubmit();
                   else if (actionModal === 'reupload') handleReupload();
                   else if (actionModal === 'upload-signed') handleUploadSigned();
@@ -860,6 +978,10 @@ const WorkflowDocumentDetailPage = () => {
                   ? t('workflow.document.reject', 'Reject')
                   : actionModal === 'return'
                   ? t('workflow.document.return', 'Return')
+                  : actionModal === 'submit'
+                  ? t('workflow.document.submit', 'Submit')
+                  : actionModal === 'sendToNext'
+                  ? t('workflow.document.sendToNext', 'Send to Next Step')
                   : actionModal === 'resubmit'
                   ? t('workflow.document.resubmit', 'Resubmit')
                   : actionModal === 'reupload'

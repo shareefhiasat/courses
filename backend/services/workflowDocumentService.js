@@ -30,13 +30,15 @@ const prisma = new PrismaClient();
 
 /**
  * Get appropriate assignee based on workflow type
- * ATTENDANCE_WEEKLY → Admin user
- * GENERAL → HR user
+ * GENERAL_HR → HR user
+ * GENERAL_ADMIN → Admin user
+ * GENERAL_MIXED_HR_ADMIN → HR user (first stage)
+ * GENERAL_MIXED_ADMIN_HR → Admin user (first stage)
  * Other types → HR user (or null for manual assignment)
  */
 async function getAssigneeForWorkflowType(workflowType) {
-  if (workflowType === 'ATTENDANCE_WEEKLY') {
-    // Assign to Admin for weekly summaries
+  if (workflowType === 'GENERAL_ADMIN' || workflowType === 'GENERAL_MIXED_ADMIN_HR') {
+    // Assign to Admin for admin-first workflows
     const adminUsers = await byRole('admin');
     if (adminUsers.length > 0) {
       // Return first admin user (could be enhanced with round-robin or workload-based selection)
@@ -44,7 +46,7 @@ async function getAssigneeForWorkflowType(workflowType) {
     }
   }
   
-  // For GENERAL and other types, assign to HR
+  // For GENERAL_HR, GENERAL_MIXED_HR_ADMIN, and other types, assign to HR
   const hrUsers = await byRole('hr');
   if (hrUsers.length > 0) {
     // Return first HR user (could be enhanced with round-robin or workload-based selection)

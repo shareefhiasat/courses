@@ -51,13 +51,13 @@ export const WORKFLOW_STATUS_CONFIG = {
   },
   submitted: {
     icon: 'send',
-    color: '#2563eb', // blue-600
-    bg: 'rgba(37, 99, 235, 0.1)',
-    borderColor: '#93c5fd',
+    color: '#10b981', // green-500
+    bg: 'rgba(16, 185, 129, 0.1)',
+    borderColor: '#6ee7b7',
     labelKey: 'workflow.status.submitted',
-    bgClass: 'bg-blue-100 dark:bg-blue-900/30',
-    textClass: 'text-blue-700 dark:text-blue-400',
-    borderClass: 'border-blue-300 dark:border-blue-700',
+    bgClass: 'bg-green-100 dark:bg-green-900/30',
+    textClass: 'text-green-700 dark:text-green-400',
+    borderClass: 'border-green-300 dark:border-green-700',
   },
   in_review: {
     icon: 'clock',

@@ -21,8 +21,8 @@ const STATUS_CONFIG = {
     icon: 'users'
   },
   UNDER_ADMIN_REVIEW: {
-    color: '#f59e0b',
-    bgColor: '#fef3c7',
+    color: '#4f46e5',
+    bgColor: '#e0e7ff',
     icon: 'shield'
   },
   APPROVED: {
