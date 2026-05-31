@@ -66,12 +66,20 @@ export const getClassrooms = async (params = {}) => {
         take,
         orderBy: { [sortBy]: sortOrder },
         include: {
-          program: {
+          creator: {
             select: {
               id: true,
-              code: true,
-              nameEn: true,
-              nameAr: true
+              firstName: true,
+              lastName: true,
+              displayName: true
+            }
+          },
+          updater: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              displayName: true
             }
           }
         }
@@ -350,12 +358,20 @@ export const updateClassroom = async (id, data) => {
       where: { id: parseInt(id) },
       data,
       include: {
-        program: {
+        creator: {
           select: {
             id: true,
-            code: true,
-            nameEn: true,
-            nameAr: true
+            firstName: true,
+            lastName: true,
+            displayName: true
+          }
+        },
+        updater: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            displayName: true
           }
         }
       }

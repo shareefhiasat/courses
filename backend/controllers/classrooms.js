@@ -143,8 +143,10 @@ export const getClassroomByIdController = async (req, res) => {
  */
 export const createClassroomController = async (req, res) => {
   try {
+    console.log('[Classrooms Controller] Creating classroom with body:', req.body);
     const result = await createClassroom(req.body);
-    
+    console.log('[Classrooms Controller] Create result:', result);
+
     if (result.success) {
       res.status(201).json({
         success: true,

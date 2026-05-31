@@ -5,7 +5,7 @@ const serviceName = 'userService';
 const API_BASE = appConfig.getApiBaseUrl();
 
 // Helper function to get normalized roles from user object
-const getUserRoles = (user) => {
+export const getUserRoles = (user) => {
   if (!user || typeof user !== 'object') {
     return [];
   }
@@ -193,6 +193,37 @@ export const getAllUsers = async (params = {}) => {
     return {
       success: false,
       error: err.message || 'Failed to retrieve users',
+      data: []
+    };
+  }
+};
+
+export const getUsersByRole = async (role) => {
+  try {
+    info(`${serviceName}:getUsersByRole`, { role });
+
+    const result = await getAllUsers();
+    
+    if (!result.success) {
+      return result;
+    }
+
+    const filteredData = result.data.filter(user => {
+      const roles = getUserRoles(user);
+      return roles.includes(role.toLowerCase());
+    });
+
+    return {
+      success: true,
+      data: filteredData,
+      total: filteredData.length,
+      message: `Users with role ${role} retrieved successfully`
+    };
+  } catch (err) {
+    error(`${serviceName}:getUsersByRole:error`, { error: err.message, role });
+    return {
+      success: false,
+      error: err.message || 'Failed to retrieve users by role',
       data: []
     };
   }

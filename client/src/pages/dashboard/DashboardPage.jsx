@@ -51,6 +51,14 @@ const BehaviorPage = lazy(() => import('../operations/behavior/BehaviorPage.jsx'
 const EmailTemplatesPage = lazy(() => import('../communications/email/EmailTemplatesPage.jsx'));
 const NotificationLogsPage = lazy(() => import('../communications/notifications/NotificationLogsPage.jsx'));
 
+// ===== FLEXIBLE SCHEDULING =====
+const SummaryDashboardPage = lazy(() => import('../SummaryDashboardPage.jsx'));
+const FlexibleScheduleCalendarPage = lazy(() => import('../FlexibleScheduleCalendarPage.jsx'));
+const InstructorAvailabilityPage = lazy(() => import('../InstructorAvailabilityPage.jsx'));
+const ClassroomAvailabilityPage = lazy(() => import('../ClassroomAvailabilityPage.jsx'));
+const ClassroomsManagementPage = lazy(() => import('../ClassroomsManagementPage.jsx'));
+const UserCategoryAccessPage = lazy(() => import('../UserCategoryAccessPage.jsx'));
+
 const DashboardPage = () => {
   const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading } = useAuth();
   const { lang, t } = useLang();
@@ -279,6 +287,20 @@ const DashboardPage = () => {
       items: [
         { key: 'categories', label: t('categories') }
         // { key: 'logging', label: t('logs') } // Hidden for now
+      ]
+    },
+    {
+      id: 'flexible-scheduling',
+      label: t('flexible_scheduling') || 'FLEXIBLE SCHEDULING',
+      items: [
+        { key: 'summary-dashboard', label: t('summary_dashboard') || 'Summary Dashboard' },
+        { key: 'flexible-schedule', label: t('flexible_schedule') || 'Flexible Schedule' },
+        { key: 'instructor-availability', label: t('instructor_availability') || 'Instructor Availability' },
+        { key: 'classroom-availability', label: t('classroom_availability') || 'Classroom Availability' },
+        { key: 'classrooms-management', label: t('classrooms_management') || 'Classrooms Management' },
+        ...(isSuperAdmin ? [
+          { key: 'user-category-access', label: t('user_category_access') || 'User Category Access' }
+        ] : []),
       ]
     },
     {
@@ -521,6 +543,14 @@ const DashboardPage = () => {
           {activeTab === 'penalty-types' && <PenaltyTypesPage />}
           
           {/* AllowlistPage removed - now using Keycloak for user management */}
+          
+          {/* ===== FLEXIBLE SCHEDULING ===== */}
+          {activeTab === 'summary-dashboard' && (isSuperAdmin || isAdmin || isHR) && <SummaryDashboardPage />}
+          {activeTab === 'flexible-schedule' && (isSuperAdmin || isAdmin || isHR) && <FlexibleScheduleCalendarPage />}
+          {activeTab === 'instructor-availability' && (isSuperAdmin || isAdmin || isHR) && <InstructorAvailabilityPage />}
+          {activeTab === 'classroom-availability' && (isSuperAdmin || isAdmin || isHR) && <ClassroomAvailabilityPage />}
+          {activeTab === 'classrooms-management' && (isSuperAdmin || isAdmin || isHR) && <ClassroomsManagementPage />}
+          {activeTab === 'user-category-access' && isSuperAdmin && <UserCategoryAccessPage />}
         </Suspense>
         </div>
       </div>

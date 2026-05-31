@@ -116,12 +116,6 @@ export const ROUTE_CONFIG = {
       screenId: 'classSchedules',
       screenName: 'Class Schedules'
     },
-    scheduleOverview: {
-      path: '/schedule-overview',
-      requireAuth: true,
-      screenId: 'classSchedules',
-      screenName: 'Schedule Overview'
-    },
     manageEnrollments: {
       path: '/manage-enrollments',
       requireAuth: true,
@@ -163,6 +157,40 @@ export const ROUTE_CONFIG = {
       requireAuth: true,
       screenId: 'courseProgress',
       screenName: 'Course Progress'
+    }
+  },
+
+  // Flexible Scheduling routes
+  FLEXIBLE_SCHEDULING: {
+    summaryDashboard: {
+      path: '/summary-dashboard',
+      requireAuth: true,
+      screenId: 'summaryDashboard',
+      screenName: 'Summary Dashboard'
+    },
+    flexibleSchedule: {
+      path: '/flexible-schedule',
+      requireAuth: true,
+      screenId: 'flexibleSchedule',
+      screenName: 'Flexible Schedule'
+    },
+    instructorAvailability: {
+      path: '/instructor-availability',
+      requireAuth: true,
+      screenId: 'instructorAvailability',
+      screenName: 'Instructor Availability'
+    },
+    classroomAvailability: {
+      path: '/classroom-availability',
+      requireAuth: true,
+      screenId: 'classroomAvailability',
+      screenName: 'Classroom Availability'
+    },
+    userCategoryAccess: {
+      path: '/user-category-access',
+      requireAuth: true,
+      screenId: 'userCategoryAccess',
+      screenName: 'User Category Access'
     }
   },
 

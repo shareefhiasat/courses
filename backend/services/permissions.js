@@ -38,7 +38,14 @@ const SCREENS = {
   workspace: { nameEn: 'Workspace', nameAr: 'مساحة العمل', operations: ['view', 'upload', 'delete', 'share', 'edit'] },
   drive: { nameEn: 'Drive', nameAr: 'محرك الأقراص', operations: ['view', 'upload', 'delete', 'share', 'edit'] },
   profile: { nameEn: 'Profile Settings', nameAr: 'إعدادات الملف الشخصي', operations: ['view', 'edit'] },
-  permissionMatrix: { nameEn: 'Permission Matrix', nameAr: 'مصف الأذونات', operations: ['view', 'edit'] }
+  permissionMatrix: { nameEn: 'Permission Matrix', nameAr: 'مصف الأذونات', operations: ['view', 'edit'] },
+  // Flexible Scheduling screens
+  summaryDashboard: { nameEn: 'Summary Dashboard', nameAr: 'لوحة الملخص', operations: ['view'] },
+  flexibleSchedule: { nameEn: 'Flexible Schedule', nameAr: 'الجدول المرن', operations: ['view', 'create', 'edit', 'delete'] },
+  instructorAvailability: { nameEn: 'Instructor Availability', nameAr: 'توفر المدرب', operations: ['view', 'create', 'edit', 'delete'] },
+  classroomAvailability: { nameEn: 'Classroom Availability', nameAr: 'توافر الفصل', operations: ['view', 'create', 'edit', 'delete'] },
+  userCategoryAccess: { nameEn: 'User Category Access', nameAr: 'وصول المستخدم للفئة', operations: ['view', 'create', 'edit', 'delete'] },
+  flexibleSchedulingDashboard: { nameEn: 'Flexible Scheduling Dashboard', nameAr: 'لوحة الجدولة المرنة', operations: ['view', 'create', 'edit', 'delete'] }
 };
 
 /**

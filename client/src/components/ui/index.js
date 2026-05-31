@@ -14,6 +14,7 @@ export { ToastProvider, useToast } from './Toast';
 export { default as Spinner } from './Spinner';
 export { default as Modal, ConfirmModal } from './Modal';
 export { default as DeleteModal, useDeleteModal } from './DeleteModal';
+export { default as ContextMenu } from './ContextMenu';
 export { default as QREmailModal, useQREmailModal } from './QREmailModal';
 export { default as Tabs } from './Tabs';
 export { default as JoyrideTour } from './JoyrideTour';

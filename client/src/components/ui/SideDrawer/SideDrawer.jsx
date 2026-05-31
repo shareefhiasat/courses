@@ -469,10 +469,18 @@ const SideDrawer = ({ isOpen, onClose }) => {
       children: [
         { id: 'marks', path: '/dashboard', hash: '#marks', icon: getThemedIcon('ui', 'award', 18, theme), label: (t('marks_entry') || 'Marks Entry').toUpperCase() },
         { id: 'penalty', path: '/penalty', icon: getThemedIcon('ui', 'alert_triangle', 18, theme), label: (t('penalty') || 'Penalty').toUpperCase() },
-        { id: 'participation', path: '/participation', icon: getThemedIcon('ui', 'award', 18, theme), label: (t('participation') || 'Participation').toUpperCase() },
-        { id: 'behavior', path: '/behavior', icon: getThemedIcon('ui', 'alert_circle', 18, theme), label: (t('behavior') || 'Behavior').toUpperCase() },
       ]
     }] : []),
+    ...(isSuperAdmin || isAdmin || isHR ? [
+      { id: 'summary-dashboard', path: '/summary-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: (t('summary_dashboard') || 'Summary Dashboard').toUpperCase() },
+      { id: 'flexible-scheduling-dashboard', path: '/flexible-scheduling-dashboard', icon: getThemedIcon('ui', 'grid', 18, theme), label: (t('flexible_scheduling_dashboard') || 'Flexible Scheduling Dashboard').toUpperCase() },
+      { id: 'flexible-schedule', path: '/flexible-schedule', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('flexible_schedule') || 'Flexible Schedule').toUpperCase() },
+      { id: 'instructor-availability', path: '/instructor-availability', icon: getThemedIcon('ui', 'users', 18, theme), label: (t('instructor_availability') || 'Instructor Availability').toUpperCase() },
+      { id: 'classroom-availability', path: '/classroom-availability', icon: getThemedIcon('ui', 'home', 18, theme), label: (t('classroom_availability') || 'Classroom Availability').toUpperCase() },
+      ...(isSuperAdmin ? [
+        { id: 'user-category-access', path: '/user-category-access', icon: getThemedIcon('ui', 'shield', 18, theme), label: (t('user_category_access') || 'User Category Access').toUpperCase() }
+      ] : []),
+    ] : []),
     ...(isSuperAdmin || isInstructor || isAdmin ? [{
       id: 'review',
       label: t('review_results') || 'REVIEW RESULTS',

@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { info, error, warn, debug } from '@logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { Button, SimpleLoading, useToast, Card, CardBody } from '@ui';
+import { Button, SimpleLoading, useToast, Card, CardBody, Select } from '@ui';
 import dashboardBusinessService from '@services/business/dashboardBusinessService.js';
 
 const SummaryDashboardPage = () => {
@@ -15,13 +15,32 @@ const SummaryDashboardPage = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedProgram, setSelectedProgram] = useState('');
+  const [accessiblePrograms, setAccessiblePrograms] = useState([]);
+  
+  // Load accessible programs based on category access
+  const loadAccessiblePrograms = useCallback(async () => {
+    try {
+      const response = await fetch('/api/v1/user-category-access/user/:userId/programs'.replace(':userId', user.id));
+      const result = await response.json();
+      
+      if (result.success) {
+        setAccessiblePrograms(result.data);
+        if (result.data.length > 0) {
+          setSelectedProgram(result.data[0].id.toString());
+        }
+      }
+    } catch (error) {
+      console.error('Error loading accessible programs:', error);
+    }
+  }, [user.id]);
   
   // Load dashboard data
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await dashboardBusinessService.getDashboardSummary();
+      const result = await dashboardBusinessService.getDashboardSummary(selectedProgram);
       
       if (result.success) {
         setDashboardData(result.data);
@@ -35,12 +54,29 @@ const SummaryDashboardPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast, t]);
+  }, [toast, t, selectedProgram]);
   
   // Load data on mount
   useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
+    loadAccessiblePrograms();
+  }, [loadAccessiblePrograms]);
+  
+  useEffect(() => {
+    if (selectedProgram) {
+      loadDashboardData();
+    }
+  }, [loadDashboardData, selectedProgram]);
+  
+  // Program options
+  const programOptions = useMemo(() => {
+    return [
+      { value: '', label: t('all_programs') || 'All Programs' },
+      ...accessiblePrograms.map(program => ({
+        value: program.id.toString(),
+        label: isRTL ? `${program.nameAr || program.nameEn} (${program.code})` : `${program.nameEn} (${program.code})`
+      }))
+    ];
+  }, [accessiblePrograms, isRTL, t]);
   
   // Check permissions
   const hasPermission = isAdmin || isHR || isSuperAdmin;
@@ -61,13 +97,27 @@ const SummaryDashboardPage = () => {
   return (
     <div style={{ padding: '1rem' }}>
       {/* Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '0.5rem' }}>
-          {t('summary_dashboard') || 'Summary Dashboard'}
-        </h1>
-        <p style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-          {t('dashboard_welcome') || `Welcome back, ${user?.displayName || user?.firstName || 'User'}`}
-        </p>
+      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '0.5rem' }}>
+            {t('summary_dashboard') || 'Summary Dashboard'}
+          </h1>
+          <p style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+            {t('dashboard_welcome') || `Welcome back, ${user?.displayName || user?.firstName || 'User'}`}
+          </p>
+        </div>
+        
+        {/* Program Selector */}
+        {accessiblePrograms.length > 0 && (
+          <div style={{ minWidth: '250px' }}>
+            <Select
+              value={selectedProgram}
+              onChange={(e) => setSelectedProgram(e.target.value)}
+              options={programOptions}
+              style={{ width: '100%' }}
+            />
+          </div>
+        )}
       </div>
       
       {loading ? (
@@ -85,70 +135,83 @@ const SummaryDashboardPage = () => {
             gap: '1rem', 
             marginBottom: '1.5rem' 
           }}>
-            {/* Today's Sessions */}
+            {/* Total Teachers */}
             <Card>
               <CardBody>
                 <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>
-                  {t('today_sessions') || "Today's Sessions"}
+                  {t('total_teachers') || 'Total Teachers'}
                 </div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '600', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                  {dashboardData.todaySchedule?.totalSessions || 0}
+                  {dashboardData.totalTeachers || 0}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                  {dashboardData.activeTeachers || 0} {t('active') || 'active'}
                 </div>
               </CardBody>
             </Card>
             
-            {/* Active Teachers */}
+            {/* Subjects */}
             <Card>
               <CardBody>
                 <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>
-                  {t('active_teachers') || 'Active Teachers'}
+                  {t('subjects') || 'Subjects'}
                 </div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '600', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                  {dashboardData.teacherLoad?.length || 0}
+                  {dashboardData.totalSubjects || 0}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                  {dashboardData.totalCategories || 0} {t('categories') || 'categories'}
                 </div>
               </CardBody>
             </Card>
             
-            {/* Active Classrooms */}
+            {/* Classrooms */}
             <Card>
               <CardBody>
                 <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>
-                  {t('active_classrooms') || 'Active Classrooms'}
+                  {t('classrooms') || 'Classrooms'}
                 </div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '600', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                  {dashboardData.classroomUtilization?.length || 0}
+                  {dashboardData.totalClassrooms || 0}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                  {dashboardData.availableClassrooms || 0} {t('available') || 'available'}
                 </div>
               </CardBody>
             </Card>
             
-            {/* Conflicts */}
+            {/* This Week Sessions */}
             <Card>
               <CardBody>
                 <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>
-                  {t('conflicts') || 'Conflicts'}
+                  {t('this_week_sessions') || 'This Week Sessions'}
                 </div>
-                <div style={{ 
-                  fontSize: '1.5rem', 
-                  fontWeight: '600', 
-                  color: dashboardData.conflicts?.hasConflicts ? (theme === 'dark' ? '#fca5a5' : '#dc2626') : (theme === 'dark' ? '#f3f4f6' : '#1f2937')
-                }}>
-                  {dashboardData.conflicts?.count || 0}
+                <div style={{ fontSize: '1.5rem', fontWeight: '600', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+                  {dashboardData.weekSessions || 0}
                 </div>
               </CardBody>
             </Card>
             
-            {/* Pending Items */}
+            {/* This Month Sessions */}
             <Card>
               <CardBody>
                 <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>
-                  {t('pending_items') || 'Pending Items'}
+                  {t('this_month_sessions') || 'This Month Sessions'}
                 </div>
-                <div style={{ 
-                  fontSize: '1.5rem', 
-                  fontWeight: '600', 
-                  color: dashboardData.pendingItems?.hasPending ? (theme === 'dark' ? '#fbbf24' : '#d97706') : (theme === 'dark' ? '#f3f4f6' : '#1f2937')
-                }}>
-                  {dashboardData.pendingItems?.count || 0}
+                <div style={{ fontSize: '1.5rem', fontWeight: '600', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+                  {dashboardData.monthSessions || 0}
+                </div>
+              </CardBody>
+            </Card>
+            
+            {/* This Year Sessions */}
+            <Card>
+              <CardBody>
+                <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>
+                  {t('this_year_sessions') || 'This Year Sessions'}
+                </div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '600', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+                  {dashboardData.yearSessions || 0}
                 </div>
               </CardBody>
             </Card>
@@ -162,9 +225,12 @@ const SummaryDashboardPage = () => {
                 <h3 style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '1rem' }}>
                   {t('today_schedule') || "Today's Schedule"}
                 </h3>
-                {dashboardData.todaySchedule?.sessions && dashboardData.todaySchedule.sessions.length > 0 ? (
+                <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.5rem' }}>
+                  {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                </div>
+                {dashboardData.todaySchedule && dashboardData.todaySchedule.length > 0 ? (
                   <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    {dashboardData.todaySchedule.sessions.map((session, index) => (
+                    {dashboardData.todaySchedule.map((session, index) => (
                       <div
                         key={index}
                         style={{
@@ -180,12 +246,12 @@ const SummaryDashboardPage = () => {
                             {isRTL ? session.subject?.nameAr : session.subject?.nameEn}
                           </div>
                           <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                            {session.class?.nameEn} | {session.classroom?.nameEn || t('no_classroom') || 'No Classroom'}
+                            {session.program?.nameEn} | {session.classroom?.nameEn || t('no_classroom') || 'No Classroom'}
                           </div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <div style={{ fontSize: '0.875rem', fontWeight: '500' }}>
-                            {session.timeSlot?.startTime}
+                            {session.timeSlot?.startTime} - {session.timeSlot?.endTime}
                           </div>
                           <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
                             {session.instructor?.displayName || session.instructor?.firstName}
@@ -196,7 +262,7 @@ const SummaryDashboardPage = () => {
                   </div>
                 ) : (
                   <div style={{ padding: '2rem', textAlign: 'center', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                    {t('no_sessions_today') || 'No sessions scheduled for today'}
+                    {t('no_sessions_today') || 'No sessions today'}
                   </div>
                 )}
               </CardBody>
@@ -225,7 +291,7 @@ const SummaryDashboardPage = () => {
                             {isRTL ? holiday.descriptionAr : holiday.descriptionEn}
                           </div>
                           <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                            {holiday.startDate} - {holiday.endDate}
+                            {new Date(holiday.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                           </div>
                         </div>
                       ))}
@@ -245,18 +311,18 @@ const SummaryDashboardPage = () => {
                     {t('quick_actions') || 'Quick Actions'}
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <Button variant="outline" style={{ width: '100%' }}>
+                    <Button variant="outline" style={{ width: '100%' }} onClick={() => window.location.href = '/flexible-schedule'}>
                       {t('view_schedule') || 'View Full Schedule'}
                     </Button>
-                    <Button variant="outline" style={{ width: '100%' }}>
-                      {t('manage_masters') || 'Manage Scheduling Masters'}
+                    <Button variant="outline" style={{ width: '100%' }} onClick={() => window.location.href = '/instructor-availability'}>
+                      {t('manage_instructor_availability') || 'Manage Instructor Availability'}
                     </Button>
-                    <Button variant="outline" style={{ width: '100%' }}>
-                      {t('bulk_schedule') || 'Bulk Schedule Sessions'}
+                    <Button variant="outline" style={{ width: '100%' }} onClick={() => window.location.href = '/classroom-availability'}>
+                      {t('manage_classroom_availability') || 'Manage Classroom Availability'}
                     </Button>
                     {isSuperAdmin && (
-                      <Button variant="outline" style={{ width: '100%' }}>
-                        {t('manage_scopes') || 'Manage Admin Scopes'}
+                      <Button variant="outline" style={{ width: '100%' }} onClick={() => window.location.href = '/user-category-access'}>
+                        {t('manage_category_access') || 'Manage Category Access'}
                       </Button>
                     )}
                   </div>
@@ -265,13 +331,13 @@ const SummaryDashboardPage = () => {
             </div>
           </div>
           
-          {/* Teacher Load & Classroom Utilization */}
+          {/* Teacher Load & Subject Sessions */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
             {/* Teacher Load */}
             <Card>
               <CardBody>
                 <h3 style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '1rem' }}>
-                  {t('teacher_load') || 'Teacher Load'}
+                  {t('teacher_load_month') || 'Teacher Load (This Month)'}
                 </h3>
                 {dashboardData.teacherLoad && dashboardData.teacherLoad.length > 0 ? (
                   <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
@@ -299,15 +365,15 @@ const SummaryDashboardPage = () => {
               </CardBody>
             </Card>
             
-            {/* Classroom Utilization */}
+            {/* Subject Sessions */}
             <Card>
               <CardBody>
                 <h3 style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '1rem' }}>
-                  {t('classroom_utilization') || 'Classroom Utilization'}
+                  {t('subject_sessions_month') || 'Subject Sessions (This Month)'}
                 </h3>
-                {dashboardData.classroomUtilization && dashboardData.classroomUtilization.length > 0 ? (
+                {dashboardData.subjectSessions && dashboardData.subjectSessions.length > 0 ? (
                   <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                    {dashboardData.classroomUtilization.map((item, index) => (
+                    {dashboardData.subjectSessions.map((item, index) => (
                       <div
                         key={index}
                         style={{
@@ -318,14 +384,14 @@ const SummaryDashboardPage = () => {
                           fontSize: '0.875rem'
                         }}
                       >
-                        <span>{item.classroomName}</span>
+                        <span>{isRTL ? item.subjectNameAr : item.subjectNameEn}</span>
                         <span style={{ fontWeight: '500' }}>{item.sessionCount} {t('sessions') || 'sessions'}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div style={{ padding: '1rem', textAlign: 'center', color: theme === 'dark' ? '#9ca3af' : '#6b7280', fontSize: '0.875rem' }}>
-                    {t('no_classroom_data') || 'No classroom data available'}
+                    {t('no_subject_data') || 'No subject data available'}
                   </div>
                 )}
               </CardBody>

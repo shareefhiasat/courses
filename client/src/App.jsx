@@ -45,7 +45,6 @@ const BehaviorPage = lazy(() => import('./pages/operations/behavior/BehaviorPage
 const QRScannerPage = lazy(() => import('./pages/operations/attendance/QRScannerPage'));
 const QRCodeDisplayPage = lazy(() => import('./pages/operations/attendance/QRCodeDisplayPage'));
 const ClassSchedulePage = lazy(() => import('./pages/academic/classes/ClassSchedulePage'));
-const ScheduleOverviewPage = lazy(() => import('./pages/academic/schedules/ScheduleOverviewPage'));
 const EnrollmentsPage = lazy(() => import('./pages/academic/enrollments/EnrollmentsPage'));
 const AnalyticsPage = lazy(() => import('./pages/feedback/analytics/AnalyticsPage'));
 const PermissionMatrixPage = lazy(() => import('./pages/system/PermissionMatrixPage'));
@@ -64,10 +63,11 @@ const ScheduledReportsPage = lazy(() => import('./pages/feedback/reports/Schedul
 const AdvancedAnalytics = lazy(() => import('./components/AdvancedAnalytics'));
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage.jsx'));
 const SummaryDashboardPage = lazy(() => import('./pages/SummaryDashboardPage'));
-const SchedulingMastersPage = lazy(() => import('./pages/SchedulingMastersPage'));
-const ScheduleSessionEditorPage = lazy(() => import('./pages/ScheduleSessionEditorPage'));
-const BulkSchedulingPage = lazy(() => import('./pages/BulkSchedulingPage'));
-const AdminScopeAssignmentPage = lazy(() => import('./pages/AdminScopeAssignmentPage'));
+const FlexibleScheduleCalendarPage = lazy(() => import('./pages/FlexibleScheduleCalendarPage'));
+const InstructorAvailabilityPage = lazy(() => import('./pages/InstructorAvailabilityPage'));
+const ClassroomAvailabilityPage = lazy(() => import('./pages/ClassroomAvailabilityPage'));
+const UserCategoryAccessPage = lazy(() => import('./pages/UserCategoryAccessPage'));
+const FlexibleSchedulingDashboard = lazy(() => import('./pages/FlexibleSchedulingDashboard'));
 const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
 const MarksPage = lazy(() => import('./pages/academic/enrollments/grading/MarksPage'));
 const WorkflowInboxPage = lazy(() => import('./pages/workflow/WorkflowInboxPage'));
@@ -221,6 +221,61 @@ const AppContent = () => {
               <ProtectedRoute screenId="summaryDashboard" screenName="Summary Dashboard">
                 <Suspense fallback={<GlobalLoadingFallback />}>
                   <SummaryDashboardPage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/flexible-schedule" 
+            element={
+              <ProtectedRoute screenId="flexibleSchedule" screenName="Flexible Schedule">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <FlexibleScheduleCalendarPage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/instructor-availability" 
+            element={
+              <ProtectedRoute screenId="instructorAvailability" screenName="Instructor Availability">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <InstructorAvailabilityPage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/classroom-availability" 
+            element={
+              <ProtectedRoute screenId="classroomAvailability" screenName="Classroom Availability">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <ClassroomAvailabilityPage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/user-category-access" 
+            element={
+              <ProtectedRoute screenId="userCategoryAccess" screenName="User Category Access">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <UserCategoryAccessPage />
+                </Suspense>
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/flexible-scheduling-dashboard" 
+            element={
+              <ProtectedRoute screenId="flexibleSchedulingDashboard" screenName="Flexible Scheduling Dashboard">
+                <Suspense fallback={<GlobalLoadingFallback />}>
+                  <FlexibleSchedulingDashboard />
                 </Suspense>
               </ProtectedRoute>
             } 
@@ -406,59 +461,6 @@ const AppContent = () => {
             element={
               <ProtectedRoute screenId="marksEntry" screenName="Marks Entry">
                 <MarksPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/schedule-overview" 
-            element={
-              <ProtectedRoute screenId="classSchedules" screenName="Schedule Overview">
-                <ScheduleOverviewPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/scheduling-masters" 
-            element={
-              <ProtectedRoute screenId="schedulingMasters" screenName="Scheduling Masters">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <SchedulingMastersPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/schedule-session-editor" 
-            element={
-              <ProtectedRoute screenId="scheduleSessionEditor" screenName="Schedule Session Editor">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <ScheduleSessionEditorPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/bulk-scheduling" 
-            element={
-              <ProtectedRoute screenId="bulkScheduling" screenName="Bulk Scheduling">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <BulkSchedulingPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/admin-scope-assignment" 
-            element={
-              <ProtectedRoute screenId="adminScopeAssignment" screenName="Admin Scope Assignment">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <AdminScopeAssignmentPage />
-                </Suspense>
               </ProtectedRoute>
             } 
           />

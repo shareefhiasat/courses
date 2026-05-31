@@ -18,25 +18,62 @@ const getDashboardSummary = async (params = {}) => {
     console.log('[DashboardDbService] Getting dashboard summary with params:', params);
     
     const today = new Date();
-    const todayStr = today.toISOString();
+    const todayStr = today.toISOString().split('T')[0];
     const weekStart = new Date(today);
     weekStart.setDate(today.getDate() - today.getDay());
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
+    const weekStartStr = weekStart.toISOString().split('T')[0];
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthStartStr = monthStart.toISOString().split('T')[0];
+    const yearStart = new Date(today.getFullYear(), 0, 1);
+    const yearStartStr = yearStart.toISOString().split('T')[0];
     
-    // Get today's schedule sessions
-    const todaySessions = await prisma.scheduleSession.findMany({
+    // Get total teachers (users with instructor role)
+    const totalTeachers = await prisma.user.count({
       where: {
-        date: todayStr,
-        isCancelled: false,
-        isActive: true
-      },
-      include: {
-        class: {
-          include: {
-            program: true
+        roles: {
+          some: {
+            name: 'instructor'
+          }
+        }
+      }
+    });
+    
+    // Get active teachers
+    const activeTeachers = await prisma.user.count({
+      where: {
+        roles: {
+          some: {
+            name: 'instructor'
           }
         },
+        isActive: true
+      }
+    });
+    
+    // Get total subjects
+    const totalSubjects = await prisma.subject.count();
+    
+    // Get total categories
+    const totalCategories = await prisma.category.count();
+    
+    // Get total classrooms
+    const totalClassrooms = await prisma.classroom.count();
+    
+    // Get available classrooms
+    const availableClassrooms = await prisma.classroom.count({
+      where: {
+        status: 'Available'
+      }
+    });
+    
+    // Get today's schedule sessions (using flexible schedule sessions)
+    const todaySessions = await prisma.flexibleScheduleSession.findMany({
+      where: {
+        date: todayStr,
+        isCancelled: false
+      },
+      include: {
+        program: true,
         subject: true,
         instructor: true,
         classroom: true,
@@ -44,41 +81,101 @@ const getDashboardSummary = async (params = {}) => {
       }
     });
     
-    // Get teacher load (sessions per teacher today)
-    const teacherLoad = await prisma.scheduleSession.groupBy({
+    // Get week sessions
+    const weekSessions = await prisma.flexibleScheduleSession.count({
+      where: {
+        date: {
+          gte: weekStartStr,
+          lte: todayStr
+        },
+        isCancelled: false
+      }
+    });
+    
+    // Get month sessions
+    const monthSessions = await prisma.flexibleScheduleSession.count({
+      where: {
+        date: {
+          gte: monthStartStr,
+          lte: todayStr
+        },
+        isCancelled: false
+      }
+    });
+    
+    // Get year sessions
+    const yearSessions = await prisma.flexibleScheduleSession.count({
+      where: {
+        date: {
+          gte: yearStartStr,
+          lte: todayStr
+        },
+        isCancelled: false
+      }
+    });
+    
+    // Get teacher load (sessions per teacher this month)
+    const teacherLoadData = await prisma.flexibleScheduleSession.groupBy({
       by: ['instructorUserId'],
       where: {
-        date: todayStr,
-        isCancelled: false,
-        isActive: true
+        date: {
+          gte: monthStartStr,
+          lte: todayStr
+        },
+        isCancelled: false
       },
       _count: {
         id: true
       }
     });
     
-    // Get classroom utilization (sessions per classroom today)
-    const classroomUtil = await prisma.scheduleSession.groupBy({
-      by: ['classroomId'],
+    const teacherLoad = await Promise.all(teacherLoadData.map(async (tl) => {
+      const instructor = await prisma.user.findUnique({
+        where: { id: tl.instructorUserId },
+        select: { displayName: true, firstName: true, lastName: true }
+      });
+      return {
+        instructorName: instructor?.displayName || instructor?.firstName || 'Unknown',
+        sessionCount: tl._count.id
+      };
+    }));
+    
+    // Get subject sessions (sessions per subject this month)
+    const subjectSessionsData = await prisma.flexibleScheduleSession.groupBy({
+      by: ['subjectId'],
       where: {
-        date: todayStr,
-        isCancelled: false,
-        isActive: true,
-        classroomId: { not: null }
+        date: {
+          gte: monthStartStr,
+          lte: todayStr
+        },
+        isCancelled: false
       },
       _count: {
         id: true
       }
     });
+    
+    const subjectSessions = await Promise.all(subjectSessionsData.map(async (ss) => {
+      const subject = await prisma.subject.findUnique({
+        where: { id: ss.subjectId },
+        select: { nameEn: true, nameAr: true }
+      });
+      return {
+        subjectNameEn: subject?.nameEn || 'Unknown',
+        subjectNameAr: subject?.nameAr || 'Unknown',
+        sessionCount: ss._count.id
+      };
+    }));
     
     // Get upcoming holidays (next 30 days)
     const holidaysEnd = new Date(today);
     holidaysEnd.setDate(holidaysEnd.getDate() + 30);
+    const holidaysEndStr = holidaysEnd.toISOString().split('T')[0];
     
-    const upcomingHolidays = await prisma.holiday.findMany({
+    const holidays = await prisma.holiday.findMany({
       where: {
         startDate: { gte: todayStr },
-        endDate: { lte: holidaysEnd.toISOString() },
+        endDate: { lte: holidaysEndStr },
         isActive: true
       },
       orderBy: {
@@ -87,64 +184,25 @@ const getDashboardSummary = async (params = {}) => {
       take: 5
     });
     
-    // Get conflicts (sessions with potential conflicts today)
-    const conflicts = await prisma.scheduleSession.findMany({
-      where: {
-        date: todayStr,
-        isCancelled: false,
-        isActive: true,
-        OR: [
-          // Teacher conflicts (same teacher, same time slot)
-          {
-            instructorUserId: { in: todaySessions.map(s => s.instructorUserId) }
-          }
-        ]
-      }
-    });
-    
-    // Calculate conflict count (simplified - actual conflict detection is more complex)
-    const conflictCount = Math.floor(conflicts.length / 2);
-    
-    // Get pending items (sessions requiring attention)
-    const pendingItems = await prisma.scheduleSession.count({
-      where: {
-        date: { gte: todayStr },
-        isCancelled: false,
-        isActive: true,
-        classroomId: null // Sessions without classroom assigned
-      }
-    });
-    
     const duration = Date.now() - startTime;
     console.log(`[DashboardDbService] ✅ Retrieved dashboard summary in ${duration}ms`);
     
     return {
       success: true,
       data: {
-        todaySchedule: {
-          date: todayStr,
-          totalSessions: todaySessions.length,
-          sessions: todaySessions
-        },
-        teacherLoad: teacherLoad.map(tl => ({
-          instructorId: tl.instructorUserId,
-          instructorName: tl.instructor?.displayName || tl.instructor?.firstName || 'Unknown',
-          sessionCount: tl._count.id
-        })),
-        classroomUtilization: classroomUtil.map(cu => ({
-          classroomId: cu.classroomId,
-          classroomName: cu.classroom?.nameEn || cu.classroom?.code || 'Unknown',
-          sessionCount: cu._count.id
-        })),
-        holidays: upcomingHolidays,
-        conflicts: {
-          count: conflictCount,
-          hasConflicts: conflictCount > 0
-        },
-        pendingItems: {
-          count: pendingItems,
-          hasPending: pendingItems > 0
-        }
+        totalTeachers,
+        activeTeachers,
+        totalSubjects,
+        totalCategories,
+        totalClassrooms,
+        availableClassrooms,
+        weekSessions,
+        monthSessions,
+        yearSessions,
+        todaySchedule: todaySessions,
+        holidays,
+        teacherLoad,
+        subjectSessions
       }
     };
   } catch (error) {

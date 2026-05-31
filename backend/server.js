@@ -347,6 +347,10 @@ import teacherAvailabilityRoutes from "./routes/teacher-availability.js";
 import scheduleSessionRoutes from "./routes/schedule-sessions.js";
 import adminScopeRoutes from "./routes/admin-scopes.js";
 import dashboardRoutes from "./routes/dashboard.js";
+import flexibleSchedulingRoutes from "./controllers/flexible-scheduling.js";
+import instructorAvailabilityRoutes from "./controllers/instructor-availability.js";
+import classroomAvailabilityRoutes from "./controllers/classroom-availability.js";
+import userCategoryAccessRoutes from "./controllers/user-category-access.js";
 import quizRoutes from "./routes/quizzes.js";
 import workflowDocumentRoutes from "./routes/workflow-documents.js";
 import weeklySummaryRoutes from "./routes/weekly-summary.js";
@@ -390,6 +394,12 @@ app.use(`/api/${API_VERSION}/holidays`, holidayRoutes);
 app.use(`/api/${API_VERSION}/teacher-availability`, teacherAvailabilityRoutes);
 app.use(`/api/${API_VERSION}/schedule-sessions`, scheduleSessionRoutes);
 app.use(`/api/${API_VERSION}/admin-scopes`, adminScopeRoutes);
+
+// Flexible scheduling routes
+app.use(`/api/${API_VERSION}/flexible-scheduling`, flexibleSchedulingRoutes);
+app.use(`/api/${API_VERSION}/instructor-availability`, instructorAvailabilityRoutes);
+app.use(`/api/${API_VERSION}/classroom-availability`, classroomAvailabilityRoutes);
+app.use(`/api/${API_VERSION}/user-category-access`, userCategoryAccessRoutes);
 
 // Dashboard routes
 app.use(`/api/${API_VERSION}/dashboard`, dashboardRoutes);

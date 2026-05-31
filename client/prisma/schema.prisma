@@ -482,6 +482,7 @@ model CategoryTypes {
   icon          String?
   color         String?
   sort          Int        @default(0)
+  categoryType  String     @default("ACADEMIC") // ACADEMIC, TRAINING, HR_GROUP, TARGET_AUDIENCE
   isActive      Boolean    @default(true)
   createdBy     Int?
   updatedBy     Int?
@@ -490,6 +491,8 @@ model CategoryTypes {
   creator       User?      @relation("CategoryTypesCreator", fields: [createdBy], references: [id])
   updater       User?      @relation("CategoryTypesUpdater", fields: [updatedBy], references: [id])
   resources     Resource[]
+  programs      Program[]  @relation("ProgramCategory")
+  userCategoryAccess UserCategoryAccess[] @relation("CategoryUserAccess")
 
   @@map("category_types")
 }
@@ -537,6 +540,8 @@ model User {
   behaviors                      Behavior[]
   createdCategoryTypes           CategoryTypes[]           @relation("CategoryTypesCreator")
   updatedCategoryTypes           CategoryTypes[]           @relation("CategoryTypesUpdater")
+  createdClassrooms              Classroom[]               @relation("ClassroomCreator")
+  updatedClassrooms              Classroom[]               @relation("ClassroomUpdater")
   createdClasses                 Class[]                   @relation("ClassCreator")
   instructorClasses              Class[]                   @relation("ClassInstructor")
   updatedClasses                 Class[]                   @relation("ClassUpdater")
@@ -645,6 +650,15 @@ model User {
   scheduleSessions               ScheduleSession[]          @relation("InstructorScheduleSessions")
   adminScopes                    AdminScope[]               @relation("AdminScopeUser")
   scopedInstructorFor            AdminScope[]               @relation("InstructorAdminScope")
+  userCategoryAccess             UserCategoryAccess[]       @relation("UserCategoryAccess")
+  flexibleInstructorSessions     FlexibleScheduleSession[] @relation("FlexibleInstructorSessions")
+  instructorAvailability         InstructorAvailability?   @relation("InstructorAvailability")
+  createdInstructorAvailability  InstructorAvailability[]  @relation("InstructorAvailabilityCreator")
+  updatedInstructorAvailability  InstructorAvailability[]  @relation("InstructorAvailabilityUpdater")
+  createdClassroomAvailability  ClassroomAvailability[]   @relation("ClassroomAvailabilityCreator")
+  updatedClassroomAvailability  ClassroomAvailability[]   @relation("ClassroomAvailabilityUpdater")
+  createdUserCategoryAccess      UserCategoryAccess[]       @relation("UserCategoryAccessCreator")
+  updatedUserCategoryAccess      UserCategoryAccess[]       @relation("UserCategoryAccessUpdater")
 
   @@map("users")
 }
@@ -659,6 +673,13 @@ model Program {
   durationYears      Int?
   minGPA             Float?
   totalCreditHours   Int?
+  // Flexible scheduling fields
+  durationType       String              @default("ACADEMIC_SEMESTER") // ACADEMIC_SEMESTER, WEEKS, DAYS, CUSTOM
+  durationValue      Int?                // Number of weeks/days for flexible programs
+  startDate          DateTime?           // For flexible programs
+  endDate            DateTime?           // For flexible programs
+  categoryId         Int?                // Link to category for target audience
+  targetAudience     String?             // Optional: officers, female, individuals, etc.
   isActive           Boolean             @default(true)
   createdBy          Int
   updatedBy          Int?
@@ -672,10 +693,11 @@ model Program {
   resources          Resource[]
   standupAttendances StandupAttendance[]
   subjects           Subject[]
-  schedulingClassrooms Classroom[]          @relation("SchedulingClassrooms")
   schedulingTimeSlots  TimeSlot[]           @relation("SchedulingTimeSlots")
   schedulingHolidays   Holiday[]            @relation("SchedulingHolidays")
   adminScopes         AdminScope[]          @relation("ProgramAdminScope")
+  flexibleSessions    FlexibleScheduleSession[] @relation("FlexibleProgramSessions")
+  category            CategoryTypes?       @relation("ProgramCategory", fields: [categoryId], references: [id])
 
   @@map("programs")
 }
@@ -1756,13 +1778,14 @@ model NotificationPreference {
 
 model Classroom {
   id            Int      @id @default(autoincrement())
-  programId     Int
-  code          String
+  code          String   @unique
   nameEn        String
   nameAr        String?
   locationEn    String?
   locationAr    String?
   capacity      Int
+  floor         String?
+  roomNumber    String?
   equipment     String[] // ["Projector", "Whiteboard", "Computers", etc.]
   availableDays String[] // ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
   status        String   @default("Available") // Available, UnderMaintenance, Closed
@@ -1772,11 +1795,13 @@ model Classroom {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  program              Program          @relation("SchedulingClassrooms", fields: [programId], references: [id])
   scheduleSessions     ScheduleSession[] @relation("ClassroomScheduleSessions")
   adminScopes          AdminScope[]     @relation("ClassroomAdminScope")
+  flexibleSessions     FlexibleScheduleSession[] @relation("FlexibleClassroomSessions")
+  classroomAvailability ClassroomAvailability? @relation("ClassroomAvailability")
+  creator              User?            @relation("ClassroomCreator", fields: [createdBy], references: [id])
+  updater              User?            @relation("ClassroomUpdater", fields: [updatedBy], references: [id])
 
-  @@unique([programId, code])
   @@map("classrooms")
 }
 
@@ -1799,6 +1824,7 @@ model TimeSlot {
 
   program         Program          @relation("SchedulingTimeSlots", fields: [programId], references: [id])
   scheduleSessions ScheduleSession[] @relation("TimeSlotScheduleSessions")
+  flexibleSessions FlexibleScheduleSession[] @relation("FlexibleTimeSlotSessions")
 
   @@unique([programId, sortOrder])
   @@map("time_slots")
@@ -1987,4 +2013,105 @@ model AdminScope {
 
   @@index([userId, scopeType])
   @@map("admin_scopes")
+}
+
+// ============================================================================
+// Flexible Scheduling System
+// ============================================================================
+
+model FlexibleScheduleSession {
+  id                Int      @id @default(autoincrement())
+  programId         Int
+  courseId          Int?     // Optional course/module within program
+  subjectId         Int?
+  instructorUserId  Int
+  classroomId       Int?
+  timeSlotId        Int
+  date              DateTime
+  recurrenceRule    String?  // JSON: {type: 'weekly', days: ['Sun','Mon'], interval: 1}
+  isRecurring       Boolean  @default(false)
+  parentSessionId   Int?     // For recurring series
+  notes             String?
+  isCancelled       Boolean  @default(false)
+  cancelledAt       DateTime?
+  cancelReason      String?
+  isActive          Boolean  @default(true)
+  createdBy         Int?
+  updatedBy         Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  program           Program  @relation("FlexibleProgramSessions", fields: [programId], references: [id])
+  instructor        User     @relation("FlexibleInstructorSessions", fields: [instructorUserId], references: [id])
+  classroom         Classroom? @relation("FlexibleClassroomSessions", fields: [classroomId], references: [id])
+  timeSlot          TimeSlot @relation("FlexibleTimeSlotSessions", fields: [timeSlotId], references: [id])
+  parentSession     FlexibleScheduleSession? @relation("RecurringSessions", fields: [parentSessionId], references: [id])
+  recurringSessions FlexibleScheduleSession[] @relation("RecurringSessions")
+
+  @@index([date])
+  @@index([instructorUserId, date])
+  @@index([classroomId, date])
+  @@index([programId, date])
+  @@map("flexible_schedule_sessions")
+}
+
+model InstructorAvailability {
+  id                Int      @id @default(autoincrement())
+  instructorUserId  Int      @unique
+  availableDays     String[] // ['Sun', 'Mon', 'Tue', 'Wed', 'Thu']
+  unavailableDates  DateTime[] // Specific vacation/off days
+  maxSessionsPerDay Int      @default(3)
+  maxHoursPerWeek   Int?
+  status            String?
+  isActive          Boolean  @default(true)
+  createdBy         Int?
+  updatedBy         Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  instructor        User     @relation("InstructorAvailability", fields: [instructorUserId], references: [id])
+  creator           User?    @relation("InstructorAvailabilityCreator", fields: [createdBy], references: [id])
+  updater           User?    @relation("InstructorAvailabilityUpdater", fields: [updatedBy], references: [id])
+
+  @@map("instructor_availability")
+}
+
+model ClassroomAvailability {
+  id                Int      @id @default(autoincrement())
+  classroomId       Int      @unique
+  unavailableDates  DateTime[] // Maintenance or booking conflicts
+  status            String?
+  isActive          Boolean  @default(true)
+  createdBy         Int?
+  updatedBy         Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  classroom         Classroom @relation("ClassroomAvailability", fields: [classroomId], references: [id])
+  creator           User?     @relation("ClassroomAvailabilityCreator", fields: [createdBy], references: [id])
+  updater           User?     @relation("ClassroomAvailabilityUpdater", fields: [updatedBy], references: [id])
+
+  @@map("classroom_availability")
+}
+
+model UserCategoryAccess {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  categoryId Int
+  roleId     Int?     // Optional: restrict to specific role
+  canView    Boolean  @default(true)
+  canManage  Boolean  @default(false)
+  isActive   Boolean  @default(true)
+  createdBy  Int?
+  updatedBy  Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation("UserCategoryAccess", fields: [userId], references: [id])
+  category   CategoryTypes @relation("CategoryUserAccess", fields: [categoryId], references: [id])
+  creator    User?    @relation("UserCategoryAccessCreator", fields: [createdBy], references: [id])
+  updater    User?    @relation("UserCategoryAccessUpdater", fields: [updatedBy], references: [id])
+
+  @@unique([userId, categoryId])
+  @@map("user_category_access")
 }
