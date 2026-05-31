@@ -1,0 +1,94 @@
+# generated: 2026-05-23
+# last_updated: 2026-05-23
+# project: courses
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: {project-root}/_bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-05-23
+last_updated: 2026-05-23
+project: courses
+project_key: NOKEY
+tracking_system: file-system
+story_location: {project-root}/_bmad-output/implementation-artifacts
+
+development_status:
+  epic-1: done
+  1-1-database-schema-for-workflow-documents: done
+  1-2-daily-attendance-export-and-submission: done
+  1-3-file-model-integration-with-minio-uploads: done
+  1-4-weekly-summary-generation-and-submission: done
+  1-5-workflow-notifications-integration: done
+  epic-1-retrospective: optional
+  
+  epic-2: done
+  2-1-workflow-inbox-page-with-filtering-and-pagination: done
+  2-2-document-detail-view-with-version-history: done
+  2-3-review-actions-approve-reject-return-with-comments: done
+  2-4-multi-stage-routing-hr-admin-hr-for-weekly-summaries: done
+  2-5-sla-tracking-with-color-coding-and-urgency-sorting: done
+  2-6-multi-cycle-review-and-resubmission-support: done
+  2-7-document-withdrawal-before-review: done
+  2-8-calendar-compliance-view-missed-days-tracking: done
+  2-9-workflow-analytics-dashboard: done
+  epic-2-retrospective: optional
+  
+  epic-3: done
+  3-1-minio-native-versioning-integration: done
+  3-2-version-metadata-recording: done
+  3-3-version-history-display-and-download: done
+  3-4-immutable-audit-trail-logging: done
+  3-5-permission-denial-audit-logging: done
+  epic-3-retrospective: optional
+  
+  epic-4: done
+  4-1-hr-attendance-amendment-interface: done
+  4-2-attendance-change-attribution-recording: done
+  4-3-regenerated-document-upload-and-versioning: done
+  4-4-auto-generated-amendment-comments: done
+  4-5-amendment-notification-to-instructor: done
+  epic-4-retrospective: optional
+  
+  epic-5: done
+  5-1-interactive-workflow-diagram-component: done
+  5-2-real-time-status-visualization: done
+  5-3-clickable-workflow-steps-with-details: done
+  5-4-workflow-rules-and-transitions-display: done
+  epic-5-retrospective: optional
+  
+  epic-6: in-progress
+  6-1-smart-drive-context-menu-integration: done
+  6-2-custom-workflow-creation-dialog: done
+  6-3-file-copy-to-workflow-bucket: done
+  6-4-configurable-workflow-types-and-approval-steps: backlog
+  6-5-custom-workflow-inbox-views: backlog
+  epic-6-retrospective: optional
