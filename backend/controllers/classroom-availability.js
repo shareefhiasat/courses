@@ -1,119 +1,130 @@
-import express from 'express';
-const router = express.Router();
-import classroomAvailabilityDb from '../db/classroom-availability-postgres.js';
-
 /**
- * Classroom Availability Routes
+ * Classroom Availability Controller - API Layer
+ * 
+ * PURPOSE: HTTP request handling for classroom availability operations
+ * ARCHITECTURE: HTTP Requests → Controllers → DB Services → PostgreSQL
  */
 
-// Create classroom availability
-router.post('/', async (req, res) => {
+import {
+  getClassroomAvailabilities,
+  createClassroomAvailability,
+  updateClassroomAvailability,
+  deleteClassroomAvailability
+} from '../db/classroom-availability-postgres.js';
+
+/**
+ * GET /api/v1/classroom-availability
+ * Get all classroom availability entries
+ */
+export const getAllClassroomAvailabilitiesController = async (req, res) => {
   try {
-    const result = await classroomAvailabilityDb.createClassroomAvailability(req.body);
+    const result = await getClassroomAvailabilities(req.query);
+    
     if (result.success) {
-      res.status(201).json(result);
+      res.status(200).json({
+        success: true,
+        data: result.data,
+        pagination: result.pagination
+      });
     } else {
-      res.status(400).json(result);
+      res.status(400).json({
+        success: false,
+        error: result.error,
+        code: result.code
+      });
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error in getAllClassroomAvailabilitiesController:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
   }
-});
+};
 
-// Get classroom availability by classroom ID
-router.get('/classroom/:classroomId', async (req, res) => {
+/**
+ * POST /api/v1/classroom-availability
+ * Create a classroom availability entry
+ */
+export const createClassroomAvailabilityController = async (req, res) => {
   try {
-    const result = await classroomAvailabilityDb.getClassroomAvailabilityByClassroomId(req.params.classroomId);
+    const result = await createClassroomAvailability(req.body);
+    
     if (result.success) {
-      res.json(result);
+      res.status(201).json({
+        success: true,
+        data: result.data
+      });
     } else {
-      res.status(404).json(result);
+      res.status(400).json({
+        success: false,
+        error: result.error,
+        code: result.code
+      });
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error in createClassroomAvailabilityController:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
   }
-});
+};
 
-// Get all classroom availabilities
-router.get('/', async (req, res) => {
+/**
+ * PUT /api/v1/classroom-availability/:id
+ * Update a classroom availability entry
+ */
+export const updateClassroomAvailabilityController = async (req, res) => {
   try {
-    const filters = {
-      status: req.query.status,
-    };
-    const result = await classroomAvailabilityDb.getAllClassroomAvailabilities(filters);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Update classroom availability
-router.put('/classroom/:classroomId', async (req, res) => {
-  try {
-    const result = await classroomAvailabilityDb.updateClassroomAvailability(req.params.classroomId, req.body);
+    const result = await updateClassroomAvailability(req.params.id, req.body);
+    
     if (result.success) {
-      res.json(result);
+      res.status(200).json({
+        success: true,
+        data: result.data
+      });
     } else {
-      res.status(400).json(result);
+      res.status(400).json({
+        success: false,
+        error: result.error,
+        code: result.code
+      });
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error in updateClassroomAvailabilityController:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
   }
-});
+};
 
-// Delete classroom availability
-router.delete('/classroom/:classroomId', async (req, res) => {
+/**
+ * DELETE /api/v1/classroom-availability/:id
+ * Delete a classroom availability entry
+ */
+export const deleteClassroomAvailabilityController = async (req, res) => {
   try {
-    const result = await classroomAvailabilityDb.deleteClassroomAvailability(req.params.classroomId);
+    const result = await deleteClassroomAvailability(req.params.id);
+    
     if (result.success) {
-      res.json(result);
+      res.status(200).json({
+        success: true,
+        data: result.data
+      });
     } else {
-      res.status(400).json(result);
+      res.status(400).json({
+        success: false,
+        error: result.error,
+        code: result.code
+      });
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error in deleteClassroomAvailabilityController:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
   }
-});
-
-// Check if classroom is available on a specific date
-router.get('/classroom/:classroomId/check/:date', async (req, res) => {
-  try {
-    const result = await classroomAvailabilityDb.checkClassroomAvailability(
-      req.params.classroomId,
-      req.params.date
-    );
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Get classroom utilization for a date range
-router.get('/classroom/:classroomId/utilization/:startDate/:endDate', async (req, res) => {
-  try {
-    const result = await classroomAvailabilityDb.getClassroomUtilization(
-      req.params.classroomId,
-      req.params.startDate,
-      req.params.endDate
-    );
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Get all available classrooms for a specific date and time slot
-router.get('/available/:date/:timeSlotId/:programId', async (req, res) => {
-  try {
-    const result = await classroomAvailabilityDb.getAvailableClassroomsForDate(
-      req.params.date,
-      req.params.timeSlotId,
-      req.params.programId
-    );
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-export default router;
+};

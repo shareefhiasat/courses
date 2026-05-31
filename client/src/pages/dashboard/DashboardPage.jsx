@@ -53,7 +53,7 @@ const NotificationLogsPage = lazy(() => import('../communications/notifications/
 
 // ===== FLEXIBLE SCHEDULING =====
 const SummaryDashboardPage = lazy(() => import('../SummaryDashboardPage.jsx'));
-const FlexibleScheduleCalendarPage = lazy(() => import('../FlexibleScheduleCalendarPage.jsx'));
+const FlexibleSchedulingPage = lazy(() => import('../FlexibleSchedulingPage.jsx'));
 const InstructorAvailabilityPage = lazy(() => import('../InstructorAvailabilityPage.jsx'));
 const ClassroomAvailabilityPage = lazy(() => import('../ClassroomAvailabilityPage.jsx'));
 const ClassroomsManagementPage = lazy(() => import('../ClassroomsManagementPage.jsx'));
@@ -294,7 +294,7 @@ const DashboardPage = () => {
       label: t('flexible_scheduling') || 'FLEXIBLE SCHEDULING',
       items: [
         { key: 'summary-dashboard', label: t('summary_dashboard') || 'Summary Dashboard' },
-        { key: 'flexible-schedule', label: t('flexible_schedule') || 'Flexible Schedule' },
+        { key: 'flexible-scheduling', label: t('flexible_scheduling') || 'Flexible Scheduling' },
         { key: 'instructor-availability', label: t('instructor_availability') || 'Instructor Availability' },
         { key: 'classroom-availability', label: t('classroom_availability') || 'Classroom Availability' },
         { key: 'classrooms-management', label: t('classrooms_management') || 'Classrooms Management' },
@@ -546,7 +546,7 @@ const DashboardPage = () => {
           
           {/* ===== FLEXIBLE SCHEDULING ===== */}
           {activeTab === 'summary-dashboard' && (isSuperAdmin || isAdmin || isHR) && <SummaryDashboardPage />}
-          {activeTab === 'flexible-schedule' && (isSuperAdmin || isAdmin || isHR) && <FlexibleScheduleCalendarPage />}
+          {activeTab === 'flexible-scheduling' && (isSuperAdmin || isAdmin || isHR) && <FlexibleSchedulingPage />}
           {activeTab === 'instructor-availability' && (isSuperAdmin || isAdmin || isHR) && <InstructorAvailabilityPage />}
           {activeTab === 'classroom-availability' && (isSuperAdmin || isAdmin || isHR) && <ClassroomAvailabilityPage />}
           {activeTab === 'classrooms-management' && (isSuperAdmin || isAdmin || isHR) && <ClassroomsManagementPage />}

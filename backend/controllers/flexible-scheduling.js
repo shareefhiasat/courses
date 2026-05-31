@@ -1,8 +1,8 @@
 import express from 'express';
 const router = express.Router();
 import flexibleSchedulingDb from '../db/flexible-scheduling-postgres.js';
-import instructorAvailabilityDb from '../db/instructor-availability-postgres.js';
-import classroomAvailabilityDb from '../db/classroom-availability-postgres.js';
+import * as instructorAvailabilityDb from '../db/instructor-availability-postgres.js';
+import * as classroomAvailabilityDb from '../db/classroom-availability-postgres.js';
 
 /**
  * Flexible Scheduling Routes

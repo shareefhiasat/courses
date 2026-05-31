@@ -1,6 +1,6 @@
 import express from 'express';
 const router = express.Router();
-import instructorAvailabilityDb from '../db/instructor-availability-postgres.js';
+import * as instructorAvailabilityDb from '../db/instructor-availability-postgres.js';
 
 /**
  * Instructor Availability Routes
@@ -37,20 +37,17 @@ router.get('/instructor/:instructorUserId', async (req, res) => {
 // Get all instructor availabilities
 router.get('/', async (req, res) => {
   try {
-    const filters = {
-      status: req.query.status,
-    };
-    const result = await instructorAvailabilityDb.getAllInstructorAvailabilities(filters);
+    const result = await instructorAvailabilityDb.getInstructorAvailabilities(req.query);
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Update instructor availability
-router.put('/instructor/:instructorUserId', async (req, res) => {
+// Update instructor availability by ID
+router.put('/:id', async (req, res) => {
   try {
-    const result = await instructorAvailabilityDb.updateInstructorAvailability(req.params.instructorUserId, req.body);
+    const result = await instructorAvailabilityDb.updateInstructorAvailability(req.params.id, req.body);
     if (result.success) {
       res.json(result);
     } else {
@@ -61,10 +58,10 @@ router.put('/instructor/:instructorUserId', async (req, res) => {
   }
 });
 
-// Delete instructor availability
-router.delete('/instructor/:instructorUserId', async (req, res) => {
+// Delete instructor availability by ID
+router.delete('/:id', async (req, res) => {
   try {
-    const result = await instructorAvailabilityDb.deleteInstructorAvailability(req.params.instructorUserId);
+    const result = await instructorAvailabilityDb.deleteInstructorAvailability(req.params.id);
     if (result.success) {
       res.json(result);
     } else {

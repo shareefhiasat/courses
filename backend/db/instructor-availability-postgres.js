@@ -1,206 +1,455 @@
+/**
+ * Instructor Availability Database Service
+ * 
+ * PURPOSE: Database operations for instructor availability with time slots
+ * ARCHITECTURE: Controllers → DB Services → PostgreSQL
+ */
+
 import { PrismaClient } from '@prisma/client';
+import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
+
 const prisma = new PrismaClient();
 
 /**
- * Instructor Availability Database Operations
+ * Get all instructor availability entries
+ * 
+ * @param {Object} params - Query parameters
+ * @returns {Promise<Object>} - Result object with availability data
  */
-
-// Create instructor availability
-async function createInstructorAvailability(data) {
+export const getInstructorAvailabilities = async (params = {}) => {
   try {
-    const availability = await prisma.instructorAvailability.create({
-      data: {
-        instructorUserId: data.instructorUserId,
-        availableDays: data.availableDays || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'],
-        unavailableDates: data.unavailableDates || [],
-        maxSessionsPerDay: data.maxSessionsPerDay || 3,
-        maxHoursPerWeek: data.maxHoursPerWeek || null,
-        status: data.status || 'Active',
-        isActive: data.isActive !== undefined ? data.isActive : true,
-        createdBy: data.createdBy || null,
-      },
-      include: {
-        instructor: true,
-      },
-    });
-    return { success: true, data: availability };
-  } catch (error) {
-    console.error('Error creating instructor availability:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-// Get instructor availability by user ID
-async function getInstructorAvailabilityByUserId(instructorUserId) {
-  try {
-    const availability = await prisma.instructorAvailability.findUnique({
-      where: { instructorUserId: parseInt(instructorUserId) },
-      include: {
-        instructor: true,
-      },
-    });
-    return { success: true, data: availability };
-  } catch (error) {
-    console.error('Error getting instructor availability:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-// Get all instructor availabilities
-async function getAllInstructorAvailabilities(filters = {}) {
-  try {
-    const where = {
-      isActive: true,
-      ...(filters.status && { status: filters.status }),
-    };
-
-    const availabilities = await prisma.instructorAvailability.findMany({
-      where,
-      include: {
-        instructor: true,
-      },
-    });
-    return { success: true, data: availabilities };
-  } catch (error) {
-    console.error('Error getting all instructor availabilities:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-// Update instructor availability
-async function updateInstructorAvailability(instructorUserId, data) {
-  try {
-    const availability = await prisma.instructorAvailability.update({
-      where: { instructorUserId: parseInt(instructorUserId) },
-      data: {
-        ...(data.availableDays !== undefined && { availableDays: data.availableDays }),
-        ...(data.unavailableDates !== undefined && { unavailableDates: data.unavailableDates }),
-        ...(data.maxSessionsPerDay !== undefined && { maxSessionsPerDay: data.maxSessionsPerDay }),
-        ...(data.maxHoursPerWeek !== undefined && { maxHoursPerWeek: data.maxHoursPerWeek }),
-        ...(data.status !== undefined && { status: data.status }),
-        ...(data.isActive !== undefined && { isActive: data.isActive }),
-        ...(data.updatedBy !== undefined && { updatedBy: data.updatedBy }),
-      },
-      include: {
-        instructor: true,
-      },
-    });
-    return { success: true, data: availability };
-  } catch (error) {
-    console.error('Error updating instructor availability:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-// Delete instructor availability
-async function deleteInstructorAvailability(instructorUserId) {
-  try {
-    const availability = await prisma.instructorAvailability.delete({
-      where: { instructorUserId: parseInt(instructorUserId) },
-    });
-    return { success: true, data: availability };
-  } catch (error) {
-    console.error('Error deleting instructor availability:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-// Check if instructor is available on a specific date
-async function checkInstructorAvailability(instructorUserId, date) {
-  try {
-    const availability = await prisma.instructorAvailability.findUnique({
-      where: { instructorUserId: parseInt(instructorUserId) },
-    });
-
-    if (!availability || !availability.isActive) {
-      return { success: true, data: { available: false, reason: 'No availability record or inactive' } };
+    console.log('[InstructorAvailability DB] Getting availabilities with params:', params);
+    
+    const {
+      page = 1,
+      limit = 50,
+      search = '',
+      instructorUserId = '',
+      dayOfWeek = '',
+      isActive = null,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = params;
+    
+    // Build where clause
+    const where = {};
+    
+    if (search) {
+      where.OR = [
+        { instructor: { firstName: { contains: search, mode: 'insensitive' } } },
+        { instructor: { lastName: { contains: search, mode: 'insensitive' } } },
+        { instructor: { displayName: { contains: search, mode: 'insensitive' } } }
+      ];
     }
-
-    const checkDate = new Date(date);
-    const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][checkDate.getDay()];
-
-    // Check if day is available
-    if (!availability.availableDays.includes(dayName)) {
-      return { success: true, data: { available: false, reason: 'Day not in available days' } };
+    
+    if (instructorUserId) {
+      where.instructorUserId = parseInt(instructorUserId);
     }
-
-    // Check if date is in unavailable dates
-    if (availability.unavailableDates && availability.unavailableDates.length > 0) {
-      const isUnavailable = availability.unavailableDates.some(
-        unavailableDate => {
-          const ud = new Date(unavailableDate);
-          return ud.toDateString() === checkDate.toDateString();
+    
+    if (dayOfWeek) {
+      where.dayOfWeek = { has: dayOfWeek };
+    }
+    
+    if (isActive !== null) {
+      where.isActive = isActive === 'true' || isActive === true;
+    }
+    
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
+    
+    const [availabilities, total] = await Promise.all([
+      prisma.instructorAvailability.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { [sortBy]: sortOrder },
+        include: {
+          instructor: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              displayName: true,
+              email: true
+            }
+          },
+          slots: {
+            orderBy: { startTime: 'asc' }
+          },
+          creator: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              displayName: true
+            }
+          },
+          updater: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              displayName: true
+            }
+          }
         }
-      );
-      if (isUnavailable) {
-        return { success: true, data: { available: false, reason: 'Date marked as unavailable' } };
-      }
-    }
-
-    return { success: true, data: { available: true, availability } };
-  } catch (error) {
-    console.error('Error checking instructor availability:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-// Get instructor workload for a date range
-async function getInstructorWorkload(instructorUserId, startDate, endDate) {
-  try {
-    const sessions = await prisma.flexibleScheduleSession.findMany({
-      where: {
-        instructorUserId: parseInt(instructorUserId),
-        isActive: true,
-        isCancelled: false,
-        date: {
-          gte: new Date(startDate),
-          lte: new Date(endDate),
-        },
-      },
-      include: {
-        timeSlot: true,
-      },
-    });
-
-    // Calculate total hours
-    const totalHours = sessions.reduce((sum, session) => {
-      if (session.timeSlot) {
-        return sum + (session.timeSlot.durationMinutes / 60);
-      }
-      return sum;
-    }, 0);
-
-    // Group by date
-    const sessionsByDate = sessions.reduce((acc, session) => {
-      const dateKey = session.date.toISOString().split('T')[0];
-      if (!acc[dateKey]) {
-        acc[dateKey] = [];
-      }
-      acc[dateKey].push(session);
-      return acc;
-    }, {});
-
+      }),
+      prisma.instructorAvailability.count({ where })
+    ]);
+    
     return {
       success: true,
-      data: {
-        totalSessions: sessions.length,
-        totalHours,
-        sessionsByDate,
-        sessions,
-      },
+      data: availabilities,
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / parseInt(limit))
     };
   } catch (error) {
-    console.error('Error getting instructor workload:', error);
-    return { success: false, error: error.message };
+    console.error('[InstructorAvailability DB] Error getting availabilities:', error);
+    return {
+      success: false,
+      error: getPrismaErrorMessage(error) || 'Failed to get instructor availabilities',
+      code: isPrismaError(error) ? PRISMA_ERRORS[error.code] : 'UNKNOWN_ERROR'
+    };
+  }
+};
+
+/**
+ * Create an instructor availability entry
+ * 
+ * @param {Object} data - Availability data
+ * @returns {Promise<Object>} - Result object with created availability
+ */
+export const createInstructorAvailability = async (data) => {
+  try {
+    console.log('[InstructorAvailability DB] Creating availability:', data);
+    
+    // Validate slots array
+    if (!data.slots || !Array.isArray(data.slots) || data.slots.length === 0) {
+      return {
+        success: false,
+        error: 'At least one time slot is required',
+        code: 'VALIDATION_ERROR'
+      };
+    }
+    
+    // Check for conflicts for each slot
+    for (const slot of data.slots) {
+      const conflict = await checkTimeConflict(
+        data.instructorUserId,
+        data.dayOfWeek,
+        slot.startTime,
+        slot.endTime,
+        data.startDate,
+        data.endDate,
+        null // Exclude current ID (null for create)
+      );
+      
+      if (conflict) {
+        return {
+          success: false,
+          error: `Time conflict: This instructor already has an availability entry for ${slot.startTime}-${slot.endTime}`,
+          code: 'CONFLICT_ERROR'
+        };
+      }
+    }
+    
+    const availability = await prisma.instructorAvailability.create({
+      data: {
+        instructorUserId: parseInt(data.instructorUserId),
+        dayOfWeek: data.dayOfWeek || [],
+        startDate: data.startDate,
+        endDate: data.endDate,
+        maxSessionsPerDay: data.maxSessionsPerDay || 3,
+        maxHoursPerWeek: data.maxHoursPerWeek || null,
+        status: data.status || null,
+        isActive: data.isActive !== undefined ? data.isActive : true,
+        createdBy: data.createdBy || null,
+        slots: {
+          create: data.slots.map(slot => ({
+            startTime: slot.startTime,
+            endTime: slot.endTime
+          }))
+        }
+      },
+      include: {
+        instructor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            displayName: true,
+            email: true
+          }
+        },
+        slots: {
+          orderBy: { startTime: 'asc' }
+        },
+        creator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            displayName: true
+          }
+        }
+      }
+    });
+    
+    return {
+      success: true,
+      data: availability
+    };
+  } catch (error) {
+    console.error('[InstructorAvailability DB] Error creating availability:', error);
+    return {
+      success: false,
+      error: getPrismaErrorMessage(error) || 'Failed to create instructor availability',
+      code: isPrismaError(error) ? PRISMA_ERRORS[error.code] : 'UNKNOWN_ERROR'
+    };
+  }
+};
+
+/**
+ * Update an instructor availability entry
+ * 
+ * @param {number} id - Availability ID
+ * @param {Object} data - Updated availability data
+ * @returns {Promise<Object>} - Result object with updated availability
+ */
+export const updateInstructorAvailability = async (id, data) => {
+  try {
+    console.log('[InstructorAvailability DB] Updating availability:', id, data);
+    
+    // If slots are provided, validate and check conflicts
+    if (data.slots && Array.isArray(data.slots)) {
+      if (data.slots.length === 0) {
+        return {
+          success: false,
+          error: 'At least one time slot is required',
+          code: 'VALIDATION_ERROR'
+        };
+      }
+      
+      // Check for conflicts for each slot
+      for (const slot of data.slots) {
+        const conflict = await checkTimeConflict(
+          data.instructorUserId,
+          data.dayOfWeek,
+          slot.startTime,
+          slot.endTime,
+          data.startDate,
+          data.endDate,
+          id // Exclude current entry
+        );
+        
+        if (conflict) {
+          return {
+            success: false,
+            error: `Time conflict: This instructor already has an availability entry for ${slot.startTime}-${slot.endTime}`,
+            code: 'CONFLICT_ERROR'
+          };
+        }
+      }
+    }
+    
+    // Build update data
+    const updateData = {
+      ...(data.instructorUserId !== undefined && { instructorUserId: parseInt(data.instructorUserId) }),
+      ...(data.dayOfWeek !== undefined && { dayOfWeek: data.dayOfWeek || [] }),
+      ...(data.startDate !== undefined && { startDate: data.startDate }),
+      ...(data.endDate !== undefined && { endDate: data.endDate }),
+      ...(data.maxSessionsPerDay !== undefined && { maxSessionsPerDay: data.maxSessionsPerDay }),
+      ...(data.maxHoursPerWeek !== undefined && { maxHoursPerWeek: data.maxHoursPerWeek }),
+      ...(data.status !== undefined && { status: data.status }),
+      ...(data.isActive !== undefined && { isActive: data.isActive }),
+      ...(data.updatedBy !== undefined && { updatedBy: data.updatedBy })
+    };
+    
+    // If slots are provided, delete existing and create new ones
+    if (data.slots && Array.isArray(data.slots)) {
+      updateData.slots = {
+        deleteMany: {}, // Delete all existing slots
+        create: data.slots.map(slot => ({
+          startTime: slot.startTime,
+          endTime: slot.endTime
+        }))
+      };
+    }
+    
+    const availability = await prisma.instructorAvailability.update({
+      where: { id: parseInt(id) },
+      data: updateData,
+      include: {
+        instructor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            displayName: true,
+            email: true
+          }
+        },
+        slots: {
+          orderBy: { startTime: 'asc' }
+        },
+        creator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            displayName: true
+          }
+        },
+        updater: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            displayName: true
+          }
+        }
+      }
+    });
+    
+    return {
+      success: true,
+      data: availability
+    };
+  } catch (error) {
+    console.error('[InstructorAvailability DB] Error updating availability:', error);
+    return {
+      success: false,
+      error: getPrismaErrorMessage(error) || 'Failed to update instructor availability',
+      code: isPrismaError(error) ? PRISMA_ERRORS[error.code] : 'UNKNOWN_ERROR'
+    };
+  }
+};
+
+/**
+ * Delete an instructor availability entry
+ * 
+ * @param {number} id - Availability ID
+ * @returns {Promise<Object>} - Result object
+ */
+export const deleteInstructorAvailability = async (id) => {
+  try {
+    console.log('[InstructorAvailability DB] Deleting availability:', id);
+    
+    await prisma.instructorAvailability.delete({
+      where: { id: parseInt(id) }
+    });
+    
+    return {
+      success: true,
+      data: null
+    };
+  } catch (error) {
+    console.error('[InstructorAvailability DB] Error deleting availability:', error);
+    return {
+      success: false,
+      error: getPrismaErrorMessage(error) || 'Failed to delete instructor availability',
+      code: isPrismaError(error) ? PRISMA_ERRORS[error.code] : 'UNKNOWN_ERROR'
+    };
+  }
+};
+
+/**
+ * Check for time conflicts in availability entries
+ * 
+ * STRICT RULES: No overlapping time slots/days/dates for the same instructor
+ * 
+ * @param {number} instructorUserId - Instructor User ID
+ * @param {string[]} dayOfWeek - Array of days of week
+ * @param {string} startTime - Start time (HH:mm)
+ * @param {string} endTime - End time (HH:mm)
+ * @param {Date|null} startDate - Start date (for date range)
+ * @param {Date|null} endDate - End date (for date range)
+ * @param {number|null} excludeId - ID to exclude from conflict check (for updates)
+ * @returns {Promise<boolean>} - True if conflict exists
+ */
+async function checkTimeConflict(instructorUserId, dayOfWeek, startTime, endTime, startDate, endDate, excludeId) {
+  try {
+    const where = {
+      instructorUserId: parseInt(instructorUserId),
+      isActive: true,
+      ...(excludeId && { id: { not: parseInt(excludeId) } })
+    };
+    
+    const existingEntries = await prisma.instructorAvailability.findMany({
+      where,
+      select: {
+        id: true,
+        dayOfWeek: true,
+        startDate: true,
+        endDate: true,
+        slots: true
+      }
+    });
+    
+    // Check each existing entry for conflict
+    for (const entry of existingEntries) {
+      // Check if date ranges overlap
+      const entryStart = entry.startDate ? new Date(entry.startDate) : null;
+      const entryEnd = entry.endDate ? new Date(entry.endDate) : null;
+      const newStart = startDate ? new Date(startDate) : null;
+      const newEnd = endDate ? new Date(endDate) : null;
+      
+      let dateRangesOverlap = true;
+      
+      // If both have date ranges, check for overlap
+      if (entryStart && entryEnd && newStart && newEnd) {
+        // Date ranges overlap if: (StartA <= EndB) and (EndA >= StartB)
+        dateRangesOverlap = (entryStart <= newEnd) && (entryEnd >= newStart);
+      }
+      
+      if (!dateRangesOverlap) continue;
+      
+      // Check if days of week overlap
+      let daysOverlap = false;
+      if (dayOfWeek && dayOfWeek.length > 0 && entry.dayOfWeek && entry.dayOfWeek.length > 0) {
+        daysOverlap = dayOfWeek.some(day => entry.dayOfWeek.includes(day));
+      } else if (!dayOfWeek || dayOfWeek.length === 0) {
+        daysOverlap = true;
+      }
+      
+      if (!daysOverlap) continue;
+      
+      // Check if time slots overlap
+      for (const existingSlot of entry.slots) {
+        if (isTimeOverlap(startTime, endTime, existingSlot.startTime, existingSlot.endTime)) {
+          console.log('[InstructorAvailability DB] Conflict detected:', {
+            existingEntry: entry,
+            newEntry: { dayOfWeek, startTime, endTime, startDate, endDate }
+          });
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('[InstructorAvailability DB] Error checking time conflict:', error);
+    return false;
   }
 }
 
-export default {
-  createInstructorAvailability,
-  getInstructorAvailabilityByUserId,
-  getAllInstructorAvailabilities,
-  updateInstructorAvailability,
-  deleteInstructorAvailability,
-  checkInstructorAvailability,
-  getInstructorWorkload,
-};
+/**
+ * Check if two time ranges overlap
+ * 
+ * @param {string} start1 - Start time 1 (HH:mm)
+ * @param {string} end1 - End time 1 (HH:mm)
+ * @param {string} start2 - Start time 2 (HH:mm)
+ * @param {string} end2 - End time 2 (HH:mm)
+ * @returns {boolean} - True if times overlap
+ */
+function isTimeOverlap(start1, end1, start2, end2) {
+  const start1Minutes = parseInt(start1.split(':')[0]) * 60 + parseInt(start1.split(':')[1]);
+  const end1Minutes = parseInt(end1.split(':')[0]) * 60 + parseInt(end1.split(':')[1]);
+  const start2Minutes = parseInt(start2.split(':')[0]) * 60 + parseInt(start2.split(':')[1]);
+  const end2Minutes = parseInt(end2.split(':')[0]) * 60 + parseInt(end2.split(':')[1]);
+  
+  // Two ranges overlap if: (Start1 < End2) and (End1 > Start2)
+  return (start1Minutes < end2Minutes) && (end1Minutes > start2Minutes);
+}

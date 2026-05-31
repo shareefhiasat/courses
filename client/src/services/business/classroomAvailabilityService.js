@@ -1,185 +1,79 @@
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
-/**
- * Classroom Availability Service
- * 
- * Service layer for classroom availability operations
- */
+import classroomAvailabilityBusinessService from './classroomAvailabilityBusinessService.js';
 
-const API_BASE = '/api/v1/classroom-availability';
+const serviceName = 'classroomAvailabilityService';
 
-/**
- * Get all classroom availabilities
- */
-export const getAllClassroomAvailabilities = async (filters = {}) => {
+export const getAllClassroomAvailabilities = async (params = {}) => {
   try {
-    const params = new URLSearchParams();
-    if (filters.status) params.append('status', filters.status);
-    
-    const response = await fetch(`${API_BASE}?${params}`);
-    const result = await response.json();
-    
-    if (result.success) {
-      return { success: true, data: result.data };
-    } else {
-      return { success: false, error: result.error };
-    }
-  } catch (error) {
-    error('Error getting classroom availabilities:', error);
-    return { success: false, error: error.message };
+    info(`${serviceName}:getAllClassroomAvailabilities`, { params });
+    const result = await classroomAvailabilityBusinessService.getAllClassroomAvailabilities(params);
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:getAllClassroomAvailabilities:error`, { error: err.message, params });
+    return {
+      success: false,
+      error: err.message || 'Failed to load classroom availabilities',
+      data: []
+    };
   }
 };
 
-/**
- * Get classroom availability by classroom ID
- */
-export const getClassroomAvailabilityByClassroomId = async (classroomId) => {
+export const createClassroomAvailability = async (data, user = null) => {
   try {
-    const response = await fetch(`${API_BASE}/classroom/${classroomId}`);
-    const result = await response.json();
-    
-    if (result.success) {
-      return { success: true, data: result.data };
-    } else {
-      return { success: false, error: result.error };
+    const payload = { ...data };
+    if (user && user.dbId) {
+      payload.createdBy = user.dbId;
     }
-  } catch (error) {
-    error('Error getting classroom availability:', error);
-    return { success: false, error: error.message };
+    const result = await classroomAvailabilityBusinessService.createClassroomAvailability(payload);
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:createClassroomAvailability:error`, { error: err.message, data });
+    return {
+      success: false,
+      error: err.message || 'Failed to create classroom availability',
+      data: null
+    };
   }
 };
 
-/**
- * Create classroom availability
- */
-export const createClassroomAvailability = async (data) => {
+export const updateClassroomAvailability = async (id, data, user = null) => {
   try {
-    const response = await fetch(API_BASE, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const result = await response.json();
-    
-    if (result.success) {
-      return { success: true, data: result.data };
-    } else {
-      return { success: false, error: result.error };
+    info(`${serviceName}:updateClassroomAvailability`, { id, data });
+    const payload = { ...data };
+    if (user && user.dbId) {
+      payload.updatedBy = user.dbId;
     }
-  } catch (error) {
-    error('Error creating classroom availability:', error);
-    return { success: false, error: error.message };
+    const result = await classroomAvailabilityBusinessService.updateClassroomAvailability(id, payload);
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:updateClassroomAvailability:error`, { error: err.message, id, data });
+    return {
+      success: false,
+      error: err.message || 'Failed to update classroom availability',
+      data: null
+    };
   }
 };
 
-/**
- * Update classroom availability
- */
-export const updateClassroomAvailability = async (classroomId, data) => {
+export const deleteClassroomAvailability = async (id, user = null) => {
   try {
-    const response = await fetch(`${API_BASE}/classroom/${classroomId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const result = await response.json();
-    
-    if (result.success) {
-      return { success: true, data: result.data };
-    } else {
-      return { success: false, error: result.error };
-    }
-  } catch (error) {
-    error('Error updating classroom availability:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Delete classroom availability
- */
-export const deleteClassroomAvailability = async (classroomId) => {
-  try {
-    const response = await fetch(`${API_BASE}/classroom/${classroomId}`, {
-      method: 'DELETE',
-    });
-    const result = await response.json();
-    
-    if (result.success) {
-      return { success: true, data: result.data };
-    } else {
-      return { success: false, error: result.error };
-    }
-  } catch (error) {
-    error('Error deleting classroom availability:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Check if classroom is available on a specific date
- */
-export const checkClassroomAvailability = async (classroomId, date) => {
-  try {
-    const response = await fetch(`${API_BASE}/classroom/${classroomId}/check/${date}`);
-    const result = await response.json();
-    
-    if (result.success) {
-      return { success: true, data: result.data };
-    } else {
-      return { success: false, error: result.error };
-    }
-  } catch (error) {
-    error('Error checking classroom availability:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Get classroom utilization for a date range
- */
-export const getClassroomUtilization = async (classroomId, startDate, endDate) => {
-  try {
-    const response = await fetch(`${API_BASE}/classroom/${classroomId}/utilization/${startDate}/${endDate}`);
-    const result = await response.json();
-    
-    if (result.success) {
-      return { success: true, data: result.data };
-    } else {
-      return { success: false, error: result.error };
-    }
-  } catch (error) {
-    error('Error getting classroom utilization:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Get all available classrooms for a specific date and time slot
- */
-export const getAvailableClassroomsForDate = async (date, timeSlotId, programId) => {
-  try {
-    const response = await fetch(`${API_BASE}/available/${date}/${timeSlotId}/${programId}`);
-    const result = await response.json();
-    
-    if (result.success) {
-      return { success: true, data: result.data };
-    } else {
-      return { success: false, error: result.error };
-    }
-  } catch (error) {
-    error('Error getting available classrooms:', error);
-    return { success: false, error: error.message };
+    info(`${serviceName}:deleteClassroomAvailability`, { id });
+    const result = await classroomAvailabilityBusinessService.deleteClassroomAvailability(id);
+    return result;
+  } catch (err) {
+    console.error(`${serviceName}:deleteClassroomAvailability:error`, { error: err.message, id });
+    return {
+      success: false,
+      error: err.message || 'Failed to delete classroom availability',
+      data: null
+    };
   }
 };
 
 export default {
   getAllClassroomAvailabilities,
-  getClassroomAvailabilityByClassroomId,
   createClassroomAvailability,
   updateClassroomAvailability,
-  deleteClassroomAvailability,
-  checkClassroomAvailability,
-  getClassroomUtilization,
-  getAvailableClassroomsForDate,
+  deleteClassroomAvailability
 };

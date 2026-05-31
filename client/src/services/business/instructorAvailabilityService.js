@@ -75,9 +75,9 @@ export const createInstructorAvailability = async (data) => {
 /**
  * Update instructor availability
  */
-export const updateInstructorAvailability = async (instructorUserId, data) => {
+export const updateInstructorAvailability = async (id, data) => {
   try {
-    const response = await fetch(`${API_BASE}/instructor/${instructorUserId}`, {
+    const response = await fetch(`${API_BASE}/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -98,9 +98,9 @@ export const updateInstructorAvailability = async (instructorUserId, data) => {
 /**
  * Delete instructor availability
  */
-export const deleteInstructorAvailability = async (instructorUserId) => {
+export const deleteInstructorAvailability = async (id) => {
   try {
-    const response = await fetch(`${API_BASE}/instructor/${instructorUserId}`, {
+    const response = await fetch(`${API_BASE}/${id}`, {
       method: 'DELETE',
     });
     const result = await response.json();

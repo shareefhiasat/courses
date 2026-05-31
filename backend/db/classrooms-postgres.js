@@ -307,17 +307,7 @@ export const createClassroom = async (data) => {
     console.log('[Classrooms DB] Creating classroom:', data);
     
     const classroom = await prisma.classroom.create({
-      data,
-      include: {
-        program: {
-          select: {
-            id: true,
-            code: true,
-            nameEn: true,
-            nameAr: true
-          }
-        }
-      }
+      data
     });
     
     return {

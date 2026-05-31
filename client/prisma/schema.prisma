@@ -652,7 +652,7 @@ model User {
   scopedInstructorFor            AdminScope[]               @relation("InstructorAdminScope")
   userCategoryAccess             UserCategoryAccess[]       @relation("UserCategoryAccess")
   flexibleInstructorSessions     FlexibleScheduleSession[] @relation("FlexibleInstructorSessions")
-  instructorAvailability         InstructorAvailability?   @relation("InstructorAvailability")
+  instructorAvailability         InstructorAvailability[]   @relation("InstructorAvailability")
   createdInstructorAvailability  InstructorAvailability[]  @relation("InstructorAvailabilityCreator")
   updatedInstructorAvailability  InstructorAvailability[]  @relation("InstructorAvailabilityUpdater")
   createdClassroomAvailability  ClassroomAvailability[]   @relation("ClassroomAvailabilityCreator")
@@ -1798,7 +1798,7 @@ model Classroom {
   scheduleSessions     ScheduleSession[] @relation("ClassroomScheduleSessions")
   adminScopes          AdminScope[]     @relation("ClassroomAdminScope")
   flexibleSessions     FlexibleScheduleSession[] @relation("FlexibleClassroomSessions")
-  classroomAvailability ClassroomAvailability? @relation("ClassroomAvailability")
+  classroomAvailability ClassroomAvailability[] @relation("ClassroomAvailability")
   creator              User?            @relation("ClassroomCreator", fields: [createdBy], references: [id])
   updater              User?            @relation("ClassroomUpdater", fields: [updatedBy], references: [id])
 
@@ -2057,9 +2057,10 @@ model FlexibleScheduleSession {
 
 model InstructorAvailability {
   id                Int      @id @default(autoincrement())
-  instructorUserId  Int      @unique
-  availableDays     String[] // ['Sun', 'Mon', 'Tue', 'Wed', 'Thu']
-  unavailableDates  DateTime[] // Specific vacation/off days
+  instructorUserId  Int
+  dayOfWeek         String[] // ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  startDate         DateTime // Start date of availability
+  endDate           DateTime // End date of availability
   maxSessionsPerDay Int      @default(3)
   maxHoursPerWeek   Int?
   status            String?
@@ -2072,14 +2073,32 @@ model InstructorAvailability {
   instructor        User     @relation("InstructorAvailability", fields: [instructorUserId], references: [id])
   creator           User?    @relation("InstructorAvailabilityCreator", fields: [createdBy], references: [id])
   updater           User?    @relation("InstructorAvailabilityUpdater", fields: [updatedBy], references: [id])
+  slots             InstructorAvailabilitySlot[] @relation("InstructorAvailabilitySlots")
 
+  @@index([instructorUserId, startDate, endDate])
   @@map("instructor_availability")
+}
+
+model InstructorAvailabilitySlot {
+  id                    Int      @id @default(autoincrement())
+  availabilityId        Int
+  startTime             String   // HH:mm format (e.g., '09:00')
+  endTime               String   // HH:mm format (e.g., '12:00')
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  availability          InstructorAvailability @relation("InstructorAvailabilitySlots", fields: [availabilityId], references: [id], onDelete: Cascade)
+
+  @@index([availabilityId])
+  @@map("instructor_availability_slot")
 }
 
 model ClassroomAvailability {
   id                Int      @id @default(autoincrement())
-  classroomId       Int      @unique
-  unavailableDates  DateTime[] // Maintenance or booking conflicts
+  classroomId       Int
+  dayOfWeek         String[] // Array of days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  startDate         DateTime // Start date of availability
+  endDate           DateTime // End date of availability
   status            String?
   isActive          Boolean  @default(true)
   createdBy         Int?
@@ -2090,8 +2109,24 @@ model ClassroomAvailability {
   classroom         Classroom @relation("ClassroomAvailability", fields: [classroomId], references: [id])
   creator           User?     @relation("ClassroomAvailabilityCreator", fields: [createdBy], references: [id])
   updater           User?     @relation("ClassroomAvailabilityUpdater", fields: [updatedBy], references: [id])
+  slots             ClassroomAvailabilitySlot[] @relation("ClassroomAvailabilitySlots")
 
+  @@index([classroomId, startDate, endDate])
   @@map("classroom_availability")
+}
+
+model ClassroomAvailabilitySlot {
+  id                    Int      @id @default(autoincrement())
+  availabilityId        Int
+  startTime             String   // HH:mm format (e.g., '09:00')
+  endTime               String   // HH:mm format (e.g., '12:00')
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  availability          ClassroomAvailability @relation("ClassroomAvailabilitySlots", fields: [availabilityId], references: [id], onDelete: Cascade)
+
+  @@index([availabilityId])
+  @@map("classroom_availability_slot")
 }
 
 model UserCategoryAccess {

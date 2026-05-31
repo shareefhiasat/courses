@@ -349,7 +349,7 @@ import adminScopeRoutes from "./routes/admin-scopes.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import flexibleSchedulingRoutes from "./controllers/flexible-scheduling.js";
 import instructorAvailabilityRoutes from "./controllers/instructor-availability.js";
-import classroomAvailabilityRoutes from "./controllers/classroom-availability.js";
+import classroomAvailabilityRoutes from "./routes/classroom-availability.js";
 import userCategoryAccessRoutes from "./controllers/user-category-access.js";
 import quizRoutes from "./routes/quizzes.js";
 import workflowDocumentRoutes from "./routes/workflow-documents.js";

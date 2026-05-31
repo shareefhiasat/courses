@@ -473,10 +473,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
     }] : []),
     ...(isSuperAdmin || isAdmin || isHR ? [
       { id: 'summary-dashboard', path: '/summary-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: (t('summary_dashboard') || 'Summary Dashboard').toUpperCase() },
-      { id: 'flexible-scheduling-dashboard', path: '/flexible-scheduling-dashboard', icon: getThemedIcon('ui', 'grid', 18, theme), label: (t('flexible_scheduling_dashboard') || 'Flexible Scheduling Dashboard').toUpperCase() },
-      { id: 'flexible-schedule', path: '/flexible-schedule', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('flexible_schedule') || 'Flexible Schedule').toUpperCase() },
+      { id: 'flexible-scheduling', path: '/flexible-scheduling', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('flexible_scheduling') || 'Flexible Scheduling').toUpperCase() },
       { id: 'instructor-availability', path: '/instructor-availability', icon: getThemedIcon('ui', 'users', 18, theme), label: (t('instructor_availability') || 'Instructor Availability').toUpperCase() },
-      { id: 'classroom-availability', path: '/classroom-availability', icon: getThemedIcon('ui', 'home', 18, theme), label: (t('classroom_availability') || 'Classroom Availability').toUpperCase() },
+      { id: 'classroom-availability', path: '/classroom-availability', icon: getThemedIcon('ui', 'list', 18, theme), label: (t('classroom_availability') || 'Classroom Availability').toUpperCase() },
       ...(isSuperAdmin ? [
         { id: 'user-category-access', path: '/user-category-access', icon: getThemedIcon('ui', 'shield', 18, theme), label: (t('user_category_access') || 'User Category Access').toUpperCase() }
       ] : []),

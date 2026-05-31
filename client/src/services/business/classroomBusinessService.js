@@ -139,14 +139,6 @@ const createClassroom = async (classroomData, user = null) => {
       };
     }
     
-    if (!classroomData.programId) {
-      return {
-        success: false,
-        error: 'Program ID is required',
-        data: null
-      };
-    }
-    
     if (!classroomData.capacity || classroomData.capacity <= 0) {
       return {
         success: false,

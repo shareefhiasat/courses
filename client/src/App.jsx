@@ -63,11 +63,10 @@ const ScheduledReportsPage = lazy(() => import('./pages/feedback/reports/Schedul
 const AdvancedAnalytics = lazy(() => import('./components/AdvancedAnalytics'));
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage.jsx'));
 const SummaryDashboardPage = lazy(() => import('./pages/SummaryDashboardPage'));
-const FlexibleScheduleCalendarPage = lazy(() => import('./pages/FlexibleScheduleCalendarPage'));
+const FlexibleSchedulingPage = lazy(() => import('./pages/FlexibleSchedulingPage'));
 const InstructorAvailabilityPage = lazy(() => import('./pages/InstructorAvailabilityPage'));
-const ClassroomAvailabilityPage = lazy(() => import('./pages/ClassroomAvailabilityPage'));
 const UserCategoryAccessPage = lazy(() => import('./pages/UserCategoryAccessPage'));
-const FlexibleSchedulingDashboard = lazy(() => import('./pages/FlexibleSchedulingDashboard'));
+const ClassroomAvailabilityPage = lazy(() => import('./pages/ClassroomAvailabilityPage'));
 const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
 const MarksPage = lazy(() => import('./pages/academic/enrollments/grading/MarksPage'));
 const WorkflowInboxPage = lazy(() => import('./pages/workflow/WorkflowInboxPage'));
@@ -227,11 +226,11 @@ const AppContent = () => {
           />
           
           <Route 
-            path="/flexible-schedule" 
+            path="/flexible-scheduling" 
             element={
-              <ProtectedRoute screenId="flexibleSchedule" screenName="Flexible Schedule">
+              <ProtectedRoute screenId="flexibleScheduling" screenName="Flexible Scheduling">
                 <Suspense fallback={<GlobalLoadingFallback />}>
-                  <FlexibleScheduleCalendarPage />
+                  <FlexibleSchedulingPage />
                 </Suspense>
               </ProtectedRoute>
             } 
@@ -249,17 +248,6 @@ const AppContent = () => {
           />
           
           <Route 
-            path="/classroom-availability" 
-            element={
-              <ProtectedRoute screenId="classroomAvailability" screenName="Classroom Availability">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <ClassroomAvailabilityPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
             path="/user-category-access" 
             element={
               <ProtectedRoute screenId="userCategoryAccess" screenName="User Category Access">
@@ -271,11 +259,11 @@ const AppContent = () => {
           />
           
           <Route 
-            path="/flexible-scheduling-dashboard" 
+            path="/classroom-availability" 
             element={
-              <ProtectedRoute screenId="flexibleSchedulingDashboard" screenName="Flexible Scheduling Dashboard">
+              <ProtectedRoute screenId="classroomAvailability" screenName="Classroom Availability">
                 <Suspense fallback={<GlobalLoadingFallback />}>
-                  <FlexibleSchedulingDashboard />
+                  <ClassroomAvailabilityPage />
                 </Suspense>
               </ProtectedRoute>
             } 
