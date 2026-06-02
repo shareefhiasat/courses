@@ -190,7 +190,7 @@ export const ROUTE_CONFIG = {
       path: '/user-category-access',
       requireAuth: true,
       screenId: 'userCategoryAccess',
-      screenName: 'User Category Access'
+      screenName: 'User Access'
     }
   },
 

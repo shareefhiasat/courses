@@ -26,6 +26,9 @@ export const getClassrooms = async (params = {}) => {
       search = '',
       programId = '',
       status = '',
+      building = '',
+      capacity = '',
+      roomNumber = '',
       isActive = null,
       sortBy = 'createdAt',
       sortOrder = 'desc'
@@ -40,7 +43,8 @@ export const getClassrooms = async (params = {}) => {
         { nameEn: { contains: search, mode: 'insensitive' } },
         { nameAr: { contains: search, mode: 'insensitive' } },
         { locationEn: { contains: search, mode: 'insensitive' } },
-        { locationAr: { contains: search, mode: 'insensitive' } }
+        { locationAr: { contains: search, mode: 'insensitive' } },
+        { roomNumber: { contains: search, mode: 'insensitive' } }
       ];
     }
     
@@ -52,12 +56,26 @@ export const getClassrooms = async (params = {}) => {
       where.status = status;
     }
     
+    if (building) {
+      where.locationEn = { contains: building, mode: 'insensitive' };
+    }
+    
+    if (capacity) {
+      where.capacity = parseInt(capacity);
+    }
+    
+    if (roomNumber) {
+      where.roomNumber = { contains: roomNumber, mode: 'insensitive' };
+    }
+    
     if (isActive !== null) {
       where.isActive = isActive === 'true' || isActive === true;
     }
     
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
+    
+    console.log('[Classrooms DB] Final where clause:', JSON.stringify(where, null, 2));
     
     const [classrooms, total] = await Promise.all([
       prisma.classroom.findMany({
@@ -400,8 +418,40 @@ export const deleteClassroom = async (id) => {
   try {
     console.log('[Classrooms DB] Deleting classroom:', id);
     
+    // Check for related records before deletion
+    const classroomId = parseInt(id);
+    
+    // Check for classroom availability records
+    const availabilityCount = await prisma.classroomAvailability.count({
+      where: { classroomId }
+    });
+    
+    if (availabilityCount > 0) {
+      return {
+        success: false,
+        error: `Cannot delete classroom: it has ${availabilityCount} availability record(s). Please delete the availability records first.`,
+        code: 'HAS_RELATED_RECORDS'
+      };
+    }
+    
+    // Check for schedule sessions using this classroom
+    const sessionCount = await prisma.scheduleSession.count({
+      where: { classroomId }
+    });
+    
+    if (sessionCount > 0) {
+      return {
+        success: false,
+        error: `Cannot delete classroom: it is used in ${sessionCount} schedule session(s). Please remove the classroom from sessions first.`,
+        code: 'HAS_RELATED_RECORDS'
+      };
+    }
+    
+    // Check for any other potential relationships (add more as needed)
+    // For example: programs, etc.
+    
     await prisma.classroom.delete({
-      where: { id: parseInt(id) }
+      where: { id: classroomId }
     });
     
     return {

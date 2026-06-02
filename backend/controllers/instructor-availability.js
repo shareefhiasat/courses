@@ -37,7 +37,13 @@ router.get('/instructor/:instructorUserId', async (req, res) => {
 // Get all instructor availabilities
 router.get('/', async (req, res) => {
   try {
-    const result = await instructorAvailabilityDb.getInstructorAvailabilities(req.query);
+    const filters = {
+      ...req.query,
+      programId: req.query.programId,
+      subjectId: req.query.subjectId,
+      classId: req.query.classId,
+    };
+    const result = await instructorAvailabilityDb.getInstructorAvailabilities(filters);
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

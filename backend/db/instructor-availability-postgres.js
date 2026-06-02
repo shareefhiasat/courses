@@ -26,6 +26,13 @@ export const getInstructorAvailabilities = async (params = {}) => {
       search = '',
       instructorUserId = '',
       dayOfWeek = '',
+      startDate = '',
+      endDate = '',
+      timeFrom = '',
+      timeTo = '',
+      programId = '',
+      subjectId = '',
+      classId = '',
       isActive = null,
       sortBy = 'createdAt',
       sortOrder = 'desc'
@@ -50,50 +57,87 @@ export const getInstructorAvailabilities = async (params = {}) => {
       where.dayOfWeek = { has: dayOfWeek };
     }
     
+    if (startDate) {
+      where.startDate = { gte: new Date(startDate) };
+    }
+    
+    if (endDate) {
+      where.endDate = { lte: new Date(endDate) };
+    }
+    
     if (isActive !== null) {
       where.isActive = isActive === 'true' || isActive === true;
+    }
+    
+    if (programId) {
+      where.programId = parseInt(programId);
+    }
+    
+    if (subjectId) {
+      where.subjectId = parseInt(subjectId);
+    }
+    
+    if (classId) {
+      where.classId = parseInt(classId);
     }
     
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
     
-    const [availabilities, total] = await Promise.all([
-      prisma.instructorAvailability.findMany({
-        where,
-        skip,
-        take,
-        orderBy: { [sortBy]: sortOrder },
-        include: {
-          instructor: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              displayName: true,
-              email: true
-            }
-          },
-          slots: {
-            orderBy: { startTime: 'asc' }
-          },
-          creator: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              displayName: true
-            }
-          },
-          updater: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              displayName: true
-            }
+    // Build the query
+    const query = {
+      where,
+      skip,
+      take,
+      orderBy: { [sortBy]: sortOrder },
+      include: {
+        instructor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            displayName: true,
+            email: true
+          }
+        },
+        program: true,
+        subject: true,
+        class: true,
+        slots: {
+          orderBy: { startTime: 'asc' }
+        },
+        creator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            displayName: true
+          }
+        },
+        updater: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            displayName: true
           }
         }
-      }),
+      }
+    };
+    
+    // If time filters are provided, add slot filtering
+    if (timeFrom || timeTo) {
+      query.where.slots = {};
+      if (timeFrom) {
+        query.where.slots.startTime = { gte: timeFrom };
+      }
+      if (timeTo) {
+        query.where.slots.endTime = { lte: timeTo };
+      }
+    }
+    
+    const [availabilities, total] = await Promise.all([
+      prisma.instructorAvailability.findMany(query),
       prisma.instructorAvailability.count({ where })
     ]);
     
@@ -134,6 +178,13 @@ export const createInstructorAvailability = async (data) => {
       };
     }
     
+    // Parse dates safely
+    const parseDate = (dateStr) => {
+      if (!dateStr) return null;
+      const [year, month, day] = dateStr.split('-');
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    };
+    
     // Check for conflicts for each slot
     for (const slot of data.slots) {
       const conflict = await checkTimeConflict(
@@ -159,13 +210,16 @@ export const createInstructorAvailability = async (data) => {
       data: {
         instructorUserId: parseInt(data.instructorUserId),
         dayOfWeek: data.dayOfWeek || [],
-        startDate: data.startDate,
-        endDate: data.endDate,
+        startDate: parseDate(data.startDate),
+        endDate: parseDate(data.endDate),
         maxSessionsPerDay: data.maxSessionsPerDay || 3,
         maxHoursPerWeek: data.maxHoursPerWeek || null,
         status: data.status || null,
         isActive: data.isActive !== undefined ? data.isActive : true,
         createdBy: data.createdBy || null,
+        programId: data.programId || null,
+        subjectId: data.subjectId || null,
+        classId: data.classId || null,
         slots: {
           create: data.slots.map(slot => ({
             startTime: slot.startTime,
@@ -183,6 +237,9 @@ export const createInstructorAvailability = async (data) => {
             email: true
           }
         },
+        program: true,
+        subject: true,
+        class: true,
         slots: {
           orderBy: { startTime: 'asc' }
         },
@@ -222,6 +279,13 @@ export const updateInstructorAvailability = async (id, data) => {
   try {
     console.log('[InstructorAvailability DB] Updating availability:', id, data);
     
+    // Parse dates safely
+    const parseDate = (dateStr) => {
+      if (!dateStr) return null;
+      const [year, month, day] = dateStr.split('-');
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    };
+    
     // If slots are provided, validate and check conflicts
     if (data.slots && Array.isArray(data.slots)) {
       if (data.slots.length === 0) {
@@ -258,13 +322,16 @@ export const updateInstructorAvailability = async (id, data) => {
     const updateData = {
       ...(data.instructorUserId !== undefined && { instructorUserId: parseInt(data.instructorUserId) }),
       ...(data.dayOfWeek !== undefined && { dayOfWeek: data.dayOfWeek || [] }),
-      ...(data.startDate !== undefined && { startDate: data.startDate }),
-      ...(data.endDate !== undefined && { endDate: data.endDate }),
+      ...(data.startDate !== undefined && { startDate: parseDate(data.startDate) }),
+      ...(data.endDate !== undefined && { endDate: parseDate(data.endDate) }),
       ...(data.maxSessionsPerDay !== undefined && { maxSessionsPerDay: data.maxSessionsPerDay }),
       ...(data.maxHoursPerWeek !== undefined && { maxHoursPerWeek: data.maxHoursPerWeek }),
       ...(data.status !== undefined && { status: data.status }),
       ...(data.isActive !== undefined && { isActive: data.isActive }),
-      ...(data.updatedBy !== undefined && { updatedBy: data.updatedBy })
+      ...(data.updatedBy !== undefined && { updatedBy: data.updatedBy }),
+      ...(data.programId !== undefined && { programId: data.programId }),
+      ...(data.subjectId !== undefined && { subjectId: data.subjectId }),
+      ...(data.classId !== undefined && { classId: data.classId })
     };
     
     // If slots are provided, delete existing and create new ones
@@ -291,6 +358,9 @@ export const updateInstructorAvailability = async (id, data) => {
             email: true
           }
         },
+        program: true,
+        subject: true,
+        class: true,
         slots: {
           orderBy: { startTime: 'asc' }
         },

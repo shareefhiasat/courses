@@ -33,6 +33,15 @@ const ClassroomAvailabilityPage = () => {
   const [saving, setSaving] = useState(false);
   const [gridKey, setGridKey] = useState(0);
 
+  // Filter state
+  const [filterSearch, setFilterSearch] = useState('');
+  const [filterClassroom, setFilterClassroom] = useState('');
+  const [filterDay, setFilterDay] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+  const [filterTimeFrom, setFilterTimeFrom] = useState('');
+  const [filterTimeTo, setFilterTimeTo] = useState('');
+
   const [formData, setFormData] = useState({
     classroomId: '',
     dayOfWeek: ['Sun'],
@@ -55,7 +64,16 @@ const ClassroomAvailabilityPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await getAllClassroomAvailabilities();
+      const params = {};
+      if (filterSearch) params.search = filterSearch;
+      if (filterClassroom) params.classroomId = filterClassroom;
+      if (filterDay) params.dayOfWeek = filterDay;
+      if (filterStartDate) params.startDate = filterStartDate;
+      if (filterEndDate) params.endDate = filterEndDate;
+      if (filterTimeFrom) params.timeFrom = filterTimeFrom;
+      if (filterTimeTo) params.timeTo = filterTimeTo;
+      
+      const result = await getAllClassroomAvailabilities(params);
       if (result.success) {
         setAvailabilities(result.data);
       } else {
@@ -68,7 +86,7 @@ const ClassroomAvailabilityPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, filterSearch, filterClassroom, filterDay, filterStartDate, filterEndDate, filterTimeFrom, filterTimeTo]);
 
   const loadClassrooms = useCallback(async () => {
     try {
@@ -190,8 +208,8 @@ const ClassroomAvailabilityPage = () => {
         classroomId: parseInt(formData.classroomId),
         dayOfWeek: formData.dayOfWeek || [],
         slots: formData.slots,
-        startDate: formData.startDate ? new Date(formData.startDate) : null,
-        endDate: formData.endDate ? new Date(formData.endDate) : null,
+        startDate: formData.startDate || null,
+        endDate: formData.endDate || null,
       };
 
       console.log('[ClassroomAvailabilityListPage] Saving availability with payload:', payload);
@@ -225,7 +243,7 @@ const ClassroomAvailabilityPage = () => {
     setFormData({
       classroomId: '',
       dayOfWeek: ['Sun'],
-      slots: [{ startTime: '09:00', endTime: '10:00' }],
+      slots: [{ startTime: '', endTime: '' }],
       startDate: '',
       endDate: '',
     });
@@ -268,7 +286,7 @@ const ClassroomAvailabilityPage = () => {
     const columns = [
       {
         field: 'classroom',
-        headerName: 'Classroom',
+        headerName: t('classroom') || 'Classroom',
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -279,7 +297,7 @@ const ClassroomAvailabilityPage = () => {
       },
       {
         field: 'dayOfWeek',
-        headerName: 'Day(s)',
+        headerName: t('days_of_week') || 'Day(s)',
         width: 150,
         renderCell: (params) => {
           const days = params?.value;
@@ -289,7 +307,7 @@ const ClassroomAvailabilityPage = () => {
       },
       {
         field: 'slots',
-        headerName: 'Time Slots',
+        headerName: t('time_slots') || 'Time Slots',
         width: 200,
         renderCell: (params) => {
           const slots = params?.value;
@@ -299,7 +317,7 @@ const ClassroomAvailabilityPage = () => {
       },
       {
         field: 'daysCount',
-        headerName: 'Days Count',
+        headerName: t('days_count') || 'Days Count',
         width: 100,
         renderCell: (params) => {
           const row = params?.row;
@@ -329,7 +347,7 @@ const ClassroomAvailabilityPage = () => {
       },
       {
         field: 'startDate',
-        headerName: 'Start Date',
+        headerName: t('start_date') || 'Start Date',
         width: 120,
         renderCell: (params) => {
           const value = params?.value;
@@ -338,7 +356,7 @@ const ClassroomAvailabilityPage = () => {
       },
       {
         field: 'endDate',
-        headerName: 'End Date',
+        headerName: t('end_date') || 'End Date',
         width: 120,
         renderCell: (params) => {
           const value = params?.value;
@@ -351,7 +369,7 @@ const ClassroomAvailabilityPage = () => {
     columns.push(
       {
         field: 'creator',
-        headerName: 'Created By',
+        headerName: t('created_by') || 'Created By',
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -362,7 +380,7 @@ const ClassroomAvailabilityPage = () => {
       },
       {
         field: 'createdAt',
-        headerName: 'Created At',
+        headerName: t('created_at') || 'Created At',
         flex: 0.8,
         minWidth: 120,
         renderCell: (params) => {
@@ -372,7 +390,7 @@ const ClassroomAvailabilityPage = () => {
       },
       {
         field: 'updater',
-        headerName: 'Updated By',
+        headerName: t('updated_by') || 'Updated By',
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -383,7 +401,7 @@ const ClassroomAvailabilityPage = () => {
       },
       {
         field: 'updatedAt',
-        headerName: 'Updated At',
+        headerName: t('updated_at') || 'Updated At',
         flex: 0.8,
         minWidth: 120,
         renderCell: (params) => {
@@ -426,12 +444,15 @@ const ClassroomAvailabilityPage = () => {
     return columns;
   }, [formatDate, handleEditAvailability, deleteEntity, saving, t]);
 
+  // Backend handles filtering
+  const filteredAvailabilities = availabilities;
+
   const handleExport = useCallback(() => {
-    const result = exportToCSV(availabilities, gridColumns, 'classroom-availability.csv');
+    const result = exportToCSV(filteredAvailabilities, gridColumns, 'classroom-availability.csv');
     if (result.success) {
-      toast.success('Classroom availability exported successfully');
+      toast.success('Room availability exported successfully');
     } else {
-      toast.error(result.error || 'Failed to export classroom availability');
+      toast.error(result.error || 'Failed to export room availability');
     }
   }, [availabilities, gridColumns, toast]);
 
@@ -444,7 +465,7 @@ const ClassroomAvailabilityPage = () => {
           Access Denied
         </div>
         <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
-          You need admin or HR privileges to manage classroom availability.
+          You need admin or HR privileges to manage room availability.
         </div>
       </div>
     );
@@ -471,12 +492,12 @@ const ClassroomAvailabilityPage = () => {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Day(s) of Week</label>
+            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('days_of_week') || 'Day(s) of Week'}</label>
             <MultiSelect
               value={formData.dayOfWeek}
               onChange={(value) => handleInputChange('dayOfWeek', value)}
               options={dayOptions}
-              placeholder="Select days..."
+              placeholder={t('select_days') || 'Select days...'}
               disabled={saving}
             />
           </div>
@@ -570,6 +591,70 @@ const ClassroomAvailabilityPage = () => {
         </div>
       </form>
 
+      {/* Filter Bar */}
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'flex-end' }}>
+        <div style={{ flex: '2 1 180px' }}>
+          <Input
+            value={filterSearch}
+            onChange={e => setFilterSearch(e.target.value)}
+            placeholder={t('search') || 'Search'}
+          />
+        </div>
+        <div style={{ flex: '1 1 160px' }}>
+          <Select
+            value={filterClassroom}
+            onChange={e => setFilterClassroom(e.target.value)}
+            options={[{ value: '', label: t('all_classrooms') || 'All Classrooms' }, ...classrooms.map(c => ({ value: String(c.id), label: `${c.code} – ${c.nameEn}` }))]}
+            placeholder={t('classroom') || 'Classroom'}
+          />
+        </div>
+        <div style={{ flex: '1 1 130px' }}>
+          <Select
+            value={filterDay}
+            onChange={e => setFilterDay(e.target.value)}
+            options={[{ value: '', label: t('all_days') || 'All Days' }, ...['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => ({ value: d, label: d }))]}
+            placeholder={t('day') || 'Day'}
+          />
+        </div>
+        <div style={{ flex: '1 1 140px' }}>
+          <Input
+            type="date"
+            value={filterStartDate}
+            onChange={e => setFilterStartDate(e.target.value)}
+            placeholder={t('start_date') || 'Start Date'}
+          />
+        </div>
+        <div style={{ flex: '1 1 140px' }}>
+          <Input
+            type="date"
+            value={filterEndDate}
+            onChange={e => setFilterEndDate(e.target.value)}
+            placeholder={t('end_date') || 'End Date'}
+          />
+        </div>
+        <div style={{ flex: '1 1 100px' }}>
+          <Input
+            type="time"
+            value={filterTimeFrom}
+            onChange={e => setFilterTimeFrom(e.target.value)}
+            placeholder={t('time_from') || 'From'}
+          />
+        </div>
+        <div style={{ flex: '1 1 100px' }}>
+          <Input
+            type="time"
+            value={filterTimeTo}
+            onChange={e => setFilterTimeTo(e.target.value)}
+            placeholder={t('time_to') || 'To'}
+          />
+        </div>
+        {(filterSearch || filterClassroom || filterDay || filterStartDate || filterEndDate || filterTimeFrom || filterTimeTo) && (
+          <button onClick={() => { setFilterSearch(''); setFilterClassroom(''); setFilterDay(''); setFilterStartDate(''); setFilterEndDate(''); setFilterTimeFrom(''); setFilterTimeTo(''); }}
+            style={{ border: `1px solid ${theme === 'dark' ? '#374151' : '#d1d5db'}`, backgroundColor: 'transparent', cursor: 'pointer', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+          >✕ Clear</button>
+        )}
+      </div>
+
       {/* Grid Header with Export */}
       <div style={{
         display: 'flex',
@@ -578,14 +663,9 @@ const ClassroomAvailabilityPage = () => {
         marginBottom: '1rem'
       }}>
         <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '500' }}>
-          Classroom Availability ({availabilities.length})
+          Room Availability ({filteredAvailabilities.length}{filteredAvailabilities.length !== availabilities.length ? ` of ${availabilities.length}` : ''})
         </h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExport}
-          disabled={availabilities.length === 0}
-        >
+        <Button variant="outline" size="sm" onClick={handleExport} disabled={filteredAvailabilities.length === 0}>
           {t('export') || 'Export'}
         </Button>
       </div>
@@ -599,7 +679,7 @@ const ClassroomAvailabilityPage = () => {
       }}>
         <AdvancedDataGrid
           key={gridKey}
-          rows={availabilities}
+          rows={filteredAvailabilities}
           columns={gridColumns}
           loading={loading}
           getRowId={(row) => row.id}

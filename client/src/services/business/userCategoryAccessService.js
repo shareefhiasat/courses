@@ -17,6 +17,9 @@ export const getAllUserCategoryAccesses = async (filters = {}) => {
     if (filters.userId) params.append('userId', filters.userId);
     if (filters.categoryId) params.append('categoryId', filters.categoryId);
     if (filters.roleId) params.append('roleId', filters.roleId);
+    if (filters.programId) params.append('programId', filters.programId);
+    if (filters.subjectId) params.append('subjectId', filters.subjectId);
+    if (filters.classId) params.append('classId', filters.classId);
     if (filters.canView !== undefined) params.append('canView', filters.canView);
     if (filters.canManage !== undefined) params.append('canManage', filters.canManage);
     

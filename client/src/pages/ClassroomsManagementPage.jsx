@@ -25,6 +25,13 @@ const ClassroomsManagementPage = () => {
   const [saving, setSaving] = useState(false);
   const [gridKey, setGridKey] = useState(0);
 
+  // Filter state
+  const [filterSearch, setFilterSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterBuilding, setFilterBuilding] = useState('');
+  const [filterCapacity, setFilterCapacity] = useState('');
+  const [filterRoomNumber, setFilterRoomNumber] = useState('');
+
   const [formData, setFormData] = useState({
     code: '',
     name: '',
@@ -40,7 +47,14 @@ const ClassroomsManagementPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await getAllClassrooms();
+      const params = {};
+      if (filterSearch) params.search = filterSearch;
+      if (filterStatus) params.status = filterStatus;
+      if (filterBuilding) params.building = filterBuilding;
+      if (filterCapacity) params.capacity = filterCapacity;
+      if (filterRoomNumber) params.roomNumber = filterRoomNumber;
+      
+      const result = await getAllClassrooms(params);
       if (result.success) {
         setClassrooms(result.data);
       } else {
@@ -53,7 +67,7 @@ const ClassroomsManagementPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, filterSearch, filterStatus, filterBuilding, filterCapacity, filterRoomNumber]);
   
   useEffect(() => {
     loadClassrooms();
@@ -222,32 +236,32 @@ const ClassroomsManagementPage = () => {
       },
       {
         field: 'capacity',
-        headerName: 'Capacity',
+        headerName: t('capacity') || 'Capacity',
         width: 100,
         renderCell: (params) => params?.value || '—'
       },
       {
         field: 'locationEn',
-        headerName: 'Building',
+        headerName: t('building') || 'Building',
         flex: 1,
         minWidth: 120,
         renderCell: (params) => params?.value || '—'
       },
       {
         field: 'floor',
-        headerName: 'Floor',
+        headerName: t('floor') || 'Floor',
         width: 100,
         renderCell: (params) => params?.value || '—'
       },
       {
         field: 'roomNumber',
-        headerName: 'Room Number',
+        headerName: t('room_number') || 'Room Number',
         width: 120,
         renderCell: (params) => params?.value || '—'
       },
       {
         field: 'status',
-        headerName: 'Status',
+        headerName: t('status') || 'Status',
         width: 100,
         renderCell: (params) => {
           const status = params?.value;
@@ -271,7 +285,7 @@ const ClassroomsManagementPage = () => {
     columns.push(
       {
         field: 'creator',
-        headerName: 'Created By',
+        headerName: t('created_by') || 'Created By',
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -282,7 +296,7 @@ const ClassroomsManagementPage = () => {
       },
       {
         field: 'createdAt',
-        headerName: 'Created At',
+        headerName: t('created_at') || 'Created At',
         flex: 0.8,
         minWidth: 120,
         renderCell: (params) => {
@@ -292,7 +306,7 @@ const ClassroomsManagementPage = () => {
       },
       {
         field: 'updater',
-        headerName: 'Updated By',
+        headerName: t('updated_by') || 'Updated By',
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -303,7 +317,7 @@ const ClassroomsManagementPage = () => {
       },
       {
         field: 'updatedAt',
-        headerName: 'Updated At',
+        headerName: t('updated_at') || 'Updated At',
         flex: 0.8,
         minWidth: 120,
         renderCell: (params) => {
@@ -346,8 +360,11 @@ const ClassroomsManagementPage = () => {
     return columns;
   }, [formatDate, handleEditClassroom, deleteEntity, saving, t]);
 
+  // Derived filtered rows - backend handles filtering
+  const filteredClassrooms = classrooms;
+
   const handleExport = useCallback(() => {
-    const result = exportToCSV(classrooms, gridColumns, 'classrooms.csv');
+    const result = exportToCSV(filteredClassrooms, gridColumns, 'classrooms.csv');
     if (result.success) {
       toast.success('Classrooms exported successfully');
     } else {
@@ -489,6 +506,65 @@ const ClassroomsManagementPage = () => {
           </div>
         </form>
 
+      {/* Filter Bar */}
+      <div style={{
+        display: 'flex', gap: '0.75rem', flexWrap: 'wrap',
+        marginBottom: '1rem', alignItems: 'flex-end'
+      }}>
+        <div style={{ flex: '2 1 200px' }}>
+          <Input
+            value={filterSearch}
+            onChange={e => setFilterSearch(e.target.value)}
+            placeholder={t('search') || 'Search'}
+          />
+        </div>
+        <div style={{ flex: '1 1 140px' }}>
+          <Select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            options={[
+              { value: '', label: t('all_statuses') || 'All Statuses' },
+              { value: 'Available', label: t('available') || 'Available' },
+              { value: 'UnderMaintenance', label: t('under_maintenance') || 'Under Maintenance' },
+              { value: 'Closed', label: t('closed') || 'Closed' }
+            ]}
+            placeholder={t('status') || 'Status'}
+          />
+        </div>
+        <div style={{ flex: '1 1 140px' }}>
+          <Input
+            value={filterBuilding}
+            onChange={e => setFilterBuilding(e.target.value)}
+            placeholder={t('building') || 'Building'}
+          />
+        </div>
+        <div style={{ flex: '1 1 100px' }}>
+          <Input
+            type="number"
+            value={filterCapacity}
+            onChange={e => setFilterCapacity(e.target.value)}
+            placeholder={t('capacity') || 'Capacity'}
+          />
+        </div>
+        <div style={{ flex: '1 1 120px' }}>
+          <Input
+            value={filterRoomNumber}
+            onChange={e => setFilterRoomNumber(e.target.value)}
+            placeholder={t('room_number') || 'Room Number'}
+          />
+        </div>
+        {(filterSearch || filterStatus || filterBuilding || filterCapacity || filterRoomNumber) && (
+          <button
+            onClick={() => { setFilterSearch(''); setFilterStatus(''); setFilterBuilding(''); setFilterCapacity(''); setFilterRoomNumber(''); }}
+            style={{
+              border: `1px solid ${theme === 'dark' ? '#374151' : '#d1d5db'}`,
+              backgroundColor: 'transparent', cursor: 'pointer',
+              color: theme === 'dark' ? '#9ca3af' : '#6b7280'
+            }}
+          >✕ Clear</button>
+        )}
+      </div>
+
       {/* Grid Header with Export */}
       <div style={{
         display: 'flex',
@@ -497,13 +573,13 @@ const ClassroomsManagementPage = () => {
         marginBottom: '1rem'
       }}>
         <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '500' }}>
-          Classrooms ({classrooms.length})
+          Classrooms ({filteredClassrooms.length}{filteredClassrooms.length !== classrooms.length ? ` of ${classrooms.length}` : ''})
         </h3>
         <Button
           variant="outline"
           size="sm"
           onClick={handleExport}
-          disabled={classrooms.length === 0}
+          disabled={filteredClassrooms.length === 0}
         >
           {t('export') || 'Export'}
         </Button>
@@ -518,7 +594,7 @@ const ClassroomsManagementPage = () => {
       }}>
         <AdvancedDataGrid
           key={gridKey}
-          rows={classrooms}
+          rows={filteredClassrooms}
           columns={gridColumns}
           loading={loading}
           getRowId={(row) => row.id}

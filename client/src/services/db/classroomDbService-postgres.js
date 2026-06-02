@@ -21,6 +21,9 @@ const getClassrooms = async (params = {}) => {
     if (params.search) queryParams.append('search', params.search);
     if (params.programId) queryParams.append('programId', params.programId);
     if (params.status) queryParams.append('status', params.status);
+    if (params.building) queryParams.append('building', params.building);
+    if (params.capacity) queryParams.append('capacity', params.capacity);
+    if (params.roomNumber) queryParams.append('roomNumber', params.roomNumber);
     if (params.isActive !== undefined) queryParams.append('isActive', params.isActive);
     if (params.sortBy) queryParams.append('sortBy', params.sortBy);
     if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);

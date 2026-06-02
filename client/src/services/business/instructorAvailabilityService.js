@@ -15,6 +15,21 @@ export const getAllInstructorAvailabilities = async (filters = {}) => {
   try {
     const params = new URLSearchParams();
     if (filters.status) params.append('status', filters.status);
+    if (filters.search) params.append('search', filters.search);
+    if (filters.instructorUserId) params.append('instructorUserId', filters.instructorUserId);
+    if (filters.dayOfWeek) params.append('dayOfWeek', filters.dayOfWeek);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.timeFrom) params.append('timeFrom', filters.timeFrom);
+    if (filters.timeTo) params.append('timeTo', filters.timeTo);
+    if (filters.programId) params.append('programId', filters.programId);
+    if (filters.subjectId) params.append('subjectId', filters.subjectId);
+    if (filters.classId) params.append('classId', filters.classId);
+    if (filters.isActive !== undefined) params.append('isActive', filters.isActive);
+    if (filters.page) params.append('page', filters.page);
+    if (filters.limit) params.append('limit', filters.limit);
+    if (filters.sortBy) params.append('sortBy', filters.sortBy);
+    if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
     
     const response = await fetch(`${API_BASE}?${params}`);
     const result = await response.json();

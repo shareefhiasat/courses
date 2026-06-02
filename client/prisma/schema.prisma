@@ -698,6 +698,8 @@ model Program {
   adminScopes         AdminScope[]          @relation("ProgramAdminScope")
   flexibleSessions    FlexibleScheduleSession[] @relation("FlexibleProgramSessions")
   category            CategoryTypes?       @relation("ProgramCategory", fields: [categoryId], references: [id])
+  userCategoryAccesses UserCategoryAccess[] @relation("UserCategoryAccessProgram")
+  instructorAvailabilities InstructorAvailability[] @relation("InstructorAvailabilityProgram")
 
   @@map("programs")
 }
@@ -730,6 +732,8 @@ model Subject {
   requirementType    RequirementTypes   @relation(fields: [requirementTypeId], references: [id])
   subjectType        SubjectTypes       @relation(fields: [typeId], references: [id])
   updater            User?              @relation("SubjectUpdater", fields: [updatedBy], references: [id])
+  userCategoryAccesses UserCategoryAccess[] @relation("UserCategoryAccessSubject")
+  instructorAvailabilities InstructorAvailability[] @relation("InstructorAvailabilitySubject")
 
   @@map("subjects")
 }
@@ -766,6 +770,8 @@ model Class {
   program        Program         @relation(fields: [programId], references: [id])
   subject        Subject         @relation(fields: [subjectId], references: [id])
   updater        User?           @relation("ClassUpdater", fields: [updatedBy], references: [id])
+  userCategoryAccesses UserCategoryAccess[] @relation("UserCategoryAccessClass")
+  instructorAvailabilities InstructorAvailability[] @relation("InstructorAvailabilityClass")
   enrollments    Enrollment[]
   participations Participation[]
   penalties      Penalty[]
@@ -2065,12 +2071,18 @@ model InstructorAvailability {
   maxHoursPerWeek   Int?
   status            String?
   isActive          Boolean  @default(true)
+  programId         Int?     // Optional: restrict to specific program
+  subjectId         Int?     // Optional: restrict to specific subject
+  classId           Int?     // Optional: restrict to specific class
   createdBy         Int?
   updatedBy         Int?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   instructor        User     @relation("InstructorAvailability", fields: [instructorUserId], references: [id])
+  program           Program? @relation("InstructorAvailabilityProgram", fields: [programId], references: [id])
+  subject           Subject? @relation("InstructorAvailabilitySubject", fields: [subjectId], references: [id])
+  class             Class?   @relation("InstructorAvailabilityClass", fields: [classId], references: [id])
   creator           User?    @relation("InstructorAvailabilityCreator", fields: [createdBy], references: [id])
   updater           User?    @relation("InstructorAvailabilityUpdater", fields: [updatedBy], references: [id])
   slots             InstructorAvailabilitySlot[] @relation("InstructorAvailabilitySlots")
@@ -2134,6 +2146,9 @@ model UserCategoryAccess {
   userId     Int
   categoryId Int
   roleId     Int?     // Optional: restrict to specific role
+  programId  Int?     // Optional: restrict to specific program
+  subjectId  Int?     // Optional: restrict to specific subject
+  classId    Int?     // Optional: restrict to specific class
   canView    Boolean  @default(true)
   canManage  Boolean  @default(false)
   isActive   Boolean  @default(true)
@@ -2144,6 +2159,9 @@ model UserCategoryAccess {
 
   user       User     @relation("UserCategoryAccess", fields: [userId], references: [id])
   category   CategoryTypes @relation("CategoryUserAccess", fields: [categoryId], references: [id])
+  program    Program? @relation("UserCategoryAccessProgram", fields: [programId], references: [id])
+  subject    Subject? @relation("UserCategoryAccessSubject", fields: [subjectId], references: [id])
+  class      Class?   @relation("UserCategoryAccessClass", fields: [classId], references: [id])
   creator    User?    @relation("UserCategoryAccessCreator", fields: [createdBy], references: [id])
   updater    User?    @relation("UserCategoryAccessUpdater", fields: [updatedBy], references: [id])
 

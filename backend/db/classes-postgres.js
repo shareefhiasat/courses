@@ -492,18 +492,25 @@ export const updateClass = async (classId, updateData, user = null) => {
     
     // Prepare update data
     const data = {};
-    
-    // Only include fields that are provided
-    if (updateData.code !== undefined) data.code = updateData.code;
-    if (updateData.nameEn !== undefined) data.nameEn = updateData.nameEn;
+
+    // Only include fields that are provided and have valid values
+    if (updateData.code !== undefined && updateData.code !== '') data.code = updateData.code;
+    if (updateData.nameEn !== undefined && updateData.nameEn !== '') data.nameEn = updateData.nameEn;
     if (updateData.nameAr !== undefined) data.nameAr = updateData.nameAr;
     if (updateData.descriptionEn !== undefined) data.descriptionEn = updateData.descriptionEn;
     if (updateData.descriptionAr !== undefined) data.descriptionAr = updateData.descriptionAr;
     if (updateData.maxCapacity !== undefined) data.maxCapacity = updateData.maxCapacity;
     if (updateData.isActive !== undefined) data.isActive = updateData.isActive;
-    if (updateData.programId !== undefined) data.programId = updateData.programId;
-    if (updateData.subjectId !== undefined) data.subjectId = updateData.subjectId;
-    if (updateData.instructorId !== undefined) data.instructorId = updateData.instructorId;
+    // Only update programId and subjectId if they have valid integer values
+    if (updateData.programId !== undefined && updateData.programId !== null && updateData.programId !== '' && !isNaN(parseInt(updateData.programId))) {
+      data.programId = parseInt(updateData.programId);
+    }
+    if (updateData.subjectId !== undefined && updateData.subjectId !== null && updateData.subjectId !== '' && !isNaN(parseInt(updateData.subjectId))) {
+      data.subjectId = parseInt(updateData.subjectId);
+    }
+    if (updateData.instructorId !== undefined) {
+      data.instructorId = updateData.instructorId ? parseInt(updateData.instructorId) : null;
+    }
     
     // Add disabledStudents field
     if (updateData.disabledStudents !== undefined) data.disabledStudents = updateData.disabledStudents;

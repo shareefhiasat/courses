@@ -235,99 +235,108 @@ const DashboardPage = () => {
   const ribbonCategories = useMemo(() => [
     {
       id: 'content',
-      label: t('content'),
+      label: t('content') || 'Content',
       items: [
-        { key: MODE_TYPES.ACTIVITIES, label: t('activities') },
-        { key: MODE_TYPES.ANNOUNCEMENTS, label: t('announcements') },
-        { key: MODE_TYPES.RESOURCES, label: t('resources') }
+        { key: MODE_TYPES.ACTIVITIES, label: t('activities') || 'Activities' },
+        { key: MODE_TYPES.ANNOUNCEMENTS, label: t('announcements') || 'Announcements' },
+        { key: MODE_TYPES.RESOURCES, label: t('resources') || 'Resources' }
       ]
     },
     {
       id: 'academic',
-      label: t('academic'),
+      label: t('academic') || 'Academic',
       items: [
-        { key: 'programs', label: t('programs') },
-        { key: 'subjects', label: t('subjects') },
-        { key: 'classes', label: t('classes') },
-        { key: 'enrollments', label: t('enrollments') },
-        { key: 'manage-enrollments', label: t('manage_enrollments') },
-        { key: 'marks', label: t('mark_entry') },
-        { key: 'class-schedule', label: t('class_schedules') }
+        { key: 'programs', label: t('programs') || 'Programs' },
+        { key: 'subjects', label: t('subjects') || 'Subjects' },
+        { key: 'classes', label: t('classes') || 'Classes' },
+        { key: 'class-schedule', label: t('class_schedules') || 'Class Schedules' }
+      ]
+    },
+    {
+      id: 'enrollments',
+      label: t('enrollments') || 'Enrollments',
+      items: [
+        { key: 'enrollments', label: t('enrollments') || 'Enrollments' },
+        { key: 'manage-enrollments', label: t('manage_enrollments') || 'Manage Enrollments' },
+        { key: 'marks', label: t('mark_entry') || 'Marks Entry' }
       ]
     },
     {
       id: 'operations',
-      label: t('operations'),
+      label: t('operations') || 'Operations',
       items: [
-        { key: 'penalty', label: t('penalty') },
-        { key: 'participation', label: t('participation') },
-        { key: 'behavior', label: t('behavior') }
+        { key: 'penalty', label: t('penalty') || 'Penalty' },
+        { key: 'participation', label: t('participation') || 'Participation' },
+        { key: 'behavior', label: t('behavior') || 'Behavior' }
       ]
     },
     {
       id: 'users',
-      label: t('users'),
+      label: t('users') || 'Users',
       items: [
-        { key: 'users', label: t('users') }
+        { key: 'users', label: t('users') || 'Users' },
+        ...(isSuperAdmin ? [
+          { key: 'user-category-access', label: t('user_access') || 'User Access' }
+        ] : [])
         // { key: 'allowlist', label: t('allowlist') } - removed, now using Keycloak
       ]
     },
     {
       id: 'communication',
-      label: t('communication'),
+      label: t('communication') || 'Communication',
       items: [
-        { key: 'emailTemplates', label: t('templates') },
-        { key: 'notificationLogs', label: t('notification_logs') },
-        { key: 'scheduled-reports', label: t('scheduled_reports') }
+        { key: 'emailTemplates', label: t('templates') || 'Templates' },
+        { key: 'notificationLogs', label: t('notification_logs') || 'Notification Logs' },
+        { key: 'scheduled-reports', label: t('scheduled_reports') || 'Scheduled Reports' }
       ]
     },
     {
       id: 'settings',
-      label: t('settings'),
+      label: t('settings') || 'Settings',
       items: [
-        { key: 'categories', label: t('categories') }
+        { key: 'categories', label: t('categories') || 'Categories' },
+        { key: 'activity-types', label: t('activity_types') || 'Activity Types' },
+        { key: 'behavior-types', label: t('behavior_types') || 'Behavior Types' },
+        { key: 'participation-types', label: t('participation_types') || 'Participation Types' },
+        { key: 'penalty-types', label: t('penalty_types') || 'Penalty Types' }
         // { key: 'logging', label: t('logs') } // Hidden for now
       ]
     },
     {
       id: 'flexible-scheduling',
-      label: t('flexible_scheduling') || 'FLEXIBLE SCHEDULING',
+      label: t('scheduling') || 'Scheduling',
       items: [
         { key: 'summary-dashboard', label: t('summary_dashboard') || 'Summary Dashboard' },
         { key: 'flexible-scheduling', label: t('flexible_scheduling') || 'Flexible Scheduling' },
         { key: 'instructor-availability', label: t('instructor_availability') || 'Instructor Availability' },
-        { key: 'classroom-availability', label: t('classroom_availability') || 'Classroom Availability' },
-        { key: 'classrooms-management', label: t('classrooms_management') || 'Classrooms Management' },
         ...(isSuperAdmin ? [
-          { key: 'user-category-access', label: t('user_category_access') || 'User Category Access' }
+          { key: 'user-category-access', label: t('user_access') || 'User Access' }
         ] : []),
       ]
     },
     {
-      id: 'system-lookups',
-      label: 'System Lookups (Read-Only)',
+      id: 'rooms',
+      label: t('rooms') || 'Rooms',
       items: [
-        { key: 'resource-types', label: 'Resource Types' },
-        { key: 'priority-types', label: 'Priority Types' },
-        { key: 'user-roles', label: 'User Roles' },
-        { key: 'subject-types', label: 'Subject Types' },
-        { key: 'assessment-types', label: 'Assessment Types' },
-        { key: 'question-types', label: 'Question Types' },
-        { key: 'attendance-status-types', label: 'Attendance Status' },
-        { key: 'enrollment-status-types', label: 'Enrollment Status' }
+        { key: 'classroom-availability', label: t('room_availability') || 'Room Availability' },
+        { key: 'classrooms-management', label: t('rooms_management') || 'Rooms Management' },
       ]
     },
     {
-      id: 'user-lookups',
-      label: 'User Lookups (Editable)',
+      id: 'system-lookups',
+      label: t('system_lookups') || 'System Lookups (Read-Only)',
       items: [
-        { key: 'activity-types', label: 'Activity Types' },
-        { key: 'behavior-types', label: 'Behavior Types' },
-        { key: 'participation-types', label: 'Participation Types' },
-        { key: 'penalty-types', label: 'Penalty Types' }
+        { key: 'resource-types', label: t('resource_types') || 'Resource Types' },
+        { key: 'priority-types', label: t('priority_types') || 'Priority Types' },
+        { key: 'user-roles', label: t('user_roles') || 'User Roles' },
+        { key: 'subject-types', label: t('subject_types') || 'Subject Types' },
+        { key: 'assessment-types', label: t('assessment_types') || 'Assessment Types' },
+        { key: 'question-types', label: t('question_types') || 'Question Types' },
+        { key: 'attendance-status-types', label: t('attendance_status') || 'Attendance Status' },
+        { key: 'enrollment-status-types', label: t('enrollment_status') || 'Enrollment Status' }
       ]
     }
-  ], [t]);
+  ], [t, isSuperAdmin]);
   // Initialize tour steps (localization-aware)
   useEffect(() => {
     const steps = [

@@ -26,6 +26,10 @@ export const getClassroomAvailabilities = async (params = {}) => {
       search = '',
       classroomId = '',
       dayOfWeek = '',
+      startDate = '',
+      endDate = '',
+      timeFrom = '',
+      timeTo = '',
       reason = '',
       isActive = null,
       sortBy = 'createdAt',
@@ -48,7 +52,15 @@ export const getClassroomAvailabilities = async (params = {}) => {
     }
     
     if (dayOfWeek) {
-      where.dayOfWeek = dayOfWeek;
+      where.dayOfWeek = { has: dayOfWeek };
+    }
+    
+    if (startDate) {
+      where.startDate = { gte: new Date(startDate) };
+    }
+    
+    if (endDate) {
+      where.endDate = { lte: new Date(endDate) };
     }
     
     if (reason) {
@@ -62,43 +74,57 @@ export const getClassroomAvailabilities = async (params = {}) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
     
-    const [availabilities, total] = await Promise.all([
-      prisma.classroomAvailability.findMany({
-        where,
-        skip,
-        take,
-        orderBy: { [sortBy]: sortOrder },
-        include: {
-          classroom: {
-            select: {
-              id: true,
-              code: true,
-              nameEn: true,
-              nameAr: true,
-              locationEn: true
-            }
-          },
-          slots: {
-            orderBy: { startTime: 'asc' }
-          },
-          creator: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              displayName: true
-            }
-          },
-          updater: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              displayName: true
-            }
+    // Build the query
+    const query = {
+      where,
+      skip,
+      take,
+      orderBy: { [sortBy]: sortOrder },
+      include: {
+        classroom: {
+          select: {
+            id: true,
+            code: true,
+            nameEn: true,
+            nameAr: true,
+            locationEn: true
+          }
+        },
+        slots: {
+          orderBy: { startTime: 'asc' }
+        },
+        creator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            displayName: true
+          }
+        },
+        updater: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            displayName: true
           }
         }
-      }),
+      }
+    };
+    
+    // If time filters are provided, add slot filtering
+    if (timeFrom || timeTo) {
+      query.where.slots = {};
+      if (timeFrom) {
+        query.where.slots.startTime = { gte: timeFrom };
+      }
+      if (timeTo) {
+        query.where.slots.endTime = { lte: timeTo };
+      }
+    }
+    
+    const [availabilities, total] = await Promise.all([
+      prisma.classroomAvailability.findMany(query),
       prisma.classroomAvailability.count({ where })
     ]);
     
@@ -141,6 +167,13 @@ export const createClassroomAvailability = async (data) => {
       };
     }
     
+    // Parse dates safely
+    const parseDate = (dateStr) => {
+      if (!dateStr) return null;
+      const [year, month, day] = dateStr.split('-');
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    };
+    
     // Check for conflicts for each slot
     for (const slot of data.slots) {
       const conflict = await checkTimeConflict(
@@ -166,8 +199,8 @@ export const createClassroomAvailability = async (data) => {
       data: {
         classroomId: parseInt(data.classroomId),
         dayOfWeek: data.dayOfWeek || [],
-        startDate: data.startDate,
-        endDate: data.endDate,
+        startDate: parseDate(data.startDate),
+        endDate: parseDate(data.endDate),
         status: data.status || null,
         isActive: data.isActive !== undefined ? data.isActive : true,
         createdBy: data.createdBy || null,
@@ -226,6 +259,13 @@ export const updateClassroomAvailability = async (id, data) => {
   try {
     console.log('[ClassroomAvailability DB] Updating availability:', id, data);
     
+    // Parse dates safely
+    const parseDate = (dateStr) => {
+      if (!dateStr) return null;
+      const [year, month, day] = dateStr.split('-');
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    };
+    
     // If slots are provided, validate and check conflicts
     if (data.slots && Array.isArray(data.slots)) {
       if (data.slots.length === 0) {
@@ -262,8 +302,8 @@ export const updateClassroomAvailability = async (id, data) => {
     const updateData = {
       ...(data.classroomId !== undefined && { classroomId: parseInt(data.classroomId) }),
       ...(data.dayOfWeek !== undefined && { dayOfWeek: data.dayOfWeek || [] }),
-      ...(data.startDate !== undefined && { startDate: data.startDate }),
-      ...(data.endDate !== undefined && { endDate: data.endDate }),
+      ...(data.startDate !== undefined && { startDate: parseDate(data.startDate) }),
+      ...(data.endDate !== undefined && { endDate: parseDate(data.endDate) }),
       ...(data.status !== undefined && { status: data.status }),
       ...(data.isActive !== undefined && { isActive: data.isActive }),
       ...(data.updatedBy !== undefined && { updatedBy: data.updatedBy })
@@ -380,13 +420,8 @@ async function checkTimeConflict(classroomId, dayOfWeek, startTime, endTime, sta
     
     const existingEntries = await prisma.classroomAvailability.findMany({
       where,
-      select: {
-        id: true,
-        startTime: true,
-        endTime: true,
-        dayOfWeek: true,
-        startDate: true,
-        endDate: true
+      include: {
+        slots: true
       }
     });
     
@@ -420,13 +455,16 @@ async function checkTimeConflict(classroomId, dayOfWeek, startTime, endTime, sta
       
       if (!daysOverlap) continue;
       
-      // Check if time slots overlap
-      if (isTimeOverlap(startTime, endTime, entry.startTime, entry.endTime)) {
-        console.log('[ClassroomAvailability DB] Conflict detected:', {
-          existingEntry: entry,
-          newEntry: { dayOfWeek, startTime, endTime, startDate, endDate }
-        });
-        return true;
+      // Check if time slots overlap with any of the entry's slots
+      for (const slot of entry.slots) {
+        if (isTimeOverlap(startTime, endTime, slot.startTime, slot.endTime)) {
+          console.log('[ClassroomAvailability DB] Conflict detected:', {
+            existingEntry: entry,
+            existingSlot: slot,
+            newEntry: { dayOfWeek, startTime, endTime, startDate, endDate }
+          });
+          return true;
+        }
       }
     }
     

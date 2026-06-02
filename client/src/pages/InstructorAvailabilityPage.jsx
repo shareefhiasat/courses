@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { Button, SimpleLoading, useToast, Input, Select, DeleteModal } from '@ui';
+import { Button, SimpleLoading, useToast, Input, Select, DeleteModal, UserSelect } from '@ui';
 import MultiSelect from '@components/ui/MultiSelect';
 import { useDeleteModal } from '@hooks/useDeleteModal.js';
 import AdvancedDataGrid from '@components/ui/AdvancedDataGrid';
@@ -12,7 +12,10 @@ import {
   updateInstructorAvailability, 
   deleteInstructorAvailability 
 } from '@services/business/instructorAvailabilityService.js';
-import { getAllUsers } from '@services/business/userService.js';
+import { getAllUsers, getUserRoles } from '@services/business/userService.js';
+import { getAllPrograms } from '@services/business/programService.js';
+import { getAllSubjects } from '@services/business/subjectService.js';
+import { getAllClasses } from '@services/business/classService.js';
 import { formatDateTime } from '@utils/dateUtils.js';
 import { getUserDisplayName as getAuthUserDisplayName } from '@services/business/authService';
 import { exportToCSV } from '@utils/csvExport.js';
@@ -33,6 +36,22 @@ const InstructorAvailabilityPage = () => {
   const [saving, setSaving] = useState(false);
   const [gridKey, setGridKey] = useState(0);
 
+  // Filter state
+  const [filterSearch, setFilterSearch] = useState('');
+  const [filterInstructor, setFilterInstructor] = useState('');
+  const [filterDay, setFilterDay] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+  const [filterTimeFrom, setFilterTimeFrom] = useState('');
+  const [filterTimeTo, setFilterTimeTo] = useState('');
+  const [filterProgram, setFilterProgram] = useState('');
+  const [filterSubject, setFilterSubject] = useState('');
+  const [filterClass, setFilterClass] = useState('');
+  
+  const [programs, setPrograms] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [classes, setClasses] = useState([]);
+
   const [formData, setFormData] = useState({
     instructorUserId: '',
     dayOfWeek: ['Sun'],
@@ -41,6 +60,9 @@ const InstructorAvailabilityPage = () => {
     endDate: '',
     maxSessionsPerDay: 3,
     maxHoursPerWeek: null,
+    programId: '',
+    subjectId: '',
+    classId: '',
   });
 
   const dayOptions = [
@@ -57,7 +79,19 @@ const InstructorAvailabilityPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await getAllInstructorAvailabilities();
+      const params = {};
+      if (filterSearch) params.search = filterSearch;
+      if (filterInstructor) params.instructorUserId = filterInstructor;
+      if (filterDay) params.dayOfWeek = filterDay;
+      if (filterStartDate) params.startDate = filterStartDate;
+      if (filterEndDate) params.endDate = filterEndDate;
+      if (filterTimeFrom) params.timeFrom = filterTimeFrom;
+      if (filterTimeTo) params.timeTo = filterTimeTo;
+      if (filterProgram) params.programId = filterProgram;
+      if (filterSubject) params.subjectId = filterSubject;
+      if (filterClass) params.classId = filterClass;
+      
+      const result = await getAllInstructorAvailabilities(params);
       if (result.success) {
         setAvailabilities(result.data);
       } else {
@@ -70,24 +104,65 @@ const InstructorAvailabilityPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, filterSearch, filterInstructor, filterDay, filterStartDate, filterEndDate, filterTimeFrom, filterTimeTo, filterProgram, filterSubject, filterClass]);
 
   const loadInstructors = useCallback(async () => {
     try {
-      // Get users who are instructors (you might need to filter by role)
+      // Get users who are instructors (filter by role)
       const result = await getAllUsers({ limit: 1000 });
       if (result.success) {
-        setInstructors(result.data || []);
+        // Filter users who have instructor role
+        const instructors = (result.data || []).filter(user => {
+          const roles = getUserRoles(user);
+          return roles.includes('instructor');
+        });
+        setInstructors(instructors);
       }
     } catch (error) {
       console.error('Failed to load instructors:', error);
+    }
+  }, []);
+  
+  const loadPrograms = useCallback(async () => {
+    try {
+      const result = await getAllPrograms();
+      if (result.success) {
+        setPrograms(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading programs:', error);
+    }
+  }, []);
+  
+  const loadSubjects = useCallback(async () => {
+    try {
+      const result = await getAllSubjects();
+      if (result.success) {
+        setSubjects(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading subjects:', error);
+    }
+  }, []);
+  
+  const loadClasses = useCallback(async () => {
+    try {
+      const result = await getAllClasses();
+      if (result.success) {
+        setClasses(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading classes:', error);
     }
   }, []);
 
   useEffect(() => {
     loadAvailabilities();
     loadInstructors();
-  }, [loadAvailabilities, loadInstructors]);
+    loadPrograms();
+    loadSubjects();
+    loadClasses();
+  }, [loadAvailabilities, loadInstructors, loadPrograms, loadSubjects, loadClasses]);
 
   const handleNewAvailability = () => {
     setEditingAvailability(null);
@@ -99,6 +174,9 @@ const InstructorAvailabilityPage = () => {
       endDate: '',
       maxSessionsPerDay: 3,
       maxHoursPerWeek: null,
+      programId: '',
+      subjectId: '',
+      classId: '',
     });
     setFormState('creating');
   };
@@ -113,6 +191,9 @@ const InstructorAvailabilityPage = () => {
         : [{ startTime: '09:00', endTime: '10:00' }],
       startDate: availability.startDate ? new Date(availability.startDate).toISOString().split('T')[0] : '',
       endDate: availability.endDate ? new Date(availability.endDate).toISOString().split('T')[0] : '',
+      programId: availability.programId?.toString() || '',
+      subjectId: availability.subjectId?.toString() || '',
+      classId: availability.classId?.toString() || '',
     });
     setFormState('editing');
   };
@@ -199,15 +280,19 @@ const InstructorAvailabilityPage = () => {
         endDate: formData.endDate ? new Date(formData.endDate) : null,
         maxSessionsPerDay: formData.maxSessionsPerDay || 3,
         maxHoursPerWeek: formData.maxHoursPerWeek || null,
+        programId: formData.programId ? parseInt(formData.programId) : null,
+        subjectId: formData.subjectId ? parseInt(formData.subjectId) : null,
+        classId: formData.classId ? parseInt(formData.classId) : null,
+        createdBy: user?.dbId,
       };
 
       console.log('[InstructorAvailabilityListPage] Saving availability with payload:', payload);
 
       let result;
       if (editingAvailability) {
-        result = await updateInstructorAvailability(editingAvailability.id, payload, user);
+        result = await updateInstructorAvailability(editingAvailability.id, { ...payload, updatedBy: user?.dbId });
       } else {
-        result = await createInstructorAvailability(payload, user);
+        result = await createInstructorAvailability(payload);
       }
 
       console.log('[InstructorAvailabilityListPage] Save result:', result);
@@ -232,11 +317,14 @@ const InstructorAvailabilityPage = () => {
     setFormData({
       instructorUserId: '',
       dayOfWeek: ['Sun'],
-      slots: [{ startTime: '09:00', endTime: '10:00' }],
+      slots: [{ startTime: '', endTime: '' }],
       startDate: '',
       endDate: '',
       maxSessionsPerDay: 3,
       maxHoursPerWeek: null,
+      programId: '',
+      subjectId: '',
+      classId: '',
     });
     setEditingAvailability(null);
     setFormState('creating');
@@ -277,7 +365,7 @@ const InstructorAvailabilityPage = () => {
     const columns = [
       {
         field: 'instructor',
-        headerName: 'Instructor',
+        headerName: t('instructor') || 'Instructor',
         flex: 1,
         minWidth: 200,
         renderCell: (params) => {
@@ -288,7 +376,7 @@ const InstructorAvailabilityPage = () => {
       },
       {
         field: 'dayOfWeek',
-        headerName: 'Day(s)',
+        headerName: t('days_of_week') || 'Day(s)',
         width: 150,
         renderCell: (params) => {
           const days = params?.value;
@@ -298,7 +386,7 @@ const InstructorAvailabilityPage = () => {
       },
       {
         field: 'slots',
-        headerName: 'Time Slots',
+        headerName: t('time_slots') || 'Time Slots',
         width: 200,
         renderCell: (params) => {
           const slots = params?.value;
@@ -308,7 +396,7 @@ const InstructorAvailabilityPage = () => {
       },
       {
         field: 'daysCount',
-        headerName: 'Days Count',
+        headerName: t('days_count') || 'Days Count',
         width: 100,
         renderCell: (params) => {
           const row = params?.row;
@@ -338,7 +426,7 @@ const InstructorAvailabilityPage = () => {
       },
       {
         field: 'startDate',
-        headerName: 'Start Date',
+        headerName: t('start_date') || 'Start Date',
         width: 120,
         renderCell: (params) => {
           const value = params?.value;
@@ -347,11 +435,44 @@ const InstructorAvailabilityPage = () => {
       },
       {
         field: 'endDate',
-        headerName: 'End Date',
+        headerName: t('end_date') || 'End Date',
         width: 120,
         renderCell: (params) => {
           const value = params?.value;
           return value ? formatDate(value) : '—';
+        }
+      },
+      {
+        field: 'program',
+        headerName: 'Program',
+        flex: 1,
+        minWidth: 150,
+        renderCell: (params) => {
+          const program = params?.row?.program;
+          if (!program) return '—';
+          return program.nameEn || '—';
+        }
+      },
+      {
+        field: 'subject',
+        headerName: 'Subject',
+        flex: 1,
+        minWidth: 150,
+        renderCell: (params) => {
+          const subject = params?.row?.subject;
+          if (!subject) return '—';
+          return subject.nameEn || '—';
+        }
+      },
+      {
+        field: 'class',
+        headerName: 'Class',
+        flex: 1,
+        minWidth: 150,
+        renderCell: (params) => {
+          const cls = params?.row?.class;
+          if (!cls) return '—';
+          return cls.nameEn || '—';
         }
       }
     ];
@@ -360,7 +481,7 @@ const InstructorAvailabilityPage = () => {
     columns.push(
       {
         field: 'creator',
-        headerName: 'Created By',
+        headerName: t('created_by') || 'Created By',
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -371,7 +492,7 @@ const InstructorAvailabilityPage = () => {
       },
       {
         field: 'createdAt',
-        headerName: 'Created At',
+        headerName: t('created_at') || 'Created At',
         flex: 0.8,
         minWidth: 120,
         renderCell: (params) => {
@@ -381,7 +502,7 @@ const InstructorAvailabilityPage = () => {
       },
       {
         field: 'updater',
-        headerName: 'Updated By',
+        headerName: t('updated_by') || 'Updated By',
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -392,7 +513,7 @@ const InstructorAvailabilityPage = () => {
       },
       {
         field: 'updatedAt',
-        headerName: 'Updated At',
+        headerName: t('updated_at') || 'Updated At',
         flex: 0.8,
         minWidth: 120,
         renderCell: (params) => {
@@ -435,14 +556,17 @@ const InstructorAvailabilityPage = () => {
     return columns;
   }, [formatDate, handleEditAvailability, deleteEntity, saving, t]);
 
+  // Backend handles filtering
+  const filteredAvailabilities = availabilities;
+
   const handleExport = useCallback(() => {
-    const result = exportToCSV(availabilities, gridColumns, 'instructor-availability.csv');
+    const result = exportToCSV(filteredAvailabilities, gridColumns, 'instructor-availability.csv');
     if (result.success) {
       toast.success('Instructor availability exported successfully');
     } else {
       toast.error(result.error || 'Failed to export instructor availability');
     }
-  }, [availabilities, gridColumns, toast]);
+  }, [filteredAvailabilities, gridColumns, toast]);
 
   const hasPermission = isAdmin || isHR || isSuperAdmin;
 
@@ -470,25 +594,22 @@ const InstructorAvailabilityPage = () => {
           marginBottom: '1.5rem'
         }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Instructor *</label>
-            <Select
+            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('instructor') || 'Instructor'} *</label>
+            <UserSelect
               value={formData.instructorUserId}
-              onChange={(e) => handleInputChange('instructorUserId', e.target.value)}
-              options={instructors.map(u => ({ 
-                value: u.id.toString(), 
-                label: u.displayName || `${u.firstName} ${u.lastName}` 
-              }))}
+              onChange={(value) => handleInputChange('instructorUserId', value)}
+              users={instructors}
               disabled={saving}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Day(s) of Week</label>
+            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('days_of_week') || 'Day(s) of Week'}</label>
             <MultiSelect
               value={formData.dayOfWeek}
               onChange={(value) => handleInputChange('dayOfWeek', value)}
               options={dayOptions}
-              placeholder="Select days..."
+              placeholder={t('select_days') || 'Select days...'}
               disabled={saving}
             />
           </div>
@@ -559,6 +680,33 @@ const InstructorAvailabilityPage = () => {
               disabled={saving}
             />
           </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Program</label>
+            <Select
+              value={formData.programId}
+              onChange={(e) => handleInputChange('programId', e.target.value)}
+              options={[{ value: '', label: 'None' }, ...(programs || []).map(p => ({ value: p.id.toString(), label: p.nameEn || p.name }))]}
+              disabled={saving}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Subject</label>
+            <Select
+              value={formData.subjectId}
+              onChange={(e) => handleInputChange('subjectId', e.target.value)}
+              options={[{ value: '', label: 'None' }, ...(subjects || []).map(s => ({ value: s.id.toString(), label: s.nameEn || s.name }))]}
+              disabled={saving}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Class</label>
+            <Select
+              value={formData.classId}
+              onChange={(e) => handleInputChange('classId', e.target.value)}
+              options={[{ value: '', label: 'None' }, ...(classes || []).map(c => ({ value: c.id.toString(), label: c.nameEn || c.name }))]}
+              disabled={saving}
+            />
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -582,6 +730,97 @@ const InstructorAvailabilityPage = () => {
         </div>
       </form>
 
+      {/* Filter Bar */}
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'flex-end' }}>
+        <div style={{ flex: '2 1 180px' }}>
+          <Input
+            value={filterSearch}
+            onChange={e => setFilterSearch(e.target.value)}
+            placeholder={t('search') || 'Search'}
+          />
+        </div>
+        <div style={{ flex: '1 1 180px' }}>
+          <UserSelect
+            value={filterInstructor}
+            onChange={setFilterInstructor}
+            users={instructors}
+            placeholder={t('instructor') || 'Instructor'}
+            includeAll={true}
+            allValue=""
+            allLabel={t('all_instructors') || 'All Instructors'}
+          />
+        </div>
+        <div style={{ flex: '1 1 130px' }}>
+          <Select
+            value={filterDay}
+            onChange={e => setFilterDay(e.target.value)}
+            options={[{ value: '', label: t('all_days') || 'All Days' }, ...['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => ({ value: d, label: d }))]}
+            placeholder={t('day') || 'Day'}
+          />
+        </div>
+        <div style={{ flex: '1 1 140px' }}>
+          <Input
+            type="date"
+            value={filterStartDate}
+            onChange={e => setFilterStartDate(e.target.value)}
+            placeholder={t('start_date') || 'Start Date'}
+          />
+        </div>
+        <div style={{ flex: '1 1 140px' }}>
+          <Input
+            type="date"
+            value={filterEndDate}
+            onChange={e => setFilterEndDate(e.target.value)}
+            placeholder={t('end_date') || 'End Date'}
+          />
+        </div>
+        <div style={{ flex: '1 1 100px' }}>
+          <Input
+            type="time"
+            value={filterTimeFrom}
+            onChange={e => setFilterTimeFrom(e.target.value)}
+            placeholder={t('time_from') || 'From'}
+          />
+        </div>
+        <div style={{ flex: '1 1 100px' }}>
+          <Input
+            type="time"
+            value={filterTimeTo}
+            onChange={e => setFilterTimeTo(e.target.value)}
+            placeholder={t('time_to') || 'To'}
+          />
+        </div>
+        <div style={{ flex: '1 1 150px' }}>
+          <Select
+            value={filterProgram}
+            onChange={e => setFilterProgram(e.target.value)}
+            options={[{ value: '', label: 'All Programs' }, ...(programs || []).map(p => ({ value: p.id.toString(), label: p.nameEn || p.name }))]}
+            placeholder="Program"
+          />
+        </div>
+        <div style={{ flex: '1 1 150px' }}>
+          <Select
+            value={filterSubject}
+            onChange={e => setFilterSubject(e.target.value)}
+            options={[{ value: '', label: 'All Subjects' }, ...(subjects || []).map(s => ({ value: s.id.toString(), label: s.nameEn || s.name }))]}
+            placeholder="Subject"
+          />
+        </div>
+        <div style={{ flex: '1 1 150px' }}>
+          <Select
+            value={filterClass}
+            onChange={e => setFilterClass(e.target.value)}
+            options={[{ value: '', label: 'All Classes' }, ...(classes || []).map(c => ({ value: c.id.toString(), label: c.nameEn || c.name }))]}
+            placeholder="Class"
+          />
+        </div>
+        {(filterSearch || filterInstructor || filterDay || filterStartDate || filterEndDate || filterTimeFrom || filterTimeTo || filterProgram || filterSubject || filterClass) && (
+          <button onClick={() => { setFilterSearch(''); setFilterInstructor(''); setFilterDay(''); setFilterStartDate(''); setFilterEndDate(''); setFilterTimeFrom(''); setFilterTimeTo(''); setFilterProgram(''); setFilterSubject(''); setFilterClass(''); }}
+            style={{ border: `1px solid ${theme === 'dark' ? '#374151' : '#d1d5db'}`, backgroundColor: 'transparent', cursor: 'pointer', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+          >✕ Clear</button>
+        )}
+      </div>
+
       {/* Grid Header with Export */}
       <div style={{
         display: 'flex',
@@ -590,14 +829,9 @@ const InstructorAvailabilityPage = () => {
         marginBottom: '1rem'
       }}>
         <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '500' }}>
-          Instructor Availability ({availabilities.length})
+          Instructor Availability ({filteredAvailabilities.length}{filteredAvailabilities.length !== availabilities.length ? ` of ${availabilities.length}` : ''})
         </h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExport}
-          disabled={availabilities.length === 0}
-        >
+        <Button variant="outline" size="sm" onClick={handleExport} disabled={filteredAvailabilities.length === 0}>
           {t('export') || 'Export'}
         </Button>
       </div>
@@ -611,7 +845,7 @@ const InstructorAvailabilityPage = () => {
       }}>
         <AdvancedDataGrid
           key={gridKey}
-          rows={availabilities}
+          rows={filteredAvailabilities}
           columns={gridColumns}
           loading={loading}
           getRowId={(row) => row.id}

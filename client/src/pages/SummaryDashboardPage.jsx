@@ -318,7 +318,7 @@ const SummaryDashboardPage = () => {
                       {t('manage_instructor_availability') || 'Manage Instructor Availability'}
                     </Button>
                     <Button variant="outline" style={{ width: '100%' }} onClick={() => window.location.href = '/classroom-availability'}>
-                      {t('manage_classroom_availability') || 'Manage Classroom Availability'}
+                      {t('manage_room_availability') || 'Manage Room Availability'}
                     </Button>
                     {isSuperAdmin && (
                       <Button variant="outline" style={{ width: '100%' }} onClick={() => window.location.href = '/user-category-access'}>

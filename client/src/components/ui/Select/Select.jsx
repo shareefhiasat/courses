@@ -258,8 +258,8 @@ const Select = forwardRef(({
       setIsOpen(false);
       setSearchTerm('');
       setIsPositioned(false);
-    } catch (error) {
-      error('❌ [Select] Error in handleSelect:', error);
+    } catch (err) {
+      console.error('❌ [Select] Error in handleSelect:', err);
     }
   };
 

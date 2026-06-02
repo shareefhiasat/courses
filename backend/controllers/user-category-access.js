@@ -71,6 +71,9 @@ router.get('/', async (req, res) => {
       userId: req.query.userId,
       categoryId: req.query.categoryId,
       roleId: req.query.roleId,
+      programId: req.query.programId,
+      subjectId: req.query.subjectId,
+      classId: req.query.classId,
       canView: req.query.canView,
       canManage: req.query.canManage,
     };
@@ -84,7 +87,13 @@ router.get('/', async (req, res) => {
 // Update user category access
 router.put('/:id', async (req, res) => {
   try {
-    const result = await userCategoryAccessDb.updateUserCategoryAccess(req.params.id, req.body);
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, error: 'Invalid ID format' });
+    }
+    console.log('📝 User Category Access Update - Request body:', req.body);
+    const result = await userCategoryAccessDb.updateUserCategoryAccess(id, req.body);
+    console.log('📝 User Category Access Update - Result:', result);
     if (result.success) {
       res.json(result);
     } else {

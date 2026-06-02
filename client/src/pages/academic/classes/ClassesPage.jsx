@@ -114,7 +114,7 @@ const ClassesPage = () => {
         
         // Filter instructor users using centralized utilities (FLAG ONLY)
         const instructorUsers = usersArray.filter(u => {
-          const isInstructorRole = isSuperAdmin(u) || isAdmin(u) || isInstructor(u);
+          const isInstructorRole = isSuperAdmin(u) || isInstructor(u);
           info('🔍 [ClassesPage] Checking user for instructor role:', {
             userId: u.id,
             email: u.email,
@@ -154,7 +154,7 @@ const ClassesPage = () => {
         };
         
         // Only add if user has instructor-like roles
-        if (currentUserAsInstructor.isSuperAdmin || currentUserAsInstructor.isAdmin || currentUserAsInstructor.isInstructor) {
+        if (currentUserAsInstructor.isSuperAdmin || currentUserAsInstructor.isInstructor) {
           setFilteredInstructorUsers([currentUserAsInstructor]);
         }
       }
@@ -177,24 +177,23 @@ const ClassesPage = () => {
         
         const instructorUsers = usersArray.filter(u => {
           // Try multiple detection methods
-          const method1 = isSuperAdmin(u) || isAdmin(u) || isInstructor(u);
-          
+          const method1 = isSuperAdmin(u) || isInstructor(u);
+
           // Method 2: Check roleAssignments directly
-          const method2 = u.roleAssignments && Array.isArray(u.roleAssignments) && 
-            u.roleAssignments.some(ra => 
-              ra.role && (ra.role.code === 'instructor' || ra.role.code === 'admin' || ra.role.code === 'super_admin')
+          const method2 = u.roleAssignments && Array.isArray(u.roleAssignments) &&
+            u.roleAssignments.some(ra =>
+              ra.role && (ra.role.code === 'instructor' || ra.role.code === 'super_admin')
             );
-          
+
           // Method 3: Check for instructor-like email or display name patterns
           const method3 = u.email && (
-            u.email.includes('instructor') || 
-            u.email.includes('admin') || 
+            u.email.includes('instructor') ||
             u.email.includes('teacher')
           );
-          
+
           // Method 4: Specific known instructor users (temporary fix)
           const method4 = u.email === 'instructor@instructor.com';
-          
+
           const isInstructorRole = method1 || method2 || method3 || method4;
           
           if (!method1 && (method2 || method3 || method4)) {
@@ -314,15 +313,6 @@ const ClassesPage = () => {
       return;
     }
 
-    console.log('🔍 [ClassesPage] handleClassSubmit Debug:', {
-      isEditing: !!editingClass,
-      editingClassId: editingClass?.docId,
-      editingClassData: editingClass,
-      classFormData: classForm,
-      textValues: textValues,
-      user: user?.email
-    });
-
     const classData = {
       ...classForm,
       ...textValues
@@ -369,7 +359,7 @@ const ClassesPage = () => {
       });
       
       const result = editingClass ?
-        await updateClass(editingClass.docId || editingClass.id, classData, user) :
+        await updateClass(editingClass.id || editingClass.docId, classData, user) :
         await addClass(classData, user);
 
       info('📋 [ClassesPage] Service result:', result);
@@ -401,10 +391,14 @@ const ClassesPage = () => {
         toast?.showSuccess(editingClass ? t('classes_updated_successfully') : t('classes_created_successfully'));
       } else {
         toast?.showError(t('classes_error_saving', { error: result.error }));
+        // Refresh grid even on error to show current state
+        await loadData();
       }
     } catch (error) {
       error('Error saving class:', error);
       toast?.showError(t('classes_error_saving', { error: error.message }));
+      // Refresh grid even on error to show current state
+      await loadData();
     } finally {
       setLoading(false);
       console.timeEnd('[PERF] handleClassSubmit');
@@ -434,6 +428,7 @@ const ClassesPage = () => {
       info('🔧 [ClassesPage] Edit - Using separate fields:', { term, year });
     }
     
+    setEditingClass(row);
     setClassForm({
       id: row.id,
       nameEn: row.nameEn || '',
@@ -452,7 +447,7 @@ const ClassesPage = () => {
       classId: row.classId || '',
       maxCapacity: row.maxCapacity || ''
     });
-    
+
     info('🔧 [ClassesPage] handleEdit - editingClass set to:', row);
     console.log('🔧 [ClassesPage] handleEdit - classForm set to:', {
       id: row.id,
@@ -488,11 +483,16 @@ const ClassesPage = () => {
       setClasses(prev => prev.filter(c => (c.docId || c.id) !== (classItem.docId || classItem.id)));
       
       try {
-        const result = await deleteClass(classItem.docId);
+        const classId = classItem.docId || classItem.id;
+        if (!classId) {
+          toast?.showError('Class ID is required');
+          return;
+        }
+        const result = await deleteClass(classId);
         if (result.success) {
           try {
             await logActivity(ACTIVITY_LOG_TYPES.CLASS_DELETED, {
-              classId: classItem.docId,
+              classId: classId,
               className: classItem.nameEn,
               classCode: classItem.code
             });
@@ -965,13 +965,12 @@ const handleCancelEdit = useCallback(() => {
             enrollments={enrollments}
             classes={classes}
             value={classForm.ownerEmail}
-            onChange={(e) => {
-              const selectedEmail = e.target.value;
+            onChange={(selectedEmail) => {
               const selectedInstructor = filteredInstructorUsers.find(u => u.email === selectedEmail);
-              
+
               // Set both ownerEmail and instructorId
-              setClassForm({ 
-                ...classForm, 
+              setClassForm({
+                ...classForm,
                 ownerEmail: selectedEmail,
                 instructorId: selectedInstructor ? selectedInstructor.id : ''
               });
@@ -1072,7 +1071,7 @@ const handleCancelEdit = useCallback(() => {
             onChange={(e) => setClassInstructorFilter(e.target.value)}
             options={[
               { value: '', label: lang === 'ar' ? 'جميع المدربين' : 'All Instructors', icon: getThemedIcon('ui', 'users', 16, theme) },
-              ...(Array.isArray(users) ? users.filter(u => isSuperAdmin(u) || isAdmin(u) || isInstructor(u)) : []).map(instructor => ({
+              ...(Array.isArray(users) ? users.filter(u => isSuperAdmin(u) || isInstructor(u)) : []).map(instructor => ({
                   value: instructor.email,
                   label: instructor.displayName || instructor.name || instructor.email,
                   icon: getThemedIcon('ui', 'user', 16, theme)
@@ -1187,6 +1186,7 @@ const handleCancelEdit = useCallback(() => {
 
       <div style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
+          key={classes.length} // Force re-render when classes data changes
           rows={filteredClasses}
           getRowId={(row) => row.docId || row.id}
           columns={gridColumns}

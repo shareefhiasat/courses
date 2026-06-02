@@ -250,7 +250,7 @@ const AppContent = () => {
           <Route 
             path="/user-category-access" 
             element={
-              <ProtectedRoute screenId="userCategoryAccess" screenName="User Category Access">
+              <ProtectedRoute screenId="userCategoryAccess" screenName="User Access">
                 <Suspense fallback={<GlobalLoadingFallback />}>
                   <UserCategoryAccessPage />
                 </Suspense>

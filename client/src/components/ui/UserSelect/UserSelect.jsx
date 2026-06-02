@@ -1,10 +1,10 @@
 import React from 'react';
 import { Select } from '@ui';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, getStatusDescription, USER_STATUS, USER_STATUS_LABELS } from '@utils/userStatus';
-import { getThemedIcon } from '@constants';
+import { getThemedIcon, getUserRoleIcon } from '@constants/iconTypes';
 import { getThemeColor } from '@constants';
 import { ROLE_STRINGS } from '@constants';
-import { isInstructor, isAdmin, isHR, isSuperAdmin, isStudent } from '@services/business/userService';
+import { isInstructor, isAdmin, isHR, isSuperAdmin, isStudent, getUserRoles } from '@services/business/userService';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';/**
@@ -146,11 +146,16 @@ const UserSelect = ({
       }
       
       // Get status information
-      // For instructors, calculate status based on classes they teach, not student enrollments
+      // For instructors, admins, and HR: calculate status based on their existence, not student enrollments
       let status, statusSummary, iconProps;
       
-      if (isInstructor(u) || isAdmin(u)) {
-        // For instructors: use a simplified status check that doesn't rely on student enrollments
+      const userRoles = getUserRoles(u);
+      const isStaff = userRoles.includes('instructor') || userRoles.includes('teacher') ||
+                      userRoles.includes('admin') || userRoles.includes('super_admin') ||
+                      userRoles.includes('hr') || userRoles.includes('human_resources');
+      
+      if (isStaff) {
+        // For staff roles: use a simplified status check that doesn't rely on student enrollments
         if (u.deleted === true || u.deletedAt) {
           status = USER_STATUS.DELETED;
         } else if (u.archived === true || u.archivedAt) {
@@ -158,11 +163,11 @@ const UserSelect = ({
         } else if (u.disabled === true || u.disabledAt) {
           status = USER_STATUS.DISABLED;
         } else {
-          // Instructors are active if they exist, regardless of enrollments
+          // Staff are active if they exist, regardless of enrollments
           status = USER_STATUS.ACTIVE;
         }
         
-        // Create a minimal status summary for instructors
+        // Create a minimal status summary for staff
         statusSummary = {
           status,
           label: status === USER_STATUS.ACTIVE ? 'Active' : USER_STATUS_LABELS[status] || status,
@@ -173,7 +178,7 @@ const UserSelect = ({
           canViewDashboard: status !== USER_STATUS.DELETED,
           enrollmentCount: enrollmentCount,
           iconProps: getStatusIconProps(status),
-          description: status === USER_STATUS.ACTIVE ? 'Instructor is active' : getStatusDescription(status)
+          description: status === USER_STATUS.ACTIVE ? 'User is active' : getStatusDescription(status)
         };
       } else {
         // For students: use the normal status calculation
@@ -193,13 +198,23 @@ const UserSelect = ({
       iconProps = getStatusIconProps(status);
       let IconComponent = getIconComponent(iconProps.name);
       
-      // Add instructor icon if user is instructor
-      if (isInstructor(u) || isAdmin(u)) {
-        const InstructorIcon = getIconComponent('BookOpen');
+      // Add role-specific icon based on user's primary role using centralized system
+      let RoleIcon = null;
+      if (userRoles.includes('super_admin')) {
+        RoleIcon = getUserRoleIcon('super_admin');
+      } else if (userRoles.includes('admin')) {
+        RoleIcon = getUserRoleIcon('admin');
+      } else if (userRoles.includes('hr') || userRoles.includes('human_resources')) {
+        RoleIcon = getUserRoleIcon('hr');
+      } else if (userRoles.includes('instructor') || userRoles.includes('teacher')) {
+        RoleIcon = getUserRoleIcon('instructor');
+      }
+      
+      if (RoleIcon) {
         IconComponent = (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             {IconComponent}
-            {InstructorIcon}
+            {RoleIcon}
           </div>
         );
       }
@@ -210,33 +225,8 @@ const UserSelect = ({
       options.push({
         value: useEmailAsValue ? u.email : (u.docId || u.id),
         displayLabel: u.displayName || u.realName || u.email || 'Unknown',
-        label: (
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            gap: 8,
-            opacity: isDisabled ? 0.7 : 1
-          }}>
-            {showStatus && <span>{IconComponent}</span>}
-            <span style={{ 
-              textDecoration: isDisabled ? 'line-through' : 'none',
-              flex: 1
-            }}>
-              {u.displayName || u.realName || u.email || 'Unknown'}
-            </span>
-            {(showStatus || showEnrollments) && (
-              <span style={{ 
-                fontSize: '0.8em',
-                color: '#9CA3AF',
-                marginLeft: 'auto'
-              }}>
-                {showStatus && statusLabel}
-                {showStatus && showEnrollments && ' • '}
-                {showEnrollments && displayCount}
-              </span>
-            )}
-          </div>
-        ),
+        label: u.displayName || u.realName || u.email || 'Unknown',
+        icon: IconComponent,
         disabled: isDisabled
       });
     });
@@ -247,7 +237,10 @@ const UserSelect = ({
   return (
     <Select
       value={value}
-      onChange={onChange}
+      onChange={(e) => {
+        const selectedValue = e?.target?.value || e?.value || '';
+        onChange(selectedValue);
+      }}
       placeholder={placeholder}
       options={generateUserOptions()}
       searchable={searchable}

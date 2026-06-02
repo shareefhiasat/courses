@@ -13,6 +13,9 @@ async function createUserCategoryAccess(data) {
         userId: data.userId,
         categoryId: data.categoryId,
         roleId: data.roleId || null,
+        programId: data.programId || null,
+        subjectId: data.subjectId || null,
+        classId: data.classId || null,
         canView: data.canView !== undefined ? data.canView : true,
         canManage: data.canManage !== undefined ? data.canManage : false,
         isActive: data.isActive !== undefined ? data.isActive : true,
@@ -20,6 +23,11 @@ async function createUserCategoryAccess(data) {
       include: {
         user: true,
         category: true,
+        program: true,
+        subject: true,
+        class: true,
+        creator: true,
+        updater: true,
       },
     });
     return { success: true, data: access };
@@ -37,6 +45,11 @@ async function getUserCategoryAccessById(id) {
       include: {
         user: true,
         category: true,
+        program: true,
+        subject: true,
+        class: true,
+        creator: true,
+        updater: true,
       },
     });
     return { success: true, data: access };
@@ -57,6 +70,11 @@ async function getUserCategoryAccessByUserId(userId) {
       include: {
         user: true,
         category: true,
+        program: true,
+        subject: true,
+        class: true,
+        creator: true,
+        updater: true,
       },
     });
     return { success: true, data: accesses };
@@ -77,6 +95,11 @@ async function getUsersByCategoryAccess(categoryId) {
       include: {
         user: true,
         category: true,
+        program: true,
+        subject: true,
+        class: true,
+        creator: true,
+        updater: true,
       },
     });
     return { success: true, data: accesses };
@@ -94,6 +117,9 @@ async function getAllUserCategoryAccesses(filters = {}) {
       ...(filters.userId && { userId: parseInt(filters.userId) }),
       ...(filters.categoryId && { categoryId: parseInt(filters.categoryId) }),
       ...(filters.roleId && { roleId: parseInt(filters.roleId) }),
+      ...(filters.programId && { programId: parseInt(filters.programId) }),
+      ...(filters.subjectId && { subjectId: parseInt(filters.subjectId) }),
+      ...(filters.classId && { classId: parseInt(filters.classId) }),
       ...(filters.canView !== undefined && { canView: filters.canView }),
       ...(filters.canManage !== undefined && { canManage: filters.canManage }),
     };
@@ -103,6 +129,11 @@ async function getAllUserCategoryAccesses(filters = {}) {
       include: {
         user: true,
         category: true,
+        program: true,
+        subject: true,
+        class: true,
+        creator: true,
+        updater: true,
       },
     });
     return { success: true, data: accesses };
@@ -116,16 +147,27 @@ async function getAllUserCategoryAccesses(filters = {}) {
 async function updateUserCategoryAccess(id, data) {
   try {
     const access = await prisma.userCategoryAccess.update({
-      where: { id },
+      where: { id: parseInt(id) },
       data: {
+        ...(data.userId !== undefined && { userId: data.userId }),
+        ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
         ...(data.roleId !== undefined && { roleId: data.roleId }),
+        ...(data.programId !== undefined && { programId: data.programId }),
+        ...(data.subjectId !== undefined && { subjectId: data.subjectId }),
+        ...(data.classId !== undefined && { classId: data.classId }),
         ...(data.canView !== undefined && { canView: data.canView }),
         ...(data.canManage !== undefined && { canManage: data.canManage }),
         ...(data.isActive !== undefined && { isActive: data.isActive }),
+        ...(data.updatedBy !== undefined && { updatedBy: data.updatedBy }),
       },
       include: {
         user: true,
         category: true,
+        program: true,
+        subject: true,
+        class: true,
+        creator: true,
+        updater: true,
       },
     });
     return { success: true, data: access };

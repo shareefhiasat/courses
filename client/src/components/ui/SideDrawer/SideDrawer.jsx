@@ -458,8 +458,17 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { id: 'programs', path: '/dashboard', hash: '#programs', icon: getThemedIcon('ui', 'book_open', 18, theme), label: (t('programs') || 'Programs').toUpperCase() },
         { id: 'subjects', path: '/dashboard', hash: '#subjects', icon: getThemedIcon('ui', 'book_open', 18, theme), label: (t('subjects') || 'Subjects').toUpperCase() },
         { id: 'classes-academic', path: '/dashboard', hash: '#classes', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('classes') || 'Classes').toUpperCase() },
-        { id: 'enrollments', path: '/dashboard', hash: '#enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: (t('enrollments') || 'Enrollments').toUpperCase() },
         { id: 'class-schedule', path: '/dashboard', hash: '#class-schedule', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('class_schedules') || 'Class Schedule').toUpperCase() },
+      ]
+    }] : []),
+    ...(isSuperAdmin || isInstructor || isAdmin ? [{
+      id: 'enrollments',
+      label: t('enrollments') || 'ENROLLMENTS',
+      icon: getThemedIcon('ui', 'users', 18, theme),
+      children: [
+        { id: 'enrollments', path: '/dashboard', hash: '#enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: (t('enrollments') || 'Enrollments').toUpperCase() },
+        { id: 'manage-enrollments', path: '/manage-enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: (t('manage_enrollments') || 'Manage Enrollments').toUpperCase() },
+        { id: 'marks', path: '/dashboard', hash: '#marks', icon: getThemedIcon('ui', 'award', 18, theme), label: (t('marks_entry') || 'Marks Entry').toUpperCase() },
       ]
     }] : []),
     ...(isSuperAdmin || isInstructor || isAdmin ? [{
@@ -467,19 +476,38 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: t('academic_records') || 'ACADEMIC RECORDS',
       icon: getThemedIcon('ui', 'award', 18, theme),
       children: [
-        { id: 'marks', path: '/dashboard', hash: '#marks', icon: getThemedIcon('ui', 'award', 18, theme), label: (t('marks_entry') || 'Marks Entry').toUpperCase() },
         { id: 'penalty', path: '/penalty', icon: getThemedIcon('ui', 'alert_triangle', 18, theme), label: (t('penalty') || 'Penalty').toUpperCase() },
       ]
     }] : []),
     ...(isSuperAdmin || isAdmin || isHR ? [
-      { id: 'summary-dashboard', path: '/summary-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: (t('summary_dashboard') || 'Summary Dashboard').toUpperCase() },
-      { id: 'flexible-scheduling', path: '/flexible-scheduling', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('flexible_scheduling') || 'Flexible Scheduling').toUpperCase() },
-      { id: 'instructor-availability', path: '/instructor-availability', icon: getThemedIcon('ui', 'users', 18, theme), label: (t('instructor_availability') || 'Instructor Availability').toUpperCase() },
-      { id: 'classroom-availability', path: '/classroom-availability', icon: getThemedIcon('ui', 'list', 18, theme), label: (t('classroom_availability') || 'Classroom Availability').toUpperCase() },
-      ...(isSuperAdmin ? [
-        { id: 'user-category-access', path: '/user-category-access', icon: getThemedIcon('ui', 'shield', 18, theme), label: (t('user_category_access') || 'User Category Access').toUpperCase() }
-      ] : []),
+      {
+        id: 'flexible-scheduling',
+        label: t('scheduling') || 'SCHEDULING',
+        icon: getThemedIcon('ui', 'calendar', 18, theme),
+        children: [
+          { id: 'summary-dashboard', path: '/summary-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: t('summary_dashboard') || 'Summary Dashboard' },
+          { id: 'flexible-scheduling', path: '/flexible-scheduling', icon: getThemedIcon('ui', 'calendar', 18, theme), label: t('flexible_scheduling') || 'Flexible Scheduling' },
+        ]
+      },
+      {
+        id: 'availability',
+        label: t('availability') || 'AVAILABILITY',
+        icon: getThemedIcon('ui', 'clock', 18, theme),
+        children: [
+          { id: 'instructor-availability', path: '/instructor-availability', icon: getThemedIcon('ui', 'users', 18, theme), label: t('instructor_availability') || 'Instructor Availability' },
+          { id: 'classroom-availability', path: '/classroom-availability', icon: getThemedIcon('ui', 'list', 18, theme), label: t('room_availability') || 'Room Availability' },
+        ]
+      },
     ] : []),
+    ...(isSuperAdmin ? [{
+      id: 'users',
+      label: t('users') || 'USERS',
+      icon: getThemedIcon('ui', 'users', 18, theme),
+      children: [
+        { id: 'users', path: '/dashboard', hash: '#users', icon: getThemedIcon('ui', 'users', 18, theme), label: (t('users') || 'Users').toUpperCase() },
+        { id: 'user-category-access', path: '/user-category-access', icon: getThemedIcon('ui', 'shield', 18, theme), label: t('user_access') || 'User Access' }
+      ]
+    }] : []),
     ...(isSuperAdmin || isInstructor || isAdmin ? [{
       id: 'review',
       label: t('review_results') || 'REVIEW RESULTS',
@@ -497,7 +525,6 @@ const SideDrawer = ({ isOpen, onClose }) => {
       icon: getThemedIcon('ui', 'calendar', 18, theme),
       children: [
         { id: 'class-schedules-admin', path: '/class-schedules', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('schedules') || 'Schedules').toUpperCase() },
-        { id: 'manage-enrollments', path: '/manage-enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: (t('manage_enrollments') || 'Manage Enrollments').toUpperCase() },
       ]
     },
     {
