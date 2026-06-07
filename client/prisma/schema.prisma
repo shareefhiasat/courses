@@ -545,6 +545,9 @@ model User {
   createdClasses                 Class[]                   @relation("ClassCreator")
   instructorClasses              Class[]                   @relation("ClassInstructor")
   updatedClasses                 Class[]                   @relation("ClassUpdater")
+  instructorScheduledSessions    ScheduledSession[]        @relation("ScheduledSessionInstructor")
+  createdScheduledSessions       ScheduledSession[]        @relation("ScheduledSessionCreator")
+  updatedScheduledSessions       ScheduledSession[]        @relation("ScheduledSessionUpdater")
   createdConfigTypes             ConfigTypes[]             @relation("ConfigTypesCreator")
   updatedConfigTypes             ConfigTypes[]             @relation("ConfigTypesUpdater")
   createdEnrollmentStatusTypes   EnrollmentStatusTypes[]   @relation("EnrollmentStatusTypesCreator")
@@ -749,6 +752,7 @@ model Class {
   programId      Int
   subjectId      Int
   instructorId   Int?
+  classroomId    Int?            // Default classroom for this class
   createdBy      Int
   updatedBy      Int?
   createdAt      DateTime        @default(now())
@@ -767,11 +771,13 @@ model Class {
   behaviors      Behavior[]
   creator        User            @relation("ClassCreator", fields: [createdBy], references: [id])
   instructor     User?           @relation("ClassInstructor", fields: [instructorId], references: [id])
+  classroom      Classroom?      @relation("ClassDefaultClassroom", fields: [classroomId], references: [id])
   program        Program         @relation(fields: [programId], references: [id])
   subject        Subject         @relation(fields: [subjectId], references: [id])
   updater        User?           @relation("ClassUpdater", fields: [updatedBy], references: [id])
   userCategoryAccesses UserCategoryAccess[] @relation("UserCategoryAccessClass")
   instructorAvailabilities InstructorAvailability[] @relation("InstructorAvailabilityClass")
+  scheduledSessions  ScheduledSession[] @relation("ScheduledSessionClass")
   enrollments    Enrollment[]
   participations Participation[]
   penalties      Penalty[]
@@ -1805,6 +1811,8 @@ model Classroom {
   adminScopes          AdminScope[]     @relation("ClassroomAdminScope")
   flexibleSessions     FlexibleScheduleSession[] @relation("FlexibleClassroomSessions")
   classroomAvailability ClassroomAvailability[] @relation("ClassroomAvailability")
+  defaultForClasses    Class[]          @relation("ClassDefaultClassroom")
+  scheduledSessions    ScheduledSession[] @relation("ScheduledSessionClassroom")
   creator              User?            @relation("ClassroomCreator", fields: [createdBy], references: [id])
   updater              User?            @relation("ClassroomUpdater", fields: [updatedBy], references: [id])
 
@@ -2139,6 +2147,34 @@ model ClassroomAvailabilitySlot {
 
   @@index([availabilityId])
   @@map("classroom_availability_slot")
+}
+
+model ScheduledSession {
+  id            Int      @id @default(autoincrement())
+  classId       Int      // The class being scheduled
+  instructorId  Int      // Instructor teaching this session (can override class default)
+  classroomId   Int      // Classroom for this session (can override class default)
+  startDateTime DateTime // Full date and time when session starts
+  endDateTime   DateTime // Full date and time when session ends
+  status        String   @default("scheduled") // scheduled, in_progress, completed, cancelled
+  notes         String?  // Additional notes for this session
+  isActive      Boolean  @default(true)
+  createdBy     Int?
+  updatedBy     Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  class         Class     @relation("ScheduledSessionClass", fields: [classId], references: [id], onDelete: Cascade)
+  instructor    User      @relation("ScheduledSessionInstructor", fields: [instructorId], references: [id])
+  classroom     Classroom @relation("ScheduledSessionClassroom", fields: [classroomId], references: [id])
+  creator       User?     @relation("ScheduledSessionCreator", fields: [createdBy], references: [id])
+  updater       User?     @relation("ScheduledSessionUpdater", fields: [updatedBy], references: [id])
+
+  @@index([classId])
+  @@index([instructorId])
+  @@index([classroomId])
+  @@index([startDateTime, endDateTime])
+  @@map("scheduled_sessions")
 }
 
 model UserCategoryAccess {

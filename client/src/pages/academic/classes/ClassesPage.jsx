@@ -8,6 +8,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
 import { formatQatarStandard } from '@utils/qatarDate';
 import { addClass, updateClass, deleteClass, getClasses } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
+import { getAllClassrooms } from '@services/business/classroomService';
 import { getUsers } from '@services/business/userService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getActivities } from '@services/business/activitiesService';
@@ -38,13 +39,14 @@ const ClassesPage = () => {
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [classrooms, setClassrooms] = useState([]);
   const [users, setUsers] = useState([]);
   const [filteredInstructorUsers, setFilteredInstructorUsers] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [activities, setActivities] = useState([]);
   
   // Form state
-  const [classForm, setClassForm] = useState({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
+  const [classForm, setClassForm] = useState({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
   const [editingClass, setEditingClass] = useState(null);
   const { deleteModal, deleteClass: deleteClassModal, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   
@@ -80,10 +82,11 @@ const ClassesPage = () => {
   const loadData = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoading(true);
     try {
-      const [classesRes, programsRes, subjectsRes, usersRes, enrollmentsRes, activitiesRes] = await Promise.all([
+      const [classesRes, programsRes, subjectsRes, classroomsRes, usersRes, enrollmentsRes, activitiesRes] = await Promise.all([
         getClasses(),
         getPrograms(),
         getSubjects(),
+        getAllClassrooms(),
         getUsers(),
         getEnrollments(),
         getActivities()
@@ -94,6 +97,7 @@ const ClassesPage = () => {
       if (classesRes?.success) setClasses(classesRes.data || []);
       if (programsRes?.success) setPrograms(programsRes.data || []);
       if (subjectsRes?.success) setSubjects(subjectsRes.data || []);
+      if (classroomsRes?.success) setClassrooms(classroomsRes.data || []);
       if (usersRes?.success) {
         const usersArray = Array.isArray(usersRes.data) ? usersRes.data : [];
         setUsers(usersArray);
@@ -335,6 +339,9 @@ const ClassesPage = () => {
     if (classData.instructorId) {
       classData.instructorId = parseInt(classData.instructorId, 10);
     }
+    if (classData.classroomId) {
+      classData.classroomId = parseInt(classData.classroomId, 10);
+    }
 
     // Add missing fields
     classData.isActive = classData.isActive !== false; // Default to true
@@ -378,7 +385,7 @@ const ClassesPage = () => {
         } catch (e) { warn('Failed to log activity:', e); }
         await loadData();
         setEditingClass(null);
-        setClassForm({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
+        setClassForm({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
         // Clear refs
         if (nameRef.current) nameRef.current.value = '';
         if (nameArRef.current) nameArRef.current.value = '';
@@ -442,6 +449,7 @@ const ClassesPage = () => {
       descriptionAr: row.descriptionAr || '',
       ownerEmail: row.ownerEmail || row.instructor?.email || '',
       instructorId: row.instructorId || row.instructor?.id || '',
+      classroomId: row.classroomId || row.classroom?.id || '',
       subjectId: row.subjectId || '',
       programId: row.programId || '',
       classId: row.classId || '',
@@ -515,7 +523,7 @@ const ClassesPage = () => {
 
 const handleCancelEdit = useCallback(() => {
     setEditingClass(null);
-    setClassForm({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
+    setClassForm({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
     // Clear refs
     if (nameRef.current) nameRef.current.value = '';
     if (nameArRef.current) nameArRef.current.value = '';
@@ -982,6 +990,19 @@ const handleCancelEdit = useCallback(() => {
             showStatus={true}
             useEmailAsValue={true}
             searchable={true}
+          />
+          <Select
+            searchable
+            placeholder="Classroom (Optional)"
+            value={classForm.classroomId || ''}
+            onChange={e => setClassForm({ ...classForm, classroomId: e.target.value })}
+            options={[
+              { value: '', label: 'Select Classroom (Optional)' },
+              ...classrooms.map(c => ({ 
+                value: String(c.id), 
+                label: `${c.code} - ${c.nameEn} (${c.capacity} seats)` 
+              }))
+            ]}
           />
         </div>
         <div className="form-row compact-cols">

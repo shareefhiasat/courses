@@ -53,7 +53,7 @@ const NotificationLogsPage = lazy(() => import('../communications/notifications/
 
 // ===== FLEXIBLE SCHEDULING =====
 const SummaryDashboardPage = lazy(() => import('../SummaryDashboardPage.jsx'));
-const FlexibleSchedulingPage = lazy(() => import('../FlexibleSchedulingPage.jsx'));
+const SchedulingCalendarPage = lazy(() => import('../SchedulingCalendarPage.jsx'));
 const InstructorAvailabilityPage = lazy(() => import('../InstructorAvailabilityPage.jsx'));
 const ClassroomAvailabilityPage = lazy(() => import('../ClassroomAvailabilityPage.jsx'));
 const ClassroomsManagementPage = lazy(() => import('../ClassroomsManagementPage.jsx'));
@@ -307,7 +307,7 @@ const DashboardPage = () => {
       label: t('scheduling') || 'Scheduling',
       items: [
         { key: 'summary-dashboard', label: t('summary_dashboard') || 'Summary Dashboard' },
-        { key: 'flexible-scheduling', label: t('flexible_scheduling') || 'Flexible Scheduling' },
+        { key: 'flexible-scheduling', label: t('scheduling_calendar') || 'Scheduling Calendar' },
         { key: 'instructor-availability', label: t('instructor_availability') || 'Instructor Availability' },
         ...(isSuperAdmin ? [
           { key: 'user-category-access', label: t('user_access') || 'User Access' }
@@ -555,7 +555,7 @@ const DashboardPage = () => {
           
           {/* ===== FLEXIBLE SCHEDULING ===== */}
           {activeTab === 'summary-dashboard' && (isSuperAdmin || isAdmin || isHR) && <SummaryDashboardPage />}
-          {activeTab === 'flexible-scheduling' && (isSuperAdmin || isAdmin || isHR) && <FlexibleSchedulingPage />}
+          {activeTab === 'flexible-scheduling' && (isSuperAdmin || isAdmin || isHR) && <SchedulingCalendarPage />}
           {activeTab === 'instructor-availability' && (isSuperAdmin || isAdmin || isHR) && <InstructorAvailabilityPage />}
           {activeTab === 'classroom-availability' && (isSuperAdmin || isAdmin || isHR) && <ClassroomAvailabilityPage />}
           {activeTab === 'classrooms-management' && (isSuperAdmin || isAdmin || isHR) && <ClassroomsManagementPage />}
