@@ -307,7 +307,7 @@ const DashboardPage = () => {
       label: t('scheduling') || 'Scheduling',
       items: [
         { key: 'summary-dashboard', label: t('summary_dashboard') || 'Summary Dashboard' },
-        { key: 'flexible-scheduling', label: t('scheduling_calendar') || 'Scheduling Calendar' },
+        { key: 'scheduling-calendar', label: t('scheduling_calendar') || 'Scheduling Calendar' },
         { key: 'instructor-availability', label: t('instructor_availability') || 'Instructor Availability' },
         ...(isSuperAdmin ? [
           { key: 'user-category-access', label: t('user_access') || 'User Access' }
@@ -555,7 +555,7 @@ const DashboardPage = () => {
           
           {/* ===== FLEXIBLE SCHEDULING ===== */}
           {activeTab === 'summary-dashboard' && (isSuperAdmin || isAdmin || isHR) && <SummaryDashboardPage />}
-          {activeTab === 'flexible-scheduling' && (isSuperAdmin || isAdmin || isHR) && <SchedulingCalendarPage />}
+          {activeTab === 'scheduling-calendar' && (isSuperAdmin || isAdmin || isHR) && <SchedulingCalendarPage />}
           {activeTab === 'instructor-availability' && (isSuperAdmin || isAdmin || isHR) && <InstructorAvailabilityPage />}
           {activeTab === 'classroom-availability' && (isSuperAdmin || isAdmin || isHR) && <ClassroomAvailabilityPage />}
           {activeTab === 'classrooms-management' && (isSuperAdmin || isAdmin || isHR) && <ClassroomsManagementPage />}

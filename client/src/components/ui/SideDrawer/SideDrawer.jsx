@@ -486,7 +486,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
         icon: getThemedIcon('ui', 'calendar', 18, theme),
         children: [
           { id: 'summary-dashboard', path: '/summary-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: t('summary_dashboard') || 'Summary Dashboard' },
-          { id: 'flexible-scheduling', path: '/flexible-scheduling', icon: getThemedIcon('ui', 'calendar', 18, theme), label: t('flexible_scheduling') || 'Flexible Scheduling' },
+          { id: 'scheduling-calendar', path: '/scheduling-calendar', icon: getThemedIcon('ui', 'calendar', 18, theme), label: t('scheduling_calendar') || 'Scheduling Calendar' },
         ]
       },
       {

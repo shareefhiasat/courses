@@ -63,7 +63,6 @@ const ScheduledReportsPage = lazy(() => import('./pages/feedback/reports/Schedul
 const AdvancedAnalytics = lazy(() => import('./components/AdvancedAnalytics'));
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage.jsx'));
 const SummaryDashboardPage = lazy(() => import('./pages/SummaryDashboardPage'));
-const FlexibleSchedulingPage = lazy(() => import('./pages/FlexibleSchedulingPage'));
 const SchedulingCalendarPage = lazy(() => import('./pages/SchedulingCalendarPage'));
 const InstructorAvailabilityPage = lazy(() => import('./pages/InstructorAvailabilityPage'));
 const UserCategoryAccessPage = lazy(() => import('./pages/UserCategoryAccessPage'));
@@ -221,17 +220,6 @@ const AppContent = () => {
               <ProtectedRoute screenId="summaryDashboard" screenName="Summary Dashboard">
                 <Suspense fallback={<GlobalLoadingFallback />}>
                   <SummaryDashboardPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/flexible-scheduling" 
-            element={
-              <ProtectedRoute screenId="flexibleScheduling" screenName="Flexible Scheduling">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <FlexibleSchedulingPage />
                 </Suspense>
               </ProtectedRoute>
             } 
