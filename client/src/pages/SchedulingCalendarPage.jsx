@@ -70,6 +70,8 @@ const SchedulingCalendarPage = () => {
   const [modalClassItem, setModalClassItem] = useState(null);
   const [modalStartDateTime, setModalStartDateTime] = useState(null);
   const [modalEndDateTime, setModalEndDateTime] = useState(null);
+  const [modalInstructorId, setModalInstructorId] = useState(null);
+  const [modalClassroomId, setModalClassroomId] = useState(null);
   
   // Stats
   const [showStats, setShowStats] = useState(true);
@@ -343,13 +345,9 @@ const SchedulingCalendarPage = () => {
 
     const classItem = JSON.parse(classItemData);
     
-    const instructorId = classItem.instructorId || instructors[0]?.id;
-    const classroomId = classItem.classroomId || classrooms[0]?.id;
-
-    if (!instructorId || !classroomId) {
-      toast.error('Please assign an instructor and classroom to this class first');
-      return;
-    }
+    // Set default instructor and classroom from class, or first available
+    const defaultInstructorId = classItem.instructorId || instructors[0]?.id;
+    const defaultClassroomId = classItem.classroomId || classrooms[0]?.id;
 
     // Set default start/end times
     const startDateTime = new Date(currentDate);
@@ -360,17 +358,22 @@ const SchedulingCalendarPage = () => {
     setModalClassItem(classItem);
     setModalStartDateTime(startDateTime);
     setModalEndDateTime(endDateTime);
+    setModalInstructorId(defaultInstructorId);
+    setModalClassroomId(defaultClassroomId);
     setShowCreateModal(true);
   }, [currentDate, instructors, classrooms, toast]);
 
   // Handle session creation from modal
   const handleCreateSession = useCallback(async () => {
-    if (!modalClassItem) return;
+    if (!modalClassItem || !modalInstructorId || !modalClassroomId) {
+      toast.error('Please select an instructor and classroom');
+      return;
+    }
 
     const sessionData = {
       classId: modalClassItem.id,
-      instructorId: modalClassItem.instructorId,
-      classroomId: modalClassItem.classroomId,
+      instructorId: modalInstructorId,
+      classroomId: modalClassroomId,
       startDateTime: modalStartDateTime.toISOString(),
       endDateTime: modalEndDateTime.toISOString(),
       status: 'scheduled',
@@ -1175,6 +1178,32 @@ const SchedulingCalendarPage = () => {
                   type="datetime-local"
                   value={modalEndDateTime ? modalEndDateTime.toISOString().slice(0, 16) : ''}
                   onChange={(e) => setModalEndDateTime(new Date(e.target.value))}
+                />
+              </div>
+            </div>
+
+            {/* Instructor and Classroom */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Instructor</label>
+                <Select
+                  value={modalInstructorId || ''}
+                  onChange={(e) => setModalInstructorId(e.target.value ? parseInt(e.target.value) : null)}
+                  options={[
+                    { value: '', label: 'Select Instructor' },
+                    ...instructors.map(i => ({ value: String(i.id), label: i.displayName || `${i.firstName} ${i.lastName}` }))
+                  ]}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Classroom</label>
+                <Select
+                  value={modalClassroomId || ''}
+                  onChange={(e) => setModalClassroomId(e.target.value ? parseInt(e.target.value) : null)}
+                  options={[
+                    { value: '', label: 'Select Room' },
+                    ...classrooms.map(c => ({ value: String(c.id), label: c.nameEn || c.code }))
+                  ]}
                 />
               </div>
             </div>

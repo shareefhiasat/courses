@@ -139,7 +139,6 @@ export const detectCapacityConflict = async (classId, classroomId) => {
       where: { id: parseInt(classId) },
       include: {
         enrollments: {
-          where: { isActive: true },
           select: { id: true }
         }
       }
@@ -263,6 +262,17 @@ export const validateAvailability = async (instructorId, classroomId, startDateT
  */
 export const validateSession = async (sessionData, excludeSessionId = null) => {
   const { classId, instructorId, classroomId, startDateTime, endDateTime } = sessionData;
+  
+  // Validate required fields
+  if (!classId || !instructorId || !classroomId || !startDateTime || !endDateTime) {
+    return {
+      valid: false,
+      conflicts: [{
+        type: 'validation',
+        message: 'Missing required fields: classId, instructorId, classroomId, startDateTime, and endDateTime are required'
+      }]
+    };
+  }
   
   const conflicts = [];
 
