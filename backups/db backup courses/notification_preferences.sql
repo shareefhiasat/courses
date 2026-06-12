@@ -1,0 +1,2 @@
+INSERT INTO "notification_preferences" ("id", "userId", "inAppEnabled", "emailEnabled", "smsEnabled", "pushEnabled", "matrix", "soundEnabled", "vibrationEnabled", "browserNotifEnabled", "updatedAt") VALUES (1, 1, 't', 't', 'f', 'f', '{}', 't', 't', 't', '2026-04-25 16:38:01.071');
+INSERT INTO "notification_preferences" ("id", "userId", "inAppEnabled", "emailEnabled", "smsEnabled", "pushEnabled", "matrix", "soundEnabled", "vibrationEnabled", "browserNotifEnabled", "updatedAt") VALUES (2, 101, 't', 't', 'f', 'f', '{}', 't', 't', 't', '2026-05-03 17:09:13.451');

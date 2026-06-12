@@ -1,0 +1,1 @@
+INSERT INTO "_prisma_migrations" ("id", "checksum", "finished_at", "migration_name", "logs", "rolled_back_at", "started_at", "applied_steps_count") VALUES ('c04900a9-d2d3-4ceb-9f4b-18516e12c95a', '6f51c613ed4b5413963be80a47da15e27d511d8eb127acb6be5cd509888904f6', '2026-04-14 05:45:56.010859+00', '0_init_baseline', '', NULL, '2026-04-14 05:45:56.010859+00', 0);

@@ -1,0 +1,13 @@
+INSERT INTO "file_comments" ("id", "fileId", "userId", "content", "createdAt") VALUES ('b950c987-8ea7-4851-993f-15b85c479d59', '3f3b21c6-2ae9-4ed4-a065-dfd7f1ca5ed7', 1, 'sdf', '2026-04-26 07:46:51.377');
+INSERT INTO "file_comments" ("id", "fileId", "userId", "content", "createdAt") VALUES ('dbcf6cd0-3271-4e99-b17e-d6aef93d0ddb', '3f3b21c6-2ae9-4ed4-a065-dfd7f1ca5ed7', 1, 'ff', '2026-04-26 07:46:55.804');
+INSERT INTO "file_comments" ("id", "fileId", "userId", "content", "createdAt") VALUES ('b17b6694-c049-4ad9-9f99-a0d694fc43e7', '3f3b21c6-2ae9-4ed4-a065-dfd7f1ca5ed7', 1, 'aa', '2026-04-26 07:51:21.094');
+INSERT INTO "file_comments" ("id", "fileId", "userId", "content", "createdAt") VALUES ('44fe3fca-a96b-44cd-b32f-b2238e9af429', '3f3b21c6-2ae9-4ed4-a065-dfd7f1ca5ed7', 1, 'asdgasdg', '2026-04-26 07:51:23.366');
+INSERT INTO "file_comments" ("id", "fileId", "userId", "content", "createdAt") VALUES ('36e04a2e-00c6-4469-b81e-5f22180e5254', '3f3b21c6-2ae9-4ed4-a065-dfd7f1ca5ed7', 1, 'asdg', '2026-04-26 07:52:26.012');
+INSERT INTO "file_comments" ("id", "fileId", "userId", "content", "createdAt") VALUES ('50e882ad-3324-48c5-8e21-59b9b20505c0', '3f3b21c6-2ae9-4ed4-a065-dfd7f1ca5ed7', 1, 'sdfsdf', '2026-04-26 07:56:09.746');
+INSERT INTO "file_comments" ("id", "fileId", "userId", "content", "createdAt") VALUES ('310225ae-915a-4c59-a9cb-1be37e0d060c', '3f3b21c6-2ae9-4ed4-a065-dfd7f1ca5ed7', 1, 'commmm', '2026-04-26 08:02:20.002');
+INSERT INTO "file_comments" ("id", "fileId", "userId", "content", "createdAt") VALUES ('72ca63f0-a838-4dde-8953-862e7431fe11', '3f3b21c6-2ae9-4ed4-a065-dfd7f1ca5ed7', 1, 'aaaaaaaa', '2026-04-26 08:05:10.068');
+INSERT INTO "file_comments" ("id", "fileId", "userId", "content", "createdAt") VALUES ('74662654-2848-48a6-92a0-cbb8485b0fa1', '3f3b21c6-2ae9-4ed4-a065-dfd7f1ca5ed7', 1, 'aaaa', '2026-04-26 08:06:54.311');
+INSERT INTO "file_comments" ("id", "fileId", "userId", "content", "createdAt") VALUES ('3b975c21-9cca-40f3-93bb-e41dc6d00350', '3f3b21c6-2ae9-4ed4-a065-dfd7f1ca5ed7', 1, 'asdgasdg', '2026-04-26 08:07:02.818');
+INSERT INTO "file_comments" ("id", "fileId", "userId", "content", "createdAt") VALUES ('2b5d035d-b7a6-49af-9948-1cb837f3ada7', '3f3b21c6-2ae9-4ed4-a065-dfd7f1ca5ed7', 1, 'sss', '2026-04-26 08:15:07.428');
+INSERT INTO "file_comments" ("id", "fileId", "userId", "content", "createdAt") VALUES ('737125a3-fc47-41fa-91a3-f8abdaf049c9', '3f3b21c6-2ae9-4ed4-a065-dfd7f1ca5ed7', 1, 'testxxx', '2026-05-03 07:06:09.827');
+INSERT INTO "file_comments" ("id", "fileId", "userId", "content", "createdAt") VALUES ('a75acd32-cfd4-4d9e-967f-7a281500c59f', 'f72e2d23-cdc9-4aea-8b15-1b0ed5895ad8', 101, 'sdfsdf', '2026-05-03 17:26:53.453');

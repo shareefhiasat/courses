@@ -1,4 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
+import * as schedulingEngine from '../services/schedulingEngine.js';
 
 const prisma = new PrismaClient();
 
@@ -312,10 +314,131 @@ export const deleteScheduledSession = async (id) => {
   }
 };
 
+/**
+ * Create recurring sessions
+ */
+export const createRecurringSessions = async (data) => {
+  try {
+    const { 
+      baseSession, 
+      recurrenceConfig,
+      createSeries = true 
+    } = data;
+
+    // Generate session instances
+    const sessionInstances = schedulingEngine.generateRecurringSessions(
+      baseSession, 
+      recurrenceConfig
+    );
+
+    if (sessionInstances.length === 0) {
+      return { success: false, error: 'No sessions generated' };
+    }
+
+    // Validate all sessions before creating any
+    for (const session of sessionInstances) {
+      const validation = await schedulingEngine.validateSession(session);
+      if (!validation.valid) {
+        return {
+          success: false,
+          error: 'Conflict detected in recurring sessions',
+          conflicts: validation.conflicts,
+          failedAt: session.startDateTime
+        };
+      }
+    }
+
+    let seriesId = null;
+    let createdSeries = null;
+
+    // Create series record if requested
+    if (createSeries) {
+      const dayNames = recurrenceConfig.recurrenceDays.join(', ');
+      const pattern = `Every ${dayNames}`;
+      
+      createdSeries = await prisma.sessionSeries.create({
+        data: {
+          name: `${baseSession.className || 'Class'} - ${pattern}`,
+          pattern,
+          recurrenceType: recurrenceConfig.recurrenceType,
+          recurrenceDays: recurrenceConfig.recurrenceDays,
+          startDate: new Date(sessionInstances[0].startDateTime),
+          endDate: new Date(sessionInstances[sessionInstances.length - 1].startDateTime),
+          totalSessions: sessionInstances.length,
+          classId: parseInt(baseSession.classId),
+          instructorId: parseInt(baseSession.instructorId),
+          classroomId: parseInt(baseSession.classroomId),
+          createdBy: baseSession.createdBy || null
+        }
+      });
+
+      seriesId = createdSeries.id;
+    }
+
+    // Create all sessions
+    const createdSessions = [];
+    let parentSessionId = null;
+
+    for (let i = 0; i < sessionInstances.length; i++) {
+      const sessionData = sessionInstances[i];
+      
+      const session = await prisma.scheduledSession.create({
+        data: {
+          classId: parseInt(sessionData.classId),
+          instructorId: parseInt(sessionData.instructorId),
+          classroomId: parseInt(sessionData.classroomId),
+          startDateTime: new Date(sessionData.startDateTime),
+          endDateTime: new Date(sessionData.endDateTime),
+          status: sessionData.status || 'scheduled',
+          notes: sessionData.notes || null,
+          recurrenceType: i === 0 ? recurrenceConfig.recurrenceType : null,
+          recurrenceDays: i === 0 ? recurrenceConfig.recurrenceDays : [],
+          recurrenceEndDate: i === 0 ? new Date(recurrenceConfig.recurrenceEndDate) : null,
+          recurrenceCount: i === 0 ? sessionInstances.length : null,
+          isRecurringInstance: i > 0,
+          parentSessionId: i === 0 ? null : parentSessionId,
+          seriesId: seriesId,
+          isActive: true,
+          createdBy: sessionData.createdBy || null
+        },
+        include: {
+          class: {
+            include: {
+              subject: true,
+              program: true
+            }
+          },
+          instructor: true,
+          classroom: true
+        }
+      });
+
+      if (i === 0) {
+        parentSessionId = session.id;
+      }
+
+      createdSessions.push(session);
+    }
+
+    return {
+      success: true,
+      data: {
+        series: createdSeries,
+        sessions: createdSessions,
+        totalCreated: createdSessions.length
+      }
+    };
+  } catch (error) {
+    console.error('[ScheduledSession DB] Error creating recurring sessions:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export default {
   getScheduledSessions,
   getScheduledSessionById,
   createScheduledSession,
   updateScheduledSession,
-  deleteScheduledSession
+  deleteScheduledSession,
+  createRecurringSessions
 };

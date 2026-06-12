@@ -1,0 +1,1 @@
+INSERT INTO "file_shares" ("id", "fileId", "permission", "expiresAt", "createdAt", "folderId", "grantedById", "subjectRole", "subjectType", "subjectUserId") VALUES ('974ec8bb-ddf3-401e-9b61-5d57dbe67408', 'f72e2d23-cdc9-4aea-8b15-1b0ed5895ad8', 'VIEW', NULL, '2026-05-04 03:27:12.334', NULL, 101, 'hr', 'ROLE', NULL);

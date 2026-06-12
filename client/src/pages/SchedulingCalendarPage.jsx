@@ -16,6 +16,7 @@ import { getAllSubjects } from '@services/business/subjectService.js';
 import { getAllClassrooms } from '@services/business/classroomService.js';
 import { getAllUsers } from '@services/business/userService.js';
 import * as scheduledSessionService from '@services/business/scheduledSessionService.js';
+import * as schedulingService from '@services/business/schedulingService.js';
 
 const SchedulingCalendarPage = () => {
   const { user, isAdmin, isHR, isSuperAdmin } = useAuth();
@@ -39,14 +40,36 @@ const SchedulingCalendarPage = () => {
   const [sidebarSearch, setSidebarSearch] = useState('');
   
   // View state
+  const [viewMode, setViewMode] = useState('all'); // 'all', 'instructor', 'room'
+  const [selectedInstructor, setSelectedInstructor] = useState(null);
+  const [selectedRoom, setSelectedRoom] = useState(null);
   const [currentView, setCurrentView] = useState('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hideWeekends, setHideWeekends] = useState(false);
   const [narrowWeekend, setNarrowWeekend] = useState(false);
   
+  // Recurrence state
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceType, setRecurrenceType] = useState('weekly');
+  const [recurrenceDays, setRecurrenceDays] = useState([]);
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState(null);
+  const [recurrenceCount, setRecurrenceCount] = useState(null);
+  const [timesPerDay, setTimesPerDay] = useState([]);
+  
+  // Conflict detection state
+  const [validationResult, setValidationResult] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  
   // Context menu state
   const [contextMenu, setContextMenu] = useState(null);
+  
+  // Modal state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [modalClassItem, setModalClassItem] = useState(null);
+  const [modalStartDateTime, setModalStartDateTime] = useState(null);
+  const [modalEndDateTime, setModalEndDateTime] = useState(null);
   
   // Stats
   const [showStats, setShowStats] = useState(true);
@@ -148,9 +171,22 @@ const SchedulingCalendarPage = () => {
     };
   }, [scheduledSessions]);
 
+  // Filter sessions based on view mode
+  const filteredSessions = useMemo(() => {
+    let filtered = scheduledSessions;
+
+    if (viewMode === 'instructor' && selectedInstructor) {
+      filtered = filtered.filter(s => s.instructorId === selectedInstructor);
+    } else if (viewMode === 'room' && selectedRoom) {
+      filtered = filtered.filter(s => s.classroomId === selectedRoom);
+    }
+
+    return filtered;
+  }, [scheduledSessions, viewMode, selectedInstructor, selectedRoom]);
+
   // Convert scheduled sessions to TOAST UI Calendar events
   const calendarEvents = useMemo(() => {
-    return scheduledSessions.map(session => ({
+    return filteredSessions.map(session => ({
       id: String(session.id),
       calendarId: '1',
       title: `${session.class?.code || 'Class'}`,
@@ -199,26 +235,49 @@ const SchedulingCalendarPage = () => {
     return eventData;
   }, []);
 
-  // Handle event update (drag/resize)
+  // Handle event update (drag/resize) with conflict preview
   const onBeforeUpdateEvent = useCallback(async (updateData) => {
     const { event, changes } = updateData;
     const session = event.raw.session;
     
     const updatePayload = {
+      classId: session.classId,
+      instructorId: session.instructorId,
+      classroomId: session.classroomId,
+      startDateTime: (changes.start || event.start).toISOString(),
+      endDateTime: (changes.end || event.end).toISOString(),
+      excludeSessionId: session.id,
       updatedBy: user?.dbId
     };
 
-    if (changes.start) {
-      updatePayload.startDateTime = changes.start.toISOString();
-    }
-    if (changes.end) {
-      updatePayload.endDateTime = changes.end.toISOString();
+    // Validate before updating
+    const validation = await schedulingService.validateSession(updatePayload);
+    setValidationResult(validation);
+
+    if (!validation.valid) {
+      toast.error(`Conflict detected: ${validation.conflicts[0]?.message}`);
+      
+      // Get suggestions for alternative times
+      const altTimes = await schedulingService.getAlternativeTimes(
+        session.classId,
+        session.instructorId,
+        session.classroomId,
+        updatePayload.startDateTime
+      );
+      
+      if (altTimes.success && altTimes.suggestions.length > 0) {
+        setSuggestions(altTimes.suggestions);
+        setShowSuggestions(true);
+      }
+      
+      return; // Prevent update
     }
 
     const result = await scheduledSessionService.updateScheduledSession(session.id, updatePayload);
     
     if (result.success) {
       toast.success('Session updated');
+      setValidationResult(null);
       loadData();
     } else {
       toast.error(result.error || 'Failed to update session');
@@ -246,7 +305,7 @@ const SchedulingCalendarPage = () => {
     e.dataTransfer.effectAllowed = 'copy';
   }, []);
 
-  // Handle drop on calendar
+  // Handle drop on calendar - open modal for configuration
   const handleCalendarDrop = useCallback(async (e) => {
     e.preventDefault();
     const classItemData = e.dataTransfer.getData('classItem');
@@ -254,11 +313,6 @@ const SchedulingCalendarPage = () => {
 
     const classItem = JSON.parse(classItemData);
     
-    // Create session at current view date/time
-    const startDateTime = new Date(currentDate);
-    startDateTime.setHours(9, 0, 0, 0); // 9 AM
-    const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // 1 hour
-
     const instructorId = classItem.instructorId || instructors[0]?.id;
     const classroomId = classItem.classroomId || classrooms[0]?.id;
 
@@ -267,26 +321,89 @@ const SchedulingCalendarPage = () => {
       return;
     }
 
+    // Set default start/end times
+    const startDateTime = new Date(currentDate);
+    startDateTime.setHours(9, 0, 0, 0); // 9 AM
+    const endDateTime = new Date(startDateTime.getTime() + 2 * 60 * 60 * 1000); // 2 hours
+
+    // Open modal for configuration
+    setModalClassItem(classItem);
+    setModalStartDateTime(startDateTime);
+    setModalEndDateTime(endDateTime);
+    setShowCreateModal(true);
+  }, [currentDate, instructors, classrooms, toast]);
+
+  // Handle session creation from modal
+  const handleCreateSession = useCallback(async () => {
+    if (!modalClassItem) return;
+
     const sessionData = {
-      classId: classItem.id,
-      instructorId,
-      classroomId,
-      startDateTime: startDateTime.toISOString(),
-      endDateTime: endDateTime.toISOString(),
+      classId: modalClassItem.id,
+      instructorId: modalClassItem.instructorId,
+      classroomId: modalClassItem.classroomId,
+      startDateTime: modalStartDateTime.toISOString(),
+      endDateTime: modalEndDateTime.toISOString(),
       status: 'scheduled',
       notes: `Scheduled via calendar`,
       createdBy: user?.dbId
     };
 
-    const result = await scheduledSessionService.createScheduledSession(sessionData);
-    
-    if (result.success) {
-      toast.success(`${classItem.nameEn} scheduled successfully!`);
-      loadData();
+    if (isRecurring) {
+      // Create recurring sessions
+      const recurrenceConfig = {
+        recurrenceType,
+        recurrenceDays,
+        recurrenceEndDate: recurrenceEndDate?.toISOString(),
+        recurrenceCount,
+        timesPerDay
+      };
+
+      const result = await schedulingService.createRecurringSessions(sessionData, recurrenceConfig);
+      
+      if (result.success) {
+        toast.success(`Recurring series created: ${result.data.totalCreated} sessions!`);
+        setShowCreateModal(false);
+        setIsRecurring(false);
+        setRecurrenceDays([]);
+        setTimesPerDay([]);
+        loadData();
+      } else {
+        toast.error(result.error || 'Failed to create recurring sessions');
+        if (result.conflicts) {
+          setValidationResult({ valid: false, conflicts: result.conflicts });
+        }
+      }
     } else {
-      toast.error(result.error || 'Failed to create session');
+      // Validate before creating single session
+      const validation = await schedulingService.validateSession(sessionData);
+      setValidationResult(validation);
+
+      if (!validation.success || !validation.valid) {
+        const errorMsg = validation.conflicts?.[0]?.message || validation.error || 'Validation failed';
+        toast.error(`Cannot schedule: ${errorMsg}`);
+        
+        // Get suggestions only if we have conflicts
+        if (validation.conflicts && validation.conflicts.length > 0) {
+          const suggestions = await schedulingService.getSuggestions(modalClassItem.id);
+          if (suggestions.success && suggestions.suggestions.length > 0) {
+            setSuggestions(suggestions.suggestions);
+            setShowSuggestions(true);
+          }
+        }
+        return;
+      }
+
+      const result = await scheduledSessionService.createScheduledSession(sessionData);
+      
+      if (result.success) {
+        toast.success(`${modalClassItem.nameEn} scheduled successfully!`);
+        setShowCreateModal(false);
+        loadData();
+      } else {
+        toast.error(result.error || 'Failed to create session');
+      }
     }
-  }, [currentDate, instructors, classrooms, user, toast, loadData]);
+  }, [modalClassItem, modalStartDateTime, modalEndDateTime, isRecurring, recurrenceType, recurrenceDays, recurrenceEndDate, recurrenceCount, timesPerDay, user, toast, loadData]);
 
   const handleCalendarDragOver = useCallback((e) => {
     e.preventDefault();
@@ -369,65 +486,221 @@ const SchedulingCalendarPage = () => {
 
   return (
     <div style={containerStyle}>
-      {/* Statistics Bar */}
+      {/* Statistics Bar - Compact */}
       {showStats && !isFullscreen && (
         <div style={{
-          display: 'flex',
-          gap: '1rem',
-          marginBottom: '1rem',
-          flexWrap: 'wrap'
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: '0.75rem',
+          marginBottom: '1rem'
         }}>
+          {/* Total Sessions */}
           <div style={{
-            flex: 1,
-            minWidth: '200px',
             backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-            borderRadius: '0.5rem',
-            padding: '1rem',
-            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
+            borderRadius: '0.375rem',
+            padding: '0.75rem',
+            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <CalendarIcon size={20} color="#3b82f6" />
-              <span style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>Total Sessions</span>
+            <div style={{ 
+              backgroundColor: '#dbeafe', 
+              borderRadius: '0.375rem', 
+              padding: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <CalendarIcon size={16} color="#3b82f6" />
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: '600' }}>{stats.totalSessions}</div>
-            <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', marginTop: '0.25rem' }}>
-              {stats.scheduledCount} scheduled, {stats.completedCount} completed
+            <div>
+              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.totalSessions}</div>
+              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Total Sessions</div>
             </div>
           </div>
 
+          {/* Scheduled */}
           <div style={{
-            flex: 1,
-            minWidth: '200px',
             backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-            borderRadius: '0.5rem',
-            padding: '1rem',
-            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
+            borderRadius: '0.375rem',
+            padding: '0.75rem',
+            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <DoorOpen size={20} color="#10b981" />
-              <span style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>Classrooms in Use</span>
+            <div style={{ 
+              backgroundColor: '#dbeafe', 
+              borderRadius: '0.375rem', 
+              padding: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Clock size={16} color="#3b82f6" />
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: '600' }}>{stats.uniqueClassrooms}</div>
-            <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', marginTop: '0.25rem' }}>
-              out of {classrooms.length} total
+            <div>
+              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.scheduledCount}</div>
+              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Scheduled</div>
             </div>
           </div>
 
+          {/* Completed */}
           <div style={{
-            flex: 1,
-            minWidth: '200px',
             backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-            borderRadius: '0.5rem',
-            padding: '1rem',
-            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
+            borderRadius: '0.375rem',
+            padding: '0.75rem',
+            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <Users size={20} color="#f59e0b" />
-              <span style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>Active Instructors</span>
+            <div style={{ 
+              backgroundColor: '#d1fae5', 
+              borderRadius: '0.375rem', 
+              padding: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Save size={16} color="#10b981" />
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: '600' }}>{stats.uniqueInstructors}</div>
-            <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', marginTop: '0.25rem' }}>
-              out of {instructors.length} total
+            <div>
+              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.completedCount}</div>
+              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Completed</div>
+            </div>
+          </div>
+
+          {/* Cancelled */}
+          <div style={{
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
+            borderRadius: '0.375rem',
+            padding: '0.75rem',
+            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}>
+            <div style={{ 
+              backgroundColor: '#fee2e2', 
+              borderRadius: '0.375rem', 
+              padding: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <X size={16} color="#ef4444" />
+            </div>
+            <div>
+              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.cancelledCount}</div>
+              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Cancelled</div>
+            </div>
+          </div>
+
+          {/* Classrooms */}
+          <div style={{
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
+            borderRadius: '0.375rem',
+            padding: '0.75rem',
+            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}>
+            <div style={{ 
+              backgroundColor: '#d1fae5', 
+              borderRadius: '0.375rem', 
+              padding: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <DoorOpen size={16} color="#10b981" />
+            </div>
+            <div>
+              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.uniqueClassrooms}/{classrooms.length}</div>
+              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Rooms Used</div>
+            </div>
+          </div>
+
+          {/* Instructors */}
+          <div style={{
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
+            borderRadius: '0.375rem',
+            padding: '0.75rem',
+            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}>
+            <div style={{ 
+              backgroundColor: '#fef3c7', 
+              borderRadius: '0.375rem', 
+              padding: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Users size={16} color="#f59e0b" />
+            </div>
+            <div>
+              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.uniqueInstructors}/{instructors.length}</div>
+              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Instructors</div>
+            </div>
+          </div>
+
+          {/* Classes */}
+          <div style={{
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
+            borderRadius: '0.375rem',
+            padding: '0.75rem',
+            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}>
+            <div style={{ 
+              backgroundColor: '#e0e7ff', 
+              borderRadius: '0.375rem', 
+              padding: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <BookOpen size={16} color="#6366f1" />
+            </div>
+            <div>
+              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{new Set(scheduledSessions.map(s => s.classId)).size}</div>
+              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Classes</div>
+            </div>
+          </div>
+
+          {/* Utilization Rate */}
+          <div style={{
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
+            borderRadius: '0.375rem',
+            padding: '0.75rem',
+            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}>
+            <div style={{ 
+              backgroundColor: '#fce7f3', 
+              borderRadius: '0.375rem', 
+              padding: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <BarChart3 size={16} color="#ec4899" />
+            </div>
+            <div>
+              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>
+                {classrooms.length > 0 ? Math.round((stats.uniqueClassrooms / classrooms.length) * 100) : 0}%
+              </div>
+              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Room Usage</div>
             </div>
           </div>
         </div>
@@ -623,6 +896,152 @@ const SchedulingCalendarPage = () => {
             </div>
           </div>
 
+          {/* View Mode Selector and Filters */}
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: '500', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>View:</span>
+            
+            <button 
+              onClick={() => { setViewMode('all'); setSelectedInstructor(null); setSelectedRoom(null); }} 
+              style={{ 
+                padding: '0.5rem 1rem', 
+                backgroundColor: viewMode === 'all' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb', 
+                color: viewMode === 'all' ? '#ffffff' : 'inherit', 
+                border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, 
+                borderRadius: '0.375rem', 
+                cursor: 'pointer', 
+                fontSize: '0.875rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}
+            >
+              <CalendarIcon size={14} />
+              All Sessions
+            </button>
+            
+            <button 
+              onClick={() => setViewMode('instructor')} 
+              style={{ 
+                padding: '0.5rem 1rem', 
+                backgroundColor: viewMode === 'instructor' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb', 
+                color: viewMode === 'instructor' ? '#ffffff' : 'inherit', 
+                border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, 
+                borderRadius: '0.375rem', 
+                cursor: 'pointer', 
+                fontSize: '0.875rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}
+            >
+              <User size={14} />
+              By Instructor
+            </button>
+            
+            <button 
+              onClick={() => setViewMode('room')} 
+              style={{ 
+                padding: '0.5rem 1rem', 
+                backgroundColor: viewMode === 'room' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb', 
+                color: viewMode === 'room' ? '#ffffff' : 'inherit', 
+                border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, 
+                borderRadius: '0.375rem', 
+                cursor: 'pointer', 
+                fontSize: '0.875rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}
+            >
+              <DoorOpen size={14} />
+              By Room
+            </button>
+
+            {viewMode === 'instructor' && (
+              <Select
+                value={selectedInstructor || ''}
+                onChange={(e) => setSelectedInstructor(e.target.value ? parseInt(e.target.value) : null)}
+                options={[
+                  { value: '', label: 'Select Instructor' },
+                  ...instructors.map(i => ({ value: String(i.id), label: i.displayName || `${i.firstName} ${i.lastName}` }))
+                ]}
+              />
+            )}
+
+            {viewMode === 'room' && (
+              <Select
+                value={selectedRoom || ''}
+                onChange={(e) => setSelectedRoom(e.target.value ? parseInt(e.target.value) : null)}
+                options={[
+                  { value: '', label: 'Select Room' },
+                  ...classrooms.map(c => ({ value: String(c.id), label: c.nameEn || c.code }))
+                ]}
+              />
+            )}
+          </div>
+
+          {/* Conflict/Suggestions Alert */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div style={{
+              backgroundColor: '#fef3c7',
+              border: '1px solid #fbbf24',
+              borderRadius: '0.375rem',
+              padding: '0.75rem',
+              fontSize: '0.875rem',
+              marginBottom: '1rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600', color: '#92400e' }}>
+                  <BarChart3 size={16} />
+                  Suggested Alternatives
+                </div>
+                <button onClick={() => setShowSuggestions(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <X size={16} color="#92400e" />
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {suggestions.slice(0, 3).map((suggestion, idx) => (
+                  <div key={idx} style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #fbbf24',
+                    borderRadius: '0.25rem',
+                    padding: '0.5rem',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => {
+                    if (suggestion.instructor && suggestion.classroom) {
+                      toast.info(`Suggested: ${suggestion.instructor.displayName} in ${suggestion.classroom.nameEn}`);
+                    } else if (suggestion.startDateTime) {
+                      toast.info(`Suggested: ${new Date(suggestion.startDateTime).toLocaleString()}`);
+                    }
+                    setShowSuggestions(false);
+                  }}>
+                    {suggestion.instructor ? (
+                      <div>
+                        <div style={{ fontWeight: '600', color: '#92400e' }}>
+                          {suggestion.instructor.displayName} • {suggestion.classroom.nameEn}
+                        </div>
+                        <div style={{ color: '#78350f', marginTop: '0.25rem' }}>
+                          Score: {(suggestion.score * 100).toFixed(0)}% • Utilization: {suggestion.details?.capacityUtilization}%
+                        </div>
+                      </div>
+                    ) : suggestion.startDateTime ? (
+                      <div>
+                        <div style={{ fontWeight: '600', color: '#92400e' }}>
+                          {suggestion.dayOfWeek} {suggestion.timeSlot}
+                        </div>
+                        <div style={{ color: '#78350f', marginTop: '0.25rem' }}>
+                          {suggestion.daysFromNow} days from now
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={{ flex: 1, minHeight: 0 }}>
             <Calendar
               ref={calendarRef}
@@ -670,6 +1089,216 @@ const SchedulingCalendarPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Create Session Modal */}
+      {showCreateModal && modalClassItem && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '1rem'
+        }}
+        onClick={() => setShowCreateModal(false)}>
+          <div style={{
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+            borderRadius: '0.5rem',
+            padding: '1.5rem',
+            maxWidth: '600px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}
+          onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '600' }}>Schedule Session</h2>
+              <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={20} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
+              </button>
+            </div>
+
+            {/* Class Info */}
+            <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: theme === 'dark' ? '#374151' : '#f3f4f6', borderRadius: '0.375rem' }}>
+              <div style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.25rem' }}>{modalClassItem.nameEn}</div>
+              <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                {subjects.find(s => s.id === modalClassItem.subjectId)?.nameEn || 'Subject'}
+              </div>
+            </div>
+
+            {/* Date and Time */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Start Time</label>
+                <Input
+                  type="datetime-local"
+                  value={modalStartDateTime ? modalStartDateTime.toISOString().slice(0, 16) : ''}
+                  onChange={(e) => setModalStartDateTime(new Date(e.target.value))}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>End Time</label>
+                <Input
+                  type="datetime-local"
+                  value={modalEndDateTime ? modalEndDateTime.toISOString().slice(0, 16) : ''}
+                  onChange={(e) => setModalEndDateTime(new Date(e.target.value))}
+                />
+              </div>
+            </div>
+
+            {/* Recurrence Toggle */}
+            <div style={{ marginBottom: '1rem', padding: '1rem', border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`, borderRadius: '0.375rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <input
+                  type="checkbox"
+                  id="isRecurring"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  style={{ cursor: 'pointer' }}
+                />
+                <label htmlFor="isRecurring" style={{ fontSize: '0.875rem', fontWeight: '500', cursor: 'pointer' }}>
+                  Create Recurring Sessions
+                </label>
+              </div>
+
+              {isRecurring && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {/* Recurrence Type */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Recurrence Type</label>
+                    <Select
+                      value={recurrenceType}
+                      onChange={(e) => setRecurrenceType(e.target.value)}
+                      options={[
+                        { value: 'daily', label: 'Daily' },
+                        { value: 'weekly', label: 'Weekly' },
+                        { value: 'custom', label: 'Custom' }
+                      ]}
+                    />
+                  </div>
+
+                  {/* Day Selection */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Select Days</label>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                        <button
+                          key={day}
+                          onClick={() => {
+                            setRecurrenceDays(prev => 
+                              prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+                            );
+                          }}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: recurrenceDays.includes(day) ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb',
+                            color: recurrenceDays.includes(day) ? '#ffffff' : 'inherit',
+                            border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+                            borderRadius: '0.375rem',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          {day}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* End Date or Count */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>End Date</label>
+                      <Input
+                        type="date"
+                        value={recurrenceEndDate ? recurrenceEndDate.toISOString().slice(0, 10) : ''}
+                        onChange={(e) => setRecurrenceEndDate(e.target.value ? new Date(e.target.value) : null)}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Or Count</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={recurrenceCount || ''}
+                        onChange={(e) => setRecurrenceCount(e.target.value ? parseInt(e.target.value) : null)}
+                        placeholder="Number of sessions"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Different times per day */}
+                  {recurrenceDays.length > 0 && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
+                        Custom Times per Day (Optional)
+                      </label>
+                      <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.5rem' }}>
+                        Leave empty to use the same time for all days
+                      </div>
+                      {recurrenceDays.map((day) => (
+                        <div key={day} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <span style={{ fontSize: '0.875rem', minWidth: '50px' }}>{day}:</span>
+                          <Input
+                            type="time"
+                            placeholder="Start"
+                            value={timesPerDay.find(t => t.day === day)?.startTime || ''}
+                            onChange={(e) => {
+                              setTimesPerDay(prev => {
+                                const filtered = prev.filter(t => t.day !== day);
+                                if (e.target.value) {
+                                  return [...filtered, { day, startTime: e.target.value, endTime: timesPerDay.find(t => t.day === day)?.endTime || '' }];
+                                }
+                                return filtered;
+                              });
+                            }}
+                          />
+                          <Input
+                            type="time"
+                            placeholder="End"
+                            value={timesPerDay.find(t => t.day === day)?.endTime || ''}
+                            onChange={(e) => {
+                              setTimesPerDay(prev => {
+                                const filtered = prev.filter(t => t.day !== day);
+                                const startTime = timesPerDay.find(t => t.day === day)?.startTime || '';
+                                if (e.target.value && startTime) {
+                                  return [...filtered, { day, startTime, endTime: e.target.value }];
+                                }
+                                return filtered;
+                              });
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <Button
+                onClick={() => setShowCreateModal(false)}
+                style={{ backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', color: 'inherit' }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateSession}
+                style={{ backgroundColor: '#3b82f6', color: '#ffffff' }}
+              >
+                {isRecurring ? 'Create Series' : 'Create Session'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
