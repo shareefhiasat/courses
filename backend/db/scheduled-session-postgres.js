@@ -162,62 +162,71 @@ export const getScheduledSessionById = async (id) => {
 };
 
 /**
- * Create a new scheduled session
+ * Create a new scheduled session with concurrency control
  */
 export const createScheduledSession = async (data) => {
   try {
-    // Check for conflicts
-    const conflict = await prisma.scheduledSession.findFirst({
-      where: {
-        isActive: true,
-        OR: [
-          { classroomId: parseInt(data.classroomId) },
-          { instructorId: parseInt(data.instructorId) }
-        ],
-        AND: [
-          { startDateTime: { lt: new Date(data.endDateTime) } },
-          { endDateTime: { gt: new Date(data.startDateTime) } }
-        ]
+    // Use transaction for atomic operation - prevents race conditions
+    const result = await prisma.$transaction(async (tx) => {
+      // Double-check for conflicts within transaction (prevents race conditions)
+      const conflict = await tx.scheduledSession.findFirst({
+        where: {
+          isActive: true,
+          OR: [
+            { classroomId: parseInt(data.classroomId) },
+            { instructorId: parseInt(data.instructorId) }
+          ],
+          AND: [
+            { startDateTime: { lt: new Date(data.endDateTime) } },
+            { endDateTime: { gt: new Date(data.startDateTime) } }
+          ]
+        }
+      });
+
+      if (conflict) {
+        throw new Error(
+          conflict.classroomId === parseInt(data.classroomId)
+            ? 'Classroom is already booked for this time'
+            : 'Instructor is already scheduled for this time'
+        );
       }
-    });
 
-    if (conflict) {
-      return {
-        success: false,
-        error: conflict.classroomId === parseInt(data.classroomId)
-          ? 'Classroom is already booked for this time'
-          : 'Instructor is already scheduled for this time'
-      };
-    }
-
-    const session = await prisma.scheduledSession.create({
-      data: {
-        classId: parseInt(data.classId),
-        instructorId: parseInt(data.instructorId),
-        classroomId: parseInt(data.classroomId),
-        startDateTime: new Date(data.startDateTime),
-        endDateTime: new Date(data.endDateTime),
-        status: data.status || 'scheduled',
-        notes: data.notes || null,
-        isActive: data.isActive !== undefined ? data.isActive : true,
-        createdBy: data.createdBy || null
-      },
-      include: {
-        class: {
-          include: {
-            subject: true,
-            program: true
-          }
+      // Create session
+      const session = await tx.scheduledSession.create({
+        data: {
+          classId: parseInt(data.classId),
+          instructorId: parseInt(data.instructorId),
+          classroomId: parseInt(data.classroomId),
+          startDateTime: new Date(data.startDateTime),
+          endDateTime: new Date(data.endDateTime),
+          status: data.status || 'scheduled',
+          notes: data.notes || null,
+          isActive: data.isActive !== undefined ? data.isActive : true,
+          createdBy: data.createdBy || null
         },
-        instructor: true,
-        classroom: true,
-        creator: true
-      }
+        include: {
+          class: {
+            include: {
+              subject: true,
+              program: true
+            }
+          },
+          instructor: true,
+          classroom: true,
+          creator: true
+        }
+      });
+
+      return session;
     });
 
-    return { success: true, data: session };
+    return { success: true, data: result };
   } catch (error) {
     console.error('[ScheduledSession DB] Error creating session:', error);
+    // Check if it's a conflict error
+    if (error.message.includes('already booked') || error.message.includes('already scheduled')) {
+      return { success: false, error: error.message, isConflict: true };
+    }
     return { success: false, error: error.message };
   }
 };

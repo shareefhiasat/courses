@@ -154,20 +154,50 @@ const SchedulingCalendarPage = () => {
 
   // Calculate statistics
   const stats = useMemo(() => {
+    const now = new Date();
+    const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    
     const totalSessions = scheduledSessions.length;
     const uniqueClassrooms = new Set(scheduledSessions.map(s => s.classroomId)).size;
     const uniqueInstructors = new Set(scheduledSessions.map(s => s.instructorId)).size;
+    const uniqueClasses = new Set(scheduledSessions.map(s => s.classId)).size;
+    
     const scheduledCount = scheduledSessions.filter(s => s.status === 'scheduled').length;
     const completedCount = scheduledSessions.filter(s => s.status === 'completed').length;
-    const cancelledCount = scheduledSessions.filter(s => s.status === 'cancelled').length;
+    
+    // This week's sessions
+    const thisWeekSessions = scheduledSessions.filter(s => {
+      const sessionDate = new Date(s.startDateTime);
+      return sessionDate >= now && sessionDate <= oneWeekFromNow;
+    }).length;
+    
+    // Next upcoming session
+    const upcomingSessions = scheduledSessions
+      .filter(s => s.status === 'scheduled' && new Date(s.startDateTime) > now)
+      .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+    
+    const nextSession = upcomingSessions[0];
+    
+    // Average session duration in hours
+    const durations = scheduledSessions.map(s => {
+      const start = new Date(s.startDateTime);
+      const end = new Date(s.endDateTime);
+      return (end - start) / (1000 * 60 * 60);
+    });
+    const avgDuration = durations.length > 0 
+      ? Math.round((durations.reduce((a, b) => a + b, 0) / durations.length) * 10) / 10 
+      : 0;
 
     return {
       totalSessions,
       uniqueClassrooms,
       uniqueInstructors,
+      uniqueClasses,
       scheduledCount,
       completedCount,
-      cancelledCount
+      thisWeekSessions,
+      nextSession,
+      avgDuration
     };
   }, [scheduledSessions]);
 
@@ -494,7 +524,7 @@ const SchedulingCalendarPage = () => {
           gap: '0.75rem',
           marginBottom: '1rem'
         }}>
-          {/* Total Sessions */}
+          {/* This Week */}
           <div style={{
             backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
             borderRadius: '0.375rem',
@@ -513,6 +543,32 @@ const SchedulingCalendarPage = () => {
               justifyContent: 'center'
             }}>
               <CalendarIcon size={16} color="#3b82f6" />
+            </div>
+            <div>
+              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.thisWeekSessions}</div>
+              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>This Week</div>
+            </div>
+          </div>
+
+          {/* Total Sessions */}
+          <div style={{
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
+            borderRadius: '0.375rem',
+            padding: '0.75rem',
+            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}>
+            <div style={{ 
+              backgroundColor: '#dbeafe', 
+              borderRadius: '0.375rem', 
+              padding: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Clock size={16} color="#3b82f6" />
             </div>
             <div>
               <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.totalSessions}</div>
@@ -538,7 +594,7 @@ const SchedulingCalendarPage = () => {
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <Clock size={16} color="#3b82f6" />
+              <Save size={16} color="#3b82f6" />
             </div>
             <div>
               <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.scheduledCount}</div>
@@ -569,32 +625,6 @@ const SchedulingCalendarPage = () => {
             <div>
               <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.completedCount}</div>
               <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Completed</div>
-            </div>
-          </div>
-
-          {/* Cancelled */}
-          <div style={{
-            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-            borderRadius: '0.375rem',
-            padding: '0.75rem',
-            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem'
-          }}>
-            <div style={{ 
-              backgroundColor: '#fee2e2', 
-              borderRadius: '0.375rem', 
-              padding: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <X size={16} color="#ef4444" />
-            </div>
-            <div>
-              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.cancelledCount}</div>
-              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Cancelled</div>
             </div>
           </div>
 
@@ -671,12 +701,12 @@ const SchedulingCalendarPage = () => {
               <BookOpen size={16} color="#6366f1" />
             </div>
             <div>
-              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{new Set(scheduledSessions.map(s => s.classId)).size}</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.uniqueClasses}</div>
               <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Classes</div>
             </div>
           </div>
 
-          {/* Utilization Rate */}
+          {/* Avg Duration */}
           <div style={{
             backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
             borderRadius: '0.375rem',
@@ -697,10 +727,8 @@ const SchedulingCalendarPage = () => {
               <BarChart3 size={16} color="#ec4899" />
             </div>
             <div>
-              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>
-                {classrooms.length > 0 ? Math.round((stats.uniqueClassrooms / classrooms.length) * 100) : 0}%
-              </div>
-              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Room Usage</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.avgDuration}h</div>
+              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Avg Duration</div>
             </div>
           </div>
         </div>
