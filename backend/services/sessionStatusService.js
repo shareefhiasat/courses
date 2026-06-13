@@ -9,7 +9,7 @@ const STATUS_TRANSITIONS = {
   'scheduled': ['in_progress', 'cancelled'],
   'in_progress': ['completed', 'cancelled'],
   'completed': [], // Cannot change from completed
-  'cancelled': [] // Cannot change from cancelled (use restore instead)
+  'cancelled': ['scheduled'] // Allow restoring cancelled sessions back to scheduled
 };
 
 /**

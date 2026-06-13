@@ -1,27 +1,28 @@
 /**
  * Scheduling Calendar Constants
  * Centralized configuration for status options, labels, and transitions
+ * Note: Labels should be localized using t() function in the component
  */
 
 export const SESSION_STATUS_OPTIONS = [
-  { value: 'all', label: 'All' },
-  { value: 'scheduled', label: '📅 Scheduled' },
-  { value: 'in_progress', label: '⏳ In Progress' },
-  { value: 'completed', label: '✅ Completed' },
-  { value: 'cancelled', label: '❌ Cancelled' }
+  { value: 'all', labelKey: 'all' },
+  { value: 'scheduled', labelKey: 'scheduled', icon: '📅' },
+  { value: 'in_progress', labelKey: 'in_progress', icon: '⏳' },
+  { value: 'completed', labelKey: 'completed', icon: '✅' },
+  { value: 'cancelled', labelKey: 'cancelled', icon: '❌' }
 ];
 
 export const STATUS_TRANSITIONS = {
   scheduled: [
-    { value: 'in_progress', label: '⏳ In Progress' },
-    { value: 'cancelled', label: '❌ Cancelled' }
+    { value: 'in_progress', labelKey: 'in_progress', icon: '⏳' },
+    { value: 'cancelled', labelKey: 'cancelled', icon: '❌' }
   ],
   in_progress: [
-    { value: 'completed', label: '✅ Completed' },
-    { value: 'cancelled', label: '❌ Cancelled' }
+    { value: 'completed', labelKey: 'completed', icon: '✅' },
+    { value: 'cancelled', labelKey: 'cancelled', icon: '❌' }
   ],
   cancelled: [
-    { value: 'scheduled', label: '📅 Restore to Scheduled' }
+    { value: 'scheduled', labelKey: 'restore_to_scheduled', icon: '📅' }
   ],
   completed: [] // No valid transitions from completed
 };

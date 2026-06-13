@@ -6,6 +6,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Button, SimpleLoading, useToast, Select, Input, UserSelect } from '@ui';
 import { SESSION_STATUS_OPTIONS, STATUS_TRANSITIONS } from '../constants/schedulingConstants.js';
+import SchedulingCalendarPopup from '../components/SchedulingCalendarPopup.jsx';
 import { 
   BookOpen, Users, DoorOpen, Calendar as CalendarIcon, 
   ChevronLeft, ChevronRight, Maximize2, Minimize2,
@@ -63,6 +64,9 @@ const SchedulingCalendarPage = () => {
   // Search and drill-down state
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedItems, setExpandedItems] = useState(new Set());
+  
+  // Custom popup state
+  const [popupSession, setPopupSession] = useState(null);
   
   // Recurrence state
   const [isRecurring, setIsRecurring] = useState(false);
@@ -191,7 +195,8 @@ const SchedulingCalendarPage = () => {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Close context menu on click outside
   useEffect(() => {
@@ -329,11 +334,14 @@ const SchedulingCalendarPage = () => {
     }
   ], []);
 
-  // Handle event click - open edit modal
+  // Handle event click - show custom popup
   const onClickEvent = useCallback((eventInfo) => {
-    // Don't open edit modal directly - let the calendar's detail popup show first
-    // Edit modal will open when user clicks the pencil icon in the popup
-    return;
+    const { event } = eventInfo;
+    const session = event.raw.session;
+    
+    if (session) {
+      setPopupSession(session);
+    }
   }, []);
 
   // Handle event right-click
@@ -401,11 +409,15 @@ const SchedulingCalendarPage = () => {
     if (result.success) {
       toast.success('Session updated');
       setValidationResult(null);
-      loadData();
+      // Reload sessions without full data reload
+      const sessionsResult = await scheduledSessionService.getScheduledSessions();
+      if (sessionsResult.success) {
+        setScheduledSessions(sessionsResult.data || []);
+      }
     } else {
       toast.error(result.error || 'Failed to update session');
     }
-  }, [user, toast, loadData]);
+  }, [user, toast]);
 
   // Handle event delete - show confirmation modal
   const onBeforeDeleteEvent = useCallback(async (eventData) => {
@@ -575,7 +587,7 @@ const SchedulingCalendarPage = () => {
 
     // Validate end time is after start time
     if (modalEndDateTime <= modalStartDateTime) {
-      toast.error('End time must be after start time');
+      toast.error(t('end_time_validation_error'));
       return;
     }
 
@@ -1119,7 +1131,7 @@ const SchedulingCalendarPage = () => {
               </button>
               
               <button onClick={handleToday} style={{ padding: '0.5rem 1rem', backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                Today
+                {t('today')}
               </button>
               
               <button onClick={handleNext} style={{ padding: '0.5rem', backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
@@ -1133,17 +1145,17 @@ const SchedulingCalendarPage = () => {
             
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <button onClick={() => handleViewChange('day')} style={{ padding: '0.5rem 1rem', backgroundColor: currentView === 'day' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb', color: currentView === 'day' ? '#ffffff' : 'inherit', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                Day
+                {t('day')}
               </button>
               <button onClick={() => handleViewChange('week')} style={{ padding: '0.5rem 1rem', backgroundColor: currentView === 'week' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb', color: currentView === 'week' ? '#ffffff' : 'inherit', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                Week
+                {t('week')}
               </button>
               <button onClick={() => handleViewChange('month')} style={{ padding: '0.5rem 1rem', backgroundColor: currentView === 'month' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb', color: currentView === 'month' ? '#ffffff' : 'inherit', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                Month
+                {t('month')}
               </button>
               
               <button onClick={() => setHideWeekends(!hideWeekends)} style={{ padding: '0.5rem 1rem', backgroundColor: hideWeekends ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb', color: hideWeekends ? '#ffffff' : 'inherit', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                Hide Weekends
+                {t('hide_weekends')}
               </button>
               
               <button onClick={toggleFullscreen} style={{ padding: '0.5rem', backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
@@ -1154,11 +1166,11 @@ const SchedulingCalendarPage = () => {
 
           {/* View Mode Selector and Filters */}
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: '500', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>View:</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: '500', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>{t('view')}:</span>
             
             {/* Quick Search */}
             <Input
-              placeholder="Search rooms or instructors..."
+              placeholder={t('search_rooms_instructors')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ 
@@ -1188,7 +1200,7 @@ const SchedulingCalendarPage = () => {
               }}
             >
               <CalendarIcon size={14} />
-              All Sessions
+              {t('all_sessions')}
             </button>
             
             <button 
@@ -1245,7 +1257,7 @@ const SchedulingCalendarPage = () => {
               }}
             >
               <CalendarIcon size={14} />
-              Availability
+              {t('availability_view')}
             </button>
 
             {viewMode === 'instructor' && (
@@ -1330,7 +1342,7 @@ const SchedulingCalendarPage = () => {
                     }}
                   >
                     <DoorOpen size={14} style={{ display: 'inline', marginRight: '0.25rem' }} />
-                    Rooms
+                    {t('room_view')}
                   </button>
                 </div>
               </>
@@ -1338,11 +1350,14 @@ const SchedulingCalendarPage = () => {
             
             {/* Status Filter */}
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: 'auto' }}>
-              <span style={{ fontSize: '0.875rem', fontWeight: '500', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>Status:</span>
+              <span style={{ fontSize: '0.875rem', fontWeight: '500', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>{t('status')}:</span>
               <Select
                 value={statusFilter}
                 onChange={(value) => setStatusFilter(value)}
-                options={SESSION_STATUS_OPTIONS}
+                options={SESSION_STATUS_OPTIONS.map(opt => ({
+                  value: opt.value,
+                  label: `${opt.icon || ''} ${t(opt.labelKey)}`
+                }))}
               />
             </div>
           </div>
@@ -1538,7 +1553,7 @@ const SchedulingCalendarPage = () => {
             ) : viewMode === 'tree' && searchQuery ? (
               <div style={{ marginTop: '1rem' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                  Search Results: "{searchQuery}"
+                  {t('search_results')}: "{searchQuery}"
                 </h3>
                 
                 {/* Filtered Rooms */}
@@ -1571,7 +1586,7 @@ const SchedulingCalendarPage = () => {
                       <DoorOpen size={18} color="#3b82f6" />
                       <span style={{ fontWeight: '600', flex: 1 }}>{room.nameEn || room.code}</span>
                       <span style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                        {scheduledSessions.filter(s => s.classroomId === room.id).length} sessions
+                        {scheduledSessions.filter(s => s.classroomId === room.id).length} {t('sessions')}
                       </span>
                       {expandedItems.has(`room-${room.id}`) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </div>
@@ -1593,7 +1608,7 @@ const SchedulingCalendarPage = () => {
                               </span>
                             </div>
                             <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.25rem' }}>
-                              Instructor: {session.instructor?.displayName || 'Not assigned'}
+                              {t('instructor')}: {session.instructor?.displayName || t('not_assigned')}
                             </div>
                           </div>
                         ))}
@@ -1632,7 +1647,7 @@ const SchedulingCalendarPage = () => {
                       <User size={18} color="#3b82f6" />
                       <span style={{ fontWeight: '600', flex: 1 }}>{instructor.displayName || instructor.email}</span>
                       <span style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                        {scheduledSessions.filter(s => s.instructorId === instructor.id).length} sessions
+                        {scheduledSessions.filter(s => s.instructorId === instructor.id).length} {t('sessions')}
                       </span>
                       {expandedItems.has(`instructor-${instructor.id}`) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </div>
@@ -1654,7 +1669,7 @@ const SchedulingCalendarPage = () => {
                               </span>
                             </div>
                             <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.25rem' }}>
-                              Room: {session.classroom?.nameEn || 'Not assigned'}
+                              {t('room')}: {session.classroom?.nameEn || t('not_assigned')}
                             </div>
                           </div>
                         ))}
@@ -1669,34 +1684,28 @@ const SchedulingCalendarPage = () => {
                 height="100%"
                 view={currentView}
                 week={{
-                  startDayOfWeek: hideWeekends ? 1 : 0,
-                  dayNames: hideWeekends ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                  startDayOfWeek: 0, // Sunday start
+                  dayNames: hideWeekends ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
                   narrowWeekend: narrowWeekend,
                   workweek: hideWeekends,
                   hourStart: 7,
-                  hourEnd: 23
+                  hourEnd: 23,
+                  eventView: ['time'], // Only show time events, hide all day
+                  taskView: false, // Hide milestone and task
+                  showNowIndicator: true,
+                  showTimezoneCollapseButton: false
                 }}
                 month={{
-                  startDayOfWeek: hideWeekends ? 1 : 0,
+                  startDayOfWeek: 0, // Sunday start
                   narrowWeekend: narrowWeekend,
-                  workweek: hideWeekends
+                  workweek: hideWeekends,
+                  isReadOnly: false
                 }}
-                calendars={calendars}
-                events={calendarEvents}
-                useDetailPopup={true}
-                useFormPopup={false}
-                onClickEvent={onClickEvent}
-                onBeforeCreateEvent={onBeforeCreateEvent}
-                onBeforeUpdateEvent={onBeforeUpdateEvent}
-                onBeforeDeleteEvent={onBeforeDeleteEvent}
                 theme={{
                   common: {
                     backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
                     holiday: {
-                      color: '#ef4444'
-                    },
-                    saturday: {
-                      color: '#3b82f6'
+                      color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
                     },
                     dayName: {
                       color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
@@ -1704,13 +1713,157 @@ const SchedulingCalendarPage = () => {
                     today: {
                       color: '#10b981'
                     }
+                  },
+                  month: {
+                    dayName: {
+                      color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
+                    },
+                    holiday: {
+                      color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
+                    },
+                    weekend: {
+                      color: '#ef4444'
+                    },
+                    today: {
+                      color: '#10b981'
+                    }
+                  },
+                  week: {
+                    dayName: {
+                      color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
+                    },
+                    holiday: {
+                      color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
+                    },
+                    weekend: {
+                      color: '#ef4444'
+                    },
+                    today: {
+                      color: '#10b981'
+                    },
+                    timegrid: {
+                      horizontalLine: {
+                        border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
+                      },
+                      verticalLine: {
+                        border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
+                      },
+                      today: {
+                        color: '#10b981'
+                      }
+                    }
                   }
                 }}
+                css={`
+                  /* Remove default red color from Sunday - override inline style */
+                  .toastui-calendar-holiday-sun,
+                  .toastui-calendar-holiday-sun * {
+                    color: ${theme === 'dark' ? '#f3f4f6' : '#1f2937'} !important;
+                  }
+                  [data-testid="dayName-week-sun"],
+                  [data-testid="dayName-week-sun"] * {
+                    color: ${theme === 'dark' ? '#f3f4f6' : '#1f2937'} !important;
+                  }
+                  
+                  /* Make Friday (5) and Saturday (6) red for Middle Eastern weekend */
+                  .toastui-calendar-dayname-date[data-date-index="5"],
+                  .toastui-calendar-dayname-date[data-date-index="5"] * {
+                    color: #ef4444 !important;
+                  }
+                  .toastui-calendar-dayname-date[data-date-index="6"],
+                  .toastui-calendar-dayname-date[data-date-index="6"] * {
+                    color: #ef4444 !important;
+                  }
+                  .toastui-calendar-month-dayname[data-date-index="5"],
+                  .toastui-calendar-month-dayname[data-date-index="5"] * {
+                    color: #ef4444 !important;
+                  }
+                  .toastui-calendar-month-dayname[data-date-index="6"],
+                  .toastui-calendar-month-dayname[data-date-index="6"] * {
+                    color: #ef4444 !important;
+                  }
+                  .toastui-calendar-weekday-grid-date[data-date-index="5"],
+                  .toastui-calendar-weekday-grid-date[data-date-index="5"] * {
+                    color: #ef4444 !important;
+                  }
+                  .toastui-calendar-weekday-grid-date[data-date-index="6"],
+                  .toastui-calendar-weekday-grid-date[data-date-index="6"] * {
+                    color: #ef4444 !important;
+                  }
+                  
+                  /* Show event body with room and instructor info */
+                  .toastui-calendar-time-event-content {
+                    display: flex !important;
+                    flex-direction: column !important;
+                  }
+                  .toastui-calendar-time-event-title {
+                    font-weight: 600 !important;
+                    margin-bottom: 2px !important;
+                  }
+                  .toastui-calendar-time-event-body {
+                    font-size: 11px !important;
+                    opacity: 0.9 !important;
+                    display: block !important;
+                  }
+                `}
+                template={{
+                  time: (event) => {
+                    const session = event.raw?.session;
+                    return `
+                      <div style="display: flex; flex-direction: column; height: 100%;">
+                        <div style="font-weight: 600; font-size: 12px;">${session?.class?.code || 'Class'}</div>
+                        <div style="font-size: 10px; opacity: 0.9;">${session?.classroom?.code || 'Room'} - ${session?.instructor?.displayName || 'Instructor'}</div>
+                      </div>
+                    `;
+                  }
+                }}
+                calendars={calendars}
+                events={calendarEvents}
+                useDetailPopup={false}
+                useFormPopup={false}
+                onClickEvent={onClickEvent}
+                onBeforeCreateEvent={onBeforeCreateEvent}
+                onBeforeUpdateEvent={onBeforeUpdateEvent}
+                onBeforeDeleteEvent={onBeforeDeleteEvent}
               />
             )}
           </div>
         </div>
       </div>
+
+      {/* Custom Session Popup */}
+      {popupSession && (
+        <SchedulingCalendarPopup
+          session={popupSession}
+          onClose={() => setPopupSession(null)}
+          onEdit={(session) => {
+            setPopupSession(null);
+            setEditingSessionId(session.id);
+            setModalClassItem(session.class);
+            setModalStartDateTime(new Date(session.startDateTime));
+            setModalEndDateTime(new Date(session.endDateTime));
+            const instructor = instructors.find(i => i.id === session.instructorId);
+            setModalInstructorEmail(instructor?.email || null);
+            setModalInstructorId(session.instructorId);
+            setModalClassroomId(session.classroomId);
+            setShowCreateModal(true);
+          }}
+          onDelete={(session) => {
+            setPopupSession(null);
+            setSessionToDelete(session);
+            setShowDeleteModal(true);
+            setDeletionReason('');
+            setRequiresReason(false);
+          }}
+          onChangeStatus={(session) => {
+            setPopupSession(null);
+            setSessionToChangeStatus(session);
+            setShowStatusModal(true);
+            setNewStatus('');
+            setStatusChangeReason('');
+          }}
+        />
+      )}
 
       {/* Create Session Modal */}
       {showCreateModal && modalClassItem && (
@@ -1829,7 +1982,7 @@ const SchedulingCalendarPage = () => {
                 ) : (
                   <Select
                     value={modalClassroomId || ''}
-                    onChange={(e) => setModalClassroomId(e.target.value ? parseInt(e.target.value) : null)}
+                    onChange={(value) => setModalClassroomId(value ? parseInt(value) : null)}
                     options={[
                       { value: '', label: 'Select Room (optional)' },
                       ...classrooms.map(c => ({ value: String(c.id), label: `${c.nameEn || c.code} (${c.capacity} seats)` }))
@@ -2160,24 +2313,27 @@ const SchedulingCalendarPage = () => {
               </div>
 
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
-                New Status
+                {t('new_status')}
               </label>
               <Select
                 value={newStatus}
-                onChange={(value) => setNewStatus(value)}
+                onChange={(value) => setNewStatus(typeof value === 'object' ? value.value : value)}
                 options={[
-                  { value: '', label: 'Select status...' },
-                  ...(STATUS_TRANSITIONS[sessionToChangeStatus.status] || [])
+                  { value: '', label: t('select_status') },
+                  ...(STATUS_TRANSITIONS[sessionToChangeStatus.status] || []).map(opt => ({
+                    value: opt.value,
+                    label: `${opt.icon || ''} ${t(opt.labelKey)}`
+                  }))
                 ]}
               />
 
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
-                Reason (Optional)
+                {t('reason_optional')}
               </label>
               <textarea
                 value={statusChangeReason}
                 onChange={(e) => setStatusChangeReason(e.target.value)}
-                placeholder="Optional: Why is the status changing?"
+                placeholder={t('reason_placeholder')}
                 style={{
                   width: '100%',
                   padding: '0.5rem',
